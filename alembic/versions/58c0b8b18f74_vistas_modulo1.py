@@ -18,6 +18,16 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+COMENTARIOS_VISTAS_FUERA_DE_ALEMBIC = {
+    "vw_gestiones_cuenta_historial": "RF-06 (bitacora de acciones administrativas con responsable y motivo), RF-10 (cambios de estado de cuenta auditables).",
+    "vw_auditoria_eventos_completa": "RF-10 (historial de auditoria: usuario, accion, modulo, fecha, resultado, IP, sesion, hash SHA-256), RF-12 (auditoria de acceso a ficha), RF-11. estado_integridad compara contra baseline; NO recalcula el hash.",
+    "vw_auditoria_eventos_historico": "RF-10 (retencion minima 12 meses: eventos vigentes + archivados en una sola consulta).",
+    "vw_notificaciones_usuario_canal": "RF-14 (notificaciones por usuario, evento, canal y estado QUEUED/SENT/FAILED), RF-06 (estado de la cuenta del destinatario).",
+    "vw_permisos_efectivos_usuario": "RF-03 (permisos efectivos solo para cuentas ACTIVO, validacion en cada solicitud), RF-04 (propagacion dinamica a sesiones activas).",
+    "vw_catalogo_recursos_acciones": "RF-04 (catalogo recurso x accion; E solo en procesos especiales, CRUD en el resto).",
+}
+
+
 def upgrade() -> None:
     # =====================================================================
     # 1. CORRECCIONES / AJUSTES A VISTAS EXISTENTES
@@ -516,14 +526,8 @@ def upgrade() -> None:
     COMMENT ON VIEW modulo1.vw_resumen_cuentas_usuarios IS 'RF-06 (gestion de cuentas: estado, ultimo cambio, motivo, ultimo administrador activo), RF-05 (datos de contacto y rol), RF-11 (supervision). Incluye cuentas ELIMINADO.';
     COMMENT ON VIEW modulo1.vw_sesiones_activas_usuario IS 'RF-02 (una sesion activa por usuario, vigencia 8h, invalidacion), RF-06 (invalidacion al cambiar estado), RF-10 (id_sesion, IP, agente).';
     COMMENT ON VIEW modulo1.vw_usuarios_contacto IS 'RF-05 (datos de contacto editables: correo, telefono), RF-14 (destinatario de notificaciones). Sin datos sensibles.';
-    COMMENT ON VIEW modulo1.vw_gestiones_cuenta_historial IS 'RF-06 (bitacora de acciones administrativas con responsable y motivo), RF-10 (cambios de estado de cuenta auditables).';
-    COMMENT ON VIEW modulo1.vw_auditoria_eventos_completa IS 'RF-10 (historial de auditoria: usuario, accion, modulo, fecha, resultado, IP, sesion, hash SHA-256), RF-12 (auditoria de acceso a ficha), RF-11. estado_integridad compara contra baseline; NO recalcula el hash.';
-    COMMENT ON VIEW modulo1.vw_auditoria_eventos_historico IS 'RF-10 (retencion minima 12 meses: eventos vigentes + archivados en una sola consulta).';
-    COMMENT ON VIEW modulo1.vw_notificaciones_usuario_canal IS 'RF-14 (notificaciones por usuario, evento, canal y estado QUEUED/SENT/FAILED), RF-06 (estado de la cuenta del destinatario).';
     COMMENT ON VIEW modulo1.vw_notificaciones_control_frecuencia IS 'RF-14 (politica anti-spam: 1 por tipo_evento + usuario + canal cada 5 min; fallidas sin reintento).';
-    COMMENT ON VIEW modulo1.vw_permisos_efectivos_usuario IS 'RF-03 (permisos efectivos solo para cuentas ACTIVO, validacion en cada solicitud), RF-04 (propagacion dinamica a sesiones activas).';
     COMMENT ON VIEW modulo1.vw_roles_resumen_permisos IS 'RF-03 (rol con al menos un permiso, no eliminar con usuarios, rol Administrador protegido), RF-04 (cobertura de recursos).';
-    COMMENT ON VIEW modulo1.vw_catalogo_recursos_acciones IS 'RF-04 (catalogo recurso x accion; E solo en procesos especiales, CRUD en el resto).';
     COMMENT ON VIEW modulo1.vw_usuarios_edicion_datos IS 'RF-05 (edicion de datos: campos editables, control de concurrencia optimista con version, restriccion de autogestion del administrador), RF-06 (estado), RF-03 (rol).';
     COMMENT ON VIEW modulo1.vw_administradores_sistema IS 'RF-03 (rol Administrador protegido), RF-05 y RF-06 (no degradar/desactivar al ultimo administrador activo), RF-10. Reemplazo de usuarios_admin sin datos sensibles.';
     COMMENT ON VIEW modulo1.vw_matriz_permisos_rol IS 'RF-04 (matriz rol x recurso con acciones C/R/U/D/E), RF-03 (interfaz de seleccion de permisos).';
@@ -534,6 +538,14 @@ def upgrade() -> None:
     COMMENT ON VIEW modulo1.vw_auditoria_frecuencia_consultas IS 'RF-12 (deteccion de patrones de consulta inusual / extraccion masiva), RF-10 (consultas auditadas). Supuestos: categoria CONSULTA y detalle.id_usuario_consultado.';
     COMMENT ON VIEW modulo1.usuarios_admin IS 'LEGADO. Expone contrasena_cifrada y numero_identificacion completos, contrario a RF-11/RF-12/RF-13. Sustituir por vw_administradores_sistema y retirar tras verificar dependencias.';
     """)
+
+    # Estas 6 vistas existen en DEV/TEST pero ninguna migracion las crea: en una BD
+    # construida con Alembic (CI, "pruebas") no estan, asi que el comentario es condicional.
+    for vista, texto in COMENTARIOS_VISTAS_FUERA_DE_ALEMBIC.items():
+        op.execute(
+            f"DO $$ BEGIN IF to_regclass('modulo1.{vista}') IS NOT NULL THEN "
+            f"EXECUTE $c$COMMENT ON VIEW modulo1.{vista} IS '{texto}'$c$; END IF; END $$"
+        )
 
     # =====================================================================
     # 4. PENDIENTE (no automatizado a proposito)
@@ -546,36 +558,192 @@ def upgrade() -> None:
     # DROP VIEW modulo1.usuarios_admin;
 
 
+# --- downgrade -----------------------------------------------------------
+# Vistas que crea esta revision en una BD construida con Alembic. Las 8 primeras
+# ya existian en DEV/TEST creadas a mano (fuera de Alembic): el downgrade vuelve
+# al estado Alembic de f68851f9a433, asi que tambien se eliminan alli.
+VISTAS_NUEVAS = [
+    "vw_registros_pendientes_activacion",
+    "vw_tokens_seguridad_estado",
+    "vw_control_acceso_cuenta",
+    "vw_usuarios_listado_admin",
+    "vw_usuario_ficha_datos",
+    "vw_notificaciones_control_frecuencia",
+    "vw_roles_resumen_permisos",
+    "vw_usuarios_edicion_datos",
+    "vw_administradores_sistema",
+    "vw_matriz_permisos_rol",
+    "vw_roles_lista_permisos",
+    "vw_usuarios_elegibilidad_notificacion",
+    "vw_notificaciones_bandeja_usuario",
+    "vw_auditoria_eventos_por_archivar",
+    "vw_auditoria_frecuencia_consultas",
+]
+
+# Vistas que ya existian en f68851f9a433 y cuya definicion cambia el upgrade.
+VIEWS_ORIGINALES = [
+    r"""CREATE VIEW modulo1.vw_eventos_usuario_detalle AS
+SELECT e.id_evento,
+    u.id_usuario,
+    u.nombre,
+    u.apellidos,
+    te.id_tipo_evento,
+    te.nombre AS nombre_evento,
+    te.accion AS accion_evento,
+    e.modulo,
+    e.resultado,
+    e.estado,
+    e.fecha_evento
+   FROM ((modulo1.eventos e
+     JOIN modulo1.usuarios u ON ((u.id_usuario = e.id_usuario)))
+     JOIN modulo1.tipos_eventos te ON ((te.id_tipo_evento = e.tipo_evento)))""",
+    r"""CREATE VIEW modulo1.vw_eventos_usuario_sesion_activa AS
+SELECT e.id_evento,
+    u.id_usuario,
+    u.nombre,
+    u.apellidos,
+    te.nombre AS nombre_evento,
+    e.estado,
+    e.modulo,
+    s.id_sesion,
+    s.direccion_ip,
+    e.fecha_evento
+   FROM ((((modulo1.eventos e
+     JOIN modulo1.usuarios u ON ((u.id_usuario = e.id_usuario)))
+     JOIN modulo1.tipos_eventos te ON ((te.id_tipo_evento = e.tipo_evento)))
+     JOIN modulo1.cuentas_usuarios cu ON ((cu.id_usuario = u.id_usuario)))
+     JOIN LATERAL ( SELECT ses.id_sesion,
+            ses.direccion_ip,
+            ses.fecha_inicio
+           FROM modulo1.sesiones ses
+          WHERE ((ses.id_cuenta_usuario = cu.id_cuenta_usuario) AND (ses.es_activa IS TRUE))
+          ORDER BY ses.fecha_inicio DESC, ses.id_sesion DESC
+         LIMIT 1) s ON (true))""",
+    r"""CREATE VIEW modulo1.vw_notificaciones_eventos AS
+SELECT n.id_notificacion,
+    n.id_evento,
+    n.mensaje,
+    n.fecha_envio,
+    n.es_leido,
+    u.id_usuario,
+    u.nombre,
+    u.apellidos,
+    e.descripcion AS evento,
+    e.modulo,
+    e.fecha_evento
+   FROM ((modulo1.notificaciones n
+     JOIN modulo1.eventos e ON ((e.id_evento = n.id_evento)))
+     JOIN modulo1.usuarios u ON ((u.id_usuario = n.id_usuario)))""",
+    r"""CREATE VIEW modulo1.vw_permisos_roles AS
+SELECT r.id_rol,
+    r.nombre_rol,
+    p.id_permiso,
+    p.nombre AS permiso,
+    p.descripcion AS descripcion_permiso,
+    a.id_accion,
+    a.codigo AS codigo_accion,
+    a.descripcion AS accion,
+    rec.id_recurso,
+    rec.nombre_recurso AS recurso,
+    rec.descripcion AS descripcion_recurso,
+    p.fecha_creacion AS fecha_asignacion,
+    p.fecha_actualizacion,
+    p.es_activo
+   FROM (((modulo1.roles r
+     JOIN modulo1.permisos p ON ((p.id_rol = r.id_rol)))
+     JOIN modulo1.acciones a ON ((a.id_accion = p.id_accion)))
+     JOIN modulo1.recursos rec ON ((rec.id_recurso = p.id_recurso)))""",
+    r"""CREATE VIEW modulo1.vw_resumen_cuentas_usuarios AS
+SELECT u.id_usuario,
+    u.nombre,
+    u.apellidos,
+    u.correo_electronico,
+    u.telefono,
+    r.id_rol,
+    r.nombre_rol AS rol,
+    cu.id_cuenta_usuario,
+    ec.id_estado_cuenta,
+    ec.nombre AS estado_cuenta,
+    cu.ultimo_acceso
+   FROM (((modulo1.usuarios u
+     JOIN modulo1.roles r ON ((r.id_rol = u.id_rol)))
+     JOIN modulo1.cuentas_usuarios cu ON ((cu.id_usuario = u.id_usuario)))
+     JOIN modulo1.estados_cuentas ec ON ((ec.id_estado_cuenta = cu.id_estado_cuenta)))""",
+    r"""CREATE VIEW modulo1.vw_sesiones_activas_usuario AS
+SELECT u.id_usuario,
+    u.nombre,
+    u.apellidos,
+    r.id_rol,
+    r.nombre_rol,
+    cu.id_cuenta_usuario,
+    cu.ultimo_acceso,
+    ec.nombre AS estado_cuenta,
+    s.id_sesion,
+    s.es_activa,
+    s.direccion_ip,
+    s.fecha_inicio
+   FROM ((((modulo1.sesiones s
+     JOIN modulo1.cuentas_usuarios cu ON ((cu.id_cuenta_usuario = s.id_cuenta_usuario)))
+     JOIN modulo1.usuarios u ON ((u.id_usuario = cu.id_usuario)))
+     JOIN modulo1.roles r ON ((r.id_rol = u.id_rol)))
+     JOIN modulo1.estados_cuentas ec ON ((ec.id_estado_cuenta = cu.id_estado_cuenta)))
+  WHERE (s.es_activa IS TRUE)""",
+]
+
+# Vistas que solo reciben COMMENT en el upgrade.
+VISTAS_SOLO_COMENTADAS = ["usuarios_admin", "vw_cuentas_correo_estado", "vw_usuarios_contacto"]
+
+
+def _guardar_permisos(vistas: list[str]) -> None:
+    """Guarda dueno y GRANTs de las vistas antes del DROP (el DROP los pierde)."""
+    lista = ", ".join(f"'{v}'" for v in vistas)
+    op.execute("DROP TABLE IF EXISTS _permisos_vistas")
+    op.execute(f"""
+    CREATE TEMP TABLE _permisos_vistas ON COMMIT DROP AS
+    SELECT 1 AS orden, format('ALTER VIEW %s OWNER TO %I', c.oid::regclass, pg_get_userbyid(c.relowner)) AS stmt
+      FROM pg_class c
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND pg_has_role(c.relowner, 'MEMBER')
+    UNION ALL
+    SELECT 2, format('GRANT %s ON %s TO %s', a.privilege_type, c.oid::regclass,
+                     CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(a.grantee)) END)
+      FROM pg_class c CROSS JOIN LATERAL aclexplode(c.relacl) a
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND a.grantee <> c.relowner
+    """)
+
+
+def _restaurar_permisos() -> None:
+    op.execute(
+        "DO $$ DECLARE s text; BEGIN "
+        "FOR s IN SELECT stmt FROM _permisos_vistas ORDER BY orden LOOP EXECUTE s; END LOOP; END $$"
+    )
+    op.execute("DROP TABLE _permisos_vistas")
+
+
 def downgrade() -> None:
-    # NOTA: Dado que el script original utiliza CREATE OR REPLACE y no provee 
-    # las definiciones SQL previas de las vistas modificadas, el downgrade 
-    # procede a eliminar las vistas creadas/alteradas en esta revisión.
-    # Si necesitas restaurar la versión anterior de las vistas modificadas, 
-    # deberás pegar el SQL antiguo de esas vistas aquí.
-    
-    views_to_drop = [
-        'vw_registros_pendientes_activacion',
-        'vw_tokens_seguridad_estado',
-        'vw_control_acceso_cuenta',
-        'vw_usuarios_listado_admin',
-        'vw_usuario_ficha_datos',
-        'vw_eventos_usuario_detalle',
-        'vw_eventos_usuario_sesion_activa',
-        'vw_notificaciones_eventos',
-        'vw_permisos_roles',
-        'vw_resumen_cuentas_usuarios',
-        'vw_sesiones_activas_usuario',
-        'vw_notificaciones_control_frecuencia',
-        'vw_roles_resumen_permisos',
-        'vw_usuarios_edicion_datos',
-        'vw_administradores_sistema',
-        'vw_matriz_permisos_rol',
-        'vw_roles_lista_permisos',
-        'vw_usuarios_elegibilidad_notificacion',
-        'vw_notificaciones_bandeja_usuario',
-        'vw_auditoria_eventos_por_archivar',
-        'vw_auditoria_frecuencia_consultas'
+    for vista in VISTAS_NUEVAS:
+        op.execute(f"DROP VIEW IF EXISTS modulo1.{vista}")
+
+    restaurar = [
+        "modulo1.vw_eventos_usuario_detalle",
+        "modulo1.vw_eventos_usuario_sesion_activa",
+        "modulo1.vw_notificaciones_eventos",
+        "modulo1.vw_permisos_roles",
+        "modulo1.vw_resumen_cuentas_usuarios",
+        "modulo1.vw_sesiones_activas_usuario",
     ]
-    
-    for view in views_to_drop:
-        op.execute(f"DROP VIEW IF EXISTS modulo1.{view};")
+    _guardar_permisos(restaurar)
+    for nombre in restaurar:
+        op.execute(f"DROP VIEW {nombre}")
+    for sql in VIEWS_ORIGINALES:
+        op.execute(sql)
+    _restaurar_permisos()
+
+    for vista in VISTAS_SOLO_COMENTADAS:
+        op.execute(f"COMMENT ON VIEW modulo1.{vista} IS NULL")
+    for vista in COMENTARIOS_VISTAS_FUERA_DE_ALEMBIC:
+        op.execute(
+            f"DO $$ BEGIN IF to_regclass('modulo1.{vista}') IS NOT NULL THEN "
+            f"COMMENT ON VIEW modulo1.{vista} IS NULL; END IF; END $$"
+        )

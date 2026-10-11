@@ -5,11 +5,7 @@ Revises: 58c0b8b18f74
 Create Date: 2026-10-11 07:53:58.358796
 
 vistas modulo9 v2: correcciones por RF-15..RF-32, vista base de area de dispositivo y comentarios con RF
- 
-Revision ID: a7c41e9b3d02
-Revises: REEMPLAZAR_CON_alembic_heads
-Create Date: 2026-10-11
- 
+
 Alcance: SOLO vistas de modulo9 (sin DDL de tablas). Upgrade: crea vw_rf21_dispositivo_area_actual,
 reemplaza 28 vistas (CREATE OR REPLACE, columnas nuevas al final), crea 2 vistas de validacion y
 escribe COMMENT ON VIEW con los RF de las 58 vistas. Downgrade: DROP de lo tocado y recreacion
@@ -1265,12 +1261,43 @@ def upgrade() -> None:
         op.execute(f"COMMENT ON VIEW modulo9.{name} IS '{text}'")
  
  
+def _guardar_permisos(vistas: list[str]) -> None:
+    """Guarda dueno y GRANTs de las vistas antes del DROP (el DROP los pierde)."""
+    lista = ", ".join(f"'{v}'" for v in vistas)
+    op.execute("DROP TABLE IF EXISTS _permisos_vistas")
+    op.execute(f"""
+    CREATE TEMP TABLE _permisos_vistas ON COMMIT DROP AS
+    SELECT 1 AS orden, format('ALTER VIEW %s OWNER TO %I', c.oid::regclass, pg_get_userbyid(c.relowner)) AS stmt
+      FROM pg_class c
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND pg_has_role(c.relowner, 'MEMBER')
+    UNION ALL
+    SELECT 2, format('GRANT %s ON %s TO %s', a.privilege_type, c.oid::regclass,
+                     CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(a.grantee)) END)
+      FROM pg_class c CROSS JOIN LATERAL aclexplode(c.relacl) a
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND a.grantee <> c.relowner
+    """)
+
+
+def _restaurar_permisos() -> None:
+    op.execute(
+        "DO $$ DECLARE s text; BEGIN "
+        "FOR s IN SELECT stmt FROM _permisos_vistas ORDER BY orden LOOP EXECUTE s; END LOOP; END $$"
+    )
+    op.execute("DROP TABLE _permisos_vistas")
+
+
 def downgrade() -> None:
     op.execute("SET LOCAL lock_timeout = '10s'")
+    # Solo las vistas que se recrean: las nuevas de esta revision no vuelven.
+    recreadas = [sql.split()[2] for sql in VIEWS_ORIGINALES]
+    _guardar_permisos(recreadas)
     for name in DROP_ORDER:
         op.execute(f"DROP VIEW IF EXISTS modulo9.{name}")
     for sql in VIEWS_ORIGINALES:
         op.execute(sql)
+    _restaurar_permisos()
     for name in UNTOUCHED:
         op.execute(f"COMMENT ON VIEW modulo9.{name} IS NULL")
  

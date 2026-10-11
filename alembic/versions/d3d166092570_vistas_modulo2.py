@@ -268,6 +268,7 @@ def upgrade() -> None:
 
     -- RF-41 / RF-46: Detalle de eventos sanitarios (diagnóstico, tratamiento, preventivo).
     -- Se agregaron 'tipo', 'duracion' y 'observaciones' del DDL para cumplir plenamente con RF-41.
+    -- Van al final: CREATE OR REPLACE VIEW solo permite agregar columnas al final.
     CREATE OR REPLACE VIEW modulo2.vw_rf46_eventos_sanitarios AS
      SELECT 'SANITARIO'::text AS categoria,
         ea.id_eventos,
@@ -277,12 +278,12 @@ def upgrade() -> None:
         ea.descripcion,
         COALESCE(concat_ws(' '::text, u.nombre, u.apellidos), 'Sin usuario'::text) AS usuario,
         'modulo2'::text AS modulo_origen,
-        es.tipo,
         es.diagnostico,
         es.medicamento,
         es.dosis,
         es.unidad_dosis,
         es.frecuencia,
+        es.tipo,
         es.duracion,
         es.observaciones
        FROM (((modulo2.eventos_activos ea
@@ -302,9 +303,9 @@ def upgrade() -> None:
         'modulo2'::text AS modulo_origen,
         er.categoria AS categoria_reproductiva,
         er.id_padre,
-        er.id_madre,
         er.resultado,
-        er.numero_cria
+        er.numero_cria,
+        er.id_madre
        FROM (((modulo2.eventos_activos ea
          JOIN modulo2.activos_biologicos ab ON ((ab.id_activo_biologico = ea.id_activo_biologico)))
          JOIN modulo2.eventos_reproductivos er ON ((er.id_evento_reproductivo = ea.id_eventos)))
@@ -621,7 +622,7 @@ def upgrade() -> None:
          JOIN modulo9.infraestructuras io ON ((io.id_infraestructura = m.id_infraestructura_origen)))
          JOIN modulo9.infraestructuras ides ON ((ides.id_infraestructura = m.id_infraestructura_destino)));
    
-    RF-35 / RF-44: Historial de cambios de estado del activo, mostrando estado anterior, nuevo, motivo y usuario responsable.
+    -- RF-35 / RF-44: Historial de cambios de estado del activo, mostrando estado anterior, nuevo, motivo y usuario responsable.
     CREATE OR REPLACE VIEW modulo2.vw_rf35_historial_estados_activo AS
      SELECT h.id_historico_estado_activo,
         h.id_activo_biologico,
@@ -691,35 +692,108 @@ def upgrade() -> None:
     """)
 
 
+# --- downgrade -----------------------------------------------------------
+# Las 26 vistas ya existian antes de esta revision y el upgrade solo cambia la
+# definicion de estas 2; el resto queda igual, asi que el downgrade solo restaura
+# estas (con su dueno y permisos) y limpia los comentarios.
+VIEWS_ORIGINALES = [
+    r"""CREATE VIEW modulo2.vw_rf37_estado_fase_actual AS
+SELECT gf.id_gestion_fases,
+    gf.id_activo_biologico,
+    ab.identificador,
+    gf.id_ciclo_productiva,
+    cp.nombre AS ciclo_actual,
+    gf.fecha_inicio,
+    gf.fecha_finalizacion,
+    gf.es_activa,
+    gf.id_usuario
+   FROM ((modulo2.gestiones_fases gf
+     JOIN modulo2.activos_biologicos ab ON ((ab.id_activo_biologico = gf.id_activo_biologico)))
+     JOIN modulo9.ciclos_productivos cp ON ((cp.id_ciclo_productivo = gf.id_ciclo_productiva)))""",
+    r"""CREATE VIEW modulo2.vw_rf46_eventos_sanitarios AS
+SELECT 'SANITARIO'::text AS categoria,
+    ea.id_eventos,
+    ea.fecha,
+    ea.id_activo_biologico,
+    ab.identificador,
+    ea.descripcion,
+    COALESCE(concat_ws(' '::text, u.nombre, u.apellidos), 'Sin usuario'::text) AS usuario,
+    'modulo2'::text AS modulo_origen,
+    es.diagnostico,
+    es.medicamento,
+    es.dosis,
+    es.unidad_dosis,
+    es.frecuencia
+   FROM (((modulo2.eventos_activos ea
+     JOIN modulo2.activos_biologicos ab ON ((ab.id_activo_biologico = ea.id_activo_biologico)))
+     JOIN modulo2.eventos_sanitarios es ON ((es.id_evento = ea.id_eventos)))
+     LEFT JOIN modulo1.usuarios u ON ((u.id_usuario = ea.id_usuario)))""",
+]
+
+VISTAS_COMENTADAS = [
+    "vw_rf52_auditoria_transferencias_internas",
+    "vw_rf52_auditoria_fases_ciclo_productivo",
+    "vw_rf52_auditoria_cierres_ciclo_productivo",
+    "vw_rf52_auditoria_activos_poblacionales",
+    "vw_rf52_auditoria_activos_individuales",
+    "vw_rf52_auditoria_acceso_modulos_analiticos",
+    "vw_rf51_auditoria_activos_registrados",
+    "vw_rf49_asociaciones_sensores_activos",
+    "vw_rf48_infraestructura_actual_activo",
+    "vw_rf47_indicadores_zootecnicos_activo",
+    "vw_rf47_ficha_integral_activo",
+    "vw_rf46_historial_completo_activo",
+    "vw_rf46_eventos_sanitarios",
+    "vw_rf46_eventos_reproductivos",
+    "vw_rf46_eventos_productivos",
+    "vw_rf46_eventos_crecimiento",
+    "vw_rf46_eventos_bajas",
+    "vw_rf39_historial_eventos_activo",
+    "vw_rf38_eventos_activo",
+    "vw_rf37_historial_fases",
+    "vw_rf37_fases_productivas_secuencia",
+    "vw_rf37_estado_fase_actual",
+    "vw_rf35_historial_estados_activo",
+    "vw_rf35_activos_individuales",
+    "vw_rf34_movimientos_activo",
+    "vw_rf33_activos_biologicos_listado",
+]
+
+
+def _guardar_permisos(vistas: list[str]) -> None:
+    """Guarda dueno y GRANTs de las vistas antes del DROP (el DROP los pierde)."""
+    lista = ", ".join(f"'{v}'" for v in vistas)
+    op.execute("DROP TABLE IF EXISTS _permisos_vistas")
+    op.execute(f"""
+    CREATE TEMP TABLE _permisos_vistas ON COMMIT DROP AS
+    SELECT 1 AS orden, format('ALTER VIEW %s OWNER TO %I', c.oid::regclass, pg_get_userbyid(c.relowner)) AS stmt
+      FROM pg_class c
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND pg_has_role(c.relowner, 'MEMBER')
+    UNION ALL
+    SELECT 2, format('GRANT %s ON %s TO %s', a.privilege_type, c.oid::regclass,
+                     CASE WHEN a.grantee = 0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(a.grantee)) END)
+      FROM pg_class c CROSS JOIN LATERAL aclexplode(c.relacl) a
+     WHERE c.oid IN (SELECT to_regclass(v) FROM unnest(ARRAY[{lista}]::text[]) v)
+       AND a.grantee <> c.relowner
+    """)
+
+
+def _restaurar_permisos() -> None:
+    op.execute(
+        "DO $$ DECLARE s text; BEGIN "
+        "FOR s IN SELECT stmt FROM _permisos_vistas ORDER BY orden LOOP EXECUTE s; END LOOP; END $$"
+    )
+    op.execute("DROP TABLE _permisos_vistas")
+
+
 def downgrade() -> None:
-    views_to_drop = [
-        'vw_rf52_auditoria_transferencias_internas',
-        'vw_rf52_auditoria_fases_ciclo_productivo',
-        'vw_rf52_auditoria_cierres_ciclo_productivo',
-        'vw_rf52_auditoria_activos_poblacionales',
-        'vw_rf52_auditoria_activos_individuales',
-        'vw_rf52_auditoria_acceso_modulos_analiticos',
-        'vw_rf51_auditoria_activos_registrados',
-        'vw_rf49_asociaciones_sensores_activos',
-        'vw_rf48_infraestructura_actual_activo',
-        'vw_rf47_indicadores_zootecnicos_activo',
-        'vw_rf47_ficha_integral_activo',
-        'vw_rf46_historial_completo_activo',
-        'vw_rf46_eventos_sanitarios',
-        'vw_rf46_eventos_reproductivos',
-        'vw_rf46_eventos_productivos',
-        'vw_rf46_eventos_crecimiento',
-        'vw_rf46_eventos_bajas',
-        'vw_rf39_historial_eventos_activo',
-        'vw_rf38_eventos_activo',
-        'vw_rf37_historial_fases',
-        'vw_rf37_fases_productivas_secuencia',
-        'vw_rf37_estado_fase_actual',
-        'vw_rf35_historial_estados_activo',
-        'vw_rf35_activos_individuales',
-        'vw_rf34_movimientos_activo',
-        'vw_rf33_activos_biologicos_listado'
-    ]
-    
-    for view in views_to_drop:
-        op.execute(f"DROP VIEW IF EXISTS modulo2.{view};")
+    restaurar = ["modulo2.vw_rf37_estado_fase_actual", "modulo2.vw_rf46_eventos_sanitarios"]
+    _guardar_permisos(restaurar)
+    for nombre in restaurar:
+        op.execute(f"DROP VIEW {nombre}")
+    for sql in VIEWS_ORIGINALES:
+        op.execute(sql)
+    _restaurar_permisos()
+    for nombre in VISTAS_COMENTADAS:
+        op.execute(f"COMMENT ON VIEW modulo2.{nombre} IS NULL")
