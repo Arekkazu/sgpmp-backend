@@ -215,6 +215,23 @@ def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
     assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
 
 
+def test_errcode_area_en_uso_es_422_no_500() -> None:
+    """INC-M09-20-02: `trg_fn_infraestructura_no_desactivar_en_uso` señala P0127
+    al desactivar un área con dispositivos activos o sensores asociados."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0127",
+        message_primary='AREA_IN_USE: El área "Estanque" tiene 0 dispositivo(s) activo(s) y 1 sensor(es) asociado(s).',
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "INFRAESTRUCTURA_CON_DEPENDENCIAS"
+    assert exc_info.value.status_code == 422
+    assert "AREA_IN_USE:" not in exc_info.value.message
+
+
 def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
     """INC-M02-76-G55: el trigger `trg_fn_evento_reproductivo_secuencia` (modulo2)
     señala P0220 (misma clase `P0`, no mapeada por psycopg2) cuando un activo
