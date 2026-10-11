@@ -24,6 +24,10 @@ ESTADO_BLOQUEADO = 4
 
 VENTANA_ANTI_SPAM_MINUTOS = 5
 
+# RF-14: "El sistema NO reintenta automáticamente (para evitar duplicidad)".
+# Un solo intento SMTP; si falla, la notificación queda FAILED.
+INTENTOS_NOTIFICACION_EMAIL = 1
+
 # Estados de envío como texto (coinciden con los valores de enum_estado_envio en DB)
 ESTADO_ENVIO_EN_COLA = "en_cola"
 ESTADO_ENVIO_ENVIADO = "enviado"
@@ -111,6 +115,7 @@ class NotificacionService:
         titulo: Optional[str] = None,
         cuerpo: Optional[str] = None,
         aplicar_anti_spam_interno: bool = True,
+        intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
     ) -> Optional[bool]:
         """Punto de entrada único para enviar notificaciones.
 
@@ -140,6 +145,10 @@ class NotificacionService:
             aplicar_anti_spam_interno: Igual que ``aplicar_anti_spam_email``
                 para el canal INTERNO. Lo usa el bloqueo de cuenta, que comparte
                 tipo con el intento fallido pero es otro evento de RF-14.
+            intentos_email: Intentos SMTP del canal EMAIL. Por defecto 1:
+                RF-14 prohíbe reintentar notificaciones "para evitar
+                duplicidad". Solo los correos con token (RF-01 activación,
+                RF-08 recuperación) pasan ``INTENTOS_CORREO_CON_TOKEN``.
 
         Returns:
             ``True`` si el canal EMAIL se entregó, ``False`` si se intentó y
@@ -160,6 +169,7 @@ class NotificacionService:
                 titulo,
                 cuerpo,
                 aplicar_anti_spam_interno,
+                intentos_email,
             )
         except Exception as exc:
             logger.error(
@@ -180,6 +190,7 @@ class NotificacionService:
         titulo: Optional[str] = None,
         cuerpo: Optional[str] = None,
         aplicar_anti_spam_interno: bool = True,
+        intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
     ) -> Optional[bool]:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
@@ -227,8 +238,8 @@ class NotificacionService:
         fcm_tokens = self.port.buscar_fcm_tokens(id_usuario)
 
         # INTERNO va primero: el push FCM tarda milisegundos, mientras que el
-        # SMTP puede tardar hasta ~34s con reintentos (send_email) y en serie
-        # retrasaba la entrega del push.
+        # SMTP puede tardar hasta el timeout de conexión (send_email) y en
+        # serie retrasaba la entrega del push.
         self._enviar_canal(
             canal=ID_CANAL_INTERNO,
             tipo_evento=tipo_evento,
@@ -255,6 +266,7 @@ class NotificacionService:
             asunto_email=asunto_email,
             contenido_html_email=contenido_html_email,
             aplicar_anti_spam=aplicar_anti_spam_email,
+            intentos_email=intentos_email,
         )
 
         return resultado_email
@@ -272,6 +284,7 @@ class NotificacionService:
         asunto_email: Optional[str],
         contenido_html_email: Optional[str],
         aplicar_anti_spam: bool,
+        intentos_email: int = INTENTOS_NOTIFICACION_EMAIL,
     ) -> Optional[bool]:
         """Persiste y despacha la notificación para un canal específico.
 
@@ -335,6 +348,7 @@ class NotificacionService:
                     to=correo,
                     subject=asunto_email or titulo,
                     html_body=contenido_html_email or _correo_por_defecto(tipo_evento, titulo, cuerpo),
+                    intentos=intentos_email,
                 )
                 enviado = True
             elif canal == ID_CANAL_INTERNO and fcm_tokens:
