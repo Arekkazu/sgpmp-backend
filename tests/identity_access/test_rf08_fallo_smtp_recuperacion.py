@@ -223,7 +223,7 @@ def test_notificacion_service_reporta_fallo_de_email_al_llamador(monkeypatch) ->
         tipo_evento=7,
         id_usuario=74,
         correo_destino=CORREO,
-        asunto_email="Restablece tu contraseña en SGPMP",
+        asunto_email="Restablece tu contraseña en SIGAB",
         contenido_html_email="<p>token</p>",
         aplicar_anti_spam_email=False,
     )
@@ -239,7 +239,7 @@ def test_notificacion_service_reporta_exito_de_email_al_llamador(monkeypatch) ->
         tipo_evento=7,
         id_usuario=74,
         correo_destino=CORREO,
-        asunto_email="Restablece tu contraseña en SGPMP",
+        asunto_email="Restablece tu contraseña en SIGAB",
         contenido_html_email="<p>token</p>",
         aplicar_anti_spam_email=False,
     )

@@ -162,7 +162,7 @@ class CrearUsuarioUseCase:
                 tipo_evento=TIPO_REGISTRO_USUARIO,
                 id_usuario=usuario.id_usuario,
                 correo_destino=str(usuario.correo),
-                asunto_email="Activa tu cuenta en SGPMP",
+                asunto_email="Activa tu cuenta en SIGAB",
                 contenido_html_email=activation_email(usuario.nombre, token),
             )
             if enviado is False:
