@@ -285,6 +285,12 @@ def refrescar_sesion(
     `HttpOnly`, no un JWT — este endpoint reemplaza justamente la necesidad
     de credenciales cuando el access token en memoria se perdió (recarga de
     página) o expiró.
+
+    Cada uso rota la cookie. Presentar una cookie ya rotada responde 401
+    `REFRESH_TOKEN_REUTILIZADO` y cierra la sesión (posible robo), salvo en
+    los 15 s siguientes a la rotación con la sesión activa: eso es una carrera
+    del propio cliente (dos pestañas, una recarga) y se atiende como un
+    refresco normal.
     """
     if not refresh_token:
         raise AuthenticationError(
