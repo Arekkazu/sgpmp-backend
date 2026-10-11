@@ -44,6 +44,11 @@ _ERRCODES_NOMBRE_DUPLICADO = {
 _ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
 _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 
+#: INC-M09-20-02: `trg_fn_infraestructura_no_desactivar_en_uso` bloquea la
+#: desactivación de un área con dispositivos activos o sensores asociados.
+#: Sin mapeo, si la validación previa no lo ve salía como 500.
+_ERRCODE_AREA_EN_USO = "P0127"
+
 #: INC-M02-76-G55: `trg_fn_evento_reproductivo_secuencia` (modulo2) ya impedía
 #: correctamente un evento reproductivo de categoría distinta a "nacimiento"
 #: sobre un activo POBLACIONAL, pero su ERRCODE tampoco caía en ninguna clase
@@ -232,6 +237,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_SENSOR_FINCA_DISTINTA:
         mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
         raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_AREA_EN_USO:
+        mensaje = diag_generico.message_primary or "El área tiene recursos asociados."
+        raise BusinessRuleError(code="INFRAESTRUCTURA_CON_DEPENDENCIAS", message=mensaje.split(": ", 1)[-1])
 
     if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
         mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."

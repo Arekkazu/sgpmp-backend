@@ -1,9 +1,9 @@
 """Implementación real de :class:`InfraestructuraDependencyPort` (RF-20 FA-04).
 
-Verifica dispositivos IoT activos vía ``vw_rf20_dependencias_infraestructuras``
-(resuelve la asociación vigente de cada dispositivo al área, incluyendo
-reasignaciones de RF-22) y activos biológicos activos alojados directamente en el
-área, vía ``modulo2.activos_biologicos``.
+Verifica dispositivos IoT activos y sensores asociados vigentes vía
+``vw_rf20_dependencias_infraestructuras`` (resuelve la asociación vigente de cada
+dispositivo al área, incluyendo reasignaciones de RF-22) y activos biológicos
+activos alojados directamente en el área, vía ``modulo2.activos_biologicos``.
 """
 from __future__ import annotations
 
@@ -23,12 +23,15 @@ class InfraestructuraDependencyAdapter(InfraestructuraDependencyPort):
     def tiene_dependencias_activas(self, id_infraestructura: int) -> bool:
         row = self.db.execute(
             text(
-                "SELECT dispositivos_activos FROM modulo9.vw_rf20_dependencias_infraestructuras "
+                "SELECT dispositivos_activos, sensores_asociados_activos "
+                "FROM modulo9.vw_rf20_dependencias_infraestructuras "
                 "WHERE id_infraestructura = :id"
             ),
             {"id": id_infraestructura},
         ).fetchone()
-        if row is not None and row.dispositivos_activos > 0:
+        # INC-M09-20-02: un sensor asociado vigente también bloquea aunque su
+        # dispositivo esté inactivo; lo exige el trigger del área (P0127).
+        if row is not None and (row.dispositivos_activos > 0 or row.sensores_asociados_activos > 0):
             return True
 
         tiene_activos_biologicos = self.db.execute(

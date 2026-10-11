@@ -3,7 +3,8 @@
 Incluye ``fecha_actualizacion`` para control de concurrencia optimista.
 
 ``valor_min``/``valor_max`` (RFC-004): si se omiten se conserva el rango guardado;
-enviarlos como ``null`` lo elimina. Se distingue con ``model_fields_set``.
+enviarlos como ``null`` lo elimina. Se distingue con ``model_fields_set``. Con
+tipo_dato TEXTO/BOOLEANO se ignoran y el rango queda en null.
 """
 from __future__ import annotations
 
@@ -26,7 +27,8 @@ _APLICA_VALIDOS = {'INDIVIDUAL', 'LOTE', 'AMBOS'}
 
 
 class EditarMetricaDTO(BaseDTO):
-    """Campos editables de la métrica; ``valor_min``/``valor_max`` solo aplican a tipos NUMERICO y ENTERO.
+    """Campos editables de la métrica; ``valor_min``/``valor_max`` solo aplican a tipos NUMERICO y ENTERO
+    (con TEXTO/BOOLEANO se ignoran y quedan en null).
 
     ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
     """

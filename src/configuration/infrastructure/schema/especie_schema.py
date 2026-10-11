@@ -20,6 +20,9 @@ class EspecieResponse(BaseModel):
     nombre: str
     descripcion: Optional[str]
     densidad_maxima_por_especie: Optional[Decimal]
+    grupo_manejo: Optional[str] = None
+    # Derivado de grupo_manejo (solo lectura): el formulario de áreas lo usa para
+    # preseleccionar el modelo coherente (RF-20).
     tipo_modelo: Optional[str] = None
     es_activo: bool
     fecha_creacion: datetime.datetime

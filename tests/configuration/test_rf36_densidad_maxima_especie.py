@@ -82,6 +82,7 @@ def test_dto_rechaza_densidad_no_positiva(valor: Decimal) -> None:
     with pytest.raises(PydanticValidationError):
         RegistrarEspecieDTO(
             nombre='Cachama Blanca',
+            grupo_manejo='ACUICULTURA',
             densidad_maxima_por_especie=valor,
         )
 
@@ -96,6 +97,7 @@ def test_registro_persiste_y_audita_densidad_maxima() -> None:
         RegistrarEspecieDTO(
             nombre='Cachama Blanca',
             descripcion='Especie de prueba',
+            grupo_manejo='ACUICULTURA',
             densidad_maxima_por_especie=Decimal('12.5000'),
         ),
         _usuario(),

@@ -57,4 +57,12 @@ USER 1000
 
 EXPOSE 8000
 
+# INC-M01-12-107: detras de Traefik, uvicorn solo confiaba en X-Forwarded-For
+# de 127.0.0.1, asi que `request.client.host` era la IP interna del proxy y
+# todos los usuarios compartian el mismo cupo de los limites por IP (RF-08).
+# Confiar en las redes privadas (donde vive el proxy) hace que uvicorn tome
+# el primer host no confiable desde la derecha: el cliente real, sin que un
+# X-Forwarded-For falsificado por el cliente cuente. Ajustable por entorno.
+ENV FORWARDED_ALLOW_IPS="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
