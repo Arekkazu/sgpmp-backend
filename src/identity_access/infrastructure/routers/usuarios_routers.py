@@ -483,14 +483,14 @@ def gestionar_cuenta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    """Activa, inactiva, bloquea o elimina la cuenta de un usuario.
+    """Activa, inactiva, bloquea, desbloquea o elimina la cuenta de un usuario.
 
     **Acceso:** permiso `cuentas` · Actualizar (4·U).
 
     Errores: cambiar el estado de la propia cuenta (403), motivo faltante, estado
-    sin cambio o dejar el sistema sin administrador activo (400), transición de
-    estado no permitida (409). Invalida las sesiones del usuario afectado cuando
-    corresponde.
+    sin cambio, desbloquear una cuenta que no está BLOQUEADA o dejar el sistema sin
+    administrador activo (400), transición de estado no permitida (409). Invalida
+    las sesiones del usuario afectado cuando corresponde.
     """
     use_case = GestionarCuentaUseCase(
     usuarios_repo=SqlAlchemyUsuarioRepository(db),
