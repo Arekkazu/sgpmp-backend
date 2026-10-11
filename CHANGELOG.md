@@ -1,3 +1,9 @@
+## [1.2.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.4...v1.2.0-rc.5) (2026-10-11)
+
+### Bug Fixes
+
+* **rf02:** margen de 15 s para el reuso del refresh token por carreras del propio cliente ([6567693](https://github.com/Arekkazu/sgpmp-backend/commit/65676937c9ee8405b0a7438200bd1ca5193f100b))
+
 ## [1.2.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.3...v1.2.0-rc.4) (2026-10-11)
 
 ### Features
