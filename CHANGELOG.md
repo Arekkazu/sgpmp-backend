@@ -1,3 +1,15 @@
+## [1.2.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.1...v1.2.0-rc.2) (2026-10-11)
+
+### Features
+
+* **rf06:** accion administrativa desbloquear con su flujo alterno de estado inconsistente ([3cf5f5c](https://github.com/Arekkazu/sgpmp-backend/commit/3cf5f5c7492d2a5703d8133aff89a605316ba412))
+
+### Bug Fixes
+
+* **rf05:** responder 422 claro en vez de 500 al cambiar el rol de un Administrador protegido ([cff4c6e](https://github.com/Arekkazu/sgpmp-backend/commit/cff4c6eb1d65f607f286fecb0a79c59cb4d00e7c))
+* **rf06:** mantener el bloqueo administrativo al iniciar sesion y reiniciar intentos al vencer el de login (RF-02) ([b05278d](https://github.com/Arekkazu/sgpmp-backend/commit/b05278dc82877b3cb390ce87eeb9dbb271583f64))
+* **rf14:** enviar las notificaciones por correo sin reintentos automaticos ([685f35c](https://github.com/Arekkazu/sgpmp-backend/commit/685f35ccd8e5a8cc81bad486310bed72be585174))
+
 ## [1.2.0-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.1.3...v1.2.0-rc.1) (2026-10-11)
 
 ### Features
