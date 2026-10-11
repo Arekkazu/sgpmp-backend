@@ -247,6 +247,8 @@ def test_tarea_background_usa_plantilla_y_sesion_independiente(
     assert contenido_esperado in datos["contenido_html_email"]
     assert "token-crudo-041" in datos["contenido_html_email"]
     assert datos["aplicar_anti_spam_email"] is False
+    # Correo con token: conserva los 3 intentos (no la regla de RF-14).
+    assert datos["intentos_email"] == 3
     db.close.assert_called_once_with()
 
 
@@ -309,6 +311,7 @@ def test_token_nuevo_omite_anti_spam_solo_para_el_email(
             "to": "persona@example.com",
             "subject": "Restablece tu contraseña en SIGAB",
             "html_body": "<p>token nuevo</p>",
+            "intentos": 1,
         }
     ]
     assert port.registrar.call_count == 1
