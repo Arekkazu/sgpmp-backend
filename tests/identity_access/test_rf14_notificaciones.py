@@ -98,6 +98,8 @@ def test_servicio_central_no_persiste_token_y_aplica_anti_spam(monkeypatch) -> N
             "to": "ana@example.com",
             "subject": "Activa tu cuenta",
             "html_body": "<a>token-super-secreto</a>",
+            # RF-14: sin reintentos automáticos (un solo intento SMTP).
+            "intentos": 1,
         }
     ]
     assert port.estados == {1: "enviado", 2: "enviado"}
@@ -121,7 +123,7 @@ def test_bandeja_interna_sigue_entregada_si_firebase_falla(monkeypatch) -> None:
 
 
 def test_push_se_despacha_antes_que_el_correo(monkeypatch) -> None:
-    """El SMTP puede tardar hasta ~34s con reintentos; el push no debe esperarlo."""
+    """El SMTP puede tardar hasta su timeout de conexión; el push no debe esperarlo."""
     port = PortServicioFake()
     port.fcm_tokens = ["dispositivo"]
     orden = []

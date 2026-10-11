@@ -25,6 +25,7 @@ ENV/
 # =========================
 .env
 .env.*
+!.env.*.example
 !.env.example
 !.env.test.example
 
@@ -275,3 +276,10 @@ cypress/videos/
 # Node
 node_modules/
 npm-debug.log*
+# =========================
+# Documentación generada (pdoc): scripts/generar_docs.sh
+# =========================
+/docs/src/
+/docs/src.html
+/docs/index.html
+/docs/search.js

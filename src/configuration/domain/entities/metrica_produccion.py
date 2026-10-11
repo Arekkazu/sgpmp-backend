@@ -13,30 +13,25 @@ from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.shared.errors import ValidationError
 
 
-def validar_rango_metrica(
+def normalizar_rango_metrica(
     tipo_dato: TipoDatoAtributo,
     valor_min: Optional[Decimal],
     valor_max: Optional[Decimal],
-) -> None:
-    """RFC-004: el rango solo aplica a NUMERICO/ENTERO y, si ambos límites existen, min <= max."""
-    if valor_min is None and valor_max is None:
-        return
+) -> tuple[Optional[Decimal], Optional[Decimal]]:
+    """RFC-004: el rango solo aplica a NUMERICO/ENTERO y, si ambos límites existen, min <= max.
+
+    Para TEXTO/BOOLEANO el rango "debe quedar nulo y el sistema lo ignora si se
+    envía" (RF-16): se descarta en vez de rechazarse (#558).
+    """
     if not tipo_dato.admite_rango:
-        campo = "valor_min" if valor_min is not None else "valor_max"
-        raise ValidationError(
-            code="RANGO_METRICA_NO_APLICA",
-            message=(
-                "valor_min y valor_max solo aplican cuando tipo_dato es NUMERICO o ENTERO "
-                f"(tipo_dato actual: {tipo_dato.value})."
-            ),
-            field=campo,
-        )
+        return None, None
     if valor_min is not None and valor_max is not None and valor_min > valor_max:
         raise ValidationError(
             code="RANGO_METRICA_INVALIDO",
             message=f"valor_min ({valor_min}) no puede ser mayor que valor_max ({valor_max}).",
             field="valor_min",
         )
+    return valor_min, valor_max
 
 
 @dataclass(eq=False)
@@ -83,7 +78,7 @@ class MetricaProduccion:
         valor_min: Optional[Decimal] = None,
         valor_max: Optional[Decimal] = None,
     ) -> MetricaProduccion:
-        validar_rango_metrica(tipo_dato, valor_min, valor_max)
+        valor_min, valor_max = normalizar_rango_metrica(tipo_dato, valor_min, valor_max)
         return cls(
             nombre=nombre,
             unidad_medida=unidad_medida,
@@ -110,7 +105,7 @@ class MetricaProduccion:
         valor_min: Optional[Decimal] = None,
         valor_max: Optional[Decimal] = None,
     ) -> None:
-        validar_rango_metrica(tipo_dato, valor_min, valor_max)
+        valor_min, valor_max = normalizar_rango_metrica(tipo_dato, valor_min, valor_max)
         self.nombre = nombre
         self.unidad_medida = unidad_medida
         self.tipo_medicion = tipo_medicion

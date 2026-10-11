@@ -58,7 +58,9 @@ def registrar_especie(
 
     **Acceso:** `especies` · Crear.
 
-    El nombre es único (409).
+    El nombre es único (409). `grupo_manejo` es obligatorio (`AVES`, `PORCINOS`,
+    `ACUICULTURA`, `ESPECIES_MEDIANAS`, `ESPECIES_GRANDES`); la respuesta incluye
+    además `tipo_modelo`, derivado del grupo (RF-15 v1.1).
     """
     use_case = RegistrarEspecieUseCase(
         db=db,
@@ -120,6 +122,12 @@ def editar_especie(
     **Acceso:** `especies` · Actualizar.
 
     Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+
+    `grupo_manejo` omitido conserva el actual y no se puede enviar vacío. Cambiarlo
+    responde 422 si la especie tiene áreas con un modelo de IA que deja de
+    corresponder (`ESPECIE_CON_AREAS_DE_OTRO_MODELO`) o activos biológicos alojados
+    (`ESPECIE_CON_ACTIVOS_ALOJADOS`); asignar el primer grupo a una especie que no
+    lo tenía no se bloquea.
     """
     use_case = EditarEspecieUseCase(
         db=db,

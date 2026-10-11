@@ -1,8 +1,9 @@
 """Reglas de RF-20 v1.1 (RFC-009) compartidas por registrar y editar un área.
 
 La especie del área debe existir y estar activa, y el `tipo_modelo_asignado`
-(opcional) debe coincidir con la familia de modelo de esa especie
-(`especies.tipo_modelo`). El meta-modelo de contagio nunca se asigna a un área.
+(opcional) debe coincidir con el modelo que mapea el grupo de manejo de esa
+especie (`especies.grupo_manejo`, RF-15 v1.1). El meta-modelo de contagio
+nunca se asigna a un área.
 """
 from __future__ import annotations
 

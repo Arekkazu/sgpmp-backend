@@ -13,6 +13,7 @@ from psycopg2 import errors as pg_errors
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.errors import (
+    AuthorizationError,
     BusinessRuleError,
     ConflictError,
     InfrastructureError,
@@ -42,6 +43,11 @@ _ERRCODES_NOMBRE_DUPLICADO = {
 #: correspondiente (INC-M09-107-G64).
 _ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
 _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
+
+#: INC-M09-20-02: `trg_fn_infraestructura_no_desactivar_en_uso` bloquea la
+#: desactivación de un área con dispositivos activos o sensores asociados.
+#: Sin mapeo, si la validación previa no lo ve salía como 500.
+_ERRCODE_AREA_EN_USO = "P0127"
 
 #: INC-M02-76-G55: `trg_fn_evento_reproductivo_secuencia` (modulo2) ya impedía
 #: correctamente un evento reproductivo de categoría distinta a "nacimiento"
@@ -100,6 +106,26 @@ _ERRCODE_TRANSICION_ESTADO = "P0211"
 _TRANSICIONES_ESTADO = {
     "INVALID_TRANSITION": (BusinessRuleError, "TRANSICION_INVALIDA"),
     "REDUNDANT_TRANSITION": (ConflictError, "ESTADO_REDUNDANTE"),
+}
+
+#: Triggers de `modulo1` que protegen el rol `es_protegido` (Administrador)
+#: señalan con `RAISE ... USING ERRCODE = 'P0004'`, que psycopg2 trae como
+#: `AssertFailure` (un `InternalError`) y caía al 500 "Error inesperado en
+#: base de datos". Caso reportado: un admin cambia el rol de otro usuario
+#: Administrador y `trg_fn_proteger_reasignacion_rol_admin` lo bloquea.
+#: `rol_repository` ya traduce PROTECTED_ROLE por su cuenta (mismo código y
+#: clase); aquí queda cubierta cualquier otra vía.
+_ERRCODE_ROL_PROTEGIDO = "P0004"
+_ROL_PROTEGIDO = {
+    "PROTECTED_ADMIN": (BusinessRuleError, "ROL_ADMIN_PROTEGIDO"),
+    "PROTECTED_ROLE": (AuthorizationError, "ROL_PROTEGIDO"),
+}
+
+#: SQLSTATE cuyo significado depende de la etiqueta del mensaje
+#: (`ETIQUETA: texto`). Una etiqueta que no esté en el mapa sigue siendo 500.
+_REGLAS_POR_ETIQUETA = {
+    _ERRCODE_TRANSICION_ESTADO: _TRANSICIONES_ESTADO,
+    _ERRCODE_ROL_PROTEGIDO: _ROL_PROTEGIDO,
 }
 
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
@@ -212,6 +238,10 @@ def raise_from_db_error(
         mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
         raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
 
+    if sqlstate == _ERRCODE_AREA_EN_USO:
+        mensaje = diag_generico.message_primary or "El área tiene recursos asociados."
+        raise BusinessRuleError(code="INFRAESTRUCTURA_CON_DEPENDENCIAS", message=mensaje.split(": ", 1)[-1])
+
     if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
         mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."
         raise BusinessRuleError(code="EVENTO_NO_PERMITIDO_LOTE", message=mensaje.split(": ", 1)[-1])
@@ -248,11 +278,12 @@ def raise_from_db_error(
         mensaje = diag_generico.message_primary or "La cantidad a dar de baja supera la existencia del lote."
         raise BusinessRuleError(code="CANTIDAD_BAJA_SUPERIOR_EXISTENCIA", message=mensaje.split(": ", 1)[-1])
 
-    if sqlstate == _ERRCODE_TRANSICION_ESTADO:
+    if sqlstate in _REGLAS_POR_ETIQUETA:
         mensaje = diag_generico.message_primary or ""
         etiqueta = mensaje.split(":", 1)[0]
-        if etiqueta in _TRANSICIONES_ESTADO:
-            clase, codigo = _TRANSICIONES_ESTADO[etiqueta]
+        reglas = _REGLAS_POR_ETIQUETA[sqlstate]
+        if etiqueta in reglas:
+            clase, codigo = reglas[etiqueta]
             raise clase(code=codigo, message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):

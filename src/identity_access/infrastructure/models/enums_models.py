@@ -12,6 +12,7 @@ class EnumAccionCuenta(str, enum.Enum):
     ELIMINAR = 'eliminar'
     BLOQUEAR = 'bloquear'
     PENDIENTE = 'pendiente'
+    DESBLOQUEAR = 'desbloquear'
 
 
 class EnumEstadoEnvio(str, enum.Enum):

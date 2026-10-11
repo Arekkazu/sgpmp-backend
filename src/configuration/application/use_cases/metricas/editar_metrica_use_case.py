@@ -112,13 +112,6 @@ class EditarMetricaUseCase:
         campos_enviados = dto.model_fields_set
         valor_min = dto.valor_min if "valor_min" in campos_enviados else metrica.valor_min
         valor_max = dto.valor_max if "valor_max" in campos_enviados else metrica.valor_max
-        if not tipo_dato.admite_rango:
-            # Al pasar a TEXTO/BOOLEANO el rango "debe quedar nulo": se limpia el que solo
-            # venía del registro previo. Uno enviado explícitamente lo rechaza la entidad.
-            if "valor_min" not in campos_enviados:
-                valor_min = None
-            if "valor_max" not in campos_enviados:
-                valor_max = None
 
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)
 

@@ -103,3 +103,8 @@ class EspecieRepository(ABC):
         ninguno es coherente. Incluye áreas inactivas, que pueden reactivarse.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def contar_activos_alojados(self, id_especie: int) -> int:
+        """RF-15 v1.1: activos biológicos de la especie alojados en un área y operativos."""
+        raise NotImplementedError

@@ -19,6 +19,7 @@ from src.identity_access.infrastructure.repositories.usuario_repository import (
     SqlAlchemyUsuarioRepository,
 )
 from src.shared.database import sesion_sistema
+from src.shared.email import INTENTOS_CORREO_CON_TOKEN
 from src.shared.notificacion_service import NotificacionService
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,9 @@ def procesar_correo_recuperacion_background(
             asunto_email=asunto,
             contenido_html_email=contenido,
             aplicar_anti_spam_email=False,
+            # Correo con token (RF-08): mantiene los reintentos de RF-01, no
+            # la regla de cero reintentos de las notificaciones de RF-14.
+            intentos_email=INTENTOS_CORREO_CON_TOKEN,
         )
         if email_enviado is False:
             _alertar_administradores_fallo_smtp(

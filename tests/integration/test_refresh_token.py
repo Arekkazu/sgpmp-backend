@@ -136,11 +136,14 @@ def test_access_token_anterior_a_un_refresh_queda_revocado(
 def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from src.identity_access.application.use_cases.sesiones import refresh_token_use_case
     from src.shared import notificacion_service
 
     usuario = crear_usuario_db(id_rol=2, estado=2)
     monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
     monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+    # Fuera del margen de carrera del cliente (ver la prueba siguiente).
+    monkeypatch.setattr(refresh_token_use_case, "MARGEN_REUSO_SEGUNDOS", 0)
 
     login_resp = _login(client, usuario)
     access_token_original = login_resp.json()["token"]
@@ -177,6 +180,62 @@ def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
     assert auditoria["resultado"] == "fallido"
     assert auditoria["categoria"] == "AUTENTICACION"
     assert auditoria["id_sesion"] is not None
+
+
+def test_reuso_dentro_del_margen_es_carrera_del_cliente_y_no_cierra_la_sesion(
+    client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Dos pestañas refrescando con la misma cookie: la segunda llega con el token
+    recién rotado por la primera. Antes cerraba la sesión como robo."""
+    from src.shared import notificacion_service
+
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+
+    _login(client, usuario)
+    cookie_vieja = client.cookies["refresh_token"]
+    assert client.post("/sesiones/refresh").status_code == 200
+
+    client.cookies.set("refresh_token", cookie_vieja)
+    segunda = client.post("/sesiones/refresh")
+    assert segunda.status_code == 200, segunda.text
+    permisos = client.get(
+        "/sesiones/me/permisos", headers={"Authorization": f"Bearer {segunda.json()['token']}"}
+    )
+    assert permisos.status_code == 200, permisos.text
+
+    eventos = db_session.execute(
+        text(
+            "SELECT tipo_evento, detalle->>'margen_reuso' AS margen FROM modulo1.eventos "
+            "WHERE id_usuario = :id AND tipo_evento IN (23, 24) ORDER BY id_evento"
+        ),
+        {"id": usuario["id_usuario"]},
+    ).all()
+    assert [e.tipo_evento for e in eventos] == [23, 23]
+    assert eventos[-1].margen == "true"
+
+
+def test_reuso_dentro_del_margen_no_revive_una_sesion_cerrada(
+    client, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.shared import notificacion_service
+
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+
+    _login(client, usuario)
+    cookie_vieja = client.cookies["refresh_token"]
+    refrescado = client.post("/sesiones/refresh")
+    assert refrescado.status_code == 200
+    logout = client.request(
+        "DELETE", "/sesiones/", headers={"Authorization": f"Bearer {refrescado.json()['token']}"}
+    )
+    assert logout.status_code == 200, logout.text
+
+    client.cookies.set("refresh_token", cookie_vieja)
+    assert client.post("/sesiones/refresh").status_code == 401
 
 
 def test_refresh_token_expirado_responde_410_y_cierra_sesion(

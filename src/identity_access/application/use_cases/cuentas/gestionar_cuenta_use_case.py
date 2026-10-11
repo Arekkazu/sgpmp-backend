@@ -23,7 +23,10 @@ ACCION_A_ESTADO = {
     EnumAccionCuenta.INACTIVAR: 3,
     EnumAccionCuenta.BLOQUEAR:  4,
     EnumAccionCuenta.ELIMINAR:  5,
+    EnumAccionCuenta.DESBLOQUEAR: 2,
 }
+
+_NOMBRE_ESTADO = {1: "PENDIENTE", 2: "ACTIVO", 3: "INACTIVO", 4: "BLOQUEADO", 5: "ELIMINADO"}
 
 TRANSICIONES_VALIDAS = {
     1: {2, 5},
@@ -132,6 +135,22 @@ class GestionarCuentaUseCase:
         # 4. Determinar estado destino y validar transición
         nuevo_estado = ACCION_A_ESTADO[dto.accion_cuenta]
         estado_actual = cuenta.id_estado_cuenta
+
+        # RF-06 "Acción inconsistente con el estado actual": Desbloquear solo
+        # aplica a cuentas BLOQUEADAS. ELIMINADO sigue con su 409 de abajo.
+        if (
+            dto.accion_cuenta == EnumAccionCuenta.DESBLOQUEAR
+            and estado_actual not in (Cuenta.ESTADO_BLOQUEADO, Cuenta.ESTADO_ELIMINADO)
+        ):
+            raise ValidationError(
+                code="ACCION_INCONSISTENTE_ESTADO",
+                message=(
+                    "Inconsistencia de estado. La acción 'Desbloquear' solo es aplicable a cuentas "
+                    "en estado 'BLOQUEADO'. El usuario actual ya se encuentra "
+                    f"{_NOMBRE_ESTADO.get(estado_actual, estado_actual)}."
+                ),
+                field="accion_cuenta",
+            )
 
         if nuevo_estado == estado_actual:
             raise ValidationError(
