@@ -1,3 +1,11 @@
+## [1.2.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.7...v1.2.0-rc.8) (2026-10-12)
+
+### Bug Fixes
+
+* **rf06:** responder 410 al asignar fincas a un usuario eliminado ([e2fbc9f](https://github.com/Arekkazu/sgpmp-backend/commit/e2fbc9fd609e6ee17918fc82afbfef5b02fef019))
+* **rf16:** reactivar una etapa inactiva del ciclo productivo ([8dc9fea](https://github.com/Arekkazu/sgpmp-backend/commit/8dc9feac03ea987c527614df5aed681a454528f7))
+* **rf28:** conceder SELECT de las vistas nuevas de M01/M09 a sgpmp_app y sgpmp_owner ([daee7a2](https://github.com/Arekkazu/sgpmp-backend/commit/daee7a2c425ac529dc84e8fd7d71bbc16ee18289))
+
 ## [1.2.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.6...v1.2.0-rc.7) (2026-10-12)
 
 ### Bug Fixes
