@@ -251,6 +251,11 @@ class _HistoricoRepo:
     def __init__(self) -> None:
         self.registros: list[dict] = []
 
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
+
     def registrar(self, **kwargs):
         self.registros.append(kwargs)
         return SimpleNamespace(id_historico=len(self.registros), **kwargs)

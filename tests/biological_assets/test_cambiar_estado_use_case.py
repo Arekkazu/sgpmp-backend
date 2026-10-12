@@ -41,6 +41,11 @@ class HistoricoRepoFake:
     def __init__(self) -> None:
         self.registros: list[dict] = []
 
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
+
     def registrar(self, **kwargs) -> HistoricoEstado:
         self.registros.append(kwargs)
         return HistoricoEstado(
