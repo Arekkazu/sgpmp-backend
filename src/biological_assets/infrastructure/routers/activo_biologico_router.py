@@ -41,6 +41,9 @@ from src.biological_assets.application.use_cases.gestion.consultar_historial_fas
 from src.biological_assets.application.use_cases.gestion.listar_ciclos_productivos_activo_use_case import (
     ListarCiclosProductivosActivoUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.listar_metricas_activo_use_case import (
+    ListarMetricasActivoUseCase,
+)
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
 from src.biological_assets.domain.entities.activo_biologico import (
@@ -164,6 +167,8 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     CiclosProductivosActivoResponse,
     CicloProductivoResponse,
+    MetricaActivoResponse,
+    MetricasActivoResponse,
     FaseCicloProductivoResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
@@ -1450,6 +1455,53 @@ def registrar_evento_reproductivo(
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
+@router.get(
+    '/{id_activo}/metricas',
+    response_model=MetricasActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF43'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Métricas de la especie del activo para los eventos de crecimiento y productivos (RF-40, RF-43)',
+)
+def metricas_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> MetricasActivoResponse:
+    """Métricas activas de la especie que aplican al tipo del activo, ordenadas por nombre.
+
+    **Acceso:** `activos_biologicos` · Leer (Productor incluido, que no lee la
+    configuración de M09).
+
+    `habilitada_en_fase` es `true` si el ciclo de la fase activa admite la
+    métrica; solo esas se aceptan en `POST /{id_activo}/eventos/productivo`. Sin
+    fase activa todas vienen en `false`.
+    """
+    use_case = ListarMetricasActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
+    )
+    metricas = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    items = [
+        MetricaActivoResponse(
+            id_metrica_produccion=m.id_metrica_produccion,
+            nombre=m.tipo_producto,
+            tipo_medicion=m.tipo_medicion,
+            unidad_medida=m.unidad_medida,
+            tipo_dato=m.tipo_dato,
+            valor_min=m.valor_min,
+            valor_max=m.valor_max,
+            habilitada_en_fase=habilitada,
+        )
+        for m, habilitada in metricas
+    ]
+    return MetricasActivoResponse(id_activo_biologico=id_activo, total=len(items), items=items)
+
+
 @router.post(
     '/{id_activo}/eventos/productivo',
     response_model=EventoActivoResponse,
@@ -1474,6 +1526,9 @@ def registrar_evento_productivo(
     """Registra producción (leche, huevos...) contra una métrica de la especie.
 
     **Acceso:** `activos_biologicos` · Crear.
+
+    `id_metrica_produccion` se elige de `GET /{id_activo}/metricas` (las que
+    traen `habilitada_en_fase`) y `unidad_medida` es la de esa métrica.
 
     La métrica debe estar habilitada en la fase activa y la fecha dentro de la
     fase. Un mismo producto no se registra dos veces el mismo día (409).

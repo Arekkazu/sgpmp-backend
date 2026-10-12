@@ -23,11 +23,19 @@ class ParametroEspecie:
 
 @dataclass
 class MetricaProductiva:
-    """Métrica de producción del catálogo de M09 (leche, huevos, carne...)."""
+    """Métrica de producción del catálogo de M09 (leche, huevos, carne...).
+
+    ``tipo_producto`` es el nombre de la métrica, que es lo que el usuario
+    reconoce; ``tipo_medicion`` es la categoría (PESO, CONTEO...).
+    """
     id_metrica_produccion: int
     tipo_producto: str
     unidad_medida: str
     aplica_a_tipo_activo: str
+    tipo_medicion: str = ''
+    tipo_dato: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
 
 
 class ParametrosEspeciePort(ABC):
@@ -50,6 +58,10 @@ class ParametrosEspeciePort(ABC):
 
     @abstractmethod
     def obtener_metrica_productiva(
-        self, id_especie: int, tipo_producto: str, tipo_activo: str
+        self, id_metrica_produccion: int, id_especie: int, tipo_activo: str
     ) -> Optional[MetricaProductiva]:
-        """Retorna la métrica productiva (id, tipo, unidad) para la especie y tipo de producto dados, o None si no existe en catálogo."""
+        """Retorna la métrica si está activa, es de la especie y aplica al tipo de activo; None si no."""
+
+    @abstractmethod
+    def listar_metricas_productivas(self, id_especie: int, tipo_activo: str) -> list[MetricaProductiva]:
+        """Métricas activas de la especie que aplican al tipo de activo, ordenadas por nombre."""

@@ -86,18 +86,18 @@ class RegistrarEventoProductivoUseCase:
                 ),
             )
 
-        # E-03: tipo_producto debe estar en el catálogo RF-16 para la especie
+        # E-03: la métrica debe estar en el catálogo RF-16 de la especie
         metrica = self.parametros_port.obtener_metrica_productiva(
-            activo.id_especie, dto.tipo_producto, activo.tipo
+            dto.id_metrica_produccion, activo.id_especie, activo.tipo
         )
         if metrica is None:
             raise BusinessRuleError(
                 code='TIPO_PRODUCTO_NO_CATALOGADO',
                 message=(
-                    f'El tipo de producto "{dto.tipo_producto}" no está definido en el catálogo '
+                    'El tipo de producto seleccionado no está definido en el catálogo '
                     'para la especie del activo. Seleccione un tipo de producto válido.'
                 ),
-                field='tipo_producto',
+                field='id_metrica_produccion',
             )
 
         # E-06: RF-43 la clasifica "Error de validación -- HTTP 422". Vive aquí y no
@@ -118,7 +118,7 @@ class RegistrarEventoProductivoUseCase:
                 code='UNIDAD_MEDIDA_INCOMPATIBLE',
                 message=(
                     f'La unidad de medida "{dto.unidad_medida}" no es válida para el tipo de producto '
-                    f'"{dto.tipo_producto}". La unidad válida es: {metrica.unidad_medida}.'
+                    f'"{metrica.tipo_producto}". La unidad válida es: {metrica.unidad_medida}.'
                 ),
                 field='unidad_medida',
             )
@@ -141,10 +141,10 @@ class RegistrarEventoProductivoUseCase:
             raise BusinessRuleError(
                 code='TIPO_PRODUCTO_NO_HABILITADO_FASE',
                 message=(
-                    f'El tipo de producto "{dto.tipo_producto}" no está habilitado para el ciclo '
+                    f'El tipo de producto "{metrica.tipo_producto}" no está habilitado para el ciclo '
                     f'productivo activo "{fase_activa.nombre_ciclo}". Verifique la configuración de fases.'
                 ),
-                field='tipo_producto',
+                field='id_metrica_produccion',
             )
 
         # E-05: validaciones de fecha. RF-43 pide 422 (a diferencia de RF-40/41/42,
@@ -204,12 +204,12 @@ class RegistrarEventoProductivoUseCase:
                     field='fecha_evento',
                 )
 
-        # E-08: verificar duplicidad (mismo tipo_producto + activo + fecha)
+        # E-08: verificar duplicidad (misma métrica + activo + fecha)
         if self.evento_repo.existe_productivo_duplicado(id_activo, metrica.id_metrica_produccion, dto.fecha_evento):
             raise ConflictError(
                 code='EVENTO_PRODUCTIVO_DUPLICADO',
                 message=(
-                    f'Ya existe un evento productivo de tipo "{dto.tipo_producto}" registrado para el '
+                    f'Ya existe un evento productivo de tipo "{metrica.tipo_producto}" registrado para el '
                     f'activo {id_activo} en la fecha {dto.fecha_evento.isoformat()}. '
                     'No se permiten registros duplicados.'
                 ),
@@ -243,7 +243,7 @@ class RegistrarEventoProductivoUseCase:
                 clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
                 severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
                 id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                detalle_tecnico={'error': str(exc), 'tipo_producto': dto.tipo_producto},
+                detalle_tecnico={'error': str(exc), 'id_metrica_produccion': dto.id_metrica_produccion},
                 id_usuario_responsable=usuario.id_usuario,
             ))
             raise
@@ -253,9 +253,10 @@ class RegistrarEventoProductivoUseCase:
             clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-            descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
+            descripcion=f'Evento productivo: {metrica.tipo_producto} = {dto.cantidad_producida}',
             detalle_tecnico={
-                'tipo_producto': dto.tipo_producto,
+                'tipo_producto': metrica.tipo_producto,
+                'id_metrica_produccion': metrica.id_metrica_produccion,
                 'cantidad': str(dto.cantidad_producida),
                 'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
             },

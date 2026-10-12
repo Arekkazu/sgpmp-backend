@@ -72,6 +72,27 @@ class ParametroEspecieResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class MetricaActivoResponse(BaseModel):
+    """Métrica de la especie del activo para elegir en los eventos (RF-40, RF-43).
+
+    ``habilitada_en_fase`` indica si la fase activa la admite en un evento productivo.
+    """
+    id_metrica_produccion: int
+    nombre: str
+    tipo_medicion: str
+    unidad_medida: str
+    tipo_dato: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+    habilitada_en_fase: bool
+
+
+class MetricasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    items: list[MetricaActivoResponse]
+
+
 class DetallePoblacionalResponse(BaseModel):
     """Datos propios de un lote POBLACIONAL: conteo, peso promedio, biomasa y densidad.
     """
