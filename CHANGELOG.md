@@ -1,3 +1,9 @@
+## [1.2.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.6...v1.2.0-rc.7) (2026-10-12)
+
+### Bug Fixes
+
+* **rf44:** mantener ordenado el historial de estados para no responder 409 tras un cambio del mismo dia (INC-M02-78-G49) ([2a196b3](https://github.com/Arekkazu/sgpmp-backend/commit/2a196b31d1839cc3b65fabfd9d850d12364a261c)), closes [#573](https://github.com/Arekkazu/sgpmp-backend/issues/573)
+
 ## [1.2.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.5...v1.2.0-rc.6) (2026-10-12)
 
 ### Bug Fixes
