@@ -192,8 +192,11 @@ class ConsultarDetalleUsuarioUseCase:
             "numero_identificacion": numero_identificacion,
             "fecha_nacimiento": detalle.fecha_nacimiento,
             "fecha_registro": detalle.fecha_registro,
+            "telefono": detalle.telefono,
+            "direccion": detalle.direccion,
             "nombre_rol": detalle.nombre_rol,
             "estado_cuenta": detalle.estado_cuenta,
+            "ultimo_acceso": detalle.ultimo_acceso,
             "version": detalle.version,
             "fincas": obtener_fincas_asignadas(self.db, id_usuario),
         }
