@@ -23,6 +23,7 @@ from src.identity_access.domain.value_objects.identificacion import (
     mensaje_identificacion_invalida,
 )
 from src.shared.errors import ValidationError
+from src.shared.fechas import hoy_colombia
 
 
 @dataclass(eq=False)
@@ -180,7 +181,7 @@ class Usuario:
         Returns:
             Edad en años cumplidos.
         """
-        hoy = hoy or date.today()
+        hoy = hoy or hoy_colombia()
         return hoy.year - self.fecha_nacimiento.year - (
             (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
         )
