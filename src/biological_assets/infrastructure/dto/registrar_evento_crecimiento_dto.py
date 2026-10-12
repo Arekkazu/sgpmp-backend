@@ -12,13 +12,16 @@ from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
-_TIPOS_MEDICION = {'PESO', 'TALLA', 'BIOMASA'}
+# LONGITUD es como M09 (RF-16) nombra la talla; sin ella una métrica de
+# longitud de la especie nunca se podía registrar.
+_TIPOS_MEDICION = {'PESO', 'TALLA', 'LONGITUD', 'BIOMASA'}
 
 _UNIDADES_VALIDAS = {'kg', 'gr', 'lb', 'cm', 'm', 'kg/m2'}
 
 _UNIDADES_POR_TIPO: dict[str, set[str]] = {
     'PESO':    {'kg', 'gr', 'lb'},
     'TALLA':   {'cm', 'm'},
+    'LONGITUD': {'cm', 'm'},
     'BIOMASA': {'kg/m2'},
 }
 
@@ -27,7 +30,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     """Medición de crecimiento.
 
     ``tipo_medicion`` y unidades válidas: ``PESO`` (``kg``, ``gr``, ``lb``), ``TALLA``
-    (``cm``, ``m``), ``BIOMASA`` (``kg/m2``). En lotes se envían además
+    o ``LONGITUD`` (``cm``, ``m``), ``BIOMASA`` (``kg/m2``). En lotes se envían además
     ``nuevo_peso_promedio``, ``cantidad_medida`` y ``tipo_agregacion``.
     """
     tipo_medicion: str
