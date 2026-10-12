@@ -1,3 +1,5 @@
+"""Puerto de persistencia de eventos biológicos del activo (RF-39 a RF-43, RF-45)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +10,12 @@ from src.biological_assets.domain.entities.activo_biologico import EventoActivo
 
 
 class EventoActivoRepository(ABC):
+    """Contrato de acceso a datos para :class:`EventoActivo` y sus subtipos.
+
+    Los métodos ``tiene_*`` soportan las precondiciones de secuencia de los eventos
+    sanitarios y reproductivos (p. ej. no hay parto sin servicio previo).
+    """
+
     @abstractmethod
     def guardar(self, evento: EventoActivo) -> EventoActivo:
         """Persiste evento_activo y su subtipo en una sola unidad de trabajo (flush)."""

@@ -20,6 +20,9 @@ from src.shared.errors import NotFoundError, PreconditionFailedError
 
 
 class ActualizarConfiguracionUseCase:
+    """Actualiza frecuencia de muestreo y heartbeat con concurrencia optimista (412) y
+    avisa al monitoreo IoT.
+    """
 
     def __init__(
         self,
@@ -36,7 +39,7 @@ class ActualizarConfiguracionUseCase:
     def execute(
         self, id_configuracion_global: int, dto: ActualizarConfiguracionDTO, usuario_actual: UsuarioActual
     ) -> ConfiguracionGlobal:
-        config = self.config_repo.obtener_por_id(id_configuracion_global)
+        config = self.config_repo.obtener_por_id(id_configuracion_global, bloquear=True)
         if config is None:
             raise NotFoundError(
                 code="CONFIG_NO_ENCONTRADA",

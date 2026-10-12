@@ -6,6 +6,7 @@ from typing import Optional
 
 
 class AuditoriaDispositivoIotRepository(ABC):
+    """Contrato de la auditoría de dispositivos IoT."""
 
     @abstractmethod
     def registrar(
@@ -17,4 +18,7 @@ class AuditoriaDispositivoIotRepository(ABC):
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre el dispositivo con los
+        valores antes/después.
+        """
         ...

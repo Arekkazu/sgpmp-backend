@@ -119,7 +119,9 @@ class SqlAlchemyRolRepository(RolRepository):
         except ProgrammingError as e:
             self.db.rollback()
             if getattr(e.orig, "pgcode", "") == _ERRCODE_PROTEGIDO:
-                raise BusinessRuleError(code="ROL_PROTEGIDO", message=_MSG_PROTEGIDO)
+                # RF-03 pide 403 tanto para modificar como para eliminar el rol
+                # protegido; el DELETE ya lo traducía así.
+                raise AuthorizationError(code="ROL_PROTEGIDO", message=_MSG_PROTEGIDO)
             raise
         except IntegrityError as e:
             self.db.rollback()

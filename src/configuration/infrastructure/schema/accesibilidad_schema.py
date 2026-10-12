@@ -14,6 +14,9 @@ from src.configuration.domain.entities import accesibilidad_visual as dominio
 
 
 class ContrasteTemaResponse(BaseModel):
+    """Contraste del color contra el fondo de un tema; ``color_ajustado`` es la variante
+    que cumple AA.
+    """
     fondo: str
     ratio: float
     cumple_aa: bool
@@ -22,11 +25,13 @@ class ContrasteTemaResponse(BaseModel):
 
 
 class ContrasteColorResponse(BaseModel):
+    """Contraste del color en el tema claro y en el oscuro."""
     claro: ContrasteTemaResponse
     oscuro: ContrasteTemaResponse
 
 
 class AccesibilidadResponse(BaseModel):
+    """Evaluación WCAG 2.1 AA (4.5:1) de los colores de la identidad visual."""
     minimo_aa: float
     primary_color: Optional[ContrasteColorResponse]
     secondary_color: Optional[ContrasteColorResponse]

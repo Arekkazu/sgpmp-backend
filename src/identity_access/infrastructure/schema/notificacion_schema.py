@@ -17,6 +17,12 @@ class NotificacionInternaResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class MarcadasLeidasResponse(BaseModel):
+    """Cuántas notificaciones pasaron a leídas (T-08)."""
+
+    marcadas: int
+
+
 class NotificacionesPaginadasResponse(BaseModel):
     """Página de notificaciones internas con contador global de no leídas."""
 

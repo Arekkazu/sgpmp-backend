@@ -14,6 +14,9 @@ from abc import ABC, abstractmethod
 
 
 class DependenciaMetricaPort(ABC):
+    """Puerto que indica si una métrica tiene registros productivos activos (bloquea su
+    desactivación).
+    """
 
     @abstractmethod
     def tiene_dependencias_activas(self, id_metrica_produccion: int) -> bool:

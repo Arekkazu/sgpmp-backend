@@ -255,11 +255,16 @@ curl -s "http://localhost:8000/iot/vinculaciones?estado_vinculacion=SIN_VINCULAR
 }
 ```
 
-> Con stub M02 activo, todas las vinculaciones automáticas quedan en `SIN_VINCULAR`.
+> Vinculación automática (INC-M09-64-G31 #494): al ingerir, el área del dispositivo se busca en
+> M02 entre los activos en estado operativo (ACTIVO, EN_TRATAMIENTO, AISLADO). Uno → `VINCULADA`
+> a ese animal, o a su lote si es POBLACIONAL (`id_activo_biologico` es el lote); varios →
+> `AMBIGUA`; ninguno → `SIN_VINCULAR`. Toda lectura nueva deja su fila: antes el stub de M02 y
+> `chk_vinculacion_modelo` impedían guardarla. Buscar la de una lectura:
+> `GET /iot/vinculaciones?id_telemetria=<id>`.
 
 ---
 
-## PATCH /iot/vinculaciones/{id}/resolver — Resolver vinculación AMBIGUA (RF-61-C)
+## PATCH /iot/vinculaciones/{id}/resolver — Resolver vinculación AMBIGUA o SIN_VINCULAR (RF-61-C)
 
 ```bash
 JWT_INGENIERO="<token_ingeniero>"
@@ -272,11 +277,19 @@ curl -s -X PATCH "http://localhost:8000/iot/vinculaciones/2/resolver" \
 
 **Respuesta esperada (200):** Vinculación con `estado_vinculacion=VINCULADA`, `mecanismo_vinculacion=MANUAL`.
 
-### FA — Intentar resolver vinculación que no es AMBIGUA
+**Efecto lateral (INC-M09-106-G31 / #297):** si la especie del activo tiene un umbral RF-17
+activo para la variable de la lectura, `estados_actuales_sensores.estado_semaforo` de ese
+sensor se recalcula contra los niveles normal/precaución/crítico (mejor esfuerzo — si falla no
+bloquea la resolución de la vinculación).
+
+### FA — Intentar resolver una vinculación que no es AMBIGUA ni SIN_VINCULAR
+
+Una `SIN_VINCULAR` también se resuelve (RF-61 Fase C1, #494). Una `VINCULADA` se cambia con
+`corregir`.
 
 **Respuesta esperada (422):**
 ```json
-{"code": "VINCULACION_NO_AMBIGUA", "message": "Solo se pueden resolver vinculaciones en estado AMBIGUA.", "field": null}
+{"error_code": "VINCULACION_NO_AMBIGUA", "message": "Solo se pueden resolver vinculaciones en estado AMBIGUA o SIN_VINCULAR.", "fields": []}
 ```
 
 ---
@@ -299,6 +312,9 @@ curl -s -X POST "http://localhost:8000/iot/vinculaciones/1/corregir" \
 **Respuesta esperada (201):** Nueva vinculación con `mecanismo_vinculacion=CORRECCION`, `estado_vinculacion=VINCULADA`, `id_vinculacion_reemplazada=1`.
 
 **Efecto:** La vinculación original (id=1) queda con `estado_vinculacion=CORREGIDA`.
+
+**Efecto lateral (INC-M09-106-G31 / #297):** igual que en `resolver` — recalcula
+`estado_semaforo` del sensor contra el umbral RF-17 del nuevo activo/especie, si existe.
 
 ### FA — Intentar corregir vinculación ya corregida
 

@@ -33,7 +33,7 @@ class EditarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
-        entidad = self._repo.obtener_por_id(id_patologia)
+        entidad = self._repo.obtener_por_id(id_patologia, bloquear=True)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")
 

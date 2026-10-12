@@ -9,6 +9,7 @@ from pydantic import BaseModel, field_validator
 
 
 class NivelAlertaResponse(BaseModel):
+    """Tramo de un nivel de alerta."""
     nivel: str
     limite_inferior: Decimal
     limite_superior: Decimal
@@ -24,6 +25,7 @@ class NivelAlertaResponse(BaseModel):
 
 
 class UmbralAmbientalResponse(BaseModel):
+    """Umbral ambiental con sus niveles y su estado de sincronización hacia los Edge."""
     id_umbral_ambiental: int
     id_especie: int
     id_variable_ambiental: int
@@ -33,11 +35,18 @@ class UmbralAmbientalResponse(BaseModel):
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
     niveles: List[NivelAlertaResponse]
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # PENDIENTE (recién guardado o sin ACK aún) / APLICADA (ACK recibido) /
+    # NO_CONF (se publicó pero no hubo ACK a tiempo).
+    estado_sincronizacion: str
+    fecha_ultima_sincronizacion: Optional[datetime.datetime] = None
+    motivo_fallo_sincronizacion: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
 
 class UmbralesPorEspecieResponse(BaseModel):
+    """Umbrales de una especie."""
     total: int
     items: List[UmbralAmbientalResponse]
 
@@ -55,6 +64,7 @@ class VariableAmbientalResponse(BaseModel):
 
 
 class VariablesAmbientalesResponse(BaseModel):
+    """Catálogo de variables ambientales."""
     total: int
     items: List[VariableAmbientalResponse]
 
@@ -74,5 +84,6 @@ class AuditoriaUmbralResponse(BaseModel):
 
 
 class AuditoriaUmbralesResponse(BaseModel):
+    """Historial de cambios de un umbral."""
     total: int
     items: List[AuditoriaUmbralResponse]

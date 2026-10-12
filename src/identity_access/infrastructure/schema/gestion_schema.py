@@ -97,8 +97,11 @@ class UsuarioDetalleResponse(BaseModel):
     numero_identificacion: Optional[str] = None
     fecha_nacimiento: Optional[datetime.date] = None
     fecha_registro: datetime.datetime
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
     nombre_rol: str
     estado_cuenta: str
+    ultimo_acceso: Optional[datetime.datetime] = None
     version: int
     fincas: list[FincaAsignadaResponse] = []
 
@@ -178,3 +181,10 @@ class AuditoriaPaginadaResponse(BaseModel):
     # Se llena sólo cuando la consulta supera el umbral de saturación y la
     # respuesta viaja con HTTP 206.
     mensaje: Optional[str] = None
+    # INC-M01-71: ancla temporal efectiva de esta consulta (fecha_hasta del
+    # cliente, o now() si no la mandó). El cliente debe reenviar este mismo
+    # valor como fecha_hasta en las páginas siguientes para obtener un
+    # conjunto estable — de lo contrario, eventos nuevos insertados entre
+    # páginas (incluida la propia auto-auditoría de esta consulta) desplazan
+    # el resultado y un mismo evento puede repetirse entre páginas.
+    fecha_hasta: datetime.datetime

@@ -7,10 +7,11 @@ hacia el cliente. Antes de este cambio el frontend recibía
 """
 import pytest
 from psycopg2 import errors as pg_errors
-from sqlalchemy.exc import DataError, IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, IntegrityError, InternalError, OperationalError
 
 from src.shared.db_error_translator import _campo, raise_from_db_error
 from src.shared.errors import (
+    AuthorizationError,
     BusinessRuleError,
     ConflictError,
     InfrastructureError,
@@ -212,6 +213,279 @@ def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
     assert exc_info.value.code == "SENSOR_FINCA_DISTINTA"
     assert exc_info.value.status_code == 422
     assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
+
+
+def test_errcode_area_en_uso_es_422_no_500() -> None:
+    """INC-M09-20-02: `trg_fn_infraestructura_no_desactivar_en_uso` señala P0127
+    al desactivar un área con dispositivos activos o sensores asociados."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0127",
+        message_primary='AREA_IN_USE: El área "Estanque" tiene 0 dispositivo(s) activo(s) y 1 sensor(es) asociado(s).',
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "INFRAESTRUCTURA_CON_DEPENDENCIAS"
+    assert exc_info.value.status_code == 422
+    assert "AREA_IN_USE:" not in exc_info.value.message
+
+
+def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
+    """INC-M02-76-G55: el trigger `trg_fn_evento_reproductivo_secuencia` (modulo2)
+    señala P0220 (misma clase `P0`, no mapeada por psycopg2) cuando un activo
+    POBLACIONAL recibe un evento reproductivo distinto a "nacimiento". El use
+    case ya valida esto antes de llegar a la DB, pero sin este mapeo cualquier
+    otra vía que dispare el trigger caía al 500 genérico en vez del 422 de
+    negocio documentado en RF-42."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0220",
+        message_primary=(
+            "TYPE_RESTRICTION: Para activos de tipo LOTE (poblacional) solo se "
+            "permite el evento reproductivo nacimiento. Categoría recibida: parto."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "EVENTO_NO_PERMITIDO_LOTE"
+    assert exc_info.value.status_code == 422
+    assert "TYPE_RESTRICTION:" not in exc_info.value.message
+
+
+def test_errcode_secuencia_reproductiva_es_422_no_500() -> None:
+    """Arekkazu/SGPMP-FRONT-END-PWA#299: un parto que el trigger rechaza por
+    secuencia (P0221) salía como 500 "Error inesperado en base de datos"."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0221",
+        message_primary=(
+            "SEQUENCE_VIOLATION: No se puede registrar parto sin un evento previo "
+            "de diagnostico positivo para el activo ID 750."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "SECUENCIA_REPRODUCTIVA_INVALIDA"
+    assert exc_info.value.status_code == 422
+    assert "SEQUENCE_VIOLATION:" not in exc_info.value.message
+
+
+def test_errcode_evento_fecha_invalida_es_400_no_500() -> None:
+    """INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, dispara para
+    cualquier tipo de evento vía `eventos_activos`) señala P0215 (misma clase
+    `P0`, no mapeada) cuando la fecha del evento es futura o anterior al
+    registro del activo. La causa raíz real del incidente era otra (`now()`
+    fijo por transacción rechazaba fechas válidas, corregido con
+    `clock_timestamp()` en la migración `68232a1efcc2`), pero si algún día una
+    fecha sí es genuinamente inválida, este mapeo evita que vuelva a salir
+    como 500 genérico."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0215",
+        message_primary=(
+            "INVALID_DATE: La fecha del evento (2026-09-13 00:00:00+00) no puede "
+            "ser futura. Fecha actual del sistema: 2026-09-12 00:00:00+00."
+        ),
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "FECHA_INVALIDA"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_DATE:" not in exc_info.value.message
+
+
+def test_errcode_poblacional_cantidad_invalida_es_400_no_500() -> None:
+    """INC-M02-100-G31 (#262): `trg_fn_poblacional_cantidad_inmutable` (modulo2)
+    señala P0210 (misma clase `P0`, no mapeada por psycopg2) cuando una
+    escritura sobre `detalles_activos_biologicos_poblacionales` deja
+    `cantidad_actual` en negativo o intenta modificar `cantidad_inicial`. Sin
+    este mapeo, `POST .../eventos/crecimiento` sobre un lote que dispare el
+    trigger devolvía 500 ERROR_INTERNO en vez del 400 que ya aplica la
+    restricción CHECK gemela para la misma regla de negocio."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0210",
+        message_primary="INVALID_VALUE: La cantidad_actual del lote no puede ser negativa. Valor intentado: -3.",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_VALUE:" not in exc_info.value.message
+
+
+@pytest.mark.parametrize(
+    "sqlstate,mensaje",
+    [
+        ("P0125", 'DUPLICATE_AREA: Ya existe un área productiva con el nombre "GALPON" en esta finca (case-insensitive).'),
+        ("P0101", "DUPLICATE_SPECIES: Ya existe una especie con ese nombre."),
+        ("P0107", "DUPLICATE_PATHOLOGY: Ya existe una patología con ese nombre."),
+        ("P0110", "DUPLICATE_THRESHOLD: Ya existe un umbral para esa especie y variable."),
+        ("P0119", "DUPLICATE_FARM_GLOBAL: Ya existe una finca con ese nombre."),
+        ("P0120", "DUPLICATE_FARM_PRODUCER: Ya tienes una finca con ese nombre."),
+        ("P0128", "DUPLICATE_SERIAL: Ya existe un dispositivo con ese serial."),
+    ],
+)
+def test_errcodes_duplicados_de_modulo9_son_409_no_500(sqlstate: str, mensaje: str) -> None:
+    """INC-M09-20-G49 (#461): `trg_fn_infraestructura_nombre_unique_ci` compara
+    sin distinguir mayúsculas y señala P0125 antes de que actúe el UNIQUE, así
+    que "GALPON" contra un "Galpon" existente salía como 500 ERROR_INTERNO."""
+    exc = _integrity(pg_errors.InternalError_, sqlstate=sqlstate, message_primary=mensaje)
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "RECURSO_DUPLICADO"
+    assert exc_info.value.status_code == 409
+    assert mensaje.split(": ", 1)[0] + ":" not in exc_info.value.message
+
+
+def test_errcode_estado_historial_inconsistente_es_409_no_500() -> None:
+    """INC-M02-56-G31 (#456): `trg_fn_estado_activo_unico_vigente` señala P0212
+    cuando el estado anterior declarado no coincide con el último del
+    historial; antes caía al fallback genérico y la baja respondía 500."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0212",
+        message_primary=(
+            "STATE_INCONSISTENCY: El estado anterior declarado (ID 3) no coincide con el "
+            "último estado registrado para el activo (ID 1)."
+        ),
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "ESTADO_ACTIVO_INCONSISTENTE"
+    assert exc_info.value.status_code == 409
+    assert "STATE_INCONSISTENCY:" not in exc_info.value.message
+
+
+def test_errcode_baja_cantidad_invalida_es_400() -> None:
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0224",
+        message_primary="INVALID_VALUE: Para bajas en lotes la cantidad_afectada debe ser mayor a cero. Valor recibido: 0.",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_VALUE:" not in exc_info.value.message
+
+
+def test_errcode_baja_supera_existencia_es_422() -> None:
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0225",
+        message_primary=(
+            "INVENTORY_INCONSISTENCY: La cantidad a dar de baja (50) es superior a la "
+            "existencia actual del lote (10). Activo ID 7."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "CANTIDAD_BAJA_SUPERIOR_EXISTENCIA"
+    assert exc_info.value.status_code == 422
+    assert "INVENTORY_INCONSISTENCY:" not in exc_info.value.message
+
+
+@pytest.mark.parametrize(
+    "mensaje,clase,codigo,estado",
+    [
+        (
+            'INVALID_TRANSITION: La transición de estado "ACTIVO" → "CERRADO" no está permitida.',
+            BusinessRuleError, "TRANSICION_INVALIDA", 422,
+        ),
+        (
+            "REDUNDANT_TRANSITION: El estado nuevo es igual al estado actual.",
+            ConflictError, "ESTADO_REDUNDANTE", 409,
+        ),
+    ],
+)
+def test_errcode_transicion_de_estado_es_error_de_negocio(mensaje, clase, codigo, estado) -> None:
+    exc = _integrity(pg_errors.InternalError_, sqlstate="P0211", message_primary=mensaje)
+
+    with pytest.raises(clase) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == codigo
+    assert exc_info.value.status_code == estado
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    [
+        "MISSING_FIELD: El campo modulo_origen es obligatorio para trazabilidad.",
+        "DIRECT_STATE_CHANGE: No se permite modificar id_estado directamente en activos_biologicos.",
+    ],
+)
+def test_errcode_p0211_de_bug_de_aplicacion_sigue_siendo_500(mensaje: str) -> None:
+    """P0211 también lo lanzan `MISSING_FIELD` y `DIRECT_STATE_CHANGE`, que
+    indican un bug de la aplicación; convertirlos en 4xx lo escondería."""
+    exc = _integrity(pg_errors.InternalError_, sqlstate="P0211", message_primary=mensaje)
+
+    with pytest.raises(InfrastructureError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.parametrize(
+    "mensaje, clase, codigo, estado, texto",
+    [
+        (
+            'PROTECTED_ADMIN: No se puede cambiar el rol del usuario porque su rol actual "Administrador" es protegido.',
+            BusinessRuleError, "ROL_ADMIN_PROTEGIDO", 422,
+            'No se puede cambiar el rol del usuario porque su rol actual "Administrador" es protegido.',
+        ),
+        (
+            'PROTECTED_ADMIN: No se puede cambiar el estado de la cuenta del usuario con rol protegido "Administrador".',
+            BusinessRuleError, "ROL_ADMIN_PROTEGIDO", 422,
+            'No se puede cambiar el estado de la cuenta del usuario con rol protegido "Administrador".',
+        ),
+        (
+            "PROTECTED_ROLE: No se puede modificar.",
+            AuthorizationError, "ROL_PROTEGIDO", 403,
+            "No se puede modificar.",
+        ),
+    ],
+)
+def test_errcode_rol_protegido_es_error_controlado(mensaje, clase, codigo, estado, texto) -> None:
+    """P0004 llega como AssertFailure (InternalError), no IntegrityError: antes
+    salía como 500 "Error inesperado en base de datos" al cambiar el rol de un
+    Administrador desde PUT /usuarios/{id}."""
+    exc = InternalError("stmt", {}, _error_pg(pg_errors.AssertFailure, sqlstate="P0004", message_primary=mensaje))
+
+    with pytest.raises(clase) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == codigo
+    assert exc_info.value.status_code == estado
+    assert exc_info.value.message == texto
+
+
+def test_errcode_p0004_con_etiqueta_desconocida_sigue_siendo_500() -> None:
+    exc = InternalError("stmt", {}, _error_pg(pg_errors.AssertFailure, sqlstate="P0004", message_primary="OTRA: algo"))
+
+    with pytest.raises(InfrastructureError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.status_code == 500
 
 
 def test_integrity_error_no_mapeado_es_500() -> None:

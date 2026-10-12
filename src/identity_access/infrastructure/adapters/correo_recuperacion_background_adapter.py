@@ -18,7 +18,8 @@ from src.identity_access.infrastructure.repositories.notificacion_repository imp
 from src.identity_access.infrastructure.repositories.usuario_repository import (
     SqlAlchemyUsuarioRepository,
 )
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
+from src.shared.email import INTENTOS_CORREO_CON_TOKEN
 from src.shared.notificacion_service import NotificacionService
 
 logger = logging.getLogger(__name__)
@@ -50,13 +51,14 @@ def procesar_correo_recuperacion_background(
     db = None
     try:
         if flujo == FLUJO_ACTIVACION:
-            asunto = "Activa tu cuenta en SGPMP"
+            asunto = "Activa tu cuenta en SIGAB"
             contenido = activation_email(nombre, token)
         else:
-            asunto = "Restablece tu contraseña en SGPMP"
+            asunto = "Restablece tu contraseña en SIGAB"
             contenido = recovery_email(nombre, token)
 
-        db = SessionLocal()
+        # Proceso de sistema (D1): sin request ni usuario que lo respalde.
+        db = sesion_sistema()
         notificaciones_repo = SqlAlchemyNotificacionRepository(db)
         email_enviado = NotificacionService(
             port=notificaciones_repo,
@@ -68,6 +70,9 @@ def procesar_correo_recuperacion_background(
             asunto_email=asunto,
             contenido_html_email=contenido,
             aplicar_anti_spam_email=False,
+            # Correo con token (RF-08): mantiene los reintentos de RF-01, no
+            # la regla de cero reintentos de las notificaciones de RF-14.
+            intentos_email=INTENTOS_CORREO_CON_TOKEN,
         )
         if email_enviado is False:
             _alertar_administradores_fallo_smtp(

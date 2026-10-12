@@ -39,3 +39,4 @@ class DespliegueOtaModel(Base):
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(DateTime(True))
     motivo_fallo: Mapped[Optional[str]] = mapped_column(String)
+    componente: Mapped[Optional[str]] = mapped_column(String(20))

@@ -1,0 +1,56 @@
+{
+  "76eb1351ca8c11d44211f4247fe0fb81_0": {
+    "author": "mortiz-indigo",
+    "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
+    "false_positive": false,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "52c242b28ae20fdce1bf1628c385d5ec_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: tabla y condicion provienen del diccionario cerrado _FUENTES_RF46; el id es parametrizado (:id).",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "611c42f67dd9e2150ac5c92183de4931_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: vista proviene del diccionario cerrado _FUENTES_PERMITIDAS (3 tablas fijas), verificado en Informe A.1 (#2007).",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "bf6a538d19d5c54d1ef152f031357e46_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: ventana_min es entero tipado de ventana de deduplicacion; sin entrada arbitraria de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "2bc81c055899bdc24f04248c07e794d0_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: nombre de candado es literal cerrado ('buffer'/'recuperacion') definido en use cases internos.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "16f77730f5fde5646e8bdbb6698fbf01_0": {
+    "author": "mortiz-indigo",
+    "comment": "Ruta controlada por variable de entorno de configuracion AGROFUSION_SSO_PUBLIC_KEY_PATH, sin entrada de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "96e3596e94352129f969751f93f76d01_0": {
+    "author": "mortiz-indigo",
+    "comment": "Ruta de artefacto compuesta por id_proceso (UUID), tipo_modelo y extension sanitizada dentro de directorio seguro de modelos.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "96e3596e94352129f969751f93f76d01_1": {
+    "author": "mortiz-indigo",
+    "comment": "Escritura de artefacto de modelo ML en ruta validada por UUID y tipo de modelo.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "96e3596e94352129f969751f93f76d01_2": {
+    "author": "mortiz-indigo",
+    "comment": "Retorno de ruta interna de artefacto de modelo ML registrado.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  }
+}

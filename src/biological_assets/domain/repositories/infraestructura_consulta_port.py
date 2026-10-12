@@ -1,3 +1,5 @@
+"""Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -10,6 +12,9 @@ from src.biological_assets.domain.entities.activo_biologico import SensorEnInfra
 
 @dataclass
 class InfraestructuraConsulta:
+    """Infraestructura de M09 con los datos que M02 necesita (superficie, capacidad,
+    finca).
+    """
     id_infraestructura: int
     nombre: str
     tipo: str
@@ -21,9 +26,21 @@ class InfraestructuraConsulta:
 
 
 class InfraestructuraConsultaPort(ABC):
+    """Consulta a M09 de infraestructuras, su ocupación, sensores y compatibilidad con
+    especies.
+    """
+
     @abstractmethod
     def obtener_activa(self, id_infraestructura: int) -> Optional[InfraestructuraConsulta]:
         """Retorna la infraestructura si existe y está activa, None en caso contrario."""
+
+    @abstractmethod
+    def existe(self, id_infraestructura: int) -> bool:
+        """Retorna True si la infraestructura existe, sin importar si está activa.
+
+        Usado para distinguir "no existe" de "existe pero está inactiva" en
+        mensajes de error (INC-M02-89-G83) -- `obtener_activa` devuelve None
+        en ambos casos y no permite esa distinción."""
 
     @abstractmethod
     def listar_activas(self, excluir_id: Optional[int] = None) -> list[InfraestructuraConsulta]:
@@ -36,3 +53,12 @@ class InfraestructuraConsultaPort(ABC):
     @abstractmethod
     def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:
         """Retorna los sensores con asociación de área activa en la infraestructura (enriquecimiento RF-22)."""
+
+    @abstractmethod
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        """C2 (RF-48): compatibilidad entre el tipo de infraestructura y la especie del activo.
+
+        Si no hay ninguna regla configurada para ``tipo_infraestructura``, es
+        compatible por defecto (sin restricción todavía definida para ese tipo).
+        Si hay al menos una regla, solo son compatibles las especies listadas.
+        """

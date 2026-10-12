@@ -1,3 +1,5 @@
+"""Caso de uso: asociación de un sensor IoT a un activo biológico (RF-49)."""
+
 from __future__ import annotations
 
 import datetime
@@ -5,30 +7,46 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import AsociacionSensorActivo, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.asociacion_sensor_activo_repository import (
     AsociacionSensorActivoRepository,
 )
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
+from src.biological_assets.domain.repositories.dispositivo_iot_estado_port import DispositivoIotEstadoPort
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsultaPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 if TYPE_CHECKING:
     from src.identity_access.infrastructure.dependencies import UsuarioActual
     from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
 
-# Mapa de tipo_asociacion DTO (uppercase) → valor en DB (lowercase)
+# Mapa de tipo_asociacion DTO (uppercase) → valor en DB (lowercase).
+# AMBIENTAL no es alcanzable aquí -- el DTO ya la excluye del Literal (#351);
+# ese caso lo maneja AsociarSensorInfraestructuraUseCase.
 _TIPO_DB = {
     'DIRECTA': 'directa',
-    'AMBIENTAL': 'ambiental',
     'POBLACIONAL': 'poblacional',
 }
 
+# RF-49 FA "Dispositivo IoT Fuera de Línea": sin heartbeat en los últimos 30 min.
+_UMBRAL_DESCONEXION_MINUTOS = 30
+
 
 class AsociarSensorActivoUseCase:
+    """Asocia un sensor a un activo de forma directa (individual) o poblacional (lote).
+
+    Valida que activo, sensor y dispositivo estén operativos, que el sensor esté en
+    la infraestructura del activo y que sea compatible con la especie según M09.
+    Un sensor no puede quedar vinculado dos veces al mismo activo ni a dos lotes.
+    Si el dispositivo está fuera de línea la asociación se crea con advertencia.
+    """
 
     def __init__(
         self,
@@ -38,6 +56,7 @@ class AsociarSensorActivoUseCase:
         sensor_port: SensorConsultaPort,
         infra_port: InfraestructuraConsultaPort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        dispositivo_estado_port: DispositivoIotEstadoPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -45,17 +64,56 @@ class AsociarSensorActivoUseCase:
         self.sensor_port = sensor_port
         self.infra_port = infra_port
         self.bitacora_repo = bitacora_repo
+        self.dispositivo_estado_port = dispositivo_estado_port
 
     def execute(
         self,
         id_activo: int,
         dto: AsociarSensorActivoDTO,
         usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
-        # V1 — Activo existe
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        def obtener_activo_en_alcance(activo_id: int):
+            return self.activo_repo.obtener_por_id(
+                activo_id,
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            )
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(
+                id_activo,
+                dto,
+                usuario_actual,
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            ),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=obtener_activo_en_alcance,
+            id_activo=id_activo,
+            id_usuario=usuario_actual.id_usuario,
+            rf_origen='RF49',
+            tipo_evento_rechazado='ASOCIACION_IOT_RECHAZADA',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
+        self,
+        id_activo: int,
+        dto: AsociarSensorActivoDTO,
+        usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
+    ) -> AsociacionSensorActivo:
+        # V1 — Activo existe (CU11 Flujo Alterno "Activo Biológico No Válido":
+        # inexistente o BAJA comparten el mismo flujo -> BusinessRuleError/422,
+        # no NotFoundError/404. V2 abajo ya usa BusinessRuleError para el caso
+        # BAJA; esto solo alinea el caso "inexistente" con esa misma regla.
+        activo = self.activo_repo.obtener_por_id(
+            id_activo,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
         if activo is None:
-            raise NotFoundError(
+            raise BusinessRuleError(
                 code='ACTIVO_NO_ENCONTRADO',
                 message=f'No existe un activo biológico con id {id_activo}.',
             )
@@ -122,6 +180,37 @@ class AsociarSensorActivoUseCase:
                 ),
             )
 
+        # V7 — Compatibilidad biologica sensor-especie (RF-49 R3 / FA-04).
+        # La configuracion de M09 es una lista blanca por sensor. Fallar
+        # cerrado cuando no hay parametrizacion evita que la ausencia del
+        # catalogo vuelva a equivaler a "cualquier especie es compatible".
+        compatibilidad = self.sensor_port.obtener_compatibilidad_especie(
+            dto.sensor_id,
+            activo.id_especie,
+        )
+        if compatibilidad is None or not compatibilidad.configurada:
+            raise ValidationError(
+                code='COMPATIBILIDAD_SENSOR_NO_CONFIGURADA',
+                message=(
+                    f'No existe una parametrización de compatibilidad biológica para el sensor '
+                    f'{dto.sensor_id}. Configure al menos una especie compatible en M09 antes '
+                    'de asociarlo a un activo biológico.'
+                ),
+                field='sensor_id',
+            )
+
+        if not compatibilidad.es_compatible:
+            especies = ', '.join(compatibilidad.especies_compatibles)
+            raise ValidationError(
+                code='INCOMPATIBILIDAD_ESPECIE_SENSOR',
+                message=(
+                    f'Incompatibilidad biológica. El sensor {dto.sensor_id} está parametrizado '
+                    f'para {especies}, no es compatible con el activo {id_activo} de tipo '
+                    f'{compatibilidad.nombre_especie_activo}.'
+                ),
+                field='sensor_id',
+            )
+
         tipo_db = _TIPO_DB[dto.tipo_asociacion]
 
         # V8 — Cardinalidad DIRECTA: sensor no puede tener otro activo individual activo
@@ -154,6 +243,25 @@ class AsociarSensorActivoUseCase:
                     message=(
                         f'El activo {id_activo} ya tiene el sensor {conflicto_pob.sensor_id} '
                         'con asociación POBLACIONAL activa. Desactívelo primero.'
+                    ),
+                )
+
+            # V8c — Restricción 4 (RF-49): un sensor POBLACIONAL solo puede estar
+            # activo en un único lote a la vez. V8b solo valida por activo (que el
+            # LOTE no tenga ya otro sensor); esta es la simétrica por SENSOR (que
+            # el sensor no esté ya activo en otro lote), ausente hasta ahora.
+            activas_sensor_pob = self.repo.listar_activas_por_sensor(dto.sensor_id, 'poblacional')
+            conflicto_sensor = next(
+                (a for a in activas_sensor_pob if a.id_activo_biologico != id_activo),
+                None,
+            )
+            if conflicto_sensor:
+                raise ConflictError(
+                    code='SENSOR_YA_ASOCIADO_A_OTRO_LOTE',
+                    message=(
+                        f'El sensor {dto.sensor_id} ya está asociado con tipo POBLACIONAL '
+                        f'al activo {conflicto_sensor.id_activo_biologico}. Un sensor solo puede '
+                        'estar activo en un único lote a la vez. Desactive esa asociación primero.'
                     ),
                 )
 
@@ -200,6 +308,7 @@ class AsociarSensorActivoUseCase:
                 estado_asociacion='ACTIVA',
             )
             nueva = self.repo.guardar(nueva)
+            nueva.advertencia = self._calcular_advertencia_desconexion(sensor.id_dispositivo_iot)
 
             self.repo.registrar_auditoria(
                 id_asociacion=nueva.id_asociacion_activo_sensor,
@@ -220,36 +329,53 @@ class AsociarSensorActivoUseCase:
 
             self.db.commit()
 
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF49', tipo_evento='ASOCIACION_IOT_FALLIDA',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'sensor_id': dto.sensor_id},
-                        id_usuario_responsable=usuario_actual.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF49', tipo_evento='ASOCIACION_IOT_FALLIDA',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'sensor_id': dto.sensor_id},
+                id_usuario_responsable=usuario_actual.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF49', tipo_evento='ASOCIACION_IOT_CREADA',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Sensor {dto.sensor_id} asociado con tipo {dto.tipo_asociacion}',
-                    detalle_tecnico={'sensor_id': dto.sensor_id, 'tipo_asociacion': dto.tipo_asociacion},
-                    id_usuario_responsable=usuario_actual.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF49', tipo_evento='ASOCIACION_IOT_CREADA',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Sensor {dto.sensor_id} asociado con tipo {dto.tipo_asociacion}',
+            detalle_tecnico={'sensor_id': dto.sensor_id, 'tipo_asociacion': dto.tipo_asociacion},
+            id_usuario_responsable=usuario_actual.id_usuario,
+        ))
 
         return nueva
+
+    def _calcular_advertencia_desconexion(self, id_dispositivo_iot: int) -> str | None:
+        """RF-49 FA "Dispositivo IoT Fuera de Línea": sin heartbeat hace más de
+        30 min, la asociación igual se crea (HTTP 201) pero con advertencia."""
+        if self.dispositivo_estado_port is None:
+            return None
+
+        estado = self.dispositivo_estado_port.obtener_estado(id_dispositivo_iot)
+        if estado is None or estado.fecha_ultimo_contacto is None:
+            return None
+
+        ultimo_contacto = estado.fecha_ultimo_contacto
+        if ultimo_contacto.tzinfo is None:
+            ultimo_contacto = ultimo_contacto.replace(tzinfo=datetime.timezone.utc)
+
+        ahora = datetime.datetime.now(datetime.timezone.utc)
+        sin_contacto = ahora - ultimo_contacto
+        if sin_contacto <= datetime.timedelta(minutes=_UMBRAL_DESCONEXION_MINUTOS):
+            return None
+
+        return (
+            f'El dispositivo {id_dispositivo_iot} se encuentra desconectado desde las '
+            f'{ultimo_contacto.strftime("%H:%M:%S")}. Las lecturas podrían no verse reflejadas de inmediato.'
+        )

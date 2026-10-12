@@ -15,6 +15,11 @@ from src.shared.errors import ValidationError
 
 @dataclass(eq=False)
 class ConfiguracionGlobal:
+    """Parámetros operativos globales (RF-18): frecuencia de muestreo y heartbeat de los dispositivos IoT.
+
+    Solo una configuración puede estar activa; el heartbeat debe ser coherente con
+    la frecuencia de muestreo.
+    """
     frecuencia_muestreo: FrecuenciaMuestreo
     heartbeat: Heartbeat
     es_activo: bool

@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.telemetria import DispositivoInfo
-from src.telemetry.domain.repositories.dispositivo_port import DispositivoHeartbeatInfo, DispositivoPort
+from src.telemetry.domain.repositories.dispositivo_port import CamaraInfo, DispositivoHeartbeatInfo, DispositivoPort
 
 
 class DispositivoM09Adapter(DispositivoPort):
@@ -65,4 +65,24 @@ class DispositivoM09Adapter(DispositivoPort):
             id_dispositivo_iot=row.id_dispositivo_iot,
             id_infraestructura=row.id_infraestructura,
             es_activo=row.es_activo,
+        )
+
+    def obtener_camara(self, device_id: int, access_key: str) -> Optional[CamaraInfo]:
+        row = self.db.execute(
+            text(
+                'SELECT d.id_dispositivo_iot, d.id_infraestructura, d.es_activo, d.fps, t.categoria '
+                'FROM modulo9.dispositivos_iot d '
+                'JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo = d.id_tipo_dispositivo '
+                'WHERE d.id_dispositivo_iot = :device_id AND d.serial = :access_key'
+            ),
+            {'device_id': device_id, 'access_key': access_key},
+        ).fetchone()
+        if row is None:
+            return None
+        return CamaraInfo(
+            id_dispositivo_iot=row.id_dispositivo_iot,
+            id_infraestructura=row.id_infraestructura,
+            es_activo=row.es_activo,
+            es_camara=row.categoria == 'CAMARA',
+            fps_nominal=row.fps,
         )

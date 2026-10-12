@@ -50,6 +50,12 @@ def crear_configuracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConfiguracionGlobalResponse:
+    """Crea los parámetros operativos globales: frecuencia de muestreo y heartbeat IoT en minutos (RF-18).
+
+    **Acceso:** `configuraciones_globales` · Crear.
+
+    Solo puede existir una configuración activa (409).
+    """
     use_case = CrearConfiguracionUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
@@ -73,6 +79,10 @@ def crear_configuracion(
 def consultar_configuracion(
     db: Session = Depends(get_db),
 ) -> Optional[ConfiguracionGlobalResponse]:
+    """Devuelve la configuración operativa activa (RF-18).
+
+    **Acceso:** `configuraciones_globales` · Leer.
+    """
     use_case = ConsultarConfiguracionUseCase(
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
     )
@@ -101,6 +111,12 @@ def actualizar_configuracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConfiguracionGlobalResponse:
+    """Actualiza frecuencia de muestreo y heartbeat (RF-18).
+
+    **Acceso:** `configuraciones_globales` · Actualizar.
+
+    El heartbeat debe ser mayor o igual que la frecuencia (400). Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = ActualizarConfiguracionUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),

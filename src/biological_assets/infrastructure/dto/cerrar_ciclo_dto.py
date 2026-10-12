@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/cierre`` (RF-38)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -6,11 +8,17 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import hoy_colombia
 
 _MOTIVOS_VALIDOS = {'venta', 'sacrificio', 'muerte', 'finalizacion_lote', 'otro'}
 
 
 class CerrarCicloDTO(BaseDTO):
+    """Cierre del ciclo productivo.
+
+    ``motivo_cierre``: ``venta`` | ``sacrificio`` | ``muerte`` | ``finalizacion_lote`` |
+    ``otro``. ``fecha_cierre`` no puede ser futura.
+    """
     fecha_cierre: date
     motivo_cierre: str
     descripcion_cierre: Optional[str] = None
@@ -18,7 +26,9 @@ class CerrarCicloDTO(BaseDTO):
     @field_validator('fecha_cierre')
     @classmethod
     def fecha_no_futura(cls, v: date) -> date:
-        if v > date.today():
+        # La referencia es el día en Colombia, no el del proceso (#411) ni el
+        # UTC: ver src/shared/fechas.py.
+        if v > hoy_colombia():
             raise ValueError('La fecha de cierre no puede ser futura.')
         return v
 

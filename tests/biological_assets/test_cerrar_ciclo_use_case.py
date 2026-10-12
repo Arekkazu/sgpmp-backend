@@ -6,9 +6,11 @@ delega la transición a ``CERRADO`` en ``aplicar_cambio_estado`` con
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
+
+from src.shared.fechas import hoy_colombia
 
 from src.biological_assets.application.use_cases.gestion.cerrar_ciclo_use_case import CerrarCicloUseCase
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistoricoEstado
@@ -56,6 +58,11 @@ class EventoRepoFake:
 class HistoricoRepoFake:
     def __init__(self) -> None:
         self.registros: list[dict] = []
+
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
 
     def registrar(self, **kwargs) -> HistoricoEstado:
         self.registros.append(kwargs)
@@ -140,3 +147,39 @@ def test_cierre_sobre_activo_en_baja_se_rechaza_antes_de_validar_fase() -> None:
     assert exc_info.value.code == 'ESTADO_INVALIDO_PARA_CIERRE'
     assert repo.cierres == 0
     assert db.commits == 0
+
+
+def test_cierre_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
+    """INC-M02-29-g36 / #411 (RF-38): mismo patrón que #412 en RF-45 -- fijar
+    siempre medianoche UTC para fecha_cierre es incorrecto para un cierre el
+    mismo día UTC de un evento posterior al inicio del día."""
+    db = DbFake()
+    activo = _activo(id_estado=EstadoActivo.ACTIVO)
+    repo = ActivoRepoFake(activo)
+    historico = HistoricoRepoFake()
+    uc = CerrarCicloUseCase(db=db, repo=repo, evento_repo=EventoRepoFake(), historico_repo=historico)
+
+    dto = CerrarCicloDTO(fecha_cierre=hoy_colombia(), motivo_cierre='venta')
+    antes = datetime.now(timezone.utc)
+    uc.execute(10, dto, _usuario())
+    despues = datetime.now(timezone.utc)
+
+    fecha_registrada = historico.registros[0]['fecha']
+    assert fecha_registrada.time() != datetime.min.time()
+    assert antes <= fecha_registrada <= despues
+
+
+def test_cierre_fecha_pasada_usa_fin_de_dia() -> None:
+    db = DbFake()
+    activo = _activo(id_estado=EstadoActivo.ACTIVO)
+    repo = ActivoRepoFake(activo)
+    historico = HistoricoRepoFake()
+    uc = CerrarCicloUseCase(db=db, repo=repo, evento_repo=EventoRepoFake(), historico_repo=historico)
+
+    ayer = hoy_colombia() - timedelta(days=1)
+    dto = CerrarCicloDTO(fecha_cierre=ayer, motivo_cierre='venta')
+    uc.execute(10, dto, _usuario())
+
+    fecha_registrada = historico.registros[0]['fecha']
+    assert fecha_registrada.date() == ayer
+    assert fecha_registrada.time() == datetime.max.time()

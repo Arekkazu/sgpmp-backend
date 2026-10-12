@@ -17,6 +17,7 @@ from src.shared.errors import ConflictError
 
 
 class RegistrarFincaUseCase:
+    """Registra una finca con nombre único (409) y la asigna a quien la crea."""
 
     def __init__(
         self,
@@ -59,7 +60,7 @@ class RegistrarFincaUseCase:
         )
 
         try:
-            finca_guardada = self.finca_repo.guardar(finca)
+            finca_guardada = self.finca_repo.guardar(finca, id_creador=usuario_actual.id_usuario)
             self.auditoria_repo.registrar(
                 id_finca=finca_guardada.id_finca,
                 id_usuario=usuario_actual.id_usuario,

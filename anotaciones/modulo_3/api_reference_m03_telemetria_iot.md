@@ -374,7 +374,7 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 
 **Response `EstadoDispositivoDetalleSchema`:** `estado: EstadoDispositivoIoTSchema`, `historial: list[HistoricoTransicionSchema]`
 
-**`EstadoDispositivoIoTSchema`:** `id_estado_dispositivo_iot`, `id_dispositivo_iot`, `estado_actual`, `fecha_ultimo_contacto: datetime \| None`, `id_ultimo_heartbeat: int \| None`, `tiempo_sin_contacto: str \| None`, `causa_primaria: str \| None`, `causas_secundarias: Any \| None`, `fecha_ultima_actualizacion: datetime`
+**`EstadoDispositivoIoTSchema`:** `id_estado_dispositivo_iot`, `id_dispositivo_iot`, `estado_actual`, `fecha_ultimo_contacto: datetime \| None`, `id_ultimo_heartbeat: int \| None`, `tiempo_sin_contacto: int \| None` (segundos desde `fecha_ultimo_contacto`, calculados al responder — INC-M09-70-G29), `causa_primaria: str \| None`, `causas_secundarias: Any \| None`, `fecha_ultima_actualizacion: datetime`
 
 **`HistoricoTransicionSchema`:** `id_transaccion`, `id_dispositivo_iot`, `estado_anterior`, `estado_nuevo`, `causa_primaria: str \| None`, `causa_secundaria: Any \| None`, `id_usuario_responsable: int \| None`, `notas: str \| None`, `fecha_transicion: datetime`
 

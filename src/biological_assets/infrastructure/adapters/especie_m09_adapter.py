@@ -1,3 +1,5 @@
+"""Adapter de ``EspecieConsultaPort`` que lee el catálogo de especies de M09."""
+
 from __future__ import annotations
 
 from typing import Optional

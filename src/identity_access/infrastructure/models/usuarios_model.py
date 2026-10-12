@@ -40,8 +40,12 @@ class Usuarios(Base):
                 'del módulo 1 y es referenciada por prácticamente todos los demás '
                 'módulos\n'
                 'del sistema para asociar acciones a un usuario específico.',
-     'schema': 'modulo1'}
+     'schema': 'modulo1',
+     'implicit_returning': False}
     )
+    # F4 (RLS): sin RETURNING. El registro es anónimo y un INSERT ... RETURNING exige
+    # que la fila nueva pase la política SELECT, que pide ser su dueño.
+    # Sin él, SQLAlchemy pide el id a la secuencia antes del INSERT.
 
     id_usuario: Mapped[int] = mapped_column(Integer, Sequence('usuarios_id_usuarios_seq', schema='modulo1'), primary_key=True, comment='Identificador único del usuario. Clave primaria generada automáticamente (serial).\nEs la FK más referenciada en todo el sistema.')
     correo_electronico: Mapped[str] = mapped_column(String(100), nullable=False, comment='Dirección de correo electrónico del usuario. Única en el sistema.\nEs el canal principal de comunicación y recuperación de cuenta. Máximo 100 caracteres.')

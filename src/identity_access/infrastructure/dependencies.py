@@ -12,15 +12,19 @@ from fastapi import Depends, Header
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
+from src.identity_access.infrastructure.models.roles_model import Roles
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.audit_context import establecer_id_token
-from src.shared.database import get_db
+from src.shared.database import declarar_identidad, get_db
 from src.shared.errors import AuthenticationError
 from src.shared.jwt import verify_token
 
 INACTIVIDAD_MINUTOS = 30
+
+# INACTIVO, BLOQUEADO, ELIMINADO: los estados que invalidan las sesiones (RF-06).
+_ESTADOS_QUE_FINALIZAN_SESION = {3, 4, 5}
 
 
 @dataclass
@@ -67,9 +71,28 @@ def get_current_user(
     id_token = int(payload["jti"])
     id_usuario = int(payload["sub"])
 
+    # RLS: el `sub` ya viene de un JWT verificado. Declararlo antes de la
+    # primera consulta deja que las políticas de modulo1 muestren el token, el
+    # usuario y la cuenta propios; sin esto la propia validación no los ve.
+    # El rol vigente se completa abajo, cuando se lee de la base.
+    declarar_identidad(db, id_usuario, None)
+
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
     if token is None or token.fecha_uso is not None:
+        # RF-06: si el token se revocó porque la cuenta pasó a INACTIVO,
+        # BLOQUEADO o ELIMINADO, el usuario debe ver el motivo; con
+        # TOKEN_REVOCADO no se distinguía de un logout o una sesión reemplazada.
+        estado = (
+            db.query(CuentasUsuarios.id_estado_cuenta)
+            .filter(CuentasUsuarios.id_usuario == id_usuario)
+            .scalar()
+        )
+        if estado in _ESTADOS_QUE_FINALIZAN_SESION:
+            raise AuthenticationError(
+                code="SESION_FINALIZADA_CAMBIO_ESTADO",
+                message="Su sesión ha sido finalizada debido a un cambio en el estado de su cuenta.",
+            )
         raise AuthenticationError(
             code="TOKEN_REVOCADO",
             message="El token de sesión ha sido revocado o es inválido.",
@@ -81,7 +104,8 @@ def get_current_user(
     # (RF-04). Se lee junto con la cuenta en una sola consulta porque el bloque
     # de inactividad de abajo necesita esa fila de todos modos.
     fila = (
-        db.query(Usuarios.id_rol, CuentasUsuarios)
+        db.query(Usuarios.id_rol, Roles.nombre_rol, CuentasUsuarios)
+        .join(Roles, Roles.id_rol == Usuarios.id_rol)
         .outerjoin(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
         .filter(Usuarios.id_usuario == id_usuario)
         .first()
@@ -95,7 +119,7 @@ def get_current_user(
             message="El token de sesión ha sido revocado o es inválido.",
         )
 
-    id_rol_vigente, cuenta = fila
+    id_rol_vigente, nombre_rol_vigente, cuenta = fila
 
     # Verificar inactividad de 30 minutos
     ahora = datetime.now(timezone.utc)
@@ -129,6 +153,14 @@ def get_current_user(
     # RF-10: de este token el repositorio de auditoría deriva la sesión con la
     # que se registra cada evento del request.
     establecer_id_token(id_token)
+
+    # F2 del control de acceso por BD (RLS): punto único donde la identidad ya
+    # autenticada se declara, para que las políticas
+    # (`modulo1.fn_id_usuario_actual()` / `modulo1.fn_rol_actual()`) y el
+    # trigger `modulo2.trg_auditar_activo_biologico` (`app.usuario_id`) la
+    # lean. `declarar_identidad` la reaplica en cada transacción de este
+    # request, también después de un `commit()`.
+    declarar_identidad(db, id_usuario, nombre_rol_vigente)
 
     return UsuarioActual(
         id_usuario=id_usuario,

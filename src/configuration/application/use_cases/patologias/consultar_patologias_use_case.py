@@ -6,6 +6,7 @@ from src.configuration.domain.repositories.especie_patologia_repository import E
 
 
 class ConsultarPatologiasUseCase:
+    """Lista las patologías de una especie, opcionalmente solo las activas."""
 
     def __init__(self, especie_patologia_repo: EspeciePatologiaRepository) -> None:
         self.especie_patologia_repo = especie_patologia_repo

@@ -7,6 +7,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
+    obtener_fincas_asignadas,
+)
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -78,9 +81,13 @@ class ConsultarPerfilUseCase:
             "numero_identificacion": numero_identificacion,
             "fecha_nacimiento": detalle.fecha_nacimiento,
             "fecha_registro": detalle.fecha_registro,
+            "telefono": detalle.telefono,
+            "direccion": detalle.direccion,
             "nombre_rol": detalle.nombre_rol,
             "estado_cuenta": detalle.estado_cuenta,
+            "ultimo_acceso": detalle.ultimo_acceso,
             "version": detalle.version,
+            "fincas": obtener_fincas_asignadas(self.db, usuario_actual.id_usuario),
         }
 
     def _enmascarar(self, numero: Optional[str]) -> Optional[str]:

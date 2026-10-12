@@ -24,6 +24,7 @@ class SqlAlchemyTipoDispositivoIotRepository(TipoDispositivoIotRepository):
             frecuencia_captura_max=orm.frecuencia_captura_max,
             intervalo_transmision_min=orm.intervalo_transmision_min,
             intervalo_transmision_max=orm.intervalo_transmision_max,
+            categoria=orm.categoria,
         )
 
     def obtener_por_id(self, id_tipo_dispositivo: int) -> Optional[TipoDispositivoIot]:

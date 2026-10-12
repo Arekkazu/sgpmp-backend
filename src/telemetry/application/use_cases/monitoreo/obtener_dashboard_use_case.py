@@ -45,20 +45,22 @@ class ObtenerDashboardUseCase:
                 sensor.calidad_senal_rssi = None
                 sensor.calidad_senal_snr = None
 
-        resumen: list[ResumenUnidadProductiva] = []
-        if id_infraestructura is None:
-            resumen = self.monitoreo_repo.obtener_resumen_unidades(
-                ids_fincas_permitidas=ids_fincas_permitidas,
-            )
-            # Aplicar mismo recálculo de semáforo al estado general de cada unidad
-            estados_por_unidad: dict[int, list[str]] = {}
-            for s in sensores:
-                if s.id_infraestructura:
-                    estados_por_unidad.setdefault(s.id_infraestructura, []).append(s.estado_semaforo)
-            for unidad in resumen:
-                estados = estados_por_unidad.get(unidad.id_infraestructura, [])
-                if estados:
-                    unidad.estado_general = SemaforoCalculator.peor_semaforo(estados)
+        resumen = self.monitoreo_repo.obtener_resumen_unidades(
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
+        # #317: con filtro por área el cliente agrupa las tarjetas bajo su
+        # unidad; devolver [] dejaba los KPIs bien y la vista sin tarjetas.
+        if id_infraestructura is not None:
+            resumen = [u for u in resumen if u.id_infraestructura == id_infraestructura]
+        # Aplicar mismo recálculo de semáforo al estado general de cada unidad
+        estados_por_unidad: dict[int, list[str]] = {}
+        for s in sensores:
+            if s.id_infraestructura:
+                estados_por_unidad.setdefault(s.id_infraestructura, []).append(s.estado_semaforo)
+        for unidad in resumen:
+            estados = estados_por_unidad.get(unidad.id_infraestructura, [])
+            if estados:
+                unidad.estado_general = SemaforoCalculator.peor_semaforo(estados)
 
         return sensores, resumen, total
 

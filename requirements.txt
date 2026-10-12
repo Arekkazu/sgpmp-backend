@@ -1,12 +1,15 @@
 alembic==1.18.4
 annotated-types==0.7.0
-anyio==4.13.0
+anyio==4.14.2
 bcrypt==5.0.0
 certifi==2026.5.20
 click==8.4.1
 colorama==0.4.6
 coverage==7.14.1
-cryptography==48.0.0
+cryptography==50.0.2
+defusedxml==0.7.1
+# ecdsa (dependencia de python-jose) arrastra CVE-2024-23342 sin parche: riesgo aceptado
+# porque los JWT solo usan HS256/RS256. Agregar un algoritmo ES* lo vuelve explotable (SEG-SCA-01).
 ecdsa==0.19.2
 et-xmlfile==2.0.0
 exceptiongroup==1.3.1
@@ -25,7 +28,7 @@ passlib==1.7.4
 pillow==12.3.0
 pluggy==1.6.0
 psycopg2-binary==2.9.12
-pyasn1==0.6.3
+pyasn1==0.6.4
 pycryptodome==3.23.0
 pydantic==2.13.4
 pydantic_core==2.46.4
@@ -36,13 +39,13 @@ pytest-html==4.2.0
 pytest-metadata==3.1.1
 python-dotenv==1.2.2
 python-jose==3.5.0
-python-multipart==0.0.29
+python-multipart==0.0.31
 reportlab==4.4.4
 rsa==4.9.1
 six==1.17.0
 sniffio==1.3.1
 SQLAlchemy==2.0.50
-starlette==1.2.0
+starlette==1.3.1
 tomli==2.4.1
 typing_extensions==4.15.0
 uvicorn==0.48.0

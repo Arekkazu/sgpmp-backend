@@ -1,3 +1,5 @@
+"""Puerto del histórico inmutable de cambios de estado del activo (RF-44)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +10,8 @@ from src.biological_assets.domain.entities.activo_biologico import HistoricoEsta
 
 
 class HistoricoEstadoRepository(ABC):
+    """Contrato de acceso a ``modulo2.historicos_estados_activos``."""
+
     @abstractmethod
     def registrar(
         self,
@@ -20,3 +24,7 @@ class HistoricoEstadoRepository(ABC):
         modulo_origen: str,
     ) -> HistoricoEstado:
         """Inserta un registro inmutable de cambio de estado y retorna la entidad."""
+
+    @abstractmethod
+    def obtener_ultimo_cambio(self, id_activo: int) -> Optional[HistoricoEstado]:
+        """Retorna el cambio de estado más reciente del activo, o None si nunca cambió de estado."""

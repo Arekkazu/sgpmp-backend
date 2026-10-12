@@ -35,7 +35,7 @@ from src.configuration.infrastructure.dto.guardar_identidad_visual_dto import (
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared import almacen_logos
-from src.shared.errors import ValidationError
+from src.shared.errors import UnsupportedMediaTypeError, ValidationError
 
 ADMIN = UsuarioActual(id_usuario=1, id_token=1, id_rol=1, id_estado_cuenta=2)
 
@@ -159,11 +159,12 @@ def test_el_logo_se_guarda_bajo_la_ruta_publica_montada(tmp_path, monkeypatch) -
 
 @pytest.mark.parametrize("tipo", ["image/gif", "application/pdf", "image/webp", None])
 def test_formato_no_admitido_se_rechaza_con_el_mensaje_del_flujo_alterno(tipo) -> None:
-    with pytest.raises(ValidationError) as error:
+    with pytest.raises(UnsupportedMediaTypeError) as error:
         almacen_logos.guardar_logo(PNG_MINIMO, tipo)
 
     assert error.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
-    assert error.value.status_code == 400
+    # RF-26 pide 415 Unsupported Media Type para este flujo alterno, no 400.
+    assert error.value.status_code == 415
     assert error.value.field == "logo"
     assert "PNG, JPEG o SVG" in error.value.message
 

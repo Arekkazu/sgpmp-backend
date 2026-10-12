@@ -1,3 +1,7 @@
+"""Implementación SQLAlchemy de ``IndicadoresRepository``: indicadores zootécnicos
+(RF-51) y datos consolidados (RF-50).
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -20,8 +24,17 @@ _INCLUDE_PRODUCCION = {'PRODUCCION', 'TODOS'}
 _INCLUDE_SANITARIO = {'SANITARIO', 'TODOS'}
 _INCLUDE_EFICIENCIA = {'EFICIENCIA', 'TODOS'}
 
+# ponytail: umbral global de plausibilidad biológica para ganancia_peso. No existe
+# en el sistema un catálogo de rangos fisiológicos por especie (RF-51 no lo define);
+# este valor solo descarta outliers evidentes (ver INC-M02-98-G96). Si se necesita
+# precisión por especie, subir a una tabla modulo9 en vez de este constante.
+_GDP_MAXIMO_PLAUSIBLE_KG_DIA = Decimal('10')
+
 
 class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
+    """Calcula indicadores y arma la vista consolidada con consultas sobre los eventos
+    del activo.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -62,17 +75,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 advertencias.append(aviso_mort)
 
         if tipo_indicador in _INCLUDE_EFICIENCIA:
-            indicadores.append(IndicadorZootecnico(
-                tipo='conversion_alimenticia',
-                unidad='kg_alimento/kg_ganancia',
-                fecha_calculo=ahora,
-                disponible=False,
-                variables_usadas={},
-            ))
-            advertencias.append(
-                'REQUIERE_M05: El indicador conversion_alimenticia requiere datos de consumo '
-                'de alimento del módulo M05, que aún no está implementado.'
-            )
+            ind, aviso = self._calcular_conversion_alimenticia(id_activo, fecha_inicio, fecha_fin, ahora)
+            indicadores.append(ind)
+            if aviso:
+                advertencias.append(aviso)
 
         return ResultadoIndicadores(
             id_activo_biologico=id_activo,
@@ -120,20 +126,126 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         dias = Decimal(str(max((fecha_ultima - fecha_primera).days, 1)))
         gpd = (peso_final - peso_inicial) / dias
 
+        periodo_inicio = fecha_primera.date() if hasattr(fecha_primera, 'date') else fecha_primera
+        periodo_fin = fecha_ultima.date() if hasattr(fecha_ultima, 'date') else fecha_ultima
+        variables_usadas = {
+            'peso_inicial_kg': float(peso_inicial),
+            'peso_final_kg': float(peso_final),
+            'dias': int(dias),
+            'total_mediciones': len(rows),
+        }
+
+        if abs(gpd) > _GDP_MAXIMO_PLAUSIBLE_KG_DIA:
+            return (
+                IndicadorZootecnico(
+                    tipo='ganancia_peso',
+                    unidad='kg/dia',
+                    periodo_inicio=periodo_inicio,
+                    periodo_fin=periodo_fin,
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={**variables_usadas, 'valor_calculado_kg_dia': float(gpd)},
+                    causa_no_disponible='OUTLIER_CRITICO',
+                ),
+                f'OUTLIER_CRITICO: el valor calculado ({gpd.quantize(Decimal("0.0001"))} kg/dia) excede '
+                'el umbral de plausibilidad biologica y no se publica como valido. Requiere revision manual '
+                'de las mediciones de peso registradas.',
+            )
+
         return (
             IndicadorZootecnico(
                 tipo='ganancia_peso',
                 valor=gpd.quantize(Decimal('0.0001')),
                 unidad='kg/dia',
-                periodo_inicio=fecha_primera.date() if hasattr(fecha_primera, 'date') else fecha_primera,
-                periodo_fin=fecha_ultima.date() if hasattr(fecha_ultima, 'date') else fecha_ultima,
+                periodo_inicio=periodo_inicio,
+                periodo_fin=periodo_fin,
+                fecha_calculo=ahora,
+                disponible=True,
+                variables_usadas=variables_usadas,
+            ),
+            None,
+        )
+
+    def _calcular_conversion_alimenticia(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+        ahora: datetime,
+    ) -> tuple[IndicadorZootecnico, Optional[str]]:
+        ganancia_ind, _ = self._calcular_ganancia_peso(id_activo, fecha_inicio, fecha_fin, ahora)
+        if not ganancia_ind.disponible:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={},
+                    # Un outlier en el peso invalida también el FCR que se apoya en él.
+                    causa_no_disponible=ganancia_ind.causa_no_disponible,
+                ),
+                'DATOS_INSUFICIENTES: conversion_alimenticia requiere un indicador ganancia_peso '
+                'valido (minimo 2 mediciones de peso y sin outliers) en el periodo solicitado.',
+            )
+
+        ganancia_kg = (
+            Decimal(str(ganancia_ind.variables_usadas['peso_final_kg']))
+            - Decimal(str(ganancia_ind.variables_usadas['peso_inicial_kg']))
+        )
+        if ganancia_kg <= 0:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={'total_kg_ganancia': float(ganancia_kg)},
+                ),
+                'DATOS_INSUFICIENTES: conversion_alimenticia requiere una ganancia de peso neta '
+                'positiva en el periodo (el activo no ganó peso).',
+            )
+
+        row = self.db.execute(
+            text(
+                "SELECT COALESCE(SUM(cantidad_suministrada), 0) AS total_kg "
+                "FROM modulo5.registros_consumo_alimentos "
+                "WHERE id_activo_biologico = :id AND estado_registro = 'VALIDADO' "
+                "AND lower(tipo_unidad) IN ('kg', 'kilogramo', 'kilogramos') "
+                "AND (:fi IS NULL OR fecha_consumo >= :fi) "
+                "AND (:ff IS NULL OR fecha_consumo <= :ff)"
+            ),
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+        ).fetchone()
+        total_kg_alimento = Decimal(str(row.total_kg)) if row and row.total_kg else Decimal('0')
+
+        if total_kg_alimento <= 0:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={'total_kg_ganancia': float(ganancia_kg)},
+                    causa_no_disponible='CONSUMO_CERO',
+                ),
+                'DATOS_INSUFICIENTES: no hay consumo de alimento (kg) validado en el modulo M05 '
+                'para el periodo solicitado.',
+            )
+
+        fcr = (total_kg_alimento / ganancia_kg).quantize(Decimal('0.0001'))
+        return (
+            IndicadorZootecnico(
+                tipo='conversion_alimenticia',
+                valor=fcr,
+                unidad='kg_alimento/kg_ganancia',
+                periodo_inicio=ganancia_ind.periodo_inicio,
+                periodo_fin=ganancia_ind.periodo_fin,
                 fecha_calculo=ahora,
                 disponible=True,
                 variables_usadas={
-                    'peso_inicial_kg': float(peso_inicial),
-                    'peso_final_kg': float(peso_final),
-                    'dias': int(dias),
-                    'total_mediciones': len(rows),
+                    'total_kg_alimento': float(total_kg_alimento),
+                    'total_kg_ganancia': float(ganancia_kg),
                 },
             ),
             None,
@@ -177,8 +289,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         ultima = row.ultima
         dias = max((ultima - primera).days, 1)
         try:
-            total = Decimal(str(row.total))
-            promedio = (total / Decimal(str(dias))).quantize(Decimal('0.0001'))
+            promedio = (Decimal(str(row.total)) / Decimal(str(dias))).quantize(Decimal('0.0001'))
         except (InvalidOperation, ZeroDivisionError):
             promedio = None
 
@@ -193,7 +304,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 fecha_calculo=ahora,
                 disponible=promedio is not None,
                 variables_usadas={
-                    'total_producido': float(total),
+                    'total_producido': float(row.total),
                     'dias': dias,
                     'total_eventos': int(row.n),
                 },
@@ -389,7 +500,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             secciones.historico_estados = self._obtener_historico_estados(id_activo)
 
         if tipo_dato in ('metricas', 'todos'):
-            secciones.metricas_actuales = self._obtener_metricas(id_activo)
+            secciones.metricas_actuales = self._obtener_metricas(id_activo, fecha_inicio, fecha_fin)
 
         todos_registros = (
             secciones.historial_eventos
@@ -486,7 +597,33 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             for r in rows
         ]
 
-    def _obtener_metricas(self, id_activo: int) -> dict:
+    def contar_metricas_peso_en_rango(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+    ) -> int:
+        # Mismo WHERE que _calcular_ganancia_peso (RF-51): eventos_crecimeinto
+        # con tipo_medicion='peso', acotados al rango solicitado.
+        row = self.db.execute(
+            text(
+                'SELECT count(*) AS total '
+                'FROM modulo2.eventos_crecimeinto ec '
+                'JOIN modulo2.eventos_activos ea ON ec.id_evento = ea.id_eventos '
+                'WHERE ea.id_activo_biologico = :id AND lower(ec.tipo_medicion) = \'peso\' '
+                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
+                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+            ),
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+        ).fetchone()
+        return int(row.total) if row else 0
+
+    def _obtener_metricas(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date] = None,
+        fecha_fin: Optional[date] = None,
+    ) -> dict:
         row = self.db.execute(
             text(
                 'SELECT peso_actual, unidad_peso, fecha_ultimo_peso, '
@@ -507,7 +644,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             {'id': id_activo},
         ).fetchall()
 
-        return {
+        resultado = {
             'peso_actual': float(row.peso_actual) if row and row.peso_actual else None,
             'unidad_peso': row.unidad_peso if row else None,
             'fecha_ultimo_peso': row.fecha_ultimo_peso.isoformat() if row and row.fecha_ultimo_peso else None,
@@ -523,3 +660,28 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 for r in indicadores_rows
             ],
         }
+
+        # INC-M02-94-G93: `peso_actual`/`fecha_ultimo_peso` son deliberadamente
+        # el estado MÁS RECIENTE del activo (así lo dice el propio nombre del
+        # campo), no un valor acotado a fecha_inicio/fecha_fin -- filtrarlos
+        # por rango rompería ese significado para quien consulta el estado
+        # actual sin pedir un histórico. El riesgo real que reportó QA no es
+        # que el campo exista, sino que un consumidor puede leerlo como si
+        # representara el rango solicitado sin ninguna indicación de que no
+        # es así. Se agrega una advertencia explícita en vez de filtrar u
+        # ocultar el dato.
+        if (fecha_inicio is not None or fecha_fin is not None) and row and row.fecha_ultimo_peso:
+            fecha_peso = row.fecha_ultimo_peso
+            fuera_de_rango = (
+                (fecha_inicio is not None and fecha_peso < fecha_inicio)
+                or (fecha_fin is not None and fecha_peso > fecha_fin)
+            )
+            if fuera_de_rango:
+                resultado['advertencia_peso_fuera_de_rango'] = (
+                    f'El peso más reciente registrado ({fecha_peso.isoformat()}) está fuera '
+                    f'del rango solicitado '
+                    f'({fecha_inicio.isoformat() if fecha_inicio else "sin inicio"} a '
+                    f'{fecha_fin.isoformat() if fecha_fin else "sin fin"}).'
+                )
+
+        return resultado

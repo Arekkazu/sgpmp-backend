@@ -61,13 +61,13 @@ class AlertaModel(Base):
         Integer, ForeignKey('modulo2.activos_biologicos.id_activo_biologico')
     )
     id_infraestructura: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo9.infraestructura.id_infraestructura')
+        Integer, ForeignKey('modulo9.infraestructuras.id_infraestructura')
     )
     id_evento_edge_computing: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo3.eventos_edge_computing.id_evento_edge_computing')
     )
     id_telemetria: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo3.telemetria.id_telemetria')
+        Integer, ForeignKey('modulo3.telemetrias.id_telemetria')
     )
     id_paquete_inferencia: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo3.paquetes_inferencia.id_paquetes_inferencia')

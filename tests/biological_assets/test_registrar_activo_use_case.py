@@ -24,7 +24,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import AuthorizationError, BusinessRuleError, ConflictError
 
 
 class DbFake:
@@ -65,15 +65,27 @@ class EspecieFake:
 
 
 class InfraFake:
+    def __init__(self, superficie: Decimal | None = None) -> None:
+        self.superficie = superficie
+
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
+            superficie=self.superficie, id_finca=5,
         )
 
 
 class ParametrosFake:
-    def __init__(self, parametros: list[ParametroEspecie] | None = None) -> None:
+    def __init__(
+        self,
+        parametros: list[ParametroEspecie] | None = None,
+        densidad_maxima: Decimal | None = Decimal('1000'),
+    ) -> None:
         self.parametros = parametros or []
+        self.densidad_maxima = densidad_maxima
+
+    def obtener_densidad_maxima(self, _id_especie: int):
+        return self.densidad_maxima
 
     def listar_por_especie(self, id_especie: int, tipo_activo: str):
         return self.parametros
@@ -105,13 +117,15 @@ def _use_case(
     repo: ActivoRepoFake,
     db: DbFake,
     parametros: list[ParametroEspecie] | None = None,
+    infra_port: InfraFake | None = None,
+    densidad_maxima: Decimal | None = Decimal('1000'),
 ) -> RegistrarActivoBiologicoUseCase:
     return RegistrarActivoBiologicoUseCase(
         db=db,
         repo=repo,
         especie_port=EspecieFake(),
-        infra_port=InfraFake(),
-        parametros_port=ParametrosFake(parametros),
+        infra_port=infra_port or InfraFake(superficie=Decimal('500')),
+        parametros_port=ParametrosFake(parametros, densidad_maxima),
     )
 
 
@@ -128,8 +142,34 @@ def test_registro_exitoso_deja_snapshot_evento_0() -> None:
     assert snapshot.version == 1
     assert snapshot.tipo_evento == 'CREACION'
     assert snapshot.snapshot['identificador'] == 'BOV-100'
+    assert snapshot.snapshot['detalle_individual']['raza'] == 'Angus'
+    assert snapshot.snapshot['detalle_individual']['sexo'] == 'M'
     assert db.commits == 1
     assert db.rollbacks == 0
+
+
+def test_registro_poblacional_snapshot_incluye_cantidades_y_peso_inicial() -> None:
+    # INC-M02-46-G13 / INC-M02-G08: el snapshot inicial de un lote debe
+    # conservar cantidad_inicial, cantidad_actual y peso_promedio_inicial.
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db)
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=10,
+        peso_promedio_inicial=Decimal('2.5'),
+    )
+
+    uc.execute(dto, _usuario())
+
+    snapshot = repo.historial[0].snapshot
+    assert snapshot['detalle_poblacional']['cantidad_inicial'] == 10
+    assert snapshot['detalle_poblacional']['cantidad_actual'] == 10
+    assert snapshot['detalle_poblacional']['peso_promedio_inicial'] == '2.5'
 
 
 @dataclass
@@ -163,6 +203,47 @@ def test_soporte_documental_requerido_para_compra_es_422() -> None:
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.code == 'SOPORTE_DOCUMENTAL_REQUERIDO'
+
+
+def test_transferencia_interna_sin_costo_ni_soporte_no_lanza() -> None:
+    # RF-33: para transferencia_interna, costo_adquisicion es opcional y, sin
+    # costo, soporte_documental tampoco se exige.
+    payload = _OrigenFinancieroPayload(origen_financiero='transferencia_interna')
+    _validar_origen_financiero(payload)  # no debe lanzar
+
+
+def test_transferencia_interna_costo_no_positivo_es_422() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('0'),
+        soporte_documental='acta.pdf',
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        _validar_origen_financiero(payload)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'COSTO_ADQUISICION_INVALIDO'
+
+
+def test_transferencia_interna_con_costo_exige_soporte_documental_422() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('100'),
+        soporte_documental=None,
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        _validar_origen_financiero(payload)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'SOPORTE_DOCUMENTAL_REQUERIDO'
+
+
+def test_transferencia_interna_con_costo_y_soporte_no_lanza() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('100'),
+        soporte_documental='acta.pdf',
+    )
+    _validar_origen_financiero(payload)  # no debe lanzar
 
 
 def test_costo_adquisicion_invalido_para_origen_bloquea_antes_de_persistir() -> None:
@@ -249,3 +330,122 @@ def test_atributo_dinamico_valido_se_persiste_normalmente() -> None:
     assert repo.guardados == 1
     assert len(repo.historial) == 1
     assert db.commits == 1
+
+
+def test_registro_poblacional_calcula_densidad_inicial_con_superficie_conocida() -> None:
+    # INC-M02-37-G24 (TC-M02-048): antes, densidad quedaba null hasta el
+    # primer evento de crecimiento; debe calcularse ya en el registro.
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, infra_port=InfraFake(superficie=Decimal('500')))
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=100,
+        peso_promedio_inicial=Decimal('0.2'),
+    )
+
+    activo = uc.execute(dto, _usuario())
+
+    assert activo.detalle_poblacional.densidad == Decimal('100') / Decimal('500')
+
+
+def test_registro_poblacional_sin_superficie_se_rechaza() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, infra_port=InfraFake(superficie=None))
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=100,
+        peso_promedio_inicial=Decimal('0.2'),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(dto, _usuario())
+
+    assert exc_info.value.code == 'SUPERFICIE_INFRAESTRUCTURA_INVALIDA'
+    assert repo.guardados == 0
+
+
+def test_registro_poblacional_rechaza_densidad_superior_al_limite_m09() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(
+        repo,
+        db,
+        infra_port=InfraFake(superficie=Decimal('500')),
+        densidad_maxima=Decimal('0.1'),
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        uc.execute(
+            _dto(
+                tipo_activo='POBLACIONAL',
+                identificador=None,
+                raza=None,
+                sexo=None,
+                fecha_nacimiento=None,
+                cantidad_inicial=100,
+                peso_promedio_inicial=Decimal('0.2'),
+            ),
+            _usuario(),
+        )
+
+    assert exc_info.value.code == 'DENSIDAD_MAXIMA_SUPERADA'
+    assert repo.guardados == 0
+
+
+def test_registro_poblacional_sin_limite_m09_no_omite_validacion() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(
+        repo,
+        db,
+        infra_port=InfraFake(superficie=Decimal('500')),
+        densidad_maxima=None,
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(
+            _dto(
+                tipo_activo='POBLACIONAL',
+                identificador=None,
+                raza=None,
+                sexo=None,
+                fecha_nacimiento=None,
+                cantidad_inicial=10,
+                peso_promedio_inicial=Decimal('0.2'),
+            ),
+            _usuario(),
+        )
+
+    assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
+    assert repo.guardados == 0
+
+
+# ── M2-01 (reporte UAT 07/10): activo en una finca ajena ─────────────────────
+
+def test_infraestructura_de_finca_ajena_es_403_sin_persistir() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+
+    with pytest.raises(AuthorizationError) as exc:
+        _use_case(repo, db).execute(_dto(), _usuario(), ids_fincas_permitidas=[1, 2])
+
+    assert exc.value.code == 'INFRAESTRUCTURA_FUERA_DE_ALCANCE'
+    assert repo.historial == []
+    assert db.commits == 0
+
+
+def test_infraestructura_de_finca_propia_o_alcance_global_se_registra() -> None:
+    for alcance in ([5], None):
+        repo = ActivoRepoFake()
+        _use_case(repo, DbFake()).execute(_dto(), _usuario(), ids_fincas_permitidas=alcance)
+        assert len(repo.historial) == 1

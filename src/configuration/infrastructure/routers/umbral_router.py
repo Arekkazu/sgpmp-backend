@@ -21,9 +21,12 @@ from src.configuration.application.use_cases.umbrales.consultar_umbrales_use_cas
 from src.configuration.application.use_cases.umbrales.desactivar_umbral_use_case import DesactivarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.editar_umbral_use_case import EditarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import RegistrarUmbralUseCase
+from src.configuration.infrastructure.adapters.bitacora_iot_m03_adapter import BitacoraIotM03Adapter
+from src.configuration.infrastructure.adapters.edge_sincronizacion_mqtt_adapter import EdgeSincronizacionMqttAdapter
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.configuration.infrastructure.repositories.auditoria_umbral_repository import SqlAlchemyAuditoriaUmbralRepository
+from src.configuration.infrastructure.repositories.destino_edge_repository import SqlAlchemyDestinoEdgeRepository
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
 from src.configuration.infrastructure.repositories.variable_ambiental_repository import SqlAlchemyVariableAmbientalRepository
@@ -54,6 +57,7 @@ _RECURSO = 20  # modulo1.recursos: 'umbrales_ambientales'
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17).'},
     },
     summary='Registrar umbral ambiental con niveles de alerta (Flujo A)',
 )
@@ -62,12 +66,21 @@ def registrar_umbral(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> UmbralAmbientalResponse:
+    """Registra el umbral de una variable ambiental para una especie, con niveles normal/precaución/crítico (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Crear.
+
+    El rango debe caber en el rango físico de la variable y los niveles no pueden solaparse (400); umbral repetido (409). Se sincroniza hacia los Gateway Edge de las áreas de la especie.
+    """
     use_case = RegistrarUmbralUseCase(
         db=db,
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         especie_repo=SqlAlchemyEspecieRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        destino_repo=SqlAlchemyDestinoEdgeRepository(db),
+        edge_port=EdgeSincronizacionMqttAdapter(),
+        bitacora=BitacoraIotM03Adapter(db),
     )
     umbral = use_case.execute(dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)
@@ -88,6 +101,10 @@ def consultar_umbrales(
     solo_activas: bool = Query(False, description='Si es true, solo devuelve umbrales activos.'),
     db: Session = Depends(get_db),
 ) -> UmbralesPorEspecieResponse:
+    """Umbrales de una especie con su estado de sincronización hacia los Edge (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Leer.
+    """
     use_case = ConsultarUmbralesUseCase(umbral_repo=SqlAlchemyUmbralAmbientalRepository(db))
     umbrales = use_case.execute(id_especie, solo_activas=solo_activas)
     items = [UmbralAmbientalResponse.model_validate(u) for u in umbrales]
@@ -115,6 +132,10 @@ def consultar_auditoria_umbral(
     id_umbral_ambiental: int,
     db: Session = Depends(get_db),
 ) -> AuditoriaUmbralesResponse:
+    """Historial de cambios de un umbral ambiental (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Leer.
+    """
     use_case = ConsultarAuditoriaUmbralUseCase(
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
@@ -133,6 +154,7 @@ def consultar_auditoria_umbral(
         404: {'model': ErrorResponse},
         412: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17).'},
     },
     summary='Editar umbral ambiental y reemplazar niveles de alerta (Flujo B)',
 )
@@ -142,11 +164,20 @@ def editar_umbral(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> UmbralAmbientalResponse:
+    """Edita el rango de un umbral activo y reemplaza sus niveles (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412. El cambio se sincroniza hacia los Edge.
+    """
     use_case = EditarUmbralUseCase(
         db=db,
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        destino_repo=SqlAlchemyDestinoEdgeRepository(db),
+        edge_port=EdgeSincronizacionMqttAdapter(),
+        bitacora=BitacoraIotM03Adapter(db),
     )
     umbral = use_case.execute(id_umbral_ambiental, dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)
@@ -169,6 +200,10 @@ def desactivar_umbral(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> UmbralAmbientalResponse:
+    """Desactiva un umbral (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Desactivar.
+    """
     use_case = DesactivarUmbralUseCase(
         db=db,
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),

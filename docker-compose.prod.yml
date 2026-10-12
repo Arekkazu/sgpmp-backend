@@ -54,18 +54,18 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER es obligatoria en PROD (la provee el DBA)}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatoria en PROD (la provee el DBA)}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}
-    # SIN `ports:` — esta es la diferencia central con DEV y TEST. En PROD la
-    # base de datos NO se expone al host: sus consumidores (el backend y, mas
-    # adelante, el gateway Broker/AIoT) la alcanzan por su hostname interno
-    # `${POSTGRES_DB}-db:5432` dentro de `dokploy-network`. Estar en una red
-    # Docker NO es publicar un puerto: el 5432 sigue sin ser accesible desde el
-    # host ni desde Internet. Publicar 5432 (o cualquier otro puerto) en un
-    # servidor con IP pública lo dejaría expuesto a barridos y fuerza bruta.
-    # Si Despliegue llegara a necesitar acceso directo para mantenimiento, la
-    # forma correcta NO es agregar un mapeo abierto aquí: debe habilitarse con
-    # restricción de firewall a IPs conocidas del equipo, nunca a 0.0.0.0/0.
-    # La alternativa preferible es un túnel SSH al servidor y desde ahí
-    # `docker exec` o `psql` contra el contenedor.
+    # Los consumidores internos (el backend y, mas adelante, el gateway
+    # Broker/AIoT) alcanzan la base por su hostname `${POSTGRES_DB}-db:5432`
+    # dentro de `dokploy-network`, sin pasar por el puerto publicado.
+    #
+    # Puerto publicado (DB_PORT, 5449 por defecto) para el DBA y Despliegue:
+    # el equipo no tiene acceso SSH al servidor, así que es la única vía para
+    # restaurar dumps y hacer mantenimiento con psql/pg_restore. Con IP pública
+    # queda expuesto a barridos y fuerza bruta: el puerto debe restringirse por
+    # firewall a IPs conocidas del equipo (nunca 0.0.0.0/0) y solo se conecta
+    # con roles de clave fuerte. Si llega a haber túnel SSH, retirar el mapeo.
+    ports:
+      - "${DB_PORT:-5449}:5432"
     volumes:
       - sgpmp_pgdata_prod:/var/lib/postgresql
     healthcheck:
@@ -160,6 +160,13 @@ services:
       MQTT_BROKER_HTTP_TIMEOUT: ${MQTT_BROKER_HTTP_TIMEOUT:-35}
     volumes:
       - sgpmp_modelos_prod:/app/storage/modelos
+      # RF-14: credenciales del service account de Firebase (push FCM), igual
+      # que en docker-compose.yml (DEV/TEST, #544). El JSON se carga como File
+      # Mount del compose en Dokploy con File Path `firebase.json`, que Dokploy
+      # guarda en ../files/, y FIREBASE_CREDENTIALS_PATH debe ser
+      # /app/secrets/firebase.json. Sin el archivo, Docker crea una carpeta
+      # vacia y el backend solo deja el push deshabilitado (no se cae).
+      - ../files/firebase.json:/app/secrets/firebase.json:ro
     # Sin `ports:`: Traefik enruta al backend por dominio dentro de la red.
     expose:
       - "8000"

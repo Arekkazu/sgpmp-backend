@@ -137,7 +137,69 @@ Valores de `severidad_log`: `INFO` | `WARNING` | `ERROR` | `CRITICAL`
 |------|------|-------|
 | 401 | UNAUTHORIZED | Token ausente o inválido |
 | 403 | AUTHORIZATION_ERROR | El rol del usuario no tiene permiso READ (acción 2) sobre recurso 31 (`bitacora_auditoria_m02`) |
+| 403 | ALCANCE_BITACORA_DENEGADO | Productor que pide `id_activo_biologico` de un activo fuera de sus fincas, en cualquier clasificación (INC-M02-63-G105 #490). El intento queda en la bitácora como `ACCESO_NO_AUTORIZADO` (CA-8) |
 | 422 | PARAMETROS_INVALIDOS | `fecha_inicio` o `fecha_fin` no son ISO 8601 válidas |
+
+**Alcance del Productor (RF-52 precondición 3, #490):** sin filtro de activo solo recibe eventos de
+activos alojados en sus fincas (`modulo9.usuarios_fincas`, el mismo alcance RF-25 del resto de M02) y
+los eventos sin activo que él mismo originó.
+
+---
+
+## RF-52 E5 — Reconciliación con el historial RF-46 y registro correctivo
+
+Una tarea diaria (05:00 UTC, `main.py`) cruza el historial RF-46 con la bitácora.
+Cada fila del historial sin su registro de auditoría queda en un evento
+`INCONSISTENCIA_RF46_RF52` (`CRITICAL`), y quien tenga permiso de crear sobre el
+recurso 31 recibe una notificación interna. Para ver las inconsistencias:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/auditoria?tipo_evento=INCONSISTENCIA_RF46_RF52" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Cada una trae en `detalle_tecnico.registros_rf46` la `tabla` y el `id` de las filas
+sin registro. Con eso, el administrador crea el registro correctivo:
+
+### POST /activos-biologicos/auditoria/registros-correctivos
+
+Requiere permiso CREATE (acción 1) sobre el recurso 31 (`bitacora_auditoria_m02`),
+que solo tiene Administrador (migración `094d4799c3ca`).
+
+```bash
+curl -X POST "http://localhost:8000/activos-biologicos/auditoria/registros-correctivos" \
+  -H "Authorization: Bearer <TOKEN_ADMIN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tabla": "eventos_activos",
+    "id_registro": 109,
+    "motivo": "El worker se reinició antes de registrar la auditoría del evento."
+  }'
+```
+
+`tabla` admite: `eventos_activos`, `historicos_estados_activos`, `gestiones_fases`,
+`movimientos`, `historial_activos`.
+
+Respuesta esperada `201`:
+```json
+{
+  "tabla": "eventos_activos",
+  "id_registro": 109,
+  "id_activo_biologico": 53,
+  "motivo": "El worker se reinició antes de registrar la auditoría del evento.",
+  "timestamp_evento": "2026-09-23T18:40:00Z"
+}
+```
+
+Queda en la bitácora como `REGISTRO_CORRECTIVO_AUDITORIA` (`WARNING`), con el motivo y
+la llave `registros_rf46`. El historial RF-46 no se modifica.
+
+| HTTP | code | Causa | FA |
+|------|------|-------|----|
+| 400 | VAL_ENTRADA | `tabla` fuera de la lista, `id_registro` ≤ 0 o `motivo` vacío | — |
+| 403 | AUTHORIZATION_ERROR | El rol no tiene CREATE sobre el recurso 31 | E4 |
+| 404 | REGISTRO_RF46_NO_ENCONTRADO | La fila no existe o no forma parte del historial RF-46 | E5 |
+| 409 | REGISTRO_YA_AUDITADO | La fila ya tiene su registro en la bitácora (original o correctivo previo) | E5 |
 
 ---
 
@@ -147,8 +209,9 @@ Valores de `severidad_log`: `INFO` | `WARNING` | `ERROR` | `CRITICAL`
 |-----------|---------------------|---------------------|-------------------------|
 | RF33 | ACTIVO_REGISTRADO | ACTIVO_REGISTRO_FALLIDO | GESTION_OPERATIVA |
 | RF34 | INFRAESTRUCTURA_CONSULTADA | — | ACCESO_DATOS |
-| RF35 (read) | ACTIVO_INDIVIDUAL_CONSULTA | — | ACCESO_DATOS |
+| RF35 (read, activo INDIVIDUAL) | ACTIVO_INDIVIDUAL_CONSULTA | — | ACCESO_DATOS |
 | RF35 (write) | ACTIVO_INDIVIDUAL_ACTUALIZADO | ACTIVO_ACTUALIZACION_FALLIDA | GESTION_OPERATIVA |
+| RF36 (read, activo POBLACIONAL) | ACTIVO_POBLACIONAL_CONSULTA | — | ACCESO_DATOS |
 | RF37 | FASE_CAMBIADA | FASE_CAMBIO_FALLIDO | TRANSFORMACION_BIOLOGICA |
 | RF38 | CICLO_CERRADO | CICLO_CIERRE_FALLIDO | CONTROL_ESTADO |
 | RF40 | EVENTO_CRECIMIENTO_REGISTRADO | EVENTO_CRECIMIENTO_FALLIDO | TRANSFORMACION_BIOLOGICA |
@@ -163,3 +226,7 @@ Valores de `severidad_log`: `INFO` | `WARNING` | `ERROR` | `CRITICAL`
 | RF49 | ASOCIACION_IOT_CREADA | ASOCIACION_IOT_FALLIDA | GESTION_OPERATIVA |
 | RF50 | DATOS_ANALITICOS_CONSULTADOS | — | ACCESO_DATOS |
 | RF51 | INDICADOR_CALCULADO | — | GESTION_OPERATIVA |
+| RF37 (avance automático desde RF-40) | FASE_AVANZADA_AUTOMATICAMENTE | — | TRANSFORMACION_BIOLOGICA |
+| RF52 (E1) | INDISPONIBILIDAD_AUDITORIA | — | GESTION_OPERATIVA |
+| RF52 (E3) | ALTA_CARGA_AUDITORIA_INICIO / ALTA_CARGA_AUDITORIA_FIN | — | GESTION_OPERATIVA |
+| RF52 (E5) | RECONCILIACION_RF46_RF52 / REGISTRO_CORRECTIVO_AUDITORIA | INCONSISTENCIA_RF46_RF52 | GESTION_OPERATIVA |

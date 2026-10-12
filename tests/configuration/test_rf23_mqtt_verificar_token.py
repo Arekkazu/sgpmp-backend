@@ -11,7 +11,7 @@ import logging
 
 import src.shared.database  # noqa: F401  fuerza el load_dotenv() de este módulo ANTES de que
 # los tests manipulen MQTT_BROKER_TOKEN -- si el primer import ocurre recién dentro de un test
-# (vía `monkeypatch.setattr("src.shared.database.SessionLocal", ...)`), ese import dispara
+# (vía `monkeypatch.setattr("src.shared.database.sesion_sistema", ...)`), ese import dispara
 # `load_dotenv()` y repuebla la variable justo después de haberla borrado con `delenv`.
 from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 
@@ -41,7 +41,7 @@ def test_sin_token_configurado_no_consulta_la_bd(monkeypatch) -> None:
     def _session_local_que_falla():  # noqa: ANN202
         raise AssertionError("no debería abrir sesión si no hay token")
 
-    monkeypatch.setattr("src.shared.database.SessionLocal", _session_local_que_falla)
+    monkeypatch.setattr("src.shared.database.sesion_sistema", _session_local_que_falla)
 
     verificar_token_configurado()  # no lanza, no llama a la BD
 
@@ -50,7 +50,7 @@ def test_token_coincide_con_el_hash_activo_no_advierte(monkeypatch, caplog) -> N
     token = "token-real"
     hash_valor = hashlib.sha256(token.encode("utf-8")).hexdigest()
     monkeypatch.setenv("MQTT_BROKER_TOKEN", token)
-    monkeypatch.setattr("src.shared.database.SessionLocal", lambda: _SesionFake((hash_valor,)))
+    monkeypatch.setattr("src.shared.database.sesion_sistema", lambda: _SesionFake((hash_valor,)))
 
     with caplog.at_level(logging.WARNING):
         verificar_token_configurado()
@@ -61,7 +61,7 @@ def test_token_coincide_con_el_hash_activo_no_advierte(monkeypatch, caplog) -> N
 def test_token_desincronizado_advierte_sin_escribir(monkeypatch, caplog) -> None:
     monkeypatch.setenv("MQTT_BROKER_TOKEN", "token-viejo-en-el-env")
     monkeypatch.setattr(
-        "src.shared.database.SessionLocal",
+        "src.shared.database.sesion_sistema",
         lambda: _SesionFake(("hash-distinto-guardado-en-bd",)),
     )
 
@@ -73,7 +73,7 @@ def test_token_desincronizado_advierte_sin_escribir(monkeypatch, caplog) -> None
 
 def test_sin_credencial_activa_advierte(monkeypatch, caplog) -> None:
     monkeypatch.setenv("MQTT_BROKER_TOKEN", "cualquier-token")
-    monkeypatch.setattr("src.shared.database.SessionLocal", lambda: _SesionFake(None))
+    monkeypatch.setattr("src.shared.database.sesion_sistema", lambda: _SesionFake(None))
 
     with caplog.at_level(logging.WARNING):
         verificar_token_configurado()

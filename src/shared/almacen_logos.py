@@ -27,9 +27,11 @@ import uuid
 from typing import Optional
 from xml.etree import ElementTree
 
+from defusedxml import ElementTree as DefusedElementTree
+from defusedxml.common import DefusedXmlException
 from PIL import Image, UnidentifiedImageError
 
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import InfrastructureError, UnsupportedMediaTypeError, ValidationError
 
 FORMATOS_PERMITIDOS = {"image/png", "image/jpeg", "image/svg+xml"}
 TAMANO_MAX = 2 * 1024 * 1024  # 2 MB, límite explícito de RF-26
@@ -47,8 +49,10 @@ _FORMATOS_PIL = {"image/png": "PNG", "image/jpeg": "JPEG"}
 
 # Rechazo simple de SVG con contenido ejecutable (RF-26 pide imagen, no vector con
 # script embebido). No es un sanitizador completo — cubre los vectores de XSS
-# habituales sin sumar una dependencia nueva solo para esto.
-_SVG_PATRON_PELIGROSO = re.compile(r"<script|javascript:|on\w+\s*=", re.IGNORECASE)
+# habituales sin sumar una dependencia nueva solo para esto. Se aplica al árbol
+# ya parseado y reserializado (de ahí el prefijo opcional ``ns0:``), no a los
+# bytes: un SVG en UTF-16 esquivaba el patrón y el parser lo aceptaba igual.
+_SVG_PATRON_PELIGROSO = re.compile(r"<(?:\w+:)?script|javascript:|on\w+\s*=", re.IGNORECASE)
 
 
 def guardar_logo(contenido: bytes, content_type: Optional[str]) -> str:
@@ -61,7 +65,7 @@ def guardar_logo(contenido: bytes, content_type: Optional[str]) -> str:
     se valida de verdad abriendo los bytes con Pillow (o, para SVG, parseándolo).
     """
     if content_type not in FORMATOS_PERMITIDOS:
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message=(
                 f"Archivo no admitido. El logotipo debe estar en formato PNG, JPEG o SVG. "
@@ -119,14 +123,14 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
         formato_real = imagen.format
         imagen.load()
     except (UnidentifiedImageError, OSError, ValueError):
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es una imagen válida.",
             field="logo",
         )
 
     if formato_real != _FORMATOS_PIL[content_type]:
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El contenido del archivo no coincide con el formato declarado.",
             field="logo",
@@ -142,25 +146,26 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
 
 
 def _validar_svg(contenido: bytes) -> bytes:
-    texto = contenido.decode("utf-8", errors="ignore")
-    if _SVG_PATRON_PELIGROSO.search(texto):
-        raise ValidationError(
-            code="FORMATO_IMAGEN_NO_PERMITIDO",
-            message="El SVG contiene contenido no permitido.",
-            field="logo",
-        )
+    # SEG-SAST-02: defusedxml rechaza las declaraciones <!ENTITY> (billion laughs)
+    # y las entidades externas sin depender de la versión de expat instalada.
     try:
-        raiz = ElementTree.fromstring(contenido)
-    except ElementTree.ParseError:
-        raise ValidationError(
+        raiz = DefusedElementTree.fromstring(contenido)
+    except (ElementTree.ParseError, DefusedXmlException):
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
             field="logo",
         )
     if not raiz.tag.endswith("svg"):
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
+            field="logo",
+        )
+    if _SVG_PATRON_PELIGROSO.search(ElementTree.tostring(raiz, encoding="unicode")):
+        raise UnsupportedMediaTypeError(
+            code="FORMATO_IMAGEN_NO_PERMITIDO",
+            message="El SVG contiene contenido no permitido.",
             field="logo",
         )
     return contenido

@@ -5,9 +5,11 @@ transición a ``BAJA`` en ``aplicar_cambio_estado`` con ``modulo_origen='RF-45'`
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
+
+from src.shared.fechas import hoy_colombia
 
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import (
     RegistrarEventoBajaUseCase,
@@ -76,6 +78,11 @@ class HistoricoRepoFake:
     def __init__(self, orden: list[str] | None = None) -> None:
         self.registros: list[dict] = []
         self.orden = orden
+
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
 
     def registrar(self, **kwargs) -> HistoricoEstado:
         if self.orden is not None:
@@ -210,3 +217,50 @@ def test_fallo_al_cambiar_estado_despues_del_evento_revierte_la_transaccion() ->
     assert evento_repo.guardado is not None
     assert db.commits == 0
     assert db.rollbacks == 1
+
+
+def test_baja_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
+    """INC-M02-42-G36 / #412: dar de baja el mismo día UTC de creación del
+    activo no debe fijar la fecha del evento a medianoche UTC, porque eso
+    siempre queda antes de la hora real de creación del activo y el trigger
+    modulo2.trg_fn_evento_fecha_coherente rechaza el evento con 400.
+    """
+    db = DbFake()
+    activo = _activo_individual(id_estado=EstadoActivo.ACTIVO)
+    evento_repo = EventoRepoFake()
+    historico = HistoricoRepoFake()
+    uc = _uc(db, activo, evento_repo, historico)
+
+    antes = datetime.now(timezone.utc)
+    dto = RegistrarEventoBajaDTO(
+        tipo_baja='venta', fecha_baja=hoy_colombia(), motivo_baja='motivo de baja',
+    )
+    uc.execute(10, dto, _usuario())
+    despues = datetime.now(timezone.utc)
+
+    assert evento_repo.guardado is not None
+    fecha_evento = evento_repo.guardado.fecha
+    assert fecha_evento.time() != datetime.min.time(), (
+        'la fecha del evento quedó fija a medianoche UTC en vez de la hora real'
+    )
+    assert antes <= fecha_evento <= despues
+
+
+def test_baja_fecha_pasada_usa_fin_de_dia_sin_marcarla_como_futura() -> None:
+    db = DbFake()
+    activo = _activo_individual(id_estado=EstadoActivo.ACTIVO)
+    evento_repo = EventoRepoFake()
+    historico = HistoricoRepoFake()
+    uc = _uc(db, activo, evento_repo, historico)
+
+    ayer = date.today() - timedelta(days=1)
+    dto = RegistrarEventoBajaDTO(
+        tipo_baja='venta', fecha_baja=ayer, motivo_baja='motivo de baja',
+    )
+
+    uc.execute(10, dto, _usuario())
+
+    assert evento_repo.guardado is not None
+    fecha_evento = evento_repo.guardado.fecha
+    assert fecha_evento.date() == ayer
+    assert fecha_evento.time() == datetime.max.time()

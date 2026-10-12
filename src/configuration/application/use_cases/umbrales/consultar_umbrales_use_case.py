@@ -6,6 +6,7 @@ from src.configuration.domain.repositories.umbral_ambiental_repository import Um
 
 
 class ConsultarUmbralesUseCase:
+    """Lista los umbrales de una especie, opcionalmente solo los activos."""
 
     def __init__(self, umbral_repo: UmbralAmbientalRepository) -> None:
         self.umbral_repo = umbral_repo

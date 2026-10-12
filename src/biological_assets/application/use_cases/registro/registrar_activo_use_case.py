@@ -1,19 +1,28 @@
+"""Caso de uso: registro de un activo biológico nuevo (RF-33)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
+from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsultaPort
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
+from src.biological_assets.domain.repositories.recalibracion_vision_port import RecalibracionVisionPort
+from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, ConflictError, ValidationError
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -47,6 +56,22 @@ def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
                 message="soporte_documental no aplica cuando origen_financiero es 'nacimiento'.",
                 field='soporte_documental',
             )
+    elif origen == 'transferencia_interna':
+        # costo_adquisicion es opcional; si se informa, debe ser > 0 y llevar
+        # soporte_documental (RF-33). Sin costo, soporte tampoco se exige.
+        if dto.costo_adquisicion is not None:
+            if dto.costo_adquisicion <= 0:
+                raise BusinessRuleError(
+                    code='COSTO_ADQUISICION_INVALIDO',
+                    message="costo_adquisicion debe ser mayor a 0 cuando se informa para 'transferencia_interna'.",
+                    field='costo_adquisicion',
+                )
+            if not dto.soporte_documental:
+                raise BusinessRuleError(
+                    code='SOPORTE_DOCUMENTAL_REQUERIDO',
+                    message="soporte_documental es requerido cuando costo_adquisicion se informa para 'transferencia_interna'.",
+                    field='soporte_documental',
+                )
 
 
 def _validar_atributos_dinamicos(
@@ -133,6 +158,14 @@ def _validar_atributos_dinamicos(
 
 
 class RegistrarActivoBiologicoUseCase:
+    """Registra un activo individual o un lote y su asociación inicial a infraestructura.
+
+    Valida especie e infraestructura activas y dentro de las fincas del usuario,
+    identificador único, origen financiero (costo y soporte documental en compras)
+    y atributos dinámicos contra los parámetros de la especie. En lotes calcula
+    la densidad inicial contra el máximo de la especie. Guarda el snapshot inicial
+    (evento 0) y deja rastro en RF-52.
+    """
 
     def __init__(
         self,
@@ -142,6 +175,7 @@ class RegistrarActivoBiologicoUseCase:
         infra_port: InfraestructuraConsultaPort,
         parametros_port: ParametrosEspeciePort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        recalibracion_vision: RecalibracionVisionPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -149,11 +183,32 @@ class RegistrarActivoBiologicoUseCase:
         self.infra_port = infra_port
         self.parametros_port = parametros_port
         self.bitacora_repo = bitacora_repo
+        self.recalibracion_vision = recalibracion_vision
 
     def execute(
         self,
         dto: RegistrarActivoBiologicoDTO,
         usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> ActivoBiologico:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(dto, usuario, ids_fincas_permitidas),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=None,
+            id_activo=None,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF33',
+            tipo_evento_rechazado='ACTIVO_REGISTRO_RECHAZADO',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
+        self,
+        dto: RegistrarActivoBiologicoDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ActivoBiologico:
         # FA-08: costo_adquisicion/soporte_documental coherentes con origen_financiero
         _validar_origen_financiero(dto)
@@ -176,6 +231,16 @@ class RegistrarActivoBiologicoUseCase:
                 field='id_infraestructura',
             )
 
+        # M2-01 (reporte UAT 07/10): la infraestructura debe ser de una finca del
+        # usuario. Antes un Productor registraba activos en fincas ajenas que
+        # luego ni él mismo podía ver. ``None`` = alcance global (Administrador).
+        if ids_fincas_permitidas is not None and infra.id_finca not in ids_fincas_permitidas:
+            raise AuthorizationError(
+                code='INFRAESTRUCTURA_FUERA_DE_ALCANCE',
+                message='No tienes acceso a la finca de esta infraestructura. Elige una de tus fincas.',
+                field='id_infraestructura',
+            )
+
         # FA-03: unicidad del identificador para INDIVIDUAL
         if dto.tipo_activo == 'INDIVIDUAL' and self.repo.existe_identificador(dto.identificador):
             raise ConflictError(
@@ -193,11 +258,29 @@ class RegistrarActivoBiologicoUseCase:
         )
 
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
+        # INC-M02-37-G24 (TC-M02-048): la densidad (cantidad/superficie) es
+        # calculable desde el momento del registro, no solo tras el primer
+        # evento de crecimiento — sin esto un lote recién creado queda con
+        # densidad=null hasta su primera medición.
+        if activo.detalle_poblacional is not None:
+            if infra.superficie is None:
+                raise BusinessRuleError(
+                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
+                    message='La infraestructura debe tener una superficie mayor a cero para calcular la densidad.',
+                    field='id_infraestructura',
+                )
+            activo.detalle_poblacional.densidad = calcular_y_validar_densidad(
+                cantidad_actual=activo.detalle_poblacional.cantidad_actual,
+                superficie=infra.superficie,
+                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
+                    dto.id_especie
+                ),
+            )
 
         try:
             activo = self.repo.guardar(activo)
             # RF-33: snapshot inicial (Evento 0) — version=1, tipo_evento=CREACION
-            self.repo.registrar_historial(HistorialActivo(
+            historial = self.repo.registrar_historial(HistorialActivo(
                 id_activo_biologico=activo.id_activo_biologico,
                 version=1,
                 tipo_evento='CREACION',
@@ -206,35 +289,37 @@ class RegistrarActivoBiologicoUseCase:
                 id_usuario=usuario.id_usuario,
             ))
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF33', tipo_evento='ACTIVO_REGISTRO_FALLIDO',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        detalle_tecnico={'error': str(exc)},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF33', tipo_evento='ACTIVO_REGISTRO_FALLIDO',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                detalle_tecnico={'error': str(exc)},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF33', tipo_evento='ACTIVO_REGISTRADO',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=activo.id_activo_biologico,
-                    tipo_activo=activo.tipo,
-                    descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF33', tipo_evento='ACTIVO_REGISTRADO',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=activo.id_activo_biologico,
+            tipo_activo=activo.tipo,
+            descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
+            detalle_tecnico={'registros_rf46': registros_rf46(historial_activos=historial.id_historial_activo)},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
+
+        # RF-24 v2.0: un nuevo lote dispara la calibración por visión del área (#551).
+        if self.recalibracion_vision is not None and activo.tipo == 'POBLACIONAL':
+            self.recalibracion_vision.solicitar(
+                activo.id_infraestructura,
+                datetime.now(timezone.utc),
+                f'Disparo automático M02: nuevo lote {activo.id_activo_biologico}',
+            )
 
         return activo

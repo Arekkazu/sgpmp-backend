@@ -1,3 +1,10 @@
+"""Puerto de persistencia del agregado ``ActivoBiologico`` (capa de dominio).
+
+Cubre el activo y sus detalles, la asociación a infraestructura (RF-34), las
+gestiones de fase (RF-37), el estado (RF-44) y el historial versionado.
+Implementación: ``infrastructure/repositories/activo_biologico_repository.py``.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -13,6 +20,8 @@ from src.biological_assets.domain.entities.activo_biologico import (
 
 
 class ActivoBiologicoRepository(ABC):
+    """Contrato de acceso a datos para :class:`ActivoBiologico`."""
+
     @abstractmethod
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
         """Persiste el activo biológico y sus detalles en una sola transacción de DB."""
@@ -23,8 +32,12 @@ class ActivoBiologicoRepository(ABC):
         id_activo: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[ActivoBiologico]:
         """Retorna el activo biológico con sus detalles, o None si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` para que dos
+        ediciones simultáneas no pasen ambas el control de concurrencia (#498).
 
         Si ``ids_fincas_permitidas`` no es ``None``, devuelve ``None`` cuando el
         activo pertenece a una finca ajena al alcance del usuario (RF-25).
@@ -50,7 +63,11 @@ class ActivoBiologicoRepository(ABC):
 
     @abstractmethod
     def obtener_asociacion_activa(self, id_activo: int) -> Optional[HistorialInfraestructura]:
-        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL)."""
+        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL).
+
+        Incluye ``es_activo_infraestructura`` para detectar inconsistencia
+        jerárquica: una asociación vigente hacia una infraestructura inactiva.
+        """
 
     @abstractmethod
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:

@@ -22,7 +22,12 @@ from src.shared import audit_context
 log = logging.getLogger(__name__)
 
 def _get_client_ip(request: Request) -> Optional[str]:
-    """Extrae la IP real del cliente respetando la cabecera X-Forwarded-For.
+    """IP del cliente, ya resuelta por uvicorn desde X-Forwarded-For.
+
+    uvicorn solo usa la cabecera cuando viene de un proxy confiable
+    (``FORWARDED_ALLOW_IPS``, ver Dockerfile). Leer aquí el primer valor de
+    X-Forwarded-For tomaba lo que el cliente quisiera enviar y podía diferir
+    de la IP que usan los límites por IP (INC-M01-12-107).
 
     Args:
         request: Request FastAPI entrante.
@@ -30,11 +35,6 @@ def _get_client_ip(request: Request) -> Optional[str]:
     Returns:
         IP del cliente como string, o `None` si no está disponible.
     """
-    # Respeta X-Forwarded-For si estás detrás de un proxy / LB
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        # Formato “client, proxy1, proxy2…”
-        return xff.split(",")[0].strip()
     return request.client.host if request.client else None
 
 

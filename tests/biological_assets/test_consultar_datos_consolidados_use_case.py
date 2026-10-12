@@ -1,0 +1,251 @@
+"""RF-50 (INC-M02-97-G95): no se deben exponer datos consolidados cuando el
+activo mantiene una asociación vigente hacia una infraestructura inactiva
+(inconsistencia jerárquica) — debe rechazarse con 409 antes de consultar.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+import pytest
+
+from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import (
+    ConsultarDatosConsolidadosUseCase,
+)
+from src.biological_assets.domain.entities.activo_biologico import (
+    ActivoBiologico,
+    DatosConsolidados,
+    HistorialInfraestructura,
+)
+from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
+from src.identity_access.domain.entities.rol import Rol
+from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+
+
+class ActivoRepoFake:
+    def __init__(self, activo: ActivoBiologico | None, asociacion: HistorialInfraestructura | None) -> None:
+        self.activo = activo
+        self.asociacion = asociacion
+
+    def obtener_por_id(self, _id: int, *, ids_fincas_permitidas=None):
+        return self.activo
+
+    def obtener_asociacion_activa(self, _id: int):
+        return self.asociacion
+
+
+class IndicadoresRepoFake:
+    def __init__(self, total_metricas_peso: int = 1) -> None:
+        self.llamado = False
+        self.contar_metricas_peso_llamado = False
+        self.total_metricas_peso = total_metricas_peso
+
+    def obtener_datos_consolidados(self, **kwargs) -> DatosConsolidados:
+        self.llamado = True
+        return DatosConsolidados(
+            id_activo_biologico=kwargs['id_activo'],
+            identificador='ID-1',
+            tipo_activo='INDIVIDUAL',
+            especie='bovino',
+            estado_actual='ACTIVO',
+            infraestructura_asociada='Corral 1',
+            fase_productiva_activa=None,
+            fecha_generacion=datetime.now(timezone.utc),
+        )
+
+    def contar_metricas_peso_en_rango(self, _id_activo, _fecha_inicio, _fecha_fin) -> int:
+        self.contar_metricas_peso_llamado = True
+        return self.total_metricas_peso
+
+
+def _usuario() -> UsuarioActual:
+    return UsuarioActual(id_usuario=7, id_token=1, id_rol=2)
+
+
+def _activo(id_activo=289) -> ActivoBiologico:
+    return ActivoBiologico(
+        id_especie=1,
+        tipo='INDIVIDUAL',
+        origen_financiero='compra',
+        id_infraestructura=49,
+        id_estado=1,
+        id_usuario=1,
+        id_activo_biologico=id_activo,
+    )
+
+
+def _uc(activo, asociacion, indicadores_repo=None):
+    return ConsultarDatosConsolidadosUseCase(
+        db=None,
+        activo_repo=ActivoRepoFake(activo, asociacion),
+        indicadores_repo=indicadores_repo or IndicadoresRepoFake(),
+        bitacora_repo=None,
+    )
+
+
+def test_rechaza_cuando_infraestructura_asociada_esta_inactiva():
+    asociacion = HistorialInfraestructura(
+        id_historial=236,
+        id_activo_biologico=289,
+        id_infraestructura=49,
+        nombre_infraestructura='Corral 49',
+        tipo_infraestructura='CORRAL',
+        fecha_inicio=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        fecha_fin=None,
+        es_activo_infraestructura=False,
+    )
+    indicadores_repo = IndicadoresRepoFake()
+    uc = _uc(_activo(), asociacion, indicadores_repo)
+
+    with pytest.raises(ConflictError) as exc:
+        uc.execute(289, DatosConsolidadosDTO(), _usuario())
+
+    assert exc.value.code == 'INCONSISTENCIA_JERARQUICA'
+    assert indicadores_repo.llamado is False
+
+
+def test_permite_cuando_infraestructura_asociada_esta_activa():
+    asociacion = HistorialInfraestructura(
+        id_historial=1,
+        id_activo_biologico=279,
+        id_infraestructura=1,
+        nombre_infraestructura='Corral 1',
+        tipo_infraestructura='CORRAL',
+        fecha_inicio=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        fecha_fin=None,
+        es_activo_infraestructura=True,
+    )
+    indicadores_repo = IndicadoresRepoFake()
+    uc = _uc(_activo(279), asociacion, indicadores_repo)
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(), _usuario())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.llamado is True
+
+
+def test_permite_cuando_no_hay_asociacion_vigente():
+    uc = _uc(_activo(279), None)
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(), _usuario())
+
+    assert resultado.id_activo_biologico == 279
+
+
+def test_activo_inexistente_lanza_not_found():
+    uc = _uc(None, None)
+
+    with pytest.raises(NotFoundError):
+        uc.execute(99999, DatosConsolidadosDTO(), _usuario())
+
+
+# ── INC-M02-92-G93: modulo_consumidor real en la auditoría RF-50/RF-52 ────────
+# Antes de este fix, `EventoAuditoria.modulo_consumidor` quedaba siempre con
+# el default `'modulo2'` sin importar quién consultó (ver estado_M02.md,
+# hallazgo de RF-50). `_resolver_modulo_consumidor` lo deriva del nombre del
+# rol autenticado cuando ese rol es una identidad técnica de módulo
+# ('Integración M0<n>', patrón de INC-M02-90-G92).
+
+class RolRepoFake:
+    def __init__(self, roles: dict[int, Rol]) -> None:
+        self.roles = roles
+
+    def obtener_por_id(self, id_rol: int):
+        return self.roles.get(id_rol)
+
+
+def test_resolver_modulo_consumidor_sin_rol_repo_usa_default():
+    uc = _uc(_activo(279), None)
+    assert uc._resolver_modulo_consumidor(2) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_rol_desconocido_usa_default():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({})
+    assert uc._resolver_modulo_consumidor(999) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_rol_humano_usa_default():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({2: Rol(nombre_rol='Productor', es_protegido=False, id_rol=2)})
+    assert uc._resolver_modulo_consumidor(2) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_deriva_desde_rol_integracion_m04():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({12: Rol(nombre_rol='Integración M04', es_protegido=False, id_rol=12)})
+    assert uc._resolver_modulo_consumidor(12) == 'modulo4'
+
+
+# ── INC-M02-93-G93 (RF-50 FA-03): 422 para M06 sin métricas de peso ──────────
+# RF-50 distingue "consistencia fuerte" (M06, valoración NIC-41) de
+# "consistencia eventual" (resto) -- por eso la validación solo aplica
+# cuando el consumidor resuelve a 'modulo6' y pide una sección con metricas.
+# Cualquier otro consumidor sigue recibiendo 200 con metricas_actuales en
+# null como hasta ahora (sin regresión).
+
+def _usuario_m06(id_rol: int = 15) -> UsuarioActual:
+    return UsuarioActual(id_usuario=99, id_token=1, id_rol=id_rol)
+
+
+def _rol_repo_m06(id_rol: int = 15) -> RolRepoFake:
+    return RolRepoFake({id_rol: Rol(nombre_rol='Integración M06', es_protegido=False, id_rol=id_rol)})
+
+
+def test_m06_sin_metricas_peso_en_rango_lanza_422():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(279, DatosConsolidadosDTO(tipo_dato='metricas'), _usuario_m06())
+
+    assert exc.value.code == 'METRICAS_PESO_INSUFICIENTES'
+    assert '279' in exc.value.message
+    assert indicadores_repo.contar_metricas_peso_llamado is True
+    assert indicadores_repo.llamado is False  # se rechaza antes de construir la respuesta
+
+
+def test_m06_con_metricas_peso_disponibles_no_lanza():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=3)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='metricas'), _usuario_m06())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.llamado is True
+
+
+def test_m06_tipo_dato_todos_tambien_valida_metricas_peso():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(279, DatosConsolidadosDTO(tipo_dato='todos'), _usuario_m06())
+
+    assert exc.value.code == 'METRICAS_PESO_INSUFICIENTES'
+
+
+def test_m06_tipo_dato_eventos_no_aplica_la_validacion():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='eventos'), _usuario_m06())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.contar_metricas_peso_llamado is False
+
+
+def test_consumidor_no_m06_nunca_activa_la_validacion_aunque_no_haya_peso():
+    # Productor (default 'modulo2'): mismo comportamiento de siempre (200,
+    # sin la validación nueva), aunque el repo "tendría" 0 métricas de peso.
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='todos'), _usuario())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.contar_metricas_peso_llamado is False

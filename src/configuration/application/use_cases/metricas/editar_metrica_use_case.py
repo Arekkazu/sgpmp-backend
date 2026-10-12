@@ -4,6 +4,7 @@ Concurrencia optimista mediante ``fecha_actualizacion``.
 Reglas aplicadas:
   FA-08 — nombre único por especie si el nombre cambia.
   FA-10 — unidad_medida coherente con tipo_medicion.
+  RFC-004 — valor_min/valor_max solo para NUMERICO/ENTERO, con min <= max (lo valida la entidad).
 """
 from __future__ import annotations
 
@@ -47,6 +48,9 @@ def _validar_coherencia_unidad(tipo_medicion: TipoMedicion, unidad_medida: str) 
 
 
 class EditarMetricaUseCase:
+    """Edita una métrica activa con concurrencia optimista (412), nombre único por
+    especie (409) y unidad coherente con el tipo de medición.
+    """
 
     def __init__(
         self,
@@ -64,7 +68,7 @@ class EditarMetricaUseCase:
         dto: EditarMetricaDTO,
         usuario_actual: UsuarioActual,
     ) -> MetricaProduccion:
-        metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion)
+        metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion, bloquear=True)
         if metrica is None:
             raise NotFoundError(
                 code="METRICA_NO_ENCONTRADA",
@@ -104,6 +108,11 @@ class EditarMetricaUseCase:
         )
         aplica = AplicaTipoActivo.desde_string(dto.aplica_a_tipo_activo)
 
+        # RFC-004: omitido = conservar el rango guardado; null explícito = eliminarlo.
+        campos_enviados = dto.model_fields_set
+        valor_min = dto.valor_min if "valor_min" in campos_enviados else metrica.valor_min
+        valor_max = dto.valor_max if "valor_max" in campos_enviados else metrica.valor_max
+
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)
 
         if nombre_nuevo.normalizado() != metrica.nombre.normalizado():
@@ -124,6 +133,8 @@ class EditarMetricaUseCase:
             tipo_dato=tipo_dato,
             es_obligatorio=es_obligatorio,
             fecha_actualizacion=datetime.now(timezone.utc),
+            valor_min=valor_min,
+            valor_max=valor_max,
         )
 
         try:

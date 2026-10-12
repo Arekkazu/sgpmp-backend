@@ -224,3 +224,64 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_ACTIVO}/eventos/crecim
   "field": null
 }
 ```
+
+---
+
+## FA-09 — Activo fuera del alcance de finca del usuario (INC-M02-71-G48)
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/{ID_ACTIVO_OTRA_FINCA}/eventos/crecimiento \
+  -H "Authorization: Bearer {TOKEN_PRODUCTOR}" \
+  -H "Content-Type: application/json" \
+  -d '{ "tipo_medicion": "PESO", "valor_medicion": 5.0, "unidad_medida": "kg" }'
+```
+
+**Respuesta esperada (404)** — igual que el resto de operaciones de este módulo,
+un activo fuera del alcance de finca del usuario se trata como inexistente
+(no se revela su existencia a quien no tiene acceso, en vez de responder 403):
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "El activo biológico con id {ID_ACTIVO_OTRA_FINCA} no existe.",
+  "field": null
+}
+```
+
+---
+
+## FA-10 — Densidad del lote supera el máximo permitido para la especie (INC-M02-48-G25, POBLACIONAL)
+
+**Precondiciones:**
+
+- la especie tiene `densidad_maxima_por_especie` configurada en M09;
+- el lote tiene una fase productiva activa;
+- `cantidad_actual / superficie` supera ese límite.
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/crecimiento \
+  -H "Authorization: Bearer {TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo_medicion": "PESO",
+    "valor_medicion": 50,
+    "unidad_medida": "kg",
+    "nuevo_peso_promedio": 55,
+    "cantidad_medida": 250,
+    "tipo_agregacion": "PROMEDIO"
+  }'
+```
+
+**Respuesta esperada (409)** si `cantidad_actual / superficie` supera
+`modulo9.especies.densidad_maxima_por_especie`:
+```json
+{
+  "code": "DENSIDAD_MAXIMA_SUPERADA",
+  "message": "La densidad del lote supera el máximo permitido para la especie.",
+  "field": null
+}
+```
+
+`cantidad_medida` es solo descriptivo del muestreo: no afecta esta validación
+ni `cantidad_actual` (RF-36: `cantidad_actual` solo cambia por eventos de BAJA
+o ingresos). Si la especie no tiene el límite configurado, el sistema responde
+`422 DENSIDAD_MAXIMA_NO_CONFIGURADA`; no omite silenciosamente la regla.

@@ -70,6 +70,9 @@ class ContrasteColor:
 
 @dataclass(frozen=True)
 class AccesibilidadVisual:
+    """Resultado WCAG 2.1 AA (4.5:1) de los colores primario y secundario de la
+    identidad visual.
+    """
     minimo_aa: float
     primary_color: Optional[ContrasteColor]
     secondary_color: Optional[ContrasteColor]

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 
 class UbicacionFincaResponse(BaseModel):
+    """Ubicación geográfica de la finca."""
     departamento: str
     municipio: str
     vereda: str
@@ -17,6 +18,7 @@ class UbicacionFincaResponse(BaseModel):
 
 
 class FincaResponse(BaseModel):
+    """Finca registrada."""
     id_finca: int
     nombre: str
     ubicacion: UbicacionFincaResponse
@@ -49,5 +51,6 @@ class FincaResponse(BaseModel):
 
 
 class ListaFincasResponse(BaseModel):
+    """Fincas visibles para el usuario."""
     total: int
     items: list[FincaResponse]

@@ -72,10 +72,16 @@ class LecturaHistorica:
     finca: Optional[str]
     id_activo_biologico: Optional[int]
     especie: Optional[str]
+    id_especie: Optional[int]
     id_alerta: Optional[int]
     nivel_bateria_pct: Optional[Decimal]
     calidad_senal_rssi: Optional[Decimal]
     calidad_senal_snr: Optional[Decimal]
+    # RF-17 — identifica el umbral M09 usado para calcular estado_semaforo_historico
+    id_umbral_ambiental: Optional[int] = None
+    valor_min_umbral: Optional[Decimal] = None
+    valor_max_umbral: Optional[Decimal] = None
+    version_umbral: Optional[datetime] = None
 
 
 @dataclass
@@ -154,6 +160,23 @@ class SemaforoCalculator:
             return 'AMARILLO'
         else:
             return 'ROJO'
+
+    @staticmethod
+    def calcular_por_niveles(
+        valor: Decimal,
+        niveles: list[dict],
+    ) -> str:
+        """Determina el semáforo a partir de las bandas RF-17 (normal/precaucion/critico).
+
+        Un valor fuera de todas las bandas configuradas (por debajo de la banda normal
+        o por encima de la crítica) se trata como ROJO: es más seguro asumir el peor
+        caso que quedarse en un estado optimista sin banda que lo respalde.
+        """
+        mapa_color = {'normal': 'VERDE', 'precaucion': 'AMARILLO', 'critico': 'ROJO'}
+        for nivel in niveles:
+            if nivel['limite_inferior'] <= valor <= nivel['limite_superior']:
+                return mapa_color.get(nivel['nivel'], 'ROJO')
+        return 'ROJO'
 
     @staticmethod
     def aplicar_reglas_alerta(

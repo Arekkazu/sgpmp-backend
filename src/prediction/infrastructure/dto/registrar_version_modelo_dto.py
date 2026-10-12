@@ -26,6 +26,8 @@ class RegistrarVersionModeloDTO:
         id_proceso_rf71: uuid.UUID = Form(...),
         version_referencia: Optional[int] = Form(None),
         archivo_modelo: UploadFile = File(...),
+        # RF-69 v2.0 (RFC-009): obligatorio para modelos POBLACIONAL.
+        componente: Optional[str] = Form(None),
     ) -> None:
         self.tipo_modelo = tipo_modelo
         self.hash_artefacto_sha256 = hash_artefacto_sha256
@@ -36,3 +38,4 @@ class RegistrarVersionModeloDTO:
         self.id_proceso_rf71 = id_proceso_rf71
         self.version_referencia = version_referencia
         self.archivo_modelo = archivo_modelo
+        self.componente = componente

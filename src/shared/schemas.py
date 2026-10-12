@@ -4,9 +4,17 @@ Define los modelos Pydantic que estandarizan las respuestas de éxito y error
 de todos los endpoints. Son usados como ``response_model`` en los decoradores
 de ruta y en las respuestas de error del handler global.
 """
-from typing import Optional
+from decimal import Decimal
+from typing import Annotated, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PlainSerializer
+
+#: Decimal que viaja como número JSON. Pydantic v2 serializa ``Decimal`` como
+#: texto (``"10.0000"``) y el cliente lo declara ``number``: con texto, la
+#: pantalla de calibración del frontend quedaba en blanco (#251). Solo para
+#: medidas (calibración, rangos de sensor); los montos contables (NIC 41) se
+#: quedan en ``Decimal`` porque ``float`` perdería precisión.
+DecimalNumero = Annotated[Decimal, PlainSerializer(float, return_type=float, when_used="json")]
 
 
 class MessageResponse(BaseModel):

@@ -10,6 +10,7 @@ from src.shared.errors import InfrastructureError
 
 
 class RestaurarDashboardUseCase:
+    """Reemplaza el dashboard del usuario por el predeterminado de su rol."""
 
     def __init__(self, db: Session, dashboard_repo: DashboardLayoutRepository) -> None:
         self.db = db

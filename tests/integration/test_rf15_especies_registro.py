@@ -74,7 +74,12 @@ def test_registrar_especie_con_datos_validos_responde_201(
 
     respuesta = config_client.post(
         "/configuracion/especies",
-        json={"nombre": nombre, "descripcion": "Especie creada por prueba de regresión"},
+        json={
+            "nombre": nombre,
+            "descripcion": "Especie creada por prueba de regresión",
+            "densidad_maxima_por_especie": "12.5000",
+            "grupo_manejo": "ACUICULTURA",
+        },
         headers=headers,
     )
 
@@ -82,6 +87,14 @@ def test_registrar_especie_con_datos_validos_responde_201(
     cuerpo = respuesta.json()
     assert cuerpo["nombre"].upper() == nombre.upper()  # trigger de BD normaliza a Title Case
     assert cuerpo["es_activo"] is True
+    assert cuerpo["densidad_maxima_por_especie"] == "12.5000"
+    assert cuerpo["grupo_manejo"] == "ACUICULTURA"
+    assert cuerpo["tipo_modelo"] == "MODELO_ACUICULTURA"
+    guardado = db_session.execute(
+        text("SELECT grupo_manejo FROM modulo9.especies WHERE id_especie = :id"),
+        {"id": cuerpo["id_especie"]},
+    ).scalar_one()
+    assert guardado == "ACUICULTURA"
 
     auditoria = db_session.execute(
         text(
@@ -100,16 +113,15 @@ def test_editar_especie_activa_responde_200(
     así que editar quedaba igual de roto aunque no estuviera reportado.
 
     `fecha_actualizacion` queda en NULL tras el registro (no se setea en el
-    INSERT), y `EditarEspecieDTO.fecha_actualizacion` es un `datetime`
-    obligatorio (no admite `null`) — un problema aparte del que trata este
-    issue. Se fija el timestamp por SQL para poder ejercitar el UPDATE real
-    sin toparse con ese bug distinto.
+    INSERT). Se fija el timestamp por SQL para ejercitar la edición con una
+    versión real; la primera edición con `null` la cubre
+    `tests/configuration/test_rf15_editar_especie_sin_fecha_actualizacion.py` (#231).
     """
     headers = _headers_admin(crear_usuario_db, crear_auth_headers)
     nombre = f"Especie Editable {_sufijo_letras()}"
     creada = config_client.post(
         "/configuracion/especies",
-        json={"nombre": nombre, "descripcion": "Original"},
+        json={"nombre": nombre, "descripcion": "Original", "grupo_manejo": "AVES"},
         headers=headers,
     )
     assert creada.status_code == 201, creada.text
@@ -129,6 +141,7 @@ def test_editar_especie_activa_responde_200(
         json={
             "nombre": nombre,
             "descripcion": "Editada",
+            "densidad_maxima_por_especie": "8.7500",
             "fecha_actualizacion": fecha_actualizacion.isoformat(),
         },
         headers=headers,
@@ -136,3 +149,18 @@ def test_editar_especie_activa_responde_200(
 
     assert editada.status_code == 200, editada.text
     assert editada.json()["descripcion"] == "Editada"
+    assert editada.json()["densidad_maxima_por_especie"] == "8.7500"
+
+
+def test_registrar_especie_sin_grupo_manejo_responde_400(
+    config_client, crear_usuario_db, crear_auth_headers
+) -> None:
+    """RF-15 v1.1: `grupo_manejo` es obligatorio."""
+    headers = _headers_admin(crear_usuario_db, crear_auth_headers)
+    respuesta = config_client.post(
+        "/configuracion/especies",
+        json={"nombre": f"Especie Sin Grupo {_sufijo_letras()}"},
+        headers=headers,
+    )
+    assert respuesta.status_code == 400, respuesta.text
+    assert {f["field"] for f in respuesta.json()["fields"]} == {"grupo_manejo"}

@@ -6,6 +6,7 @@ from src.configuration.domain.repositories.variable_ambiental_repository import 
 
 
 class ListarVariablesAmbientalesUseCase:
+    """Catálogo de variables ambientales activas."""
 
     def __init__(self, variable_repo: VariableAmbientalRepository) -> None:
         self.variable_repo = variable_repo

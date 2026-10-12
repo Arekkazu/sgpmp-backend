@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 
 class AuditoriaConfigRepository(ABC):
+    """Contrato de la auditoría de la configuración global."""
 
     @abstractmethod
     def registrar(
@@ -17,4 +18,7 @@ class AuditoriaConfigRepository(ABC):
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la configuración global con
+        los valores antes/después.
+        """
         raise NotImplementedError

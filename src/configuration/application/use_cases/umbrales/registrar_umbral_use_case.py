@@ -8,15 +8,23 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.nivel_alerta_ambiental import NivelAlertaAmbiental
 from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 from src.configuration.domain.entities.variable_ambiental import VariableAmbiental
+from src.configuration.application.use_cases.umbrales.sincronizar_umbral_edge import sincronizar_umbral_con_edge
 from src.configuration.domain.repositories.auditoria_umbral_repository import AuditoriaUmbralRepository
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
+from src.configuration.domain.repositories.destino_edge_repository import DestinoEdgeRepository
+from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
-
+from src.shared.errors import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 
 def _validar_rangos(
     valor_min: Decimal,
@@ -46,10 +54,14 @@ def _validar_rangos(
                 ),
             )
 
-    # FA-05: sin solapamiento y cobertura completa [valor_min, valor_max]
+    # FA-05: sin solapamiento y cobertura completa [valor_min, valor_max].
+    # RF-17 clasifica la semaforizacion inconsistente como "Error de
+    # semaforizacion ... HTTP 400: Bad Request" -- no como violacion de regla de
+    # negocio (422): es el mismo tipo de dato mal formado que la inconsistencia
+    # de rango min>=max, que el propio RF tambien pide en 400.
     ordenados = sorted(niveles, key=lambda n: n.limite_inferior)
     if ordenados[0].limite_inferior != valor_min:
-        raise BusinessRuleError(
+        raise ValidationError(
             code='SOLAPAMIENTO_NIVELES',
             message=(
                 f"El primer nivel debe comenzar en {valor_min} (el mínimo del umbral). "
@@ -57,7 +69,7 @@ def _validar_rangos(
             ),
         )
     if ordenados[-1].limite_superior != valor_max:
-        raise BusinessRuleError(
+        raise ValidationError(
             code='SOLAPAMIENTO_NIVELES',
             message=(
                 f"El último nivel debe terminar en {valor_max} (el máximo del umbral). "
@@ -66,7 +78,7 @@ def _validar_rangos(
         )
     for i in range(len(ordenados) - 1):
         if ordenados[i].limite_superior != ordenados[i + 1].limite_inferior:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code='SOLAPAMIENTO_NIVELES',
                 message=(
                     f"Los niveles de alerta deben ser contiguos sin huecos ni solapamientos. "
@@ -77,6 +89,11 @@ def _validar_rangos(
 
 
 class RegistrarUmbralUseCase:
+    """Registra un umbral (especie, variable) con sus niveles y lo sincroniza hacia los Edge.
+
+    El rango debe caber en el rango físico de la variable y los niveles no pueden
+    solaparse ni salirse del rango (400). Un umbral repetido responde 409.
+    """
 
     def __init__(
         self,
@@ -85,12 +102,18 @@ class RegistrarUmbralUseCase:
         especie_repo: EspecieRepository,
         variable_repo: VariableAmbientalRepository,
         auditoria_repo: AuditoriaUmbralRepository,
+        destino_repo: DestinoEdgeRepository,
+        edge_port: EdgeSincronizacionPort,
+        bitacora: BitacoraIotPort,
     ) -> None:
         self.db = db
         self.umbral_repo = umbral_repo
         self.especie_repo = especie_repo
         self.variable_repo = variable_repo
         self.auditoria_repo = auditoria_repo
+        self.destino_repo = destino_repo
+        self.edge_port = edge_port
+        self.bitacora = bitacora
 
     def execute(self, dto: RegistrarUmbralDTO, usuario_actual: UsuarioActual) -> UmbralAmbiental:
         # FA-01: especie activa
@@ -159,4 +182,15 @@ class RegistrarUmbralUseCase:
             self.db.rollback()
             raise
 
-        return umbral_guardado
+        # POST-commit (INC-M09-104-G29): propagar a los Gateway Edge de la
+        # especie, persistir el estado y responder 500 si el Edge no confirmó.
+        return sincronizar_umbral_con_edge(
+            db=self.db,
+            umbral=umbral_guardado,
+            nombre_variable=variable.nombre,
+            umbral_repo=self.umbral_repo,
+            destino_repo=self.destino_repo,
+            edge_port=self.edge_port,
+            bitacora=self.bitacora,
+            id_usuario=usuario_actual.id_usuario,
+        )

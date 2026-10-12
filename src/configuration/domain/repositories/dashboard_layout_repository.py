@@ -8,9 +8,13 @@ from src.configuration.domain.entities.dashboard_layout import DashboardLayout
 
 
 class DashboardLayoutRepository(ABC):
+    """Contrato de acceso a datos para :class:`DashboardLayout`."""
 
     @abstractmethod
     def obtener_por_usuario(self, id_usuario: int) -> Optional[DashboardLayout]:
+        """Obtiene el dashboard guardado del usuario, o ``None`` si nunca lo
+        personalizó.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -30,8 +34,10 @@ class DashboardLayoutRepository(ABC):
 
     @abstractmethod
     def guardar(self, entidad: DashboardLayout) -> DashboardLayout:
+        """Inserta el dashboard y devuelve la entidad con su id asignado."""
         raise NotImplementedError
 
     @abstractmethod
     def actualizar(self, entidad: DashboardLayout) -> DashboardLayout:
+        """Persiste los cambios del dashboard y devuelve la entidad actualizada."""
         raise NotImplementedError

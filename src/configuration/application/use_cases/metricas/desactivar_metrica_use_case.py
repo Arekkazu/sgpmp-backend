@@ -19,6 +19,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class DesactivarMetricaUseCase:
+    """Desactiva una métrica sin registros productivos activos (422 si los tiene)."""
 
     def __init__(
         self,

@@ -23,6 +23,7 @@ from src.identity_access.domain.value_objects.identificacion import (
     mensaje_identificacion_invalida,
 )
 from src.shared.errors import ValidationError
+from src.shared.fechas import hoy_colombia
 
 
 @dataclass(eq=False)
@@ -180,9 +181,18 @@ class Usuario:
         Returns:
             Edad en años cumplidos.
         """
-        hoy = hoy or date.today()
-        return hoy.year - self.fecha_nacimiento.year - (
-            (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+        return self.edad_desde(self.fecha_nacimiento, hoy)
+
+    @staticmethod
+    def edad_desde(fecha_nacimiento: date, hoy: Optional[date] = None) -> int:
+        """Edad en años cumplidos para ``fecha_nacimiento`` (negativa si es futura).
+
+        Args:
+            hoy: Fecha de referencia. Si es ``None`` usa el día actual en Colombia.
+        """
+        hoy = hoy or hoy_colombia()
+        return hoy.year - fecha_nacimiento.year - (
+            (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
         )
 
     def es_mayor_de_edad(self, hoy: Optional[date] = None) -> bool:

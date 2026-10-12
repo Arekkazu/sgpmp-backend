@@ -8,8 +8,12 @@ on:
     branches:
       - dev
       - test
+      - main
     paths:
       - "alembic/versions/**"
+
+permissions:
+  contents: read
 
 jobs:
   validate:

@@ -17,7 +17,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import AuthenticationError
 from src.shared.rbac import require_permission
@@ -65,7 +65,7 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
 )
 def procesar_evento_alerta(
     dto: ProcesarEventoAlertaDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
 ) -> ResultadoGeneracionAlertaSchema:
     dispositivo_port = DispositivoM09Adapter(db)
     info = dispositivo_port.obtener_dispositivo_activo(

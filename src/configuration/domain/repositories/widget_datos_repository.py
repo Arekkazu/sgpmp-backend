@@ -6,6 +6,7 @@ from typing import Any
 
 
 class WidgetDatosRepository(ABC):
+    """Contrato de lectura de los datos de cada widget según su fuente."""
 
     @abstractmethod
     def obtener(self, fuente_datos: str) -> list[dict[str, Any]]:

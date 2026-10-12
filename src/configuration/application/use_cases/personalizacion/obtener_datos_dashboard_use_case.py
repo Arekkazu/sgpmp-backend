@@ -19,6 +19,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 @dataclass
 class WidgetConDatos:
+    """Widget visible con los datos que muestra."""
     id_widget: int
     clave: str
     nombre: str
@@ -32,6 +33,7 @@ class WidgetConDatos:
 
 
 class ObtenerDatosDashboardUseCase:
+    """Datos de los widgets visibles del dashboard del usuario."""
 
     def __init__(
         self,

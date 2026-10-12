@@ -7,6 +7,9 @@ from typing import Optional
 
 @dataclass(eq=False)
 class Sensor:
+    """Sensor de un dispositivo IoT; ``categoria`` indica qué mide (temperatura,
+    humedad, pH...).
+    """
     nombre: str
     id_dispositivo_iot: int
     es_activo: bool

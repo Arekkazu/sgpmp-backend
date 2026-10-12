@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from src.prediction.domain.entities.despliegue_ota import DespliegueOta
+from src.shared.tipo_modelo import paradigma_de
 
 
 class DespliegueOtaResponse(BaseModel):
@@ -14,6 +15,8 @@ class DespliegueOtaResponse(BaseModel):
     id_version_modelo: int
     id_dispositivo_iot: int
     tipo_modelo: str
+    paradigma: Optional[str] = None
+    componente: Optional[str] = None
     modo_distribucion: str
     estado_despliegue: str
     hash_modelo_sha256: str
@@ -41,6 +44,8 @@ class DespliegueOtaResponse(BaseModel):
             id_version_modelo=e.id_version_modelo,
             id_dispositivo_iot=e.id_dispositivo_iot,
             tipo_modelo=e.tipo_modelo,
+            paradigma=paradigma_de(e.tipo_modelo),
+            componente=e.componente,
             modo_distribucion=e.modo_distribucion,
             estado_despliegue=e.estado_despliegue,
             hash_modelo_sha256=e.hash_modelo_sha256,

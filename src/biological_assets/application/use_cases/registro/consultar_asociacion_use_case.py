@@ -1,3 +1,5 @@
+"""Caso de uso: consulta de la infraestructura del activo (RF-34)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -5,6 +7,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import (
     EventoAuditoria,
     HistorialInfraestructura,
@@ -33,6 +36,12 @@ def _detectar_solapamiento(historial: list[HistorialInfraestructura]) -> Optiona
 
 
 class ConsultarAsociacionUseCase:
+    """Devuelve la asociación vigente, la vigente en una fecha pasada o el historial completo.
+
+    ``tipo_consulta`` elige el modo. Añade los sensores activos de la
+    infraestructura y advierte si detecta periodos solapados o una asociación
+    vigente hacia una infraestructura inactiva.
+    """
 
     def __init__(
         self,
@@ -108,22 +117,17 @@ class ConsultarAsociacionUseCase:
         else:
             historial_resultado = historial_completo
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF34', tipo_evento='INFRAESTRUCTURA_CONSULTADA',
-                    clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo,
-                    detalle_tecnico={
-                        'tipo_consulta': tipo_consulta,
-                        'fecha_referencia': fecha_referencia.isoformat() if fecha_referencia else None,
-                    },
-                    id_usuario_responsable=usuario.id_usuario if usuario else None,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF34', tipo_evento='INFRAESTRUCTURA_CONSULTADA',
+            clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            detalle_tecnico={
+                'tipo_consulta': tipo_consulta,
+                'fecha_referencia': fecha_referencia.isoformat() if fecha_referencia else None,
+            },
+            id_usuario_responsable=usuario.id_usuario if usuario else None,
+        ))
 
         return ResultadoConsultaAsociacion(
             tipo_consulta=tipo_consulta,

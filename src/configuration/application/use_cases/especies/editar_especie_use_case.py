@@ -17,6 +17,7 @@ from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.infrastructure.dto.editar_especie_dto import EditarEspecieDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
+from src.shared.tipo_modelo import tipo_modelo_de_grupo
 
 
 def _snapshot(especie: Especie) -> dict:
@@ -24,6 +25,12 @@ def _snapshot(especie: Especie) -> dict:
         "id_especie": especie.id_especie,
         "nombre": especie.nombre.valor,
         "descripcion": especie.descripcion,
+        "densidad_maxima_por_especie": (
+            str(especie.densidad_maxima_por_especie)
+            if especie.densidad_maxima_por_especie is not None
+            else None
+        ),
+        "grupo_manejo": especie.grupo_manejo,
         "es_activo": especie.es_activo,
         "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
         "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
@@ -44,7 +51,7 @@ class EditarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_especie: int, dto: EditarEspecieDTO, usuario_actual: UsuarioActual) -> Especie:
-        especie = self.especies_repo.obtener_por_id(id_especie)
+        especie = self.especies_repo.obtener_por_id(id_especie, bloquear=True)
         if especie is None:
             raise NotFoundError(
                 code="ESPECIE_NO_ENCONTRADA",
@@ -85,10 +92,47 @@ class EditarEspecieUseCase:
 
         snapshot_anterior = _snapshot(especie)
 
+        densidad_maxima = especie.densidad_maxima_por_especie
+        if "densidad_maxima_por_especie" in dto.model_fields_set:
+            densidad_maxima = dto.densidad_maxima_por_especie
+        # Omitido conserva el grupo actual (el DTO no acepta vaciarlo).
+        grupo_manejo = dto.grupo_manejo if "grupo_manejo" in dto.model_fields_set else especie.grupo_manejo
+        if grupo_manejo != especie.grupo_manejo:
+            # RF-20 v1.1: el cambio no puede dejar áreas con un modelo incoherente.
+            cantidad = self.especies_repo.contar_areas_con_modelo_distinto(
+                id_especie, tipo_modelo_de_grupo(grupo_manejo)
+            )
+            if cantidad:
+                raise BusinessRuleError(
+                    code="ESPECIE_CON_AREAS_DE_OTRO_MODELO",
+                    message=(
+                        f"Operación denegada: la especie '{especie.nombre.valor}' tiene {cantidad} áreas "
+                        "productivas con un modelo de IA que no corresponde al nuevo grupo de manejo. "
+                        "Reasigne o quite el modelo de esas áreas antes de cambiar el grupo de la especie."
+                    ),
+                    field="grupo_manejo",
+                )
+            # RF-15 v1.1: tampoco con activos alojados. Asignar el primer grupo a una
+            # especie que no lo tenía no es un cambio y no se bloquea.
+            if especie.grupo_manejo is not None:
+                activos = self.especies_repo.contar_activos_alojados(id_especie)
+                if activos:
+                    raise BusinessRuleError(
+                        code="ESPECIE_CON_ACTIVOS_ALOJADOS",
+                        message=(
+                            f"Operación denegada: la especie '{especie.nombre.valor}' tiene {activos} "
+                            "activos biológicos alojados. Trasládelos o cierre su ciclo antes de cambiar "
+                            "el grupo de manejo."
+                        ),
+                        field="grupo_manejo",
+                    )
+
         especie.actualizar(
             nombre=nombre_nuevo,
             descripcion=dto.descripcion,
+            densidad_maxima_por_especie=densidad_maxima,
             fecha_actualizacion=datetime.now(timezone.utc),
+            grupo_manejo=grupo_manejo,
         )
 
         try:

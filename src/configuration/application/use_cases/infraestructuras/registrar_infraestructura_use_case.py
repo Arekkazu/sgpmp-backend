@@ -3,8 +3,10 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especie_y_modelo
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
+from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.finca_repository import FincaRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
 from src.configuration.domain.repositories.tipo_area_repository import TipoAreaRepository
@@ -12,10 +14,11 @@ from src.configuration.domain.value_objects.nombre_infraestructura import Nombre
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
 
 
 class RegistrarInfraestructuraUseCase:
+    """Registra un área en una finca activa con un tipo de área reconocido."""
 
     def __init__(
         self,
@@ -24,12 +27,14 @@ class RegistrarInfraestructuraUseCase:
         finca_repo: FincaRepository,
         tipo_area_repo: TipoAreaRepository,
         auditoria_repo: AuditoriaInfraestructuraRepository,
+        especie_repo: EspecieRepository,
     ) -> None:
         self.db = db
         self.infra_repo = infra_repo
         self.finca_repo = finca_repo
         self.tipo_area_repo = tipo_area_repo
         self.auditoria_repo = auditoria_repo
+        self.especie_repo = especie_repo
 
     def execute(self, dto: RegistrarInfraestructuraDTO, usuario_actual: UsuarioActual) -> Infraestructura:
         finca = self.finca_repo.obtener_por_id(dto.finca_id)
@@ -46,7 +51,11 @@ class RegistrarInfraestructuraUseCase:
 
         tipo_area = self.tipo_area_repo.obtener_por_nombre(dto.tipo_area)
         if tipo_area is None or not tipo_area.es_activo:
-            raise BusinessRuleError(
+            # RF-20, flujo alterno "Tipo de area no reconocido": el RF lo
+            # clasifica como "Dato invalido ... HTTP 400: Bad Request", no como
+            # violacion de regla de negocio (422). Vive en el use case y no en el
+            # DTO porque el catalogo de tipos es dinamico (tabla, no enum).
+            raise ValidationError(
                 code="TIPO_AREA_NO_RECONOCIDO",
                 message=(
                     f"El tipo de área '{dto.tipo_area}' no corresponde a ningún tipo activo "
@@ -54,6 +63,8 @@ class RegistrarInfraestructuraUseCase:
                 ),
                 field="tipo_area",
             )
+
+        validar_especie_y_modelo(self.especie_repo, dto.especie_id, dto.tipo_modelo_asignado)
 
         nombre = NombreInfraestructura(dto.nombre_infraestructura)
         superficie = Superficie(dto.superficie)
@@ -64,6 +75,8 @@ class RegistrarInfraestructuraUseCase:
             superficie=superficie,
             id_finca=dto.finca_id,
             descripcion=dto.descripcion_infraestructura,
+            id_especie=dto.especie_id,
+            tipo_modelo_asignado=dto.tipo_modelo_asignado,
         )
 
         try:

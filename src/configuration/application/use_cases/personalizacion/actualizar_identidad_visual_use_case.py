@@ -21,6 +21,9 @@ from src.shared.errors import NotFoundError, PreconditionFailedError
 
 
 class ActualizarIdentidadVisualUseCase:
+    """Crea una nueva versión de la identidad visual de la finca (logo opcional) con
+    control de versión (412).
+    """
 
     def __init__(
         self,
@@ -40,7 +43,7 @@ class ActualizarIdentidadVisualUseCase:
         logo_content_type: Optional[str],
         usuario_actual: UsuarioActual,
     ) -> IdentidadVisual:
-        entidad = self.identidad_repo.obtener_por_finca(id_finca)
+        entidad = self.identidad_repo.obtener_por_finca(id_finca, bloquear=True)
         if entidad is None:
             raise NotFoundError(
                 code="IDENTIDAD_VISUAL_NO_ENCONTRADA",

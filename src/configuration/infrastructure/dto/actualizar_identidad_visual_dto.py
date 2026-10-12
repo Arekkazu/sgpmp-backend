@@ -8,6 +8,11 @@ from src.shared.base_dto import BaseDTO
 
 
 class ActualizarIdentidadVisualDTO(BaseDTO):
+    """Campos editables de la identidad visual (colores ``#RRGGBB``).
+
+    ``version`` debe ser la leída (412 si cambió). El logo viaja como archivo en el
+    mismo formulario multipart.
+    """
     primary_color: str = Field(pattern=r'^#[0-9A-Fa-f]{6}$')
     secondary_color: str = Field(pattern=r'^#[0-9A-Fa-f]{6}$')
     org_display_name: str = Field(min_length=1, max_length=50)

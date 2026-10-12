@@ -20,6 +20,9 @@ MENSAJE_SIN_DATOS = "Sin datos disponibles para el sensor o periodo seleccionado
 
 @dataclass(frozen=True)
 class Widget:
+    """Widget del catálogo del dashboard; ``id_recurso`` es el recurso cuyo permiso de
+    lectura lo habilita.
+    """
     id_widget: int
     clave: str
     nombre: str

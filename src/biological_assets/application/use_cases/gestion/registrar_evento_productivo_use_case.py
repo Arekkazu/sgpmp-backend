@@ -1,10 +1,17 @@
+"""Caso de uso: registro de producción del activo (leche, huevos...) (RF-43)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
+from src.biological_assets.application.use_cases.gestion._event_validations import no_anterior_a_creacion
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
@@ -13,12 +20,19 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 _NOMBRES_ESTADO = {1: 'ACTIVO', 2: 'INACTIVO', 3: 'EN_TRATAMIENTO', 4: 'AISLADO', 5: 'CERRADO', 6: 'BAJA'}
 
 
 class RegistrarEventoProductivoUseCase:
+    """Registra una producción contra una métrica del catálogo de M09.
+
+    La métrica debe existir para la especie, estar habilitada en la fase activa y
+    usar su unidad. La fecha debe caer dentro de la fase y no puede haber dos
+    registros del mismo producto el mismo día (409).
+    """
 
     def __init__(
         self,
@@ -37,6 +51,22 @@ class RegistrarEventoProductivoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarEventoProductivoDTO, usuario: UsuarioActual) -> EventoActivo:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF43',
+            tipo_evento_rechazado='EVENTO_PRODUCTIVO_RECHAZADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA',
+            tipos_por_codigo={
+                'EVENTO_PRODUCTIVO_DUPLICADO': 'DUPLICADO_PRODUCTIVO_DETECTADO',
+            },
+        )
+
+    def _execute(self, id_activo: int, dto: RegistrarEventoProductivoDTO, usuario: UsuarioActual) -> EventoActivo:
         # FA-01: activo debe existir
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
@@ -70,9 +100,21 @@ class RegistrarEventoProductivoUseCase:
                 field='tipo_producto',
             )
 
+        # E-06: RF-43 la clasifica "Error de validación -- HTTP 422". Vive aquí y no
+        # en el DTO porque un validador de Pydantic sale siempre como 400.
+        if dto.cantidad_producida <= 0:
+            raise BusinessRuleError(
+                code='CANTIDAD_INVALIDA',
+                message=(
+                    'La cantidad producida debe ser un valor numérico positivo mayor a cero. '
+                    f'Valor ingresado: {dto.cantidad_producida}.'
+                ),
+                field='cantidad_producida',
+            )
+
         # E-07: unidad_medida debe coincidir con la definida en RF-16 para el tipo_producto
         if dto.unidad_medida.strip().lower() != metrica.unidad_medida.strip().lower():
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='UNIDAD_MEDIDA_INCOMPATIBLE',
                 message=(
                     f'La unidad de medida "{dto.unidad_medida}" no es válida para el tipo de producto '
@@ -105,15 +147,16 @@ class RegistrarEventoProductivoUseCase:
                 field='tipo_producto',
             )
 
-        # E-05: validaciones de fecha
-        ahora = datetime.now(timezone.utc)
-        fecha_dt = datetime(
-            dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day,
-            tzinfo=timezone.utc,
+        # E-05: validaciones de fecha. RF-43 pide 422 (a diferencia de RF-40/41/42,
+        # que piden 400 para su fecha de evento).
+        fecha_dt = no_anterior_a_creacion(
+            dto.fecha_evento,
+            datetime(dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day, tzinfo=timezone.utc),
+            activo,
         )
 
-        if fecha_dt > ahora:
-            raise ValidationError(
+        if dto.fecha_evento > hoy_colombia():
+            raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(
                     f'La fecha del evento {dto.fecha_evento.isoformat()} es posterior a la fecha '
@@ -123,7 +166,7 @@ class RegistrarEventoProductivoUseCase:
             )
 
         if activo.fecha_inicio_ciclo and dto.fecha_evento < activo.fecha_inicio_ciclo:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='FECHA_ANTERIOR_INICIO_ACTIVO',
                 message=(
                     'La fecha del evento es anterior a la fecha de inicio del activo en el sistema. '
@@ -133,13 +176,9 @@ class RegistrarEventoProductivoUseCase:
             )
 
         if fase_activa.fecha_inicio:
-            fecha_inicio_fase = (
-                fase_activa.fecha_inicio.date()
-                if hasattr(fase_activa.fecha_inicio, 'date')
-                else fase_activa.fecha_inicio
-            )
+            fecha_inicio_fase = fecha_colombia(fase_activa.fecha_inicio)
             if dto.fecha_evento < fecha_inicio_fase:
-                raise ValidationError(
+                raise BusinessRuleError(
                     code='FECHA_FUERA_DE_FASE',
                     message=(
                         f'La fecha del evento está fuera del período de la fase productiva activa '
@@ -149,18 +188,14 @@ class RegistrarEventoProductivoUseCase:
                 )
 
         if fase_activa.fecha_finalizacion:
-            fecha_fin_fase = (
-                fase_activa.fecha_finalizacion.date()
-                if hasattr(fase_activa.fecha_finalizacion, 'date')
-                else fase_activa.fecha_finalizacion
-            )
+            fecha_fin_fase = fecha_colombia(fase_activa.fecha_finalizacion)
             if dto.fecha_evento > fecha_fin_fase:
                 fecha_inicio_str = (
                     fecha_inicio_fase.isoformat()
                     if fase_activa.fecha_inicio
                     else '?'
                 )
-                raise ValidationError(
+                raise BusinessRuleError(
                     code='FECHA_FUERA_DE_FASE',
                     message=(
                         f'La fecha del evento está fuera del período de la fase productiva activa '
@@ -198,36 +233,33 @@ class RegistrarEventoProductivoUseCase:
         try:
             resultado = self.evento_repo.guardar(evento)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_FALLIDO',
-                        clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'tipo_producto': dto.tipo_producto},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_FALLIDO',
+                clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'tipo_producto': dto.tipo_producto},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_REGISTRADO',
-                    clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
-                    detalle_tecnico={'tipo_producto': dto.tipo_producto, 'cantidad': str(dto.cantidad_producida)},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_REGISTRADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
+            detalle_tecnico={
+                'tipo_producto': dto.tipo_producto,
+                'cantidad': str(dto.cantidad_producida),
+                'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
+            },
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado

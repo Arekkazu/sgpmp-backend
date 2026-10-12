@@ -21,6 +21,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             tipo_modelo=orm.tipo_modelo,
             umbral_riesgo_alto=orm.umbral_riesgo_alto,
             umbral_alerta_critica=orm.umbral_alerta_critica,
+            umbral_score_anomalia=orm.umbral_score_anomalia,
+            versiones_activas_por_componente=orm.versiones_activas_por_componente,
             ventana_temporal_min=orm.ventana_temporal_min,
             id_version_modelo_activa=orm.id_version_modelo_activa,
             modo_ejecucion=orm.modo_ejecucion,
@@ -60,6 +62,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
                 tipo_modelo=entidad.tipo_modelo,
                 umbral_riesgo_alto=entidad.umbral_riesgo_alto,
                 umbral_alerta_critica=entidad.umbral_alerta_critica,
+                umbral_score_anomalia=entidad.umbral_score_anomalia,
+                versiones_activas_por_componente=entidad.versiones_activas_por_componente,
                 ventana_temporal_min=entidad.ventana_temporal_min,
                 id_version_modelo_activa=entidad.id_version_modelo_activa,
                 modo_ejecucion=entidad.modo_ejecucion,
@@ -87,6 +91,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             orm = self._db.get(ConfiguracionMotorIAModel, entidad.id_configuracion_motor)
             orm.umbral_riesgo_alto = entidad.umbral_riesgo_alto
             orm.umbral_alerta_critica = entidad.umbral_alerta_critica
+            orm.umbral_score_anomalia = entidad.umbral_score_anomalia
+            orm.versiones_activas_por_componente = entidad.versiones_activas_por_componente
             orm.ventana_temporal_min = entidad.ventana_temporal_min
             orm.id_version_modelo_activa = entidad.id_version_modelo_activa
             orm.modo_ejecucion = entidad.modo_ejecucion

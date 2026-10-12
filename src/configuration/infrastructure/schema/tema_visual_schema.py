@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class TemaVisualResponse(BaseModel):
+    """Tema visual guardado (personal o global)."""
     id_tema_visual: int
     id_usuario: int
     theme_mode: int
@@ -28,6 +29,7 @@ class TemaVisualResponse(BaseModel):
 
 
 class TemaResueltoResponse(BaseModel):
+    """Tema efectivo del usuario; ``fuente``: ``personal``, ``global`` o ``defecto``."""
     theme_mode: int
     fuente: str
     id_tema_visual: Optional[int]

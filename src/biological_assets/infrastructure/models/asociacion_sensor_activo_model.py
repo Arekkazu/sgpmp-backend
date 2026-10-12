@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.asociaciones_activos_sensores``: sensores IoT vinculados a
+activos o infraestructuras (RF-49).
+"""
+
 from __future__ import annotations
 
 import datetime

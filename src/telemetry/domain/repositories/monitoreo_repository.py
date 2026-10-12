@@ -1,10 +1,25 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
 from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva
 
 
 class MonitoreoRepository(ABC):
+
+    @abstractmethod
+    def actualizar_estado_semaforo_si_vigente(
+        self,
+        id_sensor: int,
+        timestamp_captura: datetime,
+        estado_semaforo: str,
+    ) -> None:
+        """Sobrescribe `estado_semaforo` en el caché del sensor (INC-M09-106-G31).
+
+        Solo aplica si `timestamp_captura` no es anterior al último dato cacheado —
+        evita que una vinculación corregida tiempo después sobre una lectura vieja
+        pise el semáforo calculado para una lectura más reciente del mismo sensor.
+        """
 
     @abstractmethod
     def obtener_estados_sensores(

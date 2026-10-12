@@ -66,6 +66,7 @@ class SqlAlchemyDespliegueOtaRepository(DespliegueOtaRepository):
             id_version_modelo=orm.id_version_modelo,
             id_dispositivo_iot=orm.id_dispositivo_iot,
             tipo_modelo=orm.tipo_modelo,
+            componente=orm.componente,
             modo_distribucion=orm.modo_distribucion,
             estado_despliegue=orm.estado_despliegue,
             hash_modelo_sha256=orm.hash_modelo_sha256,

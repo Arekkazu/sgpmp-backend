@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
 from src.supplies.application.use_cases.reporte_gastos.consultar_estado_trabajo_reporte_use_case import (
     ConsultarEstadoTrabajoReporteUseCase,
 )
@@ -63,11 +63,11 @@ def build_consultar_estado_trabajo_reporte_use_case(db: Session) -> ConsultarEst
 
 
 def build_procesar_cola_reportes_gastos_use_case(db: Session) -> ProcesarColaReportesGastosUseCase:
-    """Construye el worker del motor async. Usa ``SessionLocal`` para las sesiones por trabajo."""
+    """Construye el worker del motor async. Usa ``sesion_sistema`` (usuario de servicio, D1) para las sesiones por trabajo."""
     return ProcesarColaReportesGastosUseCase(
         trabajo_repo=SqlAlchemyTrabajoReporteGastoRepository(db),
         config_repo=SqlAlchemyConfiguracionBatchReporteGastoRepository(db),
-        session_factory=SessionLocal,
+        session_factory=sesion_sistema,
         construir_trabajo_repo=SqlAlchemyTrabajoReporteGastoRepository,
         construir_fallo_repo=SqlAlchemyFalloReporteGastoRepository,
         construir_generador=build_generar_reporte_gastos_use_case,
