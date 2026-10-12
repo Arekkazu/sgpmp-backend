@@ -10,7 +10,7 @@ ninguno tiene sentido sin los otros dos.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -27,6 +27,7 @@ from src.identity_access.domain.repositories.exportacion_auditoria_repository im
 )
 from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.shared.errors import NotFoundError, BusinessRuleError, TooManyRequestsError
+from src.shared.fechas import hoy_colombia
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ class ProcesarColaExportacionesUseCase:
                 usuario_actual=_Solicitante(trabajo.id_usuario_solicitante),
                 **deserializar_filtros(trabajo.parametros),
             )
-            fecha = datetime.now(timezone.utc).date().isoformat()
+            fecha = hoy_colombia().isoformat()
             self.cola_repo.completar(
                 trabajo.id_cola,
                 ResultadoExportacion(

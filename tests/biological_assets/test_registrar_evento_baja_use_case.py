@@ -9,6 +9,8 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
+from src.shared.fechas import hoy_colombia
+
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import (
     RegistrarEventoBajaUseCase,
 )
@@ -225,11 +227,8 @@ def test_baja_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
     uc = _uc(db, activo, evento_repo, historico)
 
     antes = datetime.now(timezone.utc)
-    # date.today() es la fecha LOCAL del proceso, no la UTC -- cerca de la
-    # medianoche UTC ambas difieren. La regla del bug es explícitamente sobre
-    # "el mismo día UTC", así que el DTO se construye con la fecha UTC real.
     dto = RegistrarEventoBajaDTO(
-        tipo_baja='venta', fecha_baja=antes.date(), motivo_baja='motivo de baja',
+        tipo_baja='venta', fecha_baja=hoy_colombia(), motivo_baja='motivo de baja',
     )
     uc.execute(10, dto, _usuario())
     despues = datetime.now(timezone.utc)

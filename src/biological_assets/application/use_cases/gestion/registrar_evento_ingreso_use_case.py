@@ -11,7 +11,10 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.application.use_cases.gestion._event_validations import validar_estado_permite_eventos
+from src.biological_assets.application.use_cases.gestion._event_validations import (
+    no_anterior_a_creacion,
+    validar_estado_permite_eventos,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoIngreso
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -20,6 +23,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class RegistrarEventoIngresoUseCase:
@@ -84,12 +88,12 @@ class RegistrarEventoIngresoUseCase:
 
         # E-04: fecha_ingreso no futura ni anterior al último evento (mismo
         # patrón que RegistrarEventoBajaUseCase E-03)
-        ahora = datetime.now(timezone.utc)
-        fecha_dt = datetime(
-            dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day,
-            tzinfo=timezone.utc,
+        fecha_dt = no_anterior_a_creacion(
+            dto.fecha_ingreso,
+            datetime(dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day, tzinfo=timezone.utc),
+            activo,
         )
-        if fecha_dt > ahora:
+        if dto.fecha_ingreso > hoy_colombia():
             raise ValidationError(
                 code='FECHA_INGRESO_FUTURA',
                 message='La fecha de ingreso no puede ser posterior a la fecha actual del sistema.',
@@ -98,7 +102,7 @@ class RegistrarEventoIngresoUseCase:
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = ultima_fecha.astimezone(timezone.utc).date()
+            ultimo_dia = fecha_colombia(ultima_fecha)
             if dto.fecha_ingreso < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA',

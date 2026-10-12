@@ -21,6 +21,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class CerrarCicloUseCase:
@@ -103,7 +104,7 @@ class CerrarCicloUseCase:
         # FA-04: validar fecha contra último evento registrado
         ultima_fecha_evento = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha_evento is not None:
-            ultimo_dia_evento = ultima_fecha_evento.date() if isinstance(ultima_fecha_evento, datetime) else ultima_fecha_evento
+            ultimo_dia_evento = fecha_colombia(ultima_fecha_evento)
             if dto.fecha_cierre < ultimo_dia_evento:
                 raise ValidationError(
                     code='FECHA_CIERRE_ANTERIOR_ULTIMO_EVENTO',
@@ -124,7 +125,7 @@ class CerrarCicloUseCase:
         # (FA-04 ya compara fecha_cierre contra el último evento). Hoy usa la
         # hora real; un día pasado usa el final de ese día.
         ahora = datetime.now(timezone.utc)
-        if dto.fecha_cierre == ahora.date():
+        if dto.fecha_cierre == hoy_colombia():
             fecha_cierre_dt = ahora
         else:
             fecha_cierre_dt = datetime.combine(dto.fecha_cierre, time.max, tzinfo=timezone.utc)

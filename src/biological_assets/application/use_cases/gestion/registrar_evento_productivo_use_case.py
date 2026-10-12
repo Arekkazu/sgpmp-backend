@@ -10,6 +10,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
+from src.biological_assets.application.use_cases.gestion._event_validations import no_anterior_a_creacion
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -20,6 +21,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 _NOMBRES_ESTADO = {1: 'ACTIVO', 2: 'INACTIVO', 3: 'EN_TRATAMIENTO', 4: 'AISLADO', 5: 'CERRADO', 6: 'BAJA'}
 
@@ -147,13 +149,13 @@ class RegistrarEventoProductivoUseCase:
 
         # E-05: validaciones de fecha. RF-43 pide 422 (a diferencia de RF-40/41/42,
         # que piden 400 para su fecha de evento).
-        ahora = datetime.now(timezone.utc)
-        fecha_dt = datetime(
-            dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day,
-            tzinfo=timezone.utc,
+        fecha_dt = no_anterior_a_creacion(
+            dto.fecha_evento,
+            datetime(dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day, tzinfo=timezone.utc),
+            activo,
         )
 
-        if fecha_dt > ahora:
+        if dto.fecha_evento > hoy_colombia():
             raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(
@@ -174,11 +176,7 @@ class RegistrarEventoProductivoUseCase:
             )
 
         if fase_activa.fecha_inicio:
-            fecha_inicio_fase = (
-                fase_activa.fecha_inicio.date()
-                if hasattr(fase_activa.fecha_inicio, 'date')
-                else fase_activa.fecha_inicio
-            )
+            fecha_inicio_fase = fecha_colombia(fase_activa.fecha_inicio)
             if dto.fecha_evento < fecha_inicio_fase:
                 raise BusinessRuleError(
                     code='FECHA_FUERA_DE_FASE',
@@ -190,11 +188,7 @@ class RegistrarEventoProductivoUseCase:
                 )
 
         if fase_activa.fecha_finalizacion:
-            fecha_fin_fase = (
-                fase_activa.fecha_finalizacion.date()
-                if hasattr(fase_activa.fecha_finalizacion, 'date')
-                else fase_activa.fecha_finalizacion
-            )
+            fecha_fin_fase = fecha_colombia(fase_activa.fecha_finalizacion)
             if dto.fecha_evento > fecha_fin_fase:
                 fecha_inicio_str = (
                     fecha_inicio_fase.isoformat()

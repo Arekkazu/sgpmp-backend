@@ -18,6 +18,8 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+
+from src.shared.fechas import hoy_colombia
 from sqlalchemy.exc import ProgrammingError
 
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
@@ -255,7 +257,7 @@ class _HistoricoRepo:
 
 
 def _cambiar_estado(estado: str = 'INACTIVO', **campos):
-    base = dict(estado_nuevo=estado, fecha_cambio_estado=AHORA.date(), motivo_cambio='revisión')
+    base = dict(estado_nuevo=estado, fecha_cambio_estado=hoy_colombia(), motivo_cambio='revisión')
     base.update(campos)
     historico = _HistoricoRepo()
     uc = CambiarEstadoUseCase(db=_Db(), repo=_ActivoRepo(_activo()), historico_repo=historico)
