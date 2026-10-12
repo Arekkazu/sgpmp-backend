@@ -66,6 +66,13 @@ services:
     # restricción de firewall a IPs conocidas del equipo, nunca a 0.0.0.0/0.
     # La alternativa preferible es un túnel SSH al servidor y desde ahí
     # `docker exec` o `psql` contra el contenedor.
+    #
+    # TEMPORAL (rama ops/prod-db-puerto-temporal, sin PR): sin acceso SSH al
+    # servidor, la unica via para restaurar el dump inicial es publicar el
+    # puerto. Al terminar el restore, Dokploy vuelve a desplegar desde la rama
+    # normal y este mapeo desaparece; los volumenes no cambian de nombre.
+    ports:
+      - "${DB_PORT:-5449}:5432"
     volumes:
       - sgpmp_pgdata_prod:/var/lib/postgresql
     healthcheck:
