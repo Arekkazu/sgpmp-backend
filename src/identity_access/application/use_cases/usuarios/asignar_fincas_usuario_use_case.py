@@ -13,16 +13,17 @@ from __future__ import annotations
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.asignar_fincas_dto import AsignarFincasDTO
-from src.shared.errors import NotFoundError
+from src.shared.errors import GoneError, NotFoundError
 
 
 class AsignarFincasUsuarioUseCase:
     """Sincroniza `modulo9.usuarios_fincas` con la lista de fincas recibida.
 
     Activa las fincas de la lista y desactiva las que ya no aparecen; responde
-    404 si el usuario o alguna finca no existe.
+    404 si el usuario o alguna finca no existe y 410 si el usuario fue eliminado.
     """
 
     def __init__(self, db: Session) -> None:
@@ -34,10 +35,21 @@ class AsignarFincasUsuarioUseCase:
         dto: AsignarFincasDTO,
         usuario_actual: UsuarioActual,
     ) -> dict:
-        if not self._existe_usuario(id_usuario):
+        usuario = self._estado_usuario(id_usuario)
+        if usuario is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
                 message="El usuario solicitado no existe.",
+            )
+        # RF-06: la eliminación es lógica e irreversible; mismo 410 que la
+        # edición de perfil (RF-11) para un usuario ya ELIMINADO.
+        if usuario.id_estado_cuenta == Cuenta.ESTADO_ELIMINADO:
+            raise GoneError(
+                code="USUARIO_ELIMINADO",
+                message=(
+                    "El registro ya no está disponible. El usuario fue eliminado "
+                    "y no se le pueden asignar fincas."
+                ),
             )
 
         ids_deseados = set(dto.ids_fincas)
@@ -81,11 +93,12 @@ class AsignarFincasUsuarioUseCase:
             "ids_fincas": sorted(ids_deseados),
         }
 
-    def _existe_usuario(self, id_usuario: int) -> bool:
-        return (
-            self.db.execute(
-                text("SELECT 1 FROM modulo1.usuarios WHERE id_usuario = :id"),
-                {"id": id_usuario},
-            ).first()
-            is not None
-        )
+    def _estado_usuario(self, id_usuario: int):
+        return self.db.execute(
+            text(
+                "SELECT c.id_estado_cuenta FROM modulo1.usuarios u "
+                "LEFT JOIN modulo1.cuentas_usuarios c ON c.id_usuario = u.id_usuario "
+                "WHERE u.id_usuario = :id"
+            ),
+            {"id": id_usuario},
+        ).first()

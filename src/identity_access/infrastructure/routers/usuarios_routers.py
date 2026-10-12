@@ -516,6 +516,7 @@ def gestionar_cuenta(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
     },
     summary="Asignar o desasignar fincas a un usuario (RF-25)",
 )
@@ -530,7 +531,8 @@ def asignar_fincas(
     **Acceso:** permiso `usuarios` · Actualizar (1·U).
 
     La lista enviada es el estado final: las fincas que no aparecen dejan de estar
-    asignadas. Una finca puede estar asignada a varios usuarios.
+    asignadas. Una finca puede estar asignada a varios usuarios. Un usuario
+    ELIMINADO responde 410.
     """
     use_case = AsignarFincasUsuarioUseCase(db=db)
     resultado = use_case.execute(id_usuario, dto, usuario_actual)
