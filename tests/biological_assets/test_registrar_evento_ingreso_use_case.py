@@ -10,7 +10,7 @@ ANTES de aplicar el cambio, porque este es el flujo que realmente incrementa
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -204,6 +204,26 @@ def test_ingreso_fecha_futura_lanza_validation_error() -> None:
         uc.execute(10, _dto(fecha_ingreso=date.today() + timedelta(days=1)), _usuario())
 
     assert exc.value.code == 'FECHA_INGRESO_FUTURA'
+
+
+def test_ingreso_fecha_de_manana_en_colombia_es_futura_aunque_en_utc_ya_sea_hoy(monkeypatch) -> None:
+    # 2026-10-11 22:25 en Colombia == 2026-10-12 03:25 UTC: elegir el 12 debe
+    # rechazarse, porque en Colombia todavía es el 11.
+    import src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case as mod
+
+    class _Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(tz)
+
+    monkeypatch.setattr(mod, 'datetime', _Reloj)
+    uc = _uc(DbFake(), _activo_lote(), EventoRepoFake(), InfraPortFake())
+
+    with pytest.raises(ValidationError) as exc:
+        uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 12)), _usuario())
+    assert exc.value.code == 'FECHA_INGRESO_FUTURA'
+
+    uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 11)), _usuario())
 
 
 def test_ingreso_densidad_resultante_supera_maximo_lanza_409() -> None:
