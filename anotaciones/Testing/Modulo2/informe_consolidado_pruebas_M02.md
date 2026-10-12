@@ -8,11 +8,11 @@
 | Período de ejecución | 2026-09-09 a 2026-10-11 (según la fecha de los commits de evidencia) |
 | Fecha de corte del informe | 2026-10-11 |
 | Ambientes | Backend TEST (`https://api.inmero.co/back-sigab-test`) · Frontend TEST (`https://api.inmero.co`) |
-| Herramientas | Newman/Postman (65), Pytest (22), Cypress (10), Reevaluación documentada (10), Acta de ejecución (4) |
-| Casos ejecutados | 111 de 111 (100 %) |
+| Herramientas | Newman/Postman (65), Pytest (22), Cypress (12), Reevaluación documentada (10), Acta de ejecución (4) |
+| Casos ejecutados | 113 de 113 (100 %) |
 | Equipo QA | Daniela Castillo, Juan Esteban, Juan Manuel, Juan Pablo, Laura Lopez, Maria Jose, Sebastian |
 | Umbral de aceptación | **≥ 85 % de casos aprobados** |
-| Fuente de datos | Panel QA (`QA-DASHBOARD-SGRPMP/`, tabla «Todos los casos de prueba»), evidencias en `tests/Test_Testing/Test_Modulo2/` |
+| Fuente de datos | Panel QA (`QA-DASHBOARD-SGRPMP/`, tabla «Todos los casos de prueba»: casos de backend y de frontend), evidencias en `tests/Test_Testing/Test_Modulo2/` y `testing/test_testing/Modulo2/` |
 
 > Los conteos reflejan el estado del repositorio a la fecha de corte. Un caso reejecutado después del corte puede cambiar de veredicto. Los estados de la tabla de casos son la fuente de este informe; el registro de incidencias (`incidencias.csv`) se usa solo para asociar cada caso rechazado con su incidencia cuando existe.
 
@@ -22,18 +22,18 @@
 
 | Indicador | Cantidad | % |
 |---|---:|---:|
-| Casos | 111 | 100 % |
-| Aprobados | **102** | **91.9 %** |
-| Rechazados | 9 | 8.1 % |
+| Casos | 113 | 100 % |
+| Aprobados | **104** | **92.0 %** |
+| Rechazados | 9 | 8.0 % |
 | Pendientes | 0 | 0.0 % |
 
-**El módulo supera el umbral de aprobación del 85 % (91.9 %).** Quedan 9 casos rechazados, que se consideran defectos abiertos; su detalle está en la sección 4.
+**El módulo supera el umbral de aprobación del 85 % (92.0 %).** Quedan 9 casos rechazados, que se consideran defectos abiertos; su detalle está en la sección 4.
 
 ### Verificación de los criterios de salida del plan de pruebas (§2.1)
 
 | # | Criterio | Umbral | Resultado | Cumple |
 |---|---|---|---|:---:|
-| 1 | Casos con veredicto Aprobado | ≥ 85 % | **102/111 = 91.9 %** | ✅ |
+| 1 | Casos con veredicto Aprobado | ≥ 85 % | **104/113 = 92.0 %** | ✅ |
 | 2 | RF con al menos un caso ejecutado | 100 % | **21/21** (incluye transversales si aplica) | ✅ |
 | 3 | Informe consolidado con la plantilla completa | Completo | Este documento (pendiente de firmas) | ✅ (firmas pendientes) |
 
@@ -49,7 +49,7 @@
 | RF-33 | Registro de activos biológicos | 11 | 11 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-34 | Asociación a infraestructura productiva | 2 | 2 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-35 | Gestión individual de activos | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
-| RF-36 | Gestión poblacional de activos | 8 | 8 | 0 | 0 | 100 % | ✅ Aprobado |
+| RF-36 | Gestión poblacional de activos | 9 | 9 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-37 | Fases del ciclo productivo | 2 | 2 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-38 | Cierre del ciclo productivo | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-39 | Registro de eventos biológicos | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
@@ -59,20 +59,20 @@
 | RF-43 | Eventos productivos | 7 | 7 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-44 | Estado del activo biológico | 1 | 1 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-45 | Bajas del activo | 6 | 6 | 0 | 0 | 100 % | ✅ Aprobado |
-| RF-46 | Consulta de historial | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
+| RF-46 | Consulta de historial | 5 | 5 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-47 | Ficha integral del activo | 2 | 2 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-48 | Transferencia interna | 5 | 5 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-49 | Asociación con sensores IoT | 8 | 8 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-50 | Disponibilidad de datos para módulos analíticos | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-51 | Indicadores zootécnicos | 2 | 2 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-52 | Auditoría y trazabilidad de eventos | 11 | 4 | 7 | 0 | 36 % | ❌ Con fallas |
-| **Total** | | **111** | **102** | **9** | **0** | **91.9 %** | |
+| **Total** | | **113** | **104** | **9** | **0** | **92.0 %** | |
 
 ---
 
 ## 3. Cobertura y método
 
-- **Herramientas por caso:** Newman/Postman: 65 casos; Pytest: 22 casos; Cypress: 10 casos; Reevaluación documentada: 10 casos; Acta de ejecución: 4 casos.
+- **Herramientas por caso:** Newman/Postman: 65 casos; Pytest: 22 casos; Cypress: 12 casos; Reevaluación documentada: 10 casos; Acta de ejecución: 4 casos.
 - **Casos con veredicto de reevaluación documentada:** algunos casos rechazados en la primera evaluación se reejecutaron en `EvaluacionV2`/`EvaluacionV3` y su veredicto vigente consta en el acta de reevaluación (ver sección 4.B).
 - **Evidencia:** cada caso conserva su reporte de ejecución (HTML/JSON/XML) y, en las reevaluaciones, un acta `.md` con la narrativa de la corrida.
 - **Ambiente:** las ejecuciones vigentes se realizaron contra TEST con el backend en `https://api.inmero.co/back-sigab-test`; algunos casos históricos se ejecutaron contra la URL anterior de TEST (`sslip.io`).
@@ -129,7 +129,7 @@
 
 | Versión | Fecha | Autor | Cambios |
 |---|---|---|---|
-| 1.0 | 2026-10-11 | Equipo QA | Versión inicial: 102/111 aprobados (91.9 %); rechazados detallados en 4.A |
+| 1.0 | 2026-10-11 | Equipo QA | Versión inicial: 104/113 aprobados (92.0 %); rechazados detallados en 4.A |
 
 **Firmas de entrega**
 
