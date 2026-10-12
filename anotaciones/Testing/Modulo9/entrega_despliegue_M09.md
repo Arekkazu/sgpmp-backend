@@ -16,9 +16,9 @@
 
 | Indicador | Cantidad | % |
 |---|---:|---:|
-| Casos | 139 | 100 % |
-| Aprobados | **133** | **95.7 %** |
-| Rechazados | 6 | 4.3 % |
+| Casos | 152 | 100 % |
+| Aprobados | **146** | **96.1 %** |
+| Rechazados | 6 | 3.9 % |
 | Pendientes | 0 | 0.0 % |
 
 ## 2. Verificación de criterios de cierre de módulo
@@ -27,7 +27,7 @@
 
 | # | Criterio | Umbral | Resultado | Cumple |
 |---|---|---|---|:---:|
-| 1 | Casos con veredicto Aprobado | ≥ 85 % | **133/139 = 95.7 %** | ✅ |
+| 1 | Casos con veredicto Aprobado | ≥ 85 % | **146/152 = 96.1 %** | ✅ |
 | 2 | RF con al menos un caso ejecutado | 100 % | **18/18** | ✅ |
 | 3 | Informe consolidado con la plantilla completa | Completo | `informe_consolidado_pruebas_M09.md` redactado (pendiente de firmas) | ✅ (firmas pendientes) |
 
@@ -48,9 +48,9 @@
 
 | RF | Función | Casos | Aprobados | Rechazados | Observación para el manual |
 |---|---|---:|---:|---:|---|
-| RF-15 | Catálogo de especies productivas | 6 | 6 | 0 | Sin creación sin conexión; `grupo_manejo` no implementado |
-| RF-16 | Etapas productivas y patologías por especie | 8 | 8 | 0 | El modal "Nueva métrica" aún no expone `tipo_dato` ni rangos |
-| RF-17 | Umbrales de monitoreo y niveles de alerta | 8 | 8 | 0 | La propagación de umbrales al Gateway Edge se confirmó con ACK real en la reevaluación V5 (8-oct); observaciones: tiempo de respuesta y conservación en campo inferida |
+| RF-15 | Catálogo de especies productivas | 10 | 10 | 0 | Sin creación sin conexión; `grupo_manejo` no implementado |
+| RF-16 | Etapas productivas y patologías por especie | 11 | 11 | 0 | El modal "Nueva métrica" aún no expone `tipo_dato` ni rangos |
+| RF-17 | Umbrales de monitoreo y niveles de alerta | 11 | 11 | 0 | La propagación de umbrales al Gateway Edge se confirmó con ACK real en la reevaluación V5 (8-oct); observaciones: tiempo de respuesta y conservación en campo inferida |
 | RF-18 | Parámetros operativos del sistema | 7 | 7 | 0 | Documentar completo |
 | RF-19 | Datos de la finca | 8 | 8 | 0 | Documentar completo |
 | RF-20 | Infraestructura productiva | 7 | 7 | 0 | Defectos reportados en registro/edición de áreas |
@@ -63,9 +63,9 @@
 | RF-27 | Configuración visual (temas) | 5 | 5 | 0 | Documentar completo |
 | RF-28 | Personalización del dashboard | 4 | 4 | 0 | Documentar completo |
 | RF-29 | Idioma | 5 | 5 | 0 | Documentar completo |
-| RF-30 | Plantillas de configuración | 7 | 6 | 1 | Carpeta con numeración anterior (`TC-M09-109`) |
+| RF-30 | Plantillas de configuración | 9 | 8 | 1 | Carpeta con numeración anterior (`TC-M09-109`) |
 | RF-31 | Creación de plantilla | 9 | 7 | 2 | **Documentar con limitaciones** |
-| RF-32 | Aplicación de plantilla | 13 | 13 | 0 | Documentar completo |
+| RF-32 | Aplicación de plantilla | 14 | 14 | 0 | Documentar completo |
 
 ## 5. Decisión de liberación a `main`
 

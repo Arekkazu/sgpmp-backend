@@ -16,9 +16,9 @@
 
 | Indicador | Cantidad | % |
 |---|---:|---:|
-| Casos | 111 | 100 % |
-| Aprobados | **102** | **91.9 %** |
-| Rechazados | 9 | 8.1 % |
+| Casos | 113 | 100 % |
+| Aprobados | **104** | **92.0 %** |
+| Rechazados | 9 | 8.0 % |
 | Pendientes | 0 | 0.0 % |
 
 ## 2. Verificación de criterios de cierre de módulo
@@ -27,7 +27,7 @@
 
 | # | Criterio | Umbral | Resultado | Cumple |
 |---|---|---|---|:---:|
-| 1 | Casos con veredicto Aprobado | ≥ 85 % | **102/111 = 91.9 %** | ✅ |
+| 1 | Casos con veredicto Aprobado | ≥ 85 % | **104/113 = 92.0 %** | ✅ |
 | 2 | RF con al menos un caso ejecutado | 100 % | **21/21** | ✅ |
 | 3 | Informe consolidado con la plantilla completa | Completo | `informe_consolidado_pruebas_M02.md` redactado (pendiente de firmas) | ✅ (firmas pendientes) |
 
@@ -55,7 +55,7 @@
 | RF-33 | Registro de activos biológicos | 11 | 11 | 0 | Documentar completo |
 | RF-34 | Asociación a infraestructura productiva | 2 | 2 | 0 | Documentar completo |
 | RF-35 | Gestión individual de activos | 4 | 4 | 0 | Defecto reportado en actualización de campos |
-| RF-36 | Gestión poblacional de activos | 8 | 8 | 0 | Defectos reportados en eventos de crecimiento |
+| RF-36 | Gestión poblacional de activos | 9 | 9 | 0 | Defectos reportados en eventos de crecimiento |
 | RF-37 | Fases del ciclo productivo | 2 | 2 | 0 | Asignar fase puede responder 500 |
 | RF-38 | Cierre del ciclo productivo | 4 | 4 | 0 | No hay vía en la API para cerrar el ciclo de un activo individual |
 | RF-39 | Registro de eventos biológicos | 4 | 4 | 0 | Documentar completo |
@@ -65,7 +65,7 @@
 | RF-43 | Eventos productivos | 7 | 7 | 0 | Documentar completo |
 | RF-44 | Estado del activo biológico | 1 | 1 | 0 | Documentar completo |
 | RF-45 | Bajas del activo | 6 | 6 | 0 | Baja total puede responder 500 |
-| RF-46 | Consulta de historial | 4 | 4 | 0 | Documentar completo |
+| RF-46 | Consulta de historial | 5 | 5 | 0 | Documentar completo |
 | RF-47 | Ficha integral del activo | 2 | 2 | 0 | Documentar completo |
 | RF-48 | Transferencia interna | 5 | 5 | 0 | Documentar completo |
 | RF-49 | Asociación con sensores IoT | 8 | 8 | 0 | Defectos reportados en la transición de asociaciones |
