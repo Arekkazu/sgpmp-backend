@@ -1,3 +1,13 @@
+## [1.2.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.5...v1.2.0-rc.6) (2026-10-12)
+
+### Bug Fixes
+
+* **m01:** calcular la edad minima de RF-01 con el dia de Colombia ([0129457](https://github.com/Arekkazu/sgpmp-backend/commit/0129457ef2a1ea62a963171d471118c2162016c0))
+* **m02:** validar fechas futuras de RF-33/38/43/44/45/48/50 contra el dia de Colombia ([04eaefa](https://github.com/Arekkazu/sgpmp-backend/commit/04eaefa303e22506ae7fe8f2d3b698515be30b63))
+* **rf05:** validar la edad minima al editar fecha_nacimiento en el perfil ([fae364f](https://github.com/Arekkazu/sgpmp-backend/commit/fae364fd1ba8afa5d6404f28dde81dddc3a8b317))
+* **rf13:** devolver telefono, direccion y ultimo_acceso en el perfil y el detalle de usuario (RF-13, RF-12) ([797da2b](https://github.com/Arekkazu/sgpmp-backend/commit/797da2bcc8a81018c11e42454f10b678918faf80))
+* **rf36:** validar FECHA_INGRESO_FUTURA contra la fecha de Colombia, no la de UTC ([d3b9ee6](https://github.com/Arekkazu/sgpmp-backend/commit/d3b9ee63cb1b2be3b34ce0c82f2c9745bcb32996))
+
 ## [1.2.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.4...v1.2.0-rc.5) (2026-10-11)
 
 ### Bug Fixes
