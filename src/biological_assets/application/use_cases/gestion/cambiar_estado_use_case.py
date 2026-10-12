@@ -104,7 +104,11 @@ class CambiarEstadoUseCase:
             )
 
         id_estado_anterior = activo.id_estado
-        fecha = datetime.combine(dto.fecha_cambio_estado, datetime.min.time()).replace(tzinfo=timezone.utc)
+        # Hoy usa la hora real (como RF-38/RF-45); un día pasado, su medianoche UTC.
+        if dto.fecha_cambio_estado == hoy_colombia():
+            fecha = datetime.now(timezone.utc)
+        else:
+            fecha = datetime.combine(dto.fecha_cambio_estado, datetime.min.time()).replace(tzinfo=timezone.utc)
 
         try:
             # aplicar_cambio_estado valida BAJA irreversible, estado redundante y matriz de

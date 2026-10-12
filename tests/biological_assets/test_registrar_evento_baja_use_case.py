@@ -79,6 +79,11 @@ class HistoricoRepoFake:
         self.registros: list[dict] = []
         self.orden = orden
 
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
+
     def registrar(self, **kwargs) -> HistoricoEstado:
         if self.orden is not None:
             self.orden.append('estado')
