@@ -19,6 +19,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, NotFoundError
+from src.shared.fechas import hoy_colombia
 
 
 class CambiarEstadoUseCase:
@@ -81,8 +82,7 @@ class CambiarEstadoUseCase:
                 field='estado_nuevo',
             )
 
-        # INC-M02-29-g36 / #411: la referencia es la fecha UTC, no la local del servidor.
-        if dto.fecha_cambio_estado > datetime.now(timezone.utc).date():
+        if dto.fecha_cambio_estado > hoy_colombia():
             raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(

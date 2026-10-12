@@ -8,6 +8,7 @@ from typing import Optional
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import hoy_colombia
 
 _TIPOS_DATO = {'eventos', 'fases', 'estado', 'metricas', 'todos'}
 
@@ -56,7 +57,7 @@ class DatosConsolidadosDTO(BaseDTO):
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '
                 f'a la fecha de fin ({self.fecha_fin}).'
             )
-        if self.fecha_inicio and self.fecha_inicio > date.today():
+        if self.fecha_inicio and self.fecha_inicio > hoy_colombia():
             raise ValueError(
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser una fecha futura: '
                 'los datos consolidados son sobre eventos ya ocurridos.'

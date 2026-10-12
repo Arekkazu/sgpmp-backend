@@ -9,6 +9,7 @@ from typing import Optional
 from pydantic import model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import hoy_colombia
 
 
 class RegistrarActivoBiologicoDTO(BaseDTO):
@@ -74,7 +75,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
     @model_validator(mode='after')
     def validar_fecha_inicio_ciclo(self) -> RegistrarActivoBiologicoDTO:
         # FA-04
-        hoy = date.today()
+        hoy = hoy_colombia()
         limite_inferior = date(1970, 1, 1)
         if self.fecha_inicio_ciclo > hoy:
             raise ValueError("fecha_inicio_ciclo no puede ser futura.")

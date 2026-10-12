@@ -4,12 +4,13 @@ RF-39, RF-44).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.fechas import fecha_colombia
 
 # RF-39: estados que permiten registro de eventos
 _ESTADOS_PERMITEN_EVENTOS = {1, 3, 4}  # ACTIVO, EN_TRATAMIENTO, AISLADO
@@ -79,6 +80,21 @@ def validar_estado_permite_eventos(activo: ActivoBiologico) -> None:
                 f'Los estados que permiten registro de eventos son: ACTIVO, EN_TRATAMIENTO, AISLADO.'
             ),
         )
+
+
+def no_anterior_a_creacion(fecha: date, fecha_dt: datetime, activo: ActivoBiologico) -> datetime:
+    """Instante a persistir para un evento cuya ``fecha`` es solo día.
+
+    ``trg_fn_evento_fecha_coherente`` exige ``fecha >= fecha_creacion`` exacta
+    del activo. Un evento del mismo día (en Colombia) en que se creó el activo,
+    fijado a medianoche o fin de día UTC, puede caer antes de esa hora y el
+    trigger lo rechazaba; se sube a la hora de creación. Un día anterior a la
+    creación se deja tal cual: el trigger lo rechaza con 400.
+    """
+    creacion = activo.fecha_creacion
+    if creacion is not None and fecha_dt < creacion and fecha >= fecha_colombia(creacion):
+        return creacion
+    return fecha_dt
 
 
 def validar_fecha_evento(

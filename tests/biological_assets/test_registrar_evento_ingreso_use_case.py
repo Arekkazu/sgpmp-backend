@@ -16,6 +16,8 @@ from typing import Optional
 
 import pytest
 
+import src.shared.fechas as fechas
+
 from src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case import (
     RegistrarEventoIngresoUseCase,
 )
@@ -206,17 +208,16 @@ def test_ingreso_fecha_futura_lanza_validation_error() -> None:
     assert exc.value.code == 'FECHA_INGRESO_FUTURA'
 
 
-def test_ingreso_fecha_de_manana_en_colombia_es_futura_aunque_en_utc_ya_sea_hoy(monkeypatch) -> None:
-    # 2026-10-11 22:25 en Colombia == 2026-10-12 03:25 UTC: elegir el 12 debe
-    # rechazarse, porque en Colombia todavía es el 11.
-    import src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case as mod
+@pytest.fixture
+def noche_en_colombia(monkeypatch) -> None:
+    # 2026-10-11 22:25 en Colombia == 2026-10-12 03:25 UTC
+    monkeypatch.setattr(
+        fechas, '_ahora', lambda: datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(fechas.ZONA_COLOMBIA),
+    )
 
-    class _Reloj(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            return datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(tz)
 
-    monkeypatch.setattr(mod, 'datetime', _Reloj)
+@pytest.mark.usefixtures('noche_en_colombia')
+def test_ingreso_fecha_de_manana_en_colombia_es_futura_aunque_en_utc_ya_sea_hoy() -> None:
     uc = _uc(DbFake(), _activo_lote(), EventoRepoFake(), InfraPortFake())
 
     with pytest.raises(ValidationError) as exc:
@@ -224,6 +225,21 @@ def test_ingreso_fecha_de_manana_en_colombia_es_futura_aunque_en_utc_ya_sea_hoy(
     assert exc.value.code == 'FECHA_INGRESO_FUTURA'
 
     uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 11)), _usuario())
+
+
+@pytest.mark.usefixtures('noche_en_colombia')
+def test_ingreso_del_dia_de_creacion_no_queda_antes_de_la_creacion() -> None:
+    # trg_fn_evento_fecha_coherente exige fecha >= fecha_creacion: medianoche
+    # UTC del 11 caería antes de un lote creado el 11 a las 20:00 (Colombia).
+    creacion = datetime(2026, 10, 12, 1, 0, tzinfo=timezone.utc)
+    activo = _activo_lote()
+    activo.fecha_creacion = creacion
+    repo = EventoRepoFake()
+    uc = _uc(DbFake(), activo, repo, InfraPortFake())
+
+    uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 11)), _usuario())
+
+    assert repo.guardado.fecha == creacion
 
 
 def test_ingreso_densidad_resultante_supera_maximo_lanza_409() -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -11,7 +11,10 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.application.use_cases.gestion._event_validations import validar_estado_permite_eventos
+from src.biological_assets.application.use_cases.gestion._event_validations import (
+    no_anterior_a_creacion,
+    validar_estado_permite_eventos,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoIngreso
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -20,12 +23,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-
-# `fecha_ingreso` es la fecha calendario que el usuario elige en Colombia; el
-# "hoy" contra el que se valida debe ser el de Colombia, no el de UTC (desde
-# las 19:00 hora local UTC ya va en el día siguiente). Colombia no tiene
-# horario de verano, así que el desfase fijo -05:00 no requiere tzdata.
-_ZONA_COLOMBIA = timezone(timedelta(hours=-5))
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class RegistrarEventoIngresoUseCase:
@@ -90,12 +88,12 @@ class RegistrarEventoIngresoUseCase:
 
         # E-04: fecha_ingreso no futura ni anterior al último evento (mismo
         # patrón que RegistrarEventoBajaUseCase E-03)
-        hoy = datetime.now(_ZONA_COLOMBIA).date()
-        fecha_dt = datetime(
-            dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day,
-            tzinfo=timezone.utc,
+        fecha_dt = no_anterior_a_creacion(
+            dto.fecha_ingreso,
+            datetime(dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day, tzinfo=timezone.utc),
+            activo,
         )
-        if dto.fecha_ingreso > hoy:
+        if dto.fecha_ingreso > hoy_colombia():
             raise ValidationError(
                 code='FECHA_INGRESO_FUTURA',
                 message='La fecha de ingreso no puede ser posterior a la fecha actual del sistema.',
@@ -104,7 +102,7 @@ class RegistrarEventoIngresoUseCase:
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = ultima_fecha.astimezone(_ZONA_COLOMBIA).date()
+            ultimo_dia = fecha_colombia(ultima_fecha)
             if dto.fecha_ingreso < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA',
