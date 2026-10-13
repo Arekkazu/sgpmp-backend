@@ -1,3 +1,9 @@
+## [1.3.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.1...v1.3.2) (2026-10-13)
+
+### Bug Fixes
+
+* **rf16-mod9:** nombre de metrica productiva unico por especie y no global ([227ad59](https://github.com/Arekkazu/sgpmp-backend/commit/227ad59a9f56c34ee9eb8f083f7ca38f58b1d142))
+
 ## [1.3.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.0...v1.3.1) (2026-10-13)
 
 ### Bug Fixes
