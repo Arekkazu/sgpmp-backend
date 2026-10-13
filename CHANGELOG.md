@@ -1,3 +1,16 @@
+## [1.2.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.8...v1.2.0-rc.9) (2026-10-13)
+
+### Features
+
+* **rf43-mod9:** configurar en que ciclos productivos una metrica es producto ([237d6fe](https://github.com/Arekkazu/sgpmp-backend/commit/237d6fe28dafa5ba3acc55f308a47d716e17cfb4))
+
+### Bug Fixes
+
+* **rf40-mod2:** aceptar LONGITUD como tipo de medicion del evento de crecimiento ([c129c68](https://github.com/Arekkazu/sgpmp-backend/commit/c129c68ca65ed6c14b34e045f229b7092d0b0afe))
+* **rf40-mod2:** aceptar los gramos como "g", la unidad que usa M09 ([03cf0b9](https://github.com/Arekkazu/sgpmp-backend/commit/03cf0b90a340816cc246886ad6643a001549c06a))
+* **rf41-mod2:** exponer las patologias de la especie con el permiso de activos ([8dd903d](https://github.com/Arekkazu/sgpmp-backend/commit/8dd903d93b276041167dbfdc819694d18588f432))
+* **rf43-mod2:** elegir el producto del evento productivo por su metrica ([052ec52](https://github.com/Arekkazu/sgpmp-backend/commit/052ec529b53ed911a512b83a735e2b43fd20b5b2))
+
 ## [1.2.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.7...v1.2.0-rc.8) (2026-10-12)
 
 ### Bug Fixes
