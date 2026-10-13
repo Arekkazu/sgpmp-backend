@@ -77,7 +77,7 @@ class EditarMetricaUseCase:
         if not metrica.es_activo:
             raise BusinessRuleError(
                 code="METRICA_INACTIVA",
-                message="No se puede editar una métrica inactiva. Reactívela primero.",
+                message="No se puede editar una métrica inactiva.",
             )
 
         ts_actual = metrica.fecha_actualizacion
