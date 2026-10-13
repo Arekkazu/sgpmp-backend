@@ -98,6 +98,12 @@ _ERRCODE_ESTADO_HISTORIAL_INCONSISTENTE = "P0212"
 _ERRCODE_BAJA_CANTIDAD_INVALIDA = "P0224"
 _ERRCODE_BAJA_SUPERA_EXISTENCIA = "P0225"
 
+#: CU-M09-03: `trg_fn_niveles_alerta_solapamiento` rechaza un nivel de alerta
+#: que se solapa con otro del mismo umbral (P0113). La aplicación ya valida que
+#: los niveles sean contiguos; si aun así llega aquí, es una regla de negocio
+#: (422), no un 500.
+_ERRCODE_NIVELES_SOLAPADOS = "P0113"
+
 #: P0211 lo comparten dos triggers de `modulo2` con etiquetas distintas
 #: (prefijo del mensaje). Solo `INVALID_TRANSITION` y `REDUNDANT_TRANSITION`
 #: son reglas de negocio; `MISSING_FIELD` y `DIRECT_STATE_CHANGE` delatan un
@@ -134,6 +140,15 @@ _REGLAS_POR_ETIQUETA = {
 #: IntegrityError/DataError/OperationalError. `BaseDTO` ya lo rechaza en la
 #: frontera para todo DTO de entrada; esto es la red de seguridad para
 #: cualquier valor que llegue a la base de datos por otra vía.
+#: CU-M09-03: el 500 decía "Error inesperado en base de datos", que no le dice
+#: al usuario qué hacer y delata la capa que falló. El detalle técnico sigue en
+#: el log (`original_error`); al cliente le llega el mismo texto que da el
+#: manejador global para cualquier error no controlado.
+_MENSAJE_ERROR_INTERNO = (
+    "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, "
+    "contacta al equipo de soporte."
+)
+
 _MENSAJE_BYTE_NULO_PSYCOPG2 = "A string literal cannot contain NUL (0x00) characters."
 
 
@@ -262,6 +277,10 @@ def raise_from_db_error(
         mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
         raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
 
+    if sqlstate == _ERRCODE_NIVELES_SOLAPADOS:
+        mensaje = diag_generico.message_primary or "Los niveles de alerta del umbral se solapan."
+        raise BusinessRuleError(code="NIVELES_SOLAPADOS", message=mensaje.split(": ", 1)[-1], field="niveles")
+
     if sqlstate in _ERRCODES_FASE_CONFLICTO:
         mensaje = diag_generico.message_primary or "El cambio de fase entra en conflicto con el historial del activo."
         raise ConflictError(code=_ERRCODES_FASE_CONFLICTO[sqlstate], message=mensaje.split(": ", 1)[-1])
@@ -321,7 +340,7 @@ def raise_from_db_error(
 
         raise InfrastructureError(
             code="ERROR_INTERNO",
-            message="Error de integridad en base de datos",
+            message=_MENSAJE_ERROR_INTERNO,
             original_error=exc,
         )
 
@@ -343,6 +362,6 @@ def raise_from_db_error(
 
     raise InfrastructureError(
         code="ERROR_INTERNO",
-        message="Error inesperado en base de datos",
+        message=_MENSAJE_ERROR_INTERNO,
         original_error=exc,
     )
