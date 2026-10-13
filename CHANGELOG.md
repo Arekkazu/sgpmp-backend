@@ -1,3 +1,9 @@
+## [1.3.3-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.2...v1.3.3-rc.1) (2026-10-13)
+
+### Bug Fixes
+
+* **rf16-mod9:** no pedir reactivar una metrica inactiva al editarla ([be68505](https://github.com/Arekkazu/sgpmp-backend/commit/be68505b0d8457fbcb77cacfa6d760d3dd1b6d84))
+
 ## [1.3.2-rc.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.1...v1.3.2-rc.1) (2026-10-13)
 
 ## [1.3.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.1...v1.3.2) (2026-10-13)
