@@ -152,6 +152,8 @@ class DbPermisosFake:
         # las fincas del usuario en usuarios_fincas.
         if "id_rol" in params:
             return _Escalar(params["id_rol"] in ROLES_PROTEGIDOS)
+        if "ids" in params:  # nombre del productor en la respuesta (RF-19): sin nombres
+            return []
         return _FilasAcceso(self.accesos.get(params["id_usuario"], []))
 
 

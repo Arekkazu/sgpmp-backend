@@ -353,10 +353,11 @@ class _EspecieRepoFake:
     def __init__(self) -> None:
         self.consultada = False
         self.activa = True
+        self.existe = True
 
     def obtener_por_id(self, _id_especie):
         self.consultada = True
-        return SimpleNamespace(id_especie=1, es_activo=self.activa)
+        return SimpleNamespace(id_especie=1, es_activo=self.activa) if self.existe else None
 
 
 class _PlantillaRepoFake:
@@ -650,7 +651,7 @@ def test_versionar_con_especie_desactivada_responde_422():
         use_case.execute(1, _dto_version(), USUARIO)
 
     assert exc_info.value.status_code == 422
-    assert exc_info.value.code == "ESPECIE_INACTIVA"
+    assert exc_info.value.code == "ESPECIE_NO_DISPONIBLE"
     # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
     assert use_case.db.commits == 1
 
@@ -677,3 +678,22 @@ def test_versionar_tambien_rechaza_umbral_fuera_de_rango_fisico():
     assert exc_info.value.code == "RANGO_FISICO_INVALIDO"
     # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
     assert use_case.db.commits == 1
+
+
+@pytest.mark.parametrize("caso", ["inactiva", "inexistente"])
+def test_crear_con_especie_no_disponible_responde_422(caso):
+    """INC-M09-77-G111: RF-31 FA "Especie de referencia inactiva o no encontrada"
+    pide 422 con el mismo mensaje en los dos casos; la inexistente salía 404."""
+    use_case = _use_case_registro()
+    if caso == "inactiva":
+        use_case.especie_repo.activa = False
+    else:
+        use_case.especie_repo.existe = False
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(_dto_con(SNAPSHOT_VALIDO), USUARIO)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == "ESPECIE_NO_DISPONIBLE"
+    assert exc_info.value.message.startswith("Error de referencia: La especie asociada no está disponible")
+    assert use_case.plantilla_repo.guardadas == []

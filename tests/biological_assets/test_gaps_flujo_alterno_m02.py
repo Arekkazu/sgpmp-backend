@@ -209,7 +209,7 @@ class _Ciclo:
 
 
 def _registrar_productivo(**campos):
-    base = dict(tipo_producto='LECHE', cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1))
+    base = dict(id_metrica_produccion=1, cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1))
     base.update(campos)
     uc = RegistrarEventoProductivoUseCase(
         db=_Db(), activo_repo=_ActivoRepo(_activo()), evento_repo=_EventoRepo(),
@@ -238,7 +238,7 @@ def test_rf43_error_de_validacion_es_422(campos, codigo) -> None:
 
 def test_rf43_cantidad_invalida_ya_no_la_rechaza_el_dto() -> None:
     dto = RegistrarEventoProductivoDTO(
-        tipo_producto='LECHE', cantidad_producida=Decimal('0'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
+        id_metrica_produccion=1, cantidad_producida=Decimal('0'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
     )
     assert dto.cantidad_producida == 0
 
@@ -633,7 +633,7 @@ def test_rf52_e5_el_evento_registrado_lleva_la_llave_de_su_fila_rf46() -> None:
     )
 
     uc.execute(10, RegistrarEventoProductivoDTO(
-        tipo_producto='LECHE', cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
+        id_metrica_produccion=1, cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
     ), USUARIO)
 
     registrado = next(e for e in bitacora_repo.eventos if e.tipo_evento == 'EVENTO_PRODUCTIVO_REGISTRADO')
