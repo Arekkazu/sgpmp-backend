@@ -1,3 +1,12 @@
+## [1.2.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.9...v1.2.0-rc.10) (2026-10-13)
+
+### Bug Fixes
+
+* **rf17:** permitir reemplazar los niveles al editar o desactivar un umbral (CU-M09-03) ([f2d240e](https://github.com/Arekkazu/sgpmp-backend/commit/f2d240ee793cbd743a028e8e11915aa60cb5b7bc))
+* **rf17:** traducir el solapamiento de niveles a 422 y no exponer la base de datos en el 500 ([c02a600](https://github.com/Arekkazu/sgpmp-backend/commit/c02a6004096e38a42a225cb76664d3264322d2e9))
+* **rf18-rf19:** devolver el nombre del usuario en parametros operativos y fincas ([e1ed545](https://github.com/Arekkazu/sgpmp-backend/commit/e1ed54503e60e134bc21337a5b19fc21f1e4e463))
+* **rf31:** responder 422 con el mensaje de RF-31 cuando la especie de la plantilla no esta disponible (INC-M09-77-G111) ([e30443a](https://github.com/Arekkazu/sgpmp-backend/commit/e30443ac6f635bf02675240a4edeb39cf16985e2))
+
 ## [1.2.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.8...v1.2.0-rc.9) (2026-10-13)
 
 ### Features
