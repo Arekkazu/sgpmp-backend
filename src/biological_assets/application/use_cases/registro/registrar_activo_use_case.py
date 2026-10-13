@@ -241,6 +241,19 @@ class RegistrarActivoBiologicoUseCase:
                 field='id_infraestructura',
             )
 
+        # Regla C1 (RF-48/RF-20 v1.1): el área debe estar habilitada para la especie.
+        # El formulario ya filtra por especie, pero escribir el ID la saltaba.
+        # ``None`` = área anterior a RF-20 v1.1, sin especie declarada.
+        if infra.id_especie is not None and infra.id_especie != dto.id_especie:
+            raise BusinessRuleError(
+                code='INCOMPATIBILIDAD_ESPECIE',
+                message=(
+                    f'La infraestructura {infra.nombre} no está habilitada para la especie del activo. '
+                    'Seleccione una infraestructura compatible con la especie.'
+                ),
+                field='id_infraestructura',
+            )
+
         # FA-03: unicidad del identificador para INDIVIDUAL
         if dto.tipo_activo == 'INDIVIDUAL' and self.repo.existe_identificador(dto.identificador):
             raise ConflictError(
