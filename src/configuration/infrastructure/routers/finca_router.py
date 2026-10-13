@@ -29,6 +29,7 @@ from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
 from src.configuration.infrastructure.dto.registrar_finca_dto import RegistrarFincaDTO
 from src.configuration.infrastructure.repositories.auditoria_finca_repository import SqlAlchemyAuditoriaFincaRepository
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
+from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
@@ -39,6 +40,10 @@ from src.shared.schemas import ErrorResponse
 router = APIRouter(prefix="/configuracion/fincas", tags=["Configuración - Fincas"])
 
 _RECURSO = 9   # modulo1.recursos: 'fincas'
+
+
+def _respuesta(db: Session, finca) -> FincaResponse:
+    return FincaResponse.from_entity(finca, nombres_usuarios(db, [finca.id_usuario]).get(finca.id_usuario))
 
 
 def _ids_fincas_alcance_lectura(
@@ -83,7 +88,7 @@ def registrar_finca(
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(dto, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.get(
@@ -108,7 +113,8 @@ def listar_fincas(
     ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     fincas = use_case.listar(ids_fincas_permitidas=ids_permitidas, solo_activas=solo_activas)
-    items = [FincaResponse.from_entity(f) for f in fincas]
+    nombres = nombres_usuarios(db, (f.id_usuario for f in fincas))
+    items = [FincaResponse.from_entity(f, nombres.get(f.id_usuario)) for f in fincas]
     return ListaFincasResponse(total=len(items), items=items)
 
 
@@ -137,7 +143,7 @@ def obtener_finca(
     ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     finca = use_case.obtener(id_finca, ids_fincas_permitidas=ids_permitidas)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -171,7 +177,7 @@ def editar_finca(
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, dto, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -204,7 +210,7 @@ def desactivar_finca(
         dependency_port=FincaDependencyAdapter(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -234,4 +240,4 @@ def reactivar_finca(
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
