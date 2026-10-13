@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.3.0...v1.3.1) (2026-10-13)
+
+### Bug Fixes
+
+* **rf33:** rechazar registro de activo en area de otra especie (regla C1) ([a6f0b3e](https://github.com/Arekkazu/sgpmp-backend/commit/a6f0b3e126c07e6f71305cb41e0740b0adc3f222))
+
 ## [1.3.0](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0...v1.3.0) (2026-10-13)
 
 ### Features
