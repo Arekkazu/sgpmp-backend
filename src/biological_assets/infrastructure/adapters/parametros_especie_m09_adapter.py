@@ -9,8 +9,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.repositories.parametros_especie_port import MetricaProductiva, ParametroEspecie, ParametrosEspeciePort
+from src.biological_assets.domain.repositories.parametros_especie_port import (
+    MetricaProductiva,
+    ParametroEspecie,
+    ParametrosEspeciePort,
+    PatologiaEspecie,
+)
 from src.configuration.infrastructure.models.especie_model import EspecieModel
+from src.configuration.infrastructure.models.especie_patologia_model import EspeciePatologiaModel
 from src.configuration.infrastructure.models.metrica_produccion_model import MetricaProduccionModel
 
 # El campo aplica_a_tipo_activo usa 'LOTE' para activos poblacionales
@@ -106,3 +112,12 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
             MetricaProduccionModel.es_activo.is_(True),
             MetricaProduccionModel.aplica_a_tipo_activo.in_([tipo_db, 'AMBOS']),
         )
+
+    def listar_patologias(self, id_especie: int) -> list[PatologiaEspecie]:
+        rows = (
+            self.db.query(EspeciePatologiaModel.id_especies_patologias, EspeciePatologiaModel.nombre)
+            .filter(EspeciePatologiaModel.id_especie == id_especie, EspeciePatologiaModel.es_activo.is_(True))
+            .order_by(EspeciePatologiaModel.nombre)
+            .all()
+        )
+        return [PatologiaEspecie(id_patologia=r.id_especies_patologias, nombre=r.nombre) for r in rows]

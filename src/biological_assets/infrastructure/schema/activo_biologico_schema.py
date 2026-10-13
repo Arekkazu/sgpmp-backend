@@ -87,6 +87,17 @@ class MetricaActivoResponse(BaseModel):
     habilitada_en_fase: bool
 
 
+class PatologiaActivoResponse(BaseModel):
+    """Patología de la especie del activo para el diagnóstico sanitario (RF-41)."""
+    id_patologia: int
+    nombre: str
+
+
+class PatologiasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    items: list[PatologiaActivoResponse]
+
+
 class MetricasActivoResponse(BaseModel):
     id_activo_biologico: int
     total: int

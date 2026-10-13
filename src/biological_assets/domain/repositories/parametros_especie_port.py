@@ -38,6 +38,13 @@ class MetricaProductiva:
     valor_max: Optional[Decimal] = None
 
 
+@dataclass
+class PatologiaEspecie:
+    """Patología activa de la especie (RF-16), para el diagnóstico del evento sanitario."""
+    id_patologia: int
+    nombre: str
+
+
 class ParametrosEspeciePort(ABC):
     """Consulta a M09 de densidad máxima, parámetros y métricas productivas por especie.
     """
@@ -65,3 +72,7 @@ class ParametrosEspeciePort(ABC):
     @abstractmethod
     def listar_metricas_productivas(self, id_especie: int, tipo_activo: str) -> list[MetricaProductiva]:
         """Métricas activas de la especie que aplican al tipo de activo, ordenadas por nombre."""
+
+    @abstractmethod
+    def listar_patologias(self, id_especie: int) -> list[PatologiaEspecie]:
+        """Patologías activas de la especie, ordenadas por nombre."""

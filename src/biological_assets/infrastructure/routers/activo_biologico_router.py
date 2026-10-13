@@ -44,6 +44,9 @@ from src.biological_assets.application.use_cases.gestion.listar_ciclos_productiv
 from src.biological_assets.application.use_cases.gestion.listar_metricas_activo_use_case import (
     ListarMetricasActivoUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.listar_patologias_activo_use_case import (
+    ListarPatologiasActivoUseCase,
+)
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
 from src.biological_assets.domain.entities.activo_biologico import (
@@ -169,6 +172,8 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     CicloProductivoResponse,
     MetricaActivoResponse,
     MetricasActivoResponse,
+    PatologiaActivoResponse,
+    PatologiasActivoResponse,
     FaseCicloProductivoResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
@@ -1500,6 +1505,38 @@ def metricas_activo(
         for m, habilitada in metricas
     ]
     return MetricasActivoResponse(id_activo_biologico=id_activo, total=len(items), items=items)
+
+
+@router.get(
+    '/{id_activo}/patologias',
+    response_model=PatologiasActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF41'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Patologías de la especie del activo para el evento sanitario (RF-41)',
+)
+def patologias_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> PatologiasActivoResponse:
+    """Patologías activas de la especie del activo, ordenadas por nombre.
+
+    **Acceso:** `activos_biologicos` · Leer (Productor e Ingeniero de campo
+    incluidos, que no leen la configuración de M09).
+    """
+    use_case = ListarPatologiasActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+    )
+    patologias = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    return PatologiasActivoResponse(
+        id_activo_biologico=id_activo,
+        items=[PatologiaActivoResponse(id_patologia=p.id_patologia, nombre=p.nombre) for p in patologias],
+    )
 
 
 @router.post(
