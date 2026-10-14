@@ -1,0 +1,79 @@
+name: Code Quality
+
+# Revisión de CALIDAD de código. Complementa, NO reemplaza, al SAST de seguridad
+# de `sast.yml`: el SAST busca vulnerabilidades; esto busca lo que el SAST no ve —
+# código muerto, duplicación, complejidad excesiva y "code smells" / posibles bugs.
+# Plantilla origen y documentación: docs-sgpmp/repo-templates/ (PIPELINES.md §4).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# FASE DE LÍNEA BASE (importante): en esta primera versión los chequeos están en
+# modo INFORME (`|| true`): reportan todo pero NO rompen el build, para no empezar
+# a bloquear los PRs de Desarrollo apenas se mergee. Se corre con `workflow_dispatch`
+# y en cada PR, se acuerda una línea base de deuda aceptable, y RECIÉN ENTONCES se
+# endurecen los gates (quitar los `|| true` marcados con "ENFORCE:") y, si se quiere,
+# se marca como required status check en branch protection.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - develop
+      - main
+      - test
+    paths:
+      - "src/**"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - ".github/workflows/quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-python:
+    name: Calidad Python (ruff · vulture · radon · jscpd)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalar herramientas
+        run: pip install --quiet ruff vulture radon
+
+      # ruff — SOLO reglas de alto valor (no estilo):
+      #   F=Pyflakes (imports/vars sin uso, nombres indefinidos) · B=bugbear ·
+      #   BLE=blind-except · SIM=simplificaciones · S=seguridad (no duplica Bandit) ·
+      #   RUF=reglas propias. Se ignora B008 (falso positivo por `Depends(...)` en FastAPI).
+      #   `--output-format=github` anota los hallazgos línea por línea en el diff del PR.
+      #   ENFORCE: quitar el `|| true` para que ruff rompa el build.
+      - name: Ruff — lint, código muerto y smells (alto valor)
+        run: ruff check src --select F,B,BLE,SIM,S,RUF --ignore B008 --output-format=github || true
+
+      # `if: ${{ !cancelled() }}` → estos pasos SIEMPRE corren aunque uno anterior
+      # falle, para ver toda la deuda de una vez en una corrida de línea base.
+
+      # vulture — código muerto (siempre informativo).
+      - name: Vulture — código muerto
+        if: ${{ !cancelled() }}
+        run: vulture src --min-confidence 80 || true
+
+      # radon — complejidad ciclomática. Lista hotspots rango C+ y cuenta rango D+ (CC>20).
+      #   ENFORCE: cambiar el `print(...)` final por `sys.exit(1 if n else 0)` para romper.
+      - name: Radon — complejidad ciclomática
+        if: ${{ !cancelled() }}
+        run: |
+          echo "— Hotspots de complejidad (rango C o peor) —"
+          radon cc src -s -n C
+          echo "— Conteo rango D o peor (CC > 20) —"
+          radon cc src -n D -j | python -c "import sys,json; d=json.load(sys.stdin); n=sum(len(v) for v in d.values()); print(f'Funciones en rango D+: {n}')"
+
+      # jscpd — duplicación. Umbral 5% (informa en consola).
+      #   ENFORCE: quitar el `|| true` para que supere el umbral rompa el build.
+      - name: jscpd — duplicación de código
+        if: ${{ !cancelled() }}
+        run: npx --yes jscpd@4 src --pattern "**/*.py" --min-tokens 50 --threshold 5 --reporters console || true
