@@ -320,6 +320,14 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 | `fecha_procesamiento` | `datetime` |
 | `paquete_inferencia_estado` | `str \| None` |
 
+**DEV-17 / P7:** con `MotorInferenciaStubAdapter`, una desviación válida devuelve
+`201` con `paquete_inferencia_estado = PENDIENTE`. El paquete está persistido,
+con `intento_envios = 0`; el 201 confirma recepción/procesamiento, no entrega a IA.
+`NORMAL` y `ERROR_CONFIGURACION` conservan el estado `null` (sin paquete).
+Solo una confirmación positiva de un adaptador integrado permite `ENVIADO`.
+La reconsolidación del mismo `id_evento_edge_computing` recupera su paquete
+existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
+
 ---
 
 ### Infraestructura IoT — `/iot`
@@ -714,7 +722,8 @@ un usuario.
     auto-vinculado RF-61-A siempre resuelve `SIN_VINCULAR`.
   - `UmbralHistoricoM09Adapter` — siempre retorna `None`, el semáforo
     histórico de RF-59 queda en `GRIS` por defecto.
-  - `MotorInferenciaStubAdapter` (M04) — `enviar_paquete()` siempre `True`.
+  - `MotorInferenciaStubAdapter` (M04) — señala `MotorInferenciaNoIntegradoError`;
+    RF-56 conserva el paquete persistido en `PENDIENTE`, con cero intentos.
   - `ParametrosCalidadStubAdapter` (M09) — parámetros de evaluación de
     calidad fijos (`k=3.0, M=5, N=20, umbral_drift=5.0, ...`).
 - Para probar cualquier endpoint "JWT + RBAC" de este documento: `POST
