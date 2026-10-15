@@ -30,6 +30,7 @@ from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import Dispos
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
 from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 from src.telemetry.infrastructure.schema.alerta_schema import (
@@ -202,6 +203,7 @@ def actualizar_estado_alerta(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,
