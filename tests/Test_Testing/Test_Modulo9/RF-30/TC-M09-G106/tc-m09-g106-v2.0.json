@@ -1,0 +1,393 @@
+{
+  "info": {
+    "_postman_id": "a106c0de-0000-4106-9106-tc09g106v20",
+    "name": "TC-M09-G106 v2.0 - Inmutabilidad y versionado de plantillas (RF-30/RF-31, creacion separada de versionado)",
+    "description": "v2.0 (2026-10). Reescrita porque la v1 (04/09) 'modificaba' una plantilla volviendola a crear con el mismo template_name y esperaba 201 version=2/3. RF-30 (FA Nombre duplicado) y RF-31 exigen que un nombre repetido se rechace con 409 y que la actualizacion se haga generando una nueva version; el backend ya separa ambas operaciones: POST /configuracion/plantillas (nombre repetido => 409) y POST /configuracion/plantillas/{id}/versiones (genera la version N+1). TC-203 (PUT/PATCH => 405) no cambia. TC-204 y TC-205 se prueban ahora por la via de versionado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_v1",
+      "value": ""
+    },
+    {
+      "key": "id_v2",
+      "value": ""
+    },
+    {
+      "key": "id_v3",
+      "value": ""
+    },
+    {
+      "key": "nombre_plantilla",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var b = pm.response.json();",
+              "pm.test('Hay al menos una especie activa', function () { pm.expect(b.items.length).to.be.above(0); });",
+              "if (b.items && b.items.length) { pm.collectionVariables.set('id_especie', b.items[0].id_especie); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Crear plantilla nueva (RF-31) - nace en version 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1 - crear plantilla nueva responde 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var p = pm.response.json();",
+              "  pm.test('1 - la plantilla nace en version 1', function () { pm.expect(p.version).to.eql(1); });",
+              "  pm.collectionVariables.set('id_v1', p.id_plantilla);",
+              "  pm.collectionVariables.set('nombre_plantilla', p.template_name);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-G106-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_inicial\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "2. TC-M09-203 - PUT sobre plantilla guardada: inmutable (405)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('203 - PUT no edita una plantilla existente: 405 Method Not Allowed (RF-30 FA Inmutabilidad)', function () { pm.response.to.have.status(405); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_v1}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"nombre-modificado\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. TC-M09-203 - PATCH sobre plantilla guardada: inmutable (405)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('203 - PATCH no edita una plantilla existente: 405 Method Not Allowed (RF-30 FA Inmutabilidad)', function () { pm.response.to.have.status(405); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_v1}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"nombre-modificado\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. TC-M09-204 - Crear de nuevo con el MISMO nombre se rechaza (409), ya no versiona",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('204 - crear con un nombre ya registrado responde 409 (RF-30: el nombre debe ser unico)', function () { pm.response.to.have.status(409); });",
+              "pm.test('204 - el error es NOMBRE_PLANTILLA_DUPLICADO y no trae id_plantilla (no se creo nada)', function () {",
+              "  var b = pm.response.json();",
+              "  pm.expect(b.error_code).to.eql('NOMBRE_PLANTILLA_DUPLICADO');",
+              "  pm.expect(b).to.not.have.property('id_plantilla');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"{{nombre_plantilla}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_nuevo\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "5. TC-M09-204 - Versionar por la via correcta: POST /{id}/versiones genera la version 2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('204 - versionar responde 201 Created', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var p = pm.response.json();",
+              "  var nombre = pm.collectionVariables.get('nombre_plantilla');",
+              "  var idV1 = parseInt(pm.collectionVariables.get('id_v1'));",
+              "  pm.test('204 - la nueva version es la 2', function () { pm.expect(p.version).to.eql(2); });",
+              "  pm.test('204 - la nueva version hereda nombre y especie, y es un registro distinto', function () {",
+              "    pm.expect(p.template_name).to.eql(nombre);",
+              "    pm.expect(p.id_especie).to.eql(parseInt(pm.collectionVariables.get('id_especie')));",
+              "    pm.expect(p.id_plantilla).to.not.eql(idV1);",
+              "  });",
+              "  pm.collectionVariables.set('id_v2', p.id_plantilla);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_v1}}/versiones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_nuevo\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "6. TC-M09-204 - La version 1 sigue intacta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('204 - consultar la version 1 responde 200', function () { pm.response.to.have.status(200); });",
+              "var p = pm.response.json();",
+              "pm.test('204 - la version 1 conserva version=1 y su contenido original (peso_inicial)', function () {",
+              "  pm.expect(p.version).to.eql(1);",
+              "  var m = (p.params_snapshot.metricas_produccion || []).map(function (x) { return x.nombre; });",
+              "  pm.expect(m).to.include('peso_inicial');",
+              "  pm.expect(m).to.not.include('peso_nuevo');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_v1}}"
+      }
+    },
+    {
+      "name": "7. TC-M09-205 - Versionar de nuevo desde la version 2 genera la version 3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('205 - versionar responde 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var p = pm.response.json();",
+              "  pm.test('205 - la tercera version es exactamente la 3 (sin saltos)', function () { pm.expect(p.version).to.eql(3); });",
+              "  pm.collectionVariables.set('id_v3', p.id_plantilla);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_v2}}/versiones",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_final\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "8. TC-M09-205 - Las versiones del nombre son exactamente 1, 2, 3 (sin reuso ni duplicados)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('205 - el listado responde 200', function () { pm.response.to.have.status(200); });",
+              "var nombre = pm.collectionVariables.get('nombre_plantilla');",
+              "var versiones = (pm.response.json().items || []).filter(function (i) { return i.template_name === nombre; })",
+              "  .map(function (i) { return i.version; }).sort();",
+              "console.log('8: versiones registradas para ' + nombre + ' = ' + JSON.stringify(versiones));",
+              "pm.test('205 - existen exactamente las versiones [1,2,3]', function () { pm.expect(versiones).to.eql([1,2,3]); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

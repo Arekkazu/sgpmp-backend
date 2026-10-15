@@ -1,0 +1,24 @@
+{
+  "runId": "G29-REEVAL-V3-20260926-013154",
+  "ambienteDecisorio": "DEV",
+  "base": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+  "escriturasPlanificadas": 0,
+  "motivoSinEscrituras": "Escenario A (stub): ejecutar POST/PATCH solo demostraría persistencia central y un estado PENDIENTE simulado; no probaría propagación ni comportamiento del Edge real. Ademas DEV_ADMIN_PASSWORD no esta disponible en el proceso.",
+  "raspberry": {
+    "requeridoPorElFlujoDesplegado": false,
+    "limitante": false,
+    "justificacion": "El backend desplegado no intenta comunicarse con el hardware: el puerto EdgeSincronizacionPort esta cubierto por EdgeSincronizacionStubAdapter."
+  },
+  "mqtt": {
+    "flujoReal": false,
+    "broker": "no utilizado por RF-17",
+    "topic": "inexistente para umbrales",
+    "cliente": {
+      "paho_mqtt": false,
+      "mosquitto_sub": false,
+      "mosquitto_pub": false,
+      "mqttx": false,
+      "mqtt_cli": false
+    }
+  }
+}

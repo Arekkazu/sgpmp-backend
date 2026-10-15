@@ -1,0 +1,549 @@
+{
+  "info": {
+    "name": "TC-M02-G70 - Baja: datos obligatorios y control de acceso por rol (RF-45, CU09)",
+    "description": "Sub-casos TC-M02-254 y TC-M02-255, en vivo contra TEST. El sub-caso TC-M02-256 (rollback ante fallo transaccional) se verifica solo con Pytest y dobles de prueba (ver test_tc_m02_g70_baja_validacion_rbac_rollback.py, que ademas repite 254/255 y produce el unico reporte ganador del TC en resultados/). La salida de esta coleccion se guarda en evidencias/. Ninguna baja se ejecuta de verdad: todos los requests son rechazos (400/403) o un body vacio que valida el paso del RBAC. Discrepancia ficha vs implementacion (no es bug): los mensajes reales son VAL_ENTRADA por campo y el ACCESO_DENEGADO generico, no los textos literales de la ficha.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_admin', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{admin_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 254a - Baja sin tipo_baja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('rechazado con HTTP 400', function(){ pm.response.to.have.status(400); });",
+              "pm.test('VAL_ENTRADA senalando tipo_baja', function(){ pm.expect(r.error_code).to.equal('VAL_ENTRADA'); pm.expect(r.fields.map(function(f){return f.field;})).to.include('tipo_baja'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"fecha_baja\":\"{{fecha_baja}}\",\"motivo_baja\":\"TC-M02-254 sin tipo_baja\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 254b - Baja sin motivo_baja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('rechazado con HTTP 400', function(){ pm.response.to.have.status(400); });",
+              "pm.test('VAL_ENTRADA senalando motivo_baja', function(){ pm.expect(r.error_code).to.equal('VAL_ENTRADA'); pm.expect(r.fields.map(function(f){return f.field;})).to.include('motivo_baja'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_baja\":\"venta\",\"fecha_baja\":\"{{fecha_baja}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 254c - Baja con motivo_baja vacio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('rechazado con HTTP 400', function(){ pm.response.to.have.status(400); });",
+              "pm.test('VAL_ENTRADA senalando motivo_baja', function(){ pm.expect(r.error_code).to.equal('VAL_ENTRADA'); pm.expect(r.fields.map(function(f){return f.field;})).to.include('motivo_baja'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_baja\":\"venta\",\"fecha_baja\":\"{{fecha_baja}}\",\"motivo_baja\":\"\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Login Contador (rol no autorizado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_contador', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{contador_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 255a - Contador intenta baja (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('rechazado con HTTP 403', function(){ pm.response.to.have.status(403); });",
+              "pm.test('ACCESO_DENEGADO', function(){ pm.expect(r.error_code).to.equal('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_baja\":\"venta\",\"fecha_baja\":\"{{fecha_baja}}\",\"motivo_baja\":\"TC-M02-255 rol no autorizado\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Login Productor (rol autorizado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_productor', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{productor_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 255b - Productor pasa el RBAC (body vacio -> 400, no 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('el Productor NO recibe 403: llega a la validacion (400)', function(){ pm.response.to.have.status(400); pm.expect(r.error_code).to.equal('VAL_ENTRADA'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Login Veterinario (rol autorizado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login exitoso (HTTP 200)', function(){ pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token_veterinario', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{veterinario_correo}}\",\"contrasena\":\"{{password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 255c - Veterinario pasa el RBAC (body vacio -> 400, no 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r; try { r = pm.response.json(); } catch(e) { r = null; }",
+              "pm.test('el Veterinario NO recibe 403: llega a la validacion (400)', function(){ pm.response.to.have.status(400); pm.expect(r.error_code).to.equal('VAL_ENTRADA'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_veterinario}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "password",
+      "value": "Test1234!"
+    },
+    {
+      "key": "admin_correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contador_correo",
+      "value": "contador@pecuaria.co"
+    },
+    {
+      "key": "productor_correo",
+      "value": "m2m.nuevo@ejemplo.com"
+    },
+    {
+      "key": "veterinario_correo",
+      "value": "juan.carlos@email.com"
+    },
+    {
+      "key": "id_activo",
+      "value": "306"
+    },
+    {
+      "key": "fecha_baja",
+      "value": "2026-09-18"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    }
+  ]
+}

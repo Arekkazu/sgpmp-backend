@@ -1,0 +1,58 @@
+TC-M09-175 rev6 TEST RF-27
+Fecha UTC inicio: 2026-10-09T23:34:08Z
+Fecha UTC cierre: 2026-10-09T23:35:21Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1-rev5. Sin commit. Sin push. Sin DML. Sin PATCH. Sin DELETE.
+Sin restore inventado. Tokens y contrasenas redactados.
+
+RESULTADO FUNCIONAL DEL CASO (actor nominado cm09175.qa@sgpmp-test.com): BLOQUEADO
+Motivo: SGPMP_175_PASSWORD ausente; un intento con la contrasena TEST dejo HTTP 401
+CREDENCIALES_INVALIDAS (intento 1 de 5). No se reintento para no bloquear la cuenta.
+NO APROBADO: no hay GET /tema autenticado de ese usuario.
+
+RECUPERACION TEST: SI
+GET /openapi.json HTTP 200
+GET /tema/global sin token HTTP 401 TOKEN_REQUERIDO (ya no 503)
+POST /sesiones/ admin@pecuaria.co HTTP 200
+GET /tema/global (admin, recurso 27) HTTP 200
+GET /tema (admin) HTTP 200
+PostgreSQL responde a traves de la aplicacion.
+
+PRECONDICION GLOBAL
+GET /configuracion/personalizacion/tema/global (admin) 23:34Z: HTTP 200 cuerpo JSON null
+Reconfirmacion 23:35:21Z: HTTP 200 cuerpo JSON null
+Configuracion global AUSENTE (verificado, no asumido por el aviso de Alex).
+No se volvio a eliminar nada. Fila no presente: no hay que coordinar un DELETE.
+
+PRECONDICION USUARIO 175
+Login cm09175.qa@sgpmp-test.com: no ejecutado con credencial dedicada (variable ausente).
+Un intento con password TEST: 401 CREDENCIALES_INVALIDAS intento 1/5. STOP.
+Preferencia individual del actor 175: NO CONFIRMADA en esta sesion.
+GET tema 175: NO EJECUTADO.
+Aserciones theme_mode=1 / fuente=defecto / id_tema_visual=null sobre el actor 175: NO EJECUTADAS.
+
+OBSERVACION DE SOPORTE (NO sustituye al actor 175; no se usa para APROBADO)
+Usuario autorizado historico de 174, sin preferencia personal: contador@pecuaria.co id=5 Activo.
+GET /configuracion/personalizacion/tema HTTP 200
+cuerpo: {"theme_mode":1,"fuente":"defecto","id_tema_visual":null}
+tipos: theme_mode=int, fuente=str, id_tema_visual=None
+Coincide numericamente con el oraculo de 175, con global ausente.
+Admin GET tema: {"theme_mode":1,"fuente":"personal","id_tema_visual":6}
+  (tiene preferencia individual; no sirve para el tercer nivel).
+
+RESTAURACION
+No ejecutada por QA. No se inventaron valores. No INSERT.
+Global sigue AUSENTE al cierre 23:35:21Z.
+Pendiente coordinacion con Alex/Samuel para restaurar el singleton original.
+Snapshot historico rev1 (NO usado): id_tema_visual=1 id_usuario=1 theme_mode=1
+es_global=true fecha_actualizacion=2026-09-25T06:50:47.856604Z
+Durante la ventana, otros usuarios sin personal reciben fuente=defecto (visto en contador).
+
+G91: 173/174 APROBADO historico. 175 BLOQUEADO (credencial actor nominado).
+Grupo NO se cierra.
+
+ACCION INMEDIATA
+1. Definir SGPMP_175_PASSWORD (no reusar password TEST; ya hay 1 fallo).
+2. Correr GET tema del usuario 175 mientras el global siga null.
+3. Alex/Samuel restaurar global y QA verificar GET global != null.

@@ -1,0 +1,170 @@
+newman
+
+TC-M09-G14-v2.0 - Validación de campos de Métrica productiva (RF-16 v1.2)
+
+→ NW-01: Autenticación exitosa del Administrador
+  POST https://api.inmero.co/back-sigab-test/sesiones/ [200 OK, 908B, 1109ms]
+  ┌
+  │ 'RUN_START_TIME=2026-10-07T05:50:14.868Z'
+  └
+  √  NW-01: Autenticación exitosa del Administrador
+
+→ NW-02a: Verificación de salud del backend (Health)
+  GET https://api.inmero.co/back-sigab-test/health [200 OK, 431B, 208ms]
+  √  NW-02a: Verificación de salud del backend (Health)
+
+→ NW-02b: Preflight de nombres libres contra catálogo de métricas
+  GET https://api.inmero.co/back-sigab-test/configuracion/metricas?id_especie=2&solo_activas=false [200 OK, 3.46kB, 221ms]
+  ┌
+  │ 'NOMBRES_CORRIDA_JSON={"SC07a":{"nombre_base":"Pes","n
+  │ ombre_elegido":"Uva","longitud":3},"SC07b":{"nombre_ba
+  │ se":"MetricaDeLongitudSesentaCaracteresExactosParaTest
+  │ QA2Verifica","nombre_elegido":"MetricaDeLongitudSesent
+  │ aCaracteresExactosParaTestQA2Verificb","longitud":60},
+  │ "SC09a":{"nombre_base":"Metrica Duplicada QA2","nombre
+  │ _elegido":"Metrica Duplicada QAb","longitud":21},"SC10
+  │ a":{"nombre_base":"Ganancia Peso QA2","nombre_elegido"
+  │ :"Ganancia Peso QAb","longitud":17},"SC10b":{"nombre_b
+  │ ase":"Consumo Agua QA2","nombre_elegido":"Consumo Agua
+  │  QAb","longitud":16},"SC10c":{"nombre_base":"Talla Juv
+  │ enil QA2","nombre_elegido":"Talla Juvenil QAb","longit
+  │ ud":17},"SC10d":{"nombre_base":"Conteo Ovas QA2","nomb
+  │ re_elegido":"Conteo Ovas QAb","longitud":15}}'
+  └
+  √  NW-02b: Preflight de nombres libres contra catálogo de métricas
+
+→ NW-03: SC01 Rechazar métrica sin unidad_medida
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 594B, 206ms]
+  √  NW-03: SC01 Rechazar métrica sin unidad_medida
+
+→ NW-04: SC02 Rechazar tipo_medicion inválido
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 635B, 127ms]
+  √  NW-04: SC02 Rechazar tipo_medicion inválido
+
+→ NW-05: SC03 Rechazar combinación incoherente unidad y tipo_medicion
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [422 Unprocessable Entity, 715B, 128ms]
+  √  NW-05: SC03 Rechazar combinación incoherente unidad y tipo_medicion
+
+→ NW-06: SC04 Rechazar aplica_a_tipo_activo inválido
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 640B, 139ms]
+  √  NW-06: SC04 Rechazar aplica_a_tipo_activo inválido
+
+→ NW-07: SC05 Rechazar nombre de métrica con 2 caracteres
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 612B, 123ms]
+  √  NW-07: SC05 Rechazar nombre de métrica con 2 caracteres
+
+→ NW-08: SC06 Rechazar nombre de métrica con 61 caracteres
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 612B, 123ms]
+  √  NW-08: SC06 Rechazar nombre de métrica con 61 caracteres
+
+→ NW-09: SC07a Aceptar nombre de métrica con 3 caracteres
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 637B, 236ms]
+  ┌
+  │ 'CREATED_ID_SC07A=91'
+  └
+  √  NW-09: SC07a Aceptar nombre de métrica con 3 caracteres
+
+→ NW-10: SC07b Aceptar nombre de métrica con 60 caracteres
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 694B, 332ms]
+  ┌
+  │ 'CREATED_ID_SC07B=92'
+  └
+  √  NW-10: SC07b Aceptar nombre de métrica con 60 caracteres
+
+→ NW-11: SC08 Rechazar nombre de métrica vacío
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [400 Bad Request, 612B, 172ms]
+  √  NW-11: SC08 Rechazar nombre de métrica vacío
+
+→ NW-12: SC09a Registrar métrica base para prueba de duplicado
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 655B, 254ms]
+  ┌
+  │ 'CREATED_ID_SC09A=93'
+  └
+  √  NW-12: SC09a Registrar métrica base para prueba de duplicado
+
+→ NW-13: SC09b Rechazar métrica duplicada en la misma especie (case-insensitive)
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [409 Conflict, 676B, 222ms]
+  √  NW-13: SC09b Rechazar métrica duplicada en la misma especie (case-insensitive)
+
+→ NW-14: SC10a Aceptar combinación coherente PESO y kg
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 651B, 203ms]
+  ┌
+  │ 'CREATED_ID_SC10A=94'
+  └
+  √  NW-14: SC10a Aceptar combinación coherente PESO y kg
+
+→ NW-15: SC10b Aceptar combinación coherente VOLUMEN y ml
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 653B, 236ms]
+  ┌
+  │ 'CREATED_ID_SC10B=95'
+  └
+  √  NW-15: SC10b Aceptar combinación coherente VOLUMEN y ml
+
+→ NW-16: SC10c Aceptar combinación coherente LONGITUD y cm
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 655B, 222ms]
+  ┌
+  │ 'CREATED_ID_SC10C=96'
+  └
+  √  NW-16: SC10c Aceptar combinación coherente LONGITUD y cm
+
+→ NW-17: SC10d Aceptar combinación coherente CONTEO y unidades
+  POST https://api.inmero.co/back-sigab-test/configuracion/metricas [201 Created, 655B, 236ms]
+  ┌
+  │ 'CREATED_ID_SC10D=97'
+  └
+  √  NW-17: SC10d Aceptar combinación coherente CONTEO y unidades
+
+→ NW-17b: Marcar fin de corrida
+  GET https://api.inmero.co/back-sigab-test/health [200 OK, 431B, 125ms]
+  ┌
+  │ 'RUN_END_TIME=2026-10-07T05:50:20.010Z'
+  └
+  √  NW-17b: Marcar fin de corrida
+
+→ NW-18a: Teardown SC07a desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/91/desactivar [200 OK, 658B, 129ms]
+  √  NW-18a: Teardown SC07a desactivar métrica
+
+→ NW-18b: Teardown SC07b desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/92/desactivar [200 OK, 715B, 132ms]
+  √  NW-18b: Teardown SC07b desactivar métrica
+
+→ NW-18c: Teardown SC09a desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/93/desactivar [200 OK, 676B, 132ms]
+  √  NW-18c: Teardown SC09a desactivar métrica
+
+→ NW-18d: Teardown SC10a desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/94/desactivar [200 OK, 672B, 175ms]
+  √  NW-18d: Teardown SC10a desactivar métrica
+
+→ NW-18e: Teardown SC10b desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/95/desactivar [200 OK, 674B, 219ms]
+  √  NW-18e: Teardown SC10b desactivar métrica
+
+→ NW-18f: Teardown SC10c desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/96/desactivar [200 OK, 676B, 222ms]
+  √  NW-18f: Teardown SC10c desactivar métrica
+
+→ NW-18g: Teardown SC10d desactivar métrica
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/metricas/97/desactivar [200 OK, 676B, 127ms]
+  √  NW-18g: Teardown SC10d desactivar métrica
+
+┌─────────────────────────┬─────────────────────┬─────────────────────┐
+│                         │            executed │              failed │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│              iterations │                   1 │                   0 │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│                requests │                  26 │                   0 │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│            test-scripts │                  26 │                   0 │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│      prerequest-scripts │                   7 │                   0 │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│              assertions │                  26 │                   0 │
+├─────────────────────────┴─────────────────────┴─────────────────────┤
+│ total run duration: 8s                                              │
+├─────────────────────────────────────────────────────────────────────┤
+│ total data received: 9.68kB (approx)                                │
+├─────────────────────────────────────────────────────────────────────┤
+│ average response time: 221ms [min: 123ms, max: 1109ms, s.d.: 185ms] │
+└─────────────────────────────────────────────────────────────────────┘

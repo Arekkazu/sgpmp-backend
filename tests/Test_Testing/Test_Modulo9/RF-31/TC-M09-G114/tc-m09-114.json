@@ -1,0 +1,94 @@
+{
+  "info": {
+    "name": "TC-M09-G114 (TC-M09-221)",
+    "description": "Restriccion de rol para la creacion de plantillas (RF-31, OWASP A01). Un usuario con rol Productor (sin permiso sobre este recurso) intenta crear una plantilla y debe recibir 403. Nota: este mismo mecanismo de RBAC ya se confirmo antes en TC-M09-G108/TC-M09-208; esta coleccion es una ejecucion independiente y separada, a peticion explicita, para dejar evidencia propia bajo el numero de esta ficha (TC-M09-221). Ejecutar con: newman run tc-m09-114.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-114.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "correo_productor", "value": "u20212200102@usco.edu.co" },
+    { "key": "contrasena_productor", "value": "Recuperada#30" },
+    { "key": "token_productor", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (para obtener id_especie valido)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login admin exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "if (body.items && body.items.length > 0) { pm.collectionVariables.set('id_especie', body.items[0].id_especie); }"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "0C. Login usuario Productor (Maria Garcia, sin permiso sobre plantillas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN PRODUCTOR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login productor exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) {",
+        "    pm.collectionVariables.set('token_productor', pm.response.json().token);",
+        "} else {",
+        "    console.log('ATENCION: revisa correo_productor/contrasena_productor -- pueden estar desactualizados, ver usuarios_prueba_estado.md');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "1. TC-M09-221 - Productor intenta crear una plantilla (debe dar 403)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[PRODUCTOR CREA PLANTILLA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-221: un Productor no debe poder crear plantillas (403)', function () { pm.response.to.have.status(403); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-221: la respuesta no debe contener una plantilla creada (sin id_plantilla)', function () {",
+        "    pm.expect(body).to.not.have.property('id_plantilla');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RBAC-221-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. Control - el mismo admin SI puede crear (confirma que el endpoint no esta caido)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONTROL ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Control: admin.test SI puede crear plantilla (201)', function () { pm.response.to.have.status(201); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RBAC-221-control-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

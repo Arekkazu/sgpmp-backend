@@ -1,0 +1,588 @@
+{
+  "runId": "G29-REEVAL-V5-20261007-214956",
+  "caso": "TC-M09-G29",
+  "version": "V5",
+  "ambiente": "TEST",
+  "tipoDeEscritura": "PREPARACION / SANEAMIENTO DE FIXTURE",
+  "noCuentaComoEscrituraOficialDe": [
+    "TC-M09-62",
+    "TC-M09-63"
+  ],
+  "mecanismo": "PATCH /configuracion/dispositivos-iot/{id}/desactivar (RF-21, oficial)",
+  "sqlDirecto": false,
+  "registrosEliminados": 0,
+  "autorizadoPor": "Juan (QA), con confirmacion previa de AIoT",
+  "inicio": "2026-10-08T17:55:45.231916+00:00",
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "tokenPersistido": false
+  },
+  "desactivacionesEmitidas": 5,
+  "pre": {
+    "gateways": {
+      "TC-M09-G59-1791163477491": {
+        "id_dispositivo_iot": 133,
+        "serialEnRuntime": "TC-M09-G59-1791163477491",
+        "existe": true,
+        "estadoAdministrativo": {
+          "es_activo": true
+        },
+        "tipo": "GATEWAY_EDGE",
+        "area": {
+          "id": 3,
+          "nombre": "Alevinera-01",
+          "es_activo": true,
+          "especie_id": null
+        },
+        "finca": {
+          "id": 1,
+          "nombre": "Finca Acuícola El Remanso",
+          "es_activo": true
+        },
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        },
+        "dispositivosColgados": [],
+        "configuracionesRf23": []
+      },
+      "TC-M09-G59-RESUELTO-1791163477491": {
+        "id_dispositivo_iot": 134,
+        "serialEnRuntime": "TC-M09-G59-RESUELTO-1791163477491",
+        "existe": true,
+        "estadoAdministrativo": {
+          "es_activo": true
+        },
+        "tipo": "GATEWAY_EDGE",
+        "area": {
+          "id": 3,
+          "nombre": "Alevinera-01",
+          "es_activo": true,
+          "especie_id": null
+        },
+        "finca": {
+          "id": 1,
+          "nombre": "Finca Acuícola El Remanso",
+          "es_activo": true
+        },
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        },
+        "dispositivosColgados": [],
+        "configuracionesRf23": []
+      },
+      "PRUEBA2": {
+        "id_dispositivo_iot": 132,
+        "serialEnRuntime": "PRUEBA2",
+        "existe": true,
+        "estadoAdministrativo": {
+          "es_activo": true
+        },
+        "tipo": "GATEWAY_EDGE",
+        "area": {
+          "id": 7,
+          "nombre": "Piscina-Cam-02",
+          "es_activo": true,
+          "especie_id": null
+        },
+        "finca": {
+          "id": 3,
+          "nombre": "Camaronera Costa Azul",
+          "es_activo": true
+        },
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        },
+        "dispositivosColgados": [],
+        "configuracionesRf23": []
+      },
+      "RASPBERRY3BPRUEBA": {
+        "id_dispositivo_iot": 128,
+        "serialEnRuntime": "RASPBERRY3BPRUEBA",
+        "existe": true,
+        "estadoAdministrativo": {
+          "es_activo": true
+        },
+        "tipo": "GATEWAY_EDGE",
+        "area": {
+          "id": 7,
+          "nombre": "Piscina-Cam-02",
+          "es_activo": true,
+          "especie_id": null
+        },
+        "finca": {
+          "id": 3,
+          "nombre": "Camaronera Costa Azul",
+          "es_activo": true
+        },
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        },
+        "dispositivosColgados": [],
+        "configuracionesRf23": []
+      },
+      "DISPOSITIVO-CAMARONERA-10": {
+        "id_dispositivo_iot": 130,
+        "serialEnRuntime": "DISPOSITIVO-CAMARONERA-10",
+        "existe": true,
+        "estadoAdministrativo": {
+          "es_activo": true
+        },
+        "tipo": "GATEWAY_EDGE",
+        "area": {
+          "id": 6,
+          "nombre": "Piscina-Cam-01",
+          "es_activo": true,
+          "especie_id": null
+        },
+        "finca": {
+          "id": 3,
+          "nombre": "Camaronera Costa Azul",
+          "es_activo": true
+        },
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        },
+        "dispositivosColgados": [],
+        "configuracionesRf23": []
+      }
+    },
+    "destinosRf17Especie4": [
+      "DISPOSITIVO-CAMARONERA-10",
+      "PRUEBA2",
+      "RASPBERRY3BPRUEBA",
+      "SERBY-TAX-FIRMWARE",
+      "TC-M09-G59-1791163477491",
+      "TC-M09-G59-RESUELTO-1791163477491"
+    ],
+    "conteos": {
+      "dispositivos": 201,
+      "areas": 223,
+      "fincas": 152,
+      "especies": 78,
+      "activosBiologicos": 654
+    },
+    "timestamp": "2026-10-08T17:57:16.670864+00:00"
+  },
+  "gatePorGateway": [
+    {
+      "id": 133,
+      "serial": "TC-M09-G59-1791163477491",
+      "apto": true,
+      "motivos": []
+    },
+    {
+      "id": 134,
+      "serial": "TC-M09-G59-RESUELTO-1791163477491",
+      "apto": true,
+      "motivos": []
+    },
+    {
+      "id": 132,
+      "serial": "PRUEBA2",
+      "apto": true,
+      "motivos": []
+    },
+    {
+      "id": 128,
+      "serial": "RASPBERRY3BPRUEBA",
+      "apto": true,
+      "motivos": []
+    },
+    {
+      "id": 130,
+      "serial": "DISPOSITIVO-CAMARONERA-10",
+      "apto": true,
+      "motivos": []
+    }
+  ],
+  "desactivaciones": [
+    {
+      "id": 133,
+      "serial": "TC-M09-G59-1791163477491",
+      "http": 200,
+      "respuesta": {
+        "id_dispositivo_iot": 133,
+        "serial": "TC-M09-G59-1791163477491",
+        "descripcion": "Dispositivo registrado en linea (toma el serial que el cliente offline tenia en cola) - TC-M09-G59",
+        "id_infraestructura": 3,
+        "id_tipo_dispositivo": 4,
+        "es_activo": false,
+        "fecha_creacion": "2026-10-05T01:24:37.318401Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      },
+      "timestamp": "2026-10-08T17:57:17.058354+00:00"
+    },
+    {
+      "id": 134,
+      "serial": "TC-M09-G59-RESUELTO-1791163477491",
+      "http": 200,
+      "respuesta": {
+        "id_dispositivo_iot": 134,
+        "serial": "TC-M09-G59-RESUELTO-1791163477491",
+        "descripcion": "Reintento de sincronizacion tras resolver el conflicto de serial - TC-M09-G59",
+        "id_infraestructura": 3,
+        "id_tipo_dispositivo": 4,
+        "es_activo": false,
+        "fecha_creacion": "2026-10-05T01:24:38.264595Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      },
+      "timestamp": "2026-10-08T17:57:17.854073+00:00"
+    },
+    {
+      "id": 132,
+      "serial": "PRUEBA2",
+      "http": 200,
+      "respuesta": {
+        "id_dispositivo_iot": 132,
+        "serial": "PRUEBA2",
+        "descripcion": "PRUEBA2",
+        "id_infraestructura": 7,
+        "id_tipo_dispositivo": 4,
+        "es_activo": false,
+        "fecha_creacion": "2026-10-05T00:27:00.273399Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      },
+      "timestamp": "2026-10-08T17:57:18.906345+00:00"
+    },
+    {
+      "id": 128,
+      "serial": "RASPBERRY3BPRUEBA",
+      "http": 200,
+      "respuesta": {
+        "id_dispositivo_iot": 128,
+        "serial": "RASPBERRY3BPRUEBA",
+        "descripcion": "RASPBERRY3B",
+        "id_infraestructura": 7,
+        "id_tipo_dispositivo": 4,
+        "es_activo": false,
+        "fecha_creacion": "2026-10-04T22:44:27.782696Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      },
+      "timestamp": "2026-10-08T17:57:19.317480+00:00"
+    },
+    {
+      "id": 130,
+      "serial": "DISPOSITIVO-CAMARONERA-10",
+      "http": 200,
+      "respuesta": {
+        "id_dispositivo_iot": 130,
+        "serial": "DISPOSITIVO-CAMARONERA-10",
+        "descripcion": "Sensor de camaronera 10",
+        "id_infraestructura": 6,
+        "id_tipo_dispositivo": 4,
+        "es_activo": false,
+        "fecha_creacion": "2026-10-04T23:11:09.318762Z",
+        "id_dispositivo_gateway": null,
+        "resolucion": null,
+        "fps": null,
+        "area_cobertura_m2": null
+      },
+      "timestamp": "2026-10-08T17:57:19.768619+00:00"
+    }
+  ],
+  "postcheck": {
+    "gatewaysSaneados": {
+      "TC-M09-G59-1791163477491": {
+        "id_dispositivo_iot": 133,
+        "es_activo": false,
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        }
+      },
+      "TC-M09-G59-RESUELTO-1791163477491": {
+        "id_dispositivo_iot": 134,
+        "es_activo": false,
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        }
+      },
+      "PRUEBA2": {
+        "id_dispositivo_iot": 132,
+        "es_activo": false,
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        }
+      },
+      "RASPBERRY3BPRUEBA": {
+        "id_dispositivo_iot": 128,
+        "es_activo": false,
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        }
+      },
+      "DISPOSITIVO-CAMARONERA-10": {
+        "id_dispositivo_iot": 130,
+        "es_activo": false,
+        "conectividad": {
+          "credencialMqtt": {
+            "emitida": false,
+            "habilitada": false,
+            "conectada": false,
+            "usuario": null,
+            "seriales": []
+          },
+          "heartbeat": {},
+          "conectada": false,
+          "clasificacion": "EDGE_OFFLINE"
+        }
+      }
+    },
+    "losCincoInactivos": true,
+    "destinosRf17Especie4": {
+      "pre": [
+        "DISPOSITIVO-CAMARONERA-10",
+        "PRUEBA2",
+        "RASPBERRY3BPRUEBA",
+        "SERBY-TAX-FIRMWARE",
+        "TC-M09-G59-1791163477491",
+        "TC-M09-G59-RESUELTO-1791163477491"
+      ],
+      "post": [
+        "SERBY-TAX-FIRMWARE"
+      ]
+    },
+    "unicoDestinoEsElObjetivo": true,
+    "gatewayObjetivo": {
+      "serial": "SERBY-TAX-FIRMWARE",
+      "id": 138,
+      "es_activo": true,
+      "conectividad": {
+        "credencialMqtt": {
+          "emitida": true,
+          "habilitada": true,
+          "conectada": true,
+          "usuario": "SERBY-TAX-FIRMWARE",
+          "seriales": [
+            "SERBY-TAX-FIRMWARE",
+            "TEST-AMBIENTAL"
+          ]
+        },
+        "heartbeat": {
+          "id_estado_dispositivo_iot": 5,
+          "id_dispositivo_iot": 138,
+          "estado_actual": "ACTIVO",
+          "fecha_ultimo_contacto": "2026-10-08T17:55:00.460176Z",
+          "id_ultimo_heartbeat": 239,
+          "tiempo_sin_contacto": 0,
+          "causa_primaria": null,
+          "causas_secundarias": null,
+          "fecha_ultima_actualizacion": "2026-10-08T17:55:00.460176Z"
+        },
+        "conectada": true,
+        "clasificacion": "EDGE_ONLINE"
+      }
+    },
+    "nodoObjetivo": {
+      "serial": "TEST-AMBIENTAL",
+      "detalle": {
+        "serial": "TEST-AMBIENTAL",
+        "es_activo": true,
+        "id_infraestructura": 22,
+        "id_dispositivo_gateway": 138,
+        "id_tipo_dispositivo": 3
+      },
+      "sigueAsociadoAlGatewayObjetivo": true,
+      "es_activo": true
+    },
+    "cambiosDetectados": {
+      "dispositivos": {
+        "128": {
+          "pre": {
+            "serial": "RASPBERRY3BPRUEBA",
+            "es_activo": true,
+            "id_infraestructura": 7,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          },
+          "post": {
+            "serial": "RASPBERRY3BPRUEBA",
+            "es_activo": false,
+            "id_infraestructura": 7,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          }
+        },
+        "130": {
+          "pre": {
+            "serial": "DISPOSITIVO-CAMARONERA-10",
+            "es_activo": true,
+            "id_infraestructura": 6,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          },
+          "post": {
+            "serial": "DISPOSITIVO-CAMARONERA-10",
+            "es_activo": false,
+            "id_infraestructura": 6,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          }
+        },
+        "132": {
+          "pre": {
+            "serial": "PRUEBA2",
+            "es_activo": true,
+            "id_infraestructura": 7,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          },
+          "post": {
+            "serial": "PRUEBA2",
+            "es_activo": false,
+            "id_infraestructura": 7,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          }
+        },
+        "133": {
+          "pre": {
+            "serial": "TC-M09-G59-1791163477491",
+            "es_activo": true,
+            "id_infraestructura": 3,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          },
+          "post": {
+            "serial": "TC-M09-G59-1791163477491",
+            "es_activo": false,
+            "id_infraestructura": 3,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          }
+        },
+        "134": {
+          "pre": {
+            "serial": "TC-M09-G59-RESUELTO-1791163477491",
+            "es_activo": true,
+            "id_infraestructura": 3,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          },
+          "post": {
+            "serial": "TC-M09-G59-RESUELTO-1791163477491",
+            "es_activo": false,
+            "id_infraestructura": 3,
+            "id_dispositivo_gateway": null,
+            "id_tipo_dispositivo": 4
+          }
+        }
+      }
+    },
+    "cambiosColateralesEnOtrasEntidades": {},
+    "dispositivosCambiadosNoAutorizados": [],
+    "conteos": {
+      "pre": {
+        "dispositivos": 201,
+        "areas": 223,
+        "fincas": 152,
+        "especies": 78,
+        "activosBiologicos": 654
+      },
+      "post": {
+        "dispositivos": 201,
+        "areas": 223,
+        "fincas": 152,
+        "especies": 78,
+        "activosBiologicos": 654
+      }
+    },
+    "timestamp": "2026-10-08T17:58:44.670123+00:00"
+  },
+  "resultado": "FIXTURE_G29_READY",
+  "edgeObjetivoOnline": true,
+  "siguientePaso": "TC-M09-62 ejecutable: presentar el gate antes de escribir",
+  "fin": "2026-10-08T17:58:44.670146+00:00"
+}

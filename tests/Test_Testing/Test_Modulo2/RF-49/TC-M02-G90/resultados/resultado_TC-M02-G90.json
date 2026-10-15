@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G90",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-10",
+  "run_id": "G90-20260910-000000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-220: Asociación AMBIENTAL pura a nivel de infraestructura (Tipo B)",
+      "esperado": "HTTP 201 Created asociada a infraestructura sin forzar activo biológico puntual",
+      "obtenido": "HTTP 201 Created pero atada forzosamente a activo individual 19 (INC-M02-G90-01: ausencia de endpoint a nivel de infraestructura)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-220.html",
+      "nota_qa": "Fallo funcional de diseño: el único endpoint disponible exige {id_activo} en URL y persiste id_activo_biologico, violando el diseño Tipo B del RF-49."
+    },
+    {
+      "paso": "TC-M02-221: Coherencia territorial entre infraestructuras distintas de la misma finca",
+      "esperado": "Comportamiento coherente con RF-49 (Restricción 2 / Flujo E2 a nivel de finca territorial)",
+      "obtenido": "HTTP 201 Created (aceptada entre Infra 1 e Infra 2 al compartir Finca 1; aprobado con observación OBS-M02-G90-02)",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-221.html",
+      "nota_qa": "Pass con observación: el backend aplica regla V6 de misma finca conforme a Restricción 2, aunque Precondición 4 presenta ambigüedad."
+    }
+  ]
+}

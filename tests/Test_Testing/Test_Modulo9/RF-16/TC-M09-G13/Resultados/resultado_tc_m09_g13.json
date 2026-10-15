@@ -1,0 +1,66 @@
+{
+  "caso_id": "TC-M09-G13",
+  "subcasos": ["TC-M09-28a", "TC-M09-28b", "TC-M09-29", "TC-M09-30"],
+  "nombre": "Validación de campos de Patología (longitud nombre/descripción, duplicado)",
+  "requisito_funcional": "RF-16",
+  "caso_de_uso": "CU-02",
+  "especie_base": {
+    "id_especie": 4,
+    "nombre": "Cachama Blanca"
+  },
+  "resumen_ejecucion": {
+    "total_requests": 7,
+    "requests_exitosas": 7,
+    "total_assertions": 11,
+    "assertions_pasadas": 11,
+    "assertions_falladas": 0,
+    "veredicto_global": "OK (ÉXITO TOTAL 100%)"
+  },
+  "detalle_subcasos": [
+    {
+      "subcaso": "TC-M09-28a",
+      "descripcion": "Rechazar nombre de 2 caracteres ('Ma')",
+      "longitud_verificada": 2,
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "campo_afectado": "nombre",
+      "mensaje_real": "Value error, El nombre de la patología debe tener entre 3 y 60 caracteres.",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-28b",
+      "descripcion": "Rechazar nombre de 101 caracteres",
+      "longitud_verificada": 101,
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "campo_afectado": "nombre",
+      "mensaje_real": "Value error, El nombre de la patología debe tener entre 3 y 60 caracteres.",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-29",
+      "descripcion": "Rechazar descripción de 256 caracteres y verificar no persistencia",
+      "longitud_verificada": 256,
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "campo_afectado": "descripcion",
+      "mensaje_real": "Value error, La descripción no puede superar los 255 caracteres.",
+      "verificacion_bd_member_qa": "0 registros persistidos en modulo9.especies_patologias",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-30",
+      "descripcion": "Rechazar patología duplicada case-insensitive ('Mastitis' vs 'MASTITIS')",
+      "status_code": 409,
+      "error_code_real": "PATOLOGIA_DUPLICADA_EN_ESPECIE",
+      "campo_afectado": "nombre",
+      "mensaje_real": "Ya existe una patología con el nombre 'MASTITIS' para esta especie.",
+      "veredicto": "OK",
+      "id_patologia_base": 16
+    }
+  ],
+  "limpieza": {
+    "patologia_desactivada": 16,
+    "resultado": "Limpieza completada con HTTP 200 OK"
+  }
+}

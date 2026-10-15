@@ -1,0 +1,314 @@
+{
+  "info": {
+    "name": "TC-M09-G91 - Jerarquía de resolución del tema",
+    "_postman_id": "tc-m09-g91-rf27",
+    "description": "Prueba consolidada de la jerarquía de resolución del tema: preferencia individual, configuración global y valor Claro por defecto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "password",
+      "value": "Test1234!"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Token recibido', function () {",
+              "    pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Consultar tema inicial",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de tema resuelto exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "console.log('TEMA INICIAL:', JSON.stringify(json, null, 2));",
+              "",
+              "pm.test('Existe theme_mode', function () {",
+              "    pm.expect(json).to.have.property('theme_mode');",
+              "});",
+              "",
+              "pm.test('Existe fuente de resolución', function () {",
+              "    pm.expect(json).to.have.property('fuente');",
+              "});",
+              "",
+              "pm.collectionVariables.set('theme_initial', JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - Consultar configuración global",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta global exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "console.log('TEMA GLOBAL:', JSON.stringify(json, null, 2));",
+              "",
+              "pm.collectionVariables.set('global_initial', JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema/global",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema",
+            "global"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - TC-M09-173 - Preparar individual Oscuro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Preferencia individual Oscuro guardada', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "console.log('INDIVIDUAL OSCURO:', JSON.stringify(json, null, 2));",
+              "",
+              "pm.test('theme_mode individual = 2', function () {",
+              "    pm.expect(json.theme_mode).to.eql(2);",
+              "});",
+              "",
+              "pm.test('Configuración individual', function () {",
+              "    pm.expect(json.es_global).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 2\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - TC-M09-173 - Configurar global Claro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Configuración global Claro guardada', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "console.log('GLOBAL CLARO:', JSON.stringify(json, null, 2));",
+              "",
+              "pm.test('theme_mode global = 1', function () {",
+              "    pm.expect(json.theme_mode).to.eql(1);",
+              "});",
+              "",
+              "pm.test('Configuración global', function () {",
+              "    pm.expect(json.es_global).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema/global",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema",
+            "global"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - TC-M09-173 - Verificar prioridad individual",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Resolución del tema exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "console.log('TC-M09-173 RESULTADO:', JSON.stringify(json, null, 2));",
+              "",
+              "pm.test('La preferencia individual tiene prioridad sobre la global', function () {",
+              "    pm.expect(json.theme_mode).to.eql(2);",
+              "});",
+              "",
+              "pm.test('La fuente corresponde a la preferencia individual', function () {",
+              "    pm.expect(String(json.fuente).toLowerCase()).to.eql('personal');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1278 @@
+{
+  "info": {
+    "name": "TC-M02-G44 - RF-40 validacion de formato, signo y unidad",
+    "description": "RF-40 / TC-M02-G44. Sub-casos TC-M02-082, TC-M02-083 y TC-M02-084 sobre POST /activos-biologicos/{id_activo}/eventos/crecimiento, ejecutados con Productor, Veterinario e Ingeniero de campo. Cada peticion introduce una unica condicion invalida sobre un payload base valido. El SETUP es de solo lectura.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "Contrato vivo OpenAPI por HTTPS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/eventos/crecimiento';",
+                  "pm.test('El contrato declara POST ' + ruta, () => pm.expect(spec.paths).to.have.property(ruta));",
+                  "const dto = spec.components.schemas.RegistrarEventoCrecimientoDTO;",
+                  "pm.test('tipo_medicion, valor_medicion y unidad_medida son obligatorios', () => pm.expect(dto.required).to.have.members(['tipo_medicion', 'valor_medicion', 'unidad_medida']));",
+                  "pm.collectionVariables.set('respuestas_declaradas', Object.keys(spec.paths[ruta].post.responses).join(','));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Productor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Productor', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_productor', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 35', () => pm.expect(String(sub)).to.eql('35'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Acceso legitimo y estado del activo - Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 279 - Productor (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 279 esta ACTIVO', () => pm.expect(norm(cuerpo())).to.include('activo'));",
+                  "pm.test('El activo es INDIVIDUAL, por lo que no exige tipo_agregacion', () => pm.expect(norm(b.tipo || b.tipo_activo || '')).to.eql('individual'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo base de eventos de crecimiento - Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible - Productor', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_productor', n);",
+                  "pm.test('Conteo base de Productor registrado: ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Veterinario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"juan.carlos.qa133@sgpmp-test.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Veterinario', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_veterinario', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 3', () => pm.expect(String(sub)).to.eql('3'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Acceso legitimo y estado del activo - Veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 311 - Veterinario (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 311 esta ACTIVO', () => pm.expect(norm(cuerpo())).to.include('activo'));",
+                  "pm.test('El activo es INDIVIDUAL, por lo que no exige tipo_agregacion', () => pm.expect(norm(b.tipo || b.tipo_activo || '')).to.eql('individual'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo base de eventos de crecimiento - Veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible - Veterinario', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_veterinario', n);",
+                  "pm.test('Conteo base de Veterinario registrado: ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Ingeniero de campo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Ingeniero de campo', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_ingeniero', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 4', () => pm.expect(String(sub)).to.eql('4'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Acceso legitimo y estado del activo - Ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 312 - Ingeniero de campo (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 312 esta ACTIVO', () => pm.expect(norm(cuerpo())).to.include('activo'));",
+                  "pm.test('El activo es INDIVIDUAL, por lo que no exige tipo_agregacion', () => pm.expect(norm(b.tipo || b.tipo_activo || '')).to.eql('individual'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo base de eventos de crecimiento - Ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible - Ingeniero de campo', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_ingeniero', n);",
+                  "pm.test('Conteo base de Ingeniero de campo registrado: ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "Productor",
+          "item": [
+            {
+              "name": "TC-M02-082 abc - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"abc\",\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-082 Productor: valor_medicion no numerico\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-082 / Productor: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-082 / Productor: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-082 / Productor: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-082 / Productor: el mensaje corresponde a valor no numerico', () => pm.expect(txt).to.match(/numeric|decimal|number|numero/i));",
+                      "pm.test('TC-M02-082 / Productor: el error se atribuye al campo valor_medicion', () => { const f = (pm.response.json().fields || []).map((x) => x.field); pm.expect(f).to.include('valor_medicion'); });",
+                      "pm.collectionVariables.set('http_productor_abc', code);",
+                      "pm.collectionVariables.set('body_productor_abc', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-082 - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_productor'));",
+                      "pm.test('TC-M02-082 / Productor: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_productor_abc', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-A cero - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 0,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-A Productor: valor_medicion = 0\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-A / Productor: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-A / Productor: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-A / Productor: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser cero|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_productor_cero', code);",
+                      "pm.collectionVariables.set('body_productor_cero', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-A - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_productor'));",
+                      "pm.test('TC-M02-083-A / Productor: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_productor_cero', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-B negativo - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": -5,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-B Productor: valor_medicion = -5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-B / Productor: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-B / Productor: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-B / Productor: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser negativ|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_productor_negativo', code);",
+                      "pm.collectionVariables.set('body_productor_negativo', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-B - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_productor'));",
+                      "pm.test('TC-M02-083-B / Productor: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_productor_negativo', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-084 unidad incompatible - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"cm\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-084 Productor: PESO con unidad cm\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-084 / Productor: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-084 / Productor: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-084 / Productor: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-084 / Productor: el mensaje corresponde a incompatibilidad entre unidad y tipo de medicion', () => pm.expect(txt).to.match(/unidad de medida/i));",
+                      "pm.test('TC-M02-084 / Productor: el mensaje contiene la clausula sustantiva de la ficha', () => pm.expect(txt).to.include(norm('no corresponde al tipo de medicion')));",
+                      "pm.collectionVariables.set('http_productor_unidad', code);",
+                      "pm.collectionVariables.set('body_productor_unidad', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-084 - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_productor'));",
+                      "pm.test('TC-M02-084 / Productor: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_productor_unidad', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Veterinario",
+          "item": [
+            {
+              "name": "TC-M02-082 abc - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"abc\",\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-082 Veterinario: valor_medicion no numerico\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-082 / Veterinario: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-082 / Veterinario: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-082 / Veterinario: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-082 / Veterinario: el mensaje corresponde a valor no numerico', () => pm.expect(txt).to.match(/numeric|decimal|number|numero/i));",
+                      "pm.test('TC-M02-082 / Veterinario: el error se atribuye al campo valor_medicion', () => { const f = (pm.response.json().fields || []).map((x) => x.field); pm.expect(f).to.include('valor_medicion'); });",
+                      "pm.collectionVariables.set('http_veterinario_abc', code);",
+                      "pm.collectionVariables.set('body_veterinario_abc', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-082 - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_veterinario'));",
+                      "pm.test('TC-M02-082 / Veterinario: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_veterinario_abc', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-A cero - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 0,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-A Veterinario: valor_medicion = 0\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-A / Veterinario: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-A / Veterinario: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-A / Veterinario: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser cero|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_veterinario_cero', code);",
+                      "pm.collectionVariables.set('body_veterinario_cero', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-A - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_veterinario'));",
+                      "pm.test('TC-M02-083-A / Veterinario: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_veterinario_cero', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-B negativo - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": -5,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-B Veterinario: valor_medicion = -5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-B / Veterinario: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-B / Veterinario: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-B / Veterinario: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser negativ|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_veterinario_negativo', code);",
+                      "pm.collectionVariables.set('body_veterinario_negativo', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-B - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_veterinario'));",
+                      "pm.test('TC-M02-083-B / Veterinario: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_veterinario_negativo', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-084 unidad incompatible - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"cm\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-084 Veterinario: PESO con unidad cm\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-084 / Veterinario: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-084 / Veterinario: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-084 / Veterinario: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-084 / Veterinario: el mensaje corresponde a incompatibilidad entre unidad y tipo de medicion', () => pm.expect(txt).to.match(/unidad de medida/i));",
+                      "pm.test('TC-M02-084 / Veterinario: el mensaje contiene la clausula sustantiva de la ficha', () => pm.expect(txt).to.include(norm('no corresponde al tipo de medicion')));",
+                      "pm.collectionVariables.set('http_veterinario_unidad', code);",
+                      "pm.collectionVariables.set('body_veterinario_unidad', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-084 - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_veterinario'));",
+                      "pm.test('TC-M02-084 / Veterinario: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_veterinario_unidad', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ingeniero de campo",
+          "item": [
+            {
+              "name": "TC-M02-082 abc - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": \"abc\",\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-082 Ingeniero de campo: valor_medicion no numerico\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: el mensaje corresponde a valor no numerico', () => pm.expect(txt).to.match(/numeric|decimal|number|numero/i));",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: el error se atribuye al campo valor_medicion', () => { const f = (pm.response.json().fields || []).map((x) => x.field); pm.expect(f).to.include('valor_medicion'); });",
+                      "pm.collectionVariables.set('http_ingeniero_abc', code);",
+                      "pm.collectionVariables.set('body_ingeniero_abc', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-082 - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_ingeniero'));",
+                      "pm.test('TC-M02-082 / Ingeniero de campo: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_ingeniero_abc', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-A cero - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 0,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-A Ingeniero de campo: valor_medicion = 0\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-A / Ingeniero de campo: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-A / Ingeniero de campo: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-A / Ingeniero de campo: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser cero|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_ingeniero_cero', code);",
+                      "pm.collectionVariables.set('body_ingeniero_cero', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-A - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_ingeniero'));",
+                      "pm.test('TC-M02-083-A / Ingeniero de campo: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_ingeniero_cero', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-083-B negativo - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": -5,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-083-B Ingeniero de campo: valor_medicion = -5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-083-B / Ingeniero de campo: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-083-B / Ingeniero de campo: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-083-B / Ingeniero de campo: el mensaje identifica un valor no positivo', () => pm.expect(txt).to.match(/mayor a 0|mayor que 0|mayor a cero|positiv|no puede ser negativ|debe ser mayor/i));",
+                      "pm.collectionVariables.set('http_ingeniero_negativo', code);",
+                      "pm.collectionVariables.set('body_ingeniero_negativo', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-083-B - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_ingeniero'));",
+                      "pm.test('TC-M02-083-B / Ingeniero de campo: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_ingeniero_negativo', n);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-084 unidad incompatible - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"cm\",\n  \"fecha\": \"2026-09-10T08:30:00Z\",\n  \"descripcion\": \"TC-M02-084 Ingeniero de campo: PESO con unidad cm\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const code = pm.response.code;",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: la peticion es rechazada, no se crea el evento', () => pm.expect(code).to.not.eql(201));",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: el rechazo es controlado (4xx, sin error de servidor)', () => { pm.expect(code, 'HTTP ' + code).to.be.at.least(400); pm.expect(code, 'HTTP ' + code).to.be.below(500); });",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: HTTP 400 segun la ficha del caso', () => pm.expect(code).to.eql(400));",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: el mensaje corresponde a incompatibilidad entre unidad y tipo de medicion', () => pm.expect(txt).to.match(/unidad de medida/i));",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: el mensaje contiene la clausula sustantiva de la ficha', () => pm.expect(txt).to.include(norm('no corresponde al tipo de medicion')));",
+                      "pm.collectionVariables.set('http_ingeniero_unidad', code);",
+                      "pm.collectionVariables.set('body_ingeniero_unidad', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-084 - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter(r => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_ingeniero'));",
+                      "pm.test('TC-M02-084 / Ingeniero de campo: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_ingeniero_unidad', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "password",
+      "value": "Test1234!"
+    },
+    {
+      "key": "engineer_password",
+      "value": "Pruebas12#"
+    }
+  ]
+}

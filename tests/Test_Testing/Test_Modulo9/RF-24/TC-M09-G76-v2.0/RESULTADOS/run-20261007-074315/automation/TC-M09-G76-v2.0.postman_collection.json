@@ -1,0 +1,593 @@
+{
+  "info": {
+    "name": "TC-M09-G76-v2.0 — RF-24 v2.0 — Dispositivo inactivo y área incorrecta",
+    "description": "Validación e integridad del registro de calibración (RF-24 v2.0, CU05 Flujo D). TC-M09-146-v2.0: calibrar un sensor de un dispositivo IoT inactivo debe rechazarse con HTTP 422 y el mensaje del FA construido con el serial real. TC-M09-147-v2.0: informar un área existente distinta de la asociación vigente debe rechazarse con HTTP 400 y su mensaje del FA. Ninguno de los dos rechazos puede crear calibraciones ni alterar el historial. Si un rechazo persistiera, el RUN se detiene (STOP_ALL). El Administrador aparece solo en GET de precondición y nunca ejecuta un POST de calibración.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login Ingeniero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{actor_email}}\",\n  \"contrasena\": \"{{actor_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1. Ingeniero autenticado (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.expect(b.token, 'token de sesion').to.be.a('string').and.not.empty;",
+              "pm.environment.set('session_value', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidad del Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Perfil responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('2. Rol es Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+              "pm.test('Correo del actor corresponde al caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('actor_email')));",
+              "pm.environment.set('actor_id', String(b.id_usuario));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permisos del Ingeniero",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Permisos responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const it = pm.response.json().permisos || [];",
+              "const has = (r, a) => it.some(p => p.id_recurso === r && p.id_accion === a);",
+              "pm.test('3. Permiso de registrar calibraciones', () => pm.expect(has(12, 1)).to.eql(true));",
+              "pm.test('Permiso de consultar historial', () => pm.expect(has(12, 2)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login Administrador auxiliar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_secret}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Solo lectura de precondición. Este actor NO ejecuta ningún POST de calibración.",
+              "pm.test('Login auxiliar de Administrador (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('admin_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rangos de calibración",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/rangos-calibracion"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rangos responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const items = pm.response.json().items || [];",
+              "const r146 = items.find(x => x.categoria === pm.environment.get('cat_146'));",
+              "const r147 = items.find(x => x.categoria === pm.environment.get('cat_147'));",
+              "pm.test('10a. Categoria del sensor de TC-146 tiene rango publicado', () => pm.expect(r146).to.exist);",
+              "pm.test('10b. Categoria del sensor de TC-147 tiene rango publicado', () => pm.expect(r147).to.exist);",
+              "const dentro = (v, r) => Number(v) > Number(r.valor_min) && Number(v) < Number(r.valor_max);",
+              "pm.test('11a. Valor de TC-146 esta estrictamente dentro del rango', () => pm.expect(dentro(pm.environment.get('valor_146'), r146)).to.eql(true));",
+              "pm.test('11b. Valor de TC-147 esta estrictamente dentro del rango', () => pm.expect(dentro(pm.environment.get('valor_147'), r147)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 Dispositivo inactivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_146}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dispositivo de TC-146 responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('4. El dispositivo de TC-146 existe', () => pm.expect(b.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_146'))));",
+              "pm.test('5. El dispositivo esta INACTIVO', () => pm.expect(b.es_activo).to.eql(false));",
+              "pm.test('6. El serial real del dispositivo esta disponible', () => { pm.expect(b.serial).to.be.a('string').and.not.empty; pm.expect(b.serial).to.eql(pm.environment.get('serial_146')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 Sensor del dispositivo inactivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_146}}/sensores"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sensores de TC-146 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_146')));",
+              "pm.test('7. El sensor pertenece al dispositivo inactivo', () => { pm.expect(row).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_146'))); });",
+              "pm.test('El sensor de TC-146 esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+              "pm.test('La categoria del sensor de TC-146 es la descubierta', () => pm.expect(row.categoria).to.eql(pm.environment.get('cat_146')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 Asociación vigente del sensor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_146}}/asociaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Asociaciones de TC-146 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined) && sid(x) === Number(pm.environment.get('sensor_146')) && x.id_dispositivo_iot === Number(pm.environment.get('device_146')));",
+              "pm.test('8. El sensor tiene asociacion de area vigente', () => pm.expect(row).to.exist);",
+              "// El area enviada en TC-146 debe ser la correcta: la unica invalidez es el dispositivo inactivo.",
+              "pm.test('9. El area que se enviara es la asociacion vigente correcta', () => pm.expect(row.id_infraestructura).to.eql(Number(pm.environment.get('area_146'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 PRE historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_146}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('13. Historial PRE de TC-146 obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_146_total', String(b.total));",
+              "pm.environment.set('pre_146_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_146_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 POST calibrar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_146}}/calibrar",
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_146}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_146', iso);",
+              "pm.environment.set('body_sent_146', pm.environment.get('body_146').replace('__FECHA__', iso));",
+              "// 12. modo_calibracion=SENSOR viaja en el body, como exige el caso.",
+              "pm.test('12. El body enviado incluye modo_calibracion=SENSOR', () => pm.expect(JSON.parse(pm.environment.get('body_sent_146')).modo_calibracion).to.eql('SENSOR'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('14. TC-M09-146-v2.0 — POST devuelve HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+              "const b = pm.response.json();",
+              "const esperado = pm.environment.get('exp_msg_146');",
+              "// El esperado del RF se construye con el serial real y no se adapta al backend.",
+              "pm.test('15. TC-M09-146-v2.0 — message coincide exactamente con el FA del RF', () => pm.expect(b.message).to.eql(esperado));",
+              "if (b.error_code) console.log('error_code obtenido: ' + b.error_code);",
+              "pm.test('TC-M09-146-v2.0 — la respuesta no devuelve una calibracion creada', () => pm.expect(b.id_calibracion).to.be.undefined);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "146 POST historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_146}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('16. Historial POST de TC-146 obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_146_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_146_total', String(b.total));",
+              "pm.environment.set('post_146_ids', JSON.stringify(ids));",
+              "pm.test('17. TC-146 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_146_total'))));",
+              "pm.test('18. TC-146 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-146 — no aparece ninguna calibracion nueva', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_146_snap') || '[]');",
+              "pm.test('19. TC-146 — ningun registro historico fue alterado', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "if (nuevos.length) {",
+              "  pm.environment.set('stop_all', 'SI');",
+              "  const fecha = new Date(pm.environment.get('fecha_146')).getTime();",
+              "  const atribuibles = (b.items || []).filter(x => nuevos.includes(x.id_calibracion) && new Date(x.fecha_calibracion).getTime() === fecha);",
+              "  pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-146-v2.0', idsNuevos: nuevos, atribuiblesAlIntento: atribuibles.map(x => x.id_calibracion), nota: atribuibles.length ? 'persistencia atribuible al intento rechazado' : 'IDs nuevos no atribuibles con certeza: posible concurrencia de otro tester' }));",
+              "  console.log('STOP_ALL: no se ejecuta TC-147.');",
+              "  postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 Dispositivo activo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_147}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dispositivo de TC-147 responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.test('2. TC-147 — el dispositivo esta ACTIVO', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 Sensor del dispositivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_147}}/sensores"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sensores de TC-147 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const row = (pm.response.json().items || []).find(x => sid(x) === Number(pm.environment.get('sensor_147')));",
+              "pm.test('3. TC-147 — el sensor pertenece al dispositivo', () => { pm.expect(row).to.exist; pm.expect(row.id_dispositivo_iot).to.eql(Number(pm.environment.get('device_147'))); });",
+              "pm.test('TC-147 — el sensor esta activo', () => pm.expect(row.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 Asociación vigente del sensor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_147}}/asociaciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Asociaciones de TC-147 responden 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+              "const vig = (x) => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined);",
+              "const todas = (pm.response.json().items || []).filter(x => sid(x) === Number(pm.environment.get('sensor_147')));",
+              "const row = todas.find(x => vig(x) && x.id_dispositivo_iot === Number(pm.environment.get('device_147')));",
+              "pm.test('4. TC-147 — asociacion vigente capturada', () => { pm.expect(row).to.exist; pm.expect(row.id_infraestructura).to.eql(Number(pm.environment.get('area_vigente_147'))); });",
+              "const areasVigentes = todas.filter(vig).map(x => x.id_infraestructura);",
+              "pm.test('6. TC-147 — el area alternativa es distinta de la vigente', () => pm.expect(Number(pm.environment.get('area_alt_147'))).to.not.eql(row.id_infraestructura));",
+              "pm.test('7. TC-147 — el area alternativa NO esta asociada al sensor', () => pm.expect(areasVigentes).to.not.include(Number(pm.environment.get('area_alt_147'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 Área alternativa existe",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{area_alt_147}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// El area alternativa debe ser REAL: no se usa un ID inexistente como 999.",
+              "pm.test('5. TC-147 — el area alternativa existe realmente (HTTP 200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const b = pm.response.json();",
+              "pm.test('TC-147 — el area alternativa devuelta es la solicitada', () => pm.expect(b.id_infraestructura).to.eql(Number(pm.environment.get('area_alt_147'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 PRE historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_147}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('10. Historial PRE de TC-147 obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "pm.environment.set('pre_147_total', String(b.total));",
+              "pm.environment.set('pre_147_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+              "pm.environment.set('pre_147_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 POST calibrar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_147}}/calibrar",
+        "body": {
+          "mode": "raw",
+          "raw": "{{body_sent_147}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const iso = new Date().toISOString();",
+              "pm.environment.set('fecha_147', iso);",
+              "pm.environment.set('body_sent_147', pm.environment.get('body_147').replace('__FECHA__', iso));",
+              "pm.test('9. El body enviado incluye modo_calibracion=SENSOR', () => pm.expect(JSON.parse(pm.environment.get('body_sent_147')).modo_calibracion).to.eql('SENSOR'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('11. TC-M09-147-v2.0 — POST devuelve HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+              "const b = pm.response.json();",
+              "const esperado = pm.environment.get('exp_msg_147');",
+              "pm.test('12. TC-M09-147-v2.0 — message coincide exactamente con el FA del RF', () => pm.expect(b.message).to.eql(esperado));",
+              "if (b.error_code) console.log('error_code obtenido: ' + b.error_code);",
+              "pm.test('TC-M09-147-v2.0 — la respuesta no devuelve una calibracion creada', () => pm.expect(b.id_calibracion).to.be.undefined);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "147 POST historial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{session_value}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/sensores/{{sensor_147}}/calibraciones"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('13. Historial POST de TC-147 obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "const b = pm.response.json();",
+              "const ids = (b.items || []).map(x => x.id_calibracion);",
+              "const pre = JSON.parse(pm.environment.get('pre_147_ids') || '[]');",
+              "const nuevos = ids.filter(x => !pre.includes(x));",
+              "pm.environment.set('post_147_total', String(b.total));",
+              "pm.environment.set('post_147_ids', JSON.stringify(ids));",
+              "pm.test('14. TC-147 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_147_total'))));",
+              "pm.test('15. TC-147 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+              "pm.test('TC-147 — no aparece ninguna calibracion nueva', () => pm.expect(nuevos).to.eql([]));",
+              "const snap = JSON.parse(pm.environment.get('pre_147_snap') || '[]');",
+              "pm.test('16. TC-147 — ningun registro historico fue alterado', () => snap.forEach(s => { const row = (b.items || []).find(x => x.id_calibracion === s.id); pm.expect(row, 'id ' + s.id).to.exist; pm.expect(Number(row.valor_referencia)).to.eql(Number(s.v)); pm.expect(row.fecha_calibracion).to.eql(s.f); pm.expect(row.id_usuario).to.eql(s.u); pm.expect(row.observaciones).to.eql(s.o); }));",
+              "if (nuevos.length) { pm.environment.set('stop_all', 'SI'); pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-147-v2.0', idsNuevos: nuevos })); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

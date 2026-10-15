@@ -1,0 +1,40 @@
+{
+  "tc": "TC-M02-G89",
+  "ronda": "V3",
+  "reintento": 3,
+  "fecha": "2026-09-25",
+  "run_id": "G89-REEVAL-V3-20260925-204325",
+  "veredicto": "Aprobado",
+  "nota_global": "Reevaluación limpia tras fixes #397/#398 y adición de aserción SUPERADA en TC-M02-217. Los 4 subcasos funcionales superaron el 100% de las aserciones (21/21 assertions OK). Fixes y ciclo de vida de asociaciones validados end-to-end.",
+  "nota_teardown": "Asociación A (id=102) superada automáticamente durante la corrida. Asociación B (id=103) desactivada a INACTIVA en el Teardown vía API PATCH (200 OK). Cero asociaciones ACTIVA remanentes.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-217: Superación automática (ACTIVA → SUPERADA + nueva ACTIVA)",
+      "esperado": "HTTP 201, Asociación A pasa a SUPERADA con fecha_fin poblada, Asociación B en ACTIVA",
+      "obtenido": "HTTP 201 Created. Asociación A (id=102) superada automáticamente y verificada en GET ?tipo_consulta=HISTORIAL (estado_asociacion: SUPERADA, fecha_fin poblada). Asociación B (id=103) creada en ACTIVA.",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G89_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-216: Desactivación manual (ACTIVA → INACTIVA)",
+      "esperado": "HTTP 200, estado_asociacion INACTIVA, fecha_fin no nula",
+      "obtenido": "HTTP 200 OK. Asociación B (id=103) desactivada exitosamente a estado INACTIVA con fecha_fin poblada vía PATCH (Fix #397 validado).",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G89_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-218: Reactivación (INACTIVA → ACTIVA)",
+      "esperado": "HTTP 200, estado_asociacion ACTIVA, fecha_fin nula",
+      "obtenido": "HTTP 200 OK. Asociación B (id=103) reactivada exitosamente a estado ACTIVA con fecha_fin nula vía PATCH (Fix #397 validado).",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G89_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-219: Rechazo de transición inválida (→ SUPERADA manual)",
+      "esperado": "HTTP 422 TRANSICION_INVALIDA (o código acordado)",
+      "obtenido": "HTTP 422 Unprocessable Entity con error_code: 'TRANSICION_INVALIDA'. Intento de pasar manualmente a SUPERADA rechazado conforme a RF-49 R5.",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G89_reintento3.html"
+    }
+  ]
+}

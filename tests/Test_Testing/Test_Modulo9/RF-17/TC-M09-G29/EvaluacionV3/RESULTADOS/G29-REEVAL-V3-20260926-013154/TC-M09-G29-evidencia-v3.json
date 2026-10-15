@@ -1,0 +1,212 @@
+{
+  "grupo": "TC-M09-G29",
+  "casos": [
+    "TC-M09-62",
+    "TC-M09-63"
+  ],
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V3",
+  "runId": "G29-REEVAL-V3-20260926-013154",
+  "fechaInicio": "2026-09-26T06:32:33.718629+00:00",
+  "ambienteDecisorio": "DEV",
+  "naturaleza": "verificacion de implementacion read-only (contrato desplegado + codigo origin/dev + identificacion del adaptador inyectado); sin escrituras, sin SQL, sin MQTT",
+  "escriturasEjecutadas": 0,
+  "git": {
+    "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+    "head": "91f7738667a934a4eaf3db5519a57d7cf4803b0e",
+    "originDev": "1214b3ff064fc88a3ec798c6409f45434b81e46e",
+    "originDevUltimoCommit": "1214b3ff 2026-09-26 Merge pull request #454 from Arekkazu/docs/m02-notas-rbac-rf45-rf48",
+    "diffSrcHeadVsOriginDev": ".../consultar_datos_consolidados_use_case.py       | 37 +++++++-----\n .../gestion/consultar_ficha_integral_use_case.py   | 53 +++++++++++------\n .../routers/activo_biologico_router.py             | 69 ++++++++++++++++++++--\n .../schema/activo_biologico_schema.py              | 11 ++++\n src/shared/rate_limit.py                           | 38 +++++++++---\n 5 files changed, 162 insertions(+), 46 deletions(-)",
+    "indiceIntacto": true
+  },
+  "clienteMqtt": {
+    "paho_mqtt": false,
+    "mosquitto_sub": false,
+    "mosquitto_pub": false,
+    "mqttx": false,
+    "mqtt_cli": false
+  },
+  "contratos": {
+    "DEV": {
+      "base": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+      "health": 200,
+      "openapi": 200,
+      "operacionesRF17": {
+        "POST /configuracion/umbrales": [
+          "201",
+          "401",
+          "403",
+          "404",
+          "409",
+          "422"
+        ],
+        "GET /configuracion/umbrales": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ],
+        "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "412",
+          "422"
+        ]
+      },
+      "umbralAmbientalResponse": [
+        "es_activo",
+        "estado_sincronizacion",
+        "fecha_actualizacion",
+        "fecha_ultima_sincronizacion",
+        "id_especie",
+        "id_umbral_ambiental",
+        "id_variable_ambiental",
+        "motivo_fallo_sincronizacion",
+        "niveles",
+        "unidad_medida",
+        "valor_max",
+        "valor_min"
+      ],
+      "rutasUmbrales": [
+        "/configuracion/umbrales",
+        "/configuracion/umbrales/{id_umbral_ambiental}",
+        "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+        "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+      ],
+      "rutasSincronizacionEdgeMqtt": [
+        "/iot/eventos-edge"
+      ]
+    },
+    "TEST_https": {
+      "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "health": 200,
+      "openapi": 200,
+      "operacionesRF17": {
+        "POST /configuracion/umbrales": [
+          "201",
+          "401",
+          "403",
+          "404",
+          "409",
+          "422"
+        ],
+        "GET /configuracion/umbrales": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ],
+        "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "412",
+          "422"
+        ]
+      },
+      "umbralAmbientalResponse": [
+        "es_activo",
+        "estado_sincronizacion",
+        "fecha_actualizacion",
+        "fecha_ultima_sincronizacion",
+        "id_especie",
+        "id_umbral_ambiental",
+        "id_variable_ambiental",
+        "motivo_fallo_sincronizacion",
+        "niveles",
+        "unidad_medida",
+        "valor_max",
+        "valor_min"
+      ],
+      "rutasUmbrales": [
+        "/configuracion/umbrales",
+        "/configuracion/umbrales/{id_umbral_ambiental}",
+        "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+        "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+      ],
+      "rutasSincronizacionEdgeMqtt": [
+        "/iot/eventos-edge"
+      ]
+    }
+  },
+  "codigoOriginDev": {
+    "inyeccionesEdgePortEnRouterRF17": [
+      "edge_port=EdgeSincronizacionStubAdapter(),",
+      "edge_port=EdgeSincronizacionStubAdapter(),"
+    ],
+    "adaptadorInyectado": "EdgeSincronizacionStubAdapter",
+    "esStub": true,
+    "stubDevuelve": [
+      "return ResultadoEnvioMqtt(estado=\"PENDIENTE\", mensaje=_MENSAJE_SIN_CONTRATO)"
+    ],
+    "consumidoresMqttPortFueraDeUmbrales": [
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:18:from src.configuration.domain.repositories.mqtt_port import MqttPort",
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:33:        mqtt_port: MqttPort,",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:31:from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),"
+    ],
+    "consumidoresMqttPortEnFlujoDeUmbrales": [],
+    "rf17InvocaPuertoEdge": true,
+    "rf17DeclaraFalloEdge": true,
+    "referenciasIntegracionEnRF17": {
+      "src/configuration/application/use_cases/umbrales/registrar_umbral_use_case.py": [
+        "from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort",
+        "MENSAJE_FALLO_SINCRONIZACION_EDGE = (",
+        "edge_port: EdgeSincronizacionPort,",
+        "self.edge_port = edge_port",
+        "# Edge. Nunca lanza (EdgeSincronizacionPort degrada a PENDIENTE ante",
+        "resultado = self.edge_port.propagar_umbral(",
+        "umbral_guardado.marcar_sincronizado(datetime.datetime.now(datetime.timezone.utc))",
+        "umbral_guardado.marcar_pendiente_sincronizacion(resultado.mensaje)",
+        "umbral_guardado.marcar_fallo_sincronizacion(resultado.mensaje)",
+        "umbral_guardado = self.umbral_repo.actualizar_estado_sincronizacion(umbral_guardado)",
+        "# RF-17, flujo alterno \"Error de sincronización con el Nodo Edge\": el",
+        "code='FALLO_SINCRONIZACION_EDGE',"
+      ],
+      "src/configuration/application/use_cases/umbrales/editar_umbral_use_case.py": [
+        "from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort",
+        "MENSAJE_FALLO_SINCRONIZACION_EDGE,",
+        "edge_port: EdgeSincronizacionPort,",
+        "self.edge_port = edge_port",
+        "# el Nodo Edge. Nunca lanza -- ver RegistrarUmbralUseCase.",
+        "resultado = self.edge_port.propagar_umbral(",
+        "umbral_actualizado.marcar_sincronizado(datetime.now(timezone.utc))",
+        "umbral_actualizado.marcar_pendiente_sincronizacion(resultado.mensaje)",
+        "umbral_actualizado.marcar_fallo_sincronizacion(resultado.mensaje)",
+        "umbral_actualizado = self.umbral_repo.actualizar_estado_sincronizacion(umbral_actualizado)",
+        "# RF-17, flujo alterno \"Error de sincronización con el Nodo Edge\":",
+        "code='FALLO_SINCRONIZACION_EDGE',"
+      ]
+    }
+  },
+  "oraculo": {
+    "rf17InvocaIntegracion": true,
+    "estadoSincronizacion": [
+      "estado_sincronizacion",
+      "fecha_ultima_sincronizacion",
+      "motivo_fallo_sincronizacion"
+    ],
+    "adaptadorReal": false,
+    "publishUmbral": [],
+    "operacionesCon500": {},
+    "edgeObservable": {
+      "rutasUmbralEdge": [],
+      "rutasEdgeDeclaradas": [
+        "/iot/eventos-edge"
+      ]
+    }
+  },
+  "devRuntime": {
+    "ejecutado": false,
+    "motivo": "DEV_ADMIN_PASSWORD no disponible en el proceso; no se sustituye el actor"
+  },
+  "resultados": {
+    "TC-M09-62": "RECHAZADO",
+    "TC-M09-63": "RECHAZADO"
+  },
+  "fechaFin": "2026-09-26T06:32:37.075843+00:00"
+}

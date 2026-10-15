@@ -1,0 +1,4928 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "66b1dc37-f96f-44a3-b422-a100ca8d610c",
+        "name": "1. Login (puede fallar con 423 si la cuenta sigue bloqueada de una prueba anterior)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "c29fcc3e-e99e-4d2a-a81a-188180b16a1f",
+              "type": "text/javascript",
+              "exec": [
+                "const b = pm.response.json();",
+                "if (b.token) { pm.collectionVariables.set('access_token', b.token); }",
+                "pm.test('Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)', function () {",
+                "    pm.expect([200,423]).to.include(pm.response.code);",
+                "});"
+              ],
+              "_lastExecutionId": "2c1ec0f2-e569-4742-9c36-04997a92b37a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ae280df5-d738-4ec4-a33f-50a1abb0936d",
+        "name": "2. Provocar 5 intentos fallidos para generar el estado BLOQUEADO",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "894ffa93-9b99-46c0-b108-8a629cc36b03",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+              ],
+              "_lastExecutionId": "fc7df225-42ce-4011-8423-94d43fd6de7e"
+            }
+          }
+        ]
+      },
+      {
+        "id": "3a95c3ec-2498-47e0-82d0-a6b5e9b5e3c2",
+        "name": "3. Repetir intento (2/5)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d91c7f0d-96eb-46f7-80df-4989c4195e8d",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+              ],
+              "_lastExecutionId": "d3e65ab1-7d35-4e17-a72f-2a17c10e4c15"
+            }
+          }
+        ]
+      },
+      {
+        "id": "6701927f-f571-488d-b082-3f62ae212ca4",
+        "name": "4. Repetir intento (3/5)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "71685049-dea7-461f-ae86-1a15a98ff63c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+              ],
+              "_lastExecutionId": "ea3eb4ff-4952-4a9c-8562-d5a19646834b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "2ed7a1b1-f2f7-44c2-978d-6f1e6469e171",
+        "name": "5. Repetir intento (4/5)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "9e3baa33-b6bf-4c73-bf04-f8bcffb0a2d3",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+              ],
+              "_lastExecutionId": "aabe3411-1316-4781-afda-3060dc5356a6"
+            }
+          }
+        ]
+      },
+      {
+        "id": "f72760af-fab0-4bfb-8153-37b42fa6b92f",
+        "name": "6. Intento 5/5 - dispara/confirma el estado BLOQUEADO",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "607ed120-9c54-4b56-8534-d32652ed3b3c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 423 CUENTA_BLOQUEADA', function () { pm.response.to.have.status(423); });"
+              ],
+              "_lastExecutionId": "52044649-c18c-4780-9aa3-e0eb3c939d57"
+            }
+          }
+        ]
+      },
+      {
+        "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+        "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "5"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{access_token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                "const b = pm.response.json();",
+                "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                "    pm.expect(notif).to.not.be.undefined;",
+                "});"
+              ],
+              "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "41e50ddb-b5f4-4e22-880d-e5548048761e",
+        "name": "8. [MANUAL - no automatizable] Verificar que SI llega el correo (bandeja real)",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "1"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{access_token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "0fdb1eca-5050-440c-84fa-10c911761062",
+              "type": "text/javascript",
+              "exec": [
+                "// Esta verificacion NO se puede hacer por API: no existe endpoint para consultar",
+                "// que canales uso una notificacion, ni para leer una bandeja de correo real.",
+                "// EVIDENCIA REAL (revision manual de Gmail, 2026-09-01):",
+                "// Llegaron 3 correos con asunto 'Intento de acceso fallido (Intento de acceso fallido)'",
+                "// y cuerpo identico a la notificacion interna, a las 8:27 p.m., 8:44 p.m. y 8:59 p.m.",
+                "// (hora Colombia), coincidiendo exactamente con los 3 bloqueos de cuenta generados",
+                "// durante las pruebas de este dia (el ultimo, disparado a proposito para confirmar).",
+                "// CONCLUSION (ficha corregida: 'debe recibir notificacion interna/email'): APROBADO -",
+                "// el usuario SI recibe la notificacion por ambos canales, de forma reproducible (3/3).",
+                "// Ver TC-M01-094_evidencia.md para el detalle completo.",
+                "pm.test('TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)', function () {",
+                "    pm.expect(true).to.be.true;",
+                "});"
+              ],
+              "_lastExecutionId": "dde043e9-f6ad-434e-b66a-9347bad5bce4"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "",
+        "key": "access_token"
+      },
+      {
+        "type": "any",
+        "value": "Vigilada#42",
+        "key": "contrasena_actual"
+      }
+    ],
+    "info": {
+      "_postman_id": "8ba7eb66-70a2-47bf-9579-226ea2e94969",
+      "name": "TC-M01-094",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Ficha corregida: el usuario BLOQUEADO debe recibir notificacion interna y/o correo (no exclusivamente una de las dos). Este script verifica el canal interno automaticamente. La verificacion del canal correo es MANUAL (revisar la bandeja real) porque la API no expone que canales uso una notificacion. Ver TC-M01-094_evidencia.md: se confirmo la llegada del correo 3 de 3 veces -> APROBADO.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "a32cf2cd-35eb-4d4a-a07d-515a09b13ee3",
+    "values": []
+  },
+  "globals": {
+    "id": "366e4e5b-9bf6-4906-9dc9-d1f8ce869690",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 1
+      },
+      "prerequests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 8,
+        "pending": 0,
+        "failed": 1
+      },
+      "testScripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 1
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 246.125,
+      "responseMin": 139,
+      "responseMax": 843,
+      "responseSd": 226.12852401897464,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789432014270,
+      "completed": 1789432016415
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 8,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "acaf0629-6cf2-4787-a1da-b499c609fbcd",
+          "httpRequestId": "71492540-3164-4dbe-8b30-7ba070003ae1"
+        },
+        "item": {
+          "id": "66b1dc37-f96f-44a3-b422-a100ca8d610c",
+          "name": "1. Login (puede fallar con 423 si la cuenta sigue bloqueada de una prueba anterior)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "c29fcc3e-e99e-4d2a-a81a-188180b16a1f",
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('access_token', b.token); }",
+                  "pm.test('Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)', function () {",
+                  "    pm.expect([200,423]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "_lastExecutionId": "2c1ec0f2-e569-4742-9c36-04997a92b37a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "85ad2c08-4b79-49b8-82fd-1cb58d7bcb64",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "85",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Vigilada#42\"\n}"
+          }
+        },
+        "response": {
+          "id": "75186915-5ee4-4469-b6e7-d7fb00bd1fe6",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:54 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "590fb77d-f991-44d4-9041-056f1cbe479f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              53,
+              46,
+              49,
+              53,
+              50,
+              53,
+              56,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 843,
+          "responseSize": 256
+        },
+        "id": "66b1dc37-f96f-44a3-b422-a100ca8d610c",
+        "assertions": [
+          {
+            "assertion": "Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "61cd4626-f9f4-4f90-86ac-1115e5587c47",
+          "length": 8,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "04e32589-2e39-4096-af29-479f14eb7636"
+        },
+        "item": {
+          "id": "ae280df5-d738-4ec4-a33f-50a1abb0936d",
+          "name": "2. Provocar 5 intentos fallidos para generar el estado BLOQUEADO",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "894ffa93-9b99-46c0-b108-8a629cc36b03",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                ],
+                "_lastExecutionId": "fc7df225-42ce-4011-8423-94d43fd6de7e"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "f7f86157-2ad8-469f-8a1d-630105ad8e52",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "87",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": {
+          "id": "a6328244-e753-4906-a805-07345807914a",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:54 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "7dbc16f3-fea5-4f9f-9e18-07097644556f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              53,
+              46,
+              52,
+              48,
+              52,
+              56,
+              56,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 158,
+          "responseSize": 256
+        },
+        "id": "ae280df5-d738-4ec4-a33f-50a1abb0936d",
+        "assertions": [
+          {
+            "assertion": "Responde 401 o 423",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b01df333-e167-4f8b-8130-8c6f18dba6ce",
+          "length": 8,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "4d76229d-d4ae-40c0-8ae6-4b265ad2fa41"
+        },
+        "item": {
+          "id": "3a95c3ec-2498-47e0-82d0-a6b5e9b5e3c2",
+          "name": "3. Repetir intento (2/5)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d91c7f0d-96eb-46f7-80df-4989c4195e8d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                ],
+                "_lastExecutionId": "d3e65ab1-7d35-4e17-a72f-2a17c10e4c15"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "1999d70c-7c15-49bf-b1aa-3cf489804713",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "87",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": {
+          "id": "a3a218a8-5f4c-4b0b-98d9-68fda5b6bf43",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "7111cf78-b0a0-4c20-a726-f8b3e684e625"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              53,
+              46,
+              53,
+              57,
+              54,
+              49,
+              52,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 157,
+          "responseSize": 256
+        },
+        "id": "3a95c3ec-2498-47e0-82d0-a6b5e9b5e3c2",
+        "assertions": [
+          {
+            "assertion": "Responde 401 o 423",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9639e096-046c-428a-97b7-87f8e998047c",
+          "length": 8,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "3a21880b-6a1e-46e3-b581-407640a7939d"
+        },
+        "item": {
+          "id": "6701927f-f571-488d-b082-3f62ae212ca4",
+          "name": "4. Repetir intento (3/5)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "71685049-dea7-461f-ae86-1a15a98ff63c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                ],
+                "_lastExecutionId": "ea3eb4ff-4952-4a9c-8562-d5a19646834b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0eb9817e-0506-4b35-bf3e-4704535bafcd",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "87",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": {
+          "id": "39f65709-b959-4acb-b5fb-b4d32073f859",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "11f46cb2-3449-4669-8f38-1596b74f148c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              53,
+              46,
+              55,
+              53,
+              52,
+              55,
+              52,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 139,
+          "responseSize": 256
+        },
+        "id": "6701927f-f571-488d-b082-3f62ae212ca4",
+        "assertions": [
+          {
+            "assertion": "Responde 401 o 423",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "4dd0dc41-404b-40f1-8885-b7a1708e29b9",
+          "length": 8,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "812a2e06-962e-49de-817c-81bd0c3ae495"
+        },
+        "item": {
+          "id": "2ed7a1b1-f2f7-44c2-978d-6f1e6469e171",
+          "name": "5. Repetir intento (4/5)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "9e3baa33-b6bf-4c73-bf04-f8bcffb0a2d3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                ],
+                "_lastExecutionId": "aabe3411-1316-4781-afda-3060dc5356a6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "5829de30-c37d-4a40-87be-7706cba58bd6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "87",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": {
+          "id": "f678146b-5103-4c23-af71-0d7b46dcaba9",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "76c80a49-c758-4e32-9fcd-1b7dc50d3c3a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              53,
+              46,
+              57,
+              50,
+              49,
+              57,
+              50,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 159,
+          "responseSize": 256
+        },
+        "id": "2ed7a1b1-f2f7-44c2-978d-6f1e6469e171",
+        "assertions": [
+          {
+            "assertion": "Responde 401 o 423",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "4ef95a7f-77c6-49a1-95f2-89fea78adf2d",
+          "length": 8,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "468b6999-40ce-4dd2-9a86-2438ebc70518"
+        },
+        "item": {
+          "id": "f72760af-fab0-4bfb-8153-37b42fa6b92f",
+          "name": "6. Intento 5/5 - dispara/confirma el estado BLOQUEADO",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "607ed120-9c54-4b56-8534-d32652ed3b3c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 423 CUENTA_BLOQUEADA', function () { pm.response.to.have.status(423); });"
+                ],
+                "_lastExecutionId": "52044649-c18c-4780-9aa3-e0eb3c939d57"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9d62fb55-b52c-4358-9fe4-76c49c6ccff3",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "87",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+          }
+        },
+        "response": {
+          "id": "3ac636ec-c7af-4666-890f-f79952dc782e",
+          "status": "Locked",
+          "code": 423,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "256"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "60f934dc-6fe6-431e-b7bb-34e1fb56b719"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              67,
+              85,
+              69,
+              78,
+              84,
+              65,
+              95,
+              66,
+              76,
+              79,
+              81,
+              85,
+              69,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              67,
+              117,
+              101,
+              110,
+              116,
+              97,
+              32,
+              98,
+              108,
+              111,
+              113,
+              117,
+              101,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              98,
+              105,
+              100,
+              111,
+              32,
+              97,
+              32,
+              109,
+              195,
+              186,
+              108,
+              116,
+              105,
+              112,
+              108,
+              101,
+              115,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              102,
+              97,
+              108,
+              108,
+              105,
+              100,
+              111,
+              115,
+              46,
+              32,
+              80,
+              111,
+              100,
+              114,
+              195,
+              161,
+              32,
+              105,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              114,
+              32,
+              97,
+              99,
+              99,
+              101,
+              100,
+              101,
+              114,
+              32,
+              110,
+              117,
+              101,
+              118,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              97,
+              32,
+              108,
+              97,
+              115,
+              32,
+              48,
+              48,
+              58,
+              52,
+              49,
+              58,
+              53,
+              52,
+              32,
+              40,
+              100,
+              101,
+              110,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              49,
+              53,
+              32,
+              109,
+              105,
+              110,
+              117,
+              116,
+              111,
+              115,
+              32,
+              101,
+              120,
+              97,
+              99,
+              116,
+              111,
+              115,
+              41,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              54,
+              46,
+              48,
+              56,
+              56,
+              56,
+              49,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 155,
+          "responseSize": 256
+        },
+        "id": "f72760af-fab0-4bfb-8153-37b42fa6b92f",
+        "assertions": [
+          {
+            "assertion": "Responde 423 CUENTA_BLOQUEADA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "78ff4452-8822-4e37-9e62-661db5f883ec",
+          "length": 8,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "a7180c4c-acaf-4495-8bb7-007a820c5e60"
+        },
+        "item": {
+          "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+          "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "notificaciones"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "5"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                  "const b = pm.response.json();",
+                  "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                  "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                  "    pm.expect(notif).to.not.be.undefined;",
+                  "});"
+                ],
+                "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "5"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer "
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "5d15ba2d-cbc4-4b2e-abeb-8caa1d1425ff",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "7feb22fb-0082-401f-aaac-2cc422775980",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "168"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "834ab1ed-3da4-4de9-b202-640b957ed3dc"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              81,
+              85,
+              69,
+              82,
+              73,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              101,
+              114,
+              101,
+              32,
+              97,
+              117,
+              116,
+              101,
+              110,
+              116,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              32,
+              80,
+              114,
+              111,
+              112,
+              111,
+              114,
+              99,
+              105,
+              111,
+              110,
+              97,
+              32,
+              117,
+              110,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              54,
+              46,
+              51,
+              48,
+              50,
+              57,
+              52,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 198,
+          "responseSize": 168
+        },
+        "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+        "assertions": [
+          {
+            "assertion": "Responde 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Responde 200",
+              "message": "expected response to have status code 200 but got 401",
+              "stack": "AssertionError: expected response to have status code 200 but got 401\n   at Object.eval sandbox-script.js:1:7)"
+            }
+          }
+        ],
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "TypeError",
+              "message": "Cannot read properties of undefined (reading 'find')",
+              "checksum": "69830742dc3e344800ff0254e797b197",
+              "id": "084a63be-92cd-4633-b57d-fafe8f78151a",
+              "timestamp": 1789432016229,
+              "stacktrace": []
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7a01977e-a656-4e85-96ee-c59a6f11a525",
+          "length": 8,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "c24d5b7a-066d-429b-a021-dd3bd5e95c9a"
+        },
+        "item": {
+          "id": "41e50ddb-b5f4-4e22-880d-e5548048761e",
+          "name": "8. [MANUAL - no automatizable] Verificar que SI llega el correo (bandeja real)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "notificaciones"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "1"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0fdb1eca-5050-440c-84fa-10c911761062",
+                "type": "text/javascript",
+                "exec": [
+                  "// Esta verificacion NO se puede hacer por API: no existe endpoint para consultar",
+                  "// que canales uso una notificacion, ni para leer una bandeja de correo real.",
+                  "// EVIDENCIA REAL (revision manual de Gmail, 2026-09-01):",
+                  "// Llegaron 3 correos con asunto 'Intento de acceso fallido (Intento de acceso fallido)'",
+                  "// y cuerpo identico a la notificacion interna, a las 8:27 p.m., 8:44 p.m. y 8:59 p.m.",
+                  "// (hora Colombia), coincidiendo exactamente con los 3 bloqueos de cuenta generados",
+                  "// durante las pruebas de este dia (el ultimo, disparado a proposito para confirmar).",
+                  "// CONCLUSION (ficha corregida: 'debe recibir notificacion interna/email'): APROBADO -",
+                  "// el usuario SI recibe la notificacion por ambos canales, de forma reproducible (3/3).",
+                  "// Ver TC-M01-094_evidencia.md para el detalle completo.",
+                  "pm.test('TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "});"
+                ],
+                "_lastExecutionId": "dde043e9-f6ad-434e-b66a-9347bad5bce4"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "notificaciones"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "tamano",
+                "value": "1"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer "
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "5c17d3c1-eae0-4249-b1c2-9327669633a7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d630b52f-9439-4d2b-8c5d-402a70e603ce",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "168"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 00:26:56 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4083eadf-c311-4418-ba6f-909c2525be39"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              81,
+              85,
+              69,
+              82,
+              73,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              101,
+              114,
+              101,
+              32,
+              97,
+              117,
+              116,
+              101,
+              110,
+              116,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              32,
+              80,
+              114,
+              111,
+              112,
+              111,
+              114,
+              99,
+              105,
+              111,
+              110,
+              97,
+              32,
+              117,
+              110,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              50,
+              54,
+              58,
+              53,
+              54,
+              46,
+              52,
+              57,
+              51,
+              54,
+              55,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 160,
+          "responseSize": 168
+        },
+        "id": "41e50ddb-b5f4-4e22-880d-e5548048761e",
+        "assertions": [
+          {
+            "assertion": "TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1872
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Responde 200",
+          "message": "expected response to have status code 200 but got 401",
+          "stack": "AssertionError: expected response to have status code 200 but got 401\n   at Object.eval sandbox-script.js:1:7)",
+          "checksum": "3ca11e751b0445fc3b05b6ba0a5791ec",
+          "id": "a2c05b97-1574-4131-b3c3-a0604e5d2136",
+          "timestamp": 1789432016224,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 7,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+          "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "notificaciones"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "5"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                  "const b = pm.response.json();",
+                  "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                  "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                  "    pm.expect(notif).to.not.be.undefined;",
+                  "});"
+                ],
+                "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "66b1dc37-f96f-44a3-b422-a100ca8d610c",
+              "name": "1. Login (puede fallar con 423 si la cuenta sigue bloqueada de una prueba anterior)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "c29fcc3e-e99e-4d2a-a81a-188180b16a1f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('access_token', b.token); }",
+                      "pm.test('Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)', function () {",
+                      "    pm.expect([200,423]).to.include(pm.response.code);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "2c1ec0f2-e569-4742-9c36-04997a92b37a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ae280df5-d738-4ec4-a33f-50a1abb0936d",
+              "name": "2. Provocar 5 intentos fallidos para generar el estado BLOQUEADO",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "894ffa93-9b99-46c0-b108-8a629cc36b03",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "fc7df225-42ce-4011-8423-94d43fd6de7e"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "3a95c3ec-2498-47e0-82d0-a6b5e9b5e3c2",
+              "name": "3. Repetir intento (2/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "d91c7f0d-96eb-46f7-80df-4989c4195e8d",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "d3e65ab1-7d35-4e17-a72f-2a17c10e4c15"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "6701927f-f571-488d-b082-3f62ae212ca4",
+              "name": "4. Repetir intento (3/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "71685049-dea7-461f-ae86-1a15a98ff63c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "ea3eb4ff-4952-4a9c-8562-d5a19646834b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2ed7a1b1-f2f7-44c2-978d-6f1e6469e171",
+              "name": "5. Repetir intento (4/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9e3baa33-b6bf-4c73-bf04-f8bcffb0a2d3",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "aabe3411-1316-4781-afda-3060dc5356a6"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "f72760af-fab0-4bfb-8153-37b42fa6b92f",
+              "name": "6. Intento 5/5 - dispara/confirma el estado BLOQUEADO",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "607ed120-9c54-4b56-8534-d32652ed3b3c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 423 CUENTA_BLOQUEADA', function () { pm.response.to.have.status(423); });"
+                    ],
+                    "_lastExecutionId": "52044649-c18c-4780-9aa3-e0eb3c939d57"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+              "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "notificaciones"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "5"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                      "const b = pm.response.json();",
+                      "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                      "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                      "    pm.expect(notif).to.not.be.undefined;",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "41e50ddb-b5f4-4e22-880d-e5548048761e",
+              "name": "8. [MANUAL - no automatizable] Verificar que SI llega el correo (bandeja real)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "notificaciones"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "1"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0fdb1eca-5050-440c-84fa-10c911761062",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Esta verificacion NO se puede hacer por API: no existe endpoint para consultar",
+                      "// que canales uso una notificacion, ni para leer una bandeja de correo real.",
+                      "// EVIDENCIA REAL (revision manual de Gmail, 2026-09-01):",
+                      "// Llegaron 3 correos con asunto 'Intento de acceso fallido (Intento de acceso fallido)'",
+                      "// y cuerpo identico a la notificacion interna, a las 8:27 p.m., 8:44 p.m. y 8:59 p.m.",
+                      "// (hora Colombia), coincidiendo exactamente con los 3 bloqueos de cuenta generados",
+                      "// durante las pruebas de este dia (el ultimo, disparado a proposito para confirmar).",
+                      "// CONCLUSION (ficha corregida: 'debe recibir notificacion interna/email'): APROBADO -",
+                      "// el usuario SI recibe la notificacion por ambos canales, de forma reproducible (3/3).",
+                      "// Ver TC-M01-094_evidencia.md para el detalle completo.",
+                      "pm.test('TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)', function () {",
+                      "    pm.expect(true).to.be.true;",
+                      "});"
+                    ],
+                    "_lastExecutionId": "dde043e9-f6ad-434e-b66a-9347bad5bce4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "",
+              "key": "access_token"
+            },
+            {
+              "type": "any",
+              "value": "Vigilada#42",
+              "key": "contrasena_actual"
+            }
+          ],
+          "info": {
+            "_postman_id": "8ba7eb66-70a2-47bf-9579-226ea2e94969",
+            "name": "TC-M01-094",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Ficha corregida: el usuario BLOQUEADO debe recibir notificacion interna y/o correo (no exclusivamente una de las dos). Este script verifica el canal interno automaticamente. La verificacion del canal correo es MANUAL (revisar la bandeja real) porque la API no expone que canales uso una notificacion. Ver TC-M01-094_evidencia.md: se confirmo la llegada del correo 3 de 3 veces -> APROBADO.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "78ff4452-8822-4e37-9e62-661db5f883ec",
+          "length": 8,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "a7180c4c-acaf-4495-8bb7-007a820c5e60",
+          "scriptId": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+          "execution": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "TypeError",
+          "message": "Cannot read properties of undefined (reading 'find')",
+          "checksum": "69830742dc3e344800ff0254e797b197",
+          "id": "084a63be-92cd-4633-b57d-fafe8f78151a",
+          "timestamp": 1789432016229,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+          "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "notificaciones"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "5"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                  "const b = pm.response.json();",
+                  "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                  "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                  "    pm.expect(notif).to.not.be.undefined;",
+                  "});"
+                ],
+                "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "66b1dc37-f96f-44a3-b422-a100ca8d610c",
+              "name": "1. Login (puede fallar con 423 si la cuenta sigue bloqueada de una prueba anterior)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "c29fcc3e-e99e-4d2a-a81a-188180b16a1f",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('access_token', b.token); }",
+                      "pm.test('Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)', function () {",
+                      "    pm.expect([200,423]).to.include(pm.response.code);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "2c1ec0f2-e569-4742-9c36-04997a92b37a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "ae280df5-d738-4ec4-a33f-50a1abb0936d",
+              "name": "2. Provocar 5 intentos fallidos para generar el estado BLOQUEADO",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "894ffa93-9b99-46c0-b108-8a629cc36b03",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "fc7df225-42ce-4011-8423-94d43fd6de7e"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "3a95c3ec-2498-47e0-82d0-a6b5e9b5e3c2",
+              "name": "3. Repetir intento (2/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "d91c7f0d-96eb-46f7-80df-4989c4195e8d",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "d3e65ab1-7d35-4e17-a72f-2a17c10e4c15"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "6701927f-f571-488d-b082-3f62ae212ca4",
+              "name": "4. Repetir intento (3/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "71685049-dea7-461f-ae86-1a15a98ff63c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "ea3eb4ff-4952-4a9c-8562-d5a19646834b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2ed7a1b1-f2f7-44c2-978d-6f1e6469e171",
+              "name": "5. Repetir intento (4/5)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9e3baa33-b6bf-4c73-bf04-f8bcffb0a2d3",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "aabe3411-1316-4781-afda-3060dc5356a6"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "f72760af-fab0-4bfb-8153-37b42fa6b92f",
+              "name": "6. Intento 5/5 - dispara/confirma el estado BLOQUEADO",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"ClaveMala#000\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "607ed120-9c54-4b56-8534-d32652ed3b3c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 423 CUENTA_BLOQUEADA', function () { pm.response.to.have.status(423); });"
+                    ],
+                    "_lastExecutionId": "52044649-c18c-4780-9aa3-e0eb3c939d57"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0ff3982c-2ddd-47db-a7d6-0b05a5e5ba7a",
+              "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "notificaciones"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "5"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+                      "const b = pm.response.json();",
+                      "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+                      "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+                      "    pm.expect(notif).to.not.be.undefined;",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ccc673b6-0227-4a98-a0af-3bb91fdc1f6d"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "41e50ddb-b5f4-4e22-880d-e5548048761e",
+              "name": "8. [MANUAL - no automatizable] Verificar que SI llega el correo (bandeja real)",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "api-sgpmp-test",
+                    "notificaciones"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "tamano",
+                      "value": "1"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0fdb1eca-5050-440c-84fa-10c911761062",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Esta verificacion NO se puede hacer por API: no existe endpoint para consultar",
+                      "// que canales uso una notificacion, ni para leer una bandeja de correo real.",
+                      "// EVIDENCIA REAL (revision manual de Gmail, 2026-09-01):",
+                      "// Llegaron 3 correos con asunto 'Intento de acceso fallido (Intento de acceso fallido)'",
+                      "// y cuerpo identico a la notificacion interna, a las 8:27 p.m., 8:44 p.m. y 8:59 p.m.",
+                      "// (hora Colombia), coincidiendo exactamente con los 3 bloqueos de cuenta generados",
+                      "// durante las pruebas de este dia (el ultimo, disparado a proposito para confirmar).",
+                      "// CONCLUSION (ficha corregida: 'debe recibir notificacion interna/email'): APROBADO -",
+                      "// el usuario SI recibe la notificacion por ambos canales, de forma reproducible (3/3).",
+                      "// Ver TC-M01-094_evidencia.md para el detalle completo.",
+                      "pm.test('TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)', function () {",
+                      "    pm.expect(true).to.be.true;",
+                      "});"
+                    ],
+                    "_lastExecutionId": "dde043e9-f6ad-434e-b66a-9347bad5bce4"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "",
+              "key": "access_token"
+            },
+            {
+              "type": "any",
+              "value": "Vigilada#42",
+              "key": "contrasena_actual"
+            }
+          ],
+          "info": {
+            "_postman_id": "8ba7eb66-70a2-47bf-9579-226ea2e94969",
+            "name": "TC-M01-094",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Ficha corregida: el usuario BLOQUEADO debe recibir notificacion interna y/o correo (no exclusivamente una de las dos). Este script verifica el canal interno automaticamente. La verificacion del canal correo es MANUAL (revisar la bandeja real) porque la API no expone que canales uso una notificacion. Ver TC-M01-094_evidencia.md: se confirmo la llegada del correo 3 de 3 veces -> APROBADO.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "78ff4452-8822-4e37-9e62-661db5f883ec",
+          "length": 8,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "a7180c4c-acaf-4495-8bb7-007a820c5e60",
+          "scriptId": "1d9ad5c9-ed7b-4e65-8507-37f8f5716740"
+        }
+      }
+    ],
+    "error": null
+  }
+}

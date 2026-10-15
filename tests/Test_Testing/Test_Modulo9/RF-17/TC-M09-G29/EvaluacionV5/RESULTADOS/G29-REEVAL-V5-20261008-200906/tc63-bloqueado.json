@@ -1,0 +1,92 @@
+{
+  "runId": "G29-REEVAL-V5-20261008-200906",
+  "caso": "TC-M09-63",
+  "resultado": "SUPERADO — ver tc63-result.json (TC-M09-63 APROBADO)",
+  "escriturasOficialesTc63": 0,
+  "momento": "2026-10-08T20:43:38.078593+00:00",
+  "contexto": "AIoT informa que la Raspberry esta fisicamente desconectada.",
+  "precondiciones": {
+    "1_conectadaFalse": {
+      "cumple": false,
+      "valor": true,
+      "lecturas": "tres lecturas con token fresco (20:43:10, 20:43:24, 20:43:38) las tres conectada=true",
+      "esEnVivoDelBroker": true
+    },
+    "2_brokerOperativo": {
+      "cumple": true,
+      "httpCredencialMqtt": 200,
+      "razonamiento": "HTTP 200 implica que el backend contacto al broker y respondio; caido daria 503"
+    },
+    "3_unicoDestinoRf17": {
+      "cumple": true,
+      "destinos": [
+        "SERBY-TAX-FIRMWARE"
+      ]
+    },
+    "4_baselineA": {
+      "cumple": true,
+      "valor_min": "40.00",
+      "valor_max": "95.00",
+      "estado_sincronizacion": "APLICADA",
+      "fecha_actualizacion": "2026-10-08T20:18:31.855303Z",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "85.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "85.00",
+          "limite_superior": "95.00"
+        }
+      ]
+    }
+  },
+  "hechos": {
+    "ultimoHeartbeat": {
+      "id": 300,
+      "fecha": "2026-10-08T20:19:55.802292Z"
+    },
+    "segundosSinHeartbeatEnLaObservacion": 1422.3,
+    "estado_actual": "SIN_SENAL",
+    "causa_primaria": "FALLO_CONECTIVIDAD",
+    "transicionDetectadaPorLaPlataforma": "ACTIVO -> SIN_SENAL a las 2026-10-08T20:25:50.176369Z",
+    "sinNuevasTransicionesTrasLaDesconexionFisica": true,
+    "conectadaSigueTrue": true
+  },
+  "dosExplicacionesPosibles": [
+    {
+      "hipotesis": "El broker no detecta la perdida del cliente: la sesion quedo stale.",
+      "apoyo": "~24 min sin heartbeat y con el equipo fisicamente desconectado, muy por encima de cualquier keepalive razonable."
+    },
+    {
+      "hipotesis": "El campo \"conectada\" del broker no significa \"sesion viva ahora\".",
+      "apoyo": "El backend solo reexpone cuerpo[\"conectada\"] de GET /v1/devices/{serial}/credential sin interpretarlo; la semantica la define el broker y QA no puede inspeccionarla. Podria reflejar algo distinto, como que la credencial llego a conectarse alguna vez."
+    }
+  ],
+  "ambasConclusiones": "En los dos casos el problema esta del lado del broker y \"conectada\" no sirve, tal como esta, como senal de precondicion para TC-M09-63.",
+  "porQueNoSeEjecuto": "Con conectada=true el broker publicaria y esperaria el ACK_UMBRAL hasta 30 s; sin nadie que confirme, el resultado seria NO_CONF + HTTP 500 tras ~30 s, no el PENDIENTE rapido que exige el caso. Se consumiria la unica escritura oficial autorizada para producir un resultado que no corresponde al escenario de TC-M09-63.",
+  "tensionDeDiseno": "El backend no decide la propagacion con \"conectada\": llama al broker y el broker decide PENDIENTE. Por tanto lo unico que revelaria como clasifica el broker al Edge es hacer la llamada, que es precisamente la escritura unica. El caso pide conocer de antemano, via \"conectada\", algo que solo el intento confirmaria.",
+  "loQueHaceFalta": [
+    "confirmacion del lado broker de las sesiones activas del usuario MQTT SERBY-TAX-FIRMWARE",
+    "o definicion por Desarrollo/AIoT de cual senal de runtime significa autoritativamente \"Edge desconectado\" para RF-17",
+    "o decision explicita de Juan de ejecutar aceptando que el veredicto pueda ser NO_CONF"
+  ],
+  "raspberryReconectada": false,
+  "cleanupRealizado": false,
+  "restauracionRealizada": false,
+  "resueltoPorLaEjecucionPosterior": {
+    "cuando": "2026-10-08T20:48:54Z",
+    "resultadoTc63": "APROBADO",
+    "hipotesisConfirmada": "La segunda: el campo \"conectada\" de /v1/devices/{serial}/credential NO significa \"sesion viva ahora\" a efectos de comandos. Con conectada=true, el broker respondio al POST /v1/commands que el dispositivo estaba OFFLINE (\"Dispositivo offline. La configuracion quedara pendiente hasta que reconecte.\") y no publico.",
+    "hipotesisDescartada": "La primera: no era una sesion stale que impidiera detectar la desconexion.",
+    "conclusion": "El camino de comandos del broker SI reconoce la indisponibilidad del Edge. Lo que no sirve como senal de precondicion es \"conectada\" del endpoint de credencial. El criterio correcto para QA es el que indico Juan: indisponibilidad fisica/operativa demostrada (heartbeat congelado, SIN_SENAL, FALLO_CONECTIVIDAD).",
+    "incidenciaPropuestaAnteriormente": "SE RETIRA: no hay defecto. Queda como observacion de semantica del campo."
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "info": {
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "a111c0de-0000-4111-9111-tc09g111v20",
+    "name": "TC-M09-G111 v2.0 - Validacion de la especie asociada a la plantilla (RF-31)",
+    "description": "v2.0 (2026-10). La v1 usaba un params_snapshot con la forma anterior (metricas con 'valor'), que el backend vigente rechaza con 400 por esquema, y ids fijos de otro entorno. Ahora: la especie activa e inactiva se buscan dinamicamente, el snapshot cumple el esquema vigente, y TC-M09-212 exige 404 como pide la ficha (la v1 obtuvo 422 y lo dio por bueno; la aserción de la ficha era 404). Se agrega un control con especie inexistente (404)."
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "0B. Obtener una especie ACTIVA",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var items = pm.response.json().items || [];",
+              "pm.test('Hay al menos una especie activa', function () { pm.expect(items.length).to.be.above(0); });",
+              "if (items.length) { pm.collectionVariables.set('id_especie_activa', items[0].id_especie); console.log('especie activa id=' + items[0].id_especie + ' nombre=' + items[0].nombre); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0C. Precondicion - localizar una especie INACTIVA",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var items = pm.response.json().items || [];",
+              "var ina = items.filter(function (e) { return e.es_activo === false || e.activo === false; })[0];",
+              "pm.test('Precondicion TC-212: existe al menos una especie inactiva en el entorno', function () { pm.expect(ina, 'no hay especie inactiva').to.not.be.undefined; });",
+              "if (ina) { pm.collectionVariables.set('id_especie_inactiva', ina.id_especie); console.log('especie inactiva id=' + ina.id_especie + ' nombre=' + ina.nombre); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M09-211 - Crear plantilla asociada a especie ACTIVA (debe aceptarse)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-G111-activa-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"Peso Test G111 {{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ]\n  }\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-211] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-211: se crea con 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { var b = pm.response.json();",
+              "  pm.test('TC-M09-211: la plantilla queda asociada a la especie activa enviada', function () { pm.expect(String(b.id_especie)).to.eql(String(pm.collectionVariables.get('id_especie_activa'))); });",
+              "  pm.test('TC-M09-211: la plantilla inicia en version 1', function () { pm.expect(b.version).to.eql(1); }); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M09-212 - Plantilla asociada a especie INACTIVA (la ficha exige 404)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-G111-inactiva-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_inactiva}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"Peso Test G111 {{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ]\n  }\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-212 inactiva] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-212: la creacion con especie INACTIVA se rechaza con 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('TC-M09-212: no se crea ninguna plantilla (sin id_plantilla)', function () { pm.expect(pm.response.json()).to.not.have.property('id_plantilla'); });",
+              "var b = {}; try { b = pm.response.json(); } catch (e) {}",
+              "console.log('TC-212 INFO: error_code=' + b.error_code);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M09-212 (control) - Plantilla asociada a especie INEXISTENTE (404)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-G111-inexistente-{{$timestamp}}\",\n  \"id_especie\": 999999999,\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"Peso Test G111 {{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ]\n  }\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-212 inexistente] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-212 control: especie INEXISTENTE se rechaza con 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('TC-M09-212 control: sin id_plantilla', function () { pm.expect(pm.response.json()).to.not.have.property('id_plantilla'); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie_activa",
+      "value": ""
+    },
+    {
+      "key": "id_especie_inactiva",
+      "value": ""
+    }
+  ]
+}

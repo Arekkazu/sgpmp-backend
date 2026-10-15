@@ -1,0 +1,590 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g91-rf27-dev-rev2",
+    "name": "TC-M09-G91 DEV rev2 - Jerarquía de resolución del tema (RF-27)",
+    "description": "DEV. Un login admin. Password via --env-var contrasena. GET /configuracion/personalizacion/tema es el tema RESUELTO (fuente). No hay DELETE de tema: 174/175 se marcan BLOQUEADO si no puede construirse la ausencia. No usa /sesiones/refresh.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "correo", "value": "admin.dev@gmail.com" },
+    { "key": "token", "value": "" },
+    { "key": "login_ok", "value": "0" },
+    { "key": "login_http", "value": "" },
+    { "key": "orig_resuelto_mode", "value": "" },
+    { "key": "orig_resuelto_fuente", "value": "" },
+    { "key": "orig_resuelto_id", "value": "" },
+    { "key": "orig_global_json", "value": "" },
+    { "key": "orig_global_mode", "value": "" },
+    { "key": "orig_global_existia", "value": "0" },
+    { "key": "delete_personal_http", "value": "" },
+    { "key": "delete_global_http", "value": "" },
+    { "key": "r173_mode", "value": "" },
+    { "key": "r173_fuente", "value": "" },
+    { "key": "r173_id", "value": "" },
+    { "key": "tc173", "value": "PENDIENTE" },
+    { "key": "tc174", "value": "PENDIENTE" },
+    { "key": "tc175", "value": "PENDIENTE" },
+    { "key": "abort_reason", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00.1 POST /sesiones (un solo login admin)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('login_http', String(code));",
+            "let json = {};",
+            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+            "if (code !== 200 || !json.token) {",
+            "    pm.collectionVariables.set('login_ok', '0');",
+            "    pm.collectionVariables.set('abort_reason', 'Login HTTP ' + code + ' — G91 BLOQUEADO, sin cascada 401 ni PATCH');",
+            "    pm.collectionVariables.set('tc173', 'BLOQUEADO');",
+            "    pm.collectionVariables.set('tc174', 'BLOQUEADO');",
+            "    pm.collectionVariables.set('tc175', 'BLOQUEADO');",
+            "    pm.test('Login HTTP 200 (si 500, BLOQUEADO; no se interpretan 401 siguientes)', function () {",
+            "        pm.expect(code).to.eql(200);",
+            "    });",
+            "    pm.execution.setNextRequest(null);",
+            "    return;",
+            "}",
+            "pm.collectionVariables.set('token', json.token);",
+            "pm.collectionVariables.set('login_ok', '1');",
+            "pm.test('Login HTTP 200 (un intento, sin refresh)', function () {",
+            "    pm.expect(code).to.eql(200);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "00.2 PRECHECK GET tema resuelto",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.test('PRECHECK GET tema resuelto HTTP 200', function () { pm.expect(code).to.eql(200); });",
+            "if (code !== 200) {",
+            "    pm.collectionVariables.set('abort_reason', 'GET tema HTTP ' + code);",
+            "    pm.collectionVariables.set('tc173', 'BLOQUEADO');",
+            "    pm.execution.setNextRequest(null);",
+            "    return;",
+            "}",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('orig_resuelto_mode', String(json.theme_mode));",
+            "pm.collectionVariables.set('orig_resuelto_fuente', String(json.fuente || ''));",
+            "pm.collectionVariables.set('orig_resuelto_id', json.id_tema_visual == null ? '' : String(json.id_tema_visual));",
+            "pm.test('PRECHECK resuelto tiene theme_mode y fuente', function () {",
+            "    pm.expect(json.theme_mode).to.be.oneOf([1, 2, 3]);",
+            "    pm.expect(json.fuente).to.be.oneOf(['personal', 'global', 'defecto']);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "00.3 PRECHECK GET tema global",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.test('PRECHECK GET global HTTP 200 (null permitido)', function () {",
+            "    pm.expect(code).to.eql(200);",
+            "});",
+            "let json = null;",
+            "try { json = pm.response.json(); } catch (e) { json = null; }",
+            "if (json == null) {",
+            "    pm.collectionVariables.set('orig_global_existia', '0');",
+            "    pm.collectionVariables.set('orig_global_json', 'null');",
+            "    pm.collectionVariables.set('orig_global_mode', '');",
+            "} else {",
+            "    pm.collectionVariables.set('orig_global_existia', '1');",
+            "    pm.collectionVariables.set('orig_global_json', JSON.stringify({ theme_mode: json.theme_mode, es_global: json.es_global, id_tema_visual: json.id_tema_visual }));",
+            "    pm.collectionVariables.set('orig_global_mode', String(json.theme_mode));",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "00.4 Probe DELETE tema personal (no inventar borrado)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('delete_personal_http', String(code));",
+            "pm.test('Probe DELETE personal: API no ofrece borrado (404/405/422)', function () {",
+            "    pm.expect([404, 405, 422]).to.include(code);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "00.5 Probe DELETE tema global (no inventar borrado)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('delete_global_http', String(code));",
+            "pm.test('Probe DELETE global: API no ofrece borrado (404/405/422)', function () {",
+            "    pm.expect([404, 405, 422]).to.include(code);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "173.1 PATCH global CLARO (1)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "pm.test('173 PATCH global HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "pm.test('173 global almacenado theme_mode=1 es_global=true', function () {",
+            "    pm.expect(json.theme_mode).to.eql(1);",
+            "    pm.expect(json.es_global).to.eql(true);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"theme_mode\": 1}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "173.2 PATCH personal OSCURO (2)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "pm.test('173 PATCH personal HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "pm.test('173 personal almacenado theme_mode=2 es_global=false', function () {",
+            "    pm.expect(json.theme_mode).to.eql(2);",
+            "    pm.expect(json.es_global).to.eql(false);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"theme_mode\": 2}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "173.3 GET global confirma CLARO almacenado",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "pm.test('173 GET global theme_mode=1', function () {",
+            "    pm.expect(pm.response.code).to.eql(200);",
+            "    pm.expect(json.theme_mode).to.eql(1);",
+            "    pm.expect(json.es_global).to.eql(true);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "173.4 GET resuelto — individual tiene prioridad",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('r173_mode', String(json.theme_mode));",
+            "pm.collectionVariables.set('r173_fuente', String(json.fuente || ''));",
+            "pm.collectionVariables.set('r173_id', json.id_tema_visual == null ? '' : String(json.id_tema_visual));",
+            "pm.test('173 GET resuelto HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "pm.test('173 resuelto theme_mode=2 OSCURO (no basta PATCH 200)', function () {",
+            "    pm.expect(json.theme_mode).to.eql(2);",
+            "});",
+            "pm.test('173 resuelto fuente=personal', function () {",
+            "    pm.expect(json.fuente).to.eql('personal');",
+            "});",
+            "pm.test('173 resuelto id_tema_visual presente', function () {",
+            "    pm.expect(json.id_tema_visual).to.not.equal(null);",
+            "});",
+            "if (pm.response.code === 200 && json.theme_mode === 2 && json.fuente === 'personal') {",
+            "    pm.collectionVariables.set('tc173', 'APROBADO');",
+            "} else {",
+            "    pm.collectionVariables.set('tc173', 'RECHAZADO');",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "174.1 PATCH global OSCURO (2) — preparación",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "pm.test('174 PATCH global HTTP 200 theme_mode=2', function () {",
+            "    pm.expect(pm.response.code).to.eql(200);",
+            "    pm.expect(pm.response.json().theme_mode).to.eql(2);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"theme_mode\": 2}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "174.2 GET resuelto — no fingir ausencia de personal",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "const delP = pm.collectionVariables.get('delete_personal_http');",
+            "pm.test('174 GET resuelto HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (json.fuente === 'personal') {",
+            "    pm.collectionVariables.set('tc174', 'BLOQUEADO');",
+            "    pm.test('174 BLOQUEADO: sigue existiendo preferencia personal; API sin DELETE (no se finge fuente=global)', function () {",
+            "        pm.expect(json.fuente).to.eql('personal');",
+            "        pm.expect(['404', '405', '422']).to.include(delP);",
+            "    });",
+            "} else {",
+            "    pm.test('174 resuelto theme_mode=2 fuente=global', function () {",
+            "        pm.expect(json.theme_mode).to.eql(2);",
+            "        pm.expect(json.fuente).to.eql('global');",
+            "    });",
+            "    if (json.theme_mode === 2 && json.fuente === 'global') {",
+            "        pm.collectionVariables.set('tc174', 'APROBADO');",
+            "    } else {",
+            "        pm.collectionVariables.set('tc174', 'RECHAZADO');",
+            "    }",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "175.1 GET global — no fingir ausencia de global",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "let json = null;",
+            "try { json = pm.response.json(); } catch (e) { json = null; }",
+            "const delG = pm.collectionVariables.get('delete_global_http');",
+            "pm.test('175 GET global HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (json != null && json.theme_mode != null) {",
+            "    pm.collectionVariables.set('tc175', 'BLOQUEADO');",
+            "    pm.test('175 BLOQUEADO: sigue existiendo fila global; API sin DELETE (no se finge fuente=defecto)', function () {",
+            "        pm.expect(json.es_global).to.eql(true);",
+            "        pm.expect(['404', '405', '422']).to.include(delG);",
+            "    });",
+            "} else {",
+            "    pm.collectionVariables.set('tc175', 'PENDIENTE_RESOLVER');",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "175.2 GET resuelto — solo si global es null",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "if (pm.collectionVariables.get('tc175') === 'BLOQUEADO') {",
+            "    pm.test('175 no consulta jerarquía defecto: precondición global inexistente no construible', function () {",
+            "        pm.expect(pm.collectionVariables.get('tc175')).to.eql('BLOQUEADO');",
+            "    });",
+            "    return;",
+            "}",
+            "const json = pm.response.json();",
+            "pm.test('175 resuelto theme_mode=1 fuente=defecto', function () {",
+            "    pm.expect(json.theme_mode).to.eql(1);",
+            "    pm.expect(json.fuente).to.eql('defecto');",
+            "    pm.expect(json.id_tema_visual).to.eql(null);",
+            "});",
+            "if (json.theme_mode === 1 && json.fuente === 'defecto') {",
+            "    pm.collectionVariables.set('tc175', 'APROBADO');",
+            "} else {",
+            "    pm.collectionVariables.set('tc175', 'RECHAZADO');",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "99.1 RESTORE PATCH personal al snapshot",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const fuente = pm.collectionVariables.get('orig_resuelto_fuente');",
+              "const mode = Number(pm.collectionVariables.get('orig_resuelto_mode') || '1');",
+              "if (fuente === 'personal') {",
+              "    pm.request.body.raw = JSON.stringify({ theme_mode: mode });",
+              "} else {",
+              "    pm.request.body.raw = JSON.stringify({ theme_mode: mode });",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+              "const fuente = pm.collectionVariables.get('orig_resuelto_fuente');",
+              "pm.test('RESTORE personal PATCH HTTP 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "if (fuente !== 'personal') {",
+              "    console.log('RESTORE: el snapshot no era personal; no hay DELETE. Queda fila personal (ausencia no restaurable).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"theme_mode\": 1}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "99.2 RESTORE PATCH global al snapshot",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const existia = pm.collectionVariables.get('orig_global_existia');",
+              "const mode = Number(pm.collectionVariables.get('orig_global_mode') || '1');",
+              "pm.request.body.raw = JSON.stringify({ theme_mode: mode });"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+              "const existia = pm.collectionVariables.get('orig_global_existia');",
+              "pm.test('RESTORE global PATCH HTTP 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "if (existia === '1') {",
+              "    pm.test('RESTORE global theme_mode = snapshot', function () {",
+              "        pm.expect(pm.response.json().theme_mode).to.eql(Number(pm.collectionVariables.get('orig_global_mode')));",
+              "    });",
+              "} else {",
+              "    console.log('RESTORE: global original era null; no hay DELETE. Queda fila global.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"theme_mode\": 1}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    },
+    {
+      "name": "99.3 GET resuelto confirma restore",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "const origF = pm.collectionVariables.get('orig_resuelto_fuente');",
+            "const origM = Number(pm.collectionVariables.get('orig_resuelto_mode'));",
+            "pm.test('RESTORE GET resuelto HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (origF === 'personal') {",
+            "    pm.test('RESTORE theme_mode y fuente personal = snapshot', function () {",
+            "        pm.expect(json.theme_mode).to.eql(origM);",
+            "        pm.expect(json.fuente).to.eql('personal');",
+            "    });",
+            "} else {",
+            "    pm.test('RESTORE: snapshot no personal; GET sigue teniendo fuente personal (ausencia no restaurable)', function () {",
+            "        pm.expect(json.fuente).to.eql('personal');",
+            "    });",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "99.4 GET global confirma restore",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "const existia = pm.collectionVariables.get('orig_global_existia');",
+            "pm.test('RESTORE GET global HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (existia === '1') {",
+            "    pm.test('RESTORE GET global theme_mode = snapshot', function () {",
+            "        pm.expect(json.theme_mode).to.eql(Number(pm.collectionVariables.get('orig_global_mode')));",
+            "        pm.expect(json.es_global).to.eql(true);",
+            "    });",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/tema/global"
+      }
+    }
+  ]
+}

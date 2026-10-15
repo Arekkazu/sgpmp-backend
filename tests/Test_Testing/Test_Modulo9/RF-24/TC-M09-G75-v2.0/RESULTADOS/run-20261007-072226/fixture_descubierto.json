@@ -1,0 +1,59 @@
+{
+  "origenFixture": "oficial 3/6/3",
+  "dispositivo": {
+    "id": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "es_activo": true,
+    "id_infraestructura_propia": 1,
+    "fuenteLectura": "Administrador"
+  },
+  "sensor": {
+    "id": 6,
+    "nombre": "Sensor temperatura alevinera-01",
+    "categoria": "TEMPERATURA",
+    "es_activo": true,
+    "id_dispositivo_iot": 3,
+    "fuenteLectura": "Ingeniero"
+  },
+  "area": {
+    "id_infraestructura": 3,
+    "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+    "tiene_estado": true,
+    "fecha_finalizacion": null,
+    "fuenteLectura": "Administrador"
+  },
+  "historialInicial": {
+    "total": 3,
+    "ids": [
+      12,
+      11,
+      10
+    ]
+  },
+  "administradorAuxiliar": {
+    "intentos": [
+      {
+        "email": "admin.dev@gmail.com",
+        "resultado": "no autentica (login HTTP 401 CREDENCIALES_INVALIDAS)"
+      },
+      {
+        "email": "administador.dev@gmail.com",
+        "resultado": "autentica"
+      }
+    ],
+    "usado": "administador.dev@gmail.com",
+    "getsQueLoRequirieron": [
+      {
+        "endpoint": "/configuracion/dispositivos-iot/3",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/sensores/6/asociaciones",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      }
+    ],
+    "ejecutaPostFuncional": false
+  }
+}

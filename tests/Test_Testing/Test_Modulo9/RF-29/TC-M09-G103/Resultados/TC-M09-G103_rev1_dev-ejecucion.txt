@@ -1,0 +1,75 @@
+TC-M09-G103 / TC-M09-197 / RF-29 — ejecución oficial rev1 DEV
+Fecha: 2026-09-14
+Ambiente: DEV
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Herramienta: Newman (CLI + htmlextra + json), --insecure por certificado sslip.io
+Logins: 1 (POST /sesiones/). No /sesiones/refresh. No UI. No idioma global.
+
+Resultado general: RECHAZADO
+TC-M09-197: RECHAZADO
+
+1. Login
+   - POST /sesiones/ HTTP 200
+   - resultado: sesión iniciada (token no se documenta)
+
+2. Precheck idioma
+   - GET /configuracion/personalizacion/idioma HTTP 200
+   - locale original: es-CO
+   - fuente: global
+   - id_preferencia_idioma: 1
+   - version_perfil: 1
+
+3. Baseline auditoría M1
+   - GET /auditoria/?pagina=1&tamano=50 (parámetros del contrato; no page/size)
+   - HTTP 200
+   - total: 1676
+   - pagina 1, tamano 50
+   - items M1 (ejemplo observado): LOGIN_EXITOSO, modulo MODULO1, categoria AUTENTICACION, id_sesion presente en esos eventos de login
+   - no se usa como bitácora de RF-29
+
+4. Probe auditoría específica
+   - GET /configuracion/personalizacion/idioma/auditoria HTTP 404
+   - cuerpo: {"detail":"Not Found"}
+   - interpretación: no existe API de consulta de auditoría de idioma
+   - el 404 NO es PASS de TC-M09-197
+
+5. Preparación (no es 197)
+   - PATCH personal locale_code=es-CO HTTP 200
+   - GET confirma es-CO, fuente=personal, id_preferencia_idioma=6
+
+6. Cambio TC-M09-197
+   - VALOR ANTERIOR = es-CO
+   - VALOR NUEVO = en-US
+   - PATCH /configuracion/personalizacion/idioma HTTP 200
+   - respuesta locale_code=en-US, es_por_defecto=false (preferencia personal)
+
+7. GET posterior
+   - GET idioma HTTP 200
+   - locale_code=en-US
+   - demuestra persistencia del estado, no un historial de auditoría
+
+8. Auditoría posterior
+   - GET /auditoria/?pagina=1&tamano=50 HTTP 200
+   - Después del cambio es-CO → en-US no se encontró evento de auditoría correspondiente en modulo1.eventos.
+   - Newman: 1 aserción fallida (TC-M09-197 registro consultable)
+
+9. Validación de trazabilidad consultable por API
+   - usuario/sesión del CAMBIO de idioma: NO (solo existe id_sesion en eventos M1 de login/consulta, no ligados al PATCH idioma)
+   - fecha/hora del cambio como evento de auditoría: NO
+   - operación de cambio de idioma: NO
+   - valor anterior es-CO en auditoría: NO
+   - valor nuevo en-US en auditoría: NO
+   - sí se demostró por GET/PATCH el estado vigente en-US, que no sustituye la bitácora
+
+10. Restauración
+   - PATCH locale original es-CO HTTP 200
+   - GET confirma locale_code=es-CO
+   - restauración OK (la fuente puede quedar personal tras el upsert; el caso exige locale_code, no revertir fuente global)
+
+Conclusión:
+El cambio de idioma se persiste correctamente, pero no se genera ni se expone mediante API un registro de auditoría que permita verificar sesión, operación, valor anterior y valor nuevo. TC-M09-197 RECHAZADO.
+
+Newman: 11 requests, 19 assertions, 1 failed. No se reejecutó.
+
+Evidencia rev1 sanitizada (sin JWT ni password). El HTML histórico TC-M09-G103-Newman.html no se modificó (conserva secretos del run TEST; no reutilizar).

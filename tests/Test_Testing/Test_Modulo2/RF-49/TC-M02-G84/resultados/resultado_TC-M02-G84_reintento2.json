@@ -1,0 +1,57 @@
+{
+  "tc": "TC-M02-G84",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G84-REEVAL-V3-20260919-123938",
+  "veredicto": "Rechazado",
+  "nota_global": "Los 4 subcasos funcionales (143, 144, 145, 150) pasaron OK, pero se detectaron 2 incumplimientos del ciclo de vida declarado en Regla 5 de RF-49. Veredicto consolidado Rechazado hasta que se corrijan.",
+  "nota_teardown": "Asociaciones creadas permanecen activas en TEST por restricción RBAC (403 en PATCH) y ausencia de endpoint para desactivar ambientales.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: directa",
+      "obtenido": "HTTP 201 Created, id_asociacion: 52, ACTIVA, directa verificado (Sensor 25 en Activo 111)",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html"
+    },
+    {
+      "paso": "TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: ambiental",
+      "obtenido": "HTTP 201 Created, id_asociacion: 53, ACTIVA, ambiental verificado (Sensor 28 en Infraestructura 3)",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html"
+    },
+    {
+      "paso": "TC-M02-145: Asociar sensor POBLACIONAL a lote",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: poblacional",
+      "obtenido": "HTTP 201 Created, id_asociacion: 54, ACTIVA, poblacional verificado (Sensor 27 en Lote 53)",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html"
+    },
+    {
+      "paso": "TC-M02-150: Advertencia informativa por dispositivo IoT desconectado",
+      "esperado": "HTTP 201 Created + advertencia informativa conteniendo aviso de desconexión",
+      "obtenido": "HTTP 201 Created, id_asociacion: 55, advertencia: 'El dispositivo 3 se encuentra desconectado desde las 09:00:00. Las lecturas podrían no verse reflejadas de inmediato.'",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html",
+      "nota_qa": "Reasociación ejecutada exitosamente vía transición SUPERADA en el backend (asociación previa 48 superada, nueva asociación 55 creada como ACTIVA con advertencia generada por fix #347)."
+    },
+    {
+      "paso": "TC-M02-G84 - Ciclo de vida: Admin debe poder desactivar asociaciones vía PATCH (RF-49 Regla 5)",
+      "esperado": "HTTP 200 OK al desactivar asociación con PATCH /activos-biologicos/{id}/sensores/{id_asoc}",
+      "obtenido": "HTTP 403 Forbidden ACCESO_DENEGADO en las 3 asociaciones creadas (ids 52, 54, 55). Rol Admin no tiene permiso UPDATE (acción 3) sobre recurso 30.",
+      "estado": "FALLA",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html",
+      "nota_qa": "Incumplimiento directo de RF-49: el requerimiento declara al Admin como actor capaz de desactivar asociaciones."
+    },
+    {
+      "paso": "TC-M02-G84 - Ciclo de vida: Asociaciones ambientales deben poder desactivarse vía API (RF-49 Regla 5)",
+      "esperado": "Endpoint PATCH o DELETE disponible para asociaciones ambientales en /infraestructuras/{id}/sensores",
+      "obtenido": "HTTP 404 Not Found. El router infraestructura_sensor_router.py solo expone POST.",
+      "estado": "FALLA",
+      "fuente": "evidencias/v3-run-20260919/resultado_TC-M02-G84_reintento2.html",
+      "nota_qa": "Incumplimiento de RF-49 Regla 5: 'ACTIVA → INACTIVA (desactivación manual)' no hace excepción por tipo de asociación."
+    }
+  ]
+}

@@ -1,0 +1,452 @@
+{
+  "info": {
+    "name": "TC-M09-G130 - tipo_dato, es_obligatorio, valor_min y valor_max de la Metrica productiva (RFC-004 / RF-16 v1.2)",
+    "description": "RF-16 v1.2 (RFC-004): tipo_dato obligatorio y explicito (NUMERICO/ENTERO/TEXTO/BOOLEANO), es_obligatorio=false por defecto, valor_min/valor_max solo para NUMERICO/ENTERO con min<=max, retrocompatibilidad. Crea metricas QA en la especie 4 y las desactiva al final.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('rid', String(Date.now()).slice(-8));",
+              "pm.collectionVariables.set('ids_creadas','[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-256 - Rechazar metrica sin tipo_dato",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-256] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-256 - Rechazar metrica sin tipo_dato: HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} sin td\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-257 - Rechazar tipo_dato fuera del dominio (FLOAT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-257] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-257 - Rechazar tipo_dato fuera del dominio (FLOAT): HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} td float\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"FLOAT\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-258a - tipo_dato no se infiere de tipo_medicion: PESO sin tipo_dato se rechaza",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-258a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-258a - tipo_dato no se infiere de tipo_medicion: PESO sin tipo_dato se rechaza: HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} peso sin td\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-258b - es_obligatorio omitido queda en false",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-258b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-258b - es_obligatorio omitido queda en false: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }",
+              "pm.test('TC-M09-258b - es_obligatorio=false en la respuesta', function () { pm.expect(b.es_obligatorio).to.eql(false); });",
+              "pm.test('TC-M09-258b - tipo_dato=NUMERICO persistido tal como se envio', function () { pm.expect(b.tipo_dato).to.eql('NUMERICO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} eo default\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-259 - Rechazar valor_min mayor que valor_max",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-259] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-259 - Rechazar valor_min mayor que valor_max: HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} min gt max\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"NUMERICO\",\n  \"valor_min\": 50,\n  \"valor_max\": 10\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-260 - valor_min/valor_max se ignoran con tipo_dato TEXTO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-260] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-260 - valor_min/valor_max se ignoran con tipo_dato TEXTO: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }",
+              "pm.test('TC-M09-260 - valor_min nulo en la respuesta', function () { pm.expect(b.valor_min === null || b.valor_min === undefined).to.eql(true); pm.expect('valor_min' in b).to.eql(true); });",
+              "pm.test('TC-M09-260 - valor_max nulo en la respuesta', function () { pm.expect(b.valor_max === null || b.valor_max === undefined).to.eql(true); pm.expect('valor_max' in b).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} texto minmax\",\n  \"unidad_medida\": \"texto\",\n  \"tipo_medicion\": \"OTRO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"TEXTO\",\n  \"valor_min\": 1,\n  \"valor_max\": 9\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-261 - Aceptar ENTERO con valor_min igual a valor_max",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M09-261] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-261 - Aceptar ENTERO con valor_min igual a valor_max: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "if (pm.response.code === 201 && b.id_metrica_produccion) { const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids)); }",
+              "pm.test('TC-M09-261 - valor_min=5 y valor_max=5 persistidos', function () { pm.expect(Number(b.valor_min)).to.eql(5); pm.expect(Number(b.valor_max)).to.eql(5); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 {{rid}} ent 5 5\",\n  \"unidad_medida\": \"unidades\",\n  \"tipo_medicion\": \"CONTEO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"ENTERO\",\n  \"valor_min\": 5,\n  \"valor_max\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M09-262 - Buscar metricas legacy sin tipo_dato en la especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET metricas responde 200', function () { pm.response.to.have.status(200); });",
+              "const b = pm.response.json(); const legacy = (b.items || []).filter((m) => m.tipo_dato === null || m.tipo_dato === undefined || m.tipo_dato === '');",
+              "console.log('[TC-M09-262] metricas legacy sin tipo_dato en especie 4: ' + legacy.length);",
+              "if (legacy.length === 0) { pm.test.skip('TC-M09-262 NO EJECUTABLE: TEST no tiene metricas legacy sin tipo_dato (el backend ya no permite crearlas); requiere una fixture de BD'); } else { pm.test('TC-M09-262 - metrica legacy con es_obligatorio=false', function () { pm.expect(legacy[0].es_obligatorio).to.eql(false); }); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    },
+    {
+      "name": "Limpieza - desactivar las metricas creadas por este caso",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); const base = pm.collectionVariables.get('base_url'); const tok = pm.collectionVariables.get('token_admin'); ids.forEach(function (id) { pm.sendRequest({ url: base + '/configuracion/metricas/' + id + '/desactivar', method: 'PATCH', header: { Authorization: 'Bearer ' + tok } }, function () {}); });"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Limpieza ejecutada (GET 200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "3"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "6"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "2"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    },
+    {
+      "key": "fecha_inicio",
+      "value": ""
+    },
+    {
+      "key": "ids_creadas",
+      "value": "[]"
+    }
+  ]
+}

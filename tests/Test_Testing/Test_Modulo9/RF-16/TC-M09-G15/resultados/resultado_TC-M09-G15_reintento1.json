@@ -1,0 +1,32 @@
+{
+  "tc": "TC-M09-G15",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-13",
+  "run_id": "G15-REEVAL-V2-20260913-174300",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M09-36: Impedir desactivación de etapa con activos biológicos asociados (PATCH /configuracion/ciclos/10/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: ETAPA_CON_ACTIVOS",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: ETAPA_CON_ACTIVOS",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M09-G15_reintento1.html"
+    },
+    {
+      "paso": "TC-M09-37: Impedir desactivación de patología con dependencias sanitarias asociadas (PATCH /configuracion/patologias/7/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: PATOLOGIA_CON_DEPENDENCIAS",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: PATOLOGIA_CON_DEPENDENCIAS",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M09-G15_reintento1.html"
+    },
+    {
+      "paso": "TC-M09-38: Impedir desactivación de métrica de producción con registros asociados (PATCH /configuracion/metricas/1/desactivar)",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: METRICA_CON_REGISTROS",
+      "obtenido": "HTTP 500 Internal Server Error: defecto INC-M09-07 reproducible en backend al deserializar tipo_medicion legacy ('manual' vs enum TipoMedicion)",
+      "estado": "FALLA",
+      "fuente": "resultados/resultado_TC-M09-G15_reintento1.html",
+      "nota_qa": "Reevaluación V2 confirma corrección de stubs en TC-M09-37, pero revela defecto bloqueante INC-M09-07 (HTTP 500) en TC-M09-38 por inconsistencia de datos legacy en métricas_producción."
+    }
+  ]
+}

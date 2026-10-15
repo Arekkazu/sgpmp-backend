@@ -1,0 +1,34 @@
+# git_pre.txt — TC-M09-G75-v2.0
+# NOTA DE CORRECCION: la captura original de este archivo fallo porque el runner resolvia
+# la raiz del repositorio contando niveles de directorio, y todos los comandos git
+# devolvieron 'not a git repository'. El defecto se corrigio en run-newman.cjs (ahora la
+# raiz se localiza subiendo hasta encontrar .git) y este archivo se regenero el
+# 2026-10-07T07:45:57Z con comandos de SOLO LECTURA, sin reejecutar ningun POST.
+# El estado mostrado es el posterior al RUN; el commit es el mismo con el que se ejecuto.
+
+$ git branch --show-current
+qa/juan-esteban-rf24-v2
+
+$ git status --short
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/
+
+$ git diff --stat
+(vacio = sin cambios en archivos trackeados)
+
+$ git diff --cached --stat
+(vacio = nada indexado)
+
+$ git rev-parse HEAD
+30ddd72144102a60af006b265a20cb18c1c72c85
+
+$ git rev-parse origin/test
+30ddd72144102a60af006b265a20cb18c1c72c85
+
+$ git rev-list --left-right --count HEAD...origin/test
+0	0
+
+# Carpeta historica TC-M09-G75 (debe quedar intacta)
+$ git status --short -- tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75
+(vacio = intacta)

@@ -1,0 +1,382 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g31-reeval-v4",
+    "name": "TC-M02-G31 - Valores límite en la gestión de lotes (RF-36 / RF-40 / RF-45)",
+    "description": "Suite de pruebas para el caso agrupado TC-M02-G31 correspondiente al RF-36 (Gestión Poblacional). Incluye el folder TC-M02-196 (evaluación de densidad de lote en evento de crecimiento con densidad exacta al límite) y el folder TC-M02-197 (evaluación de baja total hasta cantidad_actual=0 y biomasa_total=0 sobre lote preexistente).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_especie",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_197",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cantidad_baja_197",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_baja_dinamica",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticación Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('0. Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-196",
+      "description": "Subcaso TC-M02-196: Evaluación de densidad de lote ante evento de crecimiento en el límite exacto (densidad_actual == densidad_maxima)",
+      "item": [
+        {
+          "name": "1. Registrar evento de crecimiento con densidad exacta al límite (TC-M02-196)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"frecuencia\": \"SEMANAL\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento con densidad limite exacto TC-M02-196\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/crecimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote}}",
+                "eventos",
+                "crecimiento"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-196: Crecimiento con densidad límite exacta aceptado (HTTP 201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.be.an('object');",
+                  "    pm.expect(res.evento).to.be.an('object');",
+                  "    pm.expect(res.evento.id_eventos).to.be.a('number');",
+                  "    pm.expect(res.error_code).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar estado y métricas del lote tras crecimiento (TC-M02-196)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-196: Consulta de lote tras crecimiento completada (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_lote') || pm.environment.get('id_lote')));",
+                  "    pm.expect(res.detalle_poblacional).to.be.an('object');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.be.above(0);",
+                  "    pm.expect(res.id_estado).to.eql(1);",
+                  "    pm.expect(res.nombre_estado).to.eql('ACTIVO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Teardown - Confirmar estado del lote y no alteración física (TC-M02-196)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teardown TC-M02-196: Confirmar lote en estado ACTIVO', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.id_estado).to.eql(1);",
+                  "    pm.expect(res.nombre_estado).to.eql('ACTIVO');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-197",
+      "description": "Subcaso TC-M02-197: Baja total hasta cantidad_actual=0 y biomasa_total=0 sobre lote poblacional preexistente",
+      "item": [
+        {
+          "name": "1. Aplicar baja total sobre lote preexistente (TC-M02-197)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_baja\": \"VENTA\",\n  \"fecha_baja\": \"{{fecha_baja_dinamica}}\",\n  \"motivo_baja\": \"Baja total hasta cero QA-TC-M02-197 sobre lote preexistente\",\n  \"cantidad_afectada\": {{cantidad_baja_197}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_197}}/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote_197}}",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const safeDate = new Date(Date.now() - 60000).toISOString().split('T')[0];",
+                  "pm.collectionVariables.set('fecha_baja_dinamica', safeDate);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-197: Baja total aceptada exitosamente (HTTP 201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.be.an('object');",
+                  "    pm.expect(res.id_eventos).to.be.a('number');",
+                  "    pm.expect(res.baja).to.be.an('object');",
+                  "    pm.expect(res.baja.cantidad_afectada).to.eql(Number(pm.collectionVariables.get('cantidad_baja_197') || pm.environment.get('cantidad_baja_197')));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar lote tras baja total (TC-M02-197)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_197}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote_197}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-197: Consulta de lote tras baja total completada (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.id_estado).to.eql(6);",
+                  "    pm.expect(res.nombre_estado).to.eql('BAJA');",
+                  "    pm.expect(res.detalle_poblacional).to.be.an('object');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                  "    pm.expect(Number(res.detalle_poblacional.biomasa_total)).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Teardown - Confirmar estado terminal BAJA sin residuos activos (TC-M02-197)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_197}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_lote_197}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teardown TC-M02-197: Confirmar estado terminal BAJA y cantidad_actual en cero', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.id_estado).to.eql(6);",
+                  "    pm.expect(res.nombre_estado).to.eql('BAJA');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                  "    pm.expect(Number(res.detalle_poblacional.biomasa_total)).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "TC-M02-G105 - Reintento 3 (2026-10-04, TEST) - CA-8: Productor debe quedar restringido a sus activos",
+    "description": "Reintento 3 en TEST. El reintento2 (2026-09-19) pasaba 7/7 porque su aserción para el Productor documentaba el 200 en vez de exigir el comportamiento de la ficha. Esta versión exige lo correcto: el Productor NO debe leer la bitacora de un activo que no le pertenece (403 o 404). En vivo (2026-10-04) el Productor sigue recibiendo 200 con 4 clasificaciones -- el defecto sigue abierto. Contador (CA-8 por clasificación) sí corregido: sólo TRANSFORMACION_BIOLOGICA/SANITARIO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion (a) - Iniciar sesion como Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login Productor exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_productor', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (a) - Productor NO debe leer bitacora de activo ajeno (403/404 esperado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('el Productor no obtiene la bitacora de un activo que no le pertenece (403 o 404)', function () { pm.expect([403,404]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "id_activo_biologico",
+              "value": "{{id_activo}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (b) - Iniciar sesion como Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login Contador exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_contador', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{contador_correo}}\",\n  \"contrasena\": \"{{contador_contrasena}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (b) - Contador lee bitacora (CORREGIDO: solo TRANSFORMACION_BIOLOGICA/SANITARIO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const clasificaciones = new Set((respuesta.registros || []).map(function(r){ return r.clasificacion_biologica; }));",
+              "pm.test('CORREGIDO: el Contador ya NO ve GESTION_OPERATIVA', function () { pm.expect(clasificaciones.has('GESTION_OPERATIVA')).to.equal(false); });",
+              "pm.test('CORREGIDO: el Contador ya NO ve CONTROL_ESTADO', function () { pm.expect(clasificaciones.has('CONTROL_ESTADO')).to.equal(false); });",
+              "console.log('CONCLUSION: la restriccion por clasificacion (rol Contador) esta corregida; la restriccion por propiedad (rol Productor) sigue rota -- ver sub-caso (a).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "id_activo_biologico",
+              "value": "{{id_activo}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "productor_correo",
+      "value": "m2m.nuevo@ejemplo.com"
+    },
+    {
+      "key": "productor_contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "contador_correo",
+      "value": "contador@pecuaria.co"
+    },
+    {
+      "key": "contador_contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "id_activo",
+      "value": "240"
+    }
+  ]
+}

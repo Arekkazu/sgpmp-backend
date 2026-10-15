@@ -1,0 +1,268 @@
+{
+  "ciclos": {
+    "productor": {
+      "actor": "Productor",
+      "id_usuario": 35,
+      "id_activo": 290,
+      "origen": 48,
+      "destino_a": 47,
+      "destino_b": 51,
+      "tiempos": {
+        "barrera": 1095278.5970972,
+        "inicio_a": 0.003993799909949303,
+        "fin_a": 0.8302097998093814,
+        "inicio_b": 0.0036193998530507088,
+        "fin_b": 0.8109854999929667
+      },
+      "solapan": true,
+      "respuestas": {
+        "A": {
+          "destino": 47,
+          "http": 201,
+          "cuerpo": {
+            "id_movimiento": 27,
+            "id_activo_biologico": 290,
+            "infraestructura_origen": "Corral QA JE Origen",
+            "infraestructura_destino": "Corral QA JE Capacidad",
+            "fecha_transferencia": "2026-09-10T00:00:00Z",
+            "motivo_transferencia": "TC-M02-142 concurrencia A",
+            "mensaje": "Transferencia registrada exitosamente. El activo fue transferido a Corral QA JE Capacidad en fecha 2026-09-10."
+          }
+        },
+        "B": {
+          "destino": 51,
+          "http": 409,
+          "cuerpo": {
+            "error_code": "TRANSFERENCIA_CONCURRENTE",
+            "message": "Existe una operación de transferencia en progreso para el activo 290. Espere a que finalice e intente nuevamente.",
+            "fields": [],
+            "timestamp": "2026-09-10T10:36:10.969853+00:00"
+          }
+        }
+      },
+      "ganador": "A",
+      "destino_ganador": 47,
+      "perdedor": "B",
+      "destino_perdedor": 51,
+      "id_movimiento": 27,
+      "antes": {
+        "activo": {
+          "estado": "ACTIVO",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 40,
+          "id_infraestructura": 48,
+          "n_historial": 1,
+          "asociaciones_vigentes": 1,
+          "n_movimientos": 0
+        },
+        "origen": {
+          "id": 48,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Origen",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 1000,
+          "id_especie": null,
+          "ocupacion": 221
+        },
+        "destino_a": {
+          "id": 47,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Capacidad",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 50,
+          "id_especie": 40,
+          "ocupacion": 48
+        },
+        "destino_b": {
+          "id": 51,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Destino OK",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 200,
+          "id_especie": 40,
+          "ocupacion": 2
+        },
+        "movimientos_globales": 22,
+        "max_id_movimiento": 26,
+        "historial_global": 251
+      },
+      "despues": {
+        "activo": {
+          "estado": "ACTIVO",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 40,
+          "id_infraestructura": 47,
+          "n_historial": 2,
+          "asociaciones_vigentes": 1,
+          "n_movimientos": 1
+        },
+        "origen": {
+          "id": 48,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Origen",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 1000,
+          "id_especie": null,
+          "ocupacion": 220
+        },
+        "ganador": {
+          "id": 47,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Capacidad",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 50,
+          "id_especie": 40,
+          "ocupacion": 49
+        },
+        "perdedor": {
+          "id": 51,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Destino OK",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 200,
+          "id_especie": 40,
+          "ocupacion": 2
+        },
+        "id_movimiento": 27
+      }
+    },
+    "admin": {
+      "actor": "Administrador",
+      "id_usuario": 1,
+      "id_activo": 294,
+      "origen": 51,
+      "destino_a": 48,
+      "destino_b": 47,
+      "tiempos": {
+        "barrera": 1095302.5097464,
+        "inicio_a": 0.001159599982202053,
+        "fin_a": 0.7220536000095308,
+        "inicio_b": 0.0010855000000447035,
+        "fin_b": 0.7297271999996156
+      },
+      "solapan": true,
+      "respuestas": {
+        "A": {
+          "destino": 48,
+          "http": 409,
+          "cuerpo": {
+            "error_code": "TRANSFERENCIA_CONCURRENTE",
+            "message": "Existe una operación de transferencia en progreso para el activo 294. Espere a que finalice e intente nuevamente.",
+            "fields": [],
+            "timestamp": "2026-09-10T10:36:34.791048+00:00"
+          }
+        },
+        "B": {
+          "destino": 47,
+          "http": 201,
+          "cuerpo": {
+            "id_movimiento": 28,
+            "id_activo_biologico": 294,
+            "infraestructura_origen": "Corral QA JE Destino OK",
+            "infraestructura_destino": "Corral QA JE Capacidad",
+            "fecha_transferencia": "2026-09-10T00:00:00Z",
+            "motivo_transferencia": "TC-M02-142 concurrencia B",
+            "mensaje": "Transferencia registrada exitosamente. El activo fue transferido a Corral QA JE Capacidad en fecha 2026-09-10."
+          }
+        }
+      },
+      "ganador": "B",
+      "destino_ganador": 47,
+      "perdedor": "A",
+      "destino_perdedor": 48,
+      "id_movimiento": 28,
+      "antes": {
+        "activo": {
+          "estado": "ACTIVO",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 40,
+          "id_infraestructura": 51,
+          "n_historial": 2,
+          "asociaciones_vigentes": 1,
+          "n_movimientos": 1
+        },
+        "origen": {
+          "id": 51,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Destino OK",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 200,
+          "id_especie": 40,
+          "ocupacion": 2
+        },
+        "destino_a": {
+          "id": 48,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Origen",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 1000,
+          "id_especie": null,
+          "ocupacion": 220
+        },
+        "destino_b": {
+          "id": 47,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Capacidad",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 50,
+          "id_especie": 40,
+          "ocupacion": 49
+        },
+        "movimientos_globales": 23,
+        "max_id_movimiento": 27,
+        "historial_global": 252
+      },
+      "despues": {
+        "activo": {
+          "estado": "ACTIVO",
+          "tipo": "INDIVIDUAL",
+          "id_especie": 40,
+          "id_infraestructura": 47,
+          "n_historial": 3,
+          "asociaciones_vigentes": 1,
+          "n_movimientos": 2
+        },
+        "origen": {
+          "id": 51,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Destino OK",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 200,
+          "id_especie": 40,
+          "ocupacion": 1
+        },
+        "ganador": {
+          "id": 47,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Capacidad",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 50,
+          "id_especie": 40,
+          "ocupacion": 50
+        },
+        "perdedor": {
+          "id": 48,
+          "id_finca": 57,
+          "nombre": "Corral QA JE Origen",
+          "tipo": "Corral",
+          "es_activo": true,
+          "capacidad_maxima": 1000,
+          "id_especie": null,
+          "ocupacion": 220
+        },
+        "id_movimiento": 28
+      }
+    }
+  }
+}

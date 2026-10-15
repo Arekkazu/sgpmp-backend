@@ -1,0 +1,390 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g10-rf33",
+    "name": "TC-M02-G10 - Validacion de existencia y estado activo de llaves foraneas",
+    "description": "Pruebas TC-M02-009 y TC-M02-010 del RF-33. Valida que especie_id e infraestructura_id correspondan a registros existentes y activos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "email",
+      "value": "productor@pecuaria.co"
+    },
+    {
+      "key": "password",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{email}}\",\n  \"contrasena\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Login exitoso - HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test(\"La respuesta contiene token\", function () {",
+              "    pm.expect(json.token).to.be.a(\"string\").and.not.empty;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"token\", json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Obtener fincas activas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas?solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ],
+          "query": [
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de fincas activas - HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const fincas = Array.isArray(json) ? json : (json.fincas || json.items || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una finca activa\", function () {",
+              "    pm.expect(fincas.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "if (fincas.length > 0) {",
+              "    const finca = fincas[0];",
+              "    pm.collectionVariables.set(\"finca_id\", finca.id_finca || finca.finca_id || finca.id);",
+              "    console.log(\"Finca seleccionada:\", finca);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Obtener especie valida",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de especies - HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const especies = Array.isArray(json) ? json : (json.especies || json.items || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una especie disponible\", function () {",
+              "    pm.expect(especies.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "if (especies.length > 0) {",
+              "    const especie = especies[0];",
+              "    const especieId = especie.id_especie || especie.especie_id || especie.id;",
+              "",
+              "    pm.expect(especieId).to.not.be.undefined;",
+              "    pm.collectionVariables.set(\"especie_id\", especieId);",
+              "",
+              "    console.log(\"Especie seleccionada:\", especie);",
+              "    console.log(\"especie_id:\", especieId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Obtener infraestructura disponible",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{finca_id}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de infraestructuras - HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const infraestructuras = Array.isArray(json) ? json : (json.infraestructuras || json.items || json.data || []);",
+              "",
+              "pm.test(\"Existe al menos una infraestructura disponible\", function () {",
+              "    pm.expect(infraestructuras.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "if (infraestructuras.length > 0) {",
+              "    const infraestructura = infraestructuras[0];",
+              "    const infraestructuraId = infraestructura.id_infraestructura || infraestructura.infraestructura_id || infraestructura.id;",
+              "",
+              "    pm.expect(infraestructuraId).to.not.be.undefined;",
+              "    pm.collectionVariables.set(\"infraestructura_id\", infraestructuraId);",
+              "",
+              "    console.log(\"Infraestructura seleccionada:\", infraestructura);",
+              "    console.log(\"infraestructura_id:\", infraestructuraId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M02-009 - Rechazar especie inexistente o inactiva",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"identificador\": \"G10-ESPECIE-INVALIDA-{{$timestamp}}\",\n  \"id_especie\": 9999,\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"peso_inicial\": 400,\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"Soporte prueba TC-M02-G10\",\n  \"id_infraestructura\": {{infraestructura_id}}\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M02-009 - HTTP 400 BAD REQUEST\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "const texto = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test(\"TC-M02-009 - La respuesta identifica el error de especie\", function () {",
+              "    pm.expect(texto).to.include(\"especie\");",
+              "});",
+              "",
+              "pm.test(\"TC-M02-009 - La respuesta corresponde a una validacion de llave foranea\", function () {",
+              "    pm.expect(texto).to.satisfy(function (body) {",
+              "        return body.includes(\"no existe\") ||",
+              "               body.includes(\"no encontrada\") ||",
+              "               body.includes(\"invalida\") ||",
+              "               body.includes(\"inválida\") ||",
+              "               body.includes(\"inactiva\") ||",
+              "               body.includes(\"val_entrada\") ||",
+              "               body.includes(\"validacion\") ||",
+              "               body.includes(\"validación\");",
+              "    });",
+              "});",
+              "",
+              "pm.test(\"TC-M02-009 - No se crea el activo\", function () {",
+              "    pm.expect(json.id_activo_biologico || json.id).to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. TC-M02-010 - Rechazar infraestructura inexistente o inactiva",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"identificador\": \"G10-INFRA-INVALIDA-{{$timestamp}}\",\n  \"id_especie\": {{especie_id}},\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"peso_inicial\": 400,\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"Soporte prueba TC-M02-G10\",\n  \"id_infraestructura\": 9999\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M02-010 - HTTP 400 BAD REQUEST\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "const texto = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test(\"TC-M02-010 - La respuesta identifica el error de infraestructura\", function () {",
+              "    pm.expect(texto).to.satisfy(function (body) {",
+              "        return body.includes(\"infraestructura\") ||",
+              "               body.includes(\"id_infraestructura\");",
+              "    });",
+              "});",
+              "",
+              "pm.test(\"TC-M02-010 - La respuesta corresponde a una validacion de llave foranea\", function () {",
+              "    pm.expect(texto).to.satisfy(function (body) {",
+              "        return body.includes(\"no existe\") ||",
+              "               body.includes(\"no encontrada\") ||",
+              "               body.includes(\"invalida\") ||",
+              "               body.includes(\"inválida\") ||",
+              "               body.includes(\"inactiva\") ||",
+              "               body.includes(\"val_entrada\") ||",
+              "               body.includes(\"validacion\") ||",
+              "               body.includes(\"validación\");",
+              "    });",
+              "});",
+              "",
+              "pm.test(\"TC-M02-010 - No se crea el activo\", function () {",
+              "    pm.expect(json.id_activo_biologico || json.id).to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

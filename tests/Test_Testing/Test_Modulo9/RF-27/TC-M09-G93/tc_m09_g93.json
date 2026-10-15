@@ -1,0 +1,117 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g93-rf27",
+    "name": "TC-M09-G93 - Restricción de rol para la modificación global del tema",
+    "description": "Validación de autorización server-side para impedir que un usuario no Administrador modifique la configuración global del tema.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login usuario no administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login del usuario no administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json.token).to.exist;",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Intentar modificar tema global como usuario no administrador",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 2\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema/global",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema",
+            "global"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Usuario no administrador recibe HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "",
+              "pm.test('La respuesta indica acceso denegado', function () {",
+              "    pm.expect(json).to.have.property('error_code');",
+              "    pm.expect(json.error_code).to.eql('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "pm.test('No se devuelve una configuración global modificada', function () {",
+              "    pm.expect(json).to.not.have.property('theme_mode');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

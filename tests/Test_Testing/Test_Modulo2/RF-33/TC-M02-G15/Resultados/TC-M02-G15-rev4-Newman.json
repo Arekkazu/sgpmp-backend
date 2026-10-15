@@ -1,0 +1,3215 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+        "name": "01 login m2m BOLA",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                "var b = pm.response.json();",
+                "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+              ],
+              "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+            }
+          }
+        ]
+      },
+      {
+        "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+        "name": "02 TC-M02-027 GET activo ajeno",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_bola}}"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED]"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "13522598-d3a1-4aaf-b4e1-46e7cf5bd863",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+              ],
+              "_lastExecutionId": "be6911e2-5689-46ce-93a2-bfaeaa7e812a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+        "name": "03 login productor 028",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+              "type": "text/javascript",
+              "exec": [
+                "var b = pm.response.json();",
+                "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+              ],
+              "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+            }
+          }
+        ]
+      },
+      {
+        "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+        "name": "04 login ingeniero 031",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "bf0db258-922b-48e4-848b-9f92ffb055fe",
+              "type": "text/javascript",
+              "exec": [
+                "var code = pm.response.code;",
+                "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+                "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+              ],
+              "_lastExecutionId": "3bcb29ef-843d-4a96-a953-dbc207e5deca"
+            }
+          }
+        ]
+      },
+      {
+        "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+        "name": "05 TC-M02-031 GET ficha propio 350",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_bola}}"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED]"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+              "type": "text/javascript",
+              "exec": [
+                "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+              ],
+              "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "contrasena"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_bola"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_ing"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_prod"
+      },
+      {
+        "type": "any",
+        "value": "350",
+        "key": "id_activo_bola"
+      }
+    ],
+    "info": {
+      "_postman_id": "f4a10332-a0d3-4632-8844-572795198f44",
+      "name": "TC-M02-G15 rev4",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Reevaluacion TEST. GET-only para BOLA (el PATCH controlado vive en pytest). No sobrescribe rev2/rev3. Password via --env-var.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "74e8294f-4183-428e-9c3a-c479932314f6",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend",
+        "key": "contrasena"
+      }
+    ]
+  },
+  "globals": {
+    "id": "fd29308f-167e-4d8a-913a-07067bcfbdc9",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 1
+      },
+      "prerequests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 4,
+        "pending": 0,
+        "failed": 2
+      },
+      "testScripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 1
+      }
+    },
+    "timings": {
+      "responseAverage": 1258.6,
+      "responseMin": 122,
+      "responseMax": 5697,
+      "responseSd": 2219.362485039341,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1790403245844,
+      "completed": 1790403252534
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "4247034d-5285-4daf-8752-156a04319c11",
+          "httpRequestId": "c1706578-8202-4cda-a954-0c3c90659e81"
+        },
+        "item": {
+          "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+          "name": "01 login m2m BOLA",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+                ],
+                "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "76ffd4ff-4aaa-44b0-bcd2-96f16a9ecebd",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "130",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\"\n}"
+          }
+        },
+        "response": {
+          "id": "307f0e88-1e35-422d-81e1-26239287429c",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "212"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:14:10 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "c644e37f-3f3d-4da4-8be5-32512e0d8fe6"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              55,
+              48,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              99,
+              117,
+              101,
+              114,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              117,
+              110,
+              32,
+              74,
+              83,
+              79,
+              78,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              49,
+              52,
+              58,
+              49,
+              49,
+              46,
+              52,
+              48,
+              52,
+              48,
+              54,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 5697,
+          "responseSize": 212
+        },
+        "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+        "assertions": [
+          {
+            "assertion": "login bola",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "login bola",
+              "message": "expected 400 to deeply equal 200",
+              "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:1)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "d45c0df1-47f3-486f-aa66-c4fd1aaa9602",
+          "length": 5,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "8ba5bc21-80bc-4786-b5ca-6edee4e3b528"
+        },
+        "item": {
+          "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+          "name": "02 TC-M02-027 GET activo ajeno",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_bola}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer [REDACTED]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "13522598-d3a1-4aaf-b4e1-46e7cf5bd863",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+                ],
+                "_lastExecutionId": "be6911e2-5689-46ce-93a2-bfaeaa7e812a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "350"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "a639eda3-6296-4cfa-8d76-935bc4c804d8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d6600c2c-7713-4c98-92a6-c94906ef6ce7",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "168"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:14:10 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "2338a429-7f4d-4319-a635-24304fd4fd7c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              81,
+              85,
+              69,
+              82,
+              73,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              101,
+              114,
+              101,
+              32,
+              97,
+              117,
+              116,
+              101,
+              110,
+              116,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              32,
+              80,
+              114,
+              111,
+              112,
+              111,
+              114,
+              99,
+              105,
+              111,
+              110,
+              97,
+              32,
+              117,
+              110,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              49,
+              52,
+              58,
+              49,
+              49,
+              46,
+              54,
+              52,
+              50,
+              52,
+              48,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 145,
+          "responseSize": 168
+        },
+        "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+        "assertions": [
+          {
+            "assertion": "GET no expone 200 ficha",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "92b6a93c-d9c3-4e7e-8df2-07efa0d42f79",
+          "length": 5,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "c373385f-43da-4c4a-bc9f-ab95ed6b3071"
+        },
+        "item": {
+          "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+          "name": "03 login productor 028",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                  "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ],
+                "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0ced483c-82b8-445c-b795-5f0230989f99",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "130",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\"\n}"
+          }
+        },
+        "response": {
+          "id": "8c33578e-f91b-448f-8199-2f28e83345dc",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "212"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:14:11 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "3b3bf975-02c9-459b-9927-6442e3fd0f0c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              55,
+              48,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              99,
+              117,
+              101,
+              114,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              117,
+              110,
+              32,
+              74,
+              83,
+              79,
+              78,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              49,
+              52,
+              58,
+              49,
+              49,
+              46,
+              56,
+              51,
+              57,
+              53,
+              50,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 130,
+          "responseSize": 212
+        },
+        "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+        "assertions": [
+          {
+            "assertion": "login productor",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "login productor",
+              "message": "expected 400 to deeply equal 200",
+              "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1e3f9e34-6b8e-47ec-8bdf-bce8755b5164",
+          "length": 5,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "2b036fd9-2a0e-4867-b80c-3e8b3832abf8"
+        },
+        "item": {
+          "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+          "name": "04 login ingeniero 031",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bf0db258-922b-48e4-848b-9f92ffb055fe",
+                "type": "text/javascript",
+                "exec": [
+                  "var code = pm.response.code;",
+                  "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+                  "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+                ],
+                "_lastExecutionId": "3bcb29ef-843d-4a96-a953-dbc207e5deca"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "71fb9a8d-1595-4c94-9f04-c255ee95ffe6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "130",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\"\n}"
+          }
+        },
+        "response": {
+          "id": "36440d10-56f9-4f09-8dfc-b7fe6bc43176",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "212"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:14:11 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1ddb0529-44de-4c93-8cc7-c30950e7f223"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              55,
+              48,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              99,
+              117,
+              101,
+              114,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              117,
+              110,
+              32,
+              74,
+              83,
+              79,
+              78,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              49,
+              52,
+              58,
+              49,
+              50,
+              46,
+              48,
+              53,
+              55,
+              52,
+              53,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 199,
+          "responseSize": 212
+        },
+        "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+        "assertions": [
+          {
+            "assertion": "login ingeniero registrado",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "872f568f-ea74-4903-a22e-1105d4da4aea",
+          "length": 5,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "bd917c70-7103-41fc-9908-a5b9e5cde2e2"
+        },
+        "item": {
+          "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+          "name": "05 TC-M02-031 GET ficha propio 350",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_bola}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer [REDACTED]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+                ],
+                "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+              }
+            }
+          ]
+        },
+        "prerequestScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "Error",
+              "message": "sin token ingeniero",
+              "checksum": "ebcb0dd9f1e823a624052f8f7a53ef05",
+              "id": "8e7776a8-cf0c-4a63-ba63-3d0bfb62eb07",
+              "timestamp": 1790403252350,
+              "stacktrace": []
+            }
+          }
+        ],
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "350"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [REDACTED]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c9aa71f6-7e79-4261-beb4-c02b5a45e48f",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "8e68bd9b-340a-49fc-a578-fbfe0a57ca0e",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "168"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:14:11 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "5857eae6-e26c-4a09-81d3-9ecc5c2f8a7c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              81,
+              85,
+              69,
+              82,
+              73,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              101,
+              114,
+              101,
+              32,
+              97,
+              117,
+              116,
+              101,
+              110,
+              116,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              32,
+              80,
+              114,
+              111,
+              112,
+              111,
+              114,
+              99,
+              105,
+              111,
+              110,
+              97,
+              32,
+              117,
+              110,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              49,
+              52,
+              58,
+              49,
+              50,
+              46,
+              51,
+              51,
+              53,
+              52,
+              56,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 122,
+          "responseSize": 168
+        },
+        "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0"
+      }
+    ],
+    "transfers": {
+      "responseTotal": 972
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "login bola",
+          "message": "expected 400 to deeply equal 200",
+          "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:1)",
+          "checksum": "d5fc63d3e6b2296223820c0e70ecacb8",
+          "id": "628200ef-e6b1-41ba-986d-f553d37b94f4",
+          "timestamp": 1790403251607,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+          "name": "01 login m2m BOLA",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+                ],
+                "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+              "name": "01 login m2m BOLA",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+                    ],
+                    "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+              "name": "02 TC-M02-027 GET activo ajeno",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "13522598-d3a1-4aaf-b4e1-46e7cf5bd863",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "be6911e2-5689-46ce-93a2-bfaeaa7e812a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+              "name": "03 login productor 028",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                      "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+                    ],
+                    "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+              "name": "04 login ingeniero 031",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bf0db258-922b-48e4-848b-9f92ffb055fe",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var code = pm.response.code;",
+                      "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+                      "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+                    ],
+                    "_lastExecutionId": "3bcb29ef-843d-4a96-a953-dbc207e5deca"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+              "name": "05 TC-M02-031 GET ficha propio 350",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+                    ],
+                    "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_bola"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_ing"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_prod"
+            },
+            {
+              "type": "any",
+              "value": "350",
+              "key": "id_activo_bola"
+            }
+          ],
+          "info": {
+            "_postman_id": "f4a10332-a0d3-4632-8844-572795198f44",
+            "name": "TC-M02-G15 rev4",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluacion TEST. GET-only para BOLA (el PATCH controlado vive en pytest). No sobrescribe rev2/rev3. Password via --env-var.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "4247034d-5285-4daf-8752-156a04319c11",
+          "httpRequestId": "c1706578-8202-4cda-a954-0c3c90659e81",
+          "scriptId": "bbf36430-e81d-435d-a91e-061388bccf17",
+          "execution": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "login productor",
+          "message": "expected 400 to deeply equal 200",
+          "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:3)",
+          "checksum": "c36c24d4d61b1970ee4f7451de9be3de",
+          "id": "e672f0e4-3aa4-45e3-8737-d96e198bfbe7",
+          "timestamp": 1790403252024,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+          "name": "03 login productor 028",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                  "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ],
+                "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+              "name": "01 login m2m BOLA",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+                    ],
+                    "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+              "name": "02 TC-M02-027 GET activo ajeno",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "13522598-d3a1-4aaf-b4e1-46e7cf5bd863",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "be6911e2-5689-46ce-93a2-bfaeaa7e812a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+              "name": "03 login productor 028",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                      "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+                    ],
+                    "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+              "name": "04 login ingeniero 031",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bf0db258-922b-48e4-848b-9f92ffb055fe",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var code = pm.response.code;",
+                      "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+                      "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+                    ],
+                    "_lastExecutionId": "3bcb29ef-843d-4a96-a953-dbc207e5deca"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+              "name": "05 TC-M02-031 GET ficha propio 350",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+                    ],
+                    "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_bola"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_ing"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_prod"
+            },
+            {
+              "type": "any",
+              "value": "350",
+              "key": "id_activo_bola"
+            }
+          ],
+          "info": {
+            "_postman_id": "f4a10332-a0d3-4632-8844-572795198f44",
+            "name": "TC-M02-G15 rev4",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluacion TEST. GET-only para BOLA (el PATCH controlado vive en pytest). No sobrescribe rev2/rev3. Password via --env-var.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "92b6a93c-d9c3-4e7e-8df2-07efa0d42f79",
+          "length": 5,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "c373385f-43da-4c4a-bc9f-ab95ed6b3071",
+          "scriptId": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+          "execution": "90748fb7-733c-46a3-8921-153985ef6b86"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "Error",
+          "message": "sin token ingeniero",
+          "checksum": "ebcb0dd9f1e823a624052f8f7a53ef05",
+          "id": "8e7776a8-cf0c-4a63-ba63-3d0bfb62eb07",
+          "timestamp": 1790403252350,
+          "stacktrace": []
+        },
+        "at": "prerequest-script",
+        "source": {
+          "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+          "name": "05 TC-M02-031 GET ficha propio 350",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_bola}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer [REDACTED]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+                ],
+                "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "b397bd74-ecf6-4813-8259-28b50c68df8a",
+              "name": "01 login m2m BOLA",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bbf36430-e81d-435d-a91e-061388bccf17",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+                    ],
+                    "_lastExecutionId": "ed9d8fbf-ae60-4393-97eb-6275eb0e7de8"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "74b53ff0-aebc-4ced-b554-1afa99e31a00",
+              "name": "02 TC-M02-027 GET activo ajeno",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "13522598-d3a1-4aaf-b4e1-46e7cf5bd863",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+                    ],
+                    "_lastExecutionId": "be6911e2-5689-46ce-93a2-bfaeaa7e812a"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "11f82c1a-3e34-4d66-9375-f75dcc3f644e",
+              "name": "03 login productor 028",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "925bc9eb-8fea-47a9-b71b-79bbacc905cf",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                      "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+                    ],
+                    "_lastExecutionId": "90748fb7-733c-46a3-8921-153985ef6b86"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "be649801-29ef-4048-a50a-9a751ca3caf8",
+              "name": "04 login ingeniero 031",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "bf0db258-922b-48e4-848b-9f92ffb055fe",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var code = pm.response.code;",
+                      "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+                      "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+                    ],
+                    "_lastExecutionId": "3bcb29ef-843d-4a96-a953-dbc207e5deca"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "53b41273-a7ac-4c2d-9cfc-363b016acff0",
+              "name": "05 TC-M02-031 GET ficha propio 350",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_bola}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer [REDACTED]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b",
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (!pm.collectionVariables.get('token_ing')) { throw new Error('sin token ingeniero'); }"
+                    ],
+                    "_lastExecutionId": "fe40ff74-14aa-4aec-b22e-f822630ec973"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_bola"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_ing"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_prod"
+            },
+            {
+              "type": "any",
+              "value": "350",
+              "key": "id_activo_bola"
+            }
+          ],
+          "info": {
+            "_postman_id": "f4a10332-a0d3-4632-8844-572795198f44",
+            "name": "TC-M02-G15 rev4",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluacion TEST. GET-only para BOLA (el PATCH controlado vive en pytest). No sobrescribe rev2/rev3. Password via --env-var.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "872f568f-ea74-4903-a22e-1105d4da4aea",
+          "length": 5,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "scriptId": "4577e3f6-7d23-40d4-abee-8d4f25b86e8b"
+        }
+      }
+    ],
+    "error": null
+  }
+}

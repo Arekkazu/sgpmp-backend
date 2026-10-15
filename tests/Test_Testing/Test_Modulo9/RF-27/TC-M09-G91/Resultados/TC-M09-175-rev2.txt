@@ -1,0 +1,54 @@
+TC-M09-175 rev2 — diagnostico TEST RF-27 (sin ejecutar escenario DEFAULT)
+Fecha UTC: 2026-10-04T18:11:00Z
+Rama: laura @ 023a5291 (fast-forward origin/test)
+Ambiente OpenAPI/HTTP: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1 ni G91 173/174.
+
+ALCANCE
+- Revision de codigo RF-27 y OpenAPI TEST desplegado.
+- Probes HTTP sin JWT: GET/PATCH 401 TOKEN_REQUERIDO; DELETE 405 Method Not Allowed.
+- NO login (esta sesion no tiene SGPMP_175_PASSWORD ni SGPMP_TEST_PASSWORD/CONTRASENA).
+- NO PATCH. NO DELETE autenticado. NO DML. NO Newman (evitar exit 0 con aserciones skip).
+
+CODIGO LOCAL (HEAD, sin modificar)
+ObtenerTemaResueltoUseCase: personal -> global -> theme_mode=1 fuente=defecto id_tema_visual=null.
+Router tema: GET/PATCH personal; GET/PATCH global. Sin DELETE.
+GuardarTemaGlobalUseCase: si existe global, UPDATE theme_mode; si no, CREATE. Nunca retira la fila.
+uq_tema_global: una sola fila es_global=true.
+tests/configuration/test_inc_m09_26_g91_jerarquia_tema.py: DEFAULT solo con fake (global=None); documenta que vaciar el singleton afecta cuentas concurrentes.
+
+CAMBIOS DESDE d90bd2a5 EN ARCHIVOS DE TEMA
+Ningun commit toca obtener_tema_resuelto_use_case.py ni tema_visual_router.py.
+Commits cercanos (rf26 auditoria, rf29 idioma) no cambian la jerarquia RF-27.
+
+OPENAPI TEST (GET /openapi.json HTTP 200)
+/configuracion/personalizacion/tema -> get, patch
+/configuracion/personalizacion/tema/global -> get, patch
+No hay DELETE.
+
+HTTP SIN TOKEN
+GET tema -> 401 TOKEN_REQUERIDO
+GET tema/global -> 401 TOKEN_REQUERIDO
+DELETE tema -> 405 (Allow GET)
+DELETE tema/global -> 405 (Allow GET)
+
+USUARIO 120 / GLOBAL ACTUAL
+No consultable en esta sesion (faltan secretos de entorno).
+Ultimo estado documentado (rev1 2026-09-26): id 120 Productor Activo, recurso 24/2, sin fuente=personal; GET global admin es_global=true id_tema_visual=1; GET resuelto fuente=global.
+
+MECANISMO PARA PREPARAR 175
+No hay API autorizada para retirar el global. PATCH /tema/global solo crea o actualiza.
+Quitar la fila exigiria DML o un endpoint nuevo (fuera de alcance QA).
+No se usa PATCH para "fingir" defecto.
+
+RESULTADO: BLOQUEADO
+Precondicion faltante: ausencia de fila es_global=true (y confirmacion viva de usuario 120 sin personal).
+No se afirma DEFAULT. No RECHAZADO. No APROBADO.
+No se ejecutaron aserciones 175 de theme_mode/fuente/id.
+
+Solicitud DBA (TEST, ventana controlada):
+1. Confirmar usuario id=120 correo=cm09175.qa@sgpmp-test.com Activo, Productor, permiso 24/2.
+2. Confirmar 0 filas modulo9.temas_visuales WHERE id_usuario=120.
+3. Ausencia temporal de fila es_global=true (o ambiente aislado sin singleton), con backup y restore posterior.
+4. Avisar QA para corrida Newman unica; restaurar global inmediatamente despues.
+5. No borrar identidades/temas de otras cuentas.

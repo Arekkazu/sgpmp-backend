@@ -1,0 +1,23 @@
+TC-M01-074 rev4 TEST — Intentar exportar auditoría sin conexión (RF-10 / CU07)
+Fecha UTC: 2026-10-09T22:24:01Z
+Front: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+Usuario: admin@pecuaria.co (password via CYPRESS_contrasena / SGPMP_TEST_PASSWORD; no registrada)
+Cypress 14.5.4 Chrome 153. 1 passing.
+
+FASE A — Login HTTP 200. Dashboard. Clic Auditoría. URL /auditoria (no /login). GET /auditoria/ HTTP 206. Tabla con eventos. Sin POST refresh. Sin 401.
+
+FASE B — navigator.onLine true. Botón "Exportar CSV" visible, disabled=false.
+
+FASE C — CDP Network.emulateNetworkConditions(offline=true) + navigator.onLine=false + evento offline.
+cdpOfflineOk=true. URL permanece /auditoria.
+Alerta: "Sin conexión / Exportar el historial requiere conexión..."
+Botón: disabled=true, title de requiere conexión. clickOfflineDisparado=false.
+GET /auditoria/exportar en ventana offline: 0. Blob createObjectURL offline: 0.
+
+FASE D — CDP online + evento online. Botón disabled=false. Sin redirect a /login.
+Clic Exportar: 1 GET https://api.inmero.co/back-sigab-test/auditoria/exportar
+UI: "Error al exportar CSV / Los datos no cumplen las reglas de negocio."
+(No forma parte del criterio offline; el botón sí reaccionó y disparó el GET.)
+
+CLASIFICACION: APROBADO (criterio 074: deshabilitar exportación sin conexión).
+Rev1/rev2/rev3 no modificadas. Sin commit/push. Sin secretos.

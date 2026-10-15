@@ -1,0 +1,144 @@
+{
+  "grupo": "TC-M09-G76",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rol": "Ingeniero de campo",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:54:23.810Z",
+  "caso": "TC-M09-147",
+  "intento": 1,
+  "resultado": "PASS",
+  "metodo": "POST",
+  "endpoint": "/configuracion/sensores/6/calibrar",
+  "dispositivo": {
+    "id": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "es_activo": true,
+    "id_infraestructura": 1
+  },
+  "estadoDispositivo": "activo",
+  "sensor": {
+    "id": 6,
+    "nombre": "Sensor temperatura alevinera-01",
+    "categoria": "TEMPERATURA",
+    "es_activo": true,
+    "id_dispositivo_iot": 3
+  },
+  "areaCorrecta": {
+    "id_infraestructura": 3,
+    "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+    "fecha_finalizacion": null
+  },
+  "areaEnviada": {
+    "id_infraestructura": 1,
+    "esLaCorrecta": false,
+    "existe": true,
+    "evidenciaExistencia": {
+      "endpoint": "GET /configuracion/infraestructuras/1",
+      "status": 200,
+      "nombre": null,
+      "es_activo": true
+    },
+    "distintaDeLaCorrecta": true,
+    "sensorNoAsociada": true
+  },
+  "areasHistoricasDelSensor": [
+    3
+  ],
+  "rangoTecnico": {
+    "categoria": "TEMPERATURA",
+    "min": "0.0000",
+    "max": "45.0000",
+    "fuente": "GET /configuracion/sensores/rangos-calibracion"
+  },
+  "valorEnviado": "22.5000",
+  "invalidezIntencional": "el sensor 6 no esta asociado al area 1",
+  "cuerpoEnviado": "{\"id_dispositivo_iot\":3,\"id_infraestructura\":1,\"valor_referencia\":22.5000,\"fecha_calibracion\":\"2026-09-06T04:54:21.427Z\",\"observaciones\":\"QA TC-M09-147 G76 run-20260906\"}",
+  "status": 400,
+  "errorCode": "SENSOR_AREA_INVALIDA",
+  "respuesta": {
+    "error_code": "SENSOR_AREA_INVALIDA",
+    "message": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+    "fields": [
+      {
+        "field": "id_infraestructura",
+        "message": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar."
+      }
+    ],
+    "timestamp": "2026-09-06T04:54:23.040373+00:00"
+  },
+  "eventos": [
+    {
+      "caso": "TC-M09-147",
+      "metodo": "POST",
+      "status": 400,
+      "cuerpo": "{\"id_dispositivo_iot\":3,\"id_infraestructura\":1,\"valor_referencia\":22.5000,\"fecha_calibracion\":\"2026-09-06T04:54:21.427Z\",\"observaciones\":\"QA TC-M09-147 G76 run-20260906\"}",
+      "respuesta": {
+        "error_code": "SENSOR_AREA_INVALIDA",
+        "message": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+        "fields": [
+          {
+            "field": "id_infraestructura",
+            "message": "El sensor 6 no está asociado al área 1. Verifique la ubicación física y lógica del equipo antes de calibrar."
+          }
+        ],
+        "timestamp": "2026-09-06T04:54:23.040373+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-147",
+      "metodo": "GET",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "historyBefore": {
+    "total": 2,
+    "items": [
+      {
+        "id_calibracion": 11,
+        "valor_referencia": "45.0000",
+        "fecha_calibracion": "2026-09-06T04:23:01.536000Z"
+      },
+      {
+        "id_calibracion": 10,
+        "valor_referencia": "0.0000",
+        "fecha_calibracion": "2026-09-06T04:22:49.008000Z"
+      }
+    ]
+  },
+  "historyAfter": {
+    "total": 2,
+    "items": [
+      {
+        "id_calibracion": 11,
+        "valor_referencia": "45.0000",
+        "fecha_calibracion": "2026-09-06T04:23:01.536000Z"
+      },
+      {
+        "id_calibracion": 10,
+        "valor_referencia": "0.0000",
+        "fecha_calibracion": "2026-09-06T04:22:49.008000Z"
+      }
+    ]
+  },
+  "persistencia": {
+    "registrosNuevos": [],
+    "historicosAlterados": [],
+    "idCreado": null
+  },
+  "STOP_ALL": false,
+  "assertions": {
+    "total": 15,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-147-intento1.html"
+}

@@ -1,0 +1,76 @@
+{
+  "snapshot_identidad": {
+    "id_identidad_visual": 1,
+    "id_finca": 1,
+    "id_usuario": 1,
+    "primary_color": "#1A6B3C",
+    "secondary_color": "#A8D5B5",
+    "org_display_name": "Acuícola El Remanso",
+    "version": 7,
+    "logo_path": "/assets/logos/remanso.png",
+    "fecha_creacion": "2026-04-28T14:42:28.213141Z"
+  },
+  "snapshot_theme_mode": 2,
+  "identidad": {
+    "omitido": false,
+    "pendiente": false,
+    "coincide_snapshot": true,
+    "login_admin_restore": {
+      "http": 200,
+      "error_code": null
+    },
+    "get_antes_patch": {
+      "http": 200,
+      "error_code": null,
+      "version": 8,
+      "primary_color": "#FFFFFF",
+      "secondary_color": "#A8D5B5",
+      "org_display_name": "Acuícola El Remanso",
+      "logo_path": "/assets/logos/remanso.png",
+      "id_usuario": 1,
+      "id_usuario_snapshot": 1,
+      "nota_id_usuario": "id_usuario no viaja en el DTO PATCH; el use case lo asigna al admin que escribe."
+    },
+    "patch": {
+      "http": 200,
+      "error_code": null
+    },
+    "get_final": {
+      "http": 200,
+      "error_code": null,
+      "id_finca": 1,
+      "primary_color": "#1A6B3C",
+      "secondary_color": "#A8D5B5",
+      "org_display_name": "Acuícola El Remanso",
+      "logo_path": "/assets/logos/remanso.png",
+      "version": 9,
+      "id_usuario": 1,
+      "id_usuario_snapshot": 1,
+      "nota_id_usuario": "Tras restore, id_usuario suele ser el admin restaurador; no se aserta igualdad con el snapshot."
+    }
+  },
+  "tema": {
+    "omitido": false,
+    "pendiente": false,
+    "coincide_snapshot": true,
+    "login_prod_restore": {
+      "http": 200,
+      "error_code": null
+    },
+    "get_antes_patch": {
+      "http": 200,
+      "theme_mode": 1,
+      "fuente": "personal"
+    },
+    "patch": {
+      "http": 200,
+      "error_code": null
+    },
+    "get_final": {
+      "http": 200,
+      "error_code": null,
+      "theme_mode": 2,
+      "fuente": "personal"
+    }
+  }
+}

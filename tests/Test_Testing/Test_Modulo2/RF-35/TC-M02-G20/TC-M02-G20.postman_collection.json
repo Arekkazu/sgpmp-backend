@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "TC-M02-G20 - Consulta y actualizacion de atributos permitidos del activo individual",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35. Agrupa TC-M02-033 (consultar activo individual existente) y TC-M02-034 (actualizar raza/sexo/peso_inicial/fecha_nacimiento sin poder tocar especie ni tipo). Verifica ademas persistencia, historial disponible y registro en la bitacora de auditoria (RF-52).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "identificador_activo", "value": "" },
+    { "key": "id_activo", "value": "" },
+    { "key": "raza_original", "value": "Cachama QA-G20 original" },
+    { "key": "sexo_original", "value": "Macho" },
+    { "key": "fecha_nacimiento_original", "value": "2025-01-15T00:00:00Z" },
+    { "key": "peso_inicial_original", "value": "2.500" },
+    { "key": "raza_nueva", "value": "Cachama QA-G20 actualizada" },
+    { "key": "sexo_nuevo", "value": "Hembra" },
+    { "key": "fecha_nacimiento_nueva", "value": "2025-02-20T00:00:00Z" },
+    { "key": "peso_inicial_nuevo", "value": "3.750" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Setup - Registrar activo INDIVIDUAL propio de la prueba (RF-33)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_activo}}\",\n  \"raza\": \"{{raza_original}}\",\n  \"sexo\": \"{{sexo_original}}\",\n  \"fecha_nacimiento\": \"{{fecha_nacimiento_original}}\",\n  \"peso_inicial\": {{peso_inicial_original}}\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('identificador_activo', 'QA-G20-' + Date.now());",
+              "pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP CREAR ACTIVO] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Se crea el activo INDIVIDUAL de prueba (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.collectionVariables.set('id_activo', body.id_activo_biologico);",
+              "  pm.test('El activo queda ACTIVO y con detalle individual', function () {",
+              "    pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "    pm.expect(body.detalle_individual).to.not.be.null;",
+              "    pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_original'));",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-033 - Consultar activo individual existente (GET /{id_activo})",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-033 GET] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Se consulta el activo individual (200)', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('La ficha corresponde al activo de la prueba', function () {",
+              "  pm.expect(String(body.id_activo_biologico)).to.eql(String(pm.collectionVariables.get('id_activo')));",
+              "  pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "  pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie')));",
+              "});",
+              "pm.test('Muestra la informacion individual actual (raza, sexo, fecha_nacimiento, peso_inicial)', function () {",
+              "  pm.expect(body.detalle_individual).to.not.be.null;",
+              "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_original'));",
+              "  pm.expect(body.detalle_individual.sexo).to.eql(pm.collectionVariables.get('sexo_original'));",
+              "  pm.expect(String(body.detalle_individual.peso_inicial)).to.eql(pm.collectionVariables.get('peso_inicial_original'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M02-033 - Consultar historial disponible del activo (GET /{id_activo}/historial)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/historial"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-033 HISTORIAL] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('El historial del activo esta disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('La respuesta trae la estructura paginada del historial', function () {",
+              "  pm.expect(body).to.have.property('registros');",
+              "  pm.expect(body.registros).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M02-034 - Actualizar atributos permitidos (PATCH /{id_activo})",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"raza\": \"{{raza_nueva}}\",\n  \"sexo\": \"{{sexo_nuevo}}\",\n  \"fecha_nacimiento\": \"{{fecha_nacimiento_nueva}}\",\n  \"peso_inicial\": {{peso_inicial_nuevo}},\n  \"tipo\": \"POBLACIONAL\",\n  \"id_especie\": 999,\n  \"estado_activo\": \"BAJA\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-034 PATCH] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La actualizacion se acepta (200)', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Los 4 campos editables quedan con el valor nuevo en la respuesta', function () {",
+              "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_nueva'));",
+              "  pm.expect(body.detalle_individual.sexo).to.eql(pm.collectionVariables.get('sexo_nuevo'));",
+              "  pm.expect(String(body.detalle_individual.peso_inicial)).to.eql(pm.collectionVariables.get('peso_inicial_nuevo'));",
+              "});",
+              "pm.test('tipo, especie y estado NO cambiaron pese a venir en el body (campos no editables por este endpoint)', function () {",
+              "  pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "  pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie')));",
+              "  pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M02-034 - Verificar persistencia tras recargar (GET /{id_activo})",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-034 VERIFICACION] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La consulta posterior responde 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Los cambios quedaron guardados de forma persistente', function () {",
+              "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_nueva'));",
+              "  pm.expect(body.detalle_individual.sexo).to.eql(pm.collectionVariables.get('sexo_nuevo'));",
+              "  pm.expect(String(body.detalle_individual.peso_inicial)).to.eql(pm.collectionVariables.get('peso_inicial_nuevo'));",
+              "  pm.expect(body.detalle_individual.fecha_nacimiento.slice(0,10)).to.eql(pm.collectionVariables.get('fecha_nacimiento_nueva').slice(0,10));",
+              "});",
+              "pm.test('especie y tipo siguen intactos tras recargar', function () {",
+              "  pm.expect(body.tipo).to.eql('INDIVIDUAL');",
+              "  pm.expect(Number(body.id_especie)).to.eql(Number(pm.collectionVariables.get('id_especie')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M02-034 - Verificar registro en bitacora de auditoria (GET /activos-biologicos/auditoria)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF35&id_activo_biologico={{id_activo}}",
+          "host": ["{{base_url}}"],
+          "path": ["activos-biologicos", "auditoria"],
+          "query": [
+            { "key": "rf_origen", "value": "RF35" },
+            { "key": "id_activo_biologico", "value": "{{id_activo}}" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-034 AUDITORIA] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Existe al menos un evento ACTIVO_INDIVIDUAL_ACTUALIZADO para este activo', function () {",
+              "  const encontrado = (body.registros || []).some((r) => r.tipo_evento === 'ACTIVO_INDIVIDUAL_ACTUALIZADO' && String(r.id_activo_biologico) === String(pm.collectionVariables.get('id_activo')));",
+              "  pm.expect(encontrado).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

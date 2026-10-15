@@ -1,0 +1,127 @@
+{
+  "grupo": "TC-M09-G24",
+  "rol": "Administrador",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "rama": "qa/juan-esteban-m09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-05T21:59:51.002Z",
+  "caso": "TC-M09-53",
+  "plan": {
+    "caso": "TC-M09-53",
+    "especie": "Cachama Blanca",
+    "id_especie": 4,
+    "variable": "Temperatura Ambiental",
+    "id_variable": 9,
+    "unidad": "°C",
+    "limitesFisicos": [
+      -50,
+      100
+    ],
+    "puntos": {
+      "a": -20,
+      "b": 10,
+      "e": 25,
+      "c": 40,
+      "d": 70,
+      "g": 85
+    },
+    "defecto": {
+      "regla": "FA-05 solapamiento entre niveles",
+      "detalle": "precaucion 10-40 y critico 25-70 ocupan a la vez [25, 40]",
+      "codigoEsperado": "SOLAPAMIENTO_NIVELES"
+    },
+    "beforeIds": [
+      10,
+      11
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 9,
+      "valor_min": -20,
+      "valor_max": 70,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": -20,
+          "limite_superior": 10
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 10,
+          "limite_superior": 40
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 25,
+          "limite_superior": 70
+        }
+      ]
+    }
+  },
+  "newman": {
+    "archivo": "newman-TC-M09-53-intento2.json",
+    "idCreado": null,
+    "plan": {
+      "caso": "TC-M09-53",
+      "especie": "Cachama Blanca",
+      "id_especie": 4,
+      "variable": "Temperatura Ambiental",
+      "id_variable": 9,
+      "unidad": "°C",
+      "limitesFisicos": [
+        -50,
+        100
+      ],
+      "puntos": {
+        "a": -20,
+        "b": 10,
+        "e": 25,
+        "c": 40,
+        "d": 70,
+        "g": 85
+      },
+      "defecto": {
+        "regla": "FA-05 solapamiento entre niveles",
+        "detalle": "precaucion 10-40 y critico 25-70 ocupan a la vez [25, 40]",
+        "codigoEsperado": "SOLAPAMIENTO_NIVELES"
+      },
+      "beforeIds": [
+        10,
+        11
+      ],
+      "payload": {
+        "id_especie": 4,
+        "id_variable_ambiental": 9,
+        "valor_min": -20,
+        "valor_max": 70,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": -20,
+            "limite_superior": 10
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 10,
+            "limite_superior": 40
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 25,
+            "limite_superior": 70
+          }
+        ]
+      }
+    },
+    "postStatus": 422
+  },
+  "posts": [],
+  "postGetStatus": 200,
+  "persisted": [],
+  "idsEspecie": [
+    10,
+    11
+  ],
+  "STOP_ALL": false
+}

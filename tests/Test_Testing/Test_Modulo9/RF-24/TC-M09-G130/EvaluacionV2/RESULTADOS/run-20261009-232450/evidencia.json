@@ -1,0 +1,976 @@
+{
+  "run_id": "run-20261009-232450",
+  "evaluacion": "SEGUNDA EVALUACION",
+  "grupo": "TC-M09-G130",
+  "casos": [
+    "TC-M09-256",
+    "TC-M09-257"
+  ],
+  "requisito": "RF-24 v2.0",
+  "herramientas": "API - Postman / Newman. BD no forma parte del oraculo y no se utilizo.",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/",
+  "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+  "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+  "resultado_grupo": "APROBADO",
+  "git_pre": {
+    "etiqueta": "git_pre",
+    "capturado": "2026-10-10T04:24:51.213Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  },
+  "actor": {
+    "nota": "La coleccion Newman es duena de sus sesiones: hace sus propios logins y publica los tokens en ing_session y admin_session. El runner no inicia sesion antes de Newman ni inyecta ningun token; en el cierre se autentica solo para GET.",
+    "ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "credencial": "[REDACTED]",
+      "login_http": 200,
+      "id_usuario": 4,
+      "id_descubierto_dinamicamente": true,
+      "rol": "Ingeniero de Campo",
+      "estado_cuenta": "Activo",
+      "permiso_registrar_calibraciones": true,
+      "total_permisos": 47,
+      "papel": "ejecuta exclusivamente los 2 POST /calibrar"
+    },
+    "administrador": {
+      "correo": "administador.dev@gmail.com",
+      "credencial": "[REDACTED]",
+      "login_http": 200,
+      "alternativo_necesario": "NO",
+      "papel": "solo GET: confirmacion adicional del dispositivo inexistente. No ejecuta POST /calibrar.",
+      "nota_de_alcance": "En el estado actual de TEST el Administrador responde 404 incluso sobre el dispositivo real 3 y el sensor 6, de modo que su 404 corrobora pero ya no discrimina inexistencia."
+    }
+  },
+  "fixture_real": {
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true,
+      "http": 200
+    },
+    "asociacionVigente": {
+      "id_dispositivo_iot": 3,
+      "id_infraestructura": 3,
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "categoria": "TEMPERATURA",
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0",
+      "max": "45"
+    },
+    "valor": "22.5000",
+    "valorEstrictamenteInterior": true,
+    "fixtureOriginalReutilizado": true
+  },
+  "verificacion_ids_inexistentes": {
+    "dispositivo": {
+      "id": 999999,
+      "acreditacion": "par discriminante del mismo actor: el Ingeniero lee el dispositivo REAL con 200 y el inexistente con 404",
+      "ingeniero_dispositivo_real": 200,
+      "ingeniero_dispositivo_inexistente": 404,
+      "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+      "administrador_confirmacion_adicional": {
+        "http": 404,
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "discriminante": false
+      },
+      "confirmado": true,
+      "idNoModificado": true,
+      "datosCreados": "ninguno: no se creo, modifico ni elimino nada para obtener este ID"
+    },
+    "sensor": {
+      "id": 999999,
+      "endpoint": "/configuracion/sensores/999999/calibraciones",
+      "http": 404,
+      "error_code": "SENSOR_NO_ENCONTRADO",
+      "contratoVigente": "404 SENSOR_NO_ENCONTRADO",
+      "contratoPrimeraEvaluacion": "200 con total 0 e items []",
+      "clasificacion": "CAMBIO INTENCIONAL DEL CONTRATO DE SEGURIDAD, NO DEFECTO DE G130",
+      "motivo": "el historial de calibraciones valida previamente existencia y alcance del sensor para evitar exposicion de recursos ajenos mediante IDOR",
+      "autorizacion": "criterio auxiliar actualizado por autorizacion expresa de QA; el esperado funcional del POST no fue modificado",
+      "confirmado": true,
+      "idNoModificado": true,
+      "datosCreados": "ninguno"
+    }
+  },
+  "TC-M09-256": {
+    "caso": "TC-M09-256",
+    "escenario": "Dispositivo inexistente en el body, sensor real en la ruta",
+    "sensorEnRuta": 6,
+    "dispositivoEnBody": 999999,
+    "infraestructura": 3,
+    "valor": "22.5000",
+    "acreditacionDeInexistencia": {
+      "actorDiscriminante": "Ingeniero de Campo",
+      "dispositivoRealHttp": 200,
+      "dispositivoInexistenteHttp": 404,
+      "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+      "confirmacionAdicionalAdministrador": {
+        "http": 404,
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "nota": "corrobora pero no discrimina: hoy el Administrador responde 404 incluso sobre recursos reales"
+      },
+      "confirmado": true
+    },
+    "historialPre": {
+      "http": 200,
+      "total": 14,
+      "ids": [
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ],
+      "items": [
+        {
+          "id_calibracion": 30,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 29,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 28,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 21,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 19,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 18,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+          "id_usuario": 104,
+          "observaciones": "QA TC-M09-264",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 17,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.1234,
+          "ganancia": 1,
+          "offset": 22.1234,
+          "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-262",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 16,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-259",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 15,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 14,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 13,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 12,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-141-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 11,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 10,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        }
+      ]
+    },
+    "request": {
+      "endpoint": "/configuracion/sensores/6/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 999999,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-256",
+        "fecha_calibracion": "2026-10-10T04:24:54.994Z"
+      },
+      "fecha": "2026-10-10T04:24:54.994Z"
+    },
+    "response": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+        "message": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "fields": [],
+        "timestamp": "2026-10-10T04:24:54.079927+00:00"
+      },
+      "error_code": "DISPOSITIVO_NO_ENCONTRADO",
+      "id_calibracion": null,
+      "capturado": "2026-10-10T04:25:05.271Z"
+    },
+    "httpEsperado": 404,
+    "mensajeEsperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensajeObtenido": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensajeCoincide": true,
+    "comparacionLiteral": {
+      "tipo": "igualdad literal",
+      "resultado": "coincide caracter a caracter"
+    },
+    "historialPost": {
+      "http": 200,
+      "total": 14,
+      "ids": [
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ],
+      "items": [
+        {
+          "id_calibracion": 30,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 29,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 28,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 21,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 19,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 30,
+          "ganancia": 1,
+          "offset": 30,
+          "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-266",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 18,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+          "id_usuario": 104,
+          "observaciones": "QA TC-M09-264",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 17,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.1234,
+          "ganancia": 1,
+          "offset": 22.1234,
+          "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-262",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 16,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-259",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 15,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-151-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 14,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 13,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 12,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 22.5,
+          "ganancia": 1,
+          "offset": 22.5,
+          "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-141-v2.0",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 11,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 45,
+          "ganancia": 1,
+          "offset": 45,
+          "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-143 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        },
+        {
+          "id_calibracion": 10,
+          "id_dispositivo_iot": 3,
+          "id_sensor": 6,
+          "valor_referencia": 0,
+          "ganancia": 1,
+          "offset": 0,
+          "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+          "id_usuario": 4,
+          "observaciones": "QA TC-M09-142 G75 run-20260906",
+          "modo_calibracion": "SENSOR"
+        }
+      ]
+    },
+    "idsNuevos": [],
+    "historicosIntactos": true,
+    "assertionsFuncionales": {
+      "total": 8,
+      "fallidas": 0,
+      "detalle": [
+        {
+          "assertion": "Historial PRE de TC-256 responde 2xx",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "4. TC-M09-256 — el POST devuelve HTTP 404",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "5. TC-M09-256 — message coincide exactamente con el mensaje comun del RF",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "6. TC-M09-256 — la respuesta no devuelve id_calibracion",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "Historial POST de TC-256 responde 2xx",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "7. TC-M09-256 — el total del historial no cambia",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "8. TC-M09-256 — los IDs del historial son los mismos",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-256 — no se creo ninguna calibracion",
+          "paso": true,
+          "error": null
+        }
+      ]
+    },
+    "oraculo": {
+      "dispositivo_inexistente_confirmado": true,
+      "sensor_de_ruta_valido": true,
+      "unica_invalidez_el_dispositivo": true,
+      "http_404": true,
+      "mensaje_exacto": true,
+      "sin_id_calibracion": true,
+      "total_sin_cambios": true,
+      "ids_identicos": true,
+      "sin_persistencia": true,
+      "historial_intacto": true,
+      "assertions_funcionales_todas_pass": true
+    },
+    "resultado": "APROBADO"
+  },
+  "TC-M09-257": {
+    "caso": "TC-M09-257",
+    "escenario": "Sensor inexistente en la ruta, dispositivo real en el body",
+    "sensorEnRuta": 999999,
+    "dispositivoEnBody": 3,
+    "infraestructura": 3,
+    "valor": "22.5000",
+    "acreditacionDeInexistencia": {
+      "endpoint": "/configuracion/sensores/999999/calibraciones",
+      "http": 404,
+      "error_code": "SENSOR_NO_ENCONTRADO",
+      "contratoVigente": "404 SENSOR_NO_ENCONTRADO",
+      "contratoPrimeraEvaluacion": "200 con total 0 e items []",
+      "clasificacion": "CAMBIO INTENCIONAL DEL CONTRATO DE SEGURIDAD, NO DEFECTO DE G130",
+      "autorizacion": "criterio auxiliar actualizado por autorizacion expresa de QA",
+      "confirmado": true
+    },
+    "historialPre": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "SENSOR_NO_ENCONTRADO",
+        "message": "No existe un sensor con ID 999999.",
+        "fields": [],
+        "timestamp": "2026-10-10T04:24:53.680893+00:00"
+      },
+      "total": "N/A (contrato vigente 404)",
+      "ids": []
+    },
+    "request": {
+      "endpoint": "/configuracion/sensores/999999/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-257",
+        "fecha_calibracion": "2026-10-10T04:24:55.354Z"
+      },
+      "fecha": "2026-10-10T04:24:55.354Z"
+    },
+    "response": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "SENSOR_NO_ENCONTRADO",
+        "message": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "fields": [],
+        "timestamp": "2026-10-10T04:24:54.443031+00:00"
+      },
+      "error_code": "SENSOR_NO_ENCONTRADO",
+      "id_calibracion": null,
+      "capturado": "2026-10-10T04:25:05.273Z"
+    },
+    "httpEsperado": 404,
+    "mensajeEsperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensajeObtenido": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+    "mensajeCoincide": true,
+    "comparacionLiteral": {
+      "tipo": "igualdad literal",
+      "resultado": "coincide caracter a caracter"
+    },
+    "historialPost": {
+      "http": 404,
+      "cuerpo": {
+        "error_code": "SENSOR_NO_ENCONTRADO",
+        "message": "No existe un sensor con ID 999999.",
+        "fields": [],
+        "timestamp": "2026-10-10T04:24:54.634189+00:00"
+      },
+      "total": "N/A (contrato vigente 404)",
+      "ids": []
+    },
+    "noPersistencia": {
+      "criterioA_respuesta_sin_id_calibracion": true,
+      "criterioB_pre_y_post_siguen_404": true,
+      "criterioC_diagnostico_bd": "NO UTILIZADO: la matriz no exige BD y la API resolvio el oraculo sin ambiguedad"
+    },
+    "assertionsFuncionales": {
+      "total": 8,
+      "fallidas": 0,
+      "detalle": [
+        {
+          "assertion": "1. El ID de sensor elegido NO existe: el historial responde 404",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "El historial del sensor inexistente devuelve SENSOR_NO_ENCONTRADO",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "4. TC-M09-257 — el POST devuelve HTTP 404",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "5. TC-M09-257 — message coincide exactamente con el mensaje comun del RF",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "6. TC-M09-257 — la respuesta no devuelve id_calibracion",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "7. TC-M09-257 — el historial del sensor inexistente sigue respondiendo 404",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-257 — sigue devolviendo SENSOR_NO_ENCONTRADO",
+          "paso": true,
+          "error": null
+        },
+        {
+          "assertion": "TC-M09-257 — el comportamiento PRE y POST del historial es identico",
+          "paso": true,
+          "error": null
+        }
+      ]
+    },
+    "oraculo": {
+      "sensor_inexistente_confirmado": true,
+      "dispositivo_de_body_valido": true,
+      "unica_invalidez_el_sensor": true,
+      "http_404": true,
+      "mensaje_exacto": true,
+      "sin_id_calibracion": true,
+      "historial_post_mantiene_el_contrato": true,
+      "comportamiento_pre_post_identico": true,
+      "assertions_funcionales_todas_pass": true
+    },
+    "resultado": "APROBADO"
+  },
+  "newman": {
+    "html": "newman/newman-TC-M09-G130.html",
+    "htmlPersistentes": 1,
+    "coleccionEjecutada": "16 de 16 items",
+    "iterations": {
+      "ejecutadas": 1,
+      "fallidas": 0
+    },
+    "requests": {
+      "ejecutados": 16,
+      "fallidos": 0
+    },
+    "assertions": {
+      "total": 37,
+      "fallidas": 0
+    },
+    "failures": [],
+    "presupuesto": {
+      "postCalibrarPlanificados": 2,
+      "postCalibrarEjecutados": 2,
+      "patch": 0,
+      "put": 0,
+      "delete": 0,
+      "reintentos": 0
+    },
+    "stopAll": "NO",
+    "stopAllMotivo": null,
+    "limpio": true
+  },
+  "verificacion_final": {
+    "soloLectura": true,
+    "sql": "ninguno",
+    "escrituras": 0,
+    "fecha": "2026-10-10T04:25:05.273Z",
+    "historial_sensor_real": {
+      "http": 200,
+      "total": 14,
+      "ids": [
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ],
+      "igualAlPreDeTC256": true
+    },
+    "historial_sensor_inexistente": {
+      "http": 404,
+      "error_code": "SENSOR_NO_ENCONTRADO",
+      "mantieneElContrato": true
+    },
+    "dispositivo_real": {
+      "http": 200,
+      "es_activo": true,
+      "sinCambios": true
+    },
+    "dispositivo_inexistente": {
+      "http": 404,
+      "sigueInexistente": true
+    },
+    "asociacion_vigente": [
+      {
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3
+      }
+    ],
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0",
+      "max": "45"
+    },
+    "calibraciones_atribuibles_a_los_casos": [],
+    "ninguna_calibracion_creada": true,
+    "post_extra_ejecutados": 0
+  },
+  "contraste_dev": {
+    "necesario": false,
+    "motivo": "TEST paso completamente: ambos casos devolvieron 404 con el mensaje comun exacto y sin persistencia. No se uso DEV.",
+    "peticiones_a_dev": 0
+  },
+  "diagnostico_bd": {
+    "utilizada": false,
+    "motivo": "La matriz de G130 no exige BD y la API resolvio ambos oraculos sin ambiguedad: los IDs inexistentes quedaron acreditados por GET y la no persistencia por la respuesta del POST y por los GET PRE/POST. No se abrio ninguna conexion.",
+    "solo_select": true,
+    "credencialesEntregadasPorQA": "no utilizadas; su contrasena esta cubierta por el saneado de artefactos"
+  },
+  "comparacion_primera_segunda": {
+    "baselineUnico": "PRIMERA EVALUACION OFICIAL run-20261007-085922",
+    "fuente": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/RESULTADOS/run-20261007-085922/TC-M09-G130_resultado.md",
+    "porCaso": {
+      "TC-M09-256": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO",
+        "dimensiones": {
+          "http": {
+            "primera": "404 correcto",
+            "segunda": "404 correcto"
+          },
+          "no_persistencia": {
+            "primera": "Ninguna",
+            "segunda": "Ninguna"
+          },
+          "mensaje": {
+            "primera": "Incorrecto",
+            "segunda": "Correcto (literal)"
+          }
+        },
+        "error_code": {
+          "primera": "DISPOSITIVO_NO_ENCONTRADO",
+          "segunda": "DISPOSITIVO_NO_ENCONTRADO"
+        },
+        "mensajeAntes": "No existe un dispositivo IoT con ID 999999.",
+        "mensajeAhora": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "mensajeEsperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "causaAnteriorCorregida": "SI"
+      },
+      "TC-M09-257": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO",
+        "dimensiones": {
+          "http": {
+            "primera": "404 correcto",
+            "segunda": "404 correcto"
+          },
+          "no_persistencia": {
+            "primera": "Ninguna",
+            "segunda": "Ninguna"
+          },
+          "mensaje": {
+            "primera": "Incorrecto",
+            "segunda": "Correcto (literal)"
+          }
+        },
+        "error_code": {
+          "primera": "SENSOR_NO_ENCONTRADO",
+          "segunda": "SENSOR_NO_ENCONTRADO"
+        },
+        "mensajeAntes": "No existe un sensor con ID 999999.",
+        "mensajeAhora": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "mensajeEsperado": "Error de referencia: El sensor o dispositivo especificado no existe. No se puede registrar una calibración sobre un hardware inexistente.",
+        "causaAnteriorCorregida": "SI"
+      }
+    },
+    "historialSensorInexistente": {
+      "primera": "200, total 0",
+      "segunda": "404 SENSOR_NO_ENCONTRADO",
+      "interpretacion": "Cambio contractual de seguridad aceptado por QA; no es defecto de G130"
+    },
+    "grupo": {
+      "primera": "RECHAZADO",
+      "segunda": "APROBADO",
+      "cambio": "RECHAZADO -> APROBADO"
+    },
+    "causaDelRechazoAnterior": "CORREGIDA"
+  },
+  "causa_raiz": "D. Ambos mensajes comunes son correctos: la causa anterior (el flujo emitia el mensaje propio de cada entidad en lugar del mensaje comun de referencia del RF) esta corregida y desplegada en TEST.",
+  "seguridad": {
+    "alcance": "todo EvaluacionV2/: runner, coleccion, informe, evidencia, manifiesto y el HTML de Newman",
+    "limpio": true,
+    "archivosConHallazgos": [],
+    "revisados": [
+      {
+        "archivo": "automation/run-g130-v2.cjs",
+        "bytes": 54461,
+        "tipo": "codigo-fuente",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-232450/automation_manifest.json",
+        "bytes": 2557,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-232450/evidencia.json",
+        "bytes": 32930,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-232450/newman/newman-TC-M09-G130.html",
+        "bytes": 217269,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "TC-M09-G130.postman_collection.json",
+        "bytes": 23531,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      }
+    ],
+    "credencialesCubiertasPorElEscaneo": "contrasenas de API del Ingeniero y del Administrador, y la contrasena de BD entregada por QA (que no se utilizo)",
+    "criterio": "Se marcan solo VALORES de secreto: contrasenas en uso, JWT, Authorization con token, cookies, tokens en pares clave-valor y cadenas de conexion. En los .cjs solo se evaluan valores y la coincidencia literal con las credenciales.",
+    "nota": "Las contrasenas solo existieron en memoria de proceso. El reporter htmlextra se ejecuto con omitHeaders, sin environment ni globals y omitiendo las variables sensibles; el HTML se sanitizo despues de generarse."
+  },
+  "git_post": {
+    "etiqueta": "git_post",
+    "capturado": "2026-10-10T04:25:39.277Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  }
+}

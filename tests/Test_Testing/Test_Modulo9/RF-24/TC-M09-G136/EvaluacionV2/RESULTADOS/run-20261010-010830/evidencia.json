@@ -1,0 +1,525 @@
+{
+  "grupo": "TC-M09-G136",
+  "caso": "TC-M09-274",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "run_id": "run-20261010-010830",
+  "evaluacion": "SEGUNDA EVALUACION",
+  "baseline": {
+    "run_id": "run-20261007-140122",
+    "commit": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "nota": "El commit del baseline NO es el código reevaluado."
+  },
+  "ambiente": "LOCAL_AISLADO",
+  "prueba_local": true,
+  "herramienta": "Pytest + PostgreSQL local real + logs del backend. Newman: NO APLICA.",
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/",
+  "git": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia": "0\t0",
+    "fecha_head": "2026-10-09T17:05:28-05:00",
+    "fecha_del_run": "2026-10-10T06:08:32.709551+00:00",
+    "commit_evaluado": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "commit_baseline_primera_evaluacion": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "es_el_commit_del_baseline": false,
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  },
+  "lab_guard": {
+    "base_de_datos": "sgpmp_g136_lab",
+    "usuario_conexion": "g136_owner",
+    "host_dsn": "127.0.0.1",
+    "host_api": "127.0.0.1",
+    "puerto": 5432,
+    "compose_project": "sgpmp-g136-v2",
+    "contenedores": {
+      "db": "sgpmp-g136-v2-db",
+      "backend": "sgpmp-g136-v2-backend"
+    },
+    "volumen": "sgpmp_g136_v2_pgdata (exclusivo de esta reevaluación)",
+    "config_efectiva_backend": [
+      "postgresql://g136_app:[REDACTED]@db:5432/sgpmp_g136_lab",
+      "local",
+      "http://127.0.0.1:18037"
+    ],
+    "referencias_a_entornos_compartidos": "NINGUNA",
+    "problemas": [],
+    "resultado": "PASS",
+    "postgres": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "alembic_version_en_bd": "00c60ae92735",
+    "credenciales_de_TEST_utilizadas": "NINGUNA: el laboratorio usa identidades locales propias"
+  },
+  "migraciones": {
+    "fuente": "migraciones reales del proyecto, aplicadas con alembic upgrade head como owner",
+    "alembic_current": [
+      "00c60ae92735 (head)",
+      "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.",
+      "INFO  [alembic.runtime.migration] Will assume transactional DDL."
+    ],
+    "alembic_heads": [
+      "00c60ae92735 (head)"
+    ],
+    "version_en_bd": "00c60ae92735",
+    "cabeza_coherente_con_el_codigo": true,
+    "migraciones_modificadas_para_pasar_la_prueba": "NINGUNA"
+  },
+  "tabla_rf10": {
+    "tabla_usada_en_el_fault": "modulo1.eventos",
+    "tabla_declarada_en_el_codigo_actual": "modulo1.eventos",
+    "fuente_modelo": "src\\identity_access\\infrastructure\\models\\eventos_model.py",
+    "fuente_best_effort": "src\\configuration\\application\\use_cases\\sensores\\registrar_calibracion_use_case.py",
+    "best_effort_presente_en_el_codigo": true,
+    "coincide": true,
+    "nota": "Se verifica contra el código reevaluado, no se asume por el baseline. Si la implementación hubiera cambiado de tabla, el fault injection sería inválido."
+  },
+  "db_roles": {
+    "owner": {
+      "rol": "g136_owner",
+      "uso": "migraciones, seed, REVOKE/GRANT y consultas administrativas"
+    },
+    "app": {
+      "rolname": "g136_app",
+      "rolsuper": false,
+      "rolinherit": true,
+      "rolbypassrls": true,
+      "rolcanlogin": true,
+      "uso": "DATABASE_URL real del backend"
+    },
+    "rol_que_usa_el_backend": "g136_app",
+    "app_es_superuser": false,
+    "app_es_owner_eventos": false,
+    "app_hereda_de_otro_rol": false,
+    "owners_tablas": [
+      {
+        "schemaname": "modulo1",
+        "tablename": "eventos",
+        "tableowner": "postgres"
+      },
+      {
+        "schemaname": "modulo9",
+        "tablename": "auditorias_calibraciones",
+        "tableowner": "g136_owner"
+      },
+      {
+        "schemaname": "modulo9",
+        "tablename": "calibraciones",
+        "tableowner": "postgres"
+      }
+    ],
+    "nota_bypassrls": "BYPASSRLS es necesario porque las políticas RLS leen app.current_user_id, que la aplicación fija después de autenticar: sin él el login es imposible. Solo afecta políticas de FILA, no privilegios de TABLA, de modo que el REVOKE de INSERT sobre modulo1.eventos sigue siendo efectivo, y el RUN lo comprueba empíricamente antes de enviar los POST."
+  },
+  "fixtures": {
+    "origen": "sembrado por SQL local e idempotente; nada copiado de TEST",
+    "actor": {
+      "id_usuario": 4,
+      "correo": "ingeniero.g136@pecuaria.co",
+      "rol": "Ingeniero de Campo",
+      "estado": "Activo",
+      "credencial": "[REDACTED]",
+      "credencial_nota": "sintética y exclusiva del laboratorio local; no se persiste",
+      "token_obtenido_antes_del_revoke": true,
+      "control_de_lectura_http": 200
+    },
+    "rango": {
+      "id_dispositivo_iot": 1,
+      "serial": "IOT-G136-LAB-ACT",
+      "es_activo": true,
+      "id_sensor": 1,
+      "sensor_activo": true,
+      "categoria": "TEMPERATURA",
+      "id_infraestructura": 1,
+      "asociacion": "vigente (tiene_estado=true, fecha_finalizacion=NULL)",
+      "valor_min": "0.0000",
+      "valor_max": "45.0000",
+      "valor_fuera": "45.0001",
+      "criterio_valor": "max + 0.0001, determinista respecto al rango sembrado",
+      "unica_invalidez": "VALOR FUERA DE RANGO"
+    },
+    "dispositivo_inactivo": {
+      "id_dispositivo_iot": 2,
+      "serial": "IOT-G136-LAB-INACT",
+      "es_activo": false,
+      "id_sensor": 2,
+      "sensor_activo": true,
+      "categoria": "TEMPERATURA",
+      "id_infraestructura": 1,
+      "asociacion": "vigente (tiene_estado=true, fecha_finalizacion=NULL)",
+      "valor_usado": "22.5000",
+      "valor_dentro_del_rango": true,
+      "unica_invalidez": "DISPOSITIVO INACTIVO"
+    }
+  },
+  "control_sin_fault": {
+    "login_ingeniero_http": 200,
+    "identidad_http": 200,
+    "get_historial_http": 200,
+    "token_obtenido_antes_del_revoke": true,
+    "nuevos_logins_durante_el_fault": 0,
+    "nota": "El token se obtuvo antes del REVOKE porque el login escribe auditoría RF-10 y contaminaría el fault injection. Durante el fault se reutiliza la misma sesión.",
+    "insert_eventos_efectivo_antes": true
+  },
+  "pre": {
+    "rango": {
+      "id_sensor": 1,
+      "total": 0,
+      "ids": []
+    },
+    "inactive": {
+      "id_sensor": 2,
+      "total": 0,
+      "ids": []
+    },
+    "eventos_rf10_del_actor_antes_del_fault": 2,
+    "nota": "Ningún evento RF-10 de los intentos existe todavía porque los POST aún no ocurrieron; los eventos previos corresponden al login del control."
+  },
+  "ventana_de_log": {
+    "marca_inicial": "2026-10-10T06:08:36.362582+00:00",
+    "criterio": "la búsqueda de alertas se limita a esta ventana: no se cuentan logs de arranque, migraciones, seed, login ni ejecuciones anteriores"
+  },
+  "privilegios": {
+    "rol": "g136_app",
+    "tabla": "modulo1.eventos",
+    "insert_eventos_antes": true,
+    "insert_eventos_durante": false,
+    "select_eventos_conservado": true,
+    "calibraciones_insert_conservado": true,
+    "auditoria_m9_insert_conservado": true,
+    "insert_eventos_restaurado": true,
+    "alcance": "solo INSERT sobre la tabla de RF-10; no se revoca SELECT ni los INSERT de modulo9.calibraciones y modulo9.auditorias_calibraciones"
+  },
+  "alertas_detectadas": {
+    "total_eventos_de_alerta": 2,
+    "eventos_logicos_esperados": 2,
+    "distinguibles": true,
+    "eventos": [
+      {
+        "id_sensor": 1,
+        "constancia": "RF-24: no se pudo auditar el rechazo de calibración del sensor 1",
+        "lineas_de_la_excepcion": 142,
+        "permission_denied_eventos": true
+      },
+      {
+        "id_sensor": 2,
+        "constancia": "RF-24: no se pudo auditar el rechazo de calibración del sensor 2",
+        "lineas_de_la_excepcion": 142,
+        "permission_denied_eventos": true
+      }
+    ],
+    "criterio": "Una constancia observable por cada fallo de auditoria. Las lineas de una misma excepcion se agrupan como un unico evento de alerta, y cada evento se correlaciona con su POST por el sensor que nombra la constancia. El RF no define sink, formato ni texto literal: el canal elegido es el log del backend."
+  },
+  "range": {
+    "variante": "RANGE",
+    "invalidez_intencional": "QA TC-M09-274 RANGE",
+    "request": {
+      "endpoint": "/configuracion/sensores/1/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 1,
+        "id_infraestructura": 1,
+        "valor_referencia": 45.0001,
+        "observaciones": "QA TC-M09-274 RANGE",
+        "fecha_calibracion": "2026-10-10T06:08:36.511654+00:00"
+      },
+      "intentos": 1,
+      "reintentos": 0
+    },
+    "response": {
+      "http": 400,
+      "cuerpo": {
+        "error_code": "VALOR_FUERA_DE_RANGO",
+        "message": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+        "fields": [
+          {
+            "field": "valor_referencia",
+            "message": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado."
+          }
+        ],
+        "timestamp": "2026-10-10T06:08:36.569040+00:00"
+      }
+    },
+    "ventana": {
+      "t_before": "2026-10-10T06:08:36.511654+00:00",
+      "t_after": "2026-10-10T06:08:36.571610+00:00"
+    },
+    "http_esperado": 400,
+    "http_obtenido": 400,
+    "no_es_500": true,
+    "error_code_esperado": "VALOR_FUERA_DE_RANGO",
+    "error_code_obtenido": "VALOR_FUERA_DE_RANGO",
+    "error_code_coincide": true,
+    "mensaje_esperado": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+    "mensaje_obtenido": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+    "mensaje_coincide": true,
+    "comparacion_de_mensaje": "literal estricta contra el FA de RF-24 v2.0",
+    "id_calibracion_en_respuesta": null,
+    "calibraciones_pre": {
+      "ids": [],
+      "total": 0
+    },
+    "calibraciones_post": {
+      "ids": [],
+      "total": 0
+    },
+    "calibracion_creada": false,
+    "evento_rf10_creado": false,
+    "eventos_en_la_ventana": [],
+    "nota_rf10": "La ausencia del evento RF-10 es la condición PROVOCADA del caso, no un defecto: demuestra que la escritura de auditoría falló de verdad.",
+    "alerta_log": {
+      "captura_de_logs_operativa": true,
+      "alerta_encontrada": true,
+      "correlacion": "la constancia nombra el sensor 1",
+      "constancia": "RF-24: no se pudo auditar el rechazo de calibración del sensor 1",
+      "permission_denied_eventos": true,
+      "lineas_de_la_excepcion": 142
+    },
+    "oraculo": {
+      "http_correcto": true,
+      "no_es_500": true,
+      "error_code_correcto": true,
+      "mensaje_fa_correcto": true,
+      "sin_calibracion_creada": true,
+      "sin_id_calibracion_en_respuesta": true,
+      "evento_rf10_no_escrito": true,
+      "alerta_observable": true
+    },
+    "resultado": "APROBADO"
+  },
+  "inactive": {
+    "variante": "INACTIVE",
+    "invalidez_intencional": "QA TC-M09-274 INACTIVE",
+    "request": {
+      "endpoint": "/configuracion/sensores/2/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 2,
+        "id_infraestructura": 1,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-274 INACTIVE",
+        "fecha_calibracion": "2026-10-10T06:08:36.574964+00:00"
+      },
+      "intentos": 1,
+      "reintentos": 0
+    },
+    "response": {
+      "http": 422,
+      "cuerpo": {
+        "error_code": "DISPOSITIVO_INACTIVO",
+        "message": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+        "fields": [],
+        "timestamp": "2026-10-10T06:08:36.598605+00:00"
+      }
+    },
+    "ventana": {
+      "t_before": "2026-10-10T06:08:36.574964+00:00",
+      "t_after": "2026-10-10T06:08:36.600849+00:00"
+    },
+    "http_esperado": 422,
+    "http_obtenido": 422,
+    "no_es_500": true,
+    "error_code_esperado": "DISPOSITIVO_INACTIVO",
+    "error_code_obtenido": "DISPOSITIVO_INACTIVO",
+    "error_code_coincide": true,
+    "mensaje_esperado": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+    "mensaje_obtenido": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+    "mensaje_coincide": true,
+    "comparacion_de_mensaje": "literal estricta contra el FA de RF-24 v2.0",
+    "id_calibracion_en_respuesta": null,
+    "calibraciones_pre": {
+      "ids": [],
+      "total": 0
+    },
+    "calibraciones_post": {
+      "ids": [],
+      "total": 0
+    },
+    "calibracion_creada": false,
+    "evento_rf10_creado": false,
+    "eventos_en_la_ventana": [],
+    "nota_rf10": "La ausencia del evento RF-10 es la condición PROVOCADA del caso, no un defecto: demuestra que la escritura de auditoría falló de verdad.",
+    "fault_sigue_activo_al_ejecutar": true,
+    "dispositivo_realmente_inactivo": true,
+    "serial_proviene_del_fixture": true,
+    "alerta_log": {
+      "captura_de_logs_operativa": true,
+      "alerta_encontrada": true,
+      "correlacion": "la constancia nombra el sensor 2",
+      "constancia": "RF-24: no se pudo auditar el rechazo de calibración del sensor 2",
+      "permission_denied_eventos": true,
+      "lineas_de_la_excepcion": 142
+    },
+    "oraculo": {
+      "http_correcto": true,
+      "no_es_500": true,
+      "error_code_correcto": true,
+      "mensaje_fa_correcto": true,
+      "sin_calibracion_creada": true,
+      "sin_id_calibracion_en_respuesta": true,
+      "evento_rf10_no_escrito": true,
+      "alerta_observable": true
+    },
+    "resultado": "APROBADO"
+  },
+  "restauracion": {
+    "obligatoria": "sí, en finally: se ejecuta aunque Pytest, RANGE o INACTIVE fallen",
+    "grant_ejecutado": true,
+    "privilegios_restaurados": true,
+    "insert_antes": true,
+    "insert_durante": false,
+    "insert_despues": true,
+    "salida": "GRANT",
+    "resultado_infraestructura": "PASS",
+    "nota": "Se devuelve exactamente el privilegio que el snapshot PRE demostró disponible."
+  },
+  "resultado": "APROBADO",
+  "motivo": "Con el INSERT de RF-10 denegado, ambos rechazos conservaron su código funcional y su mensaje del FA, no crearon calibraciones y dejaron constancia observable del fallo de auditoría.",
+  "resultado_caso": {
+    "TC-M09-274": "APROBADO"
+  },
+  "resultado_grupo": "APROBADO",
+  "comparacion_primera_segunda": {
+    "baseline_unico": "PRIMERA EVALUACION OFICIAL run-20261007-140122",
+    "fuente": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/RESULTADOS/run-20261007-140122/TC-M09-G136_resultado.md",
+    "range": {
+      "http": {
+        "primera": "400",
+        "segunda": "400",
+        "cambio": "SIN CAMBIO"
+      },
+      "es_500": {
+        "primera": "NO",
+        "segunda": "NO",
+        "cambio": "SIN CAMBIO"
+      },
+      "error_code": {
+        "primera": "VALOR_FUERA_DE_RANGO",
+        "segunda": "VALOR_FUERA_DE_RANGO",
+        "cambio": "SIN CAMBIO"
+      },
+      "mensaje": {
+        "primera": "Incorrecto",
+        "segunda": "Correcto (literal del FA)",
+        "cambio": "Incorrecto -> Correcto (literal del FA)"
+      },
+      "persistencia": {
+        "primera": "Ninguna",
+        "segunda": "Ninguna",
+        "cambio": "SIN CAMBIO"
+      },
+      "rf10": {
+        "primera": "NO",
+        "segunda": "NO",
+        "cambio": "SIN CAMBIO"
+      },
+      "alerta": {
+        "primera": "Sí",
+        "segunda": "Sí",
+        "cambio": "SIN CAMBIO"
+      }
+    },
+    "inactive": {
+      "http": {
+        "primera": "422",
+        "segunda": "422",
+        "cambio": "SIN CAMBIO"
+      },
+      "es_500": {
+        "primera": "NO",
+        "segunda": "NO",
+        "cambio": "SIN CAMBIO"
+      },
+      "error_code": {
+        "primera": "DISPOSITIVO_INACTIVO",
+        "segunda": "DISPOSITIVO_INACTIVO",
+        "cambio": "SIN CAMBIO"
+      },
+      "mensaje": {
+        "primera": "Incorrecto",
+        "segunda": "Correcto (literal del FA)",
+        "cambio": "Incorrecto -> Correcto (literal del FA)"
+      },
+      "persistencia": {
+        "primera": "Ninguna",
+        "segunda": "Ninguna",
+        "cambio": "SIN CAMBIO"
+      },
+      "rf10": {
+        "primera": "NO",
+        "segunda": "NO",
+        "cambio": "SIN CAMBIO"
+      },
+      "alerta": {
+        "primera": "Sí",
+        "segunda": "Sí",
+        "cambio": "SIN CAMBIO"
+      }
+    },
+    "mensajes": {
+      "range": {
+        "primera": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+        "esperado": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+        "segunda": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado."
+      },
+      "inactive": {
+        "primera": "Solo se pueden calibrar sensores de dispositivos activos.",
+        "esperado": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración.",
+        "segunda": "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el dispositivo antes de proceder con el registro de nuevos parámetros de calibración."
+      }
+    },
+    "por_variante": {
+      "RANGE": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO"
+      },
+      "INACTIVE": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO"
+      }
+    },
+    "caso": {
+      "primera": "RECHAZADO",
+      "segunda": "APROBADO"
+    },
+    "grupo": {
+      "primera": "RECHAZADO",
+      "segunda": "APROBADO"
+    },
+    "best_effort": {
+      "primera": "FUNCIONABA",
+      "segunda": "FUNCIONA"
+    },
+    "causa_anterior": "CORREGIDA"
+  },
+  "causa_raiz": "A. 400 y 422 con los mensajes literales del FA y una constancia por intento: la causa del rechazo anterior está corregida y desplegada en el código reevaluado. El mecanismo best-effort sigue siendo correcto.",
+  "incidencia": {
+    "requerida": "NO",
+    "causa_anterior": "CORREGIDA",
+    "best_effort": "sigue siendo correcto: el fallo de auditoría no altera el código HTTP ni crea calibraciones",
+    "propuesta": "validar y cerrar la incidencia previa de TC-M09-274 (mensajes del FA)"
+  },
+  "seguridad": {
+    "hallazgos": [],
+    "credenciales_en_claro": 0,
+    "limpio": true,
+    "credencial_sintetica_del_laboratorio_persistida": "NO",
+    "criterio": "Se buscan valores de secreto, no vocabulario. El token vive solo en memoria."
+  },
+  "git_final": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)"
+  }
+}

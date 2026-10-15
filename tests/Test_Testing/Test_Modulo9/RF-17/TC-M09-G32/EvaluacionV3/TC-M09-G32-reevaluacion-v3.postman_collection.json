@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "TC-M09-G32 REEVALUACION V3 — TC-M09-69 RF-17 → Monitoreo",
+    "description": "Oraculo posterior al unico PATCH: la configuracion RF-17 modificada (RF17_AFTER) debe ser la que Monitoreo utiliza para la MISMA lectura historica que antes del cambio identificaba RF17_BEFORE. La auditoria del umbral aporta la prueba en vivo de la transicion BEFORE -> AFTER.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Actor RF-17",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/usuarios/me" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json();",
+        "pm.test('Precondicion: /usuarios/me 200',()=>pm.response.to.have.status(200));",
+        "pm.test('Precondicion: actor Administrador o Veterinario activo',()=>{pm.expect(['Administrador','Veterinario']).to.include(b.nombre_rol);pm.expect(b.estado_cuenta).to.eql('Activo');});"
+      ] } }]
+    },
+    {
+      "name": "RF17_AFTER",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral')); const num=x=>Number(x);",
+        "pm.test('Precondicion: GET RF-17 200',()=>pm.response.to.have.status(200));",
+        "const u=b.items.find(x=>x.id_umbral_ambiental===id);",
+        "pm.test('RF17_AFTER: la configuracion sigue existiendo y activa',()=>{pm.expect(u,'umbral '+id).to.not.be.undefined;pm.expect(u.es_activo).to.eql(true);pm.expect(u.niveles).to.have.lengthOf(3);});",
+        "pm.test('RF17_AFTER: la modificacion persistio en la configuracion',()=>{pm.expect(num(u.valor_min)).to.eql(num(pm.environment.get('after_valor_min')));pm.expect(num(u.valor_max)).to.eql(num(pm.environment.get('after_valor_max')));});",
+        "pm.test('RF17_AFTER difiere de RF17_BEFORE',()=>{const cambio=num(u.valor_min)!==num(pm.environment.get('before_valor_min'))||num(u.valor_max)!==num(pm.environment.get('before_valor_max'));pm.expect(cambio,'la configuracion debe haber cambiado').to.eql(true);});",
+        "pm.test('RF17_AFTER: niveles contiguos que cubren el rango general',()=>{const o=[...u.niveles].sort((a,c)=>num(a.limite_inferior)-num(c.limite_inferior));pm.expect(num(o[0].limite_inferior)).to.eql(num(u.valor_min));pm.expect(num(o[o.length-1].limite_superior)).to.eql(num(u.valor_max));for(let i=0;i<o.length-1;i++)pm.expect(num(o[i].limite_superior)).to.eql(num(o[i+1].limite_inferior));});",
+        "pm.test('RF17_AFTER: la configuracion quedo versionada (fecha_actualizacion)',()=>pm.expect(u.fecha_actualizacion,'fecha_actualizacion').to.not.be.null);"
+      ] } }]
+    },
+    {
+      "name": "MONITORING_AFTER historial",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{id_sensor}}&pagina=1&por_pagina=500&orden=ASC" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const num=x=>Number(x); const id=Number(pm.environment.get('id_telemetria'));",
+        "pm.test('Precondicion: API Monitoreo historial 200',()=>pm.response.to.have.status(200));",
+        "const l=(pm.response.json().items||[]).find(x=>x.id_telemetria===id);",
+        "pm.test('La misma lectura historica sigue siendo consultable',()=>pm.expect(l,'lectura id_telemetria '+id).to.not.be.undefined);",
+        "pm.test('La lectura conserva su contexto activo/especie',()=>{pm.expect(l.id_activo_biologico,'id_activo_biologico').to.not.be.null;pm.expect(l.id_especie,'id_especie').to.not.be.null;});",
+        "pm.test('Oraculo TC-69: Monitoreo identifica la misma configuracion RF-17',()=>pm.expect(l.id_umbral_ambiental).to.eql(Number(pm.environment.get('id_umbral'))));",
+        "pm.test('Oraculo TC-69: Monitoreo utiliza el nuevo valor_min de RF17_AFTER',()=>pm.expect(num(l.valor_min_umbral)).to.eql(num(pm.environment.get('after_valor_min'))));",
+        "pm.test('Oraculo TC-69: Monitoreo utiliza el nuevo valor_max de RF17_AFTER',()=>pm.expect(num(l.valor_max_umbral)).to.eql(num(pm.environment.get('after_valor_max'))));",
+        "pm.test('Oraculo TC-69: Monitoreo ya no utiliza el rango de RF17_BEFORE',()=>{const antes=[num(pm.environment.get('before_valor_min')),num(pm.environment.get('before_valor_max'))];pm.expect([num(l.valor_min_umbral),num(l.valor_max_umbral)],'rango en Monitoreo').to.not.eql(antes);});",
+        "pm.test('Oraculo TC-69: Monitoreo expone la version de la configuracion aplicada',()=>pm.expect(l.version_umbral,'version_umbral').to.not.be.null);"
+      ] } }]
+    },
+    {
+      "name": "Auditoria RF-17 (transicion BEFORE -> AFTER)",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales/{{id_umbral}}/auditoria" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const num=x=>Number(x);",
+        "pm.test('Precondicion: GET auditoria del umbral 200',()=>pm.response.to.have.status(200));",
+        "const items=pm.response.json().items||[];",
+        "const ups=items.filter(x=>x.tipo_operacion==='UPDATE');",
+        "pm.test('La modificacion quedo auditada como UPDATE',()=>pm.expect(ups.length,'registros UPDATE').to.be.above(0));",
+        "const u=ups[ups.length-1];",
+        "pm.test('La auditoria registra el rango anterior (RF17_BEFORE)',()=>{const a=u.valores_anteriores||{};pm.expect(num(a.valor_min)).to.eql(num(pm.environment.get('before_valor_min')));pm.expect(num(a.valor_max)).to.eql(num(pm.environment.get('before_valor_max')));});",
+        "pm.test('La auditoria registra el rango nuevo (RF17_AFTER)',()=>{const n=u.valores_nuevos||{};pm.expect(num(n.valor_min)).to.eql(num(pm.environment.get('after_valor_min')));pm.expect(num(n.valor_max)).to.eql(num(pm.environment.get('after_valor_max')));});"
+      ] } }]
+    },
+    {
+      "name": "MONITORING_AFTER dashboard (complementario)",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/iot/monitoreo/dashboard?pagina=1&por_pagina=50" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Evidencia complementaria: API Monitoreo dashboard 200',()=>pm.response.to.have.status(200));",
+        "const s=(pm.response.json().sensores||[]).find(x=>x.id_sensor===Number(pm.environment.get('id_sensor')));",
+        "pm.test('Evidencia complementaria: el sensor del fixture aparece en el dashboard',()=>pm.expect(s,'sensor '+pm.environment.get('id_sensor')).to.not.be.undefined);"
+      ] } }]
+    }
+  ]
+}

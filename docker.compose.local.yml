@@ -1,0 +1,8 @@
+services:
+  backend:
+    environment:
+      ENABLE_TEST_SANDBOX: ${ENABLE_TEST_SANDBOX}
+      TEST_SANDBOX_SECRET: ${TEST_SANDBOX_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - "8000:8000"

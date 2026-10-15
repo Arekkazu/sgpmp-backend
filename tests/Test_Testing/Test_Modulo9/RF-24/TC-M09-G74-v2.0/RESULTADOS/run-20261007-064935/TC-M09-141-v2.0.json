@@ -1,0 +1,122 @@
+{
+  "caso": "TC-M09-141-v2.0",
+  "grupo": "TC-M09-G74-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "runId": "run-20261007-064935",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "administradorAuxiliar": {
+    "usado": true,
+    "motivo": "El Ingeniero no tiene dispositivos en su alcance en TEST: GET /configuracion/dispositivos-iot devuelve total 0, por lo que el detalle de dispositivo (RF-21) y las asociaciones del sensor (RF-22) responden 404 para ese actor.",
+    "gets": [
+      "GET /configuracion/dispositivos-iot/{device_id}",
+      "GET /configuracion/sensores/{sensor_id}/asociaciones"
+    ],
+    "ejecuta_post_funcional": false
+  },
+  "modo_calibracion": "SENSOR",
+  "actor": {
+    "id_usuario": 4,
+    "rol": "Ingeniero de Campo",
+    "correo_coincide": true
+  },
+  "dispositivo": {
+    "id": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "activo": true,
+    "id_infraestructura": 1
+  },
+  "sensor": {
+    "id": 6,
+    "nombre": "Sensor temperatura alevinera-01",
+    "categoria": "TEMPERATURA",
+    "activo": true,
+    "id_dispositivo_iot": 3
+  },
+  "area": {
+    "id_infraestructura": 3,
+    "id_dispositivo_iot": 3,
+    "vigente": true
+  },
+  "rangoTecnico": {
+    "categoria": "TEMPERATURA",
+    "min": "0.0000",
+    "max": "45.0000"
+  },
+  "valorReferencia": "22.5000",
+  "fechaCalibracionEnviada": "2026-10-07T06:49:37.209Z",
+  "observaciones": "QA TC-M09-141-v2.0",
+  "endpoint": "/configuracion/sensores/6/calibrar",
+  "metodo": "POST",
+  "postsEjecutados": 1,
+  "httpPost": 201,
+  "statuses": {
+    "Login Ingeniero": 200,
+    "Identidad del Ingeniero": 200,
+    "Permisos del Ingeniero": 200,
+    "Login Administrador auxiliar": 200,
+    "Dispositivo activo": 200,
+    "Sensor asociado al dispositivo": 200,
+    "Área activa del sensor": 200,
+    "Rango técnico del sensor": 200,
+    "Historial PRE": 200,
+    "Registrar calibración TC-M09-141-v2.0": 201,
+    "Historial POST": 200
+  },
+  "historialPre": {
+    "total": 2,
+    "ids": [
+      11,
+      10
+    ]
+  },
+  "calibracion": {
+    "id_calibracion": 12,
+    "id_dispositivo_iot": 3,
+    "id_sensor": 6,
+    "id_usuario": 4,
+    "valor_referencia": "22.5000",
+    "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+    "observaciones": "QA TC-M09-141-v2.0"
+  },
+  "historialPost": {
+    "total": 3,
+    "ids": [
+      12,
+      11,
+      10
+    ]
+  },
+  "registroPersistido": {
+    "id_calibracion": 12,
+    "id_dispositivo_iot": 3,
+    "id_sensor": 6,
+    "valor_referencia": "22.5000",
+    "ganancia": "1.0000",
+    "offset": "22.5000",
+    "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+    "id_usuario": 4,
+    "observaciones": "QA TC-M09-141-v2.0"
+  },
+  "oraculo": {
+    "http_exito_2xx": true,
+    "id_calibracion_nuevo": true,
+    "id_dispositivo_iot": true,
+    "id_sensor": true,
+    "id_usuario": true,
+    "fecha_calibracion_mismo_instante": true,
+    "valor_referencia_equivalente": true,
+    "observaciones": true,
+    "registro_en_historial": true,
+    "historial_conserva_los_seis_valores": true
+  },
+  "assertions": {
+    "total": 34,
+    "failed": 0,
+    "failures": []
+  },
+  "resultado": "PASS"
+}

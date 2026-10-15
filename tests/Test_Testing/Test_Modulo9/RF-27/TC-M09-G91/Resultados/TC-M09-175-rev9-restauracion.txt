@@ -1,0 +1,44 @@
+TC-M09-175 / G91 rev9 — verificacion posterior a restauracion (solo lectura)
+Fecha UTC: 2026-10-10T00:14:00Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1-rev8. No se reejecutaron 173/174/175.
+Sin commit. Sin push. Sin POST/PATCH/PUT/DELETE. Sin DML.
+Admin: SGPMP_TEST_PASSWORD (presente). JWT no documentado.
+
+A. LOGIN
+POST /sesiones/ admin@pecuaria.co HTTP 200
+
+B. GET /configuracion/personalizacion/tema/global
+HTTP 200
+cuerpo no nulo:
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":2,"es_global":true,"fecha_actualizacion":"2026-10-01T21:03:39.159222Z"}
+
+Restauracion de PRESENCIA: VERIFICADA
+El endpoint ya no devuelve null. Hay singleton es_global=true.
+
+C. COMPARACION CON RESPALDO HISTORICO QA (rev1 2026-09-26, no inventado)
+Rev1 GET global:
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":1,"es_global":true,"fecha_actualizacion":"2026-09-25T06:50:47.856604Z"}
+
+id_tema_visual: 1 = 1  coincide
+id_usuario: 1 = 1  coincide
+es_global: true = true  coincide
+theme_mode: rev1=1  actual=2  NO coincide
+fecha_actualizacion: distinta (2026-09-25 vs 2026-10-01)
+
+No hay evidencia suficiente para afirmar que se restauro el valor original
+respaldado en rev1 (Claro, theme_mode=1). El registro presente es el mismo id=1
+con theme_mode=2 (Oscuro) y fecha 2026-10-01T21:03:39.159222Z.
+
+D. ESTADOS DE CASOS (sin reejecutar)
+TC-M09-173 APROBADO historico TEST
+TC-M09-174 APROBADO historico TEST
+TC-M09-175 APROBADO rev8 (actor oficial, oraculo defecto)
+
+E. G91
+Casos funcionales: los tres APROBADOS.
+Ventana de ausencia de global: CERRADA (GET ya no es null).
+Cierre de grupo: recomendable en cuanto a ejecucion de pruebas.
+Salvedad ambiental: theme_mode actual=2 no replica el snapshot rev1 (theme_mode=1).
+Seguimiento opcional a Alex: confirmar si theme_mode=2 es el estado intencional post-restore.

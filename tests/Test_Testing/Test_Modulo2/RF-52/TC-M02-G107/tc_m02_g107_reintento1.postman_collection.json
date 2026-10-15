@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "TC-M02-G107 - Re-verificacion 2026-09-15 - CA-7/CA-10 siguen rotos en TEST",
+    "description": "Re-ejecucion de TC-M02-G107 (RF-52, CA-7/CA-10) contra TEST el 2026-09-15. La coleccion original (tc_m02_g107.postman_collection.json) queda intacta como evidencia historica; esta version documenta el estado ACTUAL.\n\nRESULTADO: ambos sub-casos SIGUEN ROTOS, sin cambios.\n\nSub-caso 1 (CA-7, cadena de custodia): RF-37 (`POST .../fases`) sigue respondiendo 500 en TEST (re-confirmado el mismo dia via TC-M02-G61) -- la cadena RF-33->RF-37->RF-40->RF-43->RF-44 sigue rompiendose en el mismo punto exacto. IMPORTANTE: este bug SI esta corregido en DEV desde el 2026-09-14 (TC-M02-G66), asi que en DEV esta cadena probablemente ya sea reconstruible -- no re-verificado en DEV esta sesion, solo se confirma que en TEST sigue bloqueada.\n\nSub-caso 2 (CA-10, eventos rechazados sin auditar): se repite el escenario exacto sugerido por la ficha -- NACIMIENTO directo sin servicio/diagnostico previo (422 SECUENCIA_REPRODUCTIVA_INVALIDA) -- y se confirma que sigue sin generar ninguna fila de bitacora. Nota: aunque el bug original de RF-42 (500 en servicio/diagnostico) SI se corrigio (TC-M02-G53), este gap de auditoria es independiente -- es una propiedad general de toda validacion de negocio temprana en el codigo (se ejecuta antes del bloque try/except de persistencia), no depende de que el resto del endpoint funcione o no.\n\nUsa activos INDIVIDUAL ya existentes en TEST (id=250 para sub-caso 1, id=305 para sub-caso 2, ambos sin historial reproductivo/fase previo) en vez de crear frescos.\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-270, CA-7) - RF-37 sigue rompiendo la cadena de custodia en TEST",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- CA-7: intento de avanzar la cadena RF-33->RF-37 (asignar fase) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('BUG SIGUE PRESENTE: RF-37 responde 500, la cadena de custodia no puede reconstruirse en TEST', function () { pm.expect(pm.response.code).to.equal(500); });",
+              "console.log('CONCLUSION: en DEV este mismo endpoint SI esta corregido (TC-M02-G66, 2026-09-14) -- TEST sigue sin el fix.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": 4\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g270}}/fases", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g270}}", "fases" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/3 (TC-M02-271, CA-10) - Capturar conteo de auditoria ANTES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) { pm.collectionVariables.set('total_antes', respuesta.total_registros); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={{id_activo_g271}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "rf_origen", "value": "RF42" }, { "key": "id_activo_biologico", "value": "{{id_activo_g271}}" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/3 (TC-M02-271) - Forzar NACIMIENTO fuera de secuencia (422 esperado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- CA-10: nacimiento directo sin servicio/diagnostico previo ---');",
+              "console.log(pm.response.text());",
+              "pm.test('rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1,\n  \"fecha\": \"2026-09-14T16:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g271}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g271}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 3/3 (TC-M02-271) - Capturar conteo DESPUES (BUG: sigue sin cambiar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta de bitacora responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('BUG SIGUE PRESENTE (CA-10): el rechazo 422 no genero ninguna fila nueva de auditoria', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('total_antes'), 10);",
+              "    pm.expect(respuesta.total_registros).to.equal(antes);",
+              "});",
+              "console.log('CONCLUSION: sin cambios respecto al hallazgo original del 2026-09-10 -- las validaciones tempranas de negocio siguen sin dejar rastro de auditoria.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={{id_activo_g271}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "rf_origen", "value": "RF42" }, { "key": "id_activo_biologico", "value": "{{id_activo_g271}}" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_activo_g270", "value": "250" },
+    { "key": "id_activo_g271", "value": "305" },
+    { "key": "total_antes", "value": "" }
+  ]
+}

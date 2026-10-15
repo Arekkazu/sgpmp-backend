@@ -1,0 +1,21 @@
+{
+  "info": {
+    "name": "TC-M02-G17 rev4 — descubrimiento 187",
+    "description": "GET metricas. Veredicto 187 vive en pytest. No sobrescribe rev1-rev3.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 GET metricas especie 1",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=1"
+      }
+    }
+  ]
+}

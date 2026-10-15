@@ -1,0 +1,639 @@
+{
+  "grupo": "TC-M09-G32",
+  "caso": "TC-M09-69",
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V3",
+  "runId": "G32-REEVAL-V3-20260927-063540",
+  "environment": "TEST",
+  "fecha": "2026-09-27T11:36:05.918Z",
+  "preflight": {
+    "health": 200,
+    "contrato": {
+      "patch_umbral": true,
+      "get_umbrales": true,
+      "get_auditoria_umbral": true,
+      "get_historial": true,
+      "campos_382": {
+        "id_especie": true,
+        "id_umbral_ambiental": true,
+        "valor_min_umbral": true,
+        "valor_max_umbral": true,
+        "version_umbral": true
+      },
+      "campos_382_completo": true
+    }
+  },
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "rol": "Administrador",
+    "estado": "Activo"
+  },
+  "fixture": {
+    "lectura_historica": {
+      "id_telemetria": 31,
+      "id_sensor": 1,
+      "id_variable": 1,
+      "tipo_variable": "Temperatura del agua",
+      "valor": "36.2100",
+      "unidad_medida": "°C",
+      "timestamp_captura": "2024-06-01T08:00:00Z",
+      "id_activo_biologico": 1,
+      "id_especie": 1,
+      "especie": "Tilapia Roja",
+      "estado_semaforo_historico": "ROJO",
+      "id_umbral_ambiental": 1,
+      "valor_min_umbral": "0.00",
+      "valor_max_umbral": "100.00",
+      "version_umbral": null
+    },
+    "configuracion_rf17": {
+      "id_umbral_ambiental": 1,
+      "id_especie": 1,
+      "id_variable_ambiental": 1,
+      "unidad_medida": "°C",
+      "valor_min": "0.00",
+      "valor_max": "100.00",
+      "es_activo": true,
+      "fecha_actualizacion": null,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "25.00",
+          "limite_superior": "30.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "20.00",
+          "limite_superior": "25.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "0.00",
+          "limite_superior": "20.00"
+        }
+      ]
+    },
+    "variable": {
+      "id": 1,
+      "nombre": "Temperatura del agua",
+      "unidad": "°C",
+      "valor_fisico_min": "0",
+      "valor_fisico_max": "45"
+    },
+    "ventana_consulta": {
+      "etiqueta": "historicos",
+      "fecha_inicio": "2024-05-15",
+      "fecha_fin": "2024-07-01"
+    },
+    "checklist": [
+      {
+        "condicion": "existe una lectura historica candidata",
+        "cumple": true
+      },
+      {
+        "condicion": "lectura historica real con id_telemetria",
+        "cumple": true
+      },
+      {
+        "condicion": "la lectura tiene id_activo_biologico",
+        "cumple": true
+      },
+      {
+        "condicion": "la lectura tiene id_especie",
+        "cumple": true
+      },
+      {
+        "condicion": "la configuracion RF-17 esta activa",
+        "cumple": true
+      },
+      {
+        "condicion": "la configuracion RF-17 tiene tres niveles",
+        "cumple": true
+      },
+      {
+        "condicion": "existe exactamente una configuracion activa para la combinacion especie+variable",
+        "cumple": true
+      },
+      {
+        "condicion": "la lectura y la configuracion RF-17 usan la misma variable",
+        "cumple": true
+      },
+      {
+        "condicion": "el historial devuelve id_umbral_ambiental",
+        "cumple": true
+      },
+      {
+        "condicion": "id_umbral_ambiental del historial == RF-17 elegido",
+        "cumple": true
+      },
+      {
+        "condicion": "valor_min_umbral del historial == valor_min del RF-17",
+        "cumple": true
+      },
+      {
+        "condicion": "valor_max_umbral del historial == valor_max del RF-17",
+        "cumple": true
+      }
+    ],
+    "completo": true,
+    "candidatos_evaluados": [
+      {
+        "id_telemetria": 31,
+        "tipo_variable": "Temperatura del agua",
+        "id_especie": 1,
+        "id_umbral_ambiental_historial": 1,
+        "apto": true
+      },
+      {
+        "id_telemetria": 34,
+        "tipo_variable": "Amoniaco total",
+        "id_especie": 1,
+        "id_umbral_ambiental_historial": null,
+        "apto": false
+      },
+      {
+        "id_telemetria": 35,
+        "tipo_variable": "Nitrito",
+        "id_especie": 1,
+        "id_umbral_ambiental_historial": null,
+        "apto": false
+      }
+    ]
+  },
+  "rf17_before": {
+    "id_umbral_ambiental": 1,
+    "id_especie": 1,
+    "id_variable_ambiental": 1,
+    "unidad_medida": "°C",
+    "valor_min": "0.00",
+    "valor_max": "100.00",
+    "es_activo": true,
+    "fecha_actualizacion": null,
+    "estado_sincronizacion": "PENDIENTE",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "25.00",
+        "limite_superior": "30.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "20.00",
+        "limite_superior": "25.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "0.00",
+        "limite_superior": "20.00"
+      }
+    ]
+  },
+  "monitoring_before": {
+    "historial": {
+      "id_telemetria": 31,
+      "valor": "36.2100",
+      "unidad_medida": "°C",
+      "timestamp_captura": "2024-06-01T08:00:00Z",
+      "id_activo_biologico": 1,
+      "id_especie": 1,
+      "especie": "Tilapia Roja",
+      "id_variable": 1,
+      "tipo_variable": "Temperatura del agua",
+      "estado_semaforo_historico": "ROJO",
+      "id_umbral_ambiental": 1,
+      "valor_min_umbral": "0.00",
+      "valor_max_umbral": "100.00",
+      "version_umbral": null
+    },
+    "dashboard": {
+      "id_sensor": 1,
+      "tipo_variable": "Temperatura Ambiental",
+      "ultimo_valor": "35.0000",
+      "ultimo_timestamp_captura": "2026-09-27T10:15:04.446000Z",
+      "estado_semaforo": "GRIS",
+      "dato_desactualizado": true
+    }
+  },
+  "correlacion_before": {
+    "id_umbral_ambiental": {
+      "monitoreo": 1,
+      "rf17": 1,
+      "coincide": true
+    },
+    "valor_min": {
+      "monitoreo": "0.00",
+      "rf17": "0.00",
+      "coincide": true
+    },
+    "valor_max": {
+      "monitoreo": "100.00",
+      "rf17": "100.00",
+      "coincide": true
+    },
+    "version": {
+      "monitoreo": null,
+      "rf17": null
+    }
+  },
+  "modificacion": {
+    "criterio": "El rango general se normaliza a la cobertura real de los tres niveles y su limite superior se expande en 2.00 unidades, dentro del rango fisico de la variable.",
+    "cobertura_before": [
+      "0.00",
+      "30.00"
+    ],
+    "validaciones_previas": "todas superadas",
+    "escritura": {
+      "endpoint": "PATCH /configuracion/umbrales/1",
+      "payload": {
+        "valor_min": "0.00",
+        "valor_max": "32.00",
+        "niveles": [
+          {
+            "nivel": "critico",
+            "limite_inferior": "0.00",
+            "limite_superior": "20.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "20.00",
+            "limite_superior": "25.00"
+          },
+          {
+            "nivel": "normal",
+            "limite_inferior": "25.00",
+            "limite_superior": "32.00"
+          }
+        ]
+      },
+      "status": 500,
+      "body": {
+        "error_code": "FALLO_SINCRONIZACION_EDGE",
+        "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión.",
+        "fields": [],
+        "timestamp": "2026-09-27T11:35:43.280714+00:00"
+      },
+      "reintento": false
+    }
+  },
+  "reconciliacion": {
+    "motivo": "respuesta 500: se determina el estado real por GET, sin reintentar",
+    "persistio": true,
+    "rf17_tras_get": {
+      "id_umbral_ambiental": 1,
+      "id_especie": 1,
+      "id_variable_ambiental": 1,
+      "unidad_medida": "°C",
+      "valor_min": "0.00",
+      "valor_max": "32.00",
+      "es_activo": true,
+      "fecha_actualizacion": "2026-09-27T11:35:43.258018Z",
+      "estado_sincronizacion": "PENDIENTE",
+      "niveles": [
+        {
+          "nivel": "critico",
+          "limite_inferior": "0.00",
+          "limite_superior": "20.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "20.00",
+          "limite_superior": "25.00"
+        },
+        {
+          "nivel": "normal",
+          "limite_inferior": "25.00",
+          "limite_superior": "32.00"
+        }
+      ]
+    }
+  },
+  "rf17_after": {
+    "id_umbral_ambiental": 1,
+    "id_especie": 1,
+    "id_variable_ambiental": 1,
+    "unidad_medida": "°C",
+    "valor_min": "0.00",
+    "valor_max": "32.00",
+    "es_activo": true,
+    "fecha_actualizacion": "2026-09-27T11:35:43.258018Z",
+    "estado_sincronizacion": "PENDIENTE",
+    "niveles": [
+      {
+        "nivel": "critico",
+        "limite_inferior": "0.00",
+        "limite_superior": "20.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "20.00",
+        "limite_superior": "25.00"
+      },
+      {
+        "nivel": "normal",
+        "limite_inferior": "25.00",
+        "limite_superior": "32.00"
+      }
+    ]
+  },
+  "monitoring_after": {
+    "historial": {
+      "id_telemetria": 31,
+      "valor": "36.2100",
+      "unidad_medida": "°C",
+      "timestamp_captura": "2024-06-01T08:00:00Z",
+      "id_activo_biologico": 1,
+      "id_especie": 1,
+      "especie": "Tilapia Roja",
+      "id_variable": 1,
+      "tipo_variable": "Temperatura del agua",
+      "estado_semaforo_historico": "ROJO",
+      "id_umbral_ambiental": 1,
+      "valor_min_umbral": "0.00",
+      "valor_max_umbral": "32.00",
+      "version_umbral": "2026-09-27T11:35:43.258018Z"
+    },
+    "dashboard": {
+      "id_sensor": 1,
+      "tipo_variable": "Temperatura Ambiental",
+      "ultimo_valor": "35.0000",
+      "ultimo_timestamp_captura": "2026-09-27T10:15:04.446000Z",
+      "estado_semaforo": "GRIS",
+      "dato_desactualizado": true
+    }
+  },
+  "relectura_confirmatoria": null,
+  "oraculo": {
+    "before_correlacionado": true,
+    "correlacion_before": {
+      "id_umbral_ambiental": {
+        "monitoreo": 1,
+        "rf17": 1,
+        "coincide": true
+      },
+      "valor_min": {
+        "monitoreo": "0.00",
+        "rf17": "0.00",
+        "coincide": true
+      },
+      "valor_max": {
+        "monitoreo": "100.00",
+        "rf17": "100.00",
+        "coincide": true
+      },
+      "version": {
+        "monitoreo": null,
+        "rf17": null
+      }
+    },
+    "rf17_cambio": true,
+    "after": {
+      "id_umbral_ambiental": {
+        "esperado": 1,
+        "obtenido": 1,
+        "cumple": true
+      },
+      "valor_min_umbral": {
+        "esperado": "0.00",
+        "obtenido": "0.00",
+        "cumple": true
+      },
+      "valor_max_umbral": {
+        "esperado": "32.00",
+        "obtenido": "32.00",
+        "cumple": true
+      },
+      "version_umbral": {
+        "esperado": "2026-09-27T11:35:43.258018Z",
+        "obtenido": "2026-09-27T11:35:43.258018Z",
+        "cumple": true
+      },
+      "ya_no_usa_before": {
+        "valor_max_before": "100.00",
+        "cumple": true
+      }
+    },
+    "aprobado": true
+  },
+  "semaforo": {
+    "antes": "ROJO",
+    "despues": "ROJO",
+    "valor_lectura": "36.2100",
+    "dentro_de_algun_nivel_before": false,
+    "dentro_de_algun_nivel_after": false,
+    "nota": "Evidencia secundaria. La modificacion no se diseno para forzar un cambio de color: el criterio principal es que Monitoreo utilice el nuevo rango y version."
+  },
+  "auditoria": {
+    "status": 200,
+    "total": 1,
+    "registros": [
+      {
+        "id_auditoria_umbral": 23,
+        "tipo_operacion": "UPDATE",
+        "id_usuario": 104,
+        "fecha_gestion": "2026-09-27T11:35:43.247881Z",
+        "valores_anteriores": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "25.00",
+              "limite_superior": "30.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "20.00",
+              "limite_superior": "25.00"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "0.00",
+              "limite_superior": "20.00"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "100.00",
+          "valor_min": "0.00",
+          "id_especie": 1,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": null,
+          "id_umbral_ambiental": 1,
+          "id_variable_ambiental": 1
+        },
+        "valores_nuevos": {
+          "niveles": [
+            {
+              "nivel": "critico",
+              "limite_inferior": "0.00",
+              "limite_superior": "20.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "20.00",
+              "limite_superior": "25.00"
+            },
+            {
+              "nivel": "normal",
+              "limite_inferior": "25.00",
+              "limite_superior": "32.00"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "32.00",
+          "valor_min": "0.00",
+          "id_especie": 1,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": "2026-09-27T11:35:43.258018+00:00",
+          "id_umbral_ambiental": 1,
+          "id_variable_ambiental": 1
+        }
+      }
+    ]
+  },
+  "test_vs_dev": {
+    "ejecutado": false,
+    "motivo": "TEST aprobo: el contraste DEV no es necesario"
+  },
+  "newman": {
+    "html": "newman-g32-v3.html",
+    "json": "newman-g32-v3.json",
+    "stats": {
+      "total": 22,
+      "pending": 0,
+      "failed": 0
+    },
+    "aserciones": [
+      {
+        "request": "Actor RF-17",
+        "test": "Precondicion: /usuarios/me 200",
+        "ok": true
+      },
+      {
+        "request": "Actor RF-17",
+        "test": "Precondicion: actor Administrador o Veterinario activo",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "Precondicion: GET RF-17 200",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "RF17_AFTER: la configuracion sigue existiendo y activa",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "RF17_AFTER: la modificacion persistio en la configuracion",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "RF17_AFTER difiere de RF17_BEFORE",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "RF17_AFTER: niveles contiguos que cubren el rango general",
+        "ok": true
+      },
+      {
+        "request": "RF17_AFTER",
+        "test": "RF17_AFTER: la configuracion quedo versionada (fecha_actualizacion)",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Precondicion: API Monitoreo historial 200",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "La misma lectura historica sigue siendo consultable",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "La lectura conserva su contexto activo/especie",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Oraculo TC-69: Monitoreo identifica la misma configuracion RF-17",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Oraculo TC-69: Monitoreo utiliza el nuevo valor_min de RF17_AFTER",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Oraculo TC-69: Monitoreo utiliza el nuevo valor_max de RF17_AFTER",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Oraculo TC-69: Monitoreo ya no utiliza el rango de RF17_BEFORE",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER historial",
+        "test": "Oraculo TC-69: Monitoreo expone la version de la configuracion aplicada",
+        "ok": true
+      },
+      {
+        "request": "Auditoria RF-17 (transicion BEFORE -> AFTER)",
+        "test": "Precondicion: GET auditoria del umbral 200",
+        "ok": true
+      },
+      {
+        "request": "Auditoria RF-17 (transicion BEFORE -> AFTER)",
+        "test": "La modificacion quedo auditada como UPDATE",
+        "ok": true
+      },
+      {
+        "request": "Auditoria RF-17 (transicion BEFORE -> AFTER)",
+        "test": "La auditoria registra el rango anterior (RF17_BEFORE)",
+        "ok": true
+      },
+      {
+        "request": "Auditoria RF-17 (transicion BEFORE -> AFTER)",
+        "test": "La auditoria registra el rango nuevo (RF17_AFTER)",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER dashboard (complementario)",
+        "test": "Evidencia complementaria: API Monitoreo dashboard 200",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_AFTER dashboard (complementario)",
+        "test": "Evidencia complementaria: el sensor del fixture aparece en el dashboard",
+        "ok": true
+      }
+    ]
+  },
+  "git": {
+    "frontend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "ad2b1e59bb872491bae368ae812993a3ded08d63",
+      "status": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G22/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G28/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t0"
+    },
+    "backend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "91f7738667a934a4eaf3db5519a57d7cf4803b0e",
+      "status": "?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G30/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G32/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t0"
+    }
+  },
+  "seguridad": {
+    "fecha": "2026-09-27T11:38:09.662Z",
+    "archivosEscaneados": 4,
+    "archivosComprometidos": 0,
+    "hallazgos": []
+  }
+}

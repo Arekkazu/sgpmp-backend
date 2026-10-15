@@ -1,0 +1,119 @@
+{
+  "info": {
+    "name": "TC-M02-G105 - Reintento 2 (2026-09-19) - Contador CORREGIDO, Productor sigue roto",
+    "description": "Segunda re-ejecucion de TC-M02-G105 (RF-52, CA-8) contra TEST, el 2026-09-19 (reintento1 fue 2026-09-15, sin cambios entonces). Ambas colecciones anteriores quedan intactas como evidencia historica.\n\nRESULTADO MIXTO -- correccion parcial:\n\n(b) Contador: CORREGIDO. Ahora solo ve clasificaciones TRANSFORMACION_BIOLOGICA y SANITARIO en la bitacora del activo 240 -- exactamente el alcance que exige CA-8. Antes (2026-09-10/15) tambien veia GESTION_OPERATIVA y CONTROL_ESTADO.\n\n(a) Productor: SIGUE ROTO. Sigue leyendo sin problema (HTTP 200) la bitacora completa de un activo que no le pertenece (id=240, propiedad de id_usuario=1) -- 4 registros, clasificaciones CONTROL_ESTADO/TRANSFORMACION_BIOLOGICA/SANITARIO/GESTION_OPERATIVA, sin ningun filtro por propietario.\n\nConclusion: el fix cubrio la restriccion por CLASIFICACION (rol Contador), pero no la restriccion por PROPIEDAD del activo (rol Productor) -- son dos mecanismos distintos dentro de ConsultarBitacoraUseCase, y solo uno de los dos se corrigio.\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion (a) - Iniciar sesion como Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login Productor exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_productor', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (a) - Productor lee bitacora de activo ajeno (SIGUE ROTO: 200 sin filtro por propietario)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('BUG SIGUE PRESENTE: 200 en vez de 403 (sin filtro por propiedad)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('BUG SIGUE PRESENTE: el Productor ve clasificaciones fuera de ACCESO_DATOS de un activo ajeno', function () {",
+              "    const cls = new Set((respuesta.registros || []).map(function(r){ return r.clasificacion_biologica; }));",
+              "    pm.expect(cls.has('GESTION_OPERATIVA') || cls.has('CONTROL_ESTADO')).to.equal(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_productor}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "id_activo_biologico", "value": "{{id_activo}}" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (b) - Iniciar sesion como Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login Contador exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_contador', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{contador_correo}}\",\n  \"contrasena\": \"{{contador_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (b) - Contador lee bitacora (CORREGIDO: solo TRANSFORMACION_BIOLOGICA/SANITARIO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('la consulta responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const clasificaciones = new Set((respuesta.registros || []).map(function(r){ return r.clasificacion_biologica; }));",
+              "pm.test('CORREGIDO: el Contador ya NO ve GESTION_OPERATIVA', function () { pm.expect(clasificaciones.has('GESTION_OPERATIVA')).to.equal(false); });",
+              "pm.test('CORREGIDO: el Contador ya NO ve CONTROL_ESTADO', function () { pm.expect(clasificaciones.has('CONTROL_ESTADO')).to.equal(false); });",
+              "console.log('CONCLUSION: la restriccion por clasificacion (rol Contador) esta corregida; la restriccion por propiedad (rol Productor) sigue rota -- ver sub-caso (a).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_contador}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "auditoria" ], "query": [ { "key": "id_activo_biologico", "value": "{{id_activo}}" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "productor_correo", "value": "m2m.nuevo@ejemplo.com" },
+    { "key": "productor_contrasena", "value": "Test1234!" },
+    { "key": "contador_correo", "value": "contador@pecuaria.co" },
+    { "key": "contador_contrasena", "value": "Test1234!" },
+    { "key": "token_productor", "value": "" },
+    { "key": "token_contador", "value": "" },
+    { "key": "id_activo", "value": "240" }
+  ]
+}

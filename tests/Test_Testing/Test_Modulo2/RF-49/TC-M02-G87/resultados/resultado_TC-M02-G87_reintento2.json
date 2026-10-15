@@ -1,0 +1,34 @@
+{
+  "tc": "TC-M02-G87",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G87-REEVAL-V3-20260919-144200",
+  "veredicto": "Aprobado",
+  "nota_global": "TC-M02-153 (cifrado MQTT/LoRaWAN) excluido del cómputo por fuera de stack: requiere sniffer de red y broker MQTT, no disponibles en QA. No es defecto del backend. Los 3 subcasos ejecutables de TC-M02-152 pasan al 100%.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-152 (Escenario A): Rechazo BOLA cross-finca (Ingeniero)",
+      "esperado": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE sin fuga de datos sensibles",
+      "obtenido": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE validado",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-152_pytest.html"
+    },
+    {
+      "paso": "TC-M02-152 (Escenario B): Productor crea asociación en su propia finca (RF-49 fix RBAC)",
+      "esperado": "HTTP 201 Created tras despliegue de permiso en modulo1.permisos (id_rol=2, id_recurso=30, id_accion=1)",
+      "obtenido": "HTTP 201 Created con id_asociacion_activo_sensor y estado ACTIVA validado",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-152_pytest.html",
+      "nota_qa": "Fix INC-M02-62-G87 verificado. El Productor Agropecuario puede asociar sensores en su finca."
+    },
+    {
+      "paso": "TC-M02-152 (Escenario B2): Control BOLA Productor sobre activo de finca ajena (INC-M02-71-G48)",
+      "esperado": "HTTP 422 Unprocessable Entity (ACTIVO_NO_ENCONTRADO, principio anti-enumeración OWASP API1)",
+      "obtenido": "HTTP 422 Unprocessable Entity, ACTIVO_NO_ENCONTRADO validado",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_TC-M02-152_pytest.html",
+      "nota_qa": "Aislamiento de finca validado. El backend rechaza 422 protegiendo contra enumeración BOLA."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "intentos": [
+    {
+      "email": "admin.dev@gmail.com",
+      "resultado": "no autentica (login HTTP 423 CUENTA_BLOQUEADA)"
+    },
+    {
+      "email": "administador.dev@gmail.com",
+      "resultado": "autentica"
+    }
+  ],
+  "usado": "administador.dev@gmail.com",
+  "getsQueLoRequirieron": [
+    {
+      "endpoint": "/configuracion/dispositivos-iot?solo_activos=false",
+      "statusConIngeniero": 200,
+      "motivo": "el Ingeniero recibe 200 con listado vacío por alcance"
+    },
+    {
+      "endpoint": "/configuracion/sensores/29/asociaciones",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    },
+    {
+      "endpoint": "/configuracion/dispositivos-iot/3",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    },
+    {
+      "endpoint": "/configuracion/sensores/6/asociaciones",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    },
+    {
+      "endpoint": "/configuracion/infraestructuras/1",
+      "statusConIngeniero": 404,
+      "motivo": "fuera del alcance del Ingeniero"
+    }
+  ],
+  "ejecutaPostDeCalibracion": false
+}

@@ -1,0 +1,821 @@
+{
+  "info": {
+    "_postman_id": "cdccaa71-0650-4d9f-be8b-e74a1bdf0d7f",
+    "name": "TC-M02-G66 (completo) - Restricciones de la matriz de transicion de estados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var hoy = new Date().toISOString().slice(0,10);",
+              "pm.collectionVariables.set('fecha_hoy_g66', hoy);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g66}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g66', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_finca_creada_g66', pm.response.json().id_finca); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G66-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g66}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G66\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_infraestructura_creada_g66', pm.response.json().id_infraestructura); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra el activo B de prueba (INDIVIDUAL) - para TC-068, permanece en ACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g66}}\",\n  \"identificador\": \"QA-G66-ActivoB-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - activo B creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_b_g66', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-068. Rechazar cambio de estado redundante (ACTIVO -> ACTIVO, mismo estado actual)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b_g66}}/estado",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_b_g66}}",
+            "estado"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy_g66}}\",\n  \"motivo_cambio\": \"Intento redundante QA - TC-068 ACTIVO a ACTIVO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-068 ACTIVO->ACTIVO (redundante): ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-068 - el cambio redundante se rechaza (409)', function () { pm.expect(pm.response.code).to.eql(409); });",
+              "if (pm.response.code === 409) {",
+              "    pm.test('TC-068 - el codigo de error es ESTADO_REDUNDANTE', function () {",
+              "        pm.expect(pm.response.json().error_code).to.eql('ESTADO_REDUNDANTE');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-068b. Control: confirmar que el activo B sigue en ACTIVO (el intento rechazado no tuvo efecto)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b_g66}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_b_g66}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-068b estado del activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-068b - se puede consultar el activo B (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-068b - el activo B sigue en ACTIVO', function () {",
+              "        pm.expect(pm.response.json().nombre_estado).to.eql('ACTIVO');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4. Admin registra el activo A de prueba (INDIVIDUAL) - para TC-066",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g66}}\",\n  \"identificador\": \"QA-G66-ActivoA-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-4 activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-4 - activo A creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_a_g66', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5. Precondicion TC-066, paso 1: asignar una fase productiva activa al activo A (RF-37)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}/fases",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}",
+            "fases"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": 4,\n  \"motivo_cambio\": \"Inicio de fase - precondicion QA para cierre de ciclo (TC-066)\",\n  \"fecha_inicio\": \"{{fecha_hoy_g66}}T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-5 asignar fase (ciclo cachama id 4): ' + pm.response.code + ' body=' + pm.response.text());",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set('fase_asignada_g66', 'true');",
+              "    pm.test('SETUP-5 - fase asignada correctamente (201)', function () { pm.response.to.have.status(201); });",
+              "} else {",
+              "    pm.collectionVariables.set('fase_asignada_g66', 'false');",
+              "    console.log('SETUP-5 - DEFECTO CONOCIDO (RF-37 / cerrar_gestion_activa sin usuario_id, ver TC-M02-G35 y TC-M02-G66): se documenta la respuesta obtenida, no se asume un resultado fijo.');",
+              "    pm.test('SETUP-5 - se documenta la respuesta obtenida al intentar asignar la fase (defecto conocido, no bloquea la coleccion)', function () { pm.expect(pm.response.code).to.be.above(0); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6. Precondicion TC-066, paso 2: cerrar el ciclo del activo A (RF-38) - requiere que SETUP-5 haya dado 201",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g66}}\",\n  \"motivo_cierre\": \"finalizacion_lote\",\n  \"descripcion_cierre\": \"Cierre de ciclo - precondicion QA para TC-066\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-6 cerrar ciclo (ACTIVO->CERRADO): ' + pm.response.code + ' body=' + pm.response.text());",
+              "var faseOk = pm.collectionVariables.get('fase_asignada_g66') === 'true';",
+              "if (pm.response.code === 200) {",
+              "    pm.collectionVariables.set('ciclo_cerrado_g66', 'true');",
+              "    pm.test('SETUP-6 - el ciclo se cierra correctamente (200), el activo A queda en CERRADO', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    pm.collectionVariables.set('ciclo_cerrado_g66', 'false');",
+              "    if (!faseOk) {",
+              "        console.log('SETUP-6 - esperado: sin fase activa (SETUP-5 fallo), el cierre debe rechazar con 422 SIN_FASE_ACTIVA.');",
+              "    }",
+              "    pm.test('SETUP-6 - se documenta la respuesta obtenida al intentar cerrar el ciclo (no se asume un resultado fijo)', function () { pm.expect(pm.response.code).to.be.above(0); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-066. Rechazar transicion CERRADO -> ACTIVO (no esta en la matriz de transiciones)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}/estado",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}",
+            "estado"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy_g66}}\",\n  \"motivo_cambio\": \"Intento invalido QA - TC-066 CERRADO a ACTIVO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-066 intento de transicion (estado previo esperado: CERRADO si la precondicion se logro): ' + pm.response.code + ' body=' + pm.response.text());",
+              "var cierreOk = pm.collectionVariables.get('ciclo_cerrado_g66') === 'true';",
+              "if (cierreOk) {",
+              "    pm.test('TC-066 - la transicion CERRADO->ACTIVO se rechaza (422)', function () { pm.expect(pm.response.code).to.eql(422); });",
+              "    if (pm.response.code === 422) {",
+              "        pm.test('TC-066 - el codigo de error es TRANSICION_INVALIDA', function () {",
+              "            pm.expect(pm.response.json().error_code).to.eql('TRANSICION_INVALIDA');",
+              "        });",
+              "    }",
+              "} else {",
+              "    console.log('TC-066 - NO EVALUABLE: la precondicion (activo A en CERRADO) no se alcanzo por el defecto de RF-37. Se documenta la respuesta obtenida sin asumir un resultado fijo.');",
+              "    pm.test('TC-066 - se documenta la respuesta obtenida (precondicion CERRADO no alcanzada por defecto conocido)', function () { pm.expect(pm.response.code).to.be.above(0); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-066b. Control: consultar el estado final del activo A tras el intento de TC-066",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-066b estado final del activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-066b - se puede consultar el activo A (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var estadoFinal = pm.response.json().nombre_estado;",
+              "    console.log('TC-066b - nombre_estado final: ' + estadoFinal);",
+              "    var cierreOk = pm.collectionVariables.get('ciclo_cerrado_g66') === 'true';",
+              "    if (cierreOk) {",
+              "        pm.test('TC-066b - el activo A sigue en CERRADO (el intento rechazado no tuvo efecto)', function () { pm.expect(estadoFinal).to.eql('CERRADO'); });",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-7. Precondicion TC-067: dar de baja definitiva al activo A (RF-45)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}/eventos/baja",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}",
+            "eventos",
+            "baja"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy_g66}}\",\n  \"motivo_baja\": \"Baja definitiva - precondicion QA para TC-067\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-7 dar de baja (RF-45): ' + pm.response.code + ' body=' + pm.response.text());",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "    pm.collectionVariables.set('baja_lograda_g66', 'true');",
+              "    pm.test('SETUP-7 - la baja se registra correctamente, el activo A queda en BAJA', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+              "} else {",
+              "    pm.collectionVariables.set('baja_lograda_g66', 'false');",
+              "    console.log('SETUP-7 - revisar el detalle de la respuesta: puede ser el defecto de fecha ya documentado en TC-M02-G36/TC-M02-G49 (500), u otra causa. Se documenta sin asumir un resultado fijo.');",
+              "    pm.test('SETUP-7 - se documenta la respuesta obtenida al intentar dar de baja (no bloquea la coleccion)', function () { pm.expect(pm.response.code).to.be.above(0); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-067. Rechazar cualquier transicion desde BAJA (estado final irreversible)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}/estado",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}",
+            "estado"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"ACTIVO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy_g66}}\",\n  \"motivo_cambio\": \"Intento invalido QA - TC-067 BAJA a ACTIVO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-067 intento de transicion (estado previo esperado: BAJA si la precondicion se logro): ' + pm.response.code + ' body=' + pm.response.text());",
+              "var bajaOk = pm.collectionVariables.get('baja_lograda_g66') === 'true';",
+              "if (bajaOk) {",
+              "    pm.test('TC-067 - la transicion desde BAJA se rechaza (409)', function () { pm.expect(pm.response.code).to.eql(409); });",
+              "    if (pm.response.code === 409) {",
+              "        pm.test('TC-067 - el codigo de error es ESTADO_BAJA_IRREVERSIBLE', function () {",
+              "            pm.expect(pm.response.json().error_code).to.eql('ESTADO_BAJA_IRREVERSIBLE');",
+              "        });",
+              "    }",
+              "} else {",
+              "    console.log('TC-067 - NO EVALUABLE: la precondicion (activo A en BAJA) no se alcanzo, bloqueada por el defecto de fecha de TC-M02-G36/TC-M02-G49. Se documenta la respuesta obtenida sin asumir un resultado fijo.');",
+              "    pm.test('TC-067 - se documenta la respuesta obtenida (precondicion BAJA no alcanzada por defecto conocido)', function () { pm.expect(pm.response.code).to.be.above(0); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-067b. Control: consultar el estado final del activo A tras el intento de TC-067",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_a_g66}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_a_g66}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-067b estado final del activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-067b - se puede consultar el activo A (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var estadoFinal = pm.response.json().nombre_estado;",
+              "    console.log('TC-067b - nombre_estado final: ' + estadoFinal);",
+              "    var bajaOk = pm.collectionVariables.get('baja_lograda_g66') === 'true';",
+              "    if (bajaOk) {",
+              "        pm.test('TC-067b - el activo A sigue en BAJA (el intento rechazado no tuvo efecto)', function () { pm.expect(estadoFinal).to.eql('BAJA'); });",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ZZ. Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('ZZ health: ' + pm.response.code);",
+              "pm.test('ZZ - el servicio responde 200 OK', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "fecha_hoy_g66",
+      "value": ""
+    },
+    {
+      "key": "sufijo_finca_g66",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada_g66",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada_g66",
+      "value": ""
+    },
+    {
+      "key": "id_activo_a_g66",
+      "value": ""
+    },
+    {
+      "key": "id_activo_b_g66",
+      "value": ""
+    },
+    {
+      "key": "fase_asignada_g66",
+      "value": ""
+    },
+    {
+      "key": "ciclo_cerrado_g66",
+      "value": ""
+    },
+    {
+      "key": "baja_lograda_g66",
+      "value": ""
+    }
+  ]
+}

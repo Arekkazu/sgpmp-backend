@@ -1,0 +1,41 @@
+TC-M09-175 rev5 — reintento tras aviso de Samuel (global eliminado)
+Fecha UTC: 2026-10-09T23:11:20Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1-rev4. Sin commit. Sin push. Sin DML. Sin PATCH. Sin restore.
+
+RESULTADO FUNCIONAL: BLOQUEADO (ERROR DE AMBIENTE: 503 BD_NO_DISPONIBLE)
+RESULTADO RESTAURACION: NO VERIFICADA / NO EJECUTADA
+NO APROBADO: no se ejecuto GET /configuracion/personalizacion/tema autenticado.
+
+AVISO RECIBIDO
+El usuario indico que Samuel confirmo que la configuracion global ya fue eliminada.
+Esto NO se pudo comprobar en TEST: la API no alcanza PostgreSQL.
+
+PROBES (sin secretos en evidencia)
+OpenAPI GET /openapi.json HTTP 200
+GET /configuracion/personalizacion/tema/global (sin token)
+  HTTP 503 BD_NO_DISPONIBLE timestamp 2026-10-09T23:11:22.436195+00:00
+POST /sesiones/ admin@pecuaria.co
+  HTTP 503 BD_NO_DISPONIBLE timestamp 2026-10-09T23:11:35.510347+00:00
+POST /sesiones/ cm09175.qa@sgpmp-test.com
+  HTTP 503 BD_NO_DISPONIBLE timestamp 2026-10-09T23:11:37.148392+00:00
+JWT: no obtenido. GET tema usuario 175: no ejecutado.
+GET global autenticado: no ejecutado.
+SGPMP_175_PASSWORD / CONTRASENA_175: ausente en esta sesion (secundario mientras haya 503).
+
+VALIDACION ESPERADA (NO EJECUTADA)
+theme_mode = 1
+fuente = "defecto"
+id_tema_visual = null
+
+RESTAURACION
+No se restauro nada. No se inventaron valores del respaldo.
+No hay canal en esta sesion para confirmar con Samuel el como/cuando del restore.
+Pendiente: Samuel debe indicar horario y procedimiento, y QA debe reconsultar GET global
+cuando la BD este operativa. El respaldo vivo de QA sigue siendo el de rev1
+(2026-09-26): id_tema_visual=1 id_usuario=1 theme_mode=1 es_global=true
+fecha_actualizacion=2026-09-25T06:50:47.856604Z — no se usa para INSERT sin
+autorizacion y confirmacion DBA de que esos son los valores a restaurar.
+
+G91: 173/174 APROBADO historico. 175 BLOQUEADO. Grupo no se cierra.

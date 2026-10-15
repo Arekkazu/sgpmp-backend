@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>TC-M09-175 rev3 diagnostico</title>
+</head>
+<body>
+  <h1>TC-M09-175 rev3 — diagnostico TEST RF-27</h1>
+  <p><strong>Resultado: BLOQUEADO</strong></p>
+  <p>Fecha UTC: 2026-10-09T22:45:47Z — rama laura @ c5ac9b6f</p>
+  <p>No se ejecutó el escenario DEFAULT. No PATCH. No DELETE autenticado. No DML. Rev1 y rev2 intactas. 173/174 no reejecutados.</p>
+  <h2>Contrato TEST</h2>
+  <ul>
+    <li>/configuracion/personalizacion/tema: GET, PATCH</li>
+    <li>/configuracion/personalizacion/tema/global: GET, PATCH</li>
+    <li>DELETE tema y tema/global: HTTP 405 Allow=GET</li>
+  </ul>
+  <h2>Probes 2026-10-09</h2>
+  <p>API /docs y /openapi.json HTTP 200. Login y GET autenticados: HTTP 503 BD_NO_DISPONIBLE. No JWT. No se reobservó la fila global en vivo.</p>
+  <h2>Ultima evidencia viva (rev1 2026-09-26)</h2>
+  <pre>GET tema usuario 120: {"theme_mode":1,"fuente":"global","id_tema_visual":1}
+GET global admin: id_tema_visual=1 es_global=true theme_mode=1</pre>
+  <p>theme_mode=1 coincide con Claro, pero fuente=global no es defecto. HTTP 200 no implica APROBADO.</p>
+  <h2>Accion</h2>
+  <p>DBA: disponibilidad de BD TEST y, con autorizacion, ventana para retirar temporalmente el singleton es_global=true (uq_tema_global) con respaldo y restauracion. Detalle en TC-M09-175-rev3.txt.</p>
+</body>
+</html>

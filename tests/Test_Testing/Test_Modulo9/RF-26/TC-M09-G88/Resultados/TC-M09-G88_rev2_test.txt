@@ -1,0 +1,21 @@
+TC-M09-G88 rev2 TEST — resultado APROBADO
+UTC: 2026-10-05
+Ambiente: TEST frontend sslip
+Usuario: admin@pecuaria.co (password via env; no se registra)
+
+Criterio TC-M09-168: aplicacion inmediata de identidad visual sin cerrar sesion.
+
+Ejecucion Cypress
+1. Login dashboard (sidebar inicial SGP Multiespecie / Finca QA)
+2. Configuracion > Personalizacion > Identidad Visual
+3. Seleccion Camaronera Costa Azul (finca valida existente)
+4. Color prueba #C41E3A, vista previa, Actualizar identidad
+5. Sin logout: sidebar "Camaronera Costa Azul" fondo maroon rgb(88,14,26); toast Guardado
+6. Restauracion primary #007B8A; toast Guardado; sidebar teal; URL /configuracion
+7. GET API finca 3 post-ejecucion: primary_color #007B8A org Camaronera Costa Azul version 5
+
+Evidencias: G88-rev2-04-sidebar-sin-logout (1).png, G88-rev2-05-restauracion (1).png,
+TC-M09-G88_rev2_cypress.html/json, G88-rev2-sidebar-tras-guardar.json, G88-rev2-sidebar-restaurado.json
+
+Rev1 DEV y diagnostico 2026-09-28 no modificados.
+Sin commit/push. Sin secretos.

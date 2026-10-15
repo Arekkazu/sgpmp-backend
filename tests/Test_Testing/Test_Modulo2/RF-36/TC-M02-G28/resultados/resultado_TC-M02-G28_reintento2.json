@@ -1,0 +1,40 @@
+{
+  "tc": "TC-M02-G28",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G28-REEVAL-V3-20260919-095000",
+  "veredicto": "Aprobado",
+  "checkpoints": [
+    {
+      "paso": "0. Autenticación como Administrador (POST /sesiones/)",
+      "esperado": "HTTP 200 OK con token JWT",
+      "obtenido": "HTTP 200 OK - Token JWT emitido exitosamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "1. TC-M02-200: Rechazar transferencia a infraestructura inactiva (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 422 o 400 con código INFRAESTRUCTURA_DESTINO_INVALIDA y lote permanece en origen",
+      "obtenido": "HTTP 422 Unprocessable Entity - INFRAESTRUCTURA_DESTINO_INVALIDA. Lote verificado intacto en infraestructura origen.",
+      "estado": "OK"
+    },
+    {
+      "paso": "2. TC-M02-201: Rechazar transferencia a infraestructura de otra finca (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 422, 400 o 403 con código DESTINO_OTRA_FINCA (Fix #333)",
+      "obtenido": "HTTP 422 Unprocessable Entity - DESTINO_OTRA_FINCA. Frontera territorial de finca validada estrictamente. Lote verificado intacto.",
+      "estado": "OK"
+    },
+    {
+      "paso": "3. TC-M02-202: Transferencia válida a infraestructura de la misma finca y recálculo automático de densidad (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 201 Created y densidad recalculada automáticamente según nueva superficie (cantidad_actual / superficie_destino)",
+      "obtenido": "HTTP 201 Created - Traslado registrado y densidad recalculada automáticamente en base a la nueva superficie (Fix #334 confirmado).",
+      "estado": "OK"
+    },
+    {
+      "paso": "4. Teardown: Revertir lote a infraestructura original (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 201 Created restaurando el lote en su infraestructura original",
+      "obtenido": "HTTP 201 Created - Lote restaurado en infraestructura original con densidad reajustada y cero residuos activos.",
+      "estado": "OK"
+    }
+  ]
+}

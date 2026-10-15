@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G25",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-14",
+  "run_id": "G25-REEVAL-V2-20260914-231500",
+  "veredicto": "Rechazado",
+  "nota_global": "El JSON original de V2 se encontraba corrupto con colecciones de Postman incrustadas; fue reconstruido fielmente a partir de reporte_g25_v2.html y TC-M02-G25_reevaluacion_V2.md. Confirma PASS en TC-M02-051 y FALLA en TC-M02-052 por ausencia de validación RF-36 en backend y precondición no satisfecha SIN_FASE_ACTIVA.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-051: Registrar baja con cantidad superior a existencia (POST /activos-biologicos/345/eventos/baja)",
+      "esperado": "HTTP 400 Bad Request o 422 Unprocessable Entity con código CANTIDAD_BAJA_SUPERIOR_EXISTENCIA",
+      "obtenido": "HTTP 422 Unprocessable Entity - CANTIDAD_BAJA_SUPERIOR_EXISTENCIA (La cantidad a dar de baja (15) es superior a la existencia actual del lote (10))",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento1.html"
+    },
+    {
+      "paso": "TC-M02-052: Registrar evento de crecimiento que eleva la densidad sobre la máxima permitida (POST /activos-biologicos/345/eventos/crecimiento)",
+      "esperado": "HTTP 409 Conflict con código DENSIDAD_MAXIMA_SUPERADA",
+      "obtenido": "HTTP 422 Unprocessable Entity - SIN_FASE_ACTIVA: El activo biológico no tiene una fase productiva activa",
+      "estado": "FALLA",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento1.html",
+      "nota_qa": "Reevaluación V2 confirma incumplimiento del RF-36 en el backend y aborto previo por falta de fase productiva activa en el lote de prueba."
+    }
+  ]
+}

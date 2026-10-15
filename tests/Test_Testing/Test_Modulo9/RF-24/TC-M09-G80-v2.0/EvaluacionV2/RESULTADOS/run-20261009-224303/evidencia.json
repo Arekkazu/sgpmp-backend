@@ -1,0 +1,1154 @@
+{
+  "run_id": "run-20261009-224303",
+  "evaluacion": "SEGUNDA EVALUACION",
+  "grupo": "TC-M09-G80-v2.0",
+  "caso": "TC-M09-151-v2.0",
+  "requisito": "RF-24 v2.0 (integración con RF-10)",
+  "herramientas": "Newman (API - Postman) + verificacion BD cuando hay acceso autorizado",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+  "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+  "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+  "resultado_caso": "APROBADO",
+  "resultado_grupo": "APROBADO",
+  "git_pre": {
+    "etiqueta": "git_pre",
+    "capturado": "2026-10-10T03:43:04.208Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "carpeta_historica_TC_M09_G80": "(vacio = intacta)",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  },
+  "actores": {
+    "nota": "La coleccion Newman es duena de sus sesiones: hace sus propios logins y publica los tokens en ing_session y admin_session. El runner no inicia sesion antes de Newman ni inyecta ningun token; en el cierre se autentica solo para GET.",
+    "ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "credencial": "[REDACTED]",
+      "login_http": 200,
+      "id_usuario": 4,
+      "rol": "Ingeniero de Campo",
+      "estado_cuenta": "Activo",
+      "id_descubierto_dinamicamente": true,
+      "permiso_registrar_calibraciones": true,
+      "total_permisos": 47,
+      "papel": "ejecuta el unico POST de calibracion"
+    },
+    "administrador": {
+      "correo": "administador.dev@gmail.com",
+      "credencial": "[REDACTED]",
+      "login_http": 200,
+      "id_usuario": 104,
+      "rol": "Administrador",
+      "alternativo_necesario": "NO",
+      "papel": "consulta el historial RF-10 y el catalogo de tipos de evento; no ejecuta la calibracion"
+    }
+  },
+  "fixture": {
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "asociacionVigente": {
+      "id_dispositivo_iot": 3,
+      "id_infraestructura": 3,
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "categoria": "TEMPERATURA",
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0",
+      "max": "45"
+    },
+    "valorEnviado": "22.5000",
+    "valorEstrictamenteInterior": true,
+    "observaciones": "QA TC-M09-151-v2.0",
+    "fixtureOriginalReutilizado": true,
+    "cambiosFrenteAlOriginal": "ninguno"
+  },
+  "catalogo_rf10": {
+    "http": 200,
+    "total": "30",
+    "tipos_de_calibracion": [
+      {
+        "id_tipo_evento": 29,
+        "nombre": "CALIBRACION_RECHAZADA",
+        "accion": "Intento de calibracion de sensor rechazado",
+        "categoria": "MODIFICACION"
+      },
+      {
+        "id_tipo_evento": 30,
+        "nombre": "CALIBRACION_EXITOSA",
+        "accion": "Registro exitoso de calibracion",
+        "categoria": "MODIFICACION"
+      }
+    ],
+    "tipo_de_calibracion_exitosa": 30,
+    "nota": "La existencia de un tipo para calibracion exitosa es evidencia favorable, pero NO aprueba el caso: el oraculo es el evento correlacionado en GET /auditoria/."
+  },
+  "historial_pre": {
+    "http": 200,
+    "total": 13,
+    "ids": [
+      29,
+      28,
+      21,
+      19,
+      18,
+      17,
+      16,
+      15,
+      14,
+      13,
+      12,
+      11,
+      10
+    ],
+    "items": [
+      {
+        "id_calibracion": 29,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 28,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 21,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 30,
+        "ganancia": 1,
+        "offset": 30,
+        "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-266",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 19,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 30,
+        "ganancia": 1,
+        "offset": 30,
+        "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-266",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 18,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+        "id_usuario": 104,
+        "observaciones": "QA TC-M09-264",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 17,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.1234,
+        "ganancia": 1,
+        "offset": 22.1234,
+        "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-262",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 16,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-259",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 15,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-151-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 14,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 13,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 12,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-141-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 11,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143 G75 run-20260906",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 10,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142 G75 run-20260906",
+        "modo_calibracion": "SENSOR"
+      }
+    ]
+  },
+  "calibracion": {
+    "endpoint": "/configuracion/sensores/6/calibrar",
+    "metodo": "POST",
+    "actor": "Ingeniero de Campo",
+    "request": {
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-151-v2.0",
+        "fecha_calibracion": "2026-10-10T03:43:07.765Z"
+      }
+    },
+    "t_request_before": "2026-10-10T03:43:07.765Z",
+    "t_response_after": "2026-10-10T03:43:07.938Z",
+    "http": 201,
+    "response": {
+      "id_calibracion": 30,
+      "id_dispositivo_iot": 3,
+      "id_sensor": 6,
+      "valor_referencia": 22.5,
+      "ganancia": 1,
+      "offset": 22.5,
+      "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+      "id_usuario": 4,
+      "observaciones": "QA TC-M09-151-v2.0",
+      "modo_calibracion": "SENSOR"
+    },
+    "id_calibracion": 30,
+    "id_usuario": 4,
+    "id_sensor": 6,
+    "id_dispositivo_iot": 3,
+    "valor_referencia": 22.5,
+    "fecha_calibracion_enviada": "2026-10-10T03:43:07.765Z",
+    "fecha_calibracion_persistida": "2026-10-10T03:43:07.765000Z",
+    "observaciones": "QA TC-M09-151-v2.0",
+    "modo_calibracion": "SENSOR",
+    "assertions": [
+      {
+        "assertion": "La calibracion de setup se crea (2xx)",
+        "paso": true,
+        "error": null
+      },
+      {
+        "assertion": "Devuelve un id_calibracion valido",
+        "paso": true,
+        "error": null
+      },
+      {
+        "assertion": "El id_calibracion es nuevo",
+        "paso": true,
+        "error": null
+      },
+      {
+        "assertion": "La calibracion queda a nombre del Ingeniero",
+        "paso": true,
+        "error": null
+      },
+      {
+        "assertion": "El sensor y el dispositivo son los del fixture",
+        "paso": true,
+        "error": null
+      },
+      {
+        "assertion": "El valor de referencia es el efectivo",
+        "paso": true,
+        "error": null
+      }
+    ],
+    "reintentos": 0,
+    "nota": "Unico POST funcional del RUN. La calibracion PERSISTE a proposito: no se elimina ni se compensa."
+  },
+  "historial_post": {
+    "http": 200,
+    "total": 14,
+    "ids": [
+      30,
+      29,
+      28,
+      21,
+      19,
+      18,
+      17,
+      16,
+      15,
+      14,
+      13,
+      12,
+      11,
+      10
+    ],
+    "items": [
+      {
+        "id_calibracion": 30,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-151-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 29,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-10-10T00:28:01.494000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 28,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-10-10T00:28:00.908000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 21,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 30,
+        "ganancia": 1,
+        "offset": 30,
+        "fecha_calibracion": "2026-10-07T09:48:51.339000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-266",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 19,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 30,
+        "ganancia": 1,
+        "offset": 30,
+        "fecha_calibracion": "2026-10-07T09:46:12.463000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-266",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 18,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T09:33:26.952000Z",
+        "id_usuario": 104,
+        "observaciones": "QA TC-M09-264",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 17,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.1234,
+        "ganancia": 1,
+        "offset": 22.1234,
+        "fecha_calibracion": "2026-10-07T09:24:13.117000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-262",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 16,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T09:07:27.257000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-259",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 15,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-151-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 14,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 13,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 12,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 22.5,
+        "ganancia": 1,
+        "offset": 22.5,
+        "fecha_calibracion": "2026-10-07T06:49:37.209000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-141-v2.0",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 11,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 45,
+        "ganancia": 1,
+        "offset": 45,
+        "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143 G75 run-20260906",
+        "modo_calibracion": "SENSOR"
+      },
+      {
+        "id_calibracion": 10,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": 0,
+        "ganancia": 1,
+        "offset": 0,
+        "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142 G75 run-20260906",
+        "modo_calibracion": "SENSOR"
+      }
+    ],
+    "filaDeLaCalibracion": {
+      "id_calibracion": 30,
+      "id_dispositivo_iot": 3,
+      "id_sensor": 6,
+      "valor_referencia": 22.5,
+      "ganancia": 1,
+      "offset": 22.5,
+      "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+      "id_usuario": 4,
+      "observaciones": "QA TC-M09-151-v2.0",
+      "modo_calibracion": "SENSOR"
+    },
+    "correlacionPor": "id_calibracion devuelto, no por total+1 (tolera concurrencia)"
+  },
+  "ventana_de_correlacion": {
+    "base": "fecha_calibracion persistida",
+    "central": "2026-10-10T03:43:07.765000Z",
+    "margen": "±1 minuto",
+    "fecha_desde": "2026-10-10T03:42:07.765Z",
+    "fecha_hasta": "2026-10-10T03:44:07.765Z"
+  },
+  "consulta_rf10": {
+    "actor": "Administrador",
+    "endpoint": "/auditoria/?id_usuario=4&fecha_desde=...&fecha_hasta=...&tamano=50&pagina=N",
+    "http": 200,
+    "total": 7,
+    "tamano_pagina": 50,
+    "paginas_recorridas": [
+      {
+        "pagina": 1,
+        "http": 200,
+        "items": 7,
+        "total": 7
+      }
+    ],
+    "eventos_recuperados": 7,
+    "pagina1_en_la_coleccion": {
+      "http": 200,
+      "total": 7
+    },
+    "nota": "Se recorrieron todas las paginas necesarias: no se concluye ausencia mirando solo la primera."
+  },
+  "eventos_recuperados": [
+    {
+      "id_evento": 45770,
+      "tipo_evento": 30,
+      "modulo": "MODULO9",
+      "categoria": "MODIFICACION",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:43:06.877316Z",
+      "id_usuario": 4,
+      "descripcion": "Calibración 30 registrada para el sensor 6.",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "200.118.62.237",
+        "offset": "22.5000",
+        "ganancia": "1.0000",
+        "id_sensor": 6,
+        "operacion": "CALIBRACION_SENSOR",
+        "id_usuario": 4,
+        "user_agent": "PostmanRuntime/7.39.1",
+        "observaciones": "QA TC-M09-151-v2.0",
+        "id_calibracion": 30,
+        "modo_calibracion": "SENSOR",
+        "valor_referencia": "22.5000",
+        "fecha_calibracion": "2026-10-10T03:43:07.765000+00:00",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": true,
+          "dispositivo": true,
+          "valor": true,
+          "operacion_de_calibracion": true,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": true,
+          "infraestructura": true,
+          "modo_calibracion": true,
+          "observaciones": true,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": true
+      }
+    },
+    {
+      "id_evento": 45765,
+      "tipo_evento": 19,
+      "modulo": "MODULO1",
+      "categoria": "CONSULTA",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:43:04.638730Z",
+      "id_usuario": 4,
+      "descripcion": "CONSULTA_PERFIL_PROPIO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "200.118.62.237",
+        "user_agent": "PostmanRuntime/7.39.1"
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    },
+    {
+      "id_evento": 45764,
+      "tipo_evento": 3,
+      "modulo": "MODULO1",
+      "categoria": "AUTENTICACION",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:43:04.422511Z",
+      "id_usuario": 4,
+      "descripcion": "LOGIN_EXITOSO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "10.0.1.113",
+        "user_agent": "PostmanRuntime/7.39.1",
+        "sesion_previa_cerrada": true
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    },
+    {
+      "id_evento": 45753,
+      "tipo_evento": 19,
+      "modulo": "MODULO1",
+      "categoria": "CONSULTA",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:42:50.441373Z",
+      "id_usuario": 4,
+      "descripcion": "CONSULTA_PERFIL_PROPIO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "200.118.62.237",
+        "user_agent": "PostmanRuntime/7.39.1"
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    },
+    {
+      "id_evento": 45752,
+      "tipo_evento": 3,
+      "modulo": "MODULO1",
+      "categoria": "AUTENTICACION",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:42:50.232098Z",
+      "id_usuario": 4,
+      "descripcion": "LOGIN_EXITOSO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "10.0.1.113",
+        "user_agent": "PostmanRuntime/7.39.1",
+        "sesion_previa_cerrada": true
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    },
+    {
+      "id_evento": 45739,
+      "tipo_evento": 19,
+      "modulo": "MODULO1",
+      "categoria": "CONSULTA",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:42:29.860993Z",
+      "id_usuario": 4,
+      "descripcion": "CONSULTA_PERFIL_PROPIO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "200.118.62.237",
+        "user_agent": "PostmanRuntime/7.39.1"
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    },
+    {
+      "id_evento": 45738,
+      "tipo_evento": 3,
+      "modulo": "MODULO1",
+      "categoria": "AUTENTICACION",
+      "resultado": "exitoso",
+      "fecha_evento": "2026-10-10T03:42:29.642649Z",
+      "id_usuario": 4,
+      "descripcion": "LOGIN_EXITOSO",
+      "integridad_ok": true,
+      "integridad": "INTEGRO",
+      "detalle": {
+        "ip": "10.0.1.113",
+        "user_agent": "PostmanRuntime/7.39.1",
+        "sesion_previa_cerrada": true
+      },
+      "correlacion": {
+        "criterios": {
+          "usuario": true,
+          "fecha_en_ventana": true,
+          "sensor": false,
+          "dispositivo": false,
+          "valor": false,
+          "operacion_de_calibracion": false,
+          "resultado_exitoso": true
+        },
+        "refuerzos": {
+          "id_calibracion": null,
+          "infraestructura": null,
+          "modo_calibracion": null,
+          "observaciones": null,
+          "integridad_ok": true
+        },
+        "todosLosCriterios": false
+      }
+    }
+  ],
+  "evento_correlacionado": {
+    "id_evento": 45770,
+    "tipo_evento": 30,
+    "modulo": "MODULO9",
+    "categoria": "MODIFICACION",
+    "resultado": "exitoso",
+    "fecha_evento": "2026-10-10T03:43:06.877316Z",
+    "id_usuario": 4,
+    "descripcion": "Calibración 30 registrada para el sensor 6.",
+    "integridad_ok": true,
+    "integridad": "INTEGRO",
+    "detalle": {
+      "ip": "200.118.62.237",
+      "offset": "22.5000",
+      "ganancia": "1.0000",
+      "id_sensor": 6,
+      "operacion": "CALIBRACION_SENSOR",
+      "id_usuario": 4,
+      "user_agent": "PostmanRuntime/7.39.1",
+      "observaciones": "QA TC-M09-151-v2.0",
+      "id_calibracion": 30,
+      "modo_calibracion": "SENSOR",
+      "valor_referencia": "22.5000",
+      "fecha_calibracion": "2026-10-10T03:43:07.765000+00:00",
+      "id_dispositivo_iot": 3,
+      "id_infraestructura": 3
+    },
+    "correlacion": {
+      "criterios": {
+        "usuario": true,
+        "fecha_en_ventana": true,
+        "sensor": true,
+        "dispositivo": true,
+        "valor": true,
+        "operacion_de_calibracion": true,
+        "resultado_exitoso": true
+      },
+      "refuerzos": {
+        "id_calibracion": true,
+        "infraestructura": true,
+        "modo_calibracion": true,
+        "observaciones": true,
+        "integridad_ok": true
+      },
+      "todosLosCriterios": true
+    }
+  },
+  "criterios_de_correlacion": {
+    "metodo": "campos ESTRUCTURADOS del evento; no se buscan subcadenas",
+    "por_que": "un \"6\" o un \"3\" pueden aparecer dentro de una IP o de un timestamp y producir un falso positivo, como se documento en la primera evaluacion",
+    "obligatorios": [
+      "usuario (id_usuario del evento o del detalle)",
+      "fecha_evento dentro de la ventana",
+      "detalle.id_sensor",
+      "detalle.id_dispositivo_iot",
+      "detalle.valor_referencia",
+      "operacion de calibracion (detalle.operacion o tipo_evento del catalogo)",
+      "resultado exitoso"
+    ],
+    "refuerzos_no_exigidos": [
+      "detalle.id_calibracion",
+      "detalle.id_infraestructura",
+      "detalle.modo_calibracion",
+      "detalle.observaciones",
+      "integridad_ok"
+    ],
+    "candidatos_que_cumplen_todo": 1
+  },
+  "verificacion_final": {
+    "soloLectura": true,
+    "sql": "ninguno",
+    "escrituras": 0,
+    "fecha": "2026-10-10T03:43:18.968Z",
+    "calibracion_sigue_existiendo": true,
+    "fila_recuperada_por_id": {
+      "id_calibracion": 30,
+      "id_dispositivo_iot": 3,
+      "id_sensor": 6,
+      "valor_referencia": 22.5,
+      "ganancia": 1,
+      "offset": 22.5,
+      "fecha_calibracion": "2026-10-10T03:43:07.765000Z",
+      "id_usuario": 4,
+      "observaciones": "QA TC-M09-151-v2.0",
+      "modo_calibracion": "SENSOR"
+    },
+    "datos_coinciden": true,
+    "historial_final": {
+      "http": 200,
+      "total": 14,
+      "ids": [
+        30,
+        29,
+        28,
+        21,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "dispositivo_sigue_activo": true,
+    "asociacion_vigente": [
+      {
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3
+      }
+    ],
+    "rango_sin_cambios": true,
+    "rango_final": {
+      "categoria": "TEMPERATURA",
+      "min": "0",
+      "max": "45"
+    },
+    "evento_reconsultado": {
+      "http": 200,
+      "recuperable": true,
+      "id_evento": 45770,
+      "integridad_ok": true
+    },
+    "post_extra_ejecutados": 0,
+    "calibracion_eliminada": false,
+    "nota": "No hay cleanup: la calibracion creada y su evento son evidencia del RUN y se conservan."
+  },
+  "verificacion_bd": {
+    "acceso_disponible": false,
+    "estado": "NO DISPONIBLE",
+    "motivo": "No hay cliente de base de datos ni host de TEST declarado en este entorno (sin psql, sin driver pg y sin POSTGRES_HOST en la configuracion): no existe acceso SQL autorizado de solo lectura.",
+    "calibracion_funcional": "NO DISPONIBLE",
+    "auditoria_interna_m09": "NO DISPONIBLE",
+    "rf10": "NO DISPONIBLE",
+    "solo_select": true,
+    "nota": "El oraculo principal del caso es GET /auditoria/ y pudo ejecutarse completo, de modo que la ausencia de acceso SQL no bloquea el caso. No se invento ningun dato de base."
+  },
+  "newman": {
+    "html": "newman/newman-TC-M09-G80-v2.0.html",
+    "htmlPersistentes": 1,
+    "coleccionEjecutada": "14 de 14 items",
+    "iterations": {
+      "ejecutadas": 1,
+      "fallidas": 0
+    },
+    "requests": {
+      "ejecutados": 14,
+      "fallidos": 0
+    },
+    "assertions": {
+      "total": 34,
+      "fallidas": 0
+    },
+    "failures": [],
+    "presupuesto": {
+      "postCalibrarPlanificados": 1,
+      "postCalibrarEjecutados": 1,
+      "reintentos": 0
+    },
+    "stopAll": "NO",
+    "limpio": true
+  },
+  "oraculo": {
+    "ingeniero_autenticado": true,
+    "fixture_valido": true,
+    "calibracion_creada": true,
+    "id_calibracion_real": true,
+    "calibracion_persistida": true,
+    "administrador_consulta_rf10": true,
+    "existe_evento_calibracion_exitosa": true,
+    "evento_en_ventana": true,
+    "usuario_correcto": true,
+    "sensor_correcto": true,
+    "dispositivo_correcto": true,
+    "valor_correcto": true,
+    "newman_sin_failures": true
+  },
+  "comparacion_primera_segunda": {
+    "baselineUnico": "PRIMERA EVALUACION OFICIAL run-20261007-085020",
+    "fuente": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/RESULTADOS/run-20261007-085020/TC-M09-G80-v2.0_resultado.md",
+    "porDimension": {
+      "POST calibración": {
+        "primera": "PASS — HTTP 201",
+        "segunda": "PASS — HTTP 201",
+        "cambio": "SIN CAMBIO"
+      },
+      "Persistencia": {
+        "primera": "PASS",
+        "segunda": "PASS",
+        "cambio": "SIN CAMBIO"
+      },
+      "GET /auditoria/": {
+        "primera": "HTTP 200",
+        "segunda": "HTTP 200",
+        "cambio": "SIN CAMBIO"
+      },
+      "Evento de calibración exitosa": {
+        "primera": "NO",
+        "segunda": "SÍ",
+        "cambio": "NO -> SÍ"
+      },
+      "Usuario correlacionado": {
+        "primera": "NO",
+        "segunda": "SÍ",
+        "cambio": "NO -> SÍ"
+      },
+      "Sensor correlacionado": {
+        "primera": "NO",
+        "segunda": "SÍ",
+        "cambio": "NO -> SÍ"
+      },
+      "Dispositivo correlacionado": {
+        "primera": "NO",
+        "segunda": "SÍ",
+        "cambio": "NO -> SÍ"
+      },
+      "Valor correlacionado": {
+        "primera": "NO",
+        "segunda": "SÍ",
+        "cambio": "NO -> SÍ"
+      },
+      "Caso": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO"
+      },
+      "Grupo": {
+        "primera": "RECHAZADO",
+        "segunda": "APROBADO",
+        "cambio": "RECHAZADO -> APROBADO"
+      }
+    },
+    "catalogo": {
+      "primera": "solo CALIBRACION_RECHAZADA (tipo 29); no existia tipo para calibracion exitosa",
+      "segunda": "30 tipos; relacionados con calibracion: [{\"id_tipo_evento\":29,\"nombre\":\"CALIBRACION_RECHAZADA\",\"accion\":\"Intento de calibracion de sensor rechazado\",\"categoria\":\"MODIFICACION\"},{\"id_tipo_evento\":30,\"nombre\":\"CALIBRACION_EXITOSA\",\"accion\":\"Registro exitoso de calibracion\",\"categoria\":\"MODIFICACION\"}]"
+    },
+    "causaDelRechazoAnterior": "CORREGIDA"
+  },
+  "causa_raiz": "D. TEST API contiene el evento correcto: el defecto anterior (ausencia de la integracion RF-24 -> RF-10 para el camino exitoso) esta corregido y desplegado en TEST.",
+  "contraste_dev": {
+    "necesario": false,
+    "motivo": "TEST produce el evento correlacionado: no hay motivo de contraste por desfase de despliegue.",
+    "peticiones_a_dev": 0
+  },
+  "seguridad": {
+    "alcance": "todo EvaluacionV2/: runner, coleccion, informe, evidencia, manifiesto y el HTML de Newman",
+    "limpio": true,
+    "archivosConHallazgos": [],
+    "revisados": [
+      {
+        "archivo": "automation/run-g80-v2.cjs",
+        "bytes": 53317,
+        "tipo": "codigo-fuente",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-224303/.summary-run.json",
+        "bytes": 36673,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-224303/evidencia.json",
+        "bytes": 33313,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "RESULTADOS/run-20261009-224303/newman/newman-TC-M09-G80-v2.0.html",
+        "bytes": 206482,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      },
+      {
+        "archivo": "TC-M09-G80-v2.0.postman_collection.json",
+        "bytes": 20677,
+        "tipo": "evidencia",
+        "secretos": [],
+        "credencialesEnClaro": 0
+      }
+    ],
+    "criterio": "Se marcan solo VALORES de secreto: contrasenas en uso, JWT, Authorization con token, cookies, tokens en pares clave-valor y cadenas de conexion. En los .cjs solo se evaluan valores y la coincidencia literal con las credenciales. Los correos de los actores los publica el propio caso.",
+    "nota": "Las contrasenas solo existieron en memoria de proceso. El reporter htmlextra se ejecuto con omitHeaders, sin environment ni globals y omitiendo las variables sensibles; el HTML se sanitizo despues de generarse."
+  },
+  "git_post": {
+    "etiqueta": "git_post",
+    "capturado": "2026-10-10T03:43:18.968Z",
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "origin_test": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "divergencia_HEAD_origin_test": "0\t0",
+    "carpeta_historica_TC_M09_G80": "(vacio = intacta)",
+    "primera_evaluacion_RESULTADOS": "(vacio = intacta)",
+    "operaciones_git_de_escritura": "ninguna: sin add, commit, push, merge, rebase, reset, clean, stash, switch ni checkout"
+  }
+}

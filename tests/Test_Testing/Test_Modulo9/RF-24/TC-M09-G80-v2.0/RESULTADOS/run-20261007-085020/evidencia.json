@@ -1,0 +1,287 @@
+{
+  "grupo": "TC-M09-G80-v2.0",
+  "caso": "TC-M09-151-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "run_id": "run-20261007-085020",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0",
+    "historica_g80_status": "(vacio = intacta)"
+  },
+  "openapi": {
+    "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+    "endpoints": {
+      "POST /configuracion/sensores/{id_sensor}/calibrar": {
+        "presente": true,
+        "codigosDeclarados": [
+          "201",
+          "400",
+          "401",
+          "403",
+          "404",
+          "422",
+          "500"
+        ]
+      },
+      "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+        "presente": true,
+        "codigosDeclarados": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ]
+      },
+      "GET /auditoria/": {
+        "presente": true,
+        "codigosDeclarados": [
+          "200",
+          "206",
+          "400",
+          "403",
+          "422",
+          "500"
+        ]
+      },
+      "GET /auditoria/catalogo/tipos-evento": {
+        "presente": true,
+        "codigosDeclarados": [
+          "200",
+          "403",
+          "422"
+        ]
+      }
+    },
+    "modo_calibracion_declarado": false
+  },
+  "catalogo_tipos_evento": {
+    "http": 200,
+    "total": 29,
+    "tiposRelacionadosConCalibracion": [
+      {
+        "id_tipo_evento": 29,
+        "nombre": "CALIBRACION_RECHAZADA",
+        "accion": "Intento de calibracion de sensor rechazado",
+        "categoria": "MODIFICACION"
+      }
+    ],
+    "nota": "La ausencia de un tipo de evento para calibración EXITOSA es un hallazgo de preflight; el caso se decide con la verificación empírica de /auditoria/."
+  },
+  "actor_calibracion": {
+    "correo": "ingeniero@pecuaria.co",
+    "id_usuario": 4,
+    "rol": "Ingeniero de Campo",
+    "estado_cuenta": "Activo",
+    "credencial": "[REDACTED]"
+  },
+  "actor_auditoria": {
+    "correo": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "rol": "Administrador",
+    "credencial": "[REDACTED]",
+    "intentos": [
+      {
+        "correo": "admin.dev@gmail.com",
+        "resultado": "no autentica (HTTP 423 CUENTA_BLOQUEADA)"
+      },
+      {
+        "correo": "administador.dev@gmail.com",
+        "resultado": "autentica"
+      }
+    ],
+    "uso": "consulta de /auditoria/ y GET de fixture fuera del alcance del Ingeniero; no ejecuta la calibración"
+  },
+  "fixture": {
+    "origen": "fixture oficial del caso, validado por GET en este RUN",
+    "id_sensor": 6,
+    "id_dispositivo_iot": 3,
+    "id_infraestructura": 3,
+    "categoria": "TEMPERATURA",
+    "valor_referencia": "22.5000"
+  },
+  "calibracion": {
+    "pre": {
+      "total": 5,
+      "ids": [
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "request": {
+      "endpoint": "/configuracion/sensores/6/calibrar",
+      "metodo": "POST",
+      "headers": {
+        "Authorization": "[REDACTED]",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-151-v2.0",
+        "fecha_calibracion": "2026-10-07T08:50:54.866Z"
+      }
+    },
+    "response": {
+      "http": 201,
+      "cuerpo": {
+        "id_calibracion": 15,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": "22.5000",
+        "ganancia": "1.0000",
+        "offset": "22.5000",
+        "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-151-v2.0"
+      }
+    },
+    "post": {
+      "total": 6,
+      "ids": [
+        15,
+        14,
+        13,
+        12,
+        11,
+        10
+      ]
+    },
+    "id_calibracion": 15,
+    "registro_persistido": {
+      "id_calibracion": 15,
+      "id_dispositivo_iot": 3,
+      "id_sensor": 6,
+      "valor_referencia": "22.5000",
+      "ganancia": "1.0000",
+      "offset": "22.5000",
+      "fecha_calibracion": "2026-10-07T08:50:54.866000Z",
+      "id_usuario": 4,
+      "observaciones": "QA TC-M09-151-v2.0"
+    },
+    "timestamps": {
+      "t_request_before": "2026-10-07T08:50:54.866Z",
+      "t_response_after": "2026-10-07T08:50:55.007Z",
+      "fecha_enviada": "2026-10-07T08:50:54.866Z",
+      "fecha_persistida": "2026-10-07T08:50:54.866000Z"
+    },
+    "postsEjecutados": 1
+  },
+  "auditoria_rf10": {
+    "actor": "administador.dev@gmail.com",
+    "consulta": "GET /auditoria/?id_usuario=4&fecha_desde=2026-10-07T08:49:54.866Z&fecha_hasta=2026-10-07T08:51:54.866Z&tamano=50",
+    "http": 200,
+    "ventana": {
+      "desde": "2026-10-07T08:49:54.866Z",
+      "hasta": "2026-10-07T08:51:54.866Z",
+      "criterio": "timestamp real de la calibración ±1 minuto"
+    },
+    "total_consultado": 2,
+    "paginas_recorridas": [
+      {
+        "pagina": 1,
+        "http": 200,
+        "devueltos": 2
+      }
+    ],
+    "eventos_recuperados": 2,
+    "eventos": [
+      {
+        "id_evento": 38760,
+        "tipo_evento": 19,
+        "fecha_evento": "2026-10-07T08:50:52.492962Z",
+        "modulo": "MODULO1",
+        "resultado": "exitoso",
+        "categoria": "CONSULTA",
+        "id_usuario": 4,
+        "descripcion": "CONSULTA_PERFIL_PROPIO",
+        "detalle": {
+          "ip": "200.118.62.237",
+          "user_agent": "PostmanRuntime/7.39.1"
+        },
+        "integridad_ok": true
+      },
+      {
+        "id_evento": 38759,
+        "tipo_evento": 3,
+        "fecha_evento": "2026-10-07T08:50:52.242714Z",
+        "modulo": "MODULO1",
+        "resultado": "exitoso",
+        "categoria": "AUTENTICACION",
+        "id_usuario": 4,
+        "descripcion": "LOGIN_EXITOSO",
+        "detalle": {
+          "ip": "10.0.1.113",
+          "user_agent": "PostmanRuntime/7.39.1",
+          "sesion_previa_cerrada": true
+        },
+        "integridad_ok": true
+      }
+    ],
+    "correlacion": [
+      {
+        "id_evento": 38760,
+        "tipo_evento": 19,
+        "fecha_evento": "2026-10-07T08:50:52.492962Z",
+        "dentroDeVentana": true,
+        "delIngeniero": true,
+        "tieneSensor": true,
+        "tieneDispositivo": true,
+        "tieneValor": false,
+        "tieneIdCalibracion": false,
+        "esMatch": false
+      },
+      {
+        "id_evento": 38759,
+        "tipo_evento": 3,
+        "fecha_evento": "2026-10-07T08:50:52.242714Z",
+        "dentroDeVentana": true,
+        "delIngeniero": true,
+        "tieneSensor": false,
+        "tieneDispositivo": true,
+        "tieneValor": false,
+        "tieneIdCalibracion": false,
+        "esMatch": false
+      }
+    ],
+    "match": null,
+    "criterio": "Un evento solo cuenta si contiene simultáneamente sensor, dispositivo y valor de la operación, pertenece al Ingeniero y cae dentro de la ventana."
+  },
+  "diagnostico_bd": {
+    "disponible": false,
+    "auditoria_modulo9": null,
+    "motivo": "No hay acceso SQL autorizado de solo lectura a la base de TEST desde este entorno; el caso se decide con la API.",
+    "nota": "Una fila en modulo9.auditorias_calibraciones no aprobaría G80-v2.0 si falta el registro correlacionable en RF-10."
+  },
+  "resultado": "RECHAZADO",
+  "motivo": "La calibración SENSOR se creó correctamente, pero el historial RF-10 no contiene un evento que registre esa calibración dentro de la ventana evaluada.",
+  "causa": "Por determinar",
+  "incidencia": {
+    "requerida": "SÍ"
+  },
+  "newman": {
+    "assertions": 32,
+    "failures": 0,
+    "detalleFailures": []
+  },
+  "seguridad": {
+    "hallazgos": [],
+    "limpio": true,
+    "criterio": "Se buscan valores de secreto, no vocabulario. El reporte Newman se genera con omitHeaders y sin environment, y se sanitiza después."
+  }
+}

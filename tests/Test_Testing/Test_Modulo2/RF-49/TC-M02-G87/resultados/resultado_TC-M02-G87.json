@@ -1,0 +1,40 @@
+{
+  "tc": "TC-M02-G87",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-10",
+  "run_id": "G87-20260910-000000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-152 (Escenario A): Rechazo BOLA cross-finca (Ingeniero)",
+      "esperado": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE sin fuga de datos sensibles",
+      "obtenido": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE validado",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-152_pytest.html"
+    },
+    {
+      "paso": "TC-M02-152 (Escenario B): Productor crea asociación en su propia finca (RF-49)",
+      "esperado": "HTTP 201 Created para Productor en su finca",
+      "obtenido": "HTTP 403 Forbidden, error_code ACCESO_DENEGADO (defecto RBAC INC-M02-62-G87)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-152_pytest.html",
+      "nota_qa": "Defecto de RBAC: el rol Productor carecía de acción 1 (CREATE) sobre recurso 30 en modulo1.permisos."
+    },
+    {
+      "paso": "TC-M02-152 (Escenario C): Anti-tampering con sensor inexistente",
+      "esperado": "HTTP 404 Not Found, SENSOR_NO_ENCONTRADO",
+      "obtenido": "HTTP 404 Not Found, SENSOR_NO_ENCONTRADO validado",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-152_pytest.html"
+    },
+    {
+      "paso": "TC-M02-153: Cifrado canal MQTT/LoRaWAN (ASVS V9)",
+      "esperado": "Tráfico MQTT/LoRaWAN capturado con TLS activo",
+      "obtenido": "Subcaso bloqueado por dependencia externa y fuera de stack: sin broker MQTT en TEST y sniffer de red fuera de stack",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/resultado_tc_m02_g87.md",
+      "nota_qa": "Bloqueado fuera de stack QA."
+    }
+  ]
+}

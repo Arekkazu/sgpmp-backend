@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "TC-M09-G113 (TC-M09-217/218/223)",
+    "description": "Verificaciones posteriores a la creacion de una plantilla (RF-31, CU-07): TC-M09-217 version inicial=1, TC-M09-218 disponibilidad en un listado (con nombre, especie y version), TC-M09-223 consistencia del snapshot almacenado frente al JSON enviado (con parametros productivos Y ambientales). La ficha original sugiere Cypress+Newman (UI+API); esta ejecucion cubre la parte de API/BD via Newman. Para TC-M09-218 no se conoce de antemano si existe un endpoint de listado general de plantillas (solo se ha usado GET por id en casos anteriores), asi que el paso 2 prueba varias variantes (sin filtro, filtrado por id_especie) y deja todo impreso en consola para adaptar el caso segun lo que exista realmente. Ejecutar con: newman run tc-m09-113.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-113.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "nombre_especie", "value": "" },
+    { "key": "template_name_p010", "value": "" },
+    { "key": "id_plantilla_p010", "value": "" },
+    { "key": "snapshot_enviado_json", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('nombre_especie', body.items[0].nombre);",
+        "    pm.collectionVariables.set('template_name_p010', 'QA-P010-' + Date.now());",
+        "    console.log('id_especie elegido: ' + body.items[0].id_especie + ' (' + body.items[0].nombre + ') | template_name_p010: ' + pm.collectionVariables.get('template_name_p010'));",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. TC-M09-217/223 - Crear plantilla P-010 con parametros productivos Y ambientales",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "pm.collectionVariables.set('snapshot_enviado_json', JSON.stringify({",
+          "    schema_version: 1,",
+          "    metricas_produccion: [ { nombre: 'peso_promedio_kg', valor: 2.35 } ],",
+          "    umbrales_ambientales: [ { nombre: 'temperatura', valor: 27.5 } ]",
+          "}));"
+        ] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "console.log('[CREAR P-010] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('Se crea con 201', function () { pm.response.to.have.status(201); });",
+          "var body = pm.response.json();",
+          "pm.test('TC-M09-217: la version inicial debe ser exactamente 1 (no 0, no otro numero)', function () {",
+          "    pm.expect(body.version).to.eql(1);",
+          "});",
+          "if (pm.response.code === 201) {",
+          "    pm.collectionVariables.set('id_plantilla_p010', body.id_plantilla);",
+          "    console.log('Plantilla P-010 creada: id_plantilla=' + body.id_plantilla + ' version=' + body.version);",
+          "    pm.test('TC-M09-223: el snapshot devuelto en la respuesta de creacion coincide exactamente con el enviado', function () {",
+          "        var enviado = JSON.parse(pm.collectionVariables.get('snapshot_enviado_json'));",
+          "        pm.expect(body.params_snapshot).to.eql(enviado);",
+          "    });",
+          "}"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_p010}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 2.35 } ],\n    \"umbrales_ambientales\": [ { \"nombre\": \"temperatura\", \"valor\": 27.5 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-223 - Releer la plantilla (GET por id) y comparar contra lo enviado (persistencia real, no solo el eco de creacion)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[RELEER P-010] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "var enviado = JSON.parse(pm.collectionVariables.get('snapshot_enviado_json'));",
+        "pm.test('TC-M09-223: el snapshot releido desde la base de datos coincide exactamente con el enviado (sin alteraciones)', function () {",
+        "    pm.expect(body.params_snapshot).to.eql(enviado);",
+        "});",
+        "pm.test('TC-M09-223: nombre y especie tambien coinciden', function () {",
+        "    pm.expect(body.template_name).to.eql(pm.collectionVariables.get('template_name_p010'));",
+        "    pm.expect(String(body.id_especie)).to.eql(String(pm.collectionVariables.get('id_especie')));",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_p010}}"
+      }
+    },
+    {
+      "name": "3a. TC-M09-218 - Buscar un endpoint de listado general de plantillas (sin filtro)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LISTADO SIN FILTRO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    var items = Array.isArray(body) ? body : (body.items || []);",
+        "    var encontrada = items.find(function (p) { return String(p.id_plantilla) === String(pm.collectionVariables.get('id_plantilla_p010')); });",
+        "    console.log('Este endpoint SI responde 200. Total de items: ' + items.length + '. ¿Aparece la plantilla P-010 recien creada?: ' + (!!encontrada));",
+        "    if (encontrada) { console.log('Datos en el listado: template_name=' + encontrada.template_name + ' id_especie=' + encontrada.id_especie + ' version=' + encontrada.version); }",
+        "} else {",
+        "    console.log('Este endpoint NO existe o no funciona sin filtro (status ' + pm.response.code + '). Se probara con filtro por id_especie en el siguiente paso.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3b. TC-M09-218 - Buscar listado de plantillas filtrado por id_especie",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LISTADO POR ESPECIE] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    var items = Array.isArray(body) ? body : (body.items || []);",
+        "    var encontrada = items.find(function (p) { return String(p.id_plantilla) === String(pm.collectionVariables.get('id_plantilla_p010')); });",
+        "    console.log('Este endpoint SI responde 200. Total de items: ' + items.length + '. ¿Aparece la plantilla P-010 recien creada?: ' + (!!encontrada));",
+        "    pm.test('TC-M09-218: la plantilla creada aparece en el listado filtrado por especie, con nombre/especie/version correctos', function () {",
+        "        pm.expect(encontrada).to.not.be.undefined;",
+        "        if (encontrada) {",
+        "            pm.expect(encontrada.template_name).to.eql(pm.collectionVariables.get('template_name_p010'));",
+        "            pm.expect(String(encontrada.id_especie)).to.eql(String(pm.collectionVariables.get('id_especie')));",
+        "            pm.expect(encontrada.version).to.eql(1);",
+        "        }",
+        "    });",
+        "} else {",
+        "    console.log('ADVERTENCIA: tampoco existe un listado filtrado por especie (status ' + pm.response.code + '). No se encontro NINGUN endpoint de listado de plantillas -- TC-M09-218 no se puede verificar con los endpoints disponibles. Revisar Swagger/documentacion del backend con el equipo de desarrollo.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas?id_especie={{id_especie}}"
+      }
+    }
+  ]
+}

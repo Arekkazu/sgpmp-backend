@@ -1,0 +1,725 @@
+{
+  "info": {
+    "_postman_id": "7f51f178-4874-4b46-908f-14ce17a12ceb",
+    "name": "TC-M02-G38 - Control de acceso funcional y bypass de la logica centralizada de estado",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g38}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g38', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_finca_creada_g38', pm.response.json().id_finca); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G38-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g38}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G38\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_infraestructura_creada_g38', pm.response.json().id_infraestructura); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra el activo de prueba (INDIVIDUAL, especie Cachama Blanca)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g38}}\",\n  \"identificador\": \"QA-G38-Activo-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 activo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - activo creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_g38', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4. Admin consulta el detalle de la cuenta de prueba (id 68) para obtener version/nombre/apellidos/rol actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_usuario_operario}}/detalle",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{id_usuario_operario}}",
+            "detalle"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var MAPA_ROL_A_ID = {",
+              "    'Administrador': 1, 'Productor': 2, 'Veterinario': 3, 'Ingeniero de Campo': 4,",
+              "    'Contador': 5, 'Supervisor': 6, 'Gestor de Granja': 7, 'Revisor Fiscal': 8, 'Externo AgroFusion': 9",
+              "};",
+              "console.log('SETUP-4 detalle cuenta de prueba: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-4 - se puede consultar el detalle (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    pm.collectionVariables.set('version_operario', b.version);",
+              "    pm.collectionVariables.set('nombre_operario', b.nombre);",
+              "    pm.collectionVariables.set('apellidos_operario', b.apellidos);",
+              "    var idRolOriginal = MAPA_ROL_A_ID[b.nombre_rol];",
+              "    pm.test('SETUP-4 - se reconoce el nombre del rol actual (' + b.nombre_rol + ')', function () {",
+              "        pm.expect(idRolOriginal).to.not.eql(undefined);",
+              "    });",
+              "    pm.collectionVariables.set('id_rol_original_operario', idRolOriginal);",
+              "    console.log('SETUP-4 - rol actual: ' + b.nombre_rol + ' (id ' + idRolOriginal + '), estado_cuenta: ' + b.estado_cuenta);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5. Admin cambia temporalmente el rol de la cuenta de prueba a Ingeniero de Campo (id_rol=4, sin permiso de cierre)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_usuario_operario}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{id_usuario_operario}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_operario}}\",\n  \"apellidos\": \"{{apellidos_operario}}\",\n  \"version\": \"{{version_operario}}\",\n  \"id_rol\": 4\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-5 cambio de rol a Ingeniero de Campo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-5 - el rol se actualiza (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('SETUP-5 - el rol quedo en Ingeniero de Campo (4)', function () {",
+              "        pm.expect(pm.response.json().id_rol).to.eql(4);",
+              "    });",
+              "    pm.collectionVariables.set('version_operario', pm.response.json().version);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-070a. Login con la cuenta de prueba ya en rol Ingeniero de Campo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_operario}}\",\n  \"contrasena\": \"{{contrasena_operario}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-070a login cuenta de prueba (rol Ingeniero de Campo): ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.collectionVariables.set('token_operario', '');",
+              "if (pm.response.code === 200) {",
+              "    pm.collectionVariables.set('token_operario', pm.response.json().token);",
+              "    pm.test('TC-070a - login exitoso con el rol restringido', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    console.log('TC-070a - AVISO: el login de esta cuenta fallo (' + pm.response.code + '). TC-070 queda no ejecutable si esto ocurre.');",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-070b. Intentar cerrar el ciclo del activo con el rol Ingeniero de Campo (sin permiso)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_operario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g38}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g38}}",
+            "cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g38}}\",\n  \"motivo_cierre\": \"VENTA\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var hoy = new Date().toISOString().slice(0,10);",
+              "pm.collectionVariables.set('fecha_hoy_g38', hoy);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "if (!pm.collectionVariables.get('token_operario')) {",
+              "    console.log('TC-070b - OMITIDO: no hay token_operario porque el login de TC-070a fallo.');",
+              "} else {",
+              "    console.log('TC-070b cierre con rol restringido: ' + pm.response.code + ' body=' + pm.response.text());",
+              "    pm.test('TC-070b - se rechaza el cierre con 403 (rol sin permiso de funcion)', function () {",
+              "        pm.response.to.have.status(403);",
+              "    });",
+              "    if (pm.response.code === 403) {",
+              "        pm.test('TC-070b - el codigo de error es ACCESO_DENEGADO', function () {",
+              "            pm.expect(pm.response.json().error_code).to.eql('ACCESO_DENEGADO');",
+              "        });",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6. Admin restaura el rol de la cuenta de prueba a su valor original (se ejecuta siempre, sin depender de TC-070a/b)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_usuario_operario}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{id_usuario_operario}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_operario}}\",\n  \"apellidos\": \"{{apellidos_operario}}\",\n  \"version\": \"{{version_operario}}\",\n  \"id_rol\": \"{{id_rol_original_operario}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-6 restaurar rol original de la cuenta de prueba: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-6 - el rol se restaura correctamente (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('SETUP-6 - el rol quedo restaurado al original', function () {",
+              "        pm.expect(String(pm.response.json().id_rol)).to.eql(String(pm.collectionVariables.get('id_rol_original_operario')));",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-070c. Confirmar por consulta directa que el activo sigue ACTIVO (el intento de cierre no tuvo efecto)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g38}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g38}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-070c estado del activo tras el intento: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-070c - se puede consultar el activo (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-070c - el activo sigue en estado ACTIVO (el intento de cierre no lo modifico)', function () {",
+              "        pm.expect(pm.response.json().nombre_estado).to.eql('ACTIVO');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-071a. Intentar escribir el campo 'estado' directamente via el endpoint generico de actualizacion (sin ningun otro campo)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g38}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g38}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado\": \"CERRADO\",\n  \"id_estado\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-071a escritura directa de estado (sin campos validos): ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-071a - se rechaza con 400 (el campo estado no es reconocido; sin otro campo valido, no hay nada que actualizar)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-071b. Intentar escribir el campo 'estado' junto con un campo valido (raza), para confirmar que el estado no cambia",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g38}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g38}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"raza\": \"QA-G38-RazaActualizada\",\n  \"estado\": \"CERRADO\",\n  \"id_estado\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-071b escritura directa de estado (con campo valido): ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-071b - la actualizacion del campo valido (raza) se acepta (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-071b - el campo estado inyectado fue ignorado, el activo sigue ACTIVO', function () {",
+              "        pm.expect(pm.response.json().nombre_estado).to.eql('ACTIVO');",
+              "    });",
+              "    pm.test('TC-071b - el campo valido (raza) si se aplico', function () {",
+              "        pm.expect(pm.response.json().detalle_individual.raza).to.eql('QA-G38-RazaActualizada');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-071c. Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-071c health: ' + pm.response.code);",
+              "pm.test('TC-071c - el servicio responde 200 OK', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo_finca_g38",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada_g38",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada_g38",
+      "value": ""
+    },
+    {
+      "key": "id_activo_g38",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_operario",
+      "value": "68"
+    },
+    {
+      "key": "correo_operario",
+      "value": "daniiella.vargass@gmail.com"
+    },
+    {
+      "key": "contrasena_operario",
+      "value": ""
+    },
+    {
+      "key": "version_operario",
+      "value": ""
+    },
+    {
+      "key": "nombre_operario",
+      "value": ""
+    },
+    {
+      "key": "apellidos_operario",
+      "value": ""
+    },
+    {
+      "key": "id_rol_original_operario",
+      "value": ""
+    },
+    {
+      "key": "token_operario",
+      "value": ""
+    }
+  ]
+}
