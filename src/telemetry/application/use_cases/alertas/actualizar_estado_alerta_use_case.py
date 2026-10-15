@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import NotFoundError
+from src.shared.errors import AppError, NotFoundError
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
@@ -16,10 +19,12 @@ class ActualizarEstadoAlertaUseCase:
         db: Session,
         alerta_repo: AlertaRepository,
         historico_repo: HistoricoEstadoAlertaRepository,
+        auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
         self.historico_repo = historico_repo
+        self.auditoria_repo = auditoria_repo
 
     def execute(self, id_alerta: int, dto: ActualizarEstadoAlertaDTO, id_usuario: int) -> Alerta:
         alerta = self.alerta_repo.obtener_por_id(id_alerta)
@@ -27,9 +32,8 @@ class ActualizarEstadoAlertaUseCase:
             raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
 
         estado_anterior = alerta.estado_alerta
-        alerta.transicionar(dto.nuevo_estado, id_usuario, dto.motivo)
-
         try:
+            alerta.transicionar(dto.nuevo_estado, id_usuario, dto.motivo)
             alerta_actualizada = self.alerta_repo.actualizar_estado(
                 id_alerta=id_alerta,
                 nuevo_estado=alerta.estado_alerta,
@@ -46,8 +50,22 @@ class ActualizarEstadoAlertaUseCase:
                 motivo=dto.motivo,
             )
             self.db.commit()
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if isinstance(exc, AppError) and exc.code == "TRANSICION_INVALIDA" and self.auditoria_repo is not None:
+                # Una transacción nueva: el trigger ya abortó la operación.
+                # RF-63 guarda el rechazo, nunca un cambio de estado ficticio.
+                RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                    tipo_evento="TRANSICION_ALERTA_RECHAZADA",
+                    resultado=TipoResultado.RECHAZADO,
+                    componente_origen=ComponenteOrigen.RF57,
+                    severidad_log=SeveridadLog.WARNING,
+                    descripcion="Transición de estado de alerta rechazada.",
+                    entidad_afectada_tipo=EntidadAfectadaTipo.ALERTA,
+                    entidad_afectada_id=str(id_alerta),
+                    id_usuario=id_usuario,
+                    accion_detallada={"error_code": exc.code, "estado_solicitado": dto.nuevo_estado},
+                )
             raise
 
         return alerta_actualizada
