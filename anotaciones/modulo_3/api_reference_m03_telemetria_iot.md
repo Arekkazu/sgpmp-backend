@@ -543,6 +543,11 @@ implementado). No hay `response_model` (retorno `None`).
 
 #### `GET /iot/calidad` — Listar evaluaciones de calidad (RF-62)
 
+DEV-02: por defecto devuelve una evaluación vigente no superada por lectura,
+fuente oficial de `apto_para_ia` y `apto_para_nic41` escalares. El estado
+`SUPERADA` explícito permite consultar el histórico. Las columnas de aptitud
+de `modulo3.telemetrias` están obsoletas y no deben consumirse.
+
 **Query:** `id_sensor: int`, `clasificacion`, `fecha_desde`/`fecha_hasta: datetime`, `estado_evaluacion`, `pagina: int (default 1)`, `por_pagina: int (1–200, default 50)`.
 
 **Response `ListaCalidadSchema`:** `total`, `pagina`, `por_pagina`, `items: list[TelemetriaCalidadSchema]`
