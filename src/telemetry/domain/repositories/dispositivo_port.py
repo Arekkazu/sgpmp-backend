@@ -53,6 +53,11 @@ class DispositivoPort(ABC):
         """
 
     @abstractmethod
+    def obtener_por_serial(self, serial: str) -> Optional[DispositivoHeartbeatInfo]:
+        """Resuelve el dispositivo por su serial, para los eventos que el broker
+        reenvía sin device_id (EVENTO_BUFFER, D10). None si no existe."""
+
+    @abstractmethod
     def obtener_camara(self, device_id: int, serial: str) -> Optional[CamaraInfo]:
         """Identidad de una cámara de visión (RF-21 v2.0): device_id + serial, sin sensor.
 
