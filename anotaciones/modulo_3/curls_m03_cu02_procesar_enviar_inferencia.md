@@ -4,7 +4,7 @@
 
 `POST /iot/eventos-edge`
 
-Autenticación por dispositivo IoT (`access_key`). No requiere JWT.
+Autenticación con el token de servicio del broker (`Authorization: Bearer $BROKER_SERVICE_TOKEN`, D3 de AIOT-DEV-03); el `serial` del body es la identidad del nodo. No requiere JWT.
 
 ---
 
@@ -12,11 +12,12 @@ Autenticación por dispositivo IoT (`access_key`). No requiere JWT.
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "DESVIACION_SIMPLE",
     "severidad": "MODERADO",
     "variables_involucradas": [
@@ -58,11 +59,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "NORMAL",
     "variables_involucradas": [
       {
@@ -97,11 +99,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "DESVIACION_COMPUESTA",
     "severidad": "CRITICO",
     "variables_involucradas": [
@@ -152,11 +155,12 @@ El paquete se crea con `contexto_incomplento: true`; no es un error, el motor de
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "DESVIACION_SIMPLE",
     "severidad": "LEVE",
     "variables_involucradas": [
@@ -194,11 +198,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "DESVIACION_SIMPLE",
     "variables_involucradas": [],
     "timestamp_captura": "2026-07-06T11:04:00Z",
@@ -233,11 +238,12 @@ Cuando `motor_inferencia_port.enviar_paquete()` lanza excepción o devuelve `Fal
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "ERROR_CONFIGURACION",
     "variables_involucradas": [
       {
@@ -272,11 +278,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "CLAVE-INVALIDA",
+    "serial": "SERIAL-DE-OTRO-NODO",
     "clasificacion_rf55": "NORMAL",
     "variables_involucradas": [
       {"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 25.0, "unidad": "C", "timestamp_captura": "2026-07-06T11:05:00Z"}
@@ -292,7 +299,7 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 ```json
 {
   "error_code": "DISPOSITIVO_NO_AUTORIZADO",
-  "message": "El dispositivo, sensor o credencial no son válidos o el dispositivo está inactivo.",
+  "message": "El dispositivo o el sensor no corresponden al serial, o el dispositivo está inactivo.",
   "fields": []
 }
 ```
@@ -303,11 +310,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "NORMAL",
     "variables_involucradas": [
       {"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 25.0, "unidad": "C", "timestamp_captura": "2030-01-01T00:00:00Z"}
@@ -334,11 +342,12 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
     "sensor_id": 1,
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "clasificacion_rf55": "NORMAL",
     "variables_involucradas": [
       {"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 25.0, "unidad": "C", "timestamp_captura": "2026-01-01T00:00:00Z"}

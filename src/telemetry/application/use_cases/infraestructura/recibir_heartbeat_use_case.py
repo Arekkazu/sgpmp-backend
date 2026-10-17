@@ -49,19 +49,20 @@ class RecibirHeartbeatUseCase:
         self.alerta_repo = alerta_repo
         self.historico_alerta_repo = historico_alerta_repo
 
-    def execute(self, dto: HeartbeatDTO, device_id: int, access_key: str) -> Heartbeat:
+    def execute(self, dto: HeartbeatDTO) -> Heartbeat:
+        device_id = dto.device_id
         ahora = datetime.now(timezone.utc)
 
         try:
             # Paso 1: Autenticar dispositivo vía M09 (heartbeat no requiere sensor_id)
             dispositivo = self.dispositivo_port.validar_dispositivo_heartbeat(
                 device_id=device_id,
-                access_key=access_key,
+                serial=dto.serial,
             )
             if dispositivo is None:
                 raise AuthenticationError(
                     code='ERROR_AUTENTICACION_HEARTBEAT',
-                    message='Dispositivo no encontrado o credenciales inválidas.',
+                    message='El dispositivo no existe o no corresponde al serial.',
                 )
             if not dispositivo.es_activo:
                 raise AuthenticationError(

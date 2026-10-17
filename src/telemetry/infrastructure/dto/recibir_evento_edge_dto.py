@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from src.shared.base_dto import BaseDTO
 
@@ -19,7 +19,7 @@ class VariableInvolucradaDTO(BaseDTO):
 class RecibirEventoEdgeDTO(BaseDTO):
     device_id: int
     sensor_id: int
-    access_key: str
+    serial: str = Field(..., min_length=1, max_length=100)
     # Clasificación producida por RF-55 en el dispositivo Edge
     clasificacion_rf55: str       # NORMAL | DESVIACION_SIMPLE | DESVIACION_COMPUESTA | ERROR_CONFIGURACION
     severidad: Optional[str] = None  # LEVE | MODERADO | CRITICO

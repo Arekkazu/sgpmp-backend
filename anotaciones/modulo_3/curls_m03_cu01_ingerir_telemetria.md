@@ -2,7 +2,7 @@
 
 Base URL local: `http://localhost:8000`
 
-**Auth:** Los endpoints de ingesta IoT **no usan JWT**. La identidad del dispositivo se valida mediante `access_key` en el body (debe coincidir con `modulo9.dispositivos_iot.serial`). El header `X-Gateway-Id` es opcional y se registra en la bitácora para trazabilidad.
+**Auth:** Los endpoints de ingesta IoT **no usan JWT**: los llama el broker MQTT con su token de servicio del broker (`Authorization: Bearer $BROKER_SERVICE_TOKEN`, D3 de AIOT-DEV-03). Sin el token o con uno distinto responden `401 TOKEN_SERVICIO_INVALIDO`; si el backend no tiene `BROKER_SERVICE_TOKEN` configurado, `503 TOKEN_SERVICIO_NO_CONFIGURADO`. El `serial` del body ya no es una credencial: es la identidad del nodo que el broker autenticó por MQTT, y `device_id`/`sensor_id` deben pertenecerle. El header `X-Gateway-Id` es opcional y se registra en la bitácora para trazabilidad.
 
 Responsabilidad Dev: recibir desde Broker (paso 3+), validar, persistir, publicar.
 
@@ -14,6 +14,7 @@ Responsabilidad Dev: recibir desde Broker (paso 3+), validar, persistir, publica
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -H "X-Gateway-Id: GW-EST01-LORA-001" \
   -d '{
@@ -23,7 +24,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 24.5,
     "unidad": "°C",
     "timestamp_captura": "2026-07-05T10:00:00Z",
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "origen": "TIEMPO_REAL",
     "nivel_bateria": 85.0,
     "estado_conectividad": true
@@ -46,6 +47,7 @@ Respuesta esperada `201`:
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -54,7 +56,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 24.5,
     "unidad": "°C",
     "timestamp_captura": "2030-01-01T00:00:00Z",
-    "access_key": "IOT-EST01-HLA-001"
+    "serial": "IOT-EST01-HLA-001"
   }'
 ```
 
@@ -69,10 +71,11 @@ Respuesta esperada `400`:
 
 ---
 
-### FA.3 — Credenciales inválidas → ERROR_AUTENTICACION (401)
+### FA.3 — `device_id` que no corresponde al serial → ERROR_AUTENTICACION (401)
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -81,7 +84,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 24.5,
     "unidad": "°C",
     "timestamp_captura": "2026-07-05T10:00:00Z",
-    "access_key": "CLAVE_INCORRECTA"
+    "serial": "SERIAL-DE-OTRO-NODO"
   }'
 ```
 
@@ -89,7 +92,7 @@ Respuesta esperada `401`:
 ```json
 {
   "code": "ERROR_AUTENTICACION",
-  "message": "Dispositivo o sensor no encontrado, inactivo, o credenciales inválidas."
+  "message": "El dispositivo o el sensor no existen o no corresponden al serial."
 }
 ```
 
@@ -99,6 +102,7 @@ Respuesta esperada `401`:
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -107,7 +111,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 24.5,
     "unidad": "bar",
     "timestamp_captura": "2026-07-05T10:00:00Z",
-    "access_key": "IOT-EST01-HLA-001"
+    "serial": "IOT-EST01-HLA-001"
   }'
 ```
 
@@ -140,6 +144,7 @@ Respuesta esperada `409` (segunda llamada):
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -148,7 +153,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 500.0,
     "unidad": "°C",
     "timestamp_captura": "2026-07-05T10:00:00Z",
-    "access_key": "IOT-EST01-HLA-001"
+    "serial": "IOT-EST01-HLA-001"
   }'
 ```
 
@@ -166,6 +171,7 @@ Respuesta esperada `422`:
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -174,7 +180,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 77.0,
     "unidad": "°F",
     "timestamp_captura": "2026-07-05T11:00:00Z",
-    "access_key": "IOT-EST01-HLA-001"
+    "serial": "IOT-EST01-HLA-001"
   }'
 ```
 
@@ -194,6 +200,7 @@ Respuesta esperada `201` (valor convertido a 25.0 °C internamente):
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 1,
@@ -202,7 +209,7 @@ curl -X POST http://localhost:8000/iot/telemetria \
     "valor": 23.8,
     "unidad": "°C",
     "timestamp_captura": "2026-07-05T09:00:00Z",
-    "access_key": "IOT-EST01-HLA-001",
+    "serial": "IOT-EST01-HLA-001",
     "origen": "EDGE_AGREGADO",
     "valor_agregado": true,
     "ventana_agregacion": 15
@@ -229,6 +236,7 @@ Nota: `latencia_procesamiento_ms` refleja el desfase entre `timestamp_envio` y e
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria/batch \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -H "X-Gateway-Id: GW-EST01-LORA-001" \
   -d '{
@@ -240,7 +248,7 @@ curl -X POST http://localhost:8000/iot/telemetria/batch \
         "valor": 22.1,
         "unidad": "°C",
         "timestamp_captura": "2026-07-05T08:00:00Z",
-        "access_key": "IOT-EST01-HLA-001",
+        "serial": "IOT-EST01-HLA-001",
         "origen": "BUFFER_LOCAL"
       },
       {
@@ -250,7 +258,7 @@ curl -X POST http://localhost:8000/iot/telemetria/batch \
         "valor": 65.0,
         "unidad": "%",
         "timestamp_captura": "2026-07-05T08:01:00Z",
-        "access_key": "IOT-EST01-HLA-001",
+        "serial": "IOT-EST01-HLA-001",
         "origen": "BUFFER_LOCAL"
       },
       {
@@ -260,7 +268,7 @@ curl -X POST http://localhost:8000/iot/telemetria/batch \
         "valor": 22.1,
         "unidad": "°C",
         "timestamp_captura": "2026-07-05T08:00:00Z",
-        "access_key": "IOT-EST01-HLA-001",
+        "serial": "IOT-EST01-HLA-001",
         "origen": "BUFFER_LOCAL"
       }
     ]
@@ -306,6 +314,7 @@ Respuesta esperada `200`:
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria/batch \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "registros": [
@@ -316,7 +325,7 @@ curl -X POST http://localhost:8000/iot/telemetria/batch \
         "valor": 22.1,
         "unidad": "°C",
         "timestamp_captura": "2026-07-01T00:00:00Z",
-        "access_key": "IOT-EST01-HLA-001",
+        "serial": "IOT-EST01-HLA-001",
         "origen": "BUFFER_LOCAL"
       }
     ]
@@ -372,7 +381,7 @@ calibración VISION de RF-24 (`POST /configuracion/calibraciones-vision`).
 > **Contrato PROVISIONAL** hasta que Análisis/AIoT fijen ET-01 y la fórmula del índice
 > (ver `anotaciones/modulo_3/inc_m09_77_g137_observaciones_vision.md`).
 
-Misma auth que el resto de la ingesta: `access_key` = serial del dispositivo, sin JWT. El
+Misma auth que el resto de la ingesta: token de servicio del broker y `serial` en el body, sin JWT. El
 dispositivo debe ser de categoría `CAMARA` (RF-21 v2.0) y estar asociado al `area_id` (RF-22).
 Lote de 1 a 500 observaciones, atómico.
 
@@ -380,10 +389,11 @@ Lote de 1 a 500 observaciones, atómico.
 
 ```bash
 curl -X POST http://localhost:8000/iot/telemetria/vision \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": 12,
-    "access_key": "CAM-GALPON-01",
+    "serial": "CAM-GALPON-01",
     "area_id": 2,
     "observaciones": [
       {
@@ -435,7 +445,7 @@ El mismo lote otra vez → `201` con `"aceptadas": 0, "duplicadas": 1`. La clave
 
 ### Errores posibles
 
-- `401 ERROR_AUTENTICACION` — `device_id` inexistente, `access_key` distinto del serial o dispositivo inactivo.
+- `401 ERROR_AUTENTICACION` — `device_id` inexistente, que no corresponde al `serial` o dispositivo inactivo.
 - `422 DISPOSITIVO_NO_ES_CAMARA` — el dispositivo es de categoría `SENSOR`.
 - `422 AREA_NO_COINCIDE` — la cámara no está asociada a `area_id` (RF-22).
 - `400 ERROR_TIEMPO` — alguna `timestamp_captura` posterior a la hora del servidor (+30 s); `field`

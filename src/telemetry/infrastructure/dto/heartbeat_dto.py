@@ -10,8 +10,10 @@ from src.shared.base_dto import BaseDTO
 
 
 class HeartbeatDTO(BaseDTO):
-    """Body del POST /iot/heartbeat enviado por el dispositivo AIOT (payload A.7)."""
+    """Body del POST /iot/heartbeat (payload A.7), reenviado por el broker con su token de servicio."""
 
+    device_id: int = Field(..., gt=0)
+    serial: str = Field(..., min_length=1, max_length=100)
     tipo_mensaje: str = Field(..., min_length=1, max_length=30)
     nivel_bateria_pct: Optional[Decimal] = Field(None, ge=0, le=100)
     calidad_senal_rssi: Optional[Decimal] = None

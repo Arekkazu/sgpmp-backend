@@ -4,8 +4,8 @@ RF-56 — CU02 Dev scope:
   POST  /iot/eventos-edge  — Recibe evento clasificado por RF-55 (AIOT) y consolida
                              el paquete multivariable hacia M04.
 
-Auth: igual que CU01 — sin JWT Bearer. La identidad se verifica con `access_key`
-      en el body. El header opcional `X-Gateway-Id` se registra para trazabilidad.
+Auth: igual que CU01 — token de servicio del broker (`Authorization: Bearer`); el `serial`
+      del body es la identidad del nodo. El header opcional `X-Gateway-Id` se registra para trazabilidad.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case import RecibirEventoEdgeUseCase
@@ -35,7 +36,9 @@ router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos 
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Recibir evento Edge clasificado por RF-55 y consolidar paquete a M04 (RF-56)",
 )
 def recibir_evento_edge(

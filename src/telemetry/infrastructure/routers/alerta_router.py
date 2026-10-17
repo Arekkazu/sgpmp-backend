@@ -6,7 +6,7 @@ RF-57 — CU03 Dev scope:
   GET   /iot/alertas/{id_alerta}       — Detalle de alerta con historial de estados
   PATCH /iot/alertas/{id_alerta}/estado — Transicionar estado de ciclo de vida
 
-Auth POST: dispositivo IoT — identidad verificada via access_key + device_id en body (sin JWT).
+Auth POST: token de servicio del broker (`Authorization: Bearer`); `serial` + device_id en el body.
 Auth REST: JWT Bearer + RBAC recurso 32 (alertas_operativas).
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import AuthenticationError
@@ -60,7 +61,9 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         401: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Generar alerta desde evento de desviación (RF-57 FA-01–FA-08)",
 )
 def procesar_evento_alerta(
@@ -71,12 +74,12 @@ def procesar_evento_alerta(
     info = dispositivo_port.obtener_dispositivo_activo(
         device_id=dto.device_id,
         sensor_id=dto.sensor_id,
-        access_key=dto.access_key,
+        serial=dto.serial,
     )
     if info is None or not info.es_activo_dispositivo or not info.es_activo_sensor:
         raise AuthenticationError(
             code="DISPOSITIVO_NO_AUTORIZADO",
-            message="Credenciales de dispositivo inválidas o dispositivo inactivo.",
+            message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
         )
 
     resultado = _build_generar_use_case(db).execute(

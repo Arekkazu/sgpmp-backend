@@ -61,12 +61,12 @@ class RecibirEventoEdgeUseCase:
 
         # Paso 2: Validar identidad del dispositivo
         dispositivo = self.dispositivo_port.obtener_dispositivo_activo(
-            dto.device_id, dto.sensor_id, dto.access_key
+            dto.device_id, dto.sensor_id, dto.serial
         )
         if dispositivo is None:
             raise AuthenticationError(
                 code="DISPOSITIVO_NO_AUTORIZADO",
-                message="El dispositivo, sensor o credencial no son válidos o el dispositivo está inactivo.",
+                message="El dispositivo o el sensor no corresponden al serial, o el dispositivo está inactivo.",
             )
 
         ts_procesamiento = dto.timestamp_procesamiento_edge
@@ -149,7 +149,7 @@ class RecibirEventoEdgeUseCase:
             alerta_dto = ProcesarEventoAlertaDTO(
                 device_id=dto.device_id,
                 sensor_id=dto.sensor_id,
-                access_key=dto.access_key,
+                serial=dto.serial,
                 tipo_variable=var_primaria.tipo_variable,
                 valor=var_primaria.valor,
                 unidad=var_primaria.unidad,
