@@ -119,6 +119,21 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 
 ### Ingesta — `/iot/telemetria`
 
+> **DEV-05, 2026-10-17 — ingesta B+.** HTTP y el broker persisten mediante
+> `modulo3.fn_ingesta_telemetria`, cuya firma se conserva. `201` confirma la
+> persistencia RF-53; RF-61, RF-62 y el semáforo se procesan después del commit.
+> Un fallo de estas etapas queda pendiente y se reintenta desde las filas
+> confirmadas, sin exigir callback del broker. RF-63 registra la finalización
+> de cada responsabilidad; una evaluación de calidad por sí sola no acredita
+> la finalización de las otras etapas.
+>
+> La credencial HTTP actual se conserva hasta DEV-06. Los contratos DTO y de
+> respuesta continúan vigentes. La bitácora de éxito de ingesta tiene un solo
+> escritor: `trg_rf53_04_bitacora_persistida`. Los rechazos devueltos por la
+> función se confirman para conservar su bitácora; la escritura de esa evidencia
+> SQL requiere DB-02. Ver [diagnóstico y validación DEV-05](dev05_ingesta_bplus_postcommit.md).
+
+
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
 | `POST` | `/` | Dispositivo IoT (`access_key`) | `IngerirTelemetriaUseCase` |
@@ -347,6 +362,15 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 > manual.
 
 #### `POST /iot/heartbeat` — Recibir heartbeat de dispositivo (RF-60)
+
+> **DEV-05:** el endpoint conserva autenticación y persistencia. El trigger
+> registra contacto/reconexión; el procesador común a HTTP y MQTT aplica el
+> buffer y las alertas técnicas después del commit. `A` y `L` representan
+> buffer activo/lleno. El estado de mantenimiento se conserva.
+> Batería/RSSI requieren los umbrales oficiales pendientes de Análisis/DEV-14;
+> mientras no estén publicados en M09, su etapa queda pendiente con
+> `PARAMETROS_HEARTBEAT_NO_DISPONIBLES`, sin perder el heartbeat ni su estado de buffer.
+
 
 **Headers requeridos:** `X-Device-API-Key: <str>`, `X-Device-Id: <int>` (en vez de JWT/body `access_key`).
 
