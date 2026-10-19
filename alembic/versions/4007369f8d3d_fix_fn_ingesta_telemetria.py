@@ -1,7 +1,7 @@
 """fix_fn_ingesta_telemetria
 
 Revision ID: 4007369f8d3d
-Revises: 3a9d5e7c1b24
+Revises: a9d4d253ac97
 Create Date: 2026-10-19 10:44:37.335274
 
 """
@@ -13,15 +13,13 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '4007369f8d3d'
-down_revision: Union[str, Sequence[str], None] = '3a9d5e7c1b24'
+down_revision: Union[str, Sequence[str], None] = 'a9d4d253ac97'  # ← CORREGIDO: ahora cuelga de la otra migración
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-
-    op.execute(
-    """
+    op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_ingesta_telemetria(
             p_id_dispositivo integer,
             p_id_sensor integer,
@@ -42,16 +40,16 @@ def upgrade() -> None:
             p_calidad_snr numeric,
             p_estado_conectividad boolean,
             p_metadatos jsonb)
-            RETURNS TABLE(id_telemetria integer, estado_calidad modulo3.enum_telemetria_estado_calidad, mensaje text) 
-            LANGUAGE 'plpgsql'
-            COST 100
-            VOLATILE PARALLEL UNSAFE
-            ROWS 1000
+        RETURNS TABLE(id_telemetria integer, estado_calidad modulo3.enum_telemetria_estado_calidad, mensaje text) 
+        LANGUAGE 'plpgsql'
+        COST 100
+        VOLATILE PARALLEL UNSAFE
+        ROWS 1000
         AS $BODY$
         DECLARE
             v_ts_procesamiento    TIMESTAMPTZ := NOW();
             v_valor_ajustado      NUMERIC(10,4) := NULL;
-            v_calibrado          BOOLEAN := FALSE;
+            v_calibrado           BOOLEAN := FALSE;
             v_offset              NUMERIC;
             v_ganancia            NUMERIC;
             v_cal_encontrada      BOOLEAN;
@@ -65,7 +63,7 @@ def upgrade() -> None:
             v_unidad_esperada     VARCHAR(10);
             
             -- Latencia dinámica
-            v_latencia_max_ms     INTEGER := 2000;
+            v_latencia_max_ms     INTEGER := 30000;  -- ← CORREGIDO: fallback de 30s según #3546
             v_latencia_ms         INTEGER;
             v_latencia_alta       BOOLEAN := FALSE;
             
@@ -86,6 +84,10 @@ def upgrade() -> None:
             v_snr                 NUMERIC;
             v_conectividad        BOOLEAN;
             v_metadatos           JSONB;
+            
+            -- Variables para validación de FK en bitácora
+            v_id_dispositivo_valido  INTEGER;
+            v_id_sensor_valido       INTEGER;
         BEGIN
             v_tipo_dato          := COALESCE(p_tipo_dato, 'CRUDO'::modulo3.enum_telemetria_tipo_dato);
             v_valor_agregado     := COALESCE(p_valor_agregado, FALSE);
@@ -98,11 +100,12 @@ def upgrade() -> None:
             v_conectividad       := COALESCE(p_estado_conectividad, TRUE);
             v_metadatos          := COALESCE(p_metadatos, '{}'::JSONB);
 
-           ----------------------------------------------------------------------------
+            ----------------------------------------------------------------------------
             -- FASE 0: LATENCIA ALINEADA (HU #3546)
             ----------------------------------------------------------------------------
             -- 1. Intentar obtener el intervalo de transmisión específico del dispositivo (en ms)
-            SELECT (cr.intervalo_transmision * 1000) INTO v_latencia_max_ms
+            -- CORREGIDO: intervalo_transmision está en MINUTOS, multiplicar por 60000
+            SELECT (cr.intervalo_transmision * 60000) INTO v_latencia_max_ms
             FROM modulo9.configuraciones_remotas cr
             WHERE cr.id_dispositivo_iot = p_id_dispositivo 
             AND cr.estado = 'APLICADA'
@@ -110,15 +113,16 @@ def upgrade() -> None:
             LIMIT 1;
 
             -- 2. Si el dispositivo no tiene configuración específica, usar la global (en ms)
+            -- CORREGIDO: frecuencia_muestreo está en MINUTOS, multiplicar por 60000
             IF v_latencia_max_ms IS NULL THEN
-                SELECT (cg.frecuencia_muestreo * 1000) INTO v_latencia_max_ms
+                SELECT (cg.frecuencia_muestreo * 60000) INTO v_latencia_max_ms
                 FROM modulo9.configuraciones_globales cg
                 WHERE cg.es_activo = TRUE
                 LIMIT 1;
             END IF;
 
-            -- 3. Fallback de seguridad si no hay registros en M09 (2000 ms = 2 segundos)
-            v_latencia_max_ms := COALESCE(v_latencia_max_ms, 2000);
+            -- 3. Fallback de seguridad si no hay registros en M09 (30000 ms = 30 segundos según #3546)
+            v_latencia_max_ms := COALESCE(v_latencia_max_ms, 30000);
 
             -- 4. Cálculo de latencia y evaluación
             v_latencia_ms   := EXTRACT(EPOCH FROM (v_ts_procesamiento - p_timestamp_envio))::INTEGER * 1000;
@@ -130,6 +134,13 @@ def upgrade() -> None:
             IF p_id_dispositivo IS NULL OR p_id_sensor IS NULL OR p_id_variable IS NULL
             OR p_valor_crudo IS NULL OR p_unidad IS NULL OR p_timestamp_captura IS NULL THEN
             
+                -- CORREGIDO: Validar IDs antes de INSERT para evitar FK violations
+                SELECT id_dispositivo_iot INTO v_id_dispositivo_valido
+                FROM modulo9.dispositivos_iot WHERE id_dispositivo_iot = p_id_dispositivo;
+                
+                SELECT id_sensores INTO v_id_sensor_valido
+                FROM modulo9.sensores WHERE id_sensores = p_id_sensor;
+
                 INSERT INTO modulo3.bitacora_ingest (
                     id_dispositivo_iot,
                     id_sensor,
@@ -140,11 +151,13 @@ def upgrade() -> None:
                     fecha_captura_dato
                 )
                 VALUES (
-                    p_id_dispositivo,
-                    p_id_sensor,
+                    v_id_dispositivo_valido,  -- NULL si no existe
+                    v_id_sensor_valido,       -- NULL si no existe
                     'ERROR_ESTRUCTURA'::modulo3.enum_bitacora_ingest_estado_calidad,
                     'ERROR_ESTRUCTURA: Campos obligatorios faltantes.',
                     jsonb_build_object(
+                        'id_dispositivo_recibido', p_id_dispositivo,
+                        'id_sensor_recibido', p_id_sensor,
                         'valor_crudo', p_valor_crudo,
                         'unidad', p_unidad,
                         'id_variable', p_id_variable
@@ -164,8 +177,36 @@ def upgrade() -> None:
             ----------------------------------------------------------------------------
             IF NOT modulo3.fn_validar_dispositivo(p_id_dispositivo, p_id_sensor) THEN
             
-                INSERT INTO modulo3.bitacora_ingest (id_dispositivo_iot, id_sensor, valor_crudo, motivo_rechazo, timestamp_rechazo)
-                VALUES (p_id_dispositivo, p_id_sensor, p_valor_crudo, 'ERROR_AUTENTICACION: Dispositivo o sensor no activo.', v_ts_procesamiento);
+                -- CORREGIDO: Validar IDs antes de INSERT para evitar FK violations
+                SELECT id_dispositivo_iot INTO v_id_dispositivo_valido
+                FROM modulo9.dispositivos_iot WHERE id_dispositivo_iot = p_id_dispositivo;
+                
+                SELECT id_sensores INTO v_id_sensor_valido
+                FROM modulo9.sensores WHERE id_sensores = p_id_sensor;
+            
+                -- CORREGIDO: Usar columnas correctas de bitacora_ingest
+                INSERT INTO modulo3.bitacora_ingest (
+                    id_dispositivo_iot,
+                    id_sensor,
+                    estado_calidad,
+                    descripcion_text,
+                    payload_recibido,
+                    fecha_evento,
+                    fecha_captura_dato
+                )
+                VALUES (
+                    v_id_dispositivo_valido,
+                    v_id_sensor_valido,
+                    'ERROR_AUTENTICACION'::modulo3.enum_bitacora_ingest_estado_calidad,
+                    'ERROR_AUTENTICACION: Dispositivo o sensor no activo.',
+                    jsonb_build_object(
+                        'id_dispositivo_recibido', p_id_dispositivo,
+                        'id_sensor_recibido', p_id_sensor,
+                        'valor_crudo', p_valor_crudo
+                    ),
+                    v_ts_procesamiento,
+                    v_ts_procesamiento
+                );
 
                 RETURN QUERY SELECT NULL::INTEGER, NULL::modulo3.enum_telemetria_estado_calidad,
                                     'ERROR_AUTENTICACION: Dispositivo o sensor no activo.'::TEXT;
@@ -252,12 +293,14 @@ def upgrade() -> None:
             WHERE s.id_sensores = p_id_sensor;
 
             -- 4.2. Consultar unidad, umbral por especie específica y rango físico de M09
+            -- CORREGIDO: Nombre de columnas correcto (valor_fisico_min/max en lugar de rango_fisico_min/max)
+            -- CORREGIDO: Agregar filtro ua.es_activo = TRUE en LEFT JOIN
             SELECT 
                 va.unidad, 
                 ua.valor_min, 
                 ua.valor_max,
-                va.rango_fisico_min,
-                va.rango_fisico_max
+                va.valor_fisico_min,
+                va.valor_fisico_max
             INTO 
                 v_unidad_esperada, 
                 v_umbral_min, 
@@ -267,7 +310,8 @@ def upgrade() -> None:
             FROM modulo9.variables_ambientales va
             LEFT JOIN modulo9.umbrales_ambientales ua 
                 ON ua.id_variable_ambiental = va.id_variable_ambiental 
-                AND ua.id_especie = v_id_especie  
+                AND ua.id_especie = v_id_especie
+                AND ua.es_activo = TRUE  -- ← CORREGIDO: solo umbrales activos
             WHERE va.id_variable_ambiental = p_id_variable AND va.es_activo = TRUE;
 
             -- 4.3. Validar coincidencia de unidad de medida
@@ -339,6 +383,7 @@ def upgrade() -> None:
                     RETURN;
                 END IF;
             END IF;
+
             ----------------------------------------------------------------------------
             -- FASE 6: DUPLICADOS (HU #3547)
             ----------------------------------------------------------------------------
@@ -392,6 +437,7 @@ def upgrade() -> None:
             END IF;
 
             -- Evaluamos FUERA_DE_RANGO (HU #3544) en línea (Sin abortar, solo marcando estado de calidad)
+            -- DECISIÓN DEV-05: Sin calibración, NO debe llegar a FUERA_DE_RANGO
             IF v_umbral_min IS NOT NULL AND v_umbral_max IS NOT NULL THEN
                 
                 -- Usamos el ajustado, pero si es null por falta de calibración, evaluamos el crudo
@@ -440,6 +486,7 @@ def upgrade() -> None:
                                     'ERROR_ESTRUCTURA: Agregado sin ventana.'::TEXT;
                 RETURN;
             END IF;
+
             ----------------------------------------------------------------------------
             -- FASE 9: PERSISTENCIA FINAL EN TELEMETRIAS
             ----------------------------------------------------------------------------
@@ -512,13 +559,12 @@ def upgrade() -> None:
             RETURN QUERY SELECT vid_telemetria, v_estado, v_mensaje;
         END;
         $BODY$;
-        """)
+    """)
 
 
 def downgrade() -> None:
-
     op.execute("""
-    CREATE OR REPLACE FUNCTION modulo3.fn_ingesta_telemetria(
+        CREATE OR REPLACE FUNCTION modulo3.fn_ingesta_telemetria(
             p_id_dispositivo integer,
             p_id_sensor integer,
             p_id_variable integer,
@@ -538,11 +584,11 @@ def downgrade() -> None:
             p_calidad_snr numeric,
             p_estado_conectividad boolean,
             p_metadatos jsonb)
-            RETURNS TABLE(id_telemetria integer, estado_calidad modulo3.enum_telemetria_estado_calidad, mensaje text) 
-            LANGUAGE 'plpgsql'
-            COST 100
-            VOLATILE PARALLEL UNSAFE
-            ROWS 1000
+        RETURNS TABLE(id_telemetria integer, estado_calidad modulo3.enum_telemetria_estado_calidad, mensaje text) 
+        LANGUAGE 'plpgsql'
+        COST 100
+        VOLATILE PARALLEL UNSAFE
+        ROWS 1000
         AS $BODY$
         DECLARE
             v_ts_procesamiento   TIMESTAMPTZ := NOW();
