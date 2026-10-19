@@ -103,9 +103,10 @@ class ConsultarHistorialUseCase:
         try:
             self._repo.materializar_eventos(eventos)
             self._auditoria_repo.registrar(
-                tipo_evento="CONSULTA_HISTORIAL_DIAGNOSTICO",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 payload_evento={
+                    "consulta": "HISTORIAL_DIAGNOSTICO",
                     "id_activo_biologico": id_activo_biologico,
                     "fecha_inicio": fecha_inicio.isoformat(),
                     "fecha_fin": fecha_fin.isoformat(),
@@ -119,7 +120,7 @@ class ConsultarHistorialUseCase:
                 id_usuario=id_usuario,
                 id_referencia=str(id_activo_biologico),
                 entidad_referencia="activo_biologico",
-                resultado_operacion="OK",
+                resultado_operacion="EXITOSO",
             )
             self._db.commit()
         except Exception:
