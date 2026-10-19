@@ -1,8 +1,9 @@
-"""Modelo ORM de `modulo3.observaciones_vision` (RF-53/RF-62 v2.0, migración `88496bce07b6`)."""
+"""Observaciones de visión: 88496bce07b6 y campos DB-03 de 65541db23c71."""
 from __future__ import annotations
 
 import datetime
 import decimal
+from typing import Optional
 
 from sqlalchemy import (
     Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, SmallInteger, String,
@@ -37,6 +38,8 @@ class ObservacionVisionModel(Base):
     id_dispositivo_iot: Mapped[int] = mapped_column(Integer, nullable=False)
     id_infraestructura: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_observacion: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False)
+    fecha_inicio_ventana: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
+    version_cascada: Mapped[Optional[dict]] = mapped_column('json_version_cascada', JSONB(none_as_null=True))
     cobertura_ventana: Mapped[decimal.Decimal] = mapped_column(Numeric(5, 4), nullable=False)
     cantidad_tracks: Mapped[int] = mapped_column(Integer, nullable=False)
     cantidad_tracks_perdidos: Mapped[int] = mapped_column(Integer, nullable=False)

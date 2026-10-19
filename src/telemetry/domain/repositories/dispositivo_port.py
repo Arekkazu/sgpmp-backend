@@ -23,6 +23,10 @@ class DispositivoHeartbeatInfo:
 
 class DispositivoPort(ABC):
 
+    def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
+        """Identidad D4 tras autenticar al broker; el serial no es una credencial."""
+        raise NotImplementedError
+
     @abstractmethod
     def obtener_dispositivo_activo(
         self,
