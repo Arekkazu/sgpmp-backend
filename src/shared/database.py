@@ -11,7 +11,8 @@ rendirse y traduce el fallo a `ServiceUnavailableError`.
 import logging
 import os
 import time
-from typing import Optional
+from contextlib import contextmanager
+from typing import Iterator, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends
@@ -141,6 +142,36 @@ def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
 def declarar_identidad_sistema(db: Session) -> None:
     """Hace que `db` actúe como el usuario de servicio."""
     _declarar(db, _SISTEMA)
+
+
+@contextmanager
+def como_sistema(db: Session) -> Iterator[None]:
+    """Corre un bloque de `db` como el usuario de servicio y luego restaura la identidad.
+
+    Para búsquedas internas cuyo resultado no puede depender de quién llama,
+    dentro de la misma transacción del request (ej. a qué Gateway Edge va una
+    regla, DEV-08). `modulo9` tiene RLS forzada (FORCE ROW LEVEL SECURITY) y su
+    dueño no tiene BYPASSRLS, así que una función SECURITY DEFINER ya no la
+    evita. Usarlo solo para lecturas acotadas: todo lo que corre adentro ve
+    lo que ve el Administrador.
+    """
+    anterior = db.info.get(_CLAVE_IDENTIDAD)
+    declarar_identidad_sistema(db)
+    try:
+        yield
+    finally:
+        if anterior is not None:
+            _declarar(db, anterior)
+        else:
+            db.info.pop(_CLAVE_IDENTIDAD, None)
+            if db.in_transaction():
+                db.connection().execute(
+                    text(
+                        "SELECT set_config('app.current_user_id', '', true), "
+                        "set_config('app.current_role', '', true), "
+                        "set_config('app.usuario_id', '', true)"
+                    )
+                )
 
 
 def id_usuario_servicio(db: Session) -> int:
