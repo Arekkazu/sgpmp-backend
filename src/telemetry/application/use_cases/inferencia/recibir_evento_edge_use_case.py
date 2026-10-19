@@ -20,6 +20,7 @@ from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
 from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeRepository
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
+from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -39,12 +40,14 @@ class RecibirEventoEdgeUseCase:
         paquete_repo: PaqueteInferenciaRepository,
         dispositivo_port: DispositivoPort,
         motor_inferencia_port: MotorInferenciaPort,
+        parametros_alertas_port: ParametrosAlertasPort,
     ) -> None:
         self.db = db
         self.evento_edge_repo = evento_edge_repo
         self.paquete_repo = paquete_repo
         self.dispositivo_port = dispositivo_port
         self.motor_inferencia_port = motor_inferencia_port
+        self.parametros_alertas_port = parametros_alertas_port
 
     def execute(
         self,
@@ -167,6 +170,7 @@ class RecibirEventoEdgeUseCase:
                 alerta_repo=SqlAlchemyAlertaRepository(self.db),
                 historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
                 regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
+                parametros_port=self.parametros_alertas_port,
             ).execute(
                 dto=alerta_dto,
                 id_dispositivo_ioit=dispositivo_id_iot,

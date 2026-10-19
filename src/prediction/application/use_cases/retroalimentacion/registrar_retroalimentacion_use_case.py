@@ -11,9 +11,9 @@ from src.prediction.domain.repositories.patologia_m04_repository import Patologi
 from src.prediction.domain.repositories.resultado_inferencia_port import ResultadoInferenciaPort
 from src.prediction.domain.repositories.retroalimentacion_clinica_repository import RetroalimentacionClinicaRepository
 from src.prediction.infrastructure.dto.registrar_retroalimentacion_dto import RegistrarRetroalimentacionDTO
+from src.configuration.domain.entities.parametro_mlops import RF72_VENTANA, numero_configurado
+from src.configuration.domain.repositories.parametros_mlops_port import ParametrosMLOpsPort
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
-
-VENTANA_RETROALIMENTACION_DIAS = 90
 
 _GRUPO_SIN_PROBLEMA = frozenset({"CORRECTO", "SIN_EVENTO"})
 _GRUPO_CON_PROBLEMA = frozenset({"PARCIAL", "INCORRECTO"})
@@ -29,12 +29,14 @@ class RegistrarRetroalimentacionUseCase:
         resultado_port: ResultadoInferenciaPort,
         patologia_repo: PatologiaM04Repository,
         auditoria_repo: EventoAuditoriaM04Repository,
+        parametros_port: ParametrosMLOpsPort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._resultado_port = resultado_port
         self._patologia_repo = patologia_repo
         self._auditoria_repo = auditoria_repo
+        self._parametros_port = parametros_port
 
     def execute(
         self, dto: RegistrarRetroalimentacionDTO, id_usuario_veterinario: int
@@ -53,14 +55,16 @@ class RegistrarRetroalimentacionUseCase:
         # FA-09: ventana temporal
         if fecha_inferencia.tzinfo is None:
             fecha_inferencia = fecha_inferencia.replace(tzinfo=timezone.utc)
+        ventana_dias = numero_configurado(self._parametros_port.obtener([RF72_VENTANA]), RF72_VENTANA,
+                                         minimo=7, maximo=365, entero=True)
         dias_transcurridos = (ahora - fecha_inferencia).days
-        if dias_transcurridos > VENTANA_RETROALIMENTACION_DIAS:
-            fecha_limite = fecha_inferencia + timedelta(days=VENTANA_RETROALIMENTACION_DIAS)
+        if dias_transcurridos > ventana_dias:
+            fecha_limite = fecha_inferencia + timedelta(days=ventana_dias)
             raise BusinessRuleError(
                 code="FUERA_DE_VENTANA_TEMPORAL",
                 message=(
                     f"La retroalimentación no puede registrarse. Han transcurrido más de "
-                    f"{VENTANA_RETROALIMENTACION_DIAS} días desde el resultado de inferencia "
+                    f"{ventana_dias} días desde el resultado de inferencia "
                     f"{dto.id_resultado_inferencia}. La ventana válida para este resultado venció el "
                     f"{fecha_limite.strftime('%Y-%m-%d')}. Contacte al administrador si requiere "
                     f"registrar retroalimentación fuera de este plazo."

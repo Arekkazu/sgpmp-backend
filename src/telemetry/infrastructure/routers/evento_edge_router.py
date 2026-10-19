@@ -19,6 +19,8 @@ from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case import RecibirEventoEdgeUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.motor_inferencia_stub_adapter import MotorInferenciaStubAdapter
+from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.evento_edge_repository import SqlAlchemyEventoEdgeRepository
 from src.telemetry.infrastructure.repositories.paquete_inferencia_repository import SqlAlchemyPaqueteInferenciaRepository
@@ -49,6 +51,7 @@ def recibir_evento_edge(
         paquete_repo=SqlAlchemyPaqueteInferenciaRepository(db),
         dispositivo_port=DispositivoM09Adapter(db),
         motor_inferencia_port=MotorInferenciaStubAdapter(),
+        parametros_alertas_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
     )
     resultado = use_case.execute(dto, gateway_id=x_gateway_id)
     return EventoEdgeResponse.model_validate(resultado.__dict__)

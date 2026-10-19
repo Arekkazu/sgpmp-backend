@@ -4,9 +4,10 @@ Incluye ``fecha_actualizacion`` como token de concurrencia optimista.
 """
 from datetime import datetime
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from .alias_umbral_sin_senal import validar_alias_umbral
 
 
 class ActualizarConfiguracionDTO(BaseDTO):
@@ -14,9 +15,16 @@ class ActualizarConfiguracionDTO(BaseDTO):
 
     ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
     """
+    model_config = {"loc_by_alias": False}
+
     frecuencia_muestreo: int
-    heartbeat: int
+    heartbeat: int = Field(validation_alias=AliasChoices('umbral_sin_senal', 'heartbeat'))
     fecha_actualizacion: datetime
+
+    @model_validator(mode='before')
+    @classmethod
+    def comprobar_alias(cls, datos):
+        return validar_alias_umbral(datos)
 
     @field_validator("frecuencia_muestreo", "heartbeat")
     @classmethod

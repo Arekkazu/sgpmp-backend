@@ -35,7 +35,9 @@ from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
-from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
+from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
@@ -73,7 +75,7 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
             db=db,
             telemetria_repo=telemetria_repo,
             calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
-            parametros_port=ParametrosCalidadStubAdapter(),
+            parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
             auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
         ),
         reclasificar_semaforo_use_case=ReclasificarSemaforoUseCase(

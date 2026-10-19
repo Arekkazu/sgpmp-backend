@@ -17,11 +17,9 @@ from src.telemetry.domain.entities.alerta import (
 )
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
+from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
-
-# Umbral de confianza para que IA prevalezca sobre Edge en conflictos (E12/E13)
-_UMBRAL_CONFIANZA_IA = Decimal("0.85")
 
 # Mapa tipo_variable → tipo_alerta para reglas simples
 _VARIABLE_A_TIPO_ALERTA: dict[str, str] = {
@@ -50,11 +48,13 @@ class GenararAlertaUseCase:
         alerta_repo: AlertaRepository,
         historico_repo: HistoricoEstadoAlertaRepository,
         regla_repo: ReglaAlertaRepository,
+        parametros_port: ParametrosAlertasPort,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
         self.historico_repo = historico_repo
         self.regla_repo = regla_repo
+        self.parametros_port = parametros_port
 
     def execute(
         self,
@@ -176,10 +176,14 @@ class GenararAlertaUseCase:
             sev_final = self._severidad_por_probabilidad(prob_ia)
             return TipoAlerta.PREDICCION_PATOLOGIA, sev_final, None
 
+        if (not tipo_ia or tipo_ia == tipo_edge) and sev_ia == sev_edge:
+            return tipo_edge, sev_edge, None
+        umbral_confianza = self.parametros_port.obtener_confianza_edge_ia()
+
         # E13: Conflicto de tipo entre Edge e IA
         conflicto_tipo: Optional[str] = None
         if tipo_ia and tipo_ia != tipo_edge:
-            if prob_ia >= _UMBRAL_CONFIANZA_IA:
+            if prob_ia >= umbral_confianza:
                 tipo_final = tipo_ia
                 conflicto_tipo = ConflictoResolucion.IA_PREVALECE
             else:
@@ -190,7 +194,7 @@ class GenararAlertaUseCase:
 
         # E12: Conflicto de severidad entre Edge e IA
         if sev_ia != sev_edge:
-            if prob_ia < _UMBRAL_CONFIANZA_IA and sev_ia == SeveridadAlerta.CRITICO and sev_edge == SeveridadAlerta.LEVE:
+            if prob_ia < umbral_confianza and sev_ia == SeveridadAlerta.CRITICO and sev_edge == SeveridadAlerta.LEVE:
                 # Excepción de compromiso
                 return tipo_final, SeveridadAlerta.MODERADO, ConflictoResolucion.SEVERIDAD_COMPROMISO
             # Regla general: severidad máxima
@@ -209,6 +213,7 @@ class GenararAlertaUseCase:
 
     @staticmethod
     def _severidad_por_probabilidad(prob: Optional[Decimal]) -> str:
+        # Bandas de severidad propias del RF; no son la confianza de conflicto E12/E13.
         if prob is None:
             return SeveridadAlerta.LEVE
         if prob >= Decimal("0.95"):
