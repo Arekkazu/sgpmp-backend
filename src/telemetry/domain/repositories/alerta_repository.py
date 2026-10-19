@@ -9,7 +9,7 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 class AlertaRepository(ABC):
 
-    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str):
+    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
         """Alerta vigente de la misma causa técnica, sin ventana temporal inventada."""
         raise NotImplementedError
 

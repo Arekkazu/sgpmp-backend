@@ -8,6 +8,7 @@ from sqlalchemy import text
 from src.shared.database import engine
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import ProcesarHeartbeatPersistidoUseCase
+from src.telemetry.application.use_cases.infraestructura.evaluar_diagnostico_heartbeat_use_case import EvaluarDiagnosticoHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
 from src.telemetry.application.use_cases.ingesta.procesar_lectura_confirmada_use_case import ProcesarLecturaConfirmadaUseCase
 from src.telemetry.application.use_cases.ingesta.procesar_postcommit_use_case import ProcesarPostcommitUseCase
@@ -60,7 +61,14 @@ def _heartbeat(db, identificador, alertas, parametros):
         servicio.procesar_estado(heartbeat, ultimo == identificador)
 
 
-def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, limite=50, reintento_seg=60):
+def _diagnostico(db, identificador, metodo, politica):
+    heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
+    infraestructura = SqlAlchemyLecturaPostcommitRepository(db).infraestructura(heartbeat.id_dispositivo_iot)
+    servicio = EvaluarDiagnosticoHeartbeatUseCase(SqlAlchemyAlertaRepository(db), politica)
+    getattr(servicio, metodo)(heartbeat, infraestructura)
+
+
+def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, limite=50, reintento_seg=60):
     parametros = parametros_heartbeat or ParametrosHeartbeatPendientesAdapter()
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
@@ -70,6 +78,9 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),
+            EtapaPostcommit.HEARTBEAT_SENSORES: lambda db, i: _diagnostico(db, i, 'sensores', diagnostico_heartbeat),
+            EtapaPostcommit.HEARTBEAT_TEMPERATURA: lambda db, i: _diagnostico(db, i, 'temperatura', diagnostico_heartbeat),
+            EtapaPostcommit.HEARTBEAT_FIRMWARE: lambda db, i: _diagnostico(db, i, 'firmware', diagnostico_heartbeat),
         }, limite=limite, reintento_seg=reintento_seg,
     )
 

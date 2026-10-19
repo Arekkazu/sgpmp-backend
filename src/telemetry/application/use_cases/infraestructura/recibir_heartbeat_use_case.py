@@ -58,6 +58,8 @@ class RecibirHeartbeatUseCase:
                 fecha_registro=dto.fecha_registro,
                 fecha_recepcion=ahora,
                 reloj_sincronizado=dto.reloj_sincronizado,
+                sensores_operativos=[s.model_dump() for s in dto.sensores_operativos] if dto.sensores_operativos is not None else None,
+                temperatura_dispositivo=dto.temperatura_dispositivo,
             ))
 
             # El trigger conserva contacto/reconexión. Las demás responsabilidades

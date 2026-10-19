@@ -387,8 +387,18 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 | `coordenadas` | `Any \| None` | Opcional |
 | `fecha_registro` | `datetime` | — |
 | `reloj_sincronizado` | `bool` | Default `false` |
+| `sensores_operativos` | `list[object] \| None` | Opcional; objetos `{sensor: string no vacío, operativo: boolean estricto}`. `[]` no indica fallo. Nombre físico DB-03: `json_sensores_operativos` |
+| `temperatura_dispositivo` | `Decimal \| None` | Opcional; número JSON finito en °C, representable por `NUMERIC(5,2)` de DB-03 |
 
 **Response `HeartbeatReciboSchema`:** `id_heartbeat`, `id_dispositivo_iot`, `tipo_mensaje`, `nivel_bateria_pct: Decimal \| None`, `calidad_senal_rssi/snr: Decimal \| None`, `estado_local_buffer`, `datos_pendientes_buffer: int`, `version_firmware`, `coordenadas: Any \| None`, `fecha_registro: datetime`, `fecha_recepcion: datetime`, `reloj_sincronizado: bool`
+
+DEV-12 agrega a esa respuesta `sensores_operativos` y `temperatura_dispositivo`,
+ambos nullable. HTTP 200 confirma persistencia; las alertas se evalúan después
+del commit por el mismo worker que procesa los INSERT del broker.
+`SENSOR_FISICO_FALLIDO` conserva los identificadores fallidos y el `id_heartbeat`
+en metadata. Temperatura y firmware tienen etapas independientes: si falta su
+política M09/FW-06, quedan pendientes con evidencia RF-63 y sin una alerta
+ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
 
 ---
 

@@ -20,6 +20,7 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 from src.telemetry.infrastructure.models.bitacora_auditoria_iot_model import BitacoraAuditoriaIotModel
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
+from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 
 
 def _fuente(etapa):
@@ -57,6 +58,15 @@ class SqlAlchemyPostcommitRepository:
             ~_registro(etapa, identificador),
             ~_registro(etapa, identificador, fallo=True, espera=reintento_seg),
         )
+        campo = {
+            EtapaPostcommit.HEARTBEAT_SENSORES: 'json_sensores_operativos',
+            EtapaPostcommit.HEARTBEAT_TEMPERATURA: 'temperatura_dispositivo',
+            EtapaPostcommit.HEARTBEAT_FIRMWARE: 'version_firmware',
+        }.get(etapa)
+        if campo:
+            consulta = consulta.where(tabla.c[campo].is_not(None))
+            if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
+                consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
         if etapa.requisito:
             consulta = consulta.where(_registro(etapa.requisito, identificador))
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())

@@ -9,6 +9,9 @@ class EtapaPostcommit(str, Enum):
     RF17 = 'RF17'
     HEARTBEAT_ESTADO = 'HEARTBEAT_ESTADO'
     HEARTBEAT_ALERTAS = 'HEARTBEAT_ALERTAS'
+    HEARTBEAT_SENSORES = 'HEARTBEAT_SENSORES'
+    HEARTBEAT_TEMPERATURA = 'HEARTBEAT_TEMPERATURA'
+    HEARTBEAT_FIRMWARE = 'HEARTBEAT_FIRMWARE'
 
     @property
     def es_heartbeat(self):
@@ -18,7 +21,7 @@ class EtapaPostcommit(str, Enum):
     def requisito(self):
         if self is EtapaPostcommit.RF17:
             return EtapaPostcommit.RF61
-        if self is EtapaPostcommit.HEARTBEAT_ALERTAS:
+        if self.es_heartbeat and self is not EtapaPostcommit.HEARTBEAT_ESTADO:
             return EtapaPostcommit.HEARTBEAT_ESTADO
         return None
 

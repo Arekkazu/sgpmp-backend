@@ -67,13 +67,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
-    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str):
-        orm = self.db.query(AlertaModel).filter(
+    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
+        consulta = self.db.query(AlertaModel).filter(
             AlertaModel.id_dispositivo_ioit == id_dispositivo,
             AlertaModel.tipo_alerta == 'TECNICA',
             AlertaModel.tipo_variable == causa,
             AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
-        ).order_by(AlertaModel.id_alerta.desc()).first()
+        )
+        if sensores_fallidos is not None:
+            # No suprimir fallos de otro sensor por una alerta previa del dispositivo.
+            consulta = consulta.filter(AlertaModel.metadato_evento['sensores_fallidos'] == sensores_fallidos)
+        orm = consulta.order_by(AlertaModel.id_alerta.desc()).first()
         return self._a_entidad(orm) if orm else None
 
     def buscar_activa_duplicada(
