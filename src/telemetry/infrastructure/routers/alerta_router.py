@@ -8,6 +8,10 @@ RF-57 — CU03 Dev scope:
 
 Auth POST: dispositivo IoT — identidad verificada via access_key + device_id en body (sin JWT).
 Auth REST: JWT Bearer + RBAC recurso 32 (alertas_operativas).
+
+RF-60 D-09: GET y PATCH solo atienden alertas operativas. Las técnicas
+(tipo_alerta = TECNICA) se consultan y gestionan por /iot/alertas-tecnicas
+(recurso 36); acá no aparecen en el listado y su detalle o PATCH da 404.
 """
 from __future__ import annotations
 
@@ -26,6 +30,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
@@ -134,6 +139,7 @@ def listar_alertas(
         fecha_hasta=fecha_hasta,
         pagina=pagina,
         por_pagina=por_pagina,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -169,6 +175,7 @@ def obtener_alerta(
     )
     alerta, historico = use_case.obtener_detalle(
         id_alerta,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -202,6 +209,7 @@ def actualizar_estado_alerta(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        ambito=AmbitoAlerta.OPERATIVA,
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,

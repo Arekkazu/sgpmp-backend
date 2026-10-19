@@ -62,4 +62,5 @@ class AlertaRepository(ABC):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]: ...

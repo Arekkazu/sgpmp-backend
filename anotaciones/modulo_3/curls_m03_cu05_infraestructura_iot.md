@@ -222,6 +222,10 @@ curl -s -X PATCH "http://localhost:8000/iot/alertas-tecnicas/10/estado" \
 
 **Respuesta esperada (200):** Objeto `AlertaSchema` con `estado_alerta=EN_ATENCION`.
 
+Errores posibles:
+- `404 ALERTA_NO_ENCONTRADA` — la alerta no existe **o no es técnica** (RF-60 D-09, DEV-13): las alertas operativas se gestionan por `/iot/alertas`, no por este endpoint.
+- `422 TRANSICION_INVALIDA` — transición de estado no permitida.
+
 ---
 
 ## GET /iot/vinculaciones — Listar vinculaciones (RF-61)
