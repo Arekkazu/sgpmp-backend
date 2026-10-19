@@ -1,7 +1,7 @@
 """fix_fn_ingesta_telemetria
 
 Revision ID: 4007369f8d3d
-Revises: a9d4d253ac97
+Revises: 3a9d5e7c1b24
 Create Date: 2026-10-19 10:44:37.335274
 
 """
@@ -11,9 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-# revision identifiers, used by Alembic.
 revision: str = '4007369f8d3d'
-down_revision: Union[str, Sequence[str], None] = 'a9d4d253ac97'  # ← CORREGIDO: ahora cuelga de la otra migración
+down_revision: Union[str, Sequence[str], None] = '3a9d5e7c1b24'  
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
