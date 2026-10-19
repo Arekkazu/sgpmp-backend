@@ -21,8 +21,13 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """
     Se modifica la función del trigger para que la unicidad de esta_produccion 
-    se evalúe agrupando por (algoritmo, tipo_modelo, componente) y no solo por algoritmo.
-    Esto evita que activar un modelo de AVES apague el de PORCINOS.
+    se evalúe agrupando por (tipo_modelo, componente) según RFC-009 y DB-01.
+    
+    Cambios:
+    - Se elimina 'algoritmo' del WHERE (DB-01 pide agrupar solo por tipo_modelo y componente)
+    - Se usa IS NOT DISTINCT FROM para manejar correctamente NULLs en componente
+    - Esto evita que cambiar de algoritmo dentro del mismo componente deje dos versiones en producción
+    - También maneja el caso de modelos sin componente (NULL)
     """
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo4.trg_fn_versiones_modelos_unicidad_produccion()
@@ -31,9 +36,8 @@ def upgrade() -> None:
             IF NEW.esta_produccion = true THEN
                 UPDATE modulo4.versiones_modelos
                 SET    esta_produccion = false
-                WHERE  algoritmo         = NEW.algoritmo
-                  AND  tipo_modelo       = NEW.tipo_modelo
-                  AND  componente        = NEW.componente
+                WHERE  tipo_modelo       IS NOT DISTINCT FROM NEW.tipo_modelo
+                  AND  componente        IS NOT DISTINCT FROM NEW.componente
                   AND  esta_produccion   = true
                   AND  id_version_modelo <> NEW.id_version_modelo;
             END IF;
