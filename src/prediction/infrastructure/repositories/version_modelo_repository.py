@@ -61,6 +61,7 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
             fecha_despliegue=orm.fecha_despliegue,
             componente=orm.componente,
             metricas_poblacionales=orm.metricas_poblacionales,
+            firma_artefacto=orm.firma_artefacto,
         )
 
     # ------------------------------------------------------------------

@@ -159,7 +159,24 @@ Errores posibles en exportar:
 | FA | Comportamiento implementado |
 |----|---------------------------|
 | FA-01 | Payload inválido (campos mínimos faltantes) → persiste evento `AUDITORIA_EVENTO_INVALIDO` con severidad ERROR, flujo principal continúa |
-| FA-08 | Fallo en persistencia de evento CRITICAL/ERROR → escribe en `logs/audit_fallback_M04_YYYYMMDD.log` (JSON por línea); no interrumpe flujo |
+| FA-08 | Fallo en persistencia de evento CRITICAL/ERROR → escribe en `logs/audit_fallback_M04_YYYYMMDD.log` (JSON por línea). Desde DEV-03 el repositorio ya no se traga el error: lanza `500 AUDITORIA_M04_NO_PERSISTIDA`, porque un flush fallido deja la sesión inutilizable y el `commit` siguiente fallaba igual (500 sin causa). Consultar y exportar la auditoría sí continúan: dejan el error en el log y responden igual |
+
+### Eventos que emiten las consultas M04 (DEV-03)
+
+Solo se usan valores de `enum_tipo_evento_auditoria_m04` y `resultado_operacion = EXITOSO`. Como varias consultas comparten `tipo_evento`, el payload dice cuál fue:
+
+| Endpoint | `tipo_evento` | Discriminador en `payload_evento` |
+|----------|---------------|-----------------------------------|
+| `GET /prediccion/historial/{id}` | `HISTORIAL_CONSULTADO` | `consulta: HISTORIAL_DIAGNOSTICO` |
+| `GET /prediccion/modelos/{id}/ota-status` | `HISTORIAL_CONSULTADO` | `consulta: OTA_STATUS` |
+| `GET /prediccion/despliegues` | `HISTORIAL_CONSULTADO` | `consulta: DESPLIEGUES_OTA` |
+| `GET /prediccion/auditoria` | `HISTORIAL_CONSULTADO` | `consulta: AUDITORIA_M04` |
+| `GET /prediccion/auditoria/exportar` | `EXPORTACION_GENERADA` | `exportacion: AUDITORIA_M04` |
+
+```bash
+curl -X GET "http://localhost:8000/prediccion/auditoria?tipo_evento=HISTORIAL_CONSULTADO" \
+  -H "Authorization: Bearer <token>"
+```
 | FA-10 | Payload > 64 KB → trunca, agrega `payload_truncado: true`, persiste con severidad WARNING |
 | FA-12 | Inmutabilidad: la tabla es append-only; no existe endpoint DELETE/PATCH sobre eventos |
 | FA-13 | Acceso no autorizado: RBAC rechaza con 403 antes de llegar al use case |

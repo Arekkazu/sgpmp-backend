@@ -4,6 +4,7 @@ Expone los cuatro flujos de RF-16 CU02 para etapas:
   A) POST   /configuracion/ciclos              — Registrar etapa
   B) PATCH  /configuracion/ciclos/{id}         — Editar etapa
   C) PATCH  /configuracion/ciclos/{id}/desactivar — Desactivar etapa
+     PATCH  /configuracion/ciclos/{id}/reactivar  — Reactivar etapa
   D) GET    /configuracion/ciclos              — Consultar etapas por especie
 
 Autorización RBAC:
@@ -19,6 +20,7 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.ciclos.consultar_ciclos_use_case import ConsultarCiclosUseCase
 from src.configuration.application.use_cases.ciclos.desactivar_ciclo_use_case import DesactivarCicloUseCase
 from src.configuration.application.use_cases.ciclos.editar_ciclo_use_case import EditarCicloUseCase
+from src.configuration.application.use_cases.ciclos.reactivar_ciclo_use_case import ReactivarCicloUseCase
 from src.configuration.application.use_cases.ciclos.registrar_ciclo_use_case import RegistrarCicloUseCase
 from src.configuration.infrastructure.dto.editar_ciclo_dto import EditarCicloDTO
 from src.configuration.infrastructure.dto.registrar_ciclo_dto import RegistrarCicloDTO
@@ -160,6 +162,38 @@ def desactivar_ciclo(
         ciclos_repo=SqlAlchemyCicloBiologicoRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaCicloRepository(db),
         dependencia_port=SqlAlchemyDependenciaCicloRepository(db),
+    )
+    ciclo = use_case.execute(id_ciclo_biologico, usuario_actual)
+    return CicloBiologicoResponse.model_validate(ciclo)
+
+
+@router.patch(
+    "/{id_ciclo_biologico}/reactivar",
+    response_model=CicloBiologicoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Reactivar etapa del ciclo productivo",
+)
+def reactivar_ciclo(
+    id_ciclo_biologico: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CicloBiologicoResponse:
+    """Reactiva una etapa inactiva (RF-16).
+
+    **Acceso:** `ciclos_biologicos` · Desactivar, igual que reactivar especies.
+
+    Responde 422 si ya está activa.
+    """
+    use_case = ReactivarCicloUseCase(
+        db=db,
+        ciclos_repo=SqlAlchemyCicloBiologicoRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaCicloRepository(db),
     )
     ciclo = use_case.execute(id_ciclo_biologico, usuario_actual)
     return CicloBiologicoResponse.model_validate(ciclo)

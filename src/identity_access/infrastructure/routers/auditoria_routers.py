@@ -51,6 +51,7 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 )
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError, MethodNotAllowedError
+from src.shared.fechas import hoy_colombia
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -366,7 +367,7 @@ def exportar_auditoria(
         archivados=archivados,
     )
 
-    nombre = f"auditoria-{datetime.now().date().isoformat()}.csv"
+    nombre = f"auditoria-{hoy_colombia().isoformat()}.csv"
     return StreamingResponse(
         lineas,
         media_type="text/csv; charset=utf-8",

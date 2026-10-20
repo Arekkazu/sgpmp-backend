@@ -315,6 +315,21 @@ class EditarPerfilUseCase:
                 ),
             )
 
+        # Misma regla de edad mínima que el registro (RF-01); también cubre
+        # una fecha de nacimiento futura (edad negativa).
+        if (
+            dto.fecha_nacimiento is not None
+            and Usuario.edad_desde(dto.fecha_nacimiento) < Usuario.EDAD_MINIMA
+        ):
+            raise ValidationError(
+                code="EDAD_MINIMA_REQUERIDA",
+                message=(
+                    f"La fecha de nacimiento no es válida: el usuario debe tener al "
+                    f"menos {Usuario.EDAD_MINIMA} años."
+                ),
+                field="fecha_nacimiento",
+            )
+
         # El correo únicamente puede cambiarse si la cuenta está activa.
         if (
             correo_modificado

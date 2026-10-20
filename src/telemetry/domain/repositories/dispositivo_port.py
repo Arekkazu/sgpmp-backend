@@ -23,38 +23,47 @@ class DispositivoHeartbeatInfo:
 
 class DispositivoPort(ABC):
 
+    def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
+        """Identidad D4 tras autenticar al broker; el serial no es una credencial."""
+        raise NotImplementedError
+
     @abstractmethod
     def obtener_dispositivo_activo(
         self,
         device_id: int,
         sensor_id: int,
-        access_key: str,
+        serial: str,
     ) -> Optional[DispositivoInfo]:
-        """Valida identidad del dispositivo contra M09.
+        """Resuelve el dispositivo y el sensor contra M09.
 
-        Retorna DispositivoInfo si:
-        - device_id existe en modulo9.dispositivos_iot y es_activo=True
-        - sensor_id existe en modulo9.sensores, pertenece al device_id y es_activo=True
-        - access_key coincide con el serial del dispositivo
+        El serial no es una credencial (D3, AIOT-DEV-03): el broker ya autenticó
+        al nodo por MQTT y lo envía como su identidad. Exigir que device_id y
+        sensor_id pertenezcan a ese serial impide que un nodo reporte por otro.
 
-        Retorna None si cualquier condición no se cumple.
+        Retorna DispositivoInfo si device_id existe en modulo9.dispositivos_iot con
+        ese serial y sensor_id pertenece a él; None en otro caso. El estado activo
+        de cada uno lo decide quien llama.
         """
 
     @abstractmethod
     def validar_dispositivo_heartbeat(
         self,
         device_id: int,
-        access_key: str,
+        serial: str,
     ) -> Optional[DispositivoHeartbeatInfo]:
-        """Valida identidad del dispositivo para heartbeat (sin sensor específico).
+        """Resuelve el dispositivo de un heartbeat (sin sensor específico).
 
-        Retorna DispositivoHeartbeatInfo si device_id existe y access_key coincide con serial.
-        Retorna None si no se encuentra o credenciales inválidas.
+        Retorna None si device_id no existe o no corresponde al serial.
         """
 
     @abstractmethod
-    def obtener_camara(self, device_id: int, access_key: str) -> Optional[CamaraInfo]:
+    def obtener_por_serial(self, serial: str) -> Optional[DispositivoHeartbeatInfo]:
+        """Resuelve el dispositivo por su serial, para los eventos que el broker
+        reenvía sin device_id (EVENTO_BUFFER, D10). None si no existe."""
+
+    @abstractmethod
+    def obtener_camara(self, device_id: int, serial: str) -> Optional[CamaraInfo]:
         """Identidad de una cámara de visión (RF-21 v2.0): device_id + serial, sin sensor.
 
-        Retorna None si el dispositivo no existe o el access_key no es su serial.
+        Retorna None si el dispositivo no existe o no corresponde al serial.
         """

@@ -39,3 +39,13 @@ class EdgeSincronizacionPort(ABC):
         comunicación: ocultaría el 500 que el RF exige.
         """
         ...
+
+    @abstractmethod
+    def propagar_tipo_modelo(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:
+        """DEV-10 (RF-20, D-06): envía el ``tipo_modelo_asignado`` de un área a sus Gateway Edge.
+
+        ``origen: "tipo_modelo"`` (BRK-05). Nunca lanza; mismos estados que
+        ``propagar_umbral``. El nodo reinicia su módulo de procesamiento con el
+        esquema nuevo y conserva la calibración activa.
+        """
+        ...

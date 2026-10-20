@@ -9,6 +9,10 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 class AlertaRepository(ABC):
 
+    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
+        """Alerta vigente de la misma causa técnica, sin ventana temporal inventada."""
+        raise NotImplementedError
+
     @abstractmethod
     def guardar(self, alerta: Alerta) -> Alerta: ...
 
@@ -19,6 +23,10 @@ class AlertaRepository(ABC):
         tipo_variable: str,
         ventana_min: int = 30,
     ) -> Optional[Alerta]: ...
+
+    @abstractmethod
+    def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
+        """Alerta TECNICA ACTIVA o EN_ATENCION del dispositivo con ese tipo, si hay."""
 
     @abstractmethod
     def actualizar_deduplicacion(
@@ -62,4 +70,5 @@ class AlertaRepository(ABC):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]: ...

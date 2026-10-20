@@ -65,13 +65,14 @@ class EspecieFake:
 
 
 class InfraFake:
-    def __init__(self, superficie: Decimal | None = None) -> None:
+    def __init__(self, superficie: Decimal | None = None, id_especie: int | None = None) -> None:
         self.superficie = superficie
+        self.id_especie = id_especie
 
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
-            superficie=self.superficie, id_finca=5,
+            superficie=self.superficie, id_finca=5, id_especie=self.id_especie,
         )
 
 
@@ -448,4 +449,28 @@ def test_infraestructura_de_finca_propia_o_alcance_global_se_registra() -> None:
     for alcance in ([5], None):
         repo = ActivoRepoFake()
         _use_case(repo, DbFake()).execute(_dto(), _usuario(), ids_fincas_permitidas=alcance)
+        assert len(repo.historial) == 1
+
+
+# ── Regla C1: el ID escrito a mano no salta el filtro de especie del formulario ──
+
+def test_infraestructura_de_otra_especie_es_422_sin_persistir() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    infra = InfraFake(superficie=Decimal('500'), id_especie=5)
+
+    with pytest.raises(BusinessRuleError) as exc:
+        _use_case(repo, db, infra_port=infra).execute(_dto(id_especie=4), _usuario())
+
+    assert exc.value.code == 'INCOMPATIBILIDAD_ESPECIE'
+    assert exc.value.field == 'id_infraestructura'
+    assert repo.historial == []
+    assert db.commits == 0
+
+
+def test_infraestructura_de_la_misma_especie_o_sin_especie_se_registra() -> None:
+    for id_especie_area in (1, None):
+        repo = ActivoRepoFake()
+        infra = InfraFake(superficie=Decimal('500'), id_especie=id_especie_area)
+        _use_case(repo, DbFake(), infra_port=infra).execute(_dto(id_especie=1), _usuario())
         assert len(repo.historial) == 1

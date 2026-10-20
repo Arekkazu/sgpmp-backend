@@ -88,12 +88,15 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             tipo_identificacion=orm.tipo_identificacion,
             numero_identificacion=orm.numero_identificacion,
             fecha_nacimiento=orm.fecha_nacimiento,
+            telefono=orm.telefono,
+            direccion=orm.direccion,
             fecha_registro=orm.fecha_registro,
             nombre_rol=orm.roles.nombre_rol,
             version=orm.version,
             estado_cuenta=(
                 orm.cuentas_usuarios.estados_cuentas.nombre if orm.cuentas_usuarios else None
             ),
+            ultimo_acceso=orm.cuentas_usuarios.ultimo_acceso if orm.cuentas_usuarios else None,
             ultima_modificacion=max(candidatos_modificacion) if candidatos_modificacion else None,
         )
 

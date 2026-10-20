@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -22,6 +22,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import hoy_colombia
 
 
 class RegistrarTransferenciaUseCase:
@@ -224,7 +225,7 @@ class RegistrarTransferenciaUseCase:
         # validación del proceso (RF-48, paso 6f) — se valida en el caso de
         # uso para responder 422 (BusinessRuleError), como declara el
         # contrato, y no como un error de estructura de Pydantic (400).
-        if dto.fecha_transferencia > date.today():
+        if dto.fecha_transferencia > hoy_colombia():
             raise BusinessRuleError(
                 code='FECHA_TRANSFERENCIA_FUTURA',
                 message='La fecha de transferencia no puede ser posterior a la fecha actual.',
