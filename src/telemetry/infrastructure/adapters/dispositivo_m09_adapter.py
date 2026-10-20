@@ -67,6 +67,22 @@ class DispositivoM09Adapter(DispositivoPort):
             es_activo=row.es_activo,
         )
 
+    def obtener_por_serial(self, serial: str) -> Optional[DispositivoHeartbeatInfo]:
+        row = self.db.execute(
+            text(
+                'SELECT id_dispositivo_iot, es_activo, id_infraestructura '
+                'FROM modulo9.dispositivos_iot WHERE serial = :serial'
+            ),
+            {'serial': serial},
+        ).fetchone()
+        if row is None:
+            return None
+        return DispositivoHeartbeatInfo(
+            id_dispositivo_iot=row.id_dispositivo_iot,
+            id_infraestructura=row.id_infraestructura,
+            es_activo=row.es_activo,
+        )
+
     def obtener_camara(self, device_id: int, serial: str) -> Optional[CamaraInfo]:
         row = self.db.execute(
             text(

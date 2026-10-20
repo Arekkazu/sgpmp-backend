@@ -85,6 +85,20 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         )
         return self._a_entidad(orm) if orm else None
 
+    def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
+        orm = (
+            self.db.query(AlertaModel)
+            .filter(
+                AlertaModel.tipo_alerta == 'TECNICA',
+                AlertaModel.id_dispositivo_ioit == id_dispositivo_ioit,
+                AlertaModel.tipo_variable == tipo_variable,
+                AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+            )
+            .order_by(AlertaModel.fecha_generacion.desc())
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
     def actualizar_deduplicacion(
         self,
         id_alerta: int,

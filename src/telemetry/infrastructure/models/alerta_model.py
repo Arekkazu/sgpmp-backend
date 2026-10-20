@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,7 +45,8 @@ class AlertaModel(Base):
 
     fecha_evento: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_generacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fecha_registro: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # La columna es NOT NULL DEFAULT now(): sin server_default el ORM inserta NULL explícito.
+    fecha_registro: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), server_default=func.now())
     fecha_notificacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     fecha_atencion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     fecha_resolucion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

@@ -2,12 +2,14 @@
 
 RF-60 — CU05 Dev scope:
   POST  /iot/heartbeat                        — Recibir heartbeat de dispositivo
+  POST  /iot/eventos-buffer                   — Aviso de buffer del Gateway Edge (RF-54 → RF-60, D10)
   GET   /iot/dispositivos/{id}/estado         — Estado actual + historial de transiciones
   GET   /iot/dispositivos/{id}/historial      — Solo historial de transiciones
   GET   /iot/alertas-tecnicas                 — Listar alertas técnicas (admin + ing ONLY)
   PATCH /iot/alertas-tecnicas/{id}/estado     — Actualizar estado de alerta técnica
 
 Auth POST heartbeat: token de servicio del broker (`Authorization: Bearer`); device_id + serial en el body.
+Auth POST eventos-buffer: token de servicio del broker; serial en el body (interno, lo llama solo el broker).
 Auth REST: JWT Bearer + RBAC recurso 35 (infraestructura_iot) / recurso 36 (alertas_tecnicas_iot).
 """
 from __future__ import annotations
@@ -30,9 +32,11 @@ from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case impo
 from src.telemetry.application.use_cases.infraestructura.aplicar_mantenimiento_dispositivo_use_case import AplicarMantenimientoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.obtener_estado_dispositivo_use_case import ObtenerEstadoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
+from src.telemetry.application.use_cases.infraestructura.registrar_evento_buffer_use_case import RegistrarEventoBufferUseCase
 from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
+from src.telemetry.infrastructure.dto.evento_buffer_dto import RecibirEventoBufferDTO
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -44,7 +48,7 @@ from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_
 from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
 from src.telemetry.infrastructure.schema.alerta_schema import AlertaSchema, ListaAlertasSchema
 from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
-from src.telemetry.infrastructure.schema.heartbeat_schema import HeartbeatReciboSchema
+from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
@@ -77,6 +81,32 @@ def recibir_heartbeat(
     )
     heartbeat = use_case.execute(dto=dto)
     return HeartbeatReciboSchema.model_validate(heartbeat)
+
+
+@router.post(
+    "/eventos-buffer",
+    response_model=EventoBufferReciboSchema,
+    status_code=201,
+    responses={
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Aviso de buffer del Gateway Edge → alerta técnica RF-60 + evento RF-63 (RF-54, D10)",
+)
+def recibir_evento_buffer(
+    dto: RecibirEventoBufferDTO,
+    db: Session = Depends(get_db_sistema),
+) -> EventoBufferReciboSchema:
+    resultado = RegistrarEventoBufferUseCase(
+        db=db,
+        dispositivo_port=DispositivoM09Adapter(db),
+        alerta_repo=SqlAlchemyAlertaRepository(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    ).execute(dto)
+    return EventoBufferReciboSchema.model_validate(resultado)
 
 
 @router.get(

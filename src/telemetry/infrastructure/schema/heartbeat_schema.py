@@ -23,3 +23,14 @@ class HeartbeatReciboSchema(BaseModel):
     reloj_sincronizado: bool
 
     model_config = {'from_attributes': True}
+
+
+class EventoBufferReciboSchema(BaseModel):
+    """Respuesta de POST /iot/eventos-buffer (RF-54 → RF-60, D10)."""
+
+    id_alerta: int
+    es_duplicado: bool  # True: se contó en la alerta técnica abierta del mismo tipo
+    tipo_alerta_tecnica: str
+    severidad: str
+
+    model_config = {'from_attributes': True}

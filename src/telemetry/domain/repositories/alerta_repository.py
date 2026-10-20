@@ -21,6 +21,10 @@ class AlertaRepository(ABC):
     ) -> Optional[Alerta]: ...
 
     @abstractmethod
+    def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
+        """Alerta TECNICA ACTIVA o EN_ATENCION del dispositivo con ese tipo, si hay."""
+
+    @abstractmethod
     def actualizar_deduplicacion(
         self,
         id_alerta: int,

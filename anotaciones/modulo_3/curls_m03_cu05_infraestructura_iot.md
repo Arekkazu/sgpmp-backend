@@ -5,6 +5,7 @@
 | Método | Ruta | Auth | RF |
 |--------|------|------|----|
 | POST | `/iot/heartbeat` | Broker MQTT (token de servicio) + `device_id`/`serial` en el body | RF-60 |
+| POST | `/iot/eventos-buffer` | Broker MQTT (token de servicio) + `serial` en el body — interno | RF-54 → RF-60, RF-63 |
 | GET | `/iot/dispositivos/{id}/estado` | JWT + RBAC(35, R) | RF-60 |
 | GET | `/iot/dispositivos/{id}/historial` | JWT + RBAC(35, R) | RF-60 |
 | GET | `/iot/alertas-tecnicas` | JWT + RBAC(36, R) — solo admin + ing | RF-60 |
@@ -124,6 +125,69 @@ curl -s -X POST http://localhost:8000/iot/heartbeat \
 ```
 
 **Respuesta esperada (401):**
+```json
+{"error_code": "TOKEN_SERVICIO_INVALIDO", "message": "Se requiere el token de servicio del broker.", "field": null}
+```
+
+---
+
+## POST /iot/eventos-buffer — Aviso de buffer del Gateway Edge (RF-54 → RF-60, RF-63)
+
+Interno: lo llama solo el broker cuando el Edge publica en `sgpmp/<serial>/status` un
+mensaje con `tipo_mensaje = EVENTO_BUFFER` (D10 de `AIOT-DEV-03`). Crea una alerta
+`TECNICA` (subtipo en `tipo_variable`) que solo ven los roles con el recurso 36 —el
+Ingeniero, no el Productor— y un evento de auditoría RF-63 (`componente_origen = RF54`,
+`entidad_afectada_tipo = BUFFER`). Severidad: `BUFFER_OVERFLOW` → `MODERADO`,
+`BUFFER_DATA_CORRUPTION` → `CRITICO`.
+
+### Flujo principal — overflow con política de rechazo
+
+```bash
+curl -s -X POST http://localhost:8000/iot/eventos-buffer \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serial": "IOT-EST01-HLA-001",
+    "evento": "BUFFER_OVERFLOW",
+    "porcentaje_ocupacion": 100,
+    "politica_aplicada": "POLITICA_RECHAZO",
+    "cantidad_datos_afectados": 12,
+    "timestamp_evento": "2026-10-17T10:00:00-05:00"
+  }'
+```
+
+**Respuesta esperada (201):**
+```json
+{"id_alerta": 41, "es_duplicado": false, "tipo_alerta_tecnica": "BUFFER_OVERFLOW", "severidad": "MODERADO"}
+```
+
+La alerta aparece en `GET /iot/alertas-tecnicas` con `tipo_variable = BUFFER_OVERFLOW`, y el
+evento en `GET /iot/auditoria` con `tipo_evento = BUFFER_OVERFLOW`.
+
+### FA-01 — Aviso repetido con la alerta todavía abierta
+
+Mismo `serial` y `evento` mientras la alerta anterior está `ACTIVA` o `EN_ATENCION`: no se abre
+otra, se suma en `frecuencia_evento` y `ultima_ocurrencia` de la existente. El evento RF-63 sí
+se registra (con `es_duplicado = true` en `accion_detallada`).
+
+**Respuesta esperada (201):**
+```json
+{"id_alerta": 41, "es_duplicado": true, "tipo_alerta_tecnica": "BUFFER_OVERFLOW", "severidad": "MODERADO"}
+```
+
+### FA-02 — Serial desconocido (404)
+
+```json
+{"error_code": "DISPOSITIVO_NO_ENCONTRADO", "message": "No existe un dispositivo con serial X.", "field": "serial"}
+```
+
+### FA-03 — Sobre inválido (422)
+
+`evento` distinto de `BUFFER_OVERFLOW` / `BUFFER_DATA_CORRUPTION`, `porcentaje_ocupacion` fuera
+de 0–100 o `cantidad_datos_afectados` negativa.
+
+### FA-04 — Sin token o token distinto (401) / backend sin `BROKER_SERVICE_TOKEN` (503)
+
 ```json
 {"error_code": "TOKEN_SERVICIO_INVALIDO", "message": "Se requiere el token de servicio del broker.", "field": null}
 ```
