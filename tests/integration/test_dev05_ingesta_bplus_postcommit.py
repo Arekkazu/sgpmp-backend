@@ -423,6 +423,18 @@ def test_heartbeat_no_saca_dispositivo_de_mantenimiento(db_session,equipo):
     assert any(x['tipo_evento']=='POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO' for x in evidencias(db_session,identificador,'HEARTBEAT'))
 
 
+def test_contrato_db02_calibracion_usa_ganancia_y_offset_de_rf24(db_session,equipo):
+    # El valor de referencia no es el offset: con 25 de referencia, 2x+1 debe dar 21.
+    usuario=db_session.execute(text('SELECT id_usuario FROM modulo1.usuarios ORDER BY id_usuario LIMIT 1')).scalar_one()
+    db_session.execute(text('''INSERT INTO modulo9.calibraciones(id_sensor,id_dispositivo_iot,fecha_calibracion,
+        valor_referencia,ganancia,offset_calibracion,id_usuario) VALUES (:s,:d,now(),25,2,1,:u)'''),
+        dict(s=equipo['sensor'],d=equipo['device'],u=usuario))
+    db_session.commit()
+    identificador=sql_ingesta(db_session,equipo,valor=Decimal('10')).id_telemetria
+    assert db_session.execute(text('SELECT valor_ajustado FROM modulo3.telemetrias WHERE id_telemetria=:id'),
+                              {'id':identificador}).scalar_one()==Decimal('21')
+
+
 def test_contrato_db02_sin_calibracion_deja_valor_ajustado_null(db_session,equipo):
     identificador=sql_ingesta(db_session,equipo).id_telemetria
     assert db_session.execute(text('SELECT valor_ajustado FROM modulo3.telemetrias WHERE id_telemetria=:id'),{'id':identificador}).scalar_one() is None
