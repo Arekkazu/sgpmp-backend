@@ -1,0 +1,1199 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G08 Sincronización diferida de datos vía BUFFER_LOCAL (RF-54)",
+    "description": "Automatiza TC-M03-021/032/033 (RF-53 fase 3.1, interfaz con RF-54). 021: el mismo datagrama BUFFER_LOCAL reenviado 10 veces a POST /iot/telemetria (bucle con setNextRequest): solo el primero crea registro, los demás se aceptan como idempotentes (200 con el mismo id) o se rechazan como ERROR_DUPLICADO (409); un único registro en el historial RF-59 y ninguna alerta RF-57. 032: POST /iot/telemetria/batch con 10 lecturas en desorden, una de ellas con la clave de una lectura ya existente: se verifica el reordenamiento cronológico (id_telemetria crece con timestamp_captura), 9 aceptados + 1 duplicado y que el existente no se sobrescribe. 033: BUFFER_LOCAL con 71h59m (201), 72h00m (límite: se registra el resultado y se acepta 201 o 400 ERROR_TIEMPO hasta que Desarrollo lo defina) y 72h01m (400 ERROR_TIEMPO). Las antigüedades se calculan contra la hora del servidor (header Date). Nota: el código usa 'ts < ahora - 72h' (límite inclusivo), pero la latencia de red hace que un dato de 72h exactas llegue ya vencido. La bitácora de reintentos no tiene endpoint (verificación en BD). Datos propios: finca, especie, galpón, dispositivo y un sensor por sub-caso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar finca propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "pm.collectionVariables.set('reenvio_n', '0');  // reinicia el bucle de TC-M03-021 en cada corrida",
+                  "const ymd = (x) => x.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 4 * 86400000)));",
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Buffer Telemetria {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"El Caguan\",\n    \"latitud\": \"2.93\",\n    \"longitud\": \"-75.28\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie porcina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Buffer {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G08\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Galpón",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Galpón creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Galpon Buffer {{sufijo}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo Edge ACTIVO (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_id', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('access_key', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G08-{{sufijo}}\",\n  \"descripcion\": \"Nodo Edge con buffer TC-M03-G08\",\n  \"id_infraestructura\": {{id_area}},\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor para reenvíos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor para reenvíos creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('s021', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor s021 {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor para lote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor para lote creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('s032', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor s032 {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor para límite 72 h",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor para límite 72 h creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('s033', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor s033 {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Medir hora del servidor (header Date)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health responde 200', function () { pm.response.to.have.status(200); });",
+                  "const fecha = pm.response.headers.get('Date');",
+                  "if (fecha) { pm.collectionVariables.set('desfase_ms', String(new Date(fecha).getTime() + 500 - Date.now())); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M03-021 Idempotencia ante 10 reenvíos",
+      "item": [
+        {
+          "name": "TC-M03-021 - Reenvío del mismo datagrama BUFFER_LOCAL (x10)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let n = Number(pm.collectionVariables.get('reenvio_n') || 0);",
+                  "if (n === 0) {",
+                  "  const desfase = Number(pm.collectionVariables.get('desfase_ms') || 0);",
+                  "  // Dato del buffer con 2 h de antigüedad; el mismo timestamp en los 10 envíos.",
+                  "  pm.collectionVariables.set('ts_021', new Date(Date.now() + desfase - 2 * 3600000).toISOString());",
+                  "  pm.collectionVariables.set('reenvio_codigos', '[]');",
+                  "}",
+                  "pm.collectionVariables.set('reenvio_n', String(n + 1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const n = Number(pm.collectionVariables.get('reenvio_n'));",
+                  "const codigos = JSON.parse(pm.collectionVariables.get('reenvio_codigos'));",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "codigos.push({ intento: n, status: pm.response.code, id: j.id_telemetria || null, error_code: j.error_code || null });",
+                  "pm.collectionVariables.set('reenvio_codigos', JSON.stringify(codigos));",
+                  "if (n === 1) {",
+                  "  pm.test('TC-M03-021 intento 1: se almacena (201)', function () { pm.response.to.have.status(201); });",
+                  "  pm.collectionVariables.set('id_tel_021', j.id_telemetria);",
+                  "} else {",
+                  "  pm.test('TC-M03-021 intento ' + n + ': no crea un registro nuevo', function () {",
+                  "    const mismo = pm.response.code === 200 && j.id_telemetria === Number(pm.collectionVariables.get('id_tel_021'));",
+                  "    const dup = pm.response.code === 409 && j.error_code === 'ERROR_DUPLICADO';",
+                  "    pm.expect(mismo || dup, 'status ' + pm.response.code + ' ' + (j.error_code || '')).to.eql(true);",
+                  "  });",
+                  "}",
+                  "if (n < 10) { postman.setNextRequest('TC-M03-021 - Reenvío del mismo datagrama BUFFER_LOCAL (x10)'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s021}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_021}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-021 - Existe un único registro tras los 10 reenvíos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Reenvíos:', pm.collectionVariables.get('reenvio_codigos'));",
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.test('TC-M03-021: un solo registro en la base', function () {",
+                  "  pm.expect(items.map(x => x.id_telemetria)).to.eql([Number(pm.collectionVariables.get('id_tel_021'))]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{s021}}&orden=ASC&por_pagina=500",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{s021}}"
+                },
+                {
+                  "key": "orden",
+                  "value": "ASC"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-021 - Sin alertas RF-57 por los reenvíos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Alertas responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M03-021: ninguna alerta generada', function () { pm.expect((pm.response.json().items || []).length).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?id_sensor={{s021}}&fecha_desde={{fecha_desde}}&fecha_hasta={{fecha_hasta}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "id_sensor",
+                  "value": "{{s021}}"
+                },
+                {
+                  "key": "fecha_desde",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_hasta",
+                  "value": "{{fecha_hasta}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M03-032 Lote desordenado procesado en orden cronológico",
+      "item": [
+        {
+          "name": "TC-M03-032 prep - Lectura ya existente en el minuto 4 (valor 99.0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const desfase = Number(pm.collectionVariables.get('desfase_ms') || 0);",
+                  "const ancla = Date.now() + desfase - 3 * 3600000;",
+                  "const ts = (m) => new Date(ancla + m * 60000).toISOString();",
+                  "pm.collectionVariables.set('ts_032_existente', ts(4));",
+                  "const orden = [7, 2, 10, 4, 1, 9, 5, 3, 8, 6];",
+                  "const registros = orden.map(m => ({",
+                  "  device_id: Number(pm.collectionVariables.get('device_id')),",
+                  "  sensor_id: Number(pm.collectionVariables.get('s032')),",
+                  "  tipo_variable: 'TEMPERATURA_AMBIENTAL',",
+                  "  valor: 20 + m,",
+                  "  unidad: '°C',",
+                  "  timestamp_captura: ts(m),",
+                  "  origen: 'BUFFER_LOCAL',",
+                  "  access_key: pm.collectionVariables.get('access_key')",
+                  "}));",
+                  "pm.collectionVariables.set('lote_032', JSON.stringify({ registros: registros }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lectura previa registrada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_tel_032_existente', pm.response.json().id_telemetria);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s032}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 99.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_032_existente}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-032 - Lote BUFFER_LOCAL de 10 lecturas en desorden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-032: lote procesado (200)', function () { pm.response.to.have.status(200); });",
+                  "const r = pm.response.json();",
+                  "pm.test('TC-M03-032: total 10', function () { pm.expect(r.total).to.eql(10); });",
+                  "pm.test('TC-M03-032: 9 aceptados y 1 duplicado (la lectura ya existente)', function () {",
+                  "  pm.expect(r.aceptados).to.eql(9); pm.expect(r.duplicados).to.eql(1); pm.expect(r.rechazados).to.eql(0);",
+                  "});",
+                  "const ok = (r.detalle || []).filter(d => d.id_telemetria);",
+                  "const porTiempo = ok.slice().sort((a, b) => new Date(a.timestamp_captura) - new Date(b.timestamp_captura));",
+                  "pm.test('TC-M03-032: se procesó en orden cronológico ascendente (id crece con el timestamp)', function () {",
+                  "  const ids = porTiempo.map(d => d.id_telemetria);",
+                  "  pm.expect(ids).to.eql(ids.slice().sort((a, b) => a - b));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/batch",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{lote_032}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-032 - Registros en orden cronológico y sin sobrescribir el existente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.test('TC-M03-032: 10 registros (9 del lote + el existente)', function () { pm.expect(items.length).to.eql(10); });",
+                  "const porTiempo = items.slice().sort((a, b) => new Date(a.timestamp_captura) - new Date(b.timestamp_captura));",
+                  "const delLote = porTiempo.filter(x => x.id_telemetria !== Number(pm.collectionVariables.get('id_tel_032_existente')));",
+                  "pm.test('TC-M03-032: los ids del lote crecen con timestamp_captura', function () {",
+                  "  const ids = delLote.map(x => x.id_telemetria);",
+                  "  pm.expect(ids).to.eql(ids.slice().sort((a, b) => a - b));",
+                  "});",
+                  "const prev = items.find(x => x.id_telemetria === Number(pm.collectionVariables.get('id_tel_032_existente')));",
+                  "pm.test('TC-M03-032: la lectura existente conserva su valor (99.0)', function () { pm.expect(Number(prev && prev.valor)).to.eql(99); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{s032}}&orden=ASC&por_pagina=500",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{s032}}"
+                },
+                {
+                  "key": "orden",
+                  "value": "ASC"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M03-033 Límite de 72 horas",
+      "item": [
+        {
+          "name": "TC-M03-033a - BUFFER_LOCAL con 71h59m de antigüedad (se acepta)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const desfase = Number(pm.collectionVariables.get('desfase_ms') || 0);",
+                  "pm.collectionVariables.set('ts_033a', new Date(Date.now() + desfase - 259140000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-033a: 71h59m se procesa normalmente (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_tel_033a', pm.response.json().id_telemetria);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033a}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-033b - BUFFER_LOCAL con 72h00m exactas (límite, a confirmar con Desarrollo)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const desfase = Number(pm.collectionVariables.get('desfase_ms') || 0);",
+                  "pm.collectionVariables.set('ts_033b', new Date(Date.now() + desfase - 259200000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "console.log('TC-M03-033b (72h exactas): status ' + pm.response.code + ' ' + (j.error_code || j.estado_calidad || ''));",
+                  "pm.collectionVariables.set('resultado_033b', pm.response.code === 201 ? 'ACEPTADO' : 'RECHAZADO');",
+                  "pm.test('TC-M03-033b: límite exacto se acepta (201) o se rechaza con ERROR_TIEMPO (400), según defina Desarrollo', function () {",
+                  "  const aceptado = pm.response.code === 201;",
+                  "  const rechazado = pm.response.code === 400 && j.error_code === 'ERROR_TIEMPO';",
+                  "  pm.expect(aceptado || rechazado).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033b}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-033c - BUFFER_LOCAL con 72h01m de antigüedad (se rechaza)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const desfase = Number(pm.collectionVariables.get('desfase_ms') || 0);",
+                  "pm.collectionVariables.set('ts_033c', new Date(Date.now() + desfase - 259260000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-033c: rechazado con 400', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-033c: código ERROR_TIEMPO', function () { pm.expect(j.error_code).to.eql('ERROR_TIEMPO'); });",
+                  "pm.test('TC-M03-033c: no devuelve id_telemetria', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033c}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-033 - Persistencia coherente con lo aceptado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const esperado = pm.collectionVariables.get('resultado_033b') === 'ACEPTADO' ? 2 : 1;",
+                  "pm.test('TC-M03-033: ' + esperado + ' registro(s): 71h59m' + (esperado === 2 ? ' y 72h00m' : '') + ', nunca 72h01m', function () {",
+                  "  pm.expect(items.length).to.eql(esperado);",
+                  "});",
+                  "pm.test('TC-M03-033a: el de 71h59m está persistido', function () {",
+                  "  pm.expect(items.map(x => x.id_telemetria)).to.include(Number(pm.collectionVariables.get('id_tel_033a')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{s033}}&orden=ASC&por_pagina=500",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{s033}}"
+                },
+                {
+                  "key": "orden",
+                  "value": "ASC"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": ""
+    },
+    {
+      "key": "fecha_hasta",
+      "value": ""
+    },
+    {
+      "key": "desfase_ms",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "s021",
+      "value": ""
+    },
+    {
+      "key": "s032",
+      "value": ""
+    },
+    {
+      "key": "s033",
+      "value": ""
+    },
+    {
+      "key": "ts_021",
+      "value": ""
+    },
+    {
+      "key": "reenvio_n",
+      "value": ""
+    },
+    {
+      "key": "reenvio_codigos",
+      "value": ""
+    },
+    {
+      "key": "id_tel_021",
+      "value": ""
+    },
+    {
+      "key": "ts_032_existente",
+      "value": ""
+    },
+    {
+      "key": "lote_032",
+      "value": ""
+    },
+    {
+      "key": "id_tel_032_existente",
+      "value": ""
+    },
+    {
+      "key": "ts_033a",
+      "value": ""
+    },
+    {
+      "key": "ts_033b",
+      "value": ""
+    },
+    {
+      "key": "ts_033c",
+      "value": ""
+    },
+    {
+      "key": "id_tel_033a",
+      "value": ""
+    },
+    {
+      "key": "resultado_033b",
+      "value": ""
+    }
+  ]
+}

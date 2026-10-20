@@ -1,0 +1,1434 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G16 Marcado de metadata de calidad sin rechazo del dato",
+    "description": "Parte Postman de TC-M03-012/034/068/069 (RF-53, flujos alternos E4, E13, E17 y E14). En todos el dato debe persistirse (201, LECTURA_VALIDA) y quedar marcado. 012: timestamp_captura de hace 3 h (a: tal como la ficha; b: además con timestamp_envio, porque el código mide la latencia desde timestamp_envio). 034: 5 lecturas separadas 1 min con frecuencia_muestreo=10. 068: 10 lecturas con +3 °C sobre la referencia de calibración (25.0) y posible_drift en flags_detectados de RF-62. 069: RSSI -120 / SNR -20 registrados en el historial RF-59 sin cambiar el estado. Los flags latencia_alta, frecuencia_anomala y posible_drift de modulo3.telemetrias no se exponen por API: los verifica test_tc_m03_g16_flags_bd.py en la BD (ids exportados como g16_*). Notas del código: _detectar_frecuencia_anomala siempre devuelve false; la ingesta nunca marca posible_drift (solo RF-62, que exige una serie de 20 lecturas y compara contra los parámetros de calibración). Datos propios: finca, especie, galpón, dispositivo y cuatro sensores asociados y calibrados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar finca propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "pm.collectionVariables.set('n_frec', '0');  // reinicia los bucles en cada corrida",
+                  "pm.collectionVariables.set('n_drift', '0');",
+                  "const ymd = (x) => x.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Metadata Telemetria {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"El Caguan\",\n    \"latitud\": \"2.93\",\n    \"longitud\": \"-75.28\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie porcina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Metadata {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G16\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Galpón",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Galpón creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Galpon Metadata {{sufijo}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo ambiental ACTIVO (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_id', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('access_key', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G16-{{sufijo}}\",\n  \"descripcion\": \"Nodo ambiental TC-M03-G16\",\n  \"id_infraestructura\": {{id_area}},\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura (latencia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor lat creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_lat', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor lat {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor lat al galpón (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_lat}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_lat}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"punto_instalacion\": \"Punto lat\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor lat (RF-24, referencia 25.0 °C, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 2 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_lat}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_lat}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura (frecuencia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor frec creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_frec', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor frec {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor frec al galpón (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_frec}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_frec}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"punto_instalacion\": \"Punto frec\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor frec (RF-24, referencia 25.0 °C, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 2 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_frec}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_frec}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura (drift)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor drift creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_drift', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor drift {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor drift al galpón (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_drift}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_drift}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"punto_instalacion\": \"Punto drift\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor drift (RF-24, referencia 25.0 °C, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 2 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_drift}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_drift}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura (señal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor rssi creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_rssi', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor rssi {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor rssi al galpón (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_rssi}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_rssi}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"punto_instalacion\": \"Punto rssi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor rssi (RF-24, referencia 25.0 °C, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 2 * 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_rssi}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_rssi}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Exportar ids para la verificación en BD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['device_id', 'sensor_lat', 'sensor_frec', 'sensor_drift', 'sensor_rssi'].forEach(k =>",
+                  "  pm.environment.set('g16_' + k, String(pm.collectionVariables.get(k))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M03-012 Latencia alta",
+      "item": [
+        {
+          "name": "TC-M03-012a - timestamp_captura de hace 3 h, origen TIEMPO_REAL (como dice la ficha)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 3 * 3600000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-012a: el dato NO se rechaza (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-012a: estado real del dato (LECTURA_VALIDA, sin estado de error)', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.environment.set('g16_tel_012a', String(j.id_telemetria));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_lat}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-012b - Igual, informando timestamp_envio = timestamp_captura (llegó 3 h tarde)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 3 * 3600000 - 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-012b: el dato NO se rechaza (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-012b: estado real del dato (LECTURA_VALIDA, sin estado de error)', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.environment.set('g16_tel_012b', String(j.id_telemetria));",
+                  "pm.test('TC-M03-012b: latencia de procesamiento informada > 30 s', function () { pm.expect(j.latencia_procesamiento_ms).to.be.above(30000); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_lat}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\",\n  \"timestamp_envio\": \"{{ts_captura}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M03-034 Frecuencia anómala",
+      "item": [
+        {
+          "name": "TC-M03-034 - Lectura cada 1 min con frecuencia_muestreo configurada en 10 min (x5)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let i = Number(pm.collectionVariables.get('n_frec') || 0);",
+                  "if (i === 0) { pm.environment.set('g16_tel_034', '[]'); }",
+                  "// Lectura i de 5: timestamps 5 min atrás ... 1 min atrás, separados 1 minuto.",
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - (5 - i) * 60000).toISOString());",
+                  "pm.collectionVariables.set('n_frec', String(i + 1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-034 lectura ' + pm.collectionVariables.get('n_frec') + ': el dato NO se rechaza (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-034 lectura ' + pm.collectionVariables.get('n_frec') + ': estado real del dato (LECTURA_VALIDA, sin estado de error)', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "const ids = JSON.parse(pm.environment.get('g16_tel_034') || '[]');",
+                  "ids.push(j.id_telemetria);",
+                  "pm.environment.set('g16_tel_034', JSON.stringify(ids));",
+                  "if (Number(pm.collectionVariables.get('n_frec')) < 5) { postman.setNextRequest('TC-M03-034 - Lectura cada 1 min con frecuencia_muestreo configurada en 10 min (x5)'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frec}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\",\n  \"frecuencia_muestreo\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M03-068 Posible drift",
+      "item": [
+        {
+          "name": "TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x10)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let i = Number(pm.collectionVariables.get('n_drift') || 0);",
+                  "if (i === 0) { pm.environment.set('g16_tel_068', '[]'); }",
+                  "// Lectura i de 10: timestamps 10 min atrás ... 1 min atrás, separados 1 minuto.",
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - (10 - i) * 60000).toISOString());",
+                  "pm.collectionVariables.set('n_drift', String(i + 1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-068 lectura ' + pm.collectionVariables.get('n_drift') + ': el dato NO se rechaza (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-068 lectura ' + pm.collectionVariables.get('n_drift') + ': estado real del dato (LECTURA_VALIDA, sin estado de error)', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "const ids = JSON.parse(pm.environment.get('g16_tel_068') || '[]');",
+                  "ids.push(j.id_telemetria);",
+                  "pm.environment.set('g16_tel_068', JSON.stringify(ids));",
+                  "if (Number(pm.collectionVariables.get('n_drift')) < 10) { postman.setNextRequest('TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x10)'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_drift}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 28.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-068 - RF-62 marca posible_drift en la última lectura de la serie",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ids = JSON.parse(pm.environment.get('g16_tel_068') || '[]');",
+                  "pm.collectionVariables.set('ultimo_drift', String(ids[ids.length - 1]));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
+                  "const f = pm.response.json().flags_detectados || {};",
+                  "console.log('TC-M03-068 flags_detectados:', JSON.stringify(f));",
+                  "pm.test('TC-M03-068: flag posible_drift activo (disponible para RF-62)', function () {",
+                  "  pm.expect(f.posible_drift && f.posible_drift.activo).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/calidad/{{ultimo_drift}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{ultimo_drift}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M03-069 Calidad de señal baja",
+      "item": [
+        {
+          "name": "TC-M03-069 - Lectura válida con señal baja (RSSI -120 dBm, SNR -20 dB)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-069: el dato NO se rechaza (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-069: estado real del dato (LECTURA_VALIDA, sin estado de error)', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.environment.set('g16_tel_069', String(j.id_telemetria));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_rssi}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\",\n  \"calidad_senal_rssi\": -120,\n  \"calidad_senal_snr\": -20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-069 - La calidad de señal queda registrada sin afectar el dato (RF-59)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const it = (pm.response.json().items || [])[0];",
+                  "pm.test('TC-M03-069: la lectura está persistida', function () { pm.expect(it, 'lectura').to.exist; });",
+                  "if (it) {",
+                  "  pm.test('TC-M03-069: RSSI -120 registrado', function () { pm.expect(Number(it.calidad_senal_rssi)).to.eql(-120); });",
+                  "  pm.test('TC-M03-069: SNR -20 registrado', function () { pm.expect(Number(it.calidad_senal_snr)).to.eql(-20); });",
+                  "  pm.test('TC-M03-069: valor 25.0 y estado LECTURA_VALIDA sin cambios', function () {",
+                  "    pm.expect(Number(it.valor)).to.eql(25); pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{sensor_rssi}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_rssi}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": ""
+    },
+    {
+      "key": "fecha_hasta",
+      "value": ""
+    },
+    {
+      "key": "ahora",
+      "value": ""
+    },
+    {
+      "key": "ts_captura",
+      "value": ""
+    },
+    {
+      "key": "n_frec",
+      "value": ""
+    },
+    {
+      "key": "n_drift",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "ultimo_drift",
+      "value": ""
+    },
+    {
+      "key": "sensor_lat",
+      "value": ""
+    },
+    {
+      "key": "sensor_frec",
+      "value": ""
+    },
+    {
+      "key": "sensor_drift",
+      "value": ""
+    },
+    {
+      "key": "sensor_rssi",
+      "value": ""
+    }
+  ]
+}
