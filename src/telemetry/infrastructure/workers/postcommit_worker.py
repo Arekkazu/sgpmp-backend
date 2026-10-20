@@ -5,6 +5,8 @@ import os
 
 from sqlalchemy import text
 
+from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.shared.database import engine
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import ProcesarHeartbeatPersistidoUseCase
@@ -16,7 +18,7 @@ from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_cas
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
-from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
+from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
 from src.telemetry.infrastructure.adapters.parametros_heartbeat_pendientes_adapter import ParametrosHeartbeatPendientesAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
@@ -39,7 +41,9 @@ def _lectura(db):
         lecturas,
         VincularLecturaActivoUseCase(db, SqlAlchemyVinculacionLecturaRepository(db), ActivoBiologicoM02Adapter(db)),
         EvaluarCalidadTelemetriaUseCase(db, lecturas, SqlAlchemyTelemetriaCalidadRepository(db),
-                                      ParametrosCalidadStubAdapter(), SqlAlchemyBitacoraAuditoriaIotRepository(db)),
+                                      ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db),
+                                                                    SqlAlchemyConfiguracionGlobalRepository(db)),
+                                      SqlAlchemyBitacoraAuditoriaIotRepository(db)),
         ReclasificarSemaforoUseCase(db, lecturas, EspecieActivoM02Adapter(db),
                                   UmbralHistoricoM09Adapter(db), SqlAlchemyMonitoreoRepository(db)),
     )

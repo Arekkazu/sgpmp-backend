@@ -32,6 +32,8 @@ from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_ca
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.domain.entities.alerta import AmbitoAlerta
+from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
@@ -55,6 +57,7 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
+        parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
     )
 
 

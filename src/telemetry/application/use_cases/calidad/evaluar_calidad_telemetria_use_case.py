@@ -119,7 +119,7 @@ class EvaluarCalidadTelemetriaUseCase:
                 indice=None,
                 clasificacion=ClasificacionCalidad.INDETERMINADA,
                 flags=flags,
-                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
+                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min},
                 parametros_calibracion_aplicados=parametros_calibracion,
                 motivo_reevaluacion=None,
             )
@@ -207,7 +207,7 @@ class EvaluarCalidadTelemetriaUseCase:
             indice=indice,
             clasificacion=clasificacion,
             flags=flags,
-            parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
+            parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min},
             parametros_calibracion_aplicados=parametros_calibracion,
             motivo_reevaluacion=None,
         )
