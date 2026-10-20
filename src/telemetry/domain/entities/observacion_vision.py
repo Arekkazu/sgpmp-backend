@@ -4,9 +4,11 @@ La cámara (Edge de visión) envía por ventana un vector estructurado del área
 las dimensiones de calidad de la ventana. M03 calcula su índice de calidad
 propio y ``apto_para_ia`` con la misma regla de tres tramos (80/40) de RF-62.
 
-CONTRATO PROVISIONAL (INC-M09-77-G137, #513): la ficha no define el esquema del
-vector (ET-01) ni la fórmula del índice de visión. Se usan pesos iguales sobre
-las cuatro dimensiones de RF-62 v2.0 hasta que Análisis/AIoT los fije.
+Compatibilidad INC-M09-77-G137 (#513): este cálculo heredado usa pesos iguales
+y el catálogo SQL CALIBRADA/DEGRADADA/SIN_DETECCION. Los RF actualizados ya
+definen AIOT-SPEC-01 (fórmula ponderada y otros estados); su adopción requiere
+alinear catálogo, metadata y configuración M09. DEV-07 preserva este cálculo
+sin presentarlo como implementación de esa fórmula posterior.
 """
 from __future__ import annotations
 
@@ -50,7 +52,7 @@ def calcular_indice_calidad_vision(
 ) -> int:
     """Índice 0-100: promedio de las cuatro dimensiones de RF-62 v2.0, cada una en 0-100.
 
-    ponytail: pesos iguales, provisionales hasta que Análisis/AIoT fijen la fórmula.
+    Compatibilidad heredada; no es la fórmula ponderada de AIOT-SPEC-01.
     """
     total_tracks = cantidad_tracks + cantidad_tracks_perdidos
     # Sin fps nominal registrado en RF-21 no hay contra qué medir la caída.
@@ -80,6 +82,8 @@ class ObservacionVision:
     indice_calidad: int
     clasificacion_calidad: ClasificacionCalidad
     es_apto_para_ia: bool
+    fecha_inicio_ventana: Optional[datetime.datetime] = None
+    version_cascada: Optional[dict[str, str]] = None
 
     # RF-62 v2.0: un vector de comportamiento no es evidencia contable; M06
     # (NIC 41) nunca debe recibirlo como apto.
@@ -99,6 +103,8 @@ class ObservacionVision:
         fps_nominal: Optional[int],
         estado_calibracion: EstadoCalibracionCamara,
         vector: dict[str, float],
+        fecha_inicio_ventana: Optional[datetime.datetime] = None,
+        version_cascada: Optional[dict[str, str]] = None,
     ) -> "ObservacionVision":
         indice = calcular_indice_calidad_vision(
             cobertura_ventana=cobertura_ventana,
@@ -123,4 +129,6 @@ class ObservacionVision:
             indice_calidad=indice,
             clasificacion_calidad=clasificacion,
             es_apto_para_ia=derivar_aptitud(clasificacion)[0],
+            fecha_inicio_ventana=fecha_inicio_ventana,
+            version_cascada=version_cascada,
         )

@@ -15,4 +15,5 @@ class ObservacionVisionRepository(ABC):
         """De ``fechas``, las que ya tienen observación de esa cámara (reenvío del buffer)."""
 
     @abstractmethod
-    def guardar(self, observacion: ObservacionVision) -> ObservacionVision: ...
+    def guardar(self, observacion: ObservacionVision) -> ObservacionVision | None:
+        """None si ya existe la clave cámara/fecha, incluso ante concurrencia."""

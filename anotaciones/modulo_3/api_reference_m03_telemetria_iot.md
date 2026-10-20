@@ -109,14 +109,15 @@ la ventana de 30 minutos.
 |----------|------|---------|
 | `POST /iot/telemetria` | Token de servicio del broker | `serial` en el body; `device_id`/`sensor_id` deben pertenecerle (`modulo9.dispositivos_iot`/`sensores`), verificado dentro del use case. Header opcional `X-Gateway-Id` (trazabilidad de gateway LoRaWAN). |
 | `POST /iot/telemetria/batch` | Token de servicio del broker | Igual que arriba, por cada registro del lote (máx. 500). |
+| `POST /iot/telemetria/vision` | Token de servicio del broker | Sobre D4 con serial y área autorizada, o lote compatible anterior. Ver DEV-07. |
 | `POST /iot/alertas` | Token de servicio del broker | `serial` en el body; el router valida el dispositivo manualmente vía `DispositivoM09Adapter.obtener_dispositivo_activo`, lanzando `AuthenticationError` si es inválido/inactivo. |
 | `POST /iot/eventos-edge` | Token de servicio del broker | `serial` en el body, verificado dentro del use case. Header opcional `X-Gateway-Id`. |
 | `POST /iot/heartbeat` | Token de servicio del broker | `device_id` y `serial` en el body (antes headers `X-Device-*`), validados en `RecibirHeartbeatUseCase`. |
 | Todos los demás (20 endpoints) | JWT + RBAC | `Authorization: Bearer <jwt>` + `require_permission(id_recurso, id_accion)` — ver detalle por router más abajo. |
 
 Ningún endpoint de este módulo es "público" en el sentido de `configuration`
-(cero autenticación): los 5 de arriba requieren igualmente probar la identidad
-del dispositivo, solo que con un mecanismo distinto al JWT humano.
+(cero autenticación): los 6 de arriba requieren igualmente probar la identidad
+del dispositivo, solo que con un mecanismo distinto al JWT humano. Visión también exige ese token.
 
 ---
 
@@ -143,6 +144,33 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 |--------|------|------|----------|
 | `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |
 | `POST` | `/batch` | Broker (token de servicio; `serial` por registro) | `SincronizarBufferUseCase` |
+| `POST` | `/vision` | Broker (token de servicio) | `IngerirObservacionesVisionUseCase` |
+
+#### `POST /iot/telemetria/vision` — Sobre D4 (DEV-07)
+
+Acepta un objeto `serial`, `area_id`, `ventana_inicio`, `ventana_fin`,
+`componentes`, `calidad`, `version_cascada`. Las fechas requieren zona y
+`ventana_inicio < ventana_fin`; RF-53 actualizado define fin como captura.
+`componentes` exige densidad `[0,1]`, dispersión y movimiento `≥0`, finitos.
+`calidad` exige cobertura `[0,1]`, tracks enteros no negativos, fps finito no
+negativo y el estado admitido por el catálogo SQL vigente. `version_cascada`
+exige detector/seguimiento/métricas/anomalías como strings no vacíos.
+
+Aliases de nombres equivalentes: `dispositivo_serial` y `indicadores_calidad`.
+Se rechazan aliases contradictorios, campos adicionales y aptitud/índice
+enviados por el cliente. Se conserva el lote anterior `device_id`, `serial`,
+`area_id`, `observaciones`; no se mezcla silenciosamente con D4.
+
+HTTP 201 devuelve el resultado existente y, para las nuevas observaciones,
+ventana y versiones. El backend calcula aptitud; NIC41 siempre false. Los
+reenvíos se cuentan como duplicados y no sobrescriben el registro original.
+DB-03 mapea inicio a `fecha_inicio_ventana` y versiones a `json_version_cascada`.
+
+**Compatibilidad pendiente:** esta adaptación conserva la fórmula heredada
+y los estados SQL `CALIBRADA/DEGRADADA/SIN_DETECCION`. Los RF actualizados ya
+definen otros estados, fórmula ponderada y campos adicionales. No se presenta
+esta implementación como soporte completo de AIOT-SPEC-01; ver
+`rf53_dev07_vision_d4.md` y la solicitud de compatibilidad correspondiente.
 
 #### `POST /iot/telemetria` — Ingerir lectura de sensor (RF-53 Flujo A/B)
 

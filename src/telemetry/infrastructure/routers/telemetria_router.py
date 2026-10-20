@@ -29,6 +29,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
 )
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.schema.telemetria_schema import (
@@ -134,10 +135,10 @@ def sincronizar_buffer(
         503: {"model": ErrorResponse},
     },
     dependencies=[Depends(require_token_servicio_broker)],
-    summary="Ingerir observaciones de visión de un área (RF-53/56/62 v2.0 — lote hasta 500)",
+    summary="Ingerir sobre D4 de visión o lote compatible (RF-53/56/62)",
 )
 def ingerir_observaciones_vision(
-    dto: IngerirObservacionesVisionDTO,
+    dto: ObservacionVisionD4DTO | IngerirObservacionesVisionDTO,
     db: Session = Depends(get_db_sistema),
 ) -> IngestaVisionResponse:
     resultado = IngerirObservacionesVisionUseCase(
@@ -156,6 +157,9 @@ def ingerir_observaciones_vision(
                 indice_calidad=o.indice_calidad,
                 clasificacion_calidad=o.clasificacion_calidad.value,
                 apto_para_ia=o.es_apto_para_ia,
+                ventana_inicio=o.fecha_inicio_ventana,
+                ventana_fin=o.fecha_observacion,
+                version_cascada=o.version_cascada,
             )
             for o in resultado.observaciones
         ],

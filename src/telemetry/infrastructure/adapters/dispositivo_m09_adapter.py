@@ -84,12 +84,18 @@ class DispositivoM09Adapter(DispositivoPort):
         )
 
     def obtener_camara(self, device_id: int, serial: str) -> Optional[CamaraInfo]:
+        return self._camara(serial, device_id)
+
+    def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
+        return self._camara(serial)
+
+    def _camara(self, serial: str, device_id: Optional[int] = None) -> Optional[CamaraInfo]:
         row = self.db.execute(
             text(
                 'SELECT d.id_dispositivo_iot, d.id_infraestructura, d.es_activo, d.fps, t.categoria '
                 'FROM modulo9.dispositivos_iot d '
                 'JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo = d.id_tipo_dispositivo '
-                'WHERE d.id_dispositivo_iot = :device_id AND d.serial = :serial'
+                'WHERE d.serial = :serial AND (:device_id IS NULL OR d.id_dispositivo_iot = :device_id)'
             ),
             {'device_id': device_id, 'serial': serial},
         ).fetchone()
