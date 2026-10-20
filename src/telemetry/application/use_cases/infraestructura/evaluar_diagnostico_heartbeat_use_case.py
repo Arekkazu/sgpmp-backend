@@ -6,7 +6,7 @@ la etapa. La indisponibilidad de temperatura/firmware no bloquea sensores.
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.diagnostico_heartbeat_port import DiagnosticoHeartbeatPort
-from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
+from src.telemetry.infrastructure.dto.heartbeat_dto import DiagnosticoHeartbeatDTO
 
 
 class EvaluarDiagnosticoHeartbeatUseCase:
@@ -18,8 +18,7 @@ class EvaluarDiagnosticoHeartbeatUseCase:
         if heartbeat.sensores_operativos is None:
             return
         # El broker escribe directo: también se valida la forma persistida.
-        dto = HeartbeatDTO(tipo_mensaje=heartbeat.tipo_mensaje, fecha_registro=heartbeat.fecha_registro,
-                           sensores_operativos=heartbeat.sensores_operativos)
+        dto = DiagnosticoHeartbeatDTO(sensores_operativos=heartbeat.sensores_operativos)
         fallidos = sorted({s.sensor for s in dto.sensores_operativos if not s.operativo})
         if fallidos:
             self._registrar(heartbeat, id_infraestructura, 'SENSOR_FISICO_FALLIDO', 'MODERADO',
@@ -28,8 +27,7 @@ class EvaluarDiagnosticoHeartbeatUseCase:
     def temperatura(self, heartbeat, id_infraestructura):
         if heartbeat.temperatura_dispositivo is None:
             return
-        valor = HeartbeatDTO(tipo_mensaje=heartbeat.tipo_mensaje, fecha_registro=heartbeat.fecha_registro,
-                             temperatura_dispositivo=heartbeat.temperatura_dispositivo).temperatura_dispositivo
+        valor = DiagnosticoHeartbeatDTO(temperatura_dispositivo=heartbeat.temperatura_dispositivo).temperatura_dispositivo
         politica = self._politica('UMBRAL_SOBRECALENTAMIENTO_NO_DISPONIBLE')
         limites = politica.obtener_umbrales_temperatura(heartbeat.id_dispositivo_iot)
         if valor > limites.maximo_operativo:

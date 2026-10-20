@@ -17,7 +17,23 @@ class SensorOperativoDTO(BaseDTO):
     operativo: StrictBool
 
 
-class HeartbeatDTO(BaseDTO):
+class DiagnosticoHeartbeatDTO(BaseDTO):
+    """Campos D11 del heartbeat. El diagnóstico los revalida también desde la fila
+    que el broker escribe directo, donde no viajan device_id ni serial."""
+
+    sensores_operativos: Optional[list[SensorOperativoDTO]] = None
+    # Precisión de NUMERIC(5,2) de DB-03, no un rango físico inventado.
+    temperatura_dispositivo: Optional[Decimal] = Field(None, allow_inf_nan=False, max_digits=5, decimal_places=2)
+
+    @field_validator('temperatura_dispositivo', mode='before')
+    @classmethod
+    def validar_temperatura_numerica(cls, valor):
+        if valor is not None and (isinstance(valor, bool) or not isinstance(valor, (int, float, Decimal))):
+            raise ValueError('La temperatura del dispositivo debe ser un número finito en °C.')
+        return valor
+
+
+class HeartbeatDTO(DiagnosticoHeartbeatDTO):
     """Body del POST /iot/heartbeat (payload A.7), reenviado por el broker con su token de servicio."""
 
     device_id: int = Field(..., gt=0)
@@ -33,13 +49,3 @@ class HeartbeatDTO(BaseDTO):
     coordenadas: Optional[Any] = None
     fecha_registro: datetime
     reloj_sincronizado: bool = False
-    sensores_operativos: Optional[list[SensorOperativoDTO]] = None
-    # Precisión de NUMERIC(5,2) de DB-03, no un rango físico inventado.
-    temperatura_dispositivo: Optional[Decimal] = Field(None, allow_inf_nan=False, max_digits=5, decimal_places=2)
-
-    @field_validator('temperatura_dispositivo', mode='before')
-    @classmethod
-    def validar_temperatura_numerica(cls, valor):
-        if valor is not None and (isinstance(valor, bool) or not isinstance(valor, (int, float, Decimal))):
-            raise ValueError('La temperatura del dispositivo debe ser un número finito en °C.')
-        return valor
