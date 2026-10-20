@@ -405,6 +405,13 @@ curl -s -X PATCH "http://localhost:8000/iot/alertas/1/estado" \
 
 - `POST /iot/alertas` no usa JWT — la autenticación es por `access_key` (serial del dispositivo).
 - Los endpoints GET y PATCH requieren JWT Bearer con permisos RBAC sobre `recurso=32` (alertas_operativas).
+- **RF-60 D-09 (DEV-13):** GET y PATCH solo atienden alertas **operativas**. Las técnicas (`tipo_alerta = TECNICA`: batería, conectividad, sobrecalentamiento) no aparecen en el listado, aunque se filtre `?tipo_alerta=TECNICA` (página vacía), y su detalle o PATCH responde `404 ALERTA_NO_ENCONTRADA`. Se consultan y gestionan solo por `/iot/alertas-tecnicas` (recurso 36, Admin e Ingeniero), ver `curls_m03_cu05_infraestructura_iot.md`.
+
+```bash
+# Productor intentando resolver una alerta técnica por /iot/alertas → 404
+curl -s -X PATCH "http://localhost:8000/iot/alertas/40/estado"   -H "Content-Type: application/json"   -H "Authorization: Bearer $JWT_PRODUCTOR"   -d '{"nuevo_estado": "RESUELTA"}'
+# {"code": "ALERTA_NO_ENCONTRADA", "message": "Alerta 40 no encontrada.", "field": null}
+```
 - La deduplicación opera en ventana de 30 minutos sobre `(id_sensor, tipo_variable)` con `estado IN (ACTIVA, EN_ATENCION)`.
 - SLA: CRITICO→5 min, MODERADO→30 min, LEVE→2 h hasta `fecha_vencimiento`.
 - CU02 llama automáticamente a `GenararAlertaUseCase` (internamente) cuando recibe una DESVIACION_SIMPLE o DESVIACION_COMPUESTA con severidad definida.

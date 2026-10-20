@@ -437,9 +437,11 @@ de un Administrador o Ingeniero de Campo. **Solo Admin e Ing** (`require_permiss
 #### `GET /iot/alertas-tecnicas` y `PATCH /iot/alertas-tecnicas/{id_alerta}/estado`
 
 Reutilizan `ListaAlertasSchema` / `AlertaSchema` / `ActualizarEstadoAlertaDTO` —
-ver sección **Alertas** arriba. La única diferencia es el filtro fijo
-`tipo_alerta='TECNICA'` aplicado por el router en el listado, y el recurso RBAC
-(`36` en vez de `32`).
+ver sección **Alertas** arriba. Las diferencias son el recurso RBAC (`36` en vez
+de `32`) y el ámbito (`AmbitoAlerta`, RF-60 D-09 — DEV-13): `/iot/alertas-tecnicas`
+solo lista y gestiona alertas `tipo_alerta='TECNICA'`, y `/iot/alertas` las excluye
+del listado, del detalle y del PATCH. Una alerta del otro ámbito responde
+`404 ALERTA_NO_ENCONTRADA`, igual que una de otra finca.
 
 ---
 

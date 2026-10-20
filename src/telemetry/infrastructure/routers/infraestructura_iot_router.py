@@ -29,6 +29,7 @@ from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case impo
 from src.telemetry.application.use_cases.infraestructura.aplicar_mantenimiento_dispositivo_use_case import AplicarMantenimientoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.obtener_estado_dispositivo_use_case import ObtenerEstadoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
+from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
@@ -192,7 +193,7 @@ def listar_alertas_tecnicas(
     alertas, total = use_case.listar(
         estado=estado,
         severidad=severidad,
-        tipo_alerta='TECNICA',  # siempre filtrar por tipo TECNICA
+        ambito=AmbitoAlerta.TECNICA,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,
@@ -229,6 +230,7 @@ def actualizar_estado_alerta_tecnica(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        ambito=AmbitoAlerta.TECNICA,
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,

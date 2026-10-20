@@ -185,8 +185,11 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
+        if excluir_tipo_alerta:
+            q = q.filter(AlertaModel.tipo_alerta != excluir_tipo_alerta)
         if estado:
             q = q.filter(AlertaModel.estado_alerta == estado)
         if severidad:
