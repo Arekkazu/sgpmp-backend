@@ -31,3 +31,7 @@ class HeartbeatModel(Base):
     fecha_registro: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_recepcion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     reloj_sincronizado: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # DB-03 / 65541db23c71: el sobre conserva sensores_operativos; la columna
+    # física usa el prefijo json_ de la convención DBA.
+    sensores_operativos: Mapped[Optional[Any]] = mapped_column('json_sensores_operativos', JSONB(none_as_null=True))
+    temperatura_dispositivo: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))

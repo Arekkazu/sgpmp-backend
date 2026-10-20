@@ -124,6 +124,21 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 
 ### Ingesta — `/iot/telemetria`
 
+> **DEV-05, 2026-10-17 — ingesta B+.** HTTP y el broker persisten mediante
+> `modulo3.fn_ingesta_telemetria`, cuya firma se conserva. `201` confirma la
+> persistencia RF-53; RF-61, RF-62 y el semáforo se procesan después del commit.
+> Un fallo de estas etapas queda pendiente y se reintenta desde las filas
+> confirmadas, sin exigir callback del broker. RF-63 registra la finalización
+> de cada responsabilidad; una evaluación de calidad por sí sola no acredita
+> la finalización de las otras etapas.
+>
+> La credencial HTTP actual se conserva hasta DEV-06. Los contratos DTO y de
+> respuesta continúan vigentes. La bitácora de éxito de ingesta tiene un solo
+> escritor: `trg_rf53_04_bitacora_persistida`. Los rechazos devueltos por la
+> función se confirman para conservar su bitácora; la escritura de esa evidencia
+> SQL requiere DB-02. Ver [diagnóstico y validación DEV-05](dev05_ingesta_bplus_postcommit.md).
+
+
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
 | `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |
@@ -361,6 +376,15 @@ existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
 
 #### `POST /iot/heartbeat` — Recibir heartbeat de dispositivo (RF-60)
 
+> **DEV-05:** el endpoint conserva autenticación y persistencia. El trigger
+> registra contacto/reconexión; el procesador común a HTTP y MQTT aplica el
+> buffer y las alertas técnicas después del commit. `A` y `L` representan
+> buffer activo/lleno. El estado de mantenimiento se conserva.
+> Batería/RSSI requieren los umbrales oficiales pendientes de Análisis/DEV-14;
+> mientras no estén publicados en M09, su etapa queda pendiente con
+> `PARAMETROS_HEARTBEAT_NO_DISPONIBLES`, sin perder el heartbeat ni su estado de buffer.
+
+
 **Headers requeridos:** `Authorization: Bearer <BROKER_SERVICE_TOKEN>`. `device_id` y `serial` van en el body.
 
 **Input `HeartbeatDTO`:**
@@ -378,8 +402,18 @@ existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
 | `coordenadas` | `Any \| None` | Opcional |
 | `fecha_registro` | `datetime` | — |
 | `reloj_sincronizado` | `bool` | Default `false` |
+| `sensores_operativos` | `list[object] \| None` | Opcional; objetos `{sensor: string no vacío, operativo: boolean estricto}`. `[]` no indica fallo. Nombre físico DB-03: `json_sensores_operativos` |
+| `temperatura_dispositivo` | `Decimal \| None` | Opcional; número JSON finito en °C, representable por `NUMERIC(5,2)` de DB-03 |
 
 **Response `HeartbeatReciboSchema`:** `id_heartbeat`, `id_dispositivo_iot`, `tipo_mensaje`, `nivel_bateria_pct: Decimal \| None`, `calidad_senal_rssi/snr: Decimal \| None`, `estado_local_buffer`, `datos_pendientes_buffer: int`, `version_firmware`, `coordenadas: Any \| None`, `fecha_registro: datetime`, `fecha_recepcion: datetime`, `reloj_sincronizado: bool`
+
+DEV-12 agrega a esa respuesta `sensores_operativos` y `temperatura_dispositivo`,
+ambos nullable. HTTP 200 confirma persistencia; las alertas se evalúan después
+del commit por el mismo worker que procesa los INSERT del broker.
+`SENSOR_FISICO_FALLIDO` conserva los identificadores fallidos y el `id_heartbeat`
+en metadata. Temperatura y firmware tienen etapas independientes: si falta su
+política M09/FW-06, quedan pendientes con evidencia RF-63 y sin una alerta
+ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
 
 ---
 

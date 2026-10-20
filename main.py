@@ -531,7 +531,10 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+
     tasks = [
+        asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),

@@ -17,6 +17,7 @@ class TipoResultado(str, Enum):
 
 class EntidadAfectadaTipo(str, Enum):
     LECTURA = 'LECTURA'
+    HEARTBEAT = 'HEARTBEAT'
     DISPOSITIVO = 'DISPOSITIVO'
     ALERTA = 'ALERTA'
     VINCULACION = 'VINCULACION'

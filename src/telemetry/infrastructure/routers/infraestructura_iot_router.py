@@ -73,11 +73,6 @@ def recibir_heartbeat(
         db=db,
         dispositivo_port=DispositivoM09Adapter(db),
         heartbeat_repo=SqlAlchemyHeartbeatRepository(db),
-        estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
-        transicion_repo=SqlAlchemyHistoricoTransicionDispositivoRepository(db),
-        periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
-        alerta_repo=SqlAlchemyAlertaRepository(db),
-        historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
     )
     heartbeat = use_case.execute(dto=dto)
     return HeartbeatReciboSchema.model_validate(heartbeat)

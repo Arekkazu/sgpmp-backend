@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from pydantic import BaseModel
+from src.telemetry.infrastructure.dto.heartbeat_dto import SensorOperativoDTO
 
 
 class HeartbeatReciboSchema(BaseModel):
@@ -21,6 +22,8 @@ class HeartbeatReciboSchema(BaseModel):
     fecha_registro: datetime
     fecha_recepcion: datetime
     reloj_sincronizado: bool
+    sensores_operativos: Optional[list[SensorOperativoDTO]] = None
+    temperatura_dispositivo: Optional[Decimal] = None
 
     model_config = {'from_attributes': True}
 
