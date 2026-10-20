@@ -52,16 +52,17 @@ class _Versiones:
 
 
 class _NodosEdge:
-    def hay_nodos_activos(self, _tipo): return True
+    # Modo SERVIDOR (default del DTO): sin nodos no hay sincronización (DEV-09).
+    def listar_nodos_activos(self, _tipo): return []
 
 
 def _configurar(**campos):
     uc = ConfigurarMotorUseCase(
         db=_Db(), repo=_ConfigRepo(), auditoria_repo=_Auditoria(),
         version_port=_Versiones(), nodo_edge_port=_NodosEdge(),
+        sincronizacion_repo=None, config_edge_port=None,
     )
-    entidad, _ = uc.execute(ConfigurarMotorDTO(ventana_temporal_min=10, **campos), id_usuario=1)
-    return entidad
+    return uc.execute(ConfigurarMotorDTO(ventana_temporal_min=10, **campos), id_usuario=1).entidad
 
 
 def test_poblacional_usa_umbral_de_anomalia_y_descarta_los_umbrales_supervisados():

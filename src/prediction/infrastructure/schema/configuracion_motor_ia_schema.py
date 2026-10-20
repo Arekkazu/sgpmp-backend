@@ -66,3 +66,35 @@ class ConfiguracionMotorIAResponse(BaseModel):
 class ConfiguracionMotorIAListResponse(BaseModel):
     total: int
     items: list[ConfiguracionMotorIAResponse]
+
+
+class SincronizacionNodoSchema(BaseModel):
+    """Estado de la configuración en un nodo Edge (``modulo4.sincronizacion_nodos_edge``)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_dispositivo_iot: int
+    serial: str
+    config_version_servidor: int
+    config_version_nodo: Optional[int] = None
+    estado_sincronizacion: str  # APLICADA | PENDIENTE | FALLIDA | DESINCRONIZADO
+    intentos_sincronizacion: int
+    fecha_ultimo_intento: Optional[datetime] = None
+    fecha_aplicacion: Optional[datetime] = None
+    motivo_fallo: Optional[str] = None
+
+
+class SincronizacionMotorSchema(BaseModel):
+    """Estado consolidado de la configuración en los nodos Edge del tipo_modelo (DEV-09)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    estado: str
+    mensaje: str
+    nodos: list[SincronizacionNodoSchema]
+
+
+class ConfiguracionMotorIAGuardadaResponse(ConfiguracionMotorIAResponse):
+    """Respuesta de POST /prediccion/motor-ia: la configuración guardada y su sincronización."""
+
+    sincronizacion: SincronizacionMotorSchema
