@@ -155,6 +155,7 @@ def test_rf20_tipo_de_area_no_reconocido_es_400(tipo) -> None:
         tipo_area_repo=_TipoAreaRepoFake(tipo),
         auditoria_repo=_NuncaEscribeFake(),
         especie_repo=_NuncaEscribeFake(),
+        propagador_tipo_modelo=_NuncaEscribeFake(),
     )
     dto = RegistrarInfraestructuraDTO(
         nombre_infraestructura="Galpón 1",

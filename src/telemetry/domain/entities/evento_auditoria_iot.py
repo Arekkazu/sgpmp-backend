@@ -42,6 +42,7 @@ class ClasificacionRegistro(str, Enum):
 
 class ComponenteOrigen(str, Enum):
     RF17 = 'RF17'  # propagación de umbrales ambientales al Nodo Edge (INC-M09-70-G29)
+    RF20 = 'RF20'  # propagación del tipo_modelo_asignado de un área al Gateway Edge (DEV-10)
     RF23 = 'RF23'  # credencial MQTT y Gateway Edge de los dispositivos (TC-M09-250/251)
     RF53 = 'RF53'
     RF54 = 'RF54'

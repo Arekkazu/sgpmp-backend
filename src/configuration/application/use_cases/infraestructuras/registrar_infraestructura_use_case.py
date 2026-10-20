@@ -4,6 +4,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especie_y_modelo
+from src.configuration.application.use_cases.infraestructuras.propagar_tipo_modelo_edge import PropagadorTipoModeloEdge
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
@@ -28,6 +29,7 @@ class RegistrarInfraestructuraUseCase:
         tipo_area_repo: TipoAreaRepository,
         auditoria_repo: AuditoriaInfraestructuraRepository,
         especie_repo: EspecieRepository,
+        propagador_tipo_modelo: PropagadorTipoModeloEdge,
     ) -> None:
         self.db = db
         self.infra_repo = infra_repo
@@ -35,6 +37,7 @@ class RegistrarInfraestructuraUseCase:
         self.tipo_area_repo = tipo_area_repo
         self.auditoria_repo = auditoria_repo
         self.especie_repo = especie_repo
+        self.propagador_tipo_modelo = propagador_tipo_modelo
 
     def execute(self, dto: RegistrarInfraestructuraDTO, usuario_actual: UsuarioActual) -> Infraestructura:
         finca = self.finca_repo.obtener_por_id(dto.finca_id)
@@ -92,4 +95,6 @@ class RegistrarInfraestructuraUseCase:
             self.db.rollback()
             raise
 
+        # DEV-10 (D-06): después del commit, el modelo asignado va a los Gateway del área.
+        self.propagador_tipo_modelo.propagar(infra_guardada, usuario_actual.id_usuario)
         return infra_guardada

@@ -82,6 +82,11 @@ class _TiposArea:
     def obtener_por_nombre(self, nombre): return SimpleNamespace(nombre=nombre, es_activo=True)
 
 
+class _SinPropagar:
+    """DEV-10: la propagación al Gateway Edge se prueba en su propio archivo."""
+    def propagar(self, *_a, **_kw): pass
+
+
 class _Dependencias:
     def __init__(self, otras=(0, None)): self.otras = otras
     def contar_activos_de_otra_especie(self, _id, _especie): return self.otras
@@ -91,7 +96,7 @@ def _registrar(especie_id, tipo_modelo=None):
     infra_repo, db = _InfraRepo(), _Db()
     uc = RegistrarInfraestructuraUseCase(
         db=db, infra_repo=infra_repo, finca_repo=_Fincas(), tipo_area_repo=_TiposArea(),
-        auditoria_repo=_Auditoria(), especie_repo=_EspecieRepo(),
+        auditoria_repo=_Auditoria(), especie_repo=_EspecieRepo(), propagador_tipo_modelo=_SinPropagar(),
     )
     dto = RegistrarInfraestructuraDTO(
         nombre_infraestructura="Galpón 1", tipo_area="Galpón", superficie=Decimal("120"),
@@ -114,6 +119,7 @@ def _editar(area, especie_id, tipo_modelo, otras=(0, None)):
     uc = EditarInfraestructuraUseCase(
         db=_Db(), infra_repo=infra_repo, finca_repo=_Fincas(), tipo_area_repo=_TiposArea(),
         auditoria_repo=_Auditoria(), especie_repo=_EspecieRepo(), dependency_port=_Dependencias(otras),
+        propagador_tipo_modelo=_SinPropagar(),
     )
     dto = EditarInfraestructuraDTO(
         nombre_infraestructura="Galpón 1", tipo_area="Galpón", superficie=Decimal("120"),
