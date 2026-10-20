@@ -8,11 +8,11 @@
 | Período de ejecución | 2026-09-07 a 2026-10-11 (según la fecha de los commits de evidencia) |
 | Fecha de corte del informe | 2026-10-11 |
 | Ambientes | Backend TEST (`https://api.inmero.co/back-sigab-test`) · Frontend TEST (`https://api.inmero.co`) |
-| Herramientas | Newman/Postman (97), Reevaluación documentada (18), Pytest (14), Cypress (7), k6 (2), Acta de ejecución (1) |
-| Casos ejecutados | 139 de 139 (100 %) |
+| Herramientas | Newman/Postman (98), Reevaluación documentada (20), Cypress (17), Pytest (14), k6 (2), Acta de ejecución (1) |
+| Casos ejecutados | 152 de 152 (100 %) |
 | Equipo QA | Daniela Castillo, Juan Esteban, Juan Manuel, Juan Pablo, Laura Lopez, Maria Jose, Sebastian |
 | Umbral de aceptación | **≥ 85 % de casos aprobados** |
-| Fuente de datos | Panel QA (`QA-DASHBOARD-SGRPMP/`, tabla «Todos los casos de prueba»), evidencias en `tests/Test_Testing/Test_Modulo9/` y `testing/test_testing/Modulo9/` |
+| Fuente de datos | Panel QA (`QA-DASHBOARD-SGRPMP/`, tabla «Todos los casos de prueba»: casos de backend y de frontend), evidencias en `tests/Test_Testing/Test_Modulo9/` y `testing/test_testing/Modulo9/` |
 
 > Los conteos reflejan el estado del repositorio a la fecha de corte. Un caso reejecutado después del corte puede cambiar de veredicto. Los estados de la tabla de casos son la fuente de este informe; el registro de incidencias (`incidencias.csv`) se usa solo para asociar cada caso rechazado con su incidencia cuando existe.
 
@@ -22,18 +22,18 @@
 
 | Indicador | Cantidad | % |
 |---|---:|---:|
-| Casos | 139 | 100 % |
-| Aprobados | **133** | **95.7 %** |
-| Rechazados | 6 | 4.3 % |
+| Casos | 152 | 100 % |
+| Aprobados | **146** | **96.1 %** |
+| Rechazados | 6 | 3.9 % |
 | Pendientes | 0 | 0.0 % |
 
-**El módulo supera el umbral de aprobación del 85 % (95.7 %).** Quedan 6 casos rechazados, que se consideran defectos abiertos; su detalle está en la sección 4.
+**El módulo supera el umbral de aprobación del 85 % (96.1 %).** Quedan 6 casos rechazados, que se consideran defectos abiertos; su detalle está en la sección 4.
 
 ### Verificación de los criterios de salida del plan de pruebas (§2.1)
 
 | # | Criterio | Umbral | Resultado | Cumple |
 |---|---|---|---|:---:|
-| 1 | Casos con veredicto Aprobado | ≥ 85 % | **133/139 = 95.7 %** | ✅ |
+| 1 | Casos con veredicto Aprobado | ≥ 85 % | **146/152 = 96.1 %** | ✅ |
 | 2 | RF con al menos un caso ejecutado | 100 % | **18/18** (incluye transversales si aplica) | ✅ |
 | 3 | Informe consolidado con la plantilla completa | Completo | Este documento (pendiente de firmas) | ✅ (firmas pendientes) |
 
@@ -45,9 +45,9 @@
 
 | RF | Título | Casos | Aprob. | Rech. | Pend. | % Aprob. | Veredicto |
 |----|--------|------:|------:|-----:|-----:|--------:|-----------|
-| RF-15 | Catálogo de especies productivas | 6 | 6 | 0 | 0 | 100 % | ✅ Aprobado |
-| RF-16 | Etapas productivas y patologías por especie | 8 | 8 | 0 | 0 | 100 % | ✅ Aprobado |
-| RF-17 | Umbrales de monitoreo y niveles de alerta | 8 | 8 | 0 | 0 | 100 % | ✅ Aprobado |
+| RF-15 | Catálogo de especies productivas | 10 | 10 | 0 | 0 | 100 % | ✅ Aprobado |
+| RF-16 | Etapas productivas y patologías por especie | 11 | 11 | 0 | 0 | 100 % | ✅ Aprobado |
+| RF-17 | Umbrales de monitoreo y niveles de alerta | 11 | 11 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-18 | Parámetros operativos del sistema | 7 | 7 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-19 | Datos de la finca | 8 | 8 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-20 | Infraestructura productiva | 7 | 7 | 0 | 0 | 100 % | ✅ Aprobado |
@@ -60,16 +60,16 @@
 | RF-27 | Configuración visual (temas) | 5 | 5 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-28 | Personalización del dashboard | 4 | 4 | 0 | 0 | 100 % | ✅ Aprobado |
 | RF-29 | Idioma | 5 | 5 | 0 | 0 | 100 % | ✅ Aprobado |
-| RF-30 | Plantillas de configuración | 7 | 6 | 1 | 0 | 86 % | ⚠️ Aprobado con observaciones |
+| RF-30 | Plantillas de configuración | 9 | 8 | 1 | 0 | 89 % | ⚠️ Aprobado con observaciones |
 | RF-31 | Creación de plantilla | 9 | 7 | 2 | 0 | 78 % | ❌ Con fallas |
-| RF-32 | Aplicación de plantilla | 13 | 13 | 0 | 0 | 100 % | ✅ Aprobado |
-| **Total** | | **139** | **133** | **6** | **0** | **95.7 %** | |
+| RF-32 | Aplicación de plantilla | 14 | 14 | 0 | 0 | 100 % | ✅ Aprobado |
+| **Total** | | **152** | **146** | **6** | **0** | **96.1 %** | |
 
 ---
 
 ## 3. Cobertura y método
 
-- **Herramientas por caso:** Newman/Postman: 97 casos; Reevaluación documentada: 18 casos; Pytest: 14 casos; Cypress: 7 casos; k6: 2 casos; Acta de ejecución: 1 casos.
+- **Herramientas por caso:** Newman/Postman: 98 casos; Reevaluación documentada: 20 casos; Cypress: 17 casos; Pytest: 14 casos; k6: 2 casos; Acta de ejecución: 1 casos.
 - **Casos con veredicto de reevaluación documentada:** algunos casos rechazados en la primera evaluación se reejecutaron en `EvaluacionV2`/`EvaluacionV3` y su veredicto vigente consta en el acta de reevaluación (ver sección 4.B).
 - **Evidencia:** cada caso conserva su reporte de ejecución (HTML/JSON/XML) y, en las reevaluaciones, un acta `.md` con la narrativa de la corrida.
 - **Higiene de carpetas (M09):** el identificador `G130` lo comparten tres carpetas (RF-16, RF-21 y RF-24), `G133` y `G136` existen también en una segunda carpeta con solo una `ficha.md`, y `TC-M09-109` / `TC-M09-111` conservan la numeración anterior. El panel cuenta estas carpetas como casos y puede atribuir un caso a un RF equivocado (por ejemplo, G136, que es de RF-24, aparece en RF-23).
@@ -94,7 +94,9 @@
 
 | TC | Fuente del veredicto |
 |---|---|
+| G022 | Reevaluacion V2 (14-sep-2026, corrida por QA/MJ) en EvaluacionV2/RESULTADOS/G22-REEVAL-V2-20260914-171827/TC-M09-G22_reevaluacion_V2.md. Los 4 originales (TC-M09-46/47/48/49) APROBADOS: HTTP 201 y persistencia confirmada en 4 comb… |
 | G024 | Reevaluacion V2 (13-sep-2026, Juan Esteban) en EvaluacionV2/RESULTADOS/G24-REEVAL-V2-20260913-012209/TC-M09-G24_reevaluacion_V2.md. Los 3 originales (TC-M09-52/53/54) APROBADOS. El defecto original (HTTP 500, QA-JE-G22-01) fue cor… |
+| G028 | Reevaluacion V2 (14-sep-2026, corrida por QA/MJ) en EvaluacionV2/RESULTADOS/G28-REEVAL-V2-20260914-172556/TC-M09-G28_reevaluacion_V2.md. TC-M09-60 APROBADO: creacion de umbral valido devuelve HTTP 201 con precision Decimal exacta… |
 | G029 | Reevaluacion V5 (8-oct-2026, TEST con Gateway Edge real) en RF-17/TC-M09-G29/EvaluacionV5/RESULTADOS/G29-REEVAL-V5-20261008-200906/TC-M09-G29_reevaluacion_V5.md: APROBADO CON OBSERVACIONES. TC-M09-62 APROBADO: la propagacion del u… |
 | G030 | Reevaluacion V3 (26-sep-2026, Juan Esteban) en EvaluacionV3/RESULTADOS/G30-REEVAL-V3-20260926-212150/TC-M09-G30_reevaluacion_V3.md. TC-M09-64 APROBADO: 1 POST + 1 PATCH sobre el mismo umbral correlacionan CREATE y UPDATE con recur… |
 | G038 | Estado: PASA en Resultados/TC-M09-G38-resultados.md (Juan Manuel). 2/2 pytest OK: rollback ante fallo de auditoria en ActualizarConfiguracionUseCase revierte la modificacion de parametros (RF-18); control de modificacion exitosa p… |
@@ -133,7 +135,7 @@
 | Versión | Fecha | Autor | Cambios |
 |---|---|---|---|
 | 1.0 | 2026-09-08 | Equipo QA | Versión inicial — corte al 2026-09-08 (54.3 % de aprobación; ver historial de git) |
-| 2.0 | 2026-10-11 | Equipo QA | Corte actualizado: 133/139 aprobados (95.7 %); rechazados detallados en 4.A |
+| 2.0 | 2026-10-11 | Equipo QA | Corte actualizado: 146/152 aprobados (96.1 %); rechazados detallados en 4.A |
 
 **Firmas de entrega**
 
