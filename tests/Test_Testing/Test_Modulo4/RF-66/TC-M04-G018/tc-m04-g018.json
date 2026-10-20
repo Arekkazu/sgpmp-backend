@@ -1,0 +1,836 @@
+{
+  "info": {
+    "name": "TC-M04-G018 - Clasificacion del resultado: nivel de riesgo, enfermedad estimada y alerta critica, con limites exactos (RF-66 restricciones 6-8, CA-2, Fase 5/6)",
+    "description": "Subcasos: (1) TC-M04-06 nivel_riesgo por argmax y excepcion de prioridad por umbral_riesgo_alto (0.29/0.30/0.31). (2) TC-M04-07 enfermedad_estimada y confianza_global por argmax del vector de enfermedad. (3) TC-M04-08 alerta CRITICO hacia RF-57 con umbral_alerta_critica=0.75 (HALLAZGO: Fase 6 usa \">\" y CA-2 usa \">=\"; en 0.75 exacto se documenta el comportamiento real sin asumirlo). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_inferencia",
+      "value": "/prediccion/inferencias"
+    },
+    {
+      "key": "id_lote",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_grande",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_mediana",
+      "value": "2"
+    },
+    {
+      "key": "id_activo_pequena",
+      "value": "3"
+    },
+    {
+      "key": "tipo_modelo_grande",
+      "value": "MODELO_ESPECIES_GRANDES"
+    },
+    {
+      "key": "tipo_modelo_mediana",
+      "value": "MODELO_ESPECIES_MEDIANAS"
+    },
+    {
+      "key": "tipo_modelo_pequena",
+      "value": "MODELO_AVES"
+    },
+    {
+      "key": "campos_resultado",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"modo_ejecucion\", \"latencia_ms\"]"
+    },
+    {
+      "key": "campos_persistidos",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"version_modelo\"]"
+    },
+    {
+      "key": "id_inferencia",
+      "value": ""
+    },
+    {
+      "key": "cfg_snapshot",
+      "value": "[]"
+    },
+    {
+      "key": "cfg_tocados",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0S. Snapshot de la configuracion vigente del motor (se restaura al final)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Snapshot de configuracion del motor leido (200)', function () { pm.response.to.have.status(200); });",
+              "try { const J = pm.response.json(); const keep = (J.items || []).map(function (c) { return {tipo_modelo: c.tipo_modelo, umbral_riesgo_alto: c.umbral_riesgo_alto, umbral_alerta_critica: c.umbral_alerta_critica, umbral_score_anomalia: c.umbral_score_anomalia, versiones_activas_por_componente: c.versiones_activas_por_componente, ventana_temporal_min: c.ventana_temporal_min, modo_ejecucion: c.modo_ejecucion, w_factor_sanitario: c.w_factor_sanitario, w_factor_ambiental: c.w_factor_ambiental, w_factor_densidad: c.w_factor_densidad, id_version_modelo_activa: c.id_version_modelo_activa, temp_min_config: c.temp_min_config, temp_max_config: c.temp_max_config, hr_min_config: c.hr_min_config, hr_max_config: c.hr_max_config, densidad_maxima_config: c.densidad_maxima_config}; }); pm.collectionVariables.set('cfg_snapshot', JSON.stringify(keep)); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/motor-ia"
+      }
+    },
+    {
+      "name": "0. Preparacion de umbrales",
+      "item": [
+        {
+          "name": "0C. Configurar umbrales del ensayo (umbral_riesgo_alto=0.30, umbral_alerta_critica=0.75)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_ESPECIES_GRANDES\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.3,\n  \"umbral_alerta_critica\": 0.75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _t = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]'); if (_t.indexOf('MODELO_ESPECIES_GRANDES') < 0) { _t.push('MODELO_ESPECIES_GRANDES'); pm.collectionVariables.set('cfg_tocados', JSON.stringify(_t)); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 0C.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201/400/422', function () { pm.expect([200, 201, 400, 422]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "console.log('[TC-M04-G018][OBSERVADO] RF-65 FA-01 valida umbral_riesgo_alto en [0.50, 0.95]; la ficha usa 0.30. status=' + pm.response.code);",
+                  "pm.collectionVariables.set('umbral_riesgo_alto', (pm.response.code < 300 && R.umbral_riesgo_alto) ? String(R.umbral_riesgo_alto) : '0.30');",
+                  "pm.collectionVariables.set('umbral_alerta_critica', (pm.response.code < 300 && R.umbral_alerta_critica) ? String(R.umbral_alerta_critica) : '0.75');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M04-06 - nivel_riesgo por argmax y excepcion de prioridad (limite exacto)",
+      "item": [
+        {
+          "name": "1.1 Alto por debajo del umbral (0.29): NO aplica la excepcion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, {{u_medio_alto}}, {{u_bajo}}, 0.0]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"nivel_riesgo = 1 (Medio por argmax)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Alto exactamente en el umbral (0.30): SI aplica la excepcion (regla \">=\")",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, {{u_medio_igual}}, {{u_igual}}, 0.0]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Alto por encima del umbral (0.31): SI aplica la excepcion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, {{u_medio_bajo}}, {{u_alto}}, 0.0]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Control: Alto domina por argmax (0.80)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.05, 0.1, 0.8, 0.05]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"nivel_riesgo = 2 por argmax\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-07 - enfermedad_estimada y confianza_global por argmax del vector de enfermedad",
+      "item": [
+        {
+          "name": "2.1 Vector de enfermedad con Mastitis dominante (0.72)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.2, 0.55, 0.2, 0.05],\n    \"probabilidad_enfermedad\": {\n      \"Mastitis\": 0.72,\n      \"Cojera\": 0.18,\n      \"Sin_patologia\": 0.1\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"enfermedad_estimada = Mastitis\", function () { pm.expect(R.enfermedad_estimada).to.eql(\"Mastitis\"); });",
+                  "pm.test(\"confianza_global = 0.72 exacto\", function () { pm.expect(Math.abs(Number(R.confianza_global) - 0.72)).to.be.below(1e-09); });",
+                  "pm.test('confianza_global NO se mezcla con el vector de riesgo (max riesgo = 0.55)', function () { pm.expect(Number(R.confianza_global)).to.not.eql(0.55); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-08 - Alerta CRITICO hacia RF-57 (umbral_alerta_critica = 0.75)",
+      "item": [
+        {
+          "name": "3.1 Alto por encima (0.80): se emite alerta CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.0, 0.8, 0.2]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Alto por debajo (0.70): NO se emite alerta CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.0, 0.7, 0.3]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"Sin alerta CRITICO (alerta_id vacio)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) === null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 Alto exactamente en 0.75: HALLAZGO - se documenta el comportamiento real",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.0, 0.75, 0.25]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 3.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "console.log('[OBSERVADO] alerta en limite exacto 0.75 (Fase 6 \">\" vs CA-2 \">=\") = ' + JSON.stringify({nivel_riesgo: R.nivel_riesgo, alerta_id: (R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null)}));",
+                  "pm.test('Limite exacto 0.75: comportamiento registrado para escalar a requerimientos (sin asumir cual fuente es autoritativa)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 Alto apenas por encima (0.76): se emite alerta CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.0, 0.76, 0.24]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G018 3.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Restaurar configuracion del motor (valores previos al caso)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let snap = []; try { snap = JSON.parse(pm.collectionVariables.get('cfg_snapshot') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const tocar = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]');",
+              "  snap.filter(function (c) { return tocar.indexOf(c.tipo_modelo) >= 0; }).forEach(function (c) {",
+              "    Object.keys(c).forEach(function (k) { if (c[k] === null || c[k] === undefined) { delete c[k]; } });",
+              "    pm.sendRequest({url: base + '/prediccion/motor-ia', method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(c)}}, function (e, r) { console.log('[TC-M04-G018] restaurar config ' + c.tipo_modelo + ' -> ' + (r ? r.code : 'sin respuesta')); });",
+              "  });",
+              "  console.log('[TC-M04-G018] configuracion restaurada para: ' + tocar.join(', '));",
+              "  pm.collectionVariables.set('cfg_tocados', '[]');",
+              "})();",
+              "pm.test('Restauracion de configuracion ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/motor-ia"
+      }
+    }
+  ]
+}
