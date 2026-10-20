@@ -14,7 +14,7 @@ from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 
 
 def entrada(**cambios):
-    return dict(tipo_mensaje='HEARTBEAT', fecha_registro=datetime.now(timezone.utc), **cambios)
+    return dict(device_id=3, serial='SERIAL-TEST', tipo_mensaje='HEARTBEAT', fecha_registro=datetime.now(timezone.utc), **cambios)
 
 
 def heartbeat(**cambios):
@@ -128,6 +128,6 @@ def test_error_de_commit_no_confirma_heartbeat():
     dispositivos.validar_dispositivo_heartbeat.return_value=SimpleNamespace(es_activo=True)
     db.commit.side_effect=RuntimeError('fallo persistencia')
     uc=RecibirHeartbeatUseCase(db,dispositivos,repo)
-    with pytest.raises(RuntimeError): uc.execute(HeartbeatDTO(**entrada(sensores_operativos=[])),3,'credencial-test')
+    with pytest.raises(RuntimeError): uc.execute(HeartbeatDTO(**entrada(sensores_operativos=[])))
     assert repo.guardar.call_args.args[0].sensores_operativos==[]
     db.rollback.assert_called_once()

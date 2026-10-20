@@ -12,7 +12,7 @@ from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelem
 def entrada(**cambios):
     return IngerirTelemetriaDTO(**dict(dict(device_id=3, sensor_id=6,
         tipo_variable='TEMPERATURA_AMBIENTAL', valor='22.5', unidad='°C',
-        timestamp_captura=datetime.now(timezone.utc), access_key='credencial-prueba'), **cambios))
+        timestamp_captura=datetime.now(timezone.utc), serial='SERIAL-PRUEBA'), **cambios))
 
 
 def construir(resultado):
@@ -48,7 +48,7 @@ def test_solo_id_y_estado_persistido_permiten_confirmar(estado):
     parametros = uc.ingesta_port.ingerir.call_args.args[0]
     assert parametros['valor'] == entrada().valor
     assert parametros['unidad'] == '°C'
-    assert 'credencial-prueba' not in repr(parametros)
+    assert 'SERIAL-PRUEBA' not in repr(parametros)
     uc.bitacora_repo.registrar_exito.assert_not_called()
 
 
@@ -86,7 +86,7 @@ def test_credencial_invalida_no_llega_a_sql_y_no_se_registra_en_payload():
         uc.execute(entrada())
     assert error.value.status_code == 401
     uc.ingesta_port.ingerir.assert_not_called()
-    assert 'credencial-prueba' not in repr(uc.bitacora_repo.registrar_error.call_args)
+    assert 'SERIAL-PRUEBA' not in repr(uc.bitacora_repo.registrar_error.call_args)
     uc.db.commit.assert_called_once()
 
 

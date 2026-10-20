@@ -58,7 +58,7 @@ def alerta_use_case(db, repo):
 
 
 def evento_alerta(**cambios):
-    return ProcesarEventoAlertaDTO(**(dict(device_id=3,sensor_id=7,access_key='credencial-test',
+    return ProcesarEventoAlertaDTO(**(dict(device_id=3,sensor_id=7,serial='SERIAL-TEST',
         tipo_variable='NH3',valor=25,unidad='ppm',timestamp_evento=datetime.now(timezone.utc),
         estado_dato='LECTURA_VALIDA',severidad_edge='LEVE',origen_evento='EDGE',
         tipo_alerta_ia='ESTRES_TERMICO',severidad_ia='CRITICO',probabilidad_ia='.88') | cambios))
@@ -233,7 +233,7 @@ def test_evento_edge_conserva_generacion_de_alerta_con_nueva_dependencia(monkeyp
     parametros = Mock()
     uc = modulo.RecibirEventoEdgeUseCase(Mock(), eventos, Mock(), dispositivos, Mock(), parametros)
     ahora = datetime.now(timezone.utc)
-    dto = RecibirEventoEdgeDTO(device_id=3, sensor_id=7, access_key='credencial-test',
+    dto = RecibirEventoEdgeDTO(device_id=3, sensor_id=7, serial='SERIAL-TEST',
         clasificacion_rf55='DESVIACION_SIMPLE', severidad='LEVE',
         variables_involucradas=[{'tipo_variable':'NH3','valor':25,'unidad':'ppm'}],
         timestamp_captura=ahora, timestamp_procesamiento_edge=ahora, estado_conectividad=True)
