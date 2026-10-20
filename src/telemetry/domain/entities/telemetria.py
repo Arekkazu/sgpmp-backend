@@ -186,7 +186,8 @@ class Telemetria:
     calidad_senal_snr: Optional[Decimal] = None
     frecuencia_muestreo_min: Optional[int] = None
     estado_conectividad: Optional[bool] = None
-    # RF-62: flags de aptitud (actualizados por el servicio de calidad)
+    # RF-62: proyección de aptitud desde la evaluación vigente de telemetria_calidad.
+    # Sin evaluación vigente, False. No representa las columnas legadas de RF-53.
     apto_para_ia: bool = False
     apto_para_nic41: bool = False
 

@@ -311,3 +311,105 @@ curl -s -X GET http://localhost:8000/prediccion/motor-ia/TIPO_INEXISTENTE \
   "field": null
 }
 ```
+
+---
+
+## DEV-09 — Sincronización con los nodos Edge (RF-65 E7/E8/E10)
+
+Al guardar, la configuración se envía a los nodos Edge de su `tipo_modelo` por el
+broker con `origen: "config_motor"` (BRK-05 de `BROKER-MQTT-SGPMP`:
+`tipo_comando = CONFIG_MOTOR_IA`, confirmación `ACK_CONFIG_MOTOR` con el
+`config_version` que quedó activo en el nodo). El resultado de cada nodo queda en
+`modulo4.sincronizacion_nodos_edge` (una fila por nodo y `tipo_modelo`).
+
+**Nodos de un `tipo_modelo`:** los Gateway Edge activos instalados en un área activa
+con ese `tipo_modelo_asignado` (M09·RF-20), o que atienden un dispositivo activo de
+esa área. `MODELO_RIESGO_CONTAGIO` no se asigna a áreas, así que no tiene nodos. La
+búsqueda corre como el usuario de servicio, porque `modulo9` tiene RLS forzada y un
+Veterinario no ve `dispositivos_iot`. Reemplaza a `NodoEdgeStubAdapter`, que siempre
+respondía que había nodos: ahora **FA-08 `MODO_EDGE_SIN_NODOS`** (EDGE/HIBRIDO sin
+nodos, 422) se decide con datos. En modo SERVIDOR la configuración también se envía a
+los nodos que haya, para que sepan que la inferencia pasó al servidor.
+
+Comando enviado a cada nodo:
+
+```json
+{
+  "origen": "config_motor",
+  "serial": "DISPOSITIVOCAMARONERA41",
+  "tipo_modelo": "MODELO_ACUICULTURA",
+  "config_version": 2,
+  "configuracion": {"modo_ejecucion": "EDGE", "umbral_score_anomalia": "0.6", "...": "snapshot completo"}
+}
+```
+
+| Respuesta del broker | `estado_sincronizacion` | HTTP del POST |
+|---|---|---|
+| APLICADA con el mismo `config_version` | `APLICADA` | 201 / 200 |
+| APLICADA con otro `config_version` | `DESINCRONIZADO` | **409** (E10) |
+| PENDIENTE (nodo desconectado) | `PENDIENTE` | **202** (E7) |
+| NO_CONF (sin ACK, broker caído o error HTTP) | `FALLIDA` | **202** (E8) |
+| Sin broker configurado en el ambiente | `PENDIENTE` | 202 |
+
+Con varios nodos: si alguno quedó `DESINCRONIZADO` responde 409; si no, si alguno quedó
+`PENDIENTE` o `FALLIDA` responde 202. **En todos los casos la configuración ya quedó
+guardada**: el código solo informa si llegó a los nodos. Sin nodos responde 201/200.
+
+### Nodo apagado (202) — criterio de aceptación
+
+```bash
+curl -s -X POST http://localhost:8000/prediccion/motor-ia \
+  -H "Authorization: Bearer <TOKEN_VET>" \
+  -H "Content-Type: application/json" \
+  -d '{"tipo_modelo": "MODELO_ACUICULTURA", "modo_ejecucion": "EDGE", "ventana_temporal_min": 10, "umbral_score_anomalia": "0.6"}'
+```
+
+Respuesta `202`: la configuración guardada más el bloque `sincronizacion`:
+
+```json
+{
+  "tipo_modelo": "MODELO_ACUICULTURA",
+  "config_version": 1,
+  "...": "resto de la configuración",
+  "sincronizacion": {
+    "estado": "PENDIENTE",
+    "mensaje": "DISPOSITIVOCAMARONERA41: El dispositivo está desconectado; el comando no se publicó.",
+    "nodos": [
+      {
+        "id_dispositivo_iot": 38,
+        "serial": "DISPOSITIVOCAMARONERA41",
+        "config_version_servidor": 1,
+        "config_version_nodo": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "intentos_sincronizacion": 1,
+        "fecha_ultimo_intento": "2026-10-19T06:00:00Z",
+        "fecha_aplicacion": null,
+        "motivo_fallo": "El dispositivo está desconectado; el comando no se publicó."
+      }
+    ]
+  }
+}
+```
+
+### Nodo con otra versión (409, E10)
+
+Mismo cuerpo, con `"estado_sincronizacion": "DESINCRONIZADO"`, `config_version_nodo`
+distinto de `config_version_servidor` y
+`motivo_fallo: "El nodo confirmó con config_version 1 y el servidor está en 3."`.
+
+---
+
+## GET /prediccion/motor-ia/{tipo_modelo}/sincronizacion — Estado por nodo
+
+Mismo permiso que la consulta (R sobre el recurso 41).
+
+```bash
+curl -s http://localhost:8000/prediccion/motor-ia/MODELO_ACUICULTURA/sincronizacion \
+  -H "Authorization: Bearer <TOKEN_VET>"
+```
+
+Respuesta `200`: el bloque `sincronizacion` de arriba con el último veredicto de cada
+nodo. Si un nodo confirmó una versión anterior a la vigente, el `estado` consolidado
+es `PENDIENTE`.
+
+Errores: 401, 403, 404 `CONFIGURACION_MOTOR_NO_ENCONTRADA`.

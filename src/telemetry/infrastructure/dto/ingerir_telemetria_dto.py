@@ -16,7 +16,7 @@ class IngerirTelemetriaDTO(BaseDTO):
     valor: Decimal = Field(...)
     unidad: str = Field(..., min_length=1, max_length=20)
     timestamp_captura: datetime
-    access_key: str = Field(..., min_length=1, max_length=100)
+    serial: str = Field(..., min_length=1, max_length=100)
 
     # Opcionales
     timestamp_envio: Optional[datetime] = None

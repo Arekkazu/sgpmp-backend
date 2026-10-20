@@ -47,6 +47,8 @@ class VersionModelo:
     # validan con métricas de calibración en vez de F1/recall.
     componente: Optional[str] = None
     metricas_poblacionales: Optional[dict] = None
+    # DEV-15 / DB-04: firma del artefacto que el nodo verifica antes de instalar (D6).
+    firma_artefacto: Optional[str] = None
 
     @property
     def paradigma(self) -> Optional[str]:

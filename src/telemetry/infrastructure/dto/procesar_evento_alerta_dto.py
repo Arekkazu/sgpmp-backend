@@ -12,7 +12,7 @@ from src.shared.base_dto import BaseDTO
 class ProcesarEventoAlertaDTO(BaseDTO):
     device_id: int = Field(..., gt=0)
     sensor_id: int = Field(..., gt=0)
-    access_key: str = Field(..., min_length=1, max_length=100)
+    serial: str = Field(..., min_length=1, max_length=100)
 
     tipo_variable: str = Field(..., min_length=2, max_length=50)
     valor: Decimal = Field(...)

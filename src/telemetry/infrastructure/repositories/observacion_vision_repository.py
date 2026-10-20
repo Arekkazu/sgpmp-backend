@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime
 
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert
 
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.observacion_vision import EstadoCalibracionCamara, ObservacionVision
@@ -33,6 +34,8 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
             indice_calidad=orm.indice_calidad,
             clasificacion_calidad=ClasificacionCalidad(orm.clasificacion_calidad),
             es_apto_para_ia=orm.es_apto_para_ia,
+            fecha_inicio_ventana=orm.fecha_inicio_ventana,
+            version_cascada=orm.version_cascada,
         )
 
     def fechas_existentes(
@@ -48,9 +51,9 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
         )
         return {f for (f,) in filas}
 
-    def guardar(self, observacion: ObservacionVision) -> ObservacionVision:
+    def guardar(self, observacion: ObservacionVision) -> ObservacionVision | None:
         try:
-            orm = ObservacionVisionModel(
+            sentencia = insert(ObservacionVisionModel).values(
                 id_dispositivo_iot=observacion.id_dispositivo_iot,
                 id_infraestructura=observacion.id_infraestructura,
                 fecha_observacion=observacion.fecha_observacion,
@@ -63,10 +66,13 @@ class SqlAlchemyObservacionVisionRepository(ObservacionVisionRepository):
                 indice_calidad=observacion.indice_calidad,
                 clasificacion_calidad=observacion.clasificacion_calidad.value,
                 es_apto_para_ia=observacion.es_apto_para_ia,
+                fecha_inicio_ventana=observacion.fecha_inicio_ventana,
+                version_cascada=observacion.version_cascada,
             )
-            self.db.add(orm)
-            self.db.flush()
-            self.db.refresh(orm)
-            return self._a_entidad(orm)
+            sentencia = sentencia.on_conflict_do_nothing(
+                constraint='uq_observacion_vision_id_dispositivo_iot_fecha_observacion'
+            ).returning(ObservacionVisionModel)
+            orm = self.db.scalars(sentencia).first()
+            return self._a_entidad(orm) if orm else None
         except Exception as exc:
             raise_from_db_error(exc)

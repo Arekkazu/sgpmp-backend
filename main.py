@@ -53,6 +53,7 @@ from src.telemetry.infrastructure.routers.infraestructura_iot_router import rout
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
@@ -531,7 +532,10 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+
     tasks = [
+        asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
@@ -699,6 +703,7 @@ app.include_router(evento_edge_router)
 app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
+app.include_router(regla_alerta_edge_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
