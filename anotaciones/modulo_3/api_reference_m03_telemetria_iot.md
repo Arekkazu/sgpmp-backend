@@ -11,11 +11,16 @@
 > 1. **Endpoints humanos** (dashboard, historial, alertas, calidad, auditoría,
 >    vinculaciones, estado de dispositivos) → `Authorization: Bearer <jwt>` +
 >    RBAC vía `require_permission(id_recurso, id_accion)`.
-> 2. **Endpoints de ingesta de dispositivos IoT** (telemetría, alertas edge,
->    eventos edge, heartbeat) → **sin JWT**. La identidad la valida el propio
->    use case/router contra `access_key` (o headers `X-Device-*`) del
->    dispositivo en `modulo9.dispositivos_iot`. Un dispositivo no tiene
->    `id_rol`, así que **no puede pasar por RBAC** — estos endpoints omiten
+> 2. **Endpoints de ingesta de dispositivos IoT** (telemetría, visión, alertas
+>    edge, eventos edge, heartbeat) → **sin JWT**. Los llama el broker MQTT,
+>    no el nodo (D3 de `AIOT-DEV-03`): exigen su token de servicio
+>    (`Authorization: Bearer`, variable `BROKER_SERVICE_TOKEN`, dependencia
+>    `require_token_servicio_broker` de `src/shared/broker_auth.py`). Sin token
+>    o con uno distinto → `401 TOKEN_SERVICIO_INVALIDO`; sin la variable
+>    configurada → `503 TOKEN_SERVICIO_NO_CONFIGURADO`. El `serial` del body ya
+>    no es credencial: es la identidad del nodo que el broker autenticó por
+>    MQTT, y el use case exige que `device_id`/`sensor_id` le pertenezcan. El
+>    broker no tiene `id_rol`, así que estos endpoints omiten
 >    `require_permission` por diseño, no por descuido.
 >
 > Ver la sección **"Modos de autenticación"** más abajo para la lista exacta
@@ -102,11 +107,11 @@ la ventana de 30 minutos.
 
 | Endpoint | Auth | Detalle |
 |----------|------|---------|
-| `POST /iot/telemetria` | Dispositivo IoT | `access_key` en el body, verificado contra `modulo9.dispositivos_iot`/`sensores` dentro del use case. Header opcional `X-Gateway-Id` (trazabilidad de gateway LoRaWAN). |
-| `POST /iot/telemetria/batch` | Dispositivo IoT | Igual que arriba, por cada registro del lote (máx. 500). |
-| `POST /iot/alertas` | Dispositivo IoT | `access_key` en el body; el router valida el dispositivo manualmente vía `DispositivoM09Adapter.obtener_dispositivo_activo`, lanzando `AuthenticationError` si es inválido/inactivo. |
-| `POST /iot/eventos-edge` | Dispositivo IoT | `access_key` en el body, verificado dentro del use case. Header opcional `X-Gateway-Id`. |
-| `POST /iot/heartbeat` | Dispositivo IoT | Headers **obligatorios** `X-Device-API-Key` y `X-Device-Id` (en vez de body), validados en `RecibirHeartbeatUseCase`. |
+| `POST /iot/telemetria` | Token de servicio del broker | `serial` en el body; `device_id`/`sensor_id` deben pertenecerle (`modulo9.dispositivos_iot`/`sensores`), verificado dentro del use case. Header opcional `X-Gateway-Id` (trazabilidad de gateway LoRaWAN). |
+| `POST /iot/telemetria/batch` | Token de servicio del broker | Igual que arriba, por cada registro del lote (máx. 500). |
+| `POST /iot/alertas` | Token de servicio del broker | `serial` en el body; el router valida el dispositivo manualmente vía `DispositivoM09Adapter.obtener_dispositivo_activo`, lanzando `AuthenticationError` si es inválido/inactivo. |
+| `POST /iot/eventos-edge` | Token de servicio del broker | `serial` en el body, verificado dentro del use case. Header opcional `X-Gateway-Id`. |
+| `POST /iot/heartbeat` | Token de servicio del broker | `device_id` y `serial` en el body (antes headers `X-Device-*`), validados en `RecibirHeartbeatUseCase`. |
 | Todos los demás (20 endpoints) | JWT + RBAC | `Authorization: Bearer <jwt>` + `require_permission(id_recurso, id_accion)` — ver detalle por router más abajo. |
 
 Ningún endpoint de este módulo es "público" en el sentido de `configuration`
@@ -121,8 +126,8 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
-| `POST` | `/` | Dispositivo IoT (`access_key`) | `IngerirTelemetriaUseCase` |
-| `POST` | `/batch` | Dispositivo IoT (`access_key`, por registro) | `SincronizarBufferUseCase` |
+| `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |
+| `POST` | `/batch` | Broker (token de servicio; `serial` por registro) | `SincronizarBufferUseCase` |
 
 #### `POST /iot/telemetria` — Ingerir lectura de sensor (RF-53 Flujo A/B)
 
@@ -136,7 +141,7 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 | `valor` | `Decimal` | — |
 | `unidad` | `str` | 1–20 chars |
 | `timestamp_captura` | `datetime` | — |
-| `access_key` | `str` | 1–100 chars |
+| `serial` | `str` | 1–100 chars — identidad del nodo, no credencial |
 | `timestamp_envio` | `datetime \| None` | Opcional |
 | `origen` | `str` | Default `TIEMPO_REAL` — enum `{TIEMPO_REAL, BUFFER_LOCAL, EDGE_AGREGADO}` |
 | `frecuencia_muestreo` | `int \| None` | `> 0` |
@@ -207,7 +212,7 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `device_id` / `sensor_id` | `int` | `> 0` |
-| `access_key` | `str` | 1–100 chars |
+| `serial` | `str` | 1–100 chars — identidad del nodo, no credencial |
 | `tipo_variable` | `str` | 2–50 chars, mayúsculas |
 | `valor` | `Decimal` | — |
 | `unidad` | `str` | 1–20 chars |
@@ -288,7 +293,7 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
-| `POST` | `/` | Dispositivo IoT (`access_key`) | `RecibirEventoEdgeUseCase` |
+| `POST` | `/` | Broker (token de servicio) | `RecibirEventoEdgeUseCase` |
 
 #### `POST /iot/eventos-edge` — Procesar evento de edge computing (RF-56)
 
@@ -297,7 +302,7 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano.
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `device_id` / `sensor_id` | `int` | — |
-| `access_key` | `str` | — |
+| `serial` | `str` | 1–100 chars — identidad del nodo, no credencial |
 | `clasificacion_rf55` | `str` | Enum `{NORMAL, DESVIACION_SIMPLE, DESVIACION_COMPUESTA, ERROR_CONFIGURACION}` |
 | `severidad` | `str \| None` | Enum `{LEVE, MODERADO, CRITICO}` |
 | `variables_involucradas` | `list[VariableInvolucradaDTO]` | Ver abajo |
@@ -334,7 +339,7 @@ existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
 
 | Método | Ruta | Auth | Recurso RBAC | Roles autorizados | Use Case |
 |--------|------|------|--------------|--------------------|----------|
-| `POST` | `/heartbeat` | Dispositivo IoT (`X-Device-API-Key`, `X-Device-Id`) | — | — | `RecibirHeartbeatUseCase` |
+| `POST` | `/heartbeat` | Broker (token de servicio) | — | — | `RecibirHeartbeatUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/estado` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | `ObtenerEstadoDispositivoUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/historial` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | *(sin use case — llama al repositorio directo desde el router)* |
 | `PATCH` | `/dispositivos/{id_dispositivo_iot}/mantenimiento` | JWT + RBAC `(35, U)` | 35 | **Solo Admin, Ing** | `AplicarMantenimientoDispositivoUseCase` |
@@ -356,12 +361,14 @@ existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
 
 #### `POST /iot/heartbeat` — Recibir heartbeat de dispositivo (RF-60)
 
-**Headers requeridos:** `X-Device-API-Key: <str>`, `X-Device-Id: <int>` (en vez de JWT/body `access_key`).
+**Headers requeridos:** `Authorization: Bearer <BROKER_SERVICE_TOKEN>`. `device_id` y `serial` van en el body.
 
 **Input `HeartbeatDTO`:**
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
+| `device_id` | `int` | `> 0` |
+| `serial` | `str` | 1–100 chars — `device_id` debe pertenecerle |
 | `tipo_mensaje` | `str` | 1–30 chars |
 | `nivel_bateria_pct` | `Decimal \| None` | `0–100` |
 | `calidad_senal_rssi` / `calidad_senal_snr` | `Decimal \| None` | Opcional |
@@ -688,7 +695,7 @@ un usuario.
 | `ActualizarEstadoAlertaUseCase` | `execute(id_alerta: int, dto: ActualizarEstadoAlertaDTO, id_usuario: int) → Alerta` |
 | `RecibirEventoEdgeUseCase` | `execute(dto: RecibirEventoEdgeDTO, gateway_id: str \| None = None) → ResultadoEventoEdge` |
 | `ConsolidarEnviarPaqueteUseCase` | `execute(evento: EventoEdgeComputing) → PaqueteInferencia \| None` — uso interno, llamado por `RecibirEventoEdgeUseCase`, no expuesto por un router |
-| `RecibirHeartbeatUseCase` | `execute(dto: HeartbeatDTO, device_id: int, access_key: str) → Heartbeat` |
+| `RecibirHeartbeatUseCase` | `execute(dto: HeartbeatDTO) → Heartbeat` |
 | `ObtenerEstadoDispositivoUseCase` | `execute(id_dispositivo_iot: int, limite_historial: int = 20) → ResultadoEstadoDispositivo` |
 | `EvaluarEstadoDispositivosUseCase` | `execute() → int` — job periódico (máquina de estados de dispositivos), no invocado por ningún router |
 | `AplicarMantenimientoDispositivoUseCase` | `execute(id_dispositivo_iot: int, dto: AplicarMantenimientoDTO, id_usuario: int, nombre_usuario: str) → EstadoDispositivoIoT` — transición manual `EN_MANTENIMIENTO ↔ ACTIVO` (RF-60 CA-7/CA-8); el histórico lo escribe el trigger de BD, el use case emite auditoría RF-63 |

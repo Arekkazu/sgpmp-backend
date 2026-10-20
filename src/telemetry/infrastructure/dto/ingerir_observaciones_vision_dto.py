@@ -28,7 +28,7 @@ class ObservacionVisionDTO(BaseDTO):
 
 class IngerirObservacionesVisionDTO(BaseDTO):
     device_id: int = Field(..., gt=0)
-    access_key: str = Field(..., min_length=1, max_length=100)
+    serial: str = Field(..., min_length=1, max_length=100)
     # RF-56 v2.0: el sobre de visión lleva el área observada.
     area_id: int = Field(..., gt=0)
     observaciones: list[ObservacionVisionDTO] = Field(..., min_length=1, max_length=500)

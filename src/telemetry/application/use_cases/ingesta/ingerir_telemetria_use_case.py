@@ -75,12 +75,12 @@ class IngerirTelemetriaUseCase:
 
             # --- Fase 2: Identidad del dispositivo (M09) ---
             dispositivo = self.dispositivo_port.obtener_dispositivo_activo(
-                dto.device_id, dto.sensor_id, dto.access_key
+                dto.device_id, dto.sensor_id, dto.serial
             )
             if dispositivo is None:
                 raise AuthenticationError(
                     code='ERROR_AUTENTICACION',
-                    message='Dispositivo o sensor no encontrado, inactivo, o credenciales inválidas.',
+                    message='El dispositivo o el sensor no existen o no corresponden al serial.',
                 )
             if not dispositivo.es_activo_dispositivo or not dispositivo.es_activo_sensor:
                 raise AuthenticationError(

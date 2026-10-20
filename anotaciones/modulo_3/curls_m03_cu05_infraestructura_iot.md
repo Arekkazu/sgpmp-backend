@@ -4,7 +4,7 @@
 
 | Método | Ruta | Auth | RF |
 |--------|------|------|----|
-| POST | `/iot/heartbeat` | Dispositivo IoT (`X-Device-API-Key`, `X-Device-Id`) | RF-60 |
+| POST | `/iot/heartbeat` | Broker MQTT (token de servicio) + `device_id`/`serial` en el body | RF-60 |
 | GET | `/iot/dispositivos/{id}/estado` | JWT + RBAC(35, R) | RF-60 |
 | GET | `/iot/dispositivos/{id}/historial` | JWT + RBAC(35, R) | RF-60 |
 | GET | `/iot/alertas-tecnicas` | JWT + RBAC(36, R) — solo admin + ing | RF-60 |
@@ -22,10 +22,11 @@
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/heartbeat \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "X-Device-API-Key: IOT-EST01-HLA-001" \
-  -H "X-Device-Id: 1" \
   -d '{
+    "device_id": 1,
+    "serial": "IOT-EST01-HLA-001",
     "tipo_mensaje": "HEARTBEAT",
     "nivel_bateria_pct": 85.5,
     "calidad_senal_rssi": -75.0,
@@ -64,10 +65,11 @@ curl -s -X POST http://localhost:8000/iot/heartbeat \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/heartbeat \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "X-Device-API-Key: IOT-EST01-HLA-001" \
-  -H "X-Device-Id: 1" \
   -d '{
+    "device_id": 1,
+    "serial": "IOT-EST01-HLA-001",
     "tipo_mensaje": "HEARTBEAT",
     "nivel_bateria_pct": 25.0,
     "fecha_registro": "2026-07-06T10:05:00Z",
@@ -81,10 +83,11 @@ curl -s -X POST http://localhost:8000/iot/heartbeat \
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/heartbeat \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "X-Device-API-Key: IOT-EST01-HLA-001" \
-  -H "X-Device-Id: 1" \
   -d '{
+    "device_id": 1,
+    "serial": "IOT-EST01-HLA-001",
     "tipo_mensaje": "HEARTBEAT",
     "nivel_bateria_pct": 70.0,
     "estado_local_buffer": "A",
@@ -96,19 +99,33 @@ curl -s -X POST http://localhost:8000/iot/heartbeat \
 
 **Efecto:** Estado del dispositivo → `BUFFER_ACTIVO`.
 
-### FA-03 — Credenciales inválidas
+### FA-03 — `device_id` que no corresponde al serial
+
+```bash
+curl -s -X POST http://localhost:8000/iot/heartbeat \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"device_id": 1, "serial": "SERIAL-DE-OTRO-NODO", "tipo_mensaje": "HEARTBEAT", "fecha_registro": "2026-07-06T10:00:00Z", "reloj_sincronizado": false}'
+```
+
+**Respuesta esperada (401):**
+```json
+{"error_code": "ERROR_AUTENTICACION_HEARTBEAT", "message": "El dispositivo no existe o no corresponde al serial.", "field": null}
+```
+
+### FA-04 — Sin token de servicio (el contrato anterior con `X-Device-API-Key` = serial)
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/heartbeat \
   -H "Content-Type: application/json" \
-  -H "X-Device-API-Key: CLAVE_INCORRECTA" \
+  -H "X-Device-API-Key: IOT-EST01-HLA-001" \
   -H "X-Device-Id: 1" \
   -d '{"tipo_mensaje": "HEARTBEAT", "fecha_registro": "2026-07-06T10:00:00Z", "reloj_sincronizado": false}'
 ```
 
 **Respuesta esperada (401):**
 ```json
-{"code": "ERROR_AUTENTICACION_HEARTBEAT", "message": "Dispositivo no encontrado o credenciales inválidas.", "field": null}
+{"error_code": "TOKEN_SERVICIO_INVALIDO", "message": "Se requiere el token de servicio del broker.", "field": null}
 ```
 
 ---

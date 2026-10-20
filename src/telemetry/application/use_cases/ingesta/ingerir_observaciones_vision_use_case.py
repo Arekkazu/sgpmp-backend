@@ -1,7 +1,7 @@
 """Caso de uso: ingesta de observaciones de visión por área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
-La cámara se identifica como en la ingesta escalar (device_id + serial como
-access_key, sin JWT). Cada observación recibe su índice de calidad de visión y
+La cámara se identifica como en la ingesta escalar: device_id + serial, con el
+token de servicio del broker (D3, AIOT-DEV-03). Cada observación recibe su índice de calidad de visión y
 ``apto_para_ia``; es lo que la calibración VISION de RF-24 consume
 (INC-M09-77-G137, #513).
 
@@ -47,11 +47,11 @@ class IngerirObservacionesVisionUseCase:
         self.dispositivo_port = dispositivo_port
 
     def execute(self, dto: IngerirObservacionesVisionDTO) -> ResultadoIngestaVision:
-        camara = self.dispositivo_port.obtener_camara(dto.device_id, dto.access_key)
+        camara = self.dispositivo_port.obtener_camara(dto.device_id, dto.serial)
         if camara is None:
             raise AuthenticationError(
                 code='ERROR_AUTENTICACION',
-                message='Dispositivo no encontrado o credenciales inválidas.',
+                message='El dispositivo no existe o no corresponde al serial.',
             )
         if not camara.es_activo:
             raise AuthenticationError(

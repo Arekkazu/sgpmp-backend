@@ -5,8 +5,9 @@ RF-53 — CU01 Dev scope:
   POST  /iot/telemetria/batch  — Ingesta en lote    (Flujo C sincronización BUFFER_LOCAL, max 500)
   POST  /iot/telemetria/vision — Observaciones de visión por área (RF-53/56/62 v2.0, max 500)
 
-Auth: los dispositivos IoT no usan JWT Bearer. La identidad se verifica dentro del use case
-      mediante `access_key` (serial del dispositivo en M09) y `device_id` / `sensor_id` en el body.
+Auth: los llama el broker MQTT, no el nodo (D3, AIOT-DEV-03). Exigen su token de servicio
+      (`Authorization: Bearer`, `BROKER_SERVICE_TOKEN`); el `serial` del body es la identidad
+      del nodo que el broker ya autenticó por MQTT, y `device_id` / `sensor_id` deben pertenecerle.
       El header opcional `X-Gateway-Id` se registra en la bitácora para trazabilidad de gateway LoRaWAN.
 """
 from __future__ import annotations
@@ -16,6 +17,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
@@ -95,7 +97,9 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
         401: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Ingerir lectura de sensor IoT (RF-53 Flujo A/B)",
 )
 def ingerir_telemetria(
@@ -118,8 +122,11 @@ def ingerir_telemetria(
     status_code=200,
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Sincronización de buffer IoT (RF-53 Flujo C — lote hasta 500 lecturas)",
 )
 def sincronizar_buffer(
@@ -158,7 +165,9 @@ def sincronizar_buffer(
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Ingerir observaciones de visión de un área (RF-53/56/62 v2.0 — lote hasta 500)",
 )
 def ingerir_observaciones_vision(

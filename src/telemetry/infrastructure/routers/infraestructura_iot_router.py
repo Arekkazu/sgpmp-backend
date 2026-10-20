@@ -7,7 +7,7 @@ RF-60 — CU05 Dev scope:
   GET   /iot/alertas-tecnicas                 — Listar alertas técnicas (admin + ing ONLY)
   PATCH /iot/alertas-tecnicas/{id}/estado     — Actualizar estado de alerta técnica
 
-Auth POST heartbeat: dispositivo IoT — X-Device-API-Key + X-Device-Id en headers (sin JWT).
+Auth POST heartbeat: token de servicio del broker (`Authorization: Bearer`); device_id + serial en el body.
 Auth REST: JWT Bearer + RBAC recurso 35 (infraestructura_iot) / recurso 36 (alertas_tecnicas_iot).
 """
 from __future__ import annotations
@@ -15,9 +15,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
 from src.shared.rbac import require_permission
@@ -55,14 +56,14 @@ router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
     responses={
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Recibir heartbeat de dispositivo IoT (RF-60)",
 )
 def recibir_heartbeat(
     dto: HeartbeatDTO,
     db: Session = Depends(get_db_sistema),
-    x_device_api_key: str = Header(..., alias="X-Device-API-Key"),
-    x_device_id: int = Header(..., alias="X-Device-Id"),
 ) -> HeartbeatReciboSchema:
     use_case = RecibirHeartbeatUseCase(
         db=db,
@@ -74,7 +75,7 @@ def recibir_heartbeat(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
     )
-    heartbeat = use_case.execute(dto=dto, device_id=x_device_id, access_key=x_device_api_key)
+    heartbeat = use_case.execute(dto=dto)
     return HeartbeatReciboSchema.model_validate(heartbeat)
 
 
