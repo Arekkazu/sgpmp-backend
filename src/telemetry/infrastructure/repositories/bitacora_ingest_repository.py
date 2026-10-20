@@ -3,6 +3,8 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+from src.shared.db_error_translator import raise_from_db_error
+
 from src.telemetry.domain.repositories.bitacora_ingest_repository import BitacoraIngestRepository
 from src.telemetry.infrastructure.models.bitacora_ingest_model import BitacoraIngestModel
 
@@ -79,5 +81,7 @@ class SqlAlchemyBitacoraIngestRepository(BitacoraIngestRepository):
             )
             self.db.add(orm)
             self.db.flush()
-        except Exception:
-            pass
+        except Exception as exc:
+            # El caso de uso revierte esta transacción de auditoría sin
+            # sustituir el rechazo funcional original.
+            raise_from_db_error(exc)

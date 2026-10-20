@@ -324,6 +324,10 @@ class IngerirTelemetriaUseCase:
             self.db.commit()
         except Exception:
             self.db.rollback()
+            logger.warning(
+                'RF-53: no se pudo registrar el rechazo en bitácora (código=%s).',
+                getattr(exc, 'code', estado_calidad),
+            )
 
     def _validar_timestamp(self, dto: IngerirTelemetriaDTO, ahora: datetime) -> None:
         ts = dto.timestamp_captura
