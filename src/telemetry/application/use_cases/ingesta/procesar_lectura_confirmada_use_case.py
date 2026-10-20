@@ -1,5 +1,4 @@
 from src.shared.errors import ServiceUnavailableError
-from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRepository
 
 
 class ProcesarLecturaConfirmadaUseCase:
@@ -17,10 +16,6 @@ class ProcesarLecturaConfirmadaUseCase:
     def evaluar_lectura(self, identificador):
         if self.lecturas.evaluacion_vigente(identificador) is not None:
             return
-        # Dependencia explícita de la eliminación del puerto obsoleto en DEV-02.
-        # No se copia esa solución ni se ejecuta el RF-62 anterior contra RF-53.
-        if hasattr(TelemetriaRepository, 'actualizar_flags_aptitud'):
-            raise ServiceUnavailableError('RF62_DEV02_PENDIENTE', 'Se requiere integrar DEV-02 para evaluar telemetría inmutable.')
         lectura = self.lecturas.obtener_por_id(identificador)
         self.evaluar.execute(
             id_telemetria=identificador, id_sensor=lectura.id_sensor,
