@@ -65,18 +65,18 @@ def hardware(db_session):
 
 
 @pytest.fixture
-def client(db_session):
+def client(db_session, headers_broker):
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(evento_edge_router.router)
     app.dependency_overrides[get_db_sistema] = lambda: db_session
-    with TestClient(app, raise_server_exceptions=False) as test_client:
+    with TestClient(app, raise_server_exceptions=False, headers=headers_broker) as test_client:
         yield test_client
 
 
 def _payload(hardware, clasificacion='DESVIACION_SIMPLE'):
     ts = datetime.now(timezone.utc) - timedelta(minutes=1)
-    return dict(device_id=hardware['device'], sensor_id=hardware['sensor'], access_key=hardware['serial'],
+    return dict(device_id=hardware['device'], sensor_id=hardware['sensor'], serial=hardware['serial'],
                 clasificacion_rf55=clasificacion, severidad='MODERADO', origen='TIEMPO_REAL',
                 timestamp_captura=ts.isoformat(), timestamp_procesamiento_edge=ts.isoformat(),
                 estado_conectividad=True, metadata_edge={'origen_prueba':'DEV-17'},
@@ -214,7 +214,7 @@ def test_fallo_estado_conserva_paquete_y_reconsolidacion_no_reenvia(client, db_s
 def test_recepcion_conserva_validaciones_existentes(client, db_session, hardware, invalidez, http):
     payload = _payload(hardware)
     if invalidez == 'clave':
-        payload['access_key'] = 'credencial-invalida-prueba'
+        payload['serial'] = 'serial-ajeno-prueba'
     elif invalidez == 'sensor':
         payload['sensor_id'] = 2147483000
     elif invalidez == 'estructura':

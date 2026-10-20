@@ -76,41 +76,30 @@ def _app():
 
 def _payload(hardware, captura):
     return dict(device_id=hardware["device"], sensor_id=hardware["sensor"],
-                access_key=hardware["serial"], tipo_variable="TEMPERATURA_AMBIENTAL",
+                serial=hardware["serial"], tipo_variable="TEMPERATURA_AMBIENTAL",
                 valor="22.5000", unidad="°C", timestamp_captura=captura.isoformat())
 
 
-@pytest.mark.parametrize("fallo_auditoria", [False, True])
-def test_p0001_ingesta_real_bitacora_y_rollback(db_session, hardware, monkeypatch, caplog, fallo_auditoria, rechazos_sql):
+def test_fecha_futura_la_rechaza_la_funcion_sql_con_su_bitacora(db_session, hardware, rechazos_sql, headers_broker):
+    # Con la ingesta B+ (DEV-05) y DB-02, fn_ingesta_telemetria valida la fecha
+    # antes de insertar: el trigger P0001 de telemetrias ya no se alcanza por
+    # HTTP y la bitácora la escribe la función, no la aplicación.
     app = _app()
     app.include_router(telemetria_router.router)
     app.dependency_overrides[get_db_sistema] = lambda: db_session
-    # +15s pasa la tolerancia existente de aplicación (+30s) pero el trigger
-    # estricto (> now()) lo rechaza. No se altera ninguna validación.
     captura = datetime.now(timezone.utc) + timedelta(seconds=15)
-    if fallo_auditoria:
-        from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
-        def fallar(*args, **kwargs):
-            db_session.execute(text("SELECT 1 / 0"))
-        monkeypatch.setattr(SqlAlchemyBitacoraIngestRepository, "registrar_error", fallar)
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=headers_broker) as client:
         response = client.post("/iot/telemetria", json=_payload(hardware, captura))
     assert response.status_code == 400, response.text
     assert response.json()["error_code"] == "ERROR_TIEMPO"
     assert db_session.execute(text("SELECT count(*) FROM modulo3.telemetrias WHERE id_sensor=:s"), {"s": hardware["sensor"]}).scalar_one() == 0
-    rows = db_session.execute(text("SELECT estado_calidad::text,tipo_evento,descripcion_text FROM modulo3.bitacora_ingest WHERE id_sensor=:s"), {"s": hardware["sensor"]}).all()
-    if fallo_auditoria:
-        assert rows == []
-        assert "no se pudo registrar el rechazo" in caplog.text
-    else:
-        assert len(rows) == 1, rechazos_sql
-        assert rows[0][0] == "ERROR_TIEMPO"
-        assert rows[0][1] == "ERROR_PROCESAMIENTO"
-        assert "timestamp_captura" in rows[0][2]
-        db_session.rollback()
-        assert db_session.execute(text("SELECT count(*) FROM modulo3.bitacora_ingest WHERE id_sensor=:s"), {"s": hardware["sensor"]}).scalar_one() == 1
+    rows = db_session.execute(text("SELECT estado_calidad::text,descripcion_text FROM modulo3.bitacora_ingest WHERE id_sensor=:s"), {"s": hardware["sensor"]}).all()
+    assert len(rows) == 1
+    assert rows[0][0] == "ERROR_TIEMPO" and "timestamp_captura" in rows[0][1]
+    db_session.rollback()
+    assert db_session.execute(text("SELECT count(*) FROM modulo3.bitacora_ingest WHERE id_sensor=:s"), {"s": hardware["sensor"]}).scalar_one() == 1
     assert "modulo3" not in response.text and "P0001" not in response.text
-    assert rechazos_sql[0][0] == 'P0001'
+    assert rechazos_sql == []
 
 
 @pytest.mark.parametrize("operacion", ["UPDATE", "DELETE"])

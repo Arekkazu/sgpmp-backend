@@ -165,6 +165,13 @@ def integration_app() -> FastAPI:
 
 
 @pytest.fixture
+def headers_broker(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker."""
+    monkeypatch.setenv("BROKER_SERVICE_TOKEN", "token-servicio-pruebas-integracion")
+    return {"Authorization": "Bearer token-servicio-pruebas-integracion"}
+
+
+@pytest.fixture
 def client(
     integration_app: FastAPI,
     db_session: Session,

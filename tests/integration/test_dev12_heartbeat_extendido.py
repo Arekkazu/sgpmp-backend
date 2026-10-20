@@ -44,8 +44,7 @@ def payload(**cambios):
 
 
 def enviar_http(client,equipo,**cambios):
-    return client.post('/iot/heartbeat',headers={'X-Device-Id':str(equipo['device']),
-        'X-Device-API-Key':equipo['serial']},json=payload(**cambios))
+    return client.post('/iot/heartbeat',json=payload(device_id=equipo['device'],serial=equipo['serial'],**cambios))
 
 
 def insertar_sql(db,equipo,**cambios):
@@ -96,8 +95,8 @@ def test_http_invalido_no_persiste(client,db_session,equipo,campos):
 
 
 def test_identidad_invalida_conserva_rechazo_http(client,db_session,equipo):
-    response=client.post('/iot/heartbeat',headers={'X-Device-Id':str(equipo['device']),
-        'X-Device-API-Key':'no-autorizada'},json=payload(sensores_operativos=[{'sensor':'x','operativo':False}]))
+    response=client.post('/iot/heartbeat',json=payload(device_id=equipo['device'],serial='no-autorizado',
+        sensores_operativos=[{'sensor':'x','operativo':False}]))
     assert response.status_code==401,response.text
     assert not alertas(db_session,equipo)
 

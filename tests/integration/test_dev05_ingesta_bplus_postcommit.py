@@ -59,18 +59,18 @@ def equipo(db_session):
 
 
 @pytest.fixture
-def client(db_session):
+def client(db_session, headers_broker):
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(telemetria_router.router)
     app.include_router(infraestructura_iot_router.router)
     app.dependency_overrides[get_db_sistema] = lambda: db_session
-    with TestClient(app, raise_server_exceptions=False) as cliente:
+    with TestClient(app, raise_server_exceptions=False, headers=headers_broker) as cliente:
         yield cliente
 
 
 def payload(equipo, **cambios):
-    return dict(dict(device_id=equipo['device'], sensor_id=equipo['sensor'], access_key=equipo['serial'],
+    return dict(dict(device_id=equipo['device'], sensor_id=equipo['sensor'], serial=equipo['serial'],
         tipo_variable='TEMPERATURA_AMBIENTAL', valor='22.5', unidad='°C',
         timestamp_captura=(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()), **cambios)
 
@@ -108,6 +108,20 @@ def evidencias(db, identificador, tipo='LECTURA'):
     return db.execute(text('''SELECT tipo_evento,resultado,accion_detallada,hash_integridad
         FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_tipo=:tipo AND entidad_afectada_id=:id
         ORDER BY timestamp_registro,id_evento'''), {'tipo':tipo,'id':str(identificador)}).mappings().all()
+
+
+@pytest.fixture
+def parametros_rf62(db_session):
+    """DEV-14: RF-62 lee sus parámetros de M04/M09 y falla si no están configurados."""
+    from src.configuration.application.use_cases.configuracion_global.configurar_parametros_mlops_use_case import ConfigurarParametrosMLOpsUseCase
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    usuario=db_session.execute(text('SELECT id_usuario FROM modulo1.usuarios ORDER BY id_usuario LIMIT 1')).scalar_one()
+    ConfigurarParametrosMLOpsUseCase(db_session,SqlAlchemyParametrosMLOpsRepository(db_session)).execute(
+        {'rf62_k':3,'rf62_m':5,'rf62_n':20,'rf62_umbral_drift':5,'rf62_p':3},usuario)
+    if db_session.execute(text('SELECT count(*) FROM modulo9.configuraciones_globales WHERE es_activo')).scalar_one()==0:
+        db_session.execute(text('''INSERT INTO modulo9.configuraciones_globales(frecuencia_muestreo,heartbeat,fecha_actualizacion,id_usuario,es_activo)
+            VALUES (1,14,now(),:uid,true)'''),{'uid':usuario})
+    db_session.commit()
 
 
 def calibrar(db,equipo):
@@ -180,7 +194,7 @@ def test_fuente_oficial_excluye_evaluacion_superada_aun_si_dice_vigente(db_sessi
     assert fila['id_evaluacion']==actual and fila['apto_para_ia'] and fila['apto_para_nic41']
 
 
-def test_dependencia_dev02_es_visible_y_no_intenta_update_ni_lee_flags_legacy(db_session,equipo):
+def test_rf62_no_actualiza_telemetrias_ni_lee_flags_legacy(db_session,equipo,parametros_rf62):
     identificador=sql_ingesta(db_session,equipo).id_telemetria
     sentencias=[]
     conexion=db_session.get_bind()
@@ -190,9 +204,7 @@ def test_dependencia_dev02_es_visible_y_no_intenta_update_ni_lee_flags_legacy(db
         resultado=procesador(db_session).execute()
     finally:
         event.remove(conexion,'before_cursor_execute',capturar)
-    assert resultado['fallidos']>=1
-    errores=[x for x in evidencias(db_session,identificador) if x['resultado']=='FALLIDO']
-    assert errores[0]['accion_detallada']['error']=='RF62_DEV02_PENDIENTE'
+    assert any(x['tipo_evento']=='POSTCOMMIT_RF62_COMPLETADO' for x in evidencias(db_session,identificador)), resultado
     assert not any('update modulo3.telemetrias' in x for x in sentencias)
     assert not any('telemetrias.apto_para' in x for x in sentencias)
 
@@ -342,12 +354,11 @@ def test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente(db_session,
 
 
 def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(client,db_session,equipo):
-    body={'tipo_mensaje':'HEARTBEAT','estado_local_buffer':'A',
+    body={'device_id':equipo['device'],'serial':equipo['serial'],'tipo_mensaje':'HEARTBEAT','estado_local_buffer':'A',
           'fecha_registro':(datetime.now(timezone.utc)-timedelta(seconds=1)).isoformat()}
-    headers={'X-Device-Id':str(equipo['device']),'X-Device-API-Key':equipo['serial']}
-    denegado=client.post('/iot/heartbeat',json=body,headers=dict(headers,**{'X-Device-API-Key':'incorrecta'}))
+    denegado=client.post('/iot/heartbeat',json=dict(body,serial='incorrecto'))
     assert denegado.status_code==401,denegado.text
-    response=client.post('/iot/heartbeat',json=body,headers=headers)
+    response=client.post('/iot/heartbeat',json=body)
     assert response.status_code==200,response.text
     identificador=response.json()['id_heartbeat']
     procesador(db_session).execute()
@@ -412,13 +423,11 @@ def test_heartbeat_no_saca_dispositivo_de_mantenimiento(db_session,equipo):
     assert any(x['tipo_evento']=='POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO' for x in evidencias(db_session,identificador,'HEARTBEAT'))
 
 
-@pytest.mark.xfail(strict=True,reason='DB-02 pendiente: la función actual no deja valor_ajustado NULL sin calibración')
 def test_contrato_db02_sin_calibracion_deja_valor_ajustado_null(db_session,equipo):
     identificador=sql_ingesta(db_session,equipo).id_telemetria
     assert db_session.execute(text('SELECT valor_ajustado FROM modulo3.telemetrias WHERE id_telemetria=:id'),{'id':identificador}).scalar_one() is None
 
 
-@pytest.mark.xfail(strict=True,reason='DB-02 pendiente: la función actual no registra sus rechazos en bitacora_ingest')
 def test_contrato_db02_rechazo_sql_conserva_bitacora(db_session,equipo):
     resultado=sql_ingesta(db_session,equipo,unidad='incorrecta')
     assert resultado.id_telemetria is None
@@ -426,7 +435,7 @@ def test_contrato_db02_rechazo_sql_conserva_bitacora(db_session,equipo):
         WHERE id_sensor=:id AND estado_calidad='ERROR_UNIDAD' '''),{'id':equipo['sensor']}).scalar_one()==1
 
 
-def test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado(db_session,equipo):
+def test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado(db_session,equipo,parametros_rf62):
     from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRepository
     if hasattr(TelemetriaRepository,'actualizar_flags_aptitud'):
         pytest.skip('Requiere DEV-02 integrado; esta rama no duplica su corrección.')
