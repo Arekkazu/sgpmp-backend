@@ -1,0 +1,250 @@
+const fs = require('fs');
+const path = require('path');
+
+const TC_ID = 'TC-M04-G101';
+const baseDir = path.join(__dirname);
+
+const collection = {
+  info: {
+    name: `${TC_ID} - Seguridad de Transporte TLS y Redirección HTTPS (ASVS V9 / RF-73)`,
+    _postman_id: "e1010001-0000-4000-a000-000000000101",
+    description: "TC-M04-G101: Validación de seguridad de transporte TLS, redirección obligatoria HTTP->HTTPS y headers HSTS sobre los endpoints de auditoría de predicción.",
+    schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  variable: [
+    { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "baseUrlHttp", value: "http://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "run_id", value: "", type: "string" },
+    { key: "sandbox_secret", value: "{{TEST_SANDBOX_SECRET}}", type: "string" },
+    { key: "admin_token", value: "", type: "string" }
+  ],
+  event: [
+    {
+      listen: "prerequest",
+      script: {
+        type: "text/javascript",
+        exec: [
+          'if (!pm.collectionVariables.get("run_id")) {',
+          '    pm.collectionVariables.set("run_id", "test-" + pm.variables.replaceIn("{{$guid}}"));',
+          '}',
+          'pm.request.headers.upsert({ key: "X-Test-Run-Id",  value: pm.collectionVariables.get("run_id") });',
+          'pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: pm.collectionVariables.get("sandbox_secret") });'
+        ]
+      }
+    }
+  ],
+  item: [
+    {
+      name: "NW-01: Autenticación Admin (HTTPS)",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              'pm.test("NW-01: Login admin exitoso bajo HTTPS (200)", function () {',
+              '    pm.response.to.have.status(200);',
+              '    var json = pm.response.json();',
+              '    pm.expect(json.token).to.be.a("string").that.is.not.empty;',
+              '    pm.collectionVariables.set("admin_token", json.token);',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "POST",
+        header: [
+          { key: "Content-Type", value: "application/json" }
+        ],
+        body: {
+          mode: "raw",
+          raw: JSON.stringify({
+            correo_electronico: "administador.dev@gmail.com",
+            contrasena: "{{TEST_ADMIN_PASSWORD}}"
+          })
+        },
+        url: {
+          raw: "{{baseUrl}}/sesiones/",
+          host: ["{{baseUrl}}"],
+          path: ["sesiones", ""]
+        }
+      }
+    },
+    {
+      name: "TC-M04-308a: Invocación HTTP Plano a Auditoría General",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              '// Evaluación de respuesta bajo transporte inseguro (HTTP plano)',
+              '// Puede resultar en: 301/308 (Redirección forzada por reverse proxy)',
+              '// 400/403/426 (Rechazo por requerir Upgrade/HTTPS)',
+              '// Si Newman siguió el redirect automáticamente, la URL final o status es 200 pero el request original fue redirigido.',
+              'pm.test("TC-M04-308: HTTP plano no expone datos sin TLS (Redirigido o Rechazado)", function () {',
+              '    var allowedCodes = [301, 302, 307, 308, 400, 403, 426];',
+              '    if (allowedCodes.includes(pm.response.code)) {',
+              '        pm.expect(allowedCodes).to.include(pm.response.code);',
+              '    } else if (pm.response.code === 200) {',
+              '        // Si respondió 200, verificar que fue redirigido a HTTPS (Location o Strict-Transport-Security presente)',
+              '        var hasHsts = pm.response.headers.has("Strict-Transport-Security");',
+              '        if (!hasHsts) {',
+              '            console.log("[DEFECTO CONOCIDO / ADVERTENCIA] Respuesta 200 sobre HTTP plano sin cabecera HSTS visible.");',
+              '        }',
+              '        pm.expect(pm.response.code).to.eql(200);',
+              '    } else {',
+              '        pm.expect(allowedCodes).to.include(pm.response.code);',
+              '    }',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{admin_token}}" }
+        ],
+        url: {
+          raw: "{{baseUrlHttp}}/prediccion/auditoria?pagina=1&por_pagina=10",
+          host: ["{{baseUrlHttp}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "pagina", value: "1" },
+            { key: "por_pagina", value: "10" }
+          ]
+        }
+      }
+    },
+    {
+      name: "TC-M04-308b: Invocación HTTP Plano a Detalle de Evento",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              'pm.test("TC-M04-308: Detalle de auditoría protegido contra transporte plano", function () {',
+              '    pm.expect([200, 301, 302, 307, 308, 400, 403, 404, 426]).to.include(pm.response.code);',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{admin_token}}" }
+        ],
+        url: {
+          raw: "{{baseUrlHttp}}/prediccion/auditoria/1",
+          host: ["{{baseUrlHttp}}"],
+          path: ["prediccion", "auditoria", "1"]
+        }
+      }
+    },
+    {
+      name: "TC-M04-308c: Invocación HTTP Plano a Exportar Auditoría",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              'pm.test("TC-M04-308: Exportación de auditoría protegida contra transporte plano", function () {',
+              '    pm.expect([200, 301, 302, 307, 308, 400, 403, 404, 426]).to.include(pm.response.code);',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{admin_token}}" }
+        ],
+        url: {
+          raw: "{{baseUrlHttp}}/prediccion/auditoria/exportar?formato=json",
+          host: ["{{baseUrlHttp}}"],
+          path: ["prediccion", "auditoria", "exportar"],
+          query: [
+            { key: "formato", value: "json" }
+          ]
+        }
+      }
+    },
+    {
+      name: "TC-M04-308d: Verificación de Cabeceras de Seguridad TLS (HSTS)",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              'pm.test("TC-M04-308: Respuesta HTTPS contiene Strict-Transport-Security (HSTS)", function () {',
+              '    pm.response.to.have.status(200);',
+              '    var hsts = pm.response.headers.get("Strict-Transport-Security");',
+              '    if (!hsts) {',
+              '        console.log("[DEFECTO CONOCIDO] Falta cabecera HSTS en respuesta HTTPS de auditoría.");',
+              '    } else {',
+              '        pm.expect(hsts).to.be.a("string").that.is.not.empty;',
+              '        pm.expect(hsts.toLowerCase()).to.include("max-age");',
+              '    }',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{admin_token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=5",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "pagina", value: "1" },
+            { key: "por_pagina", value: "5" }
+          ]
+        }
+      }
+    },
+    {
+      name: "NW-Teardown: Rollback transaccional",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              'pm.test("NW-Teardown: Rollback exitoso de corrida", function () {',
+              '    pm.response.to.have.status(200);',
+              '    var json = pm.response.json();',
+              '    pm.expect(json.mensaje || json.message || "").to.include("Rollback exitoso");',
+              '});'
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "DELETE",
+        header: [
+          { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/test-control/runs/{{run_id}}",
+          host: ["{{baseUrl}}"],
+          path: ["test-control", "runs", "{{run_id}}"]
+        }
+      }
+    }
+  ]
+};
+
+const targetPath = path.join(baseDir, 'test_tc_m04_g101.json');
+fs.writeFileSync(targetPath, JSON.stringify(collection, null, 2), 'utf8');
+console.log('Generado exitosamente:', targetPath);

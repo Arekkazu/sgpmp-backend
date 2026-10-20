@@ -5,15 +5,38 @@
     "description": "Reevaluación de validaciones del campo nombre en POST /configuracion/especies (RF-15 v1.1). Cubre límites de longitud (3 y 50), rechazo fuera de rango (<3 y >50), nulo/vacío, unicidad case-insensitive y caracteres especiales.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run_id')) {",
+          "    pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({",
+          "    key: 'X-Test-Run-Id',",
+          "    value: pm.collectionVariables.get('run_id')",
+          "});",
+          "pm.request.headers.upsert({",
+          "    key: 'X-Sandbox-Secret',",
+          "    value: pm.collectionVariables.get('sandbox_secret') || '377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff'",
+          "});"
+        ]
+      }
+    }
+  ],
   "variable": [
     { "key": "baseUrl", "value": "https://api.inmero.co/back-sigab-test" },
     { "key": "email", "value": "administador.dev@gmail.com" },
-    { "key": "password", "value": "" },
+    { "key": "password", "value": "Test1234!" },
+    { "key": "sandbox_secret", "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff" },
+    { "key": "run_id", "value": "" },
     { "key": "token", "value": "" },
-    { "key": "sub1", "value": "Oca" },
-    { "key": "sub2", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefgh" },
+    { "key": "sub1", "value": "Emu" },
+    { "key": "sub2", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefgj" },
     { "key": "sub3", "value": "Qa" },
-    { "key": "sub4", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefghi" },
+    { "key": "sub4", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefgji" },
     { "key": "sub6_existente", "value": "Cachama Blanca" },
     { "key": "sub6_nuevo", "value": "CACHAMA BLANCA" },
     { "key": "sub7", "value": "Trucha@QA2#" },
@@ -87,7 +110,7 @@
               "        ",
               "        var sub1 = pm.collectionVariables.get('sub1').toLowerCase();",
               "        var encontradoSub1 = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub1; });",
-              "        pm.expect(encontradoSub1, 'El nombre Oca debe estar libre previo a la prueba').to.be.false;",
+              "        pm.expect(encontradoSub1, 'El nombre ' + pm.collectionVariables.get('sub1') + ' debe estar libre previo a la prueba').to.be.false;",
               "        ",
               "        var sub2 = pm.collectionVariables.get('sub2').toLowerCase();",
               "        var encontradoSub2 = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub2; });",
@@ -147,7 +170,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre\": \"{{sub1}}\"\n}"
+          "raw": "{\n  \"nombre\": \"{{sub1}}\",\n  \"grupo_manejo\": \"AVES\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/configuracion/especies",
@@ -265,7 +288,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre\": \"{{sub2}}\"\n}"
+          "raw": "{\n  \"nombre\": \"{{sub2}}\",\n  \"grupo_manejo\": \"AVES\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/configuracion/especies",
@@ -615,7 +638,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre\": \"{{sub6_nuevo}}\"\n}"
+          "raw": "{\n  \"nombre\": \"{{sub6_nuevo}}\",\n  \"grupo_manejo\": \"ACUICULTURA\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/configuracion/especies",
@@ -732,6 +755,35 @@
           "query": [
             { "key": "solo_activas", "value": "false" }
           ]
+        }
+      }
+    },
+    {
+      "name": "NW-Teardown-Sandbox-Rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.status).to.include('Rollback exitoso');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["test-control", "runs", "{{run_id}}"]
         }
       }
     }

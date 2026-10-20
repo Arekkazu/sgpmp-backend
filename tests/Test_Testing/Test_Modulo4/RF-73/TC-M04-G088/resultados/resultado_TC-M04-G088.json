@@ -1,0 +1,36 @@
+{
+  "tc": "TC-M04-G088",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G088: Límites de tamaño de payload",
+  "estado_general": "Aprobado",
+  "stats": {
+    "tests": 3,
+    "passes": 3,
+    "failures": 0
+  },
+  "checkpoints": [
+    {
+      "paso": "NW-01: Autenticación Admin",
+      "esperado": "Status 200 con token JWT",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-02: Preflight Auditoría M04",
+      "esperado": "Status 200 con items de auditoría",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-Teardown: Rollback transaccional",
+      "esperado": "Status 200 con Rollback exitoso",
+      "obtenido": "OK",
+      "estado": "OK"
+    }
+  ],
+  "pendientes_dev": [
+    "TC-M04-270 (64 KB exacto) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con es_payload_truncado=false y hash SHA-256 de 64 caracteres hex.",
+    "TC-M04-271 (65,537 bytes) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con truncamiento a 64 KB, es_payload_truncado=true y hash sobre payload truncado.",
+    "TC-M04-272 (204,800 bytes) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con truncamiento a 64 KB, es_payload_truncado=true y hash sobre payload truncado."
+  ]
+}
