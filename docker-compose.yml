@@ -76,6 +76,10 @@ services:
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
       BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN}
+      # DEV-15: URL firmada del artefacto OTA. Sin las dos, POST /prediccion/ota/distribuciones responde 503.
+      OTA_URL_SECRET: ${OTA_URL_SECRET:-}
+      OTA_URL_BASE: ${OTA_URL_BASE:-}
+      OTA_URL_TTL_SEGUNDOS: ${OTA_URL_TTL_SEGUNDOS:-86400}
     volumes:
       - sgpmp_modelos:/app/storage/modelos
       # RF-14: credenciales del service account de Firebase (push FCM). El JSON

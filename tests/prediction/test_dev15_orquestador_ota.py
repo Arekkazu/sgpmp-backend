@@ -443,6 +443,19 @@ def test_el_artefacto_no_puede_salir_del_directorio(tmp_path):
         ).execute(canary.id_despliegue_ota, 0, "x")
 
 
+def test_sirve_el_artefacto_que_rf69_guardo_con_ruta_absoluta_en_el_almacen(tmp_path, monkeypatch):
+    monkeypatch.delenv("OTA_ARTEFACTOS_DIR", raising=False)
+    monkeypatch.setenv("MODELOS_STORAGE_PATH", str(tmp_path))
+    artefacto = tmp_path / "proceso_MODELO_AVES.tflite"
+    artefacto.write_bytes(b"modelo")
+    ctx = _Ctx(versiones=[_version(ruta=str(artefacto))])
+    canary = ctx.crear().despliegues[0]
+    servido = ObtenerArtefactoOtaUseCase(
+        despliegue_repo=ctx.despliegues, version_repo=ctx.versiones, url_port=_Url(),
+    ).execute(canary.id_despliegue_ota, 0, "x")
+    assert servido == artefacto.resolve()
+
+
 def test_url_invalida_es_401():
     class _Rechaza(_Url):
         def es_valida(self, *a): return False

@@ -30,7 +30,13 @@ class ObtenerArtefactoOtaUseCase:
         self._despliegue_repo = despliegue_repo
         self._version_repo = version_repo
         self._url_port = url_port
-        self._directorio = Path(directorio_artefactos or os.environ.get("OTA_ARTEFACTOS_DIR", "artefactos_modelos"))
+        # RF-69 guarda ruta_artefacto como ruta absoluta dentro de MODELOS_STORAGE_PATH:
+        # sin OTA_ARTEFACTOS_DIR explícito se sirve desde ese mismo almacén.
+        self._directorio = Path(
+            directorio_artefactos
+            or os.environ.get("OTA_ARTEFACTOS_DIR")
+            or os.environ.get("MODELOS_STORAGE_PATH", "/tmp/sgpmp_modelos")
+        )
 
     def execute(self, id_despliegue: int, expira: int, firma: str) -> Path:
         if not self._url_port.es_valida(id_despliegue, expira, firma, datetime.now(timezone.utc)):
