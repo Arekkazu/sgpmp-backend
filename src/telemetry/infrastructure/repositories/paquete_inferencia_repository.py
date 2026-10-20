@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -7,12 +8,30 @@ from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.telemetria import PaqueteInferencia
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 from src.telemetry.infrastructure.models.paquete_inferencia_model import PaqueteInferenciaModel
+from src.telemetry.infrastructure.models.evento_edge_model import EventoEdgeComputingModel
 
 
 class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def obtener_por_evento(
+        self, id_evento: int, *, bloquear_evento: bool = False,
+    ) -> Optional[PaqueteInferencia]:
+        try:
+            if bloquear_evento:
+                # Bloquear el padre también protege el caso sin paquete.
+                # Una segunda consolidación espera al commit de la primera.
+                self.db.query(EventoEdgeComputingModel.id_evento_edge_computing).filter(
+                    EventoEdgeComputingModel.id_evento_edge_computing == id_evento,
+                ).with_for_update().one()
+            orm = self.db.query(PaqueteInferenciaModel).filter(
+                PaqueteInferenciaModel.id_evento_edge_computing == id_evento,
+            ).order_by(PaqueteInferenciaModel.id_paquetes_inferencia).first()
+            return self._a_entidad(orm) if orm else None
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def guardar(self, entidad: PaqueteInferencia) -> PaqueteInferencia:
         try:

@@ -6,9 +6,13 @@
 
 Autenticación por dispositivo IoT (`access_key`). No requiere JWT.
 
+**DEV-17 / P7:** los ejemplos usan el stub sin integración real. Un `201`
+confirma recepción y persistencia; no confirma entrega a IA. Las desviaciones
+conservan su paquete en `PENDIENTE`, con `intento_envios = 0`.
+
 ---
 
-## Flujo principal — DESVIACION_SIMPLE con contexto completo → paquete ENVIADO
+## Flujo principal — DESVIACION_SIMPLE con contexto completo → paquete PENDIENTE
 
 ```bash
 curl -s -X POST http://localhost:8000/iot/eventos-edge \
@@ -48,7 +52,7 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
   "severidad": "MODERADO",
   "estado_conectividad": true,
   "fecha_procesamiento": "2026-07-06T11:01:00.200000Z",
-  "paquete_inferencia_estado": "ENVIADO"
+  "paquete_inferencia_estado": "PENDIENTE"
 }
 ```
 
@@ -139,7 +143,7 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
   "severidad": "CRITICO",
   "estado_conectividad": true,
   "fecha_procesamiento": "2026-07-06T12:00:00.500000Z",
-  "paquete_inferencia_estado": "ENVIADO"
+  "paquete_inferencia_estado": "PENDIENTE"
 }
 ```
 
@@ -182,7 +186,7 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
   "severidad": "LEVE",
   "estado_conectividad": true,
   "fecha_procesamiento": "2026-07-06T11:02:00.100000Z",
-  "paquete_inferencia_estado": "ENVIADO"
+  "paquete_inferencia_estado": "PENDIENTE"
 }
 ```
 
@@ -219,13 +223,25 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 
 ---
 
-## FA-04/05 — Motor de inferencia no disponible → paquete FALLIDO
+## FA-04/05 — Integración ausente y resultado de un intento de entrega
 
-*(Solo verificable cuando `MotorInferenciaStubAdapter` se reemplace por el adaptador real.)*
+Con `MotorInferenciaStubAdapter`, el puerto señala `MotorInferenciaNoIntegradoError`:
+- El paquete ya confirmado queda `PENDIENTE`, con `intento_envios = 0`.
+- La respuesta sigue siendo `201`; no se revierte el paquete por falta de IA.
+- El evento y su contexto permanecen almacenados y correlacionables.
+- `obtener_por_evento(id_evento)` permite recuperar el paquete desde el repositorio.
 
-Cuando `motor_inferencia_port.enviar_paquete()` lanza excepción o devuelve `False`:
+Cuando un adaptador integrado devuelve `False` o lanza otra excepción:
 - El paquete queda con `estado_paquete = FALLIDO`, `intento_envios = 1`
 - El evento queda guardado con `enviado_backend = false`
+
+Un retorno `True` conserva la transición a `ENVIADO`, con un intento.
+Ese camino está probado con un doble del puerto; no demuestra entrega real a IA.
+
+Reconsolidar el mismo ID de evento devuelve el paquete existente sin crear
+otro ni intentar una nueva entrega. No existe aquí un worker de reintentos.
+El contrato actual del POST no incluye una clave externa de idempotencia;
+un nuevo POST no se identifica automáticamente como retransmisión del anterior.
 
 ---
 
