@@ -152,7 +152,7 @@ class RegistrarRetroalimentacionUseCase:
                 id_usuario=id_usuario_veterinario,
                 id_referencia=str(dto.id_resultado_inferencia),
                 entidad_referencia="resultado_inferencia",
-                resultado_operacion="DETECTADO",
+                resultado_operacion="EXITOSO",
                 severidad_evento="WARNING",
                 correlacion_id=correlacion,
                 payload_evento={

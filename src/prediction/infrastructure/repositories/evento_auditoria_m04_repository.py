@@ -15,8 +15,7 @@ from sqlalchemy.orm import Session
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.infrastructure.models.evento_auditoria_m04_model import EventoAuditoriaM04Model
-from src.shared.db_error_translator import raise_from_db_error
-from src.shared.errors import NotFoundError
+from src.shared.errors import InfrastructureError, NotFoundError
 from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
 
 logger = logging.getLogger(__name__)
@@ -167,6 +166,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
                     "hash_evento": hash_ev,
                 })
             logger.error("Error al persistir evento de auditoría M04 tipo=%s: %s", tipo_evento, exc)
+            _lanzar_fallo_persistencia(exc)
 
     def _registrar_invalido(
         self,
@@ -198,6 +198,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             self._db.flush()
         except Exception as exc:
             logger.error("Error al persistir evento AUDITORIA_EVENTO_INVALIDO: %s", exc)
+            _lanzar_fallo_persistencia(exc)
 
     def consultar(
         self,
@@ -250,6 +251,22 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
                 message=f"No existe el evento de auditoría con id {id_evento}.",
             )
         return _a_entidad(orm)
+
+
+def _lanzar_fallo_persistencia(exc: Exception) -> None:
+    """D-03: un flush fallido deja la sesión inutilizable, así que no se puede tragar.
+
+    Antes se registraba en el log y se seguía: el ``commit`` siguiente del use
+    case fallaba con ``PendingRollbackError`` (500 sin causa) o, si el use case
+    lo atrapaba, el evento se perdía en silencio. Va como 500 y no por
+    ``raise_from_db_error``: los valores del evento los arma el servidor, no el
+    cliente, así que un CHECK o un enum inválido no es un 400.
+    """
+    raise InfrastructureError(
+        code="AUDITORIA_M04_NO_PERSISTIDA",
+        message="No se pudo registrar el evento de auditoría de predicción.",
+        original_error=exc,
+    ) from exc
 
 
 def _truncar_payload(payload: dict) -> tuple[dict, bool]:
