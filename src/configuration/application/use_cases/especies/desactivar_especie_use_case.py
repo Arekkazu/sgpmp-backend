@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-46 RF-15: proceso crítico activo responde 422 (antes 423) |
 """Caso de uso: Desactivar especie del catálogo (Flujo C — RF-15).
 
 Solo el Administrador puede desactivar. La operación se bloquea si existe
@@ -15,7 +18,7 @@ from src.configuration.domain.repositories.auditoria_especie_repository import A
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.proceso_critico_port import ProcesoCriticoPort
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, LockedError, NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 def _snapshot(especie: Especie) -> dict:
@@ -64,7 +67,7 @@ class DesactivarEspecieUseCase:
             )
 
         if self.proceso_critico_port.tiene_proceso_activo(id_especie):
-            raise LockedError(
+            raise BusinessRuleError(
                 code="ESPECIE_CON_PROCESO_ACTIVO",
                 message="No se puede desactivar la especie porque tiene procesos críticos en ejecución.",
             )
