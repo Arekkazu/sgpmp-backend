@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido, FOR UPDATE SKIP LOCKED (E10) |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,7 +13,7 @@ from sqlalchemy.orm import Session
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
-from src.telemetry.domain.entities.alerta import Alerta
+from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
 
@@ -303,3 +306,27 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             id_usuario_resolucion=orm.id_usuario_resolucion,
             referencia_alerta_original=orm.referencia_alerta_original,
         )
+
+    def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
+        try:
+            filas = (
+                self.db.query(AlertaModel)
+                .filter(
+                    AlertaModel.estado_alerta == EstadoAlerta.ACTIVA.value,
+                    AlertaModel.fecha_vencimiento <= ahora,
+                    # RF-60 D-09: las técnicas se cierran al reconectar, no por SLA.
+                    AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                )
+                .order_by(AlertaModel.fecha_vencimiento)
+                .limit(limite)
+                .with_for_update(skip_locked=True)
+                .all()
+            )
+            # El trigger trg_rf57_03 valida la transición, fija fecha_resolucion y
+            # escribe el histórico con el motivo "SLA vencido sin atención".
+            for orm in filas:
+                orm.estado_alerta = EstadoAlerta.VENCIDA.value
+            self.db.flush()
+            return [self._a_entidad(orm) for orm in filas]
+        except Exception as exc:
+            raise_from_db_error(exc)

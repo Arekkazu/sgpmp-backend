@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
 import asyncio
 import logging
 import os
@@ -114,6 +117,31 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vencer_alertas_sla_periodicamente() -> None:
+    """Tarea periódica RF-57 E10 (DEV-31): alertas ACTIVA con el SLA cumplido → VENCIDA, cada 60 s."""
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.vencer_alertas_sla_use_case import VencerAlertasSlaUseCase
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            use_case = VencerAlertasSlaUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('VencerAlertasSla: %d alertas pasaron a VENCIDA.', n)
+        except Exception:
+            logger.exception('VencerAlertasSla: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -537,6 +565,7 @@ async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
+        asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
