@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: la respuesta trae esperanza_vida_dias (RFC-014) |
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: la respuesta trae densidad_poblacional_max y deja el nombre anterior deprecado |
 """Schemas de respuesta para los endpoints del catálogo de especies (RF-15).
 
 ``EspecieResponse`` se usa en todas las operaciones que devuelven una especie
@@ -13,7 +14,7 @@ import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class EspecieResponse(BaseModel):
@@ -22,7 +23,11 @@ class EspecieResponse(BaseModel):
     id_especie: int
     nombre: str
     descripcion: Optional[str]
-    densidad_maxima_por_especie: Optional[Decimal]
+    # RFC-012: ind/m² con el nombre de la ficha.
+    densidad_poblacional_max: Optional[Decimal] = None
+    densidad_maxima_por_especie: Optional[Decimal] = Field(
+        json_schema_extra={"deprecated": True}, description="Alias deprecado de densidad_poblacional_max.",
+    )
     grupo_manejo: Optional[str] = None
     # RFC-014: días; None = no definida.
     esperanza_vida_dias: Optional[int] = None
@@ -34,6 +39,11 @@ class EspecieResponse(BaseModel):
     fecha_actualizacion: Optional[datetime.datetime]
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def copiar_densidad(self):
+        self.densidad_poblacional_max = self.densidad_maxima_por_especie
+        return self
 
     @field_validator("nombre", mode="before")
     @classmethod

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: capacidad_efectiva y validaciones de capacidad por densidad (RFC-012) |
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: AreaOcupada y validar_reduccion_densidad |
 """Regla de capacidad por densidad de un área multiespecie (RFC-012 v1.1, RF-20).
 
 ``capacidad_efectiva(area) = floor(MIN(densidad ind/m² de las especies presentes) × superficie)``
@@ -10,7 +11,7 @@ el techo se evalúa sobre el estado resultante y lo paga quien ingresa (H-12.3).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Iterable, Optional
 
@@ -24,6 +25,15 @@ class EspecieDelArea:
     nombre: str
     grupo_manejo: Optional[str]
     densidad: Optional[Decimal]  # ind/m²; None = no configurada
+
+
+@dataclass(frozen=True)
+class AreaOcupada:
+    """Área con individuos alojados, con lo necesario para recalcular su techo."""
+    nombre: str
+    superficie: Decimal
+    especies: list[EspecieDelArea]
+    carga: int
 
 
 def capacidad_efectiva(superficie: Decimal, especies: Iterable[EspecieDelArea]) -> Optional[int]:
@@ -93,3 +103,22 @@ def validar_mismo_grupo(nombre_area: str, especies: list[EspecieDelArea]) -> Opt
                 field="especies",
             )
     return grupo
+
+
+def validar_reduccion_densidad(nombre_especie: str, id_especie: int, nueva: Decimal, areas: list[AreaOcupada]) -> None:
+    """RF-15 (RFC-012): 422 si con ``nueva`` densidad algún área donde está la especie
+    quedaría con más individuos que su capacidad efectiva. Las áreas cuyo techo ya era
+    indefinido (otra especie sin densidad) no se evalúan."""
+    for area in areas:
+        especies = [replace(e, densidad=nueva) if e.id_especie == id_especie else e for e in area.especies]
+        capacidad = capacidad_efectiva(area.superficie, especies)
+        if capacidad is not None and area.carga > capacidad:
+            raise BusinessRuleError(
+                code="DENSIDAD_DEJA_AREA_EXCEDIDA",
+                message=(
+                    f"Operación denegada: con {nueva} ind/m² para '{nombre_especie}', el área "
+                    f"'{area.nombre}' quedaría con {area.carga} individuos sobre una capacidad efectiva "
+                    f"de {capacidad}. Resuelva primero el exceso del área."
+                ),
+                field="densidad_poblacional_max",
+            )
