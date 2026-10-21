@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: conecta catalogo M09 y bitacora      |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -28,6 +31,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
     SincronizarBufferUseCase,
 )
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
 from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
@@ -42,8 +46,9 @@ from src.telemetry.infrastructure.schema.telemetria_schema import (
 
 from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
 from src.telemetry.infrastructure.repositories.ingesta_telemetria_repository import SqlAlchemyIngestaTelemetriaRepository
+from src.telemetry.infrastructure.routers.ruta_ingesta_auditada import RutaIngestaAuditada
 
-router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
+router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"], route_class=RutaIngestaAuditada)
 
 
 def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
@@ -52,6 +57,7 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
         ingesta_port=SqlAlchemyIngestaTelemetriaRepository(db),
         bitacora_repo=SqlAlchemyBitacoraIngestRepository(db),
         dispositivo_port=DispositivoM09Adapter(db),
+        catalogo_port=VariableCatalogoM09Adapter(db),
     )
 
 

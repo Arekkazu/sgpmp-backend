@@ -1,9 +1,14 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: inyecta catalogo en regresion B+     |
 from datetime import datetime, timezone
+from decimal import Decimal
 from unittest.mock import Mock
 
 import pytest
 
 from src.shared.errors import AppError, ServiceUnavailableError
+from src.telemetry.domain.entities.telemetria import ReglaVariableI3P1
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import IngerirTelemetriaUseCase, SincronizarBufferUseCase
 from src.telemetry.domain.repositories.ingesta_telemetria_port import ResultadoPersistenciaIngesta
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
@@ -18,7 +23,9 @@ def entrada(**cambios):
 def construir(resultado):
     db, port, identidad, bitacora = Mock(), Mock(), Mock(), Mock()
     port.ingerir.return_value = resultado
-    return IngerirTelemetriaUseCase(db, port, identidad, bitacora)
+    catalogo = Mock()
+    catalogo.obtener_regla.return_value = ReglaVariableI3P1(9, 'TEMPERATURA_AMBIENTAL', 'AMBIENTAL', '°C', ['°C'], Decimal('-50'), Decimal('100'))
+    return IngerirTelemetriaUseCase(db, port, identidad, bitacora, catalogo)
 
 
 @pytest.mark.parametrize('codigo,http', [
