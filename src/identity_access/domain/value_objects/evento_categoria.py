@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -68,6 +71,8 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Calibración registrada correctamente en M09 (RF-24/RF-10), SENSOR o VISION
     # según detalle.operacion.
     30: EventoCategoria.MODIFICACION,
+    # Variable ambiental marcada o desmarcada como crítica (RFC-016 B.7, RF-17).
+    31: EventoCategoria.MODIFICACION,
 }
 
 
@@ -107,6 +112,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     28: "INCONSISTENCIA_AUDITORIA_M02",
     29: "CALIBRACION_RECHAZADA",
     30: "CALIBRACION_EXITOSA",
+    31: "CAMBIO_VARIABLE_CRITICA",
 }
 
 
