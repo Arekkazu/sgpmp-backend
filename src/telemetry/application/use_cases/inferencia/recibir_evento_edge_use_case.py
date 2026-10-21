@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                     |
+# |------------|----------|-----------------------------------------------------------------|
+# | 2026-10-20 | Arekkazu | DEV-29 RF-56: rechaza dispositivo o sensor inactivos (401)      |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -66,10 +69,10 @@ class RecibirEventoEdgeUseCase:
         dispositivo = self.dispositivo_port.obtener_dispositivo_activo(
             dto.device_id, dto.sensor_id, dto.serial
         )
-        if dispositivo is None:
+        if dispositivo is None or not dispositivo.es_activo_dispositivo or not dispositivo.es_activo_sensor:
             raise AuthenticationError(
                 code="DISPOSITIVO_NO_AUTORIZADO",
-                message="El dispositivo o el sensor no corresponden al serial, o el dispositivo está inactivo.",
+                message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
             )
 
         ts_procesamiento = dto.timestamp_procesamiento_edge

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-29 RF-56: casos de dispositivo y sensor inactivos (401) |
 """RF-56 DEV-17: router, adaptadores y PostgreSQL reales, sin motor IA real."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -210,10 +213,17 @@ def test_fallo_estado_conserva_paquete_y_reconsolidacion_no_reenvia(client, db_s
     motor.enviar_paquete.assert_called_once()
 
 
-@pytest.mark.parametrize('invalidez,http', [('clave',401),('sensor',401),('estructura',400),('futuro',400)])
+@pytest.mark.parametrize('invalidez,http', [('clave',401),('sensor',401),('estructura',400),('futuro',400),
+                                             ('dispositivo_inactivo',401),('sensor_inactivo',401)])
 def test_recepcion_conserva_validaciones_existentes(client, db_session, hardware, invalidez, http):
     payload = _payload(hardware)
-    if invalidez == 'clave':
+    if invalidez == 'dispositivo_inactivo':
+        db_session.execute(text('UPDATE modulo9.dispositivos_iot SET es_activo=false WHERE id_dispositivo_iot=:id'), {'id':hardware['device']})
+        db_session.commit()
+    elif invalidez == 'sensor_inactivo':
+        db_session.execute(text('UPDATE modulo9.sensores SET es_activo=false WHERE id_sensores=:id'), {'id':hardware['sensor']})
+        db_session.commit()
+    elif invalidez == 'clave':
         payload['serial'] = 'serial-ajeno-prueba'
     elif invalidez == 'sensor':
         payload['sensor_id'] = 2147483000
