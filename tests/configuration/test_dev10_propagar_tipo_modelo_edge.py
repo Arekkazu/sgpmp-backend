@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área usa id_especies y el puerto de dependencias nuevo |
 """DEV-10 (M09·RF-20, D-06): el tipo_modelo_asignado de un área va a sus Gateway Edge.
 
 Al crear un área con modelo o cambiar su ``tipo_modelo_asignado``, se envía a
@@ -46,7 +49,7 @@ def _area(tipo_modelo="MODELO_AVES") -> Infraestructura:
         id_infraestructura=10, nombre=NombreInfraestructura("Galpón 1"), tipo="Galpón",
         superficie=Superficie(Decimal("120")), id_finca=1, es_activo=True,
         fecha_actualizacion=datetime(2026, 10, 1, tzinfo=timezone.utc),
-        id_especie=1, tipo_modelo_asignado=tipo_modelo,
+        id_especies=[1], tipo_modelo_asignado=tipo_modelo,
     )
 
 
@@ -139,7 +142,8 @@ class _Auditoria:
 
 class _Especies:
     def obtener_por_id(self, id_especie):
-        return SimpleNamespace(id_especie=id_especie, nombre="Gallina", es_activo=True, tipo_modelo="MODELO_AVES")
+        return SimpleNamespace(id_especie=id_especie, nombre=SimpleNamespace(valor="Gallina"), es_activo=True,
+                               tipo_modelo="MODELO_AVES", grupo_manejo="AVES", densidad_maxima_por_especie=None)
 
 
 class _Fincas:
@@ -151,7 +155,8 @@ class _TiposArea:
 
 
 class _Dependencias:
-    def contar_activos_de_otra_especie(self, _id, _especie): return (0, None)
+    def contar_activos_por_especie(self, _id): return {}
+    def calcular_carga(self, _id): return 0
 
 
 def test_crear_area_con_modelo_lo_propaga_despues_del_commit():

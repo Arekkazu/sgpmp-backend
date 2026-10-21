@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el doble del área declara sus especies (RFC-012) |
 """RF-48 (INC-M02-74-G80): 'disponibles' debia excluir solo la infraestructura
 origen, sin aplicar compatibilidad de especie (C1), capacidad (C3) ni alcance
 por finca -- el usuario podia elegir un destino que el POST luego rechazaba.
@@ -13,6 +16,7 @@ from src.biological_assets.application.use_cases.gestion.registrar_transferencia
 )
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, DetallePoblacional
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 
 
 class ActivoRepoFake:
@@ -50,7 +54,7 @@ def _infra(id_infraestructura, id_finca, id_especie=None, capacidad_maxima=None)
         es_activo=True,
         id_finca=id_finca,
         capacidad_maxima=capacidad_maxima,
-        id_especie=id_especie,
+        especies=[EspecieDelArea(id_especie, 'E', None, None)] if id_especie is not None else [],
     )
 
 

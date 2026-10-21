@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: capacidad_maxima derivada y especies del área desde la tabla puente |
 """Adapter de ``InfraestructuraConsultaPort`` que lee infraestructuras, ocupación y
 sensores de M09.
 """
@@ -15,7 +18,11 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
     InfraestructuraConsulta,
     InfraestructuraConsultaPort,
 )
+from src.configuration.domain.services.capacidad_area import capacidad_efectiva
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+from src.configuration.infrastructure.repositories.infraestructura_repository import (
+    SqlAlchemyInfraestructuraRepository,
+)
 
 
 class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
@@ -24,17 +31,18 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    @staticmethod
-    def _a_consulta(orm: InfraestructuraModel) -> InfraestructuraConsulta:
+    def _a_consulta(self, orm: InfraestructuraModel) -> InfraestructuraConsulta:
+        superficie = Decimal(str(orm.superficie)) if orm.superficie is not None else None
+        especies = SqlAlchemyInfraestructuraRepository(self.db).especies_del_area(orm)
         return InfraestructuraConsulta(
             id_infraestructura=orm.id_infraestructura,
             nombre=orm.nombre,
             tipo=orm.tipo,
             es_activo=orm.es_activo,
-            superficie=Decimal(str(orm.superficie)) if orm.superficie is not None else None,
+            superficie=superficie,
             id_finca=orm.id_finca,
-            capacidad_maxima=orm.capacidad_maxima,
-            id_especie=orm.id_especie,
+            capacidad_maxima=capacidad_efectiva(superficie, especies) if superficie is not None else None,
+            especies=especies,
         )
 
     def obtener_activa(self, id_infraestructura: int) -> Optional[InfraestructuraConsulta]:

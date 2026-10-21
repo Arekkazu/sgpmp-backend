@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área expone sus especies y la capacidad derivada a M02 (RFC-012) |
 """Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
 
 from __future__ import annotations
@@ -5,9 +8,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
+from dataclasses import field
 from typing import Optional
 
 from src.biological_assets.domain.entities.activo_biologico import SensorEnInfraestructura
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 
 
 @dataclass
@@ -21,8 +26,16 @@ class InfraestructuraConsulta:
     es_activo: bool
     superficie: Optional[Decimal] = None
     id_finca: Optional[int] = None
+    # RFC-012: derivada = capacidad_efectiva (floor(MIN densidad × superficie));
+    # None si el área no tiene especies o alguna no tiene densidad.
     capacidad_maxima: Optional[int] = None
-    id_especie: Optional[int] = None
+    # RFC-012: especies presentes, con grupo y densidad para validar la capacidad
+    # (``capacidad_area.validar_capacidad``) y la compatibilidad por grupo.
+    especies: list[EspecieDelArea] = field(default_factory=list)
+
+    @property
+    def id_especies(self) -> list[int]:
+        return [e.id_especie for e in self.especies]
 
 
 class InfraestructuraConsultaPort(ABC):

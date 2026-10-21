@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: destinos leen las especies del área (RFC-012) |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -146,7 +149,7 @@ class RegistrarTransferenciaUseCase:
             )
 
         # E-07: compatibilidad C1 — especie
-        if infra_destino.id_especie is not None and infra_destino.id_especie != activo.id_especie:
+        if infra_destino.id_especies and activo.id_especie not in infra_destino.id_especies:
             raise BusinessRuleError(
                 code='INCOMPATIBILIDAD_ESPECIE',
                 message=(
@@ -367,7 +370,7 @@ class RegistrarTransferenciaUseCase:
         for i in self.infra_port.listar_activas(excluir_id=activo.id_infraestructura):
             if id_finca_origen is not None and i.id_finca != id_finca_origen:
                 continue
-            if i.id_especie is not None and i.id_especie != activo.id_especie:
+            if i.id_especies and activo.id_especie not in i.id_especies:
                 continue
             if not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
                 continue
@@ -386,7 +389,8 @@ class RegistrarTransferenciaUseCase:
                 'tipo': i.tipo,
                 'capacidad_maxima': i.capacidad_maxima,
                 'ocupacion_actual': ocupacion,
-                'id_especie': i.id_especie,
+                'id_especie': i.id_especies[0] if len(i.id_especies) == 1 else None,
+                'especies': i.id_especies,
             }
             for i, ocupacion in disponibles
         ]
