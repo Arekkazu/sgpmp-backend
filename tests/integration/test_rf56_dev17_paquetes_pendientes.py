@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: casos de dispositivo y sensor inactivos (401) |
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 bitácora de rechazos, E3 evento individual, E6 límite por dispositivo, E7 intento no autorizado |
 """RF-56 DEV-17: router, adaptadores y PostgreSQL reales, sin motor IA real."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -291,3 +292,62 @@ def test_consolidaciones_concurrentes_del_mismo_evento_no_duplican(integration_e
             conn.execute(text('UPDATE modulo9.dispositivos_iot SET es_activo=false WHERE id_dispositivo_iot=:id'), {'id':hw['device']})
             conn.execute(text('UPDATE modulo9.infraestructuras SET es_activo=false WHERE id_infraestructura=:id'), {'id':hw['area']})
             conn.execute(text('UPDATE modulo9.fincas SET es_activo=false WHERE id_finca=:id'), {'id':finca})
+
+
+# ── DEV-45 (RF-56 G-13): E1, E3, E6, E7 ─────────────────────────────────────
+
+def _bitacora(db, tipo, entidad):
+    # id_evento es UUID: se filtra por la entidad, no se ordena por id.
+    return db.execute(text(
+        "SELECT accion_detallada FROM modulo3.bitacora_auditoria_iot "
+        "WHERE tipo_evento = :t AND entidad_afectada_id = :e ORDER BY fecha_hora DESC"),
+        {'t': tipo, 'e': entidad}).scalars().all()
+
+
+@pytest.mark.parametrize('invalidez,codigo', [('estructura', 'ERROR_ESTRUCTURA'), ('futuro', 'TIMESTAMP_FUTURO')])
+def test_e1_el_evento_rechazado_queda_en_bitacora_con_su_contenido(client, db_session, hardware, invalidez, codigo):
+    payload = _payload(hardware)
+    if invalidez == 'estructura':
+        payload.pop('device_id')
+    else:
+        payload['timestamp_captura'] = (datetime.now(timezone.utc)+timedelta(minutes=2)).isoformat()
+    assert client.post('/iot/eventos-edge', json=payload).status_code == 400
+    detalle = _bitacora(db_session, 'EVENTO_EDGE_RECHAZADO', hardware['serial'])[0]
+    assert detalle['codigo_error'] == codigo
+    assert detalle['evento']['metadata_edge'] == {'origen_prueba': 'DEV-17'}
+
+
+def test_e3_timestamps_dispersos_se_procesan_como_evento_individual(client, db_session, hardware):
+    payload = _payload(hardware)
+    payload['variables_involucradas'][1]['timestamp_captura'] = (
+        datetime.now(timezone.utc) - timedelta(minutes=1, seconds=30)).isoformat()
+    response = client.post('/iot/eventos-edge', json=payload)
+    assert response.status_code == 201, response.text
+    row = _paquetes(db_session, hardware['device'])[0]
+    assert row['contexto_incomplento'] is True  # nombre real de la columna
+    assert list(row['contexto_ambiental']) == ['AMBIENTAL'] and len(row['contexto_ambiental']['AMBIENTAL']) == 1
+    assert row['metadatos']['agrupacion_descartada']['dispersion_seg'] > 5
+    assert _bitacora(db_session, 'AGRUPACION_DESCARTADA', str(row['id_paquetes_inferencia']))[0]['dispersion_seg'] > 5
+
+
+def test_e6_limite_por_dispositivo_salvo_criticos(client, monkeypatch, hardware):
+    from src.telemetry.application.use_cases.inferencia import recibir_evento_edge_use_case as uc
+    monkeypatch.setattr(uc, 'LIMITE_EVENTOS_POR_MINUTO', 2)
+    normal = _payload(hardware, 'NORMAL')
+    assert [client.post('/iot/eventos-edge', json=normal).status_code for _ in range(3)] == [201, 201, 429]
+    critico = {**normal, 'severidad': 'CRITICO'}
+    assert client.post('/iot/eventos-edge', json=critico).status_code == 201
+
+
+def test_e7_intento_no_autorizado_queda_como_critical(client, db_session, hardware):
+    ajeno = {**_payload(hardware), 'serial': 'serial-ajeno-e7'}
+    assert client.post('/iot/eventos-edge', json=ajeno).status_code == 401
+    assert client.post('/iot/eventos-edge', json=_payload(hardware), headers={'Authorization': 'Bearer otro'}).status_code == 401
+    filas = db_session.execute(text(
+        "SELECT entidad_afectada_id, severidad_log, accion_detallada->>'codigo_error' FROM modulo3.bitacora_auditoria_iot "
+        "WHERE tipo_evento = 'INTENTO_NO_AUTORIZADO_EVENTO_EDGE' ORDER BY fecha_hora DESC LIMIT 2")).all()
+    assert {(f[0], f[1], f[2]) for f in filas} == {
+        ('serial-ajeno-e7', 'CRITICAL', 'DISPOSITIVO_NO_AUTORIZADO'),
+        (None, 'CRITICAL', 'TOKEN_SERVICIO_INVALIDO'),
+    }
+

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: un evento Edge con estructura inválida queda en la bitácora (E1) |
 """Handlers globales de error de la aplicación FastAPI.
 
 Se registran en main.py con register_error_handlers(app). Cubren tres capas:
@@ -123,6 +126,33 @@ def _usuario_del_token(request: Request) -> int | None:
         return None
 
 
+def _auditar_evento_edge_rechazado(request: Request, exc: RequestValidationError, fields: list[dict]) -> None:
+    """RF-56 E1: un evento Edge con estructura inválida queda en la bitácora RF-63 con su
+    contenido. Nunca cambia la respuesta 400."""
+    if request.method != "POST" or not request.url.path.rstrip("/").endswith("/iot/eventos-edge"):
+        return
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edge import (
+        registrar_evento_rechazado,
+    )
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
+        SqlAlchemyBitacoraAuditoriaIotRepository,
+    )
+
+    cuerpo = exc.body if isinstance(exc.body, dict) else {"cuerpo": exc.body}
+    db = sesion_sistema()
+    try:
+        registrar_evento_rechazado(
+            db, SqlAlchemyBitacoraAuditoriaIotRepository(db), motivo="estructura inválida",
+            codigo="ERROR_ESTRUCTURA", payload={**cuerpo, "_errores": fields},
+            serial=cuerpo.get("serial") if isinstance(cuerpo.get("serial"), str) else None,
+        )
+    except Exception:
+        logger.warning("RF-56: no se pudo registrar el evento Edge rechazado en la bitácora.")
+    finally:
+        db.close()
+
+
 def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> None:
     """RF-36/RF-52: deja constancia en `bitacora_auditoria_m02` de un 400 rechazado.
 
@@ -239,6 +269,7 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     # INC-M02-43-G29 / RF-36: las operaciones rechazadas antes de llegar al
     # use case (400 de Pydantic) también deben quedar en la bitácora de M02.
     _auditar_validacion_rechazada_m02(request, fields)
+    _auditar_evento_edge_rechazado(request, exc, fields)
 
     return _respuesta_error(400, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
 
