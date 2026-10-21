@@ -1,8 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: valida los umbrales de tormenta (E8) |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
 from src.configuration.domain.entities.parametro_mlops import (
-    PARAMETROS_CALIDAD, RF57_CONFIANZA, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
+    PARAMETROS_CALIDAD, RF57_CONFIANZA, RF57_TORMENTA_SISTEMA, RF57_TORMENTA_UNIDAD, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
     RF72_VENTANA, ParametroMLOps, calidad_configurada, numero_configurado,
 )
 from src.shared.errors import ServiceUnavailableError, ValidationError
@@ -11,6 +14,7 @@ _LIMITES = {
     RF62_K: (0, None), RF62_M: (1, None), RF62_N: (2, None),
     RF62_DRIFT: (0, None), RF62_P: (1, None),
     RF57_CONFIANZA: (Decimal('0.70'), Decimal('0.95')),
+    RF57_TORMENTA_SISTEMA: (1, None), RF57_TORMENTA_UNIDAD: (1, None),
     RF72_VENTANA: (7, 365),
 }
 
@@ -37,6 +41,9 @@ class ConfigurarParametrosMLOpsUseCase:
                 calidad_configurada(actuales | nuevos)
             if RF57_CONFIANZA in nuevos:
                 numero_configurado(nuevos, RF57_CONFIANZA, minimo='0.70', maximo='0.95')
+            for nombre in (RF57_TORMENTA_SISTEMA, RF57_TORMENTA_UNIDAD):
+                if nombre in nuevos:
+                    numero_configurado(nuevos, nombre, minimo=1, entero=True)
             if RF72_VENTANA in nuevos:
                 numero_configurado(nuevos, RF72_VENTANA, minimo=7, maximo=365, entero=True)
         except ServiceUnavailableError as exc:

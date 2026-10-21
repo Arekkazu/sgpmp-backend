@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: pendientes de notificar y conteos de tormenta (Fase 8, E8) |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -75,6 +76,20 @@ class AlertaRepository(ABC):
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]: ...
+
+    @abstractmethod
+    def reclamar_pendientes_notificacion(self, ahora: datetime, ventana_min: int = 10, limite: int = 100) -> list[Alerta]:
+        """RF-57 Fase 8: alertas operativas generadas en los últimos ``ventana_min`` minutos
+        sin notificar; las marca con ``fecha_notificacion = ahora`` y las devuelve. Sin commit.
+        Se saltan las filas bloqueadas (otra instancia del job)."""
+
+    @abstractmethod
+    def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
+        """RF-57 E8: alertas operativas generadas desde ``desde``: total y por área."""
+
+    @abstractmethod
+    def existe_tormenta_desde(self, desde: datetime) -> bool:
+        """RF-57 E8: ya hay una alerta TORMENTA_DE_ALERTAS generada desde ``desde``."""
 
     @abstractmethod
     def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
