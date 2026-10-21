@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: la respuesta trae esperanza_vida_dias (RFC-014) |
 """Schemas de respuesta para los endpoints del catálogo de especies (RF-15).
 
 ``EspecieResponse`` se usa en todas las operaciones que devuelven una especie
@@ -21,6 +24,8 @@ class EspecieResponse(BaseModel):
     descripcion: Optional[str]
     densidad_maxima_por_especie: Optional[Decimal]
     grupo_manejo: Optional[str] = None
+    # RFC-014: días; None = no definida.
+    esperanza_vida_dias: Optional[int] = None
     # Derivado de grupo_manejo (solo lectura): el formulario de áreas lo usa para
     # preseleccionar el modelo coherente (RF-20).
     tipo_modelo: Optional[str] = None

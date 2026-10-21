@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: persiste esperanza_vida_dias (RFC-014) |
 """Implementación SQLAlchemy del puerto :class:`EspecieRepository`.
 
 Único punto donde se cruza la frontera ORM ↔ dominio para el agregado
@@ -38,6 +41,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             descripcion=orm.descripcion,
             densidad_maxima_por_especie=orm.densidad_maxima_por_especie,
             grupo_manejo=orm.grupo_manejo,
+            esperanza_vida_dias=orm.esperanza_vida_dias,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
             fecha_actualizacion=orm.fecha_actualizacion,
@@ -50,6 +54,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             descripcion=especie.descripcion,
             densidad_maxima_por_especie=especie.densidad_maxima_por_especie,
             grupo_manejo=especie.grupo_manejo,
+            esperanza_vida_dias=especie.esperanza_vida_dias,
             es_activo=especie.es_activo,
             fecha_creacion=especie.fecha_creacion or datetime.now(timezone.utc),
         )
@@ -88,6 +93,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         orm.descripcion = especie.descripcion
         orm.densidad_maxima_por_especie = especie.densidad_maxima_por_especie
         orm.grupo_manejo = especie.grupo_manejo
+        orm.esperanza_vida_dias = especie.esperanza_vida_dias
         orm.es_activo = especie.es_activo
         orm.fecha_actualizacion = especie.fecha_actualizacion
         try:

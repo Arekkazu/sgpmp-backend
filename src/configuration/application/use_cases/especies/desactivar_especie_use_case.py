@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: snapshot de auditoría desde la entidad |
 """Caso de uso: Desactivar especie del catálogo (Flujo C — RF-15).
 
 Solo el Administrador puede desactivar. La operación se bloquea si existe
@@ -17,21 +20,6 @@ from src.configuration.domain.repositories.proceso_critico_port import ProcesoCr
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, LockedError, NotFoundError
 
-
-def _snapshot(especie: Especie) -> dict:
-    return {
-        "id_especie": especie.id_especie,
-        "nombre": especie.nombre.valor,
-        "descripcion": especie.descripcion,
-        "densidad_maxima_por_especie": (
-            str(especie.densidad_maxima_por_especie)
-            if especie.densidad_maxima_por_especie is not None
-            else None
-        ),
-        "es_activo": especie.es_activo,
-        "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
-        "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
-    }
 
 
 class DesactivarEspecieUseCase:
@@ -69,7 +57,7 @@ class DesactivarEspecieUseCase:
                 message="No se puede desactivar la especie porque tiene procesos críticos en ejecución.",
             )
 
-        snapshot_anterior = _snapshot(especie)
+        snapshot_anterior = especie._snapshot()
 
         especie.desactivar()
         especie.fecha_actualizacion = datetime.now(timezone.utc)
@@ -81,7 +69,7 @@ class DesactivarEspecieUseCase:
                 id_usuario=usuario_actual.id_usuario,
                 tipo_operacion="DEACTIVATE",
                 valores_anteriores=snapshot_anterior,
-                valores_nuevos=_snapshot(especie_actualizada),
+                valores_nuevos=especie_actualizada._snapshot(),
             )
             self.db.commit()
         except Exception:
