@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: edita esperanza_vida_dias (omitida conserva); snapshot desde la entidad |
 """Caso de uso: Editar especie existente del catálogo (Flujo B — RF-15).
 
 Administrador e Ingeniero de Campo pueden editar. Concurrencia optimista
@@ -19,22 +22,6 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
 from src.shared.tipo_modelo import tipo_modelo_de_grupo
 
-
-def _snapshot(especie: Especie) -> dict:
-    return {
-        "id_especie": especie.id_especie,
-        "nombre": especie.nombre.valor,
-        "descripcion": especie.descripcion,
-        "densidad_maxima_por_especie": (
-            str(especie.densidad_maxima_por_especie)
-            if especie.densidad_maxima_por_especie is not None
-            else None
-        ),
-        "grupo_manejo": especie.grupo_manejo,
-        "es_activo": especie.es_activo,
-        "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
-        "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
-    }
 
 
 class EditarEspecieUseCase:
@@ -90,11 +77,14 @@ class EditarEspecieUseCase:
                     field="nombre",
                 )
 
-        snapshot_anterior = _snapshot(especie)
+        snapshot_anterior = especie._snapshot()
 
         densidad_maxima = especie.densidad_maxima_por_especie
         if "densidad_maxima_por_especie" in dto.model_fields_set:
             densidad_maxima = dto.densidad_maxima_por_especie
+        esperanza_vida = especie.esperanza_vida_dias
+        if "esperanza_vida_dias" in dto.model_fields_set:
+            esperanza_vida = dto.esperanza_vida_dias
         # Omitido conserva el grupo actual (el DTO no acepta vaciarlo).
         grupo_manejo = dto.grupo_manejo if "grupo_manejo" in dto.model_fields_set else especie.grupo_manejo
         if grupo_manejo != especie.grupo_manejo:
@@ -133,6 +123,7 @@ class EditarEspecieUseCase:
             densidad_maxima_por_especie=densidad_maxima,
             fecha_actualizacion=datetime.now(timezone.utc),
             grupo_manejo=grupo_manejo,
+            esperanza_vida_dias=esperanza_vida,
         )
 
         try:
@@ -142,7 +133,7 @@ class EditarEspecieUseCase:
                 id_usuario=usuario_actual.id_usuario,
                 tipo_operacion="UPDATE",
                 valores_anteriores=snapshot_anterior,
-                valores_nuevos=_snapshot(especie_actualizada),
+                valores_nuevos=especie_actualizada._snapshot(),
             )
             self.db.commit()
         except Exception:
