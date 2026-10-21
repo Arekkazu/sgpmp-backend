@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -89,7 +92,7 @@ _TRANSICIONES_VALIDAS: dict[str, set[str]] = {
     EstadoAlerta.EN_ATENCION: {EstadoAlerta.RESUELTA, EstadoAlerta.VENCIDA},
     EstadoAlerta.RESUELTA: set(),
     EstadoAlerta.DESCARTADA: set(),
-    EstadoAlerta.VENCIDA: {EstadoAlerta.EN_ATENCION},
+    EstadoAlerta.VENCIDA: set(),
     EstadoAlerta.PENDIENTE_SINCRONIZACION: {EstadoAlerta.ACTIVA},
 }
 
