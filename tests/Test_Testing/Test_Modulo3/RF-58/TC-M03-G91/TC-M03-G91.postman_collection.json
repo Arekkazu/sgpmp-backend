@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "TC-M03-G91 — RF-58 recuperación automática",
+    "description": "Matriz TC-M03-179 y TC-M03-194. Lectura A real; B se genera desde Cypress por API oficial.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if(pm.environment.get('qa_autorizado')!=='SI'||!pm.environment.get('run_id')||!/^https:\\/\\//.test(pm.environment.get('base_url')||'')){if(pm.execution?.skipRequest)pm.execution.skipRequest();throw new Error('BLOQUEO_G91');}",
+          "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('[SETUP] respuesta en sandbox',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Lectura A 179",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/iot/telemetria",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\":{{device_id}},\"sensor_id\":{{sensor_179}},\"tipo_variable\":\"TEMPERATURA_AMBIENTAL\",\"valor\":25,\"unidad\":\"°C\",\"timestamp_captura\":\"{{ts_179}}\",\"access_key\":\"{{access_key}}\",\"origen\":\"TIEMPO_REAL\",\"frecuencia_muestreo\":5,\"estado_conectividad\":true}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ts_179',new Date(Date.now()-30000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b=pm.response.code===201?pm.response.json():{};pm.test('[TC-M03-179][PRE][PRE-179-01] lectura A válida',()=>{pm.expect(pm.response.code).to.eql(201);pm.expect(b.estado_calidad).to.eql('LECTURA_VALIDA');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lectura A 194",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/iot/telemetria",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\":{{device_id}},\"sensor_id\":{{sensor_194}},\"tipo_variable\":\"TEMPERATURA_AMBIENTAL\",\"valor\":25,\"unidad\":\"°C\",\"timestamp_captura\":\"{{ts_194}}\",\"access_key\":\"{{access_key}}\",\"origen\":\"TIEMPO_REAL\",\"frecuencia_muestreo\":5,\"estado_conectividad\":true}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ts_194',new Date(Date.now()-30000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b=pm.response.code===201?pm.response.json():{};pm.test('[TC-M03-194][PRE][PRE-194-01] lectura A válida',()=>{pm.expect(pm.response.code).to.eql(201);pm.expect(b.estado_calidad).to.eql('LECTURA_VALIDA');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard API de A",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_prod}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_infraestructura}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b=pm.response.code===200?pm.response.json():{};const ss=b.sensores||[];for(const k of ['179','194'])pm.test('[SETUP] valor A visible en backend para '+k,()=>{pm.expect(pm.response.code).to.eql(200);const s=ss.find(x=>String(x.id_sensor)===pm.environment.get('sensor_'+k));pm.expect(s).to.be.an('object');pm.expect(Number(s.ultimo_valor)).to.eql(25);});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

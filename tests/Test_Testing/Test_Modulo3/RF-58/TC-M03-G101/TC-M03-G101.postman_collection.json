@@ -1,0 +1,14 @@
+{
+  "info": { "name": "TC-M03-G101 - baseline 50 sensores RF-58", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (pm.environment.get('autorizado_run') !== 'SI' || pm.environment.get('qa_autorizado') !== 'SI' || pm.environment.get('ambiente') !== 'TEST' || String(pm.environment.get('autorizacion') || '').length < 8 || !pm.environment.get('run_id') || !/^https:\\/\\//.test(pm.environment.get('base_url') || '') || pm.environment.get('base_url') !== pm.environment.get('test_base_url')) { pm.execution.skipRequest(); throw Error('BLOQUEO_G101'); }"] } }],
+  "item": [{ "name": "[TC-M03-196] 50 sensores preparados en dashboard", "request": { "method": "GET", "header": [
+    { "key": "Authorization", "value": "Bearer {{token}}" },
+    { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+    { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" }
+  ], "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_infraestructura}}?pagina=1&por_pagina=50" },
+  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+    "let b = {}; try { b = pm.response.json(); } catch { b = {}; }",
+    "pm.test('[TC-M03-196][PRE] 50 sensores reales y sandbox', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')); pm.expect(b.sensores).to.be.an('array').with.length(50); });"
+  ] } }]
+  }]
+}

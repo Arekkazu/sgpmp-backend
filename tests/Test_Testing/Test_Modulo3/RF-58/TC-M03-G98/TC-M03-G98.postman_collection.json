@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "TC-M03-G98 - TC-M03-191",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!/^https:\\/\\//.test(pm.environment.get('base_url')||'')){pm.execution.skipRequest();throw Error('BLOQUEO_G98');}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-191][ASSERT] panel agregado de alertas",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_unidad}}?por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}const id=Number(pm.environment.get('id_unidad'));const u=(b.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id);const panel=Array.isArray(b.alertas_activas)?b.alertas_activas:Array.isArray(u?.alertas_activas)?u.alertas_activas:Array.isArray(b.panel_alertas_activas)?b.panel_alertas_activas:undefined;const ids=JSON.parse(pm.environment.get('ids_alertas'));const activos=JSON.parse(pm.environment.get('ids_activos'));",
+              "pm.test('[TC-M03-191][PRE][PRE-191-01] respuesta en sandbox',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+              "pm.test('[TC-M03-191][ASSERT][API-191-01] HTTP 200 y total activo de la unidad',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u).to.exist;pm.expect(u.alertas_activas_count).to.be.a('number').and.at.least(3);});",
+              "pm.test('[TC-M03-191][ASSERT][API-191-02] lista completa ordenada CRITICO, ALTA, MEDIA',()=>{pm.expect(panel).to.be.an('array');pm.expect(panel.length).to.eql(u.alertas_activas_count);for(const x of ids)pm.expect(panel.some(a=>Number(a.id_alerta)===x)).to.eql(true);const rango={CRITICO:0,ALTA:1,MEDIA:2};pm.expect(panel[0].severidad).to.eql('CRITICO');for(let i=1;i<panel.length;i++)pm.expect(rango[panel[i-1].severidad]).to.be.at.most(rango[panel[i].severidad]);});",
+              "pm.test('[TC-M03-191][ASSERT][API-191-03] tipo, variable y tiempo transcurrido por alerta',()=>{pm.expect(panel).to.be.an('array');for(const a of panel){pm.expect(a.tipo_alerta).to.be.a('string').and.not.empty;pm.expect(a.tipo_variable).to.be.a('string').and.not.empty;const t=a.tiempo_transcurrido??a.tiempo_transcurrido_min??a.minutos_transcurridos;pm.expect(t).not.to.be.oneOf([null,undefined,'']);}});",
+              "pm.test('[TC-M03-191][ASSERT][API-191-04] enlace directo al activo afectado',()=>{pm.expect(panel).to.be.an('array');ids.forEach((idAlerta,i)=>{const a=panel.find(x=>Number(x.id_alerta)===idAlerta);pm.expect(a).to.exist;pm.expect(Number(a.id_activo_biologico)).to.eql(activos[i]);const href=a.enlace_activo_biologico??a.url_activo_biologico??a.href_activo;pm.expect(href).to.be.a('string').and.include(String(activos[i]));});});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

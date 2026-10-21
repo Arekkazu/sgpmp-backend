@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "TC-M03-G96 - TC-M03-187",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.environment.get('autorizado_run') !== 'SI' || !pm.environment.get('run_id') || !/^https:\\/\\//.test(pm.environment.get('base_url') || '')) { pm.execution.skipRequest(); throw Error('BLOQUEO_G96'); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-187][ASSERT] ONLINE",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_online}}?pagina={{pagina_online}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Condición no preparada en este RUN (dependencia RF-60): no se consulta con IDs vacíos.",
+              "if (!pm.environment.get(\"id_online\")) pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const permitidos = [\"ONLINE\", \"OFFLINE\", \"SIN_SEÑAL\"];",
+              "pm.test(\"[TC-M03-187][PRE][PRE-187-01] sandbox y HTTP 200\", () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-01] todos los estados expuestos pertenecen al catálogo RF-58\", () => { pm.expect(b.sensores).to.be.an(\"array\").that.is.not.empty; b.sensores.forEach(s => pm.expect(permitidos).to.include(s.estado_conectividad)); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-02] condición real ONLINE observable\", () => { const s = (b.sensores || []).find(x => Number(x.id_sensor) === Number(pm.environment.get(\"sensor_online\"))); pm.expect(s, \"sensor preparado presente\").to.be.an(\"object\"); pm.expect(s.estado_conectividad).to.eql(\"ONLINE\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "[TC-M03-187][ASSERT] OFFLINE",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_offline}}?pagina={{pagina_offline}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Condición no preparada en este RUN (dependencia RF-60): no se consulta con IDs vacíos.",
+              "if (!pm.environment.get(\"id_offline\")) pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const permitidos = [\"ONLINE\", \"OFFLINE\", \"SIN_SEÑAL\"];",
+              "pm.test(\"[TC-M03-187][PRE][PRE-187-02] sandbox y HTTP 200\", () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-01] todos los estados expuestos pertenecen al catálogo RF-58\", () => { pm.expect(b.sensores).to.be.an(\"array\").that.is.not.empty; b.sensores.forEach(s => pm.expect(permitidos).to.include(s.estado_conectividad)); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-02] condición real OFFLINE observable\", () => { const s = (b.sensores || []).find(x => Number(x.id_sensor) === Number(pm.environment.get(\"sensor_offline\"))); pm.expect(s, \"sensor preparado presente\").to.be.an(\"object\"); pm.expect(s.estado_conectividad).to.eql(\"OFFLINE\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "[TC-M03-187][ASSERT] SIN_SEÑAL",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_sin_senal}}?pagina={{pagina_sin_senal}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Condición no preparada en este RUN (dependencia RF-60): no se consulta con IDs vacíos.",
+              "if (!pm.environment.get(\"id_sin_senal\")) pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b = {}; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "const permitidos = [\"ONLINE\", \"OFFLINE\", \"SIN_SEÑAL\"];",
+              "pm.test(\"[TC-M03-187][PRE][PRE-187-03] sandbox y HTTP 200\", () => { pm.expect(pm.response.code).to.eql(200); pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-01] todos los estados expuestos pertenecen al catálogo RF-58\", () => { pm.expect(b.sensores).to.be.an(\"array\").that.is.not.empty; b.sensores.forEach(s => pm.expect(permitidos).to.include(s.estado_conectividad)); });",
+              "pm.test(\"[TC-M03-187][ASSERT][API-187-02] condición real SIN_SEÑAL observable\", () => { const s = (b.sensores || []).find(x => Number(x.id_sensor) === Number(pm.environment.get(\"sensor_sin_senal\"))); pm.expect(s, \"sensor preparado presente\").to.be.an(\"object\"); pm.expect(s.estado_conectividad).to.eql(\"SIN_SEÑAL\"); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

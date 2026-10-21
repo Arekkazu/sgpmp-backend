@@ -1,0 +1,9 @@
+# TC-M03-G95 — TC-M03-186 (RF-58 / CU04)
+
+Matriz oficial: fila G95. El caso exige que la sesión **expire mientras el dashboard permanece abierto**. El frontend guarda el JWT solo en memoria y usa una cookie HttpOnly para renovar la sesión; por eso modificar `localStorage`, cerrar sesión o revocar el token no representa el escenario. El ejecutor consulta las duraciones reales de JWT (`expira_en`) y cookie (`Max-Age`) durante un RUN autorizado. Solo inicia Cypress si ambas pueden expirar dentro de `--max-espera-min` (20 por defecto), con margen de 90 s, **y la cookie vence antes que el JWT**. Si el JWT vence primero, el frontend puede renovarlo y prolongar la cookie. Cypress espera respuestas reales del dashboard, comprueba el rechazo tras la expiración, el cese de actualizaciones, aviso y redirección, y la recuperación visual y recarga tras reingresar. No usa mocks ni relojes falsos.
+
+Con las duraciones actuales documentadas por el código (JWT de 8 h y refresh de mayor duración), el RUN registrará `ABORTADA_PREFLIGHT` y la dependencia. No existe un reloj o disparador de expiración aislado en los contratos consultados. Una política QA futura de sesión corta permitiría ejecutar el mismo spec sin reconstruirlo. El runner no declara cobertura funcional antes de observar la expiración real.
+
+Local: `node ejecutar_tc_m03_g95.mjs --validar-local` y `node --test validar_local_g95.mjs`. No realizan conexiones remotas.
+
+Futura ejecución: `node ejecutar_tc_m03_g95.mjs --ejecutar --ambiente TEST --autorizacion "<referencia Desarrollo>" --tipo evaluacion --aceptar-efectos notificacion-login [--max-espera-min 20]`. Requiere `QA_AUTORIZADO=SI` y aceptación de posible notificación de login fuera del rollback. El RUN genera un informe Markdown y `evidencia.json` consolidado, más capturas cuando hay escenario visual. V1, V2 y reintentos siguen el historial del grupo.

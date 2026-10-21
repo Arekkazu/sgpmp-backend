@@ -1,0 +1,402 @@
+{
+  "info": {
+    "name": "TC-M03-G107 — Acceso por granja y por rol al monitoreo (RF-58)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "TC-M03-207 y 208 (209 lo evalúa el ejecutor sobre estos mismos rechazos). Solo se ejecuta desde ejecutar_tc_m03_g107.mjs con autorización vigente, dentro del sandbox del RUN."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Barrera: la colección solo se ejecuta desde ejecutar_tc_m03_g107.mjs con autorización vigente.",
+          "const autorizado = pm.environment.get(\"autorizado_run\") === \"SI\" && !!pm.environment.get(\"run_id\") && /^https:\\/\\//.test(pm.environment.get(\"base_url\") || \"\");",
+          "if (!autorizado) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); throw Error(\"BLOQUEO_G107\"); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"[PRE] respuesta dentro del sandbox del RUN\", () => pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-207] el Ingeniero consulta su propia unidad (granja A)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const num = k => Number(pm.environment.get(k));",
+              "function hallazgos(nombresVar, ids) {",
+              "  const out = JSON.parse(pm.environment.get(nombresVar) || \"[]\").filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function recorrer(o) {",
+              "    if (!o || typeof o !== \"object\") return;",
+              "    for (const [k, v] of Object.entries(o)) {",
+              "      if (ids[k] !== undefined && ids[k] !== null && !Number.isNaN(ids[k]) && Number(v) === ids[k]) out.push(`${k}=${v}`);",
+              "      recorrer(v);",
+              "    }",
+              "  })(cuerpo);",
+              "  return out;",
+              "}",
+              "const idsB = { id_infraestructura: num(\"id_b\"), id_finca: num(\"finca_b\"), id_sensor: num(\"sensor_b\"), id_alerta: pm.environment.get(\"alerta_b\") ? num(\"alerta_b\") : null };",
+              "const idsA = { id_infraestructura: num(\"id_a\"), id_finca: num(\"finca_a\"), id_sensor: num(\"sensor_a\") };",
+              "pm.test(\"[TC-M03-207][PRE] el Ingeniero accede a su unidad autorizada de la granja A (HTTP 200 con su sensor)\", () => {",
+              "  pm.expect(pm.response.code).to.eql(200);",
+              "  pm.expect((cuerpo && Array.isArray(cuerpo.sensores) ? cuerpo.sensores : []).some(s => Number(s.id_sensor) === idsA.id_sensor), \"sensor de la unidad A\").to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_eng}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_a}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard"
+          ],
+          "query": [
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_a}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-207][V:QUERY] granja ajena, ruta con id_infraestructura",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const num = k => Number(pm.environment.get(k));",
+              "function hallazgos(nombresVar, ids) {",
+              "  const out = JSON.parse(pm.environment.get(nombresVar) || \"[]\").filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function recorrer(o) {",
+              "    if (!o || typeof o !== \"object\") return;",
+              "    for (const [k, v] of Object.entries(o)) {",
+              "      if (ids[k] !== undefined && ids[k] !== null && !Number.isNaN(ids[k]) && Number(v) === ids[k]) out.push(`${k}=${v}`);",
+              "      recorrer(v);",
+              "    }",
+              "  })(cuerpo);",
+              "  return out;",
+              "}",
+              "const idsB = { id_infraestructura: num(\"id_b\"), id_finca: num(\"finca_b\"), id_sensor: num(\"sensor_b\"), id_alerta: pm.environment.get(\"alerta_b\") ? num(\"alerta_b\") : null };",
+              "const idsA = { id_infraestructura: num(\"id_a\"), id_finca: num(\"finca_a\"), id_sensor: num(\"sensor_a\") };",
+              "pm.test(\"[TC-M03-207][ASSERT][API-207-01][V:QUERY] la respuesta no expone lecturas, sensores, alertas, unidad ni metadatos de la granja B\", () => pm.expect(hallazgos(\"nombres_b\", idsB), \"datos de la granja B en la respuesta\").to.eql([]));",
+              "pm.test(\"[TC-M03-207][ASSERT][API-207-02][V:QUERY] el acceso a la unidad de la granja B es denegado\", () => pm.expect(pm.response.code >= 400 && pm.response.code < 500, `HTTP ${pm.response.code}`).to.eql(true));",
+              "pm.test(`[TC-M03-207][INFO][V:QUERY] respuesta registrada: HTTP ${pm.response.code}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_eng}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_b}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard"
+          ],
+          "query": [
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_b}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-207][V:RUTA] granja ajena, ruta /dashboard/{id}",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const num = k => Number(pm.environment.get(k));",
+              "function hallazgos(nombresVar, ids) {",
+              "  const out = JSON.parse(pm.environment.get(nombresVar) || \"[]\").filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function recorrer(o) {",
+              "    if (!o || typeof o !== \"object\") return;",
+              "    for (const [k, v] of Object.entries(o)) {",
+              "      if (ids[k] !== undefined && ids[k] !== null && !Number.isNaN(ids[k]) && Number(v) === ids[k]) out.push(`${k}=${v}`);",
+              "      recorrer(v);",
+              "    }",
+              "  })(cuerpo);",
+              "  return out;",
+              "}",
+              "const idsB = { id_infraestructura: num(\"id_b\"), id_finca: num(\"finca_b\"), id_sensor: num(\"sensor_b\"), id_alerta: pm.environment.get(\"alerta_b\") ? num(\"alerta_b\") : null };",
+              "const idsA = { id_infraestructura: num(\"id_a\"), id_finca: num(\"finca_a\"), id_sensor: num(\"sensor_a\") };",
+              "pm.test(\"[TC-M03-207][ASSERT][API-207-01][V:RUTA] la respuesta no expone lecturas, sensores, alertas, unidad ni metadatos de la granja B\", () => pm.expect(hallazgos(\"nombres_b\", idsB), \"datos de la granja B en la respuesta\").to.eql([]));",
+              "pm.test(\"[TC-M03-207][ASSERT][API-207-02][V:RUTA] el acceso a la unidad de la granja B es denegado\", () => pm.expect(pm.response.code >= 400 && pm.response.code < 500, `HTTP ${pm.response.code}`).to.eql(true));",
+              "pm.test(`[TC-M03-207][INFO][V:RUTA] respuesta registrada: HTTP ${pm.response.code}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_eng}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard/{{id_b}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard",
+            "{{id_b}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-208][V:QUERY] rol sin permiso, ruta con id_infraestructura",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin cuenta QA con un rol sin permiso no hay escenario 208: la petición no se envía (el ejecutor lo registra como PRE).",
+              "if (!pm.environment.get(\"token_sin_permiso\") && pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const num = k => Number(pm.environment.get(k));",
+              "function hallazgos(nombresVar, ids) {",
+              "  const out = JSON.parse(pm.environment.get(nombresVar) || \"[]\").filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function recorrer(o) {",
+              "    if (!o || typeof o !== \"object\") return;",
+              "    for (const [k, v] of Object.entries(o)) {",
+              "      if (ids[k] !== undefined && ids[k] !== null && !Number.isNaN(ids[k]) && Number(v) === ids[k]) out.push(`${k}=${v}`);",
+              "      recorrer(v);",
+              "    }",
+              "  })(cuerpo);",
+              "  return out;",
+              "}",
+              "const idsB = { id_infraestructura: num(\"id_b\"), id_finca: num(\"finca_b\"), id_sensor: num(\"sensor_b\"), id_alerta: pm.environment.get(\"alerta_b\") ? num(\"alerta_b\") : null };",
+              "const idsA = { id_infraestructura: num(\"id_a\"), id_finca: num(\"finca_a\"), id_sensor: num(\"sensor_a\") };",
+              "pm.test(\"[TC-M03-208][ASSERT][API-208-01][V:QUERY] el rol sin permiso de lectura recibe HTTP 403\", () => pm.expect(pm.response.code).to.eql(403));",
+              "pm.test(\"[TC-M03-208][ASSERT][API-208-02][V:QUERY] mensaje de acceso no autorizado sin lecturas ni datos de ninguna granja\", () => {",
+              "  const mensaje = cuerpo && (cuerpo.message || cuerpo.detail || cuerpo.error_code);",
+              "  pm.expect(!!(mensaje && String(mensaje).trim()), \"mensaje de acceso no autorizado\").to.eql(true);",
+              "  pm.expect(Array.isArray(cuerpo && cuerpo.sensores) && cuerpo.sensores.length > 0, \"lecturas devueltas\").to.eql(false);",
+              "  pm.expect(hallazgos(\"nombres_b\", idsB).concat(hallazgos(\"nombres_a\", idsA)), \"datos de granjas en la respuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-208][INFO][V:QUERY] respuesta registrada: HTTP ${pm.response.code}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_sin_permiso}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_a}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard"
+          ],
+          "query": [
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_a}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[TC-M03-208][V:RUTA] rol sin permiso, ruta /dashboard/{id}",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Sin cuenta QA con un rol sin permiso no hay escenario 208: la petición no se envía (el ejecutor lo registra como PRE).",
+              "if (!pm.environment.get(\"token_sin_permiso\") && pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const texto = pm.response.text() || \"\";",
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const num = k => Number(pm.environment.get(k));",
+              "function hallazgos(nombresVar, ids) {",
+              "  const out = JSON.parse(pm.environment.get(nombresVar) || \"[]\").filter(n => n && texto.includes(n)).map(n => `nombre «${n}»`);",
+              "  (function recorrer(o) {",
+              "    if (!o || typeof o !== \"object\") return;",
+              "    for (const [k, v] of Object.entries(o)) {",
+              "      if (ids[k] !== undefined && ids[k] !== null && !Number.isNaN(ids[k]) && Number(v) === ids[k]) out.push(`${k}=${v}`);",
+              "      recorrer(v);",
+              "    }",
+              "  })(cuerpo);",
+              "  return out;",
+              "}",
+              "const idsB = { id_infraestructura: num(\"id_b\"), id_finca: num(\"finca_b\"), id_sensor: num(\"sensor_b\"), id_alerta: pm.environment.get(\"alerta_b\") ? num(\"alerta_b\") : null };",
+              "const idsA = { id_infraestructura: num(\"id_a\"), id_finca: num(\"finca_a\"), id_sensor: num(\"sensor_a\") };",
+              "pm.test(\"[TC-M03-208][ASSERT][API-208-01][V:RUTA] el rol sin permiso de lectura recibe HTTP 403\", () => pm.expect(pm.response.code).to.eql(403));",
+              "pm.test(\"[TC-M03-208][ASSERT][API-208-02][V:RUTA] mensaje de acceso no autorizado sin lecturas ni datos de ninguna granja\", () => {",
+              "  const mensaje = cuerpo && (cuerpo.message || cuerpo.detail || cuerpo.error_code);",
+              "  pm.expect(!!(mensaje && String(mensaje).trim()), \"mensaje de acceso no autorizado\").to.eql(true);",
+              "  pm.expect(Array.isArray(cuerpo && cuerpo.sensores) && cuerpo.sensores.length > 0, \"lecturas devueltas\").to.eql(false);",
+              "  pm.expect(hallazgos(\"nombres_b\", idsB).concat(hallazgos(\"nombres_a\", idsA)), \"datos de granjas en la respuesta\").to.eql([]);",
+              "});",
+              "pm.test(`[TC-M03-208][INFO][V:RUTA] respuesta registrada: HTTP ${pm.response.code}`, () => {});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_sin_permiso}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard/{{id_a}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard",
+            "{{id_a}}"
+          ]
+        }
+      }
+    }
+  ]
+}

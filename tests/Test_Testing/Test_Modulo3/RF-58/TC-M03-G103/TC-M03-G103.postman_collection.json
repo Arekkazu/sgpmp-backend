@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "TC-M03-G103 — Carga inicial con 50 sensores (RF-58 / RNF-04)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "TC-M03-203. Solo se ejecuta desde ejecutar_tc_m03_g103.mjs con autorización vigente, dentro del sandbox del RUN. La primera iteración es la carga inicial (decisoria); las demás son repeticiones INFO."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Barrera: la colección solo se ejecuta desde ejecutar_tc_m03_g103.mjs con autorización vigente.",
+          "const autorizado = pm.environment.get(\"autorizado_run\") === \"SI\" && !!pm.environment.get(\"run_id\") && /^https:\\/\\//.test(pm.environment.get(\"base_url\") || \"\");",
+          "if (!autorizado) { if (pm.execution && typeof pm.execution.skipRequest === \"function\") pm.execution.skipRequest(); throw Error(\"BLOQUEO_G103\"); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"[PRE] respuesta dentro del sandbox del RUN\", () => pm.expect(pm.response.headers.get(\"X-Test-Run-Id\")).to.eql(pm.environment.get(\"run_id\")));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "[TC-M03-203][V:U50] carga inicial de la vista con 50 sensores",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return null; } })();",
+              "const sensores = cuerpo && Array.isArray(cuerpo.sensores) ? cuerpo.sensores : [];",
+              "const esperados = JSON.parse(pm.environment.get(\"ids_u50\") || \"[]\");",
+              "const umbral = Number(pm.environment.get(\"umbral_ms\") || \"1000\");",
+              "const t = pm.response.responseTime;",
+              "const i = pm.info.iteration;",
+              "if (i === 0) {",
+              "  // Carga inicial: única medición decisoria (RNF-04).",
+              "  pm.test(\"[TC-M03-203][PRE][V:U50] la vista contiene exactamente los 50 sensores de la unidad, con lectura\", () => {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "    pm.expect(esperados.length, \"sensores construidos\").to.eql(50);",
+              "    pm.expect(JSON.stringify(sensores.map(s => Number(s.id_sensor)).sort((a, b) => a - b)), \"sensores de la vista\").to.eql(JSON.stringify(esperados.slice().sort((a, b) => a - b)));",
+              "    pm.expect(sensores.every(s => s.ultimo_valor !== null && s.ultimo_valor !== undefined), \"todos con lectura\").to.eql(true);",
+              "  });",
+              "  pm.test(`[TC-M03-203][ASSERT][PERF-203-01][V:U50] la carga inicial con 50 sensores es inferior a 1 segundo (${t} ms)`, () => pm.expect(t < umbral, `${t} ms < umbral ${umbral} ms`).to.eql(true));",
+              "} else {",
+              "  pm.test(`[TC-M03-203][INFO][V:U50] repetición ${i}: HTTP ${pm.response.code}, ${sensores.length} sensores, ${t} ms`, () => {});",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_u50}}&pagina=1&por_pagina=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "monitoreo",
+            "dashboard"
+          ],
+          "query": [
+            {
+              "key": "id_infraestructura",
+              "value": "{{id_u50}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

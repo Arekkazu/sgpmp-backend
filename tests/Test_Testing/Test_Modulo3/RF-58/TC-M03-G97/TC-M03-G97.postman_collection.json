@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "TC-M03-G97 - TC-M03-188,189,190,210",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!/^https:\\/\\//.test(pm.environment.get('base_url')||'')){pm.execution.skipRequest();throw Error('BLOQUEO_G97');}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Productor TC-M03-188",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_unidad}}?por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});",
+              "pm.test('[TC-M03-188][ASSERT][API-188-01] HTTP 200, semaforo, valor, unidad y nombre',()=>{pm.expect(pm.response.code).to.eql(200);const s=b.sensores.find(x=>Number(x.id_sensor)===Number(pm.environment.get('id_sensor')));pm.expect(s).to.exist;pm.expect(s.estado_semaforo).to.be.a('string').and.not.empty;pm.expect(s.ultimo_valor).not.to.be.oneOf([null,undefined]);pm.expect(s.ultima_unidad).to.be.a('string').and.not.empty;pm.expect(s.nombre_sensor).to.be.a('string').and.not.empty;});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingeniero TC-M03-189",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_eng}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_unidad}}?por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});",
+              "pm.test('[TC-M03-189][ASSERT][API-189-01] HTTP 200 e indicadores tecnicos con valor',()=>{pm.expect(pm.response.code).to.eql(200);const s=b.sensores.find(x=>Number(x.id_sensor)===Number(pm.environment.get('id_sensor')));pm.expect(s).to.exist;for(const k of ['estado_conectividad','nivel_bateria_pct','calidad_senal_rssi','calidad_senal_snr','tiempo_sin_reporte_min'])pm.expect(s[k],k).not.to.be.oneOf([null,undefined]);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veterinario TC-M03-190",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_unidad}}?por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});",
+              "pm.test('[TC-M03-190][ASSERT][API-190-01] HTTP 200, biometria y alerta clinica',()=>{pm.expect(pm.response.code).to.eql(200);const s=b.sensores.find(x=>Number(x.id_sensor)===Number(pm.environment.get('id_sensor')));pm.expect(s).to.exist;pm.expect(s.categoria_variable).to.eql('ANIMAL');pm.expect(s.estado_semaforo).to.be.a('string').and.not.empty;pm.expect(s.id_alerta).not.to.be.oneOf([null,undefined]);pm.expect(s.id_infraestructura).to.eql(Number(pm.environment.get('id_unidad')));});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veterinario historial reciente TC-M03-190",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{id_sensor}}&id_infraestructura={{id_unidad}}&por_pagina=100"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});",
+              "pm.test('[TC-M03-190][ASSERT][API-190-02] historial del activo accesible',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(b.items).to.be.an('array').that.is.not.empty;pm.expect(b.items.some(x=>Number(x.id_sensor)===Number(pm.environment.get('id_sensor')))).to.eql(true);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comparacion payloads TC-M03-210",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_unidad}}?por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>{pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id'));});",
+              "pm.test('[TC-M03-210][ASSERT][API-210-01] Productor no recibe indicadores tecnicos',()=>{pm.expect(pm.response.code).to.eql(200);const s=b.sensores.find(x=>Number(x.id_sensor)===Number(pm.environment.get('id_sensor')));pm.expect(s).to.exist;for(const k of ['nivel_bateria_pct','calidad_senal_rssi','calidad_senal_snr'])pm.expect(s[k],k).to.be.oneOf([null,undefined]);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veterinario contexto clinico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/alertas/{{id_alerta}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+              "pm.test('[TC-M03-190][ASSERT][API-190-03] alerta activa con contexto del activo',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(b.estado_alerta).to.eql('ACTIVA');pm.expect(Number(b.id_activo_biologico)).to.eql(Number(pm.environment.get('id_activo')));pm.expect(b.contexto_activo_biologico).not.to.be.oneOf([null,undefined]);});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veterinario alcance completo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_vet}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard?pagina=1&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let b={};try{b=pm.response.json();}catch{}",
+              "pm.test('PRE sandbox',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+              "pm.test('[TC-M03-190][ASSERT][API-190-04] no se exponen unidades no autorizadas',()=>{pm.expect(pm.response.code).to.eql(200);const permitidas=JSON.parse(pm.environment.get('fincas_vet'));for(const x of [...(b.sensores||[]),...(b.resumen_unidades||[])])pm.expect(permitidas).to.include(Number(x.id_finca));});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
