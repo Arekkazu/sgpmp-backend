@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                           |
+# |------------|---------|-------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: evita duplicar historial de alerta tecnica |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -104,13 +107,9 @@ class EvaluarEstadoDispositivosUseCase:
                             fecha_evento=ahora,
                             fecha_generacion=ahora,
                             id_dispositivo_ioit=estado.id_dispositivo_iot,
+                            metadato_evento={"estado_operativo": nuevo_estado,
+                                             "motivo_generacion": f"Dispositivo en estado {nuevo_estado}"},
                         ))
-                        self.historico_alerta_repo.registrar(
-                            id_alerta=alerta.id_alerta,
-                            estado_anterior='',
-                            estado_nuevo='ACTIVA',
-                            motivo=f'Dispositivo en estado {nuevo_estado}',
-                        )
 
                 elif nuevo_estado == 'ACTIVO':
                     periodo = self.periodo_repo.obtener_abierto_por_dispositivo(estado.id_dispositivo_iot)

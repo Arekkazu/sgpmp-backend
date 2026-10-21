@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                                |
+# |------------|---------|------------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +22,9 @@ from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 
 # Mapa tipo_variable → tipo_alerta para reglas simples
@@ -49,12 +55,15 @@ class GenararAlertaUseCase:
         historico_repo: HistoricoEstadoAlertaRepository,
         regla_repo: ReglaAlertaRepository,
         parametros_port: ParametrosAlertasPort,
+        auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
+        # Compatibilidad con ensambladores actuales; no se escribe historial aquí.
         self.historico_repo = historico_repo
         self.regla_repo = regla_repo
         self.parametros_port = parametros_port
+        self.auditoria_repo = auditoria_repo
 
     def execute(
         self,
@@ -68,6 +77,27 @@ class GenararAlertaUseCase:
 
         # Fase 2: Validar estado_dato (FA-01/E1/E2/CA-3)
         if dto.estado_dato != "LECTURA_VALIDA":
+            if self.auditoria_repo is not None:
+                # RF-63 admite tipos de evento de texto libre. Se conservan solo
+                # campos de diagnóstico conocidos, nunca metadata arbitraria.
+                RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                    tipo_evento="LECTURA_EXCLUIDA_RF57",
+                    resultado=TipoResultado.RECHAZADO,
+                    componente_origen=ComponenteOrigen.RF57,
+                    severidad_log=SeveridadLog.WARNING,
+                    descripcion="Lectura excluida de alertas operativas por su calidad.",
+                    entidad_afectada_tipo=EntidadAfectadaTipo.LECTURA if dto.id_telemetria is not None else EntidadAfectadaTipo.DISPOSITIVO,
+                    entidad_afectada_id=str(dto.id_telemetria if dto.id_telemetria is not None else dto.device_id),
+                    accion_detallada={
+                        "estado_dato": dto.estado_dato, "id_sensor": dto.sensor_id,
+                        "id_dispositivo_iot": dto.device_id, "tipo_variable": dto.tipo_variable,
+                        "valor": str(dto.valor), "unidad": dto.unidad,
+                        "timestamp_evento": dto.timestamp_evento.isoformat(),
+                        "id_telemetria": dto.id_telemetria,
+                        "id_evento_edge_computing": dto.id_evento_edge_computing,
+                        "id_paquete_inferencia": dto.id_paquete_inferencia,
+                    },
+                )
             return ResultadoGeneracionAlerta(
                 es_duplicado=False,
                 motivo_descarte=f"estado_dato={dto.estado_dato} no genera alerta operativa",
@@ -138,11 +168,7 @@ class GenararAlertaUseCase:
 
         try:
             alerta_guardada = self.alerta_repo.guardar(alerta)
-            self.historico_repo.registrar(
-                id_alerta=alerta_guardada.id_alerta,
-                estado_anterior=EstadoAlerta.ACTIVA,
-                estado_nuevo=EstadoAlerta.ACTIVA,
-            )
+            # El trigger de INSERT registra el historial en esta transacción.
             self.db.commit()
         except Exception:
             self.db.rollback()

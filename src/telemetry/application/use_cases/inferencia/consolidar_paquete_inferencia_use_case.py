@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                           |
+# |------------|---------|-------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 from __future__ import annotations
 
 import logging
@@ -6,6 +9,10 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from src.shared.errors import ServiceUnavailableError
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 
 from src.shared.errors import BusinessRuleError
 from src.telemetry.domain.entities.telemetria import (
@@ -81,10 +88,12 @@ class ConsolidarEnviarPaqueteUseCase:
         db: Session,
         paquete_repo: PaqueteInferenciaRepository,
         motor_inferencia_port: MotorInferenciaPort,
+        auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
     ) -> None:
         self.db = db
         self.paquete_repo = paquete_repo
         self.motor_inferencia_port = motor_inferencia_port
+        self.auditoria_repo = auditoria_repo
 
     def execute(self, evento: EventoEdgeComputing) -> Optional[PaqueteInferencia]:
         """
@@ -161,6 +170,7 @@ class ConsolidarEnviarPaqueteUseCase:
             raise
 
         # Paso 9: Intentar envío a M04 (un intento síncrono; backoff diferido fuera de alcance)
+        causa_fallo = "ENVIO_INFERENCIA_NO_CONFIRMADO"
         try:
             exito = self.motor_inferencia_port.enviar_paquete(paquete_guardado)
         except MotorInferenciaNoIntegradoError:
@@ -169,9 +179,14 @@ class ConsolidarEnviarPaqueteUseCase:
                 'RF-56: paquete %s pendiente; motor de inferencia no integrado.',
                 paquete_guardado.id_paquetes_inferencia,
             )
+            self._registrar_fallo_motor(paquete_guardado, "MOTOR_INFERENCIA_NO_INTEGRADO")
             return paquete_guardado
+        except (TimeoutError, ConnectionError, ServiceUnavailableError):
+            exito = False
+            causa_fallo = "MOTOR_INFERENCIA_NO_DISPONIBLE"
         except Exception:
             exito = False
+            causa_fallo = "ERROR_ENVIO_INFERENCIA"
 
         nuevo_estado = EstadoPaqueteInferencia.ENVIADO if exito else EstadoPaqueteInferencia.FALLIDO
         try:
@@ -187,7 +202,31 @@ class ConsolidarEnviarPaqueteUseCase:
 
         paquete_guardado.estado_paquete = nuevo_estado
         paquete_guardado.intento_envios = 1
+        if not exito:
+            self._registrar_fallo_motor(paquete_guardado, causa_fallo)
         return paquete_guardado
+
+    def _registrar_fallo_motor(self, paquete: PaqueteInferencia, causa: str) -> None:
+        if self.auditoria_repo is None:
+            return
+        # Después del commit del paquete; nunca confirmar negocio pendiente
+        # mediante el commit de la bitácora ni perderlo por un fallo del log.
+        RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+            tipo_evento=causa,
+            resultado=TipoResultado.ADVERTENCIA if causa == "MOTOR_INFERENCIA_NO_INTEGRADO" else TipoResultado.FALLIDO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.WARNING,
+            descripcion="Paquete sin entrega confirmada al motor de inferencia.",
+            entidad_afectada_tipo=EntidadAfectadaTipo.PAQUETE_IA,
+            entidad_afectada_id=str(paquete.id_paquetes_inferencia),
+            accion_detallada={
+                "causa": causa, "id_sensor": paquete.id_sensor,
+                "id_dispositivo_iot": paquete.id_dispositivo_iot,
+                "id_evento_edge_computing": paquete.id_evento_edge_computing,
+                "estado_paquete": paquete.estado_paquete,
+                "intento_envios": paquete.intento_envios,
+            },
+        )
 
     @staticmethod
     def _validar_timestamps(variables: list[dict]) -> None:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                             |
+# |------------|---------|---------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: inyecta bitacora para indisponibilidad IA  |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 
 RF-56 — CU02 Dev scope:
@@ -25,6 +28,7 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.evento_edge_repository import SqlAlchemyEventoEdgeRepository
 from src.telemetry.infrastructure.repositories.paquete_inferencia_repository import SqlAlchemyPaqueteInferenciaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.evento_edge_schema import EventoEdgeResponse
 
 router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos Edge"])
@@ -55,6 +59,7 @@ def recibir_evento_edge(
         dispositivo_port=DispositivoM09Adapter(db),
         motor_inferencia_port=MotorInferenciaStubAdapter(),
         parametros_alertas_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     resultado = use_case.execute(dto, gateway_id=x_gateway_id)
     return EventoEdgeResponse.model_validate(resultado.__dict__)

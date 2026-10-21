@@ -1,4 +1,9 @@
+# | Fecha      | Nombre  | Que se hizo                                         |
+# |------------|---------|-----------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 from __future__ import annotations
+
+import logging
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -21,6 +26,7 @@ from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeR
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -29,6 +35,7 @@ from src.telemetry.infrastructure.repositories.regla_alerta_repository import Sq
 
 _MAX_DRIFT_FUTURO_SEG = 30
 _MAX_VENTANA_BUFFER_HORAS = 72
+logger = logging.getLogger(__name__)
 
 
 class RecibirEventoEdgeUseCase:
@@ -41,6 +48,7 @@ class RecibirEventoEdgeUseCase:
         dispositivo_port: DispositivoPort,
         motor_inferencia_port: MotorInferenciaPort,
         parametros_alertas_port: ParametrosAlertasPort,
+        auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
     ) -> None:
         self.db = db
         self.evento_edge_repo = evento_edge_repo
@@ -48,6 +56,7 @@ class RecibirEventoEdgeUseCase:
         self.dispositivo_port = dispositivo_port
         self.motor_inferencia_port = motor_inferencia_port
         self.parametros_alertas_port = parametros_alertas_port
+        self.auditoria_repo = auditoria_repo
 
     def execute(
         self,
@@ -111,6 +120,7 @@ class RecibirEventoEdgeUseCase:
                 db=self.db,
                 paquete_repo=self.paquete_repo,
                 motor_inferencia_port=self.motor_inferencia_port,
+                auditoria_repo=self.auditoria_repo,
             )
             paquete = consolidar.execute(evento_guardado)
             if paquete:
@@ -171,13 +181,15 @@ class RecibirEventoEdgeUseCase:
                 historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
                 regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
                 parametros_port=self.parametros_alertas_port,
+                auditoria_repo=self.auditoria_repo,
             ).execute(
                 dto=alerta_dto,
                 id_dispositivo_ioit=dispositivo_id_iot,
                 id_infraestructura=id_infraestructura,
             )
         except Exception:
-            pass
+            self.db.rollback()
+            logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
     @staticmethod
     def _validar_temporal(ts_captura: datetime, ahora: datetime, origen: str) -> None:
