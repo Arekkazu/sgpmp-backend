@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -101,6 +104,7 @@ from src.biological_assets.infrastructure.repositories.evento_activo_repository 
 from src.biological_assets.application.use_cases.gestion.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_ficha_integral_use_case import ConsultarFichaIntegralUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import RegistrarTransferenciaUseCase
+from src.telemetry.infrastructure.adapters.vinculacion_traslado_m03_adapter import VinculacionTrasladoM03Adapter
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
@@ -1889,6 +1893,7 @@ def registrar_transferencia(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        vinculacion_traslado_port=VinculacionTrasladoM03Adapter(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return TransferenciaResponse(

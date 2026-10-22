@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: excluye vinculaciones SUPERADA del consumo vigente |
 """Consultas derivadas: nunca se leen los flags obsoletos de telemetrias."""
 from sqlalchemy import select, text
 
@@ -22,6 +25,14 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         return self.db.execute(text("""SELECT id_vinculacion_lectura, id_activo_biologico
             FROM modulo3.vinculaciones_lecturas WHERE id_telemetria=:id
               AND fecha_fin_vinculacion IS NULL
+              AND estado_vinculacion<>'SUPERADA'
+            ORDER BY fecha_creacion DESC, id_vinculacion_lectura DESC LIMIT 1
+        """), {'id': identificador}).mappings().first()
+
+    def vinculacion_historica(self, identificador):
+        """Contexto de una lectura ya capturada, sin declarar vigente un periodo cerrado."""
+        return self.db.execute(text("""SELECT id_vinculacion_lectura, id_activo_biologico
+            FROM modulo3.vinculaciones_lecturas WHERE id_telemetria=:id
             ORDER BY fecha_creacion DESC, id_vinculacion_lectura DESC LIMIT 1
         """), {'id': identificador}).mappings().first()
 

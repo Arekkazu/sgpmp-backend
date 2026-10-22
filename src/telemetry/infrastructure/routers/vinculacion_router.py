@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: mantiene alcance en modificaciones manuales |
 """Router FastAPI para vinculación de lecturas teleméricas a activos biológicos.
 
 RF-61 — CU05 Dev scope:
@@ -27,12 +30,14 @@ from src.telemetry.application.use_cases.infraestructura.listar_vinculaciones_us
 from src.telemetry.application.use_cases.infraestructura.resolver_vinculacion_use_case import ResolverVinculacionUseCase
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
+from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.dto.corregir_vinculacion_dto import CorregirVinculacionDTO
 from src.telemetry.infrastructure.dto.resolver_vinculacion_dto import ResolverVinculacionDTO
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
 from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.vinculacion_lectura_schema import ListaVinculacionesSchema, VinculacionLecturaSchema
 
 router = APIRouter(prefix="/iot/vinculaciones", tags=["Telemetría IoT - Vinculaciones RF-61"])
@@ -151,11 +156,14 @@ def resolver_vinculacion(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
         reclasificar_semaforo_use_case=_build_reclasificar_semaforo_use_case(db),
+        activo_port=ActivoBiologicoM02Adapter(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     vinculacion = use_case.execute(
         id_vinculacion_lectura=id_vinculacion_lectura,
         dto=dto,
         id_usuario=usuario_actual.id_usuario,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario,usuario_actual.id_rol),
     )
     return VinculacionLecturaSchema.model_validate(vinculacion)
 
@@ -183,10 +191,13 @@ def corregir_vinculacion(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
         reclasificar_semaforo_use_case=_build_reclasificar_semaforo_use_case(db),
+        activo_port=ActivoBiologicoM02Adapter(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     nueva = use_case.execute(
         id_vinculacion_lectura=id_vinculacion_lectura,
         dto=dto,
         id_usuario=usuario_actual.id_usuario,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario,usuario_actual.id_rol),
     )
     return VinculacionLecturaSchema.model_validate(nueva)

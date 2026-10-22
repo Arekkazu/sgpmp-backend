@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: recupera avisos sin duplicar vinculacion |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -67,6 +70,12 @@ class SqlAlchemyPostcommitRepository:
             consulta = consulta.where(tabla.c[campo].is_not(None))
             if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
                 consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
+        if etapa is EtapaPostcommit.RF61_AVISOS:
+            from src.telemetry.infrastructure.models.vinculacion_lectura_model import VinculacionLecturaModel
+            v=VinculacionLecturaModel.__table__
+            consulta=consulta.where(select(1).where(v.c.id_telemetria==tabla.c.id_telemetria,
+                v.c.fecha_fin_vinculacion.is_(None),
+                (v.c.causa=='CONFIGURACION_INCOMPLETA')|v.c.estado_vinculacion.in_(['AMBIGUA','PENDIENTE_REVISION'])).exists())
         if etapa.requisito:
             consulta = consulta.where(_registro(etapa.requisito, identificador))
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())
@@ -89,7 +98,7 @@ class SqlAlchemyPostcommitRepository:
         return True
 
     def registrar(self, etapa, identificador, error=None):
-        componente = ComponenteOrigen.RF60 if etapa.es_heartbeat else ComponenteOrigen(etapa.value)
+        componente = ComponenteOrigen.RF60 if etapa.es_heartbeat else ComponenteOrigen.RF61 if etapa is EtapaPostcommit.RF61_AVISOS else ComponenteOrigen(etapa.value)
         clasificacion, retencion = clasificar_componente(componente)
         evento = EventoAuditoriaIot(
             id_evento=None, tipo_evento=_tipo(etapa, error is not None),

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: separa progreso de vinculo y avisos requeridos |
 """Progreso durable por responsabilidad, independiente del canal de entrada."""
 from enum import Enum
 from typing import Protocol
@@ -5,6 +8,7 @@ from typing import Protocol
 
 class EtapaPostcommit(str, Enum):
     RF61 = 'RF61'
+    RF61_AVISOS = 'RF61_AVISOS'
     RF62 = 'RF62'
     RF17 = 'RF17'
     HEARTBEAT_ESTADO = 'HEARTBEAT_ESTADO'
@@ -19,7 +23,7 @@ class EtapaPostcommit(str, Enum):
 
     @property
     def requisito(self):
-        if self is EtapaPostcommit.RF17:
+        if self in (EtapaPostcommit.RF17,EtapaPostcommit.RF61_AVISOS):
             return EtapaPostcommit.RF61
         if self.es_heartbeat and self is not EtapaPostcommit.HEARTBEAT_ESTADO:
             return EtapaPostcommit.HEARTBEAT_ESTADO

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: explicita asociacion RF-22 en fixture de ingesta |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -49,6 +52,10 @@ def hardware(db):
         VALUES (:serial,'DEV-05',true,now(),:area,3) RETURNING id_dispositivo_iot'''), {'serial':tag,'area':area}).scalar_one()
     sensor = db.execute(text('''INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
         VALUES (:device,true,'Sensor Bplus') RETURNING id_sensores'''), {'device':device}).scalar_one()
+    db.execute(text('''INSERT INTO modulo9.sensores_areas_asociadas(id_sensor,id_dispositivo_iot,id_infraestructura,
+        punto_instalacion,tiene_estado,fecha_asociacion,id_usuario)
+        SELECT :sensor,:device,:area,'DEV05',true,now()-interval '1 day',min(id_usuario)
+        FROM modulo1.usuarios'''),{'sensor':sensor,'device':device,'area':area})
     db.commit()
     return dict(device=device,sensor=sensor,area=area,serial=tag)
 
