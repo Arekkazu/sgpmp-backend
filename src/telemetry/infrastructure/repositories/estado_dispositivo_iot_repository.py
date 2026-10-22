@@ -1,9 +1,12 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: bloquea estados y verifica alcance de finca |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -16,6 +19,21 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def bloquear_por_dispositivo(self, id_dispositivo_iot):
+        self.db.execute(text('SELECT pg_advisory_xact_lock(3505, :id)'), {'id': id_dispositivo_iot})
+        orm = self.db.execute(select(EstadoDispositivoIoTModel).where(
+            EstadoDispositivoIoTModel.id_dispositivo_iot == id_dispositivo_iot
+        ).order_by(EstadoDispositivoIoTModel.id_estado_dispositivo_iot.desc())
+          .limit(1).with_for_update().execution_options(populate_existing=True)).scalars().first()
+        return self._a_entidad(orm) if orm else None
+
+    def pertenece_a_fincas(self, id_dispositivo_iot, fincas):
+        return bool(self.db.execute(text('''SELECT EXISTS (
+            SELECT 1 FROM modulo9.dispositivos_iot d JOIN modulo9.infraestructuras i
+              ON i.id_infraestructura=d.id_infraestructura
+            WHERE d.id_dispositivo_iot=:id AND i.id_finca=ANY(:fincas))'''),
+            {'id': id_dispositivo_iot, 'fincas': fincas}).scalar_one())
 
     def obtener_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]:
         # Un estado actual por dispositivo (garantizado por UNIQUE en DB). Se ordena y
@@ -36,7 +54,7 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         rows = self.db.execute(
             select(EstadoDispositivoIoTModel).where(
                 EstadoDispositivoIoTModel.estado_actual != 'EN_MANTENIMIENTO'
-            )
+            ).order_by(EstadoDispositivoIoTModel.id_dispositivo_iot)
         ).scalars().all()
         return [self._a_entidad(r) for r in rows]
 

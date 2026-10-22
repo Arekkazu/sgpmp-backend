@@ -1,7 +1,9 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: umbrales y politica temporal tipados |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: evidencia temporal para heartbeat ausente |
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Protocol
 
@@ -31,6 +33,18 @@ class ParametrosComunicacionHeartbeat:
     margen_tolerancia_seg: int
     inactividad_extendida_seg: int
     estado_local_buffer: str | None
+    ultima_telemetria: datetime | None = None
+    ultimo_heartbeat: datetime | None = None
+    primera_telemetria: datetime | None = None
+    id_infraestructura: int | None = None
+
+    def heartbeat_ausente(self, ahora: datetime) -> bool:
+        if self.ultima_telemetria is None:
+            return False
+        referencia = self.ultimo_heartbeat or self.primera_telemetria
+        return (referencia is not None
+            and 0 <= (ahora-self.ultima_telemetria).total_seconds() <= self.frecuencia_muestreo_seg
+            and (ahora-referencia).total_seconds() > 2*self.intervalo_heartbeat_seg)
 
     def __post_init__(self):
         from src.configuration.domain.entities.parametros_heartbeat import validar_cadena

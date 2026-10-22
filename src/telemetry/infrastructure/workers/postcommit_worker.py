@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta adaptadores reales por etapa |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: recupera conectividad tras telemetria valida |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -13,6 +14,7 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.shared.database import engine
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import ProcesarHeartbeatPersistidoUseCase
+from src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case import EvaluarEstadoDispositivosUseCase
 from src.telemetry.application.use_cases.infraestructura.evaluar_diagnostico_heartbeat_use_case import EvaluarDiagnosticoHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
 from src.telemetry.application.use_cases.ingesta.procesar_lectura_confirmada_use_case import ProcesarLecturaConfirmadaUseCase
@@ -70,6 +72,14 @@ def _heartbeat(db, identificador, alertas, parametros):
         servicio.procesar_estado(heartbeat, ultimo == identificador)
 
 
+def _recuperar_comunicacion(db, identificador):
+    lectura = SqlAlchemyLecturaPostcommitRepository(db).obtener_por_id(identificador)
+    if lectura.estado_calidad == 'LECTURA_VALIDA':
+        EvaluarEstadoDispositivosUseCase(db, SqlAlchemyEstadoDispositivoIoTRepository(db),
+            None, SqlAlchemyPeriodoInactividadRepository(db), SqlAlchemyAlertaRepository(db),
+            None, ParametrosHeartbeatMLOpsAdapter(db)).execute(lectura.id_dispositivo_iot, confirmar=False)
+
+
 def _diagnostico(db, identificador, metodo, politica):
     heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
     infraestructura = SqlAlchemyLecturaPostcommitRepository(db).infraestructura(heartbeat.id_dispositivo_iot)
@@ -85,6 +95,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF61: lambda db, i: _lectura(db).vincular_lectura(i),
             EtapaPostcommit.RF62: lambda db, i: _lectura(db).evaluar_lectura(i),
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
+            EtapaPostcommit.RF60: lambda db, i: _recuperar_comunicacion(db, i),
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),
             EtapaPostcommit.HEARTBEAT_SENSORES: lambda db, i: _diagnostico(db, i, 'sensores', diagnostico_heartbeat),

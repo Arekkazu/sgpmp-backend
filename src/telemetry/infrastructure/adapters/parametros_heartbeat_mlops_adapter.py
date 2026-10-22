@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: adaptadores reales de politica M09  |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: consulta actividad valida y heartbeat real |
 """P-1 provisional: lectura dinámica DEV-14; ningún umbral se inventa al leer."""
 import re
 
@@ -38,7 +39,15 @@ class ParametrosHeartbeatMLOpsAdapter:
     def obtener_comunicacion(self, id_dispositivo):
         try:
             dispositivo = self.db.execute(text('''
-                SELECT t.categoria,
+                SELECT t.categoria, d.id_infraestructura,
+                  (SELECT max(h.fecha_recepcion) FROM modulo3.heartbeats h
+                   WHERE h.id_dispositivo_iot=d.id_dispositivo_iot) AS ultimo_heartbeat,
+                  (SELECT max(l.timestamp_procesamiento) FROM modulo3.telemetrias l
+                   WHERE l.id_dispositivo_iot=d.id_dispositivo_iot
+                     AND l.estado_calidad='LECTURA_VALIDA') AS ultima_telemetria,
+                  (SELECT min(l.timestamp_procesamiento) FROM modulo3.telemetrias l
+                   WHERE l.id_dispositivo_iot=d.id_dispositivo_iot
+                     AND l.estado_calidad='LECTURA_VALIDA') AS primera_telemetria,
                   (SELECT h.estado_local_buffer::text FROM modulo3.heartbeats h
                    WHERE h.id_dispositivo_iot=d.id_dispositivo_iot
                    ORDER BY h.fecha_recepcion DESC,h.id_heartbeat DESC LIMIT 1) AS buffer
@@ -67,6 +76,8 @@ class ParametrosHeartbeatMLOpsAdapter:
             numero_configurado(valores, MARGEN, entero=True, positivo=True),
             numero_configurado(valores, INACTIVIDAD, entero=True, positivo=True),
             dispositivo['buffer'],
+            dispositivo['ultima_telemetria'], dispositivo['ultimo_heartbeat'],
+            dispositivo['primera_telemetria'], dispositivo['id_infraestructura'],
         )
 
 

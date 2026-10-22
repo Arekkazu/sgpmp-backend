@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: espera etapa RF60 y apagado inminente |
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: regresion con politica persistida   |
@@ -194,7 +197,7 @@ def test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_o
     procesador(db_session).execute()
     procesador(db_session).execute()
     tipos = [x['tipo_evento'] for x in evidencias(db_session,identificador)]
-    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO','POSTCOMMIT_RF17_COMPLETADO'}
+    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO','POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF60_COMPLETADO'}
     assert all(len(x['hash_integridad'])==64 for x in evidencias(db_session,identificador))
     from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
     from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -296,7 +299,7 @@ def test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial
         obtener_comunicacion=lambda _id: ParametrosComunicacionHeartbeat(60,600,300,3600,'I'))
     procesador(db_session,parametros_heartbeat=parametros).execute()
     filas=db_session.execute(text('SELECT id_alerta,tipo_variable FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).all()
-    assert len(filas)==2 and {x[1] for x in filas}=={'BATERIA_CRITICA','SEÑAL_DEGRADADA'}
+    assert len(filas)==2 and {x[1] for x in filas}=={'APAGADO_INMINENTE','SEÑAL_DEGRADADA'}
     for fila in filas:
         assert db_session.execute(text('SELECT count(*) FROM modulo3.historico_estados_alertas WHERE id_alerta=:id'),{'id':fila[0]}).scalar_one()==1
 

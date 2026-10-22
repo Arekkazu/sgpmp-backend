@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: etapa independiente tras telemetria confirmada |
 """Progreso durable por responsabilidad, independiente del canal de entrada."""
 from enum import Enum
 from typing import Protocol
@@ -7,6 +10,7 @@ class EtapaPostcommit(str, Enum):
     RF61 = 'RF61'
     RF62 = 'RF62'
     RF17 = 'RF17'
+    RF60 = 'RF60'
     HEARTBEAT_ESTADO = 'HEARTBEAT_ESTADO'
     HEARTBEAT_ALERTAS = 'HEARTBEAT_ALERTAS'
     HEARTBEAT_SENSORES = 'HEARTBEAT_SENSORES'

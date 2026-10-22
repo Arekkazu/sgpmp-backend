@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: resuelve conectividad en transaccion externa |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -13,6 +16,25 @@ from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import Actual
 
 
 class ActualizarEstadoAlertaUseCase:
+
+    @staticmethod
+    def resolver_conectividad(alerta, alerta_repo, ahora):
+        """Recuperación interna RF-60; conserva las transiciones de RF-57.
+
+        ACTIVA pasa por EN_ATENCION antes de RESUELTA. El trigger registra
+        ambas transiciones reales; no se agrega historia ni se hace commit.
+        """
+        if alerta.tipo_alerta != 'TECNICA' or alerta.tipo_variable not in {
+            'DISPOSITIVO_SIN_SEÑAL', 'DISPOSITIVO_INACTIVO', 'FALLO_CONECTIVIDAD', 'HEARTBEAT_AUSENTE',
+        }:
+            return
+        destinos = ('EN_ATENCION', 'RESUELTA') if alerta.estado_alerta == 'ACTIVA' else (
+            ('RESUELTA',) if alerta.estado_alerta == 'EN_ATENCION' else ())
+        for destino in destinos:
+            alerta.transicionar(destino, None, 'Reconexión confirmada por RF-60.')
+            alerta.diagnostico = 'Reconexión confirmada por RF-60.'
+            alerta_repo.actualizar_estado(alerta.id_alerta, destino, None, alerta.diagnostico,
+                fecha_atencion=alerta.fecha_atencion, fecha_resolucion=alerta.fecha_resolucion)
 
     def __init__(
         self,

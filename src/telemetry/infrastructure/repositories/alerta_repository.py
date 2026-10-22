@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: serializa bateria y busca alertas recuperables |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +22,29 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def bloquear_dispositivo(self, id_dispositivo: int) -> None:
+        self.db.execute(text('SELECT pg_advisory_xact_lock(3505, :id)'), {'id': id_dispositivo})
+
+    def escalar_bateria(self, id_alerta, causa, severidad, metadatos):
+        orm = self.db.get(AlertaModel, id_alerta, populate_existing=True)
+        orm.severidad = severidad
+        # RF-57 P0006 protege el tipo original. La condición vigente es
+        # diagnóstico, sin reescribir evidencia ni fingir una recuperación.
+        orm.diagnostico = causa
+        orm.metadato_evento = dict(orm.metadato_evento or {}, **metadatos,
+            condicion_bateria=causa, condicion_bateria_inicial=orm.tipo_variable)
+        self.db.flush()
+
+    def listar_conectividad_abierta(self, id_dispositivo):
+        filas = self.db.query(AlertaModel).filter(
+            AlertaModel.tipo_alerta == 'TECNICA',
+            AlertaModel.id_dispositivo_ioit == id_dispositivo,
+            AlertaModel.tipo_variable.in_(['DISPOSITIVO_SIN_SEÑAL', 'DISPOSITIVO_INACTIVO',
+                                         'FALLO_CONECTIVIDAD', 'HEARTBEAT_AUSENTE']),
+            AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+        ).order_by(AlertaModel.id_alerta).all()
+        return [self._a_entidad(fila) for fila in filas]
 
     def guardar(self, alerta: Alerta) -> Alerta:
         try:
@@ -152,6 +178,8 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             elif nuevo_estado in ('RESUELTA', 'DESCARTADA'):
                 orm.fecha_resolucion = fecha_resolucion
                 orm.id_usuario_resolucion = id_usuario
+                if nuevo_estado == 'RESUELTA' and orm.tipo_alerta == 'TECNICA' and motivo:
+                    orm.diagnostico = motivo
                 if nuevo_estado == 'DESCARTADA':
                     orm.motivo_descarte = motivo
             self.db.flush()
