@@ -18,6 +18,7 @@ from src.prediction.infrastructure.adapters.resultado_inferencia_adapter import 
 from src.prediction.infrastructure.dto.registrar_retroalimentacion_dto import RegistrarRetroalimentacionDTO
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.patologia_m04_repository import SqlAlchemyPatologiaM04Repository
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.prediction.infrastructure.repositories.retroalimentacion_clinica_repository import SqlAlchemyRetroalimentacionClinicaRepository
 from src.prediction.infrastructure.schema.retroalimentacion_clinica_schema import RetroalimentacionClinicaResponse
 from src.shared.database import get_db
@@ -58,6 +59,7 @@ def registrar_retroalimentacion(
         resultado_port=SqlAlchemyResultadoInferenciaAdapter(db),
         patologia_repo=SqlAlchemyPatologiaM04Repository(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+        parametros_port=SqlAlchemyParametrosMLOpsRepository(db),
     )
     entidad = use_case.execute(dto, usuario_actual.id_usuario)
     return RetroalimentacionClinicaResponse.from_entity(entidad)

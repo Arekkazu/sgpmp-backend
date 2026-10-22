@@ -4,14 +4,40 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, StrictBool, StrictStr, field_validator
 
 from src.shared.base_dto import BaseDTO
 
 
-class HeartbeatDTO(BaseDTO):
-    """Body del POST /iot/heartbeat enviado por el dispositivo AIOT (payload A.7)."""
+class SensorOperativoDTO(BaseDTO):
+    """Identificador del sobre D11; no se inventa una correspondencia con IDs SQL."""
+    model_config = ConfigDict(extra='forbid')
 
+    sensor: StrictStr = Field(min_length=1)
+    operativo: StrictBool
+
+
+class DiagnosticoHeartbeatDTO(BaseDTO):
+    """Campos D11 del heartbeat. El diagnóstico los revalida también desde la fila
+    que el broker escribe directo, donde no viajan device_id ni serial."""
+
+    sensores_operativos: Optional[list[SensorOperativoDTO]] = None
+    # Precisión de NUMERIC(5,2) de DB-03, no un rango físico inventado.
+    temperatura_dispositivo: Optional[Decimal] = Field(None, allow_inf_nan=False, max_digits=5, decimal_places=2)
+
+    @field_validator('temperatura_dispositivo', mode='before')
+    @classmethod
+    def validar_temperatura_numerica(cls, valor):
+        if valor is not None and (isinstance(valor, bool) or not isinstance(valor, (int, float, Decimal))):
+            raise ValueError('La temperatura del dispositivo debe ser un número finito en °C.')
+        return valor
+
+
+class HeartbeatDTO(DiagnosticoHeartbeatDTO):
+    """Body del POST /iot/heartbeat (payload A.7), reenviado por el broker con su token de servicio."""
+
+    device_id: int = Field(..., gt=0)
+    serial: str = Field(..., min_length=1, max_length=100)
     tipo_mensaje: str = Field(..., min_length=1, max_length=30)
     nivel_bateria_pct: Optional[Decimal] = Field(None, ge=0, le=100)
     calidad_senal_rssi: Optional[Decimal] = None

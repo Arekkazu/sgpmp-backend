@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
@@ -15,8 +16,10 @@ from src.telemetry.domain.entities.telemetria import (
     PaqueteInferencia,
     TipoEventoEdge,
 )
-from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
+from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaNoIntegradoError, MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
+
+logger = logging.getLogger(__name__)
 
 # Variables mínimas por categoría para contexto completo
 _MINIMOS_AMBIENTAL = {"TEMPERATURA_AMBIENTAL", "HUMEDAD_RELATIVA"}
@@ -144,6 +147,13 @@ class ConsolidarEnviarPaqueteUseCase:
         )
 
         try:
+            existente = self.paquete_repo.obtener_por_evento(
+                evento.id_evento_edge_computing, bloquear_evento=True,
+            )
+            if existente is not None:
+                # Reconsolidar no es reenviar: conserva el mismo ID y estado.
+                self.db.commit()
+                return existente
             paquete_guardado = self.paquete_repo.guardar(paquete)
             self.db.commit()
         except Exception:
@@ -153,6 +163,13 @@ class ConsolidarEnviarPaqueteUseCase:
         # Paso 9: Intentar envío a M04 (un intento síncrono; backoff diferido fuera de alcance)
         try:
             exito = self.motor_inferencia_port.enviar_paquete(paquete_guardado)
+        except MotorInferenciaNoIntegradoError:
+            # Ya está confirmado en BD. No hubo transporte ni intento fallido.
+            logger.warning(
+                'RF-56: paquete %s pendiente; motor de inferencia no integrado.',
+                paquete_guardado.id_paquetes_inferencia,
+            )
+            return paquete_guardado
         except Exception:
             exito = False
 

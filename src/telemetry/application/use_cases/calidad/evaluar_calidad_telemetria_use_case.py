@@ -8,7 +8,7 @@ Pipeline de 8 fases:
   Fase 4 — Deriva (drift). Omitida si calibracion_no_disponible.
   Fase 5 — Gap temporal anómalo.
   Fase 6 — Cálculo del índice de calidad y clasificación.
-  Fase 7 — Persistir en telemetria_calidad + actualizar flags en telemetrias.
+  Fase 7 — Persistir aptitud en telemetria_calidad, sin modificar telemetrias.
   Fase 8 — Alertas técnicas + evento RF-63.
 """
 from __future__ import annotations
@@ -119,7 +119,7 @@ class EvaluarCalidadTelemetriaUseCase:
                 indice=None,
                 clasificacion=ClasificacionCalidad.INDETERMINADA,
                 flags=flags,
-                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
+                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min},
                 parametros_calibracion_aplicados=parametros_calibracion,
                 motivo_reevaluacion=None,
             )
@@ -199,26 +199,18 @@ class EvaluarCalidadTelemetriaUseCase:
         # ── Fase 6: Índice y clasificación ────────────────────────────────────
         indice = calcular_indice_calidad(flags)
         clasificacion = clasificar_desde_indice(indice)
-        apto_ia, apto_nic41 = derivar_aptitud(clasificacion)
-
         # ── Fase 7: Persistir ──────────────────────────────────────────────────
-        try:
-            evaluacion = self._persistir(
-                id_telemetria=id_telemetria,
-                id_sensor=id_sensor,
-                ahora=ahora,
-                indice=indice,
-                clasificacion=clasificacion,
-                flags=flags,
-                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
-                parametros_calibracion_aplicados=parametros_calibracion,
-                motivo_reevaluacion=None,
-            )
-            self.telemetria_repo.actualizar_flags_aptitud(id_telemetria, apto_ia, apto_nic41)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        evaluacion = self._persistir(
+            id_telemetria=id_telemetria,
+            id_sensor=id_sensor,
+            ahora=ahora,
+            indice=indice,
+            clasificacion=clasificacion,
+            flags=flags,
+            parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min},
+            parametros_calibracion_aplicados=parametros_calibracion,
+            motivo_reevaluacion=None,
+        )
 
         # ── Fase 8: Notificaciones ─────────────────────────────────────────────
         self._emitir_auditoria(TipoResultado.EXITOSO, id_telemetria, flags)
@@ -237,7 +229,7 @@ class EvaluarCalidadTelemetriaUseCase:
         motivo_reevaluacion: Optional[str],
     ) -> TelemetriaCalidad:
         apto_ia, apto_nic41 = derivar_aptitud(clasificacion)
-        return self.calidad_repo.guardar(TelemetriaCalidad(
+        evaluacion = TelemetriaCalidad(
             id_evaluacion=None,
             id_telemetria=id_telemetria,
             id_sensor=id_sensor,
@@ -250,7 +242,24 @@ class EvaluarCalidadTelemetriaUseCase:
             parametros_aplicados=parametros_aplicados,
             parametros_calibracion_aplicados=parametros_calibracion_aplicados,
             motivo_reevaluacion=motivo_reevaluacion,
-        ))
+        )
+        # Todas las ramas (incluidas FUERA_DE_RANGO e INDETERMINADA) confirman
+        # la evaluación antes de emitir auditoría. RF-53 permanece inmutable.
+        try:
+            anterior = self.calidad_repo.obtener_por_lectura(id_telemetria)
+            if anterior is not None:
+                evaluacion.id_evaluacion_superada = anterior.id_evaluacion
+            guardada = self.calidad_repo.guardar(evaluacion)
+            if anterior is not None:
+                self.calidad_repo.marcar_superada(
+                    anterior.id_evaluacion,
+                    motivo=motivo_reevaluacion or 'Superada por una evaluación posterior de RF-62.',
+                )
+            self.db.commit()
+            return guardada
+        except Exception:
+            self.db.rollback()
+            raise
 
     def _emitir_auditoria(
         self,

@@ -46,6 +46,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                 ultima_ocurrencia=alerta.ultima_ocurrencia,
                 fecha_evento=alerta.fecha_evento,
                 fecha_generacion=alerta.fecha_generacion,
+                fecha_registro=alerta.fecha_registro or alerta.fecha_generacion,
                 fecha_vencimiento=alerta.fecha_vencimiento,
                 id_sensor=alerta.id_sensor,
                 id_dispositivo_ioit=alerta.id_dispositivo_ioit,
@@ -66,6 +67,19 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
+    def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
+        consulta = self.db.query(AlertaModel).filter(
+            AlertaModel.id_dispositivo_ioit == id_dispositivo,
+            AlertaModel.tipo_alerta == 'TECNICA',
+            AlertaModel.tipo_variable == causa,
+            AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+        )
+        if sensores_fallidos is not None:
+            # No suprimir fallos de otro sensor por una alerta previa del dispositivo.
+            consulta = consulta.filter(AlertaModel.metadato_evento['sensores_fallidos'] == sensores_fallidos)
+        orm = consulta.order_by(AlertaModel.id_alerta.desc()).first()
+        return self._a_entidad(orm) if orm else None
+
     def buscar_activa_duplicada(
         self,
         id_sensor: int,
@@ -79,6 +93,20 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                 AlertaModel.tipo_variable == tipo_variable.upper(),
                 AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
                 AlertaModel.fecha_generacion >= func.now() - text(f"interval '{ventana_min} minutes'"),
+            )
+            .order_by(AlertaModel.fecha_generacion.desc())
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
+    def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
+        orm = (
+            self.db.query(AlertaModel)
+            .filter(
+                AlertaModel.tipo_alerta == 'TECNICA',
+                AlertaModel.id_dispositivo_ioit == id_dispositivo_ioit,
+                AlertaModel.tipo_variable == tipo_variable,
+                AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
             )
             .order_by(AlertaModel.fecha_generacion.desc())
             .first()
@@ -185,8 +213,11 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         por_pagina: int = 50,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
+        if excluir_tipo_alerta:
+            q = q.filter(AlertaModel.tipo_alerta != excluir_tipo_alerta)
         if estado:
             q = q.filter(AlertaModel.estado_alerta == estado)
         if severidad:

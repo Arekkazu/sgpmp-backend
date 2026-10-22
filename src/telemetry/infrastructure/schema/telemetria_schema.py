@@ -37,6 +37,9 @@ class ObservacionVisionResponse(BaseModel):
     apto_para_ia: bool
     # RF-62 v2.0: siempre false para visión.
     apto_para_nic41: bool = False
+    ventana_inicio: datetime | None = None
+    ventana_fin: datetime | None = None
+    version_cascada: dict[str, str] | None = None
 
 
 class IngestaVisionResponse(BaseModel):

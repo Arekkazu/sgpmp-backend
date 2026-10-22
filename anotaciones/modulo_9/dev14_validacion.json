@@ -1,0 +1,720 @@
+{
+  "tarea": "DEV-14 / #3520",
+  "fecha": "2026-10-19",
+  "rama": "fix/dev14-parametros-operativos",
+  "base": "cd06a257",
+  "entorno": "Windows, Python 3.13.13, PostgreSQL 18.4 local aislado",
+  "migracion_head_aislada": "3a9d5e7c1b24",
+  "inspeccion_dev": {
+    "base": "sgpmp_dev",
+    "transaction_read_only": "on",
+    "columnas": [
+      [
+        "modulo4",
+        "parametros_mlops",
+        "id_parametro",
+        "integer",
+        "NO",
+        "nextval('modulo4.parametros_mlops_id_parametro_seq'::regclass)"
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "nombre_parametro",
+        "character varying",
+        "NO",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "valor_actual",
+        "jsonb",
+        "NO",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "valor_por_defecto",
+        "jsonb",
+        "NO",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "descripcion",
+        "text",
+        "YES",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "rango_minimo",
+        "numeric",
+        "YES",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "rango_maximo",
+        "numeric",
+        "YES",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "id_usuario_modificador",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo4",
+        "parametros_mlops",
+        "fecha_modificacion",
+        "timestamp with time zone",
+        "NO",
+        "now()"
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "id_configuracion_global",
+        "integer",
+        "NO",
+        "nextval('modulo9.configuraciones_globales_id_configuracion_global_seq'::regclass)"
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "frecuencia_muestreo",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "heartbeat",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "fecha_actualizacion",
+        "timestamp with time zone",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "id_usuario",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_globales",
+        "es_activo",
+        "boolean",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_configuracion_remota",
+        "integer",
+        "NO",
+        "nextval('modulo9.configuraciones_remotas_id_configuracion_remota_seq'::regclass)"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "frecuencia_captura",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "intervalo_transmision",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_dispositivo_iot",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "estado",
+        "character varying",
+        "NO",
+        "'PENDIENTE'::character varying"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "id_usuario",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fecha_creacion",
+        "timestamp with time zone",
+        "YES",
+        "now()"
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fecha_aplicacion",
+        "timestamp with time zone",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "configuraciones_remotas",
+        "fps",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "id_dispositivo_iot",
+        "integer",
+        "NO",
+        "nextval('modulo9.dispositivos_iot_id_dispositivo_iot_seq'::regclass)"
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "serial",
+        "character varying",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "descripcion",
+        "character varying",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "es_activo",
+        "boolean",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "fecha_creacion",
+        "timestamp with time zone",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "id_infraestructura",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "id_tipo_dispositivo",
+        "integer",
+        "NO",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "id_dispositivo_gateway",
+        "integer",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "resolucion",
+        "character varying",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "fps",
+        "smallint",
+        "YES",
+        null
+      ],
+      [
+        "modulo9",
+        "dispositivos_iot",
+        "area_cobertura_m2",
+        "numeric",
+        "YES",
+        null
+      ]
+    ],
+    "parametros_observados": [
+      [
+        "umbral_clasificacion_riesgo_alto",
+        0.7,
+        0.7,
+        "0.50",
+        "0.95"
+      ],
+      [
+        "ventana_retroalimentacion_dias",
+        90,
+        90,
+        "7",
+        "365"
+      ]
+    ],
+    "privilegios_mlops": {
+      "privilegios": [
+        [
+          "member_dev",
+          true,
+          true,
+          true
+        ],
+        [
+          "sgpmp_app",
+          true,
+          true,
+          true
+        ]
+      ],
+      "rls_mlops": false
+    },
+    "escrituras_compartidas": false
+  },
+  "grupos": {
+    "configuracion": {
+      "aprobadas": 597,
+      "fallidas": 1,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 598,
+      "resultados_no_aprobados": [
+        {
+          "prueba": "tests.configuration.test_rf26_identidad_visual_accesibilidad::test_la_aplicacion_sirve_el_directorio_de_logotipos",
+          "estado": "fallidas",
+          "motivo": "ModuleNotFoundError: No module named fcntl; importacion preexistente M02 desde main"
+        }
+      ]
+    },
+    "telemetria": {
+      "aprobadas": 30,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 30,
+      "resultados_no_aprobados": []
+    },
+    "prediccion": {
+      "aprobadas": 23,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 23,
+      "resultados_no_aprobados": []
+    },
+    "shared": {
+      "aprobadas": 73,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 73,
+      "resultados_no_aprobados": []
+    },
+    "integracion": {
+      "aprobadas": 17,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 1,
+      "total": 18,
+      "resultados_no_aprobados": [
+        {
+          "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_persistencia_completa_dinamica_con_dev02",
+          "estado": "omitidas",
+          "motivo": "Requiere integrar DEV-02; no se duplica su solución de inmutabilidad."
+        }
+      ]
+    },
+    "integracion_condicional_dev02": {
+      "aprobadas": 1,
+      "fallidas": 0,
+      "errores": 0,
+      "omitidas": 0,
+      "total": 1,
+      "resultados_no_aprobados": []
+    }
+  },
+  "total_rama_independiente": {
+    "aprobadas": 740,
+    "fallidas": 1,
+    "errores": 0,
+    "omitidas": 1
+  },
+  "aprobadas_distintas_incluyendo_contexto_condicional": 741,
+  "nota_condicional": "La misma prueba omitida por dependencia en la rama independiente aprobo al aplicar temporalmente DEV-02 8fc5ef9c. Los siete archivos se restauraron y compararon byte a byte. No se suman repeticiones.",
+  "nuevas_pruebas": [
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_valor_persistido_cambia_calculo_sin_recrear_consumidor[rf62_k-1-4-serie0-None-outlier_estadistico]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_valor_persistido_cambia_calculo_sin_recrear_consumidor[rf62_m-3-4-serie1-None-sensor_congelado]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_valor_persistido_cambia_calculo_sin_recrear_consumidor[rf62_umbral_drift-5-20-serie2-calibracion2-posible_drift]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_valor_persistido_cambia_calculo_sin_recrear_consumidor[rf62_p-3-6-serie3-calibracion3-posible_drift]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_n_y_muestreo_se_recargan_en_mismo_adaptador_y_sesion",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_confianza_db_cambia_resolucion_real_del_use_case",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_ventana_db_cambia_aceptacion_rf72_sin_recrear_use_case",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_configuracion_ausente_o_invalida_no_cae_a_constantes[DELETE FROM modulo4.parametros_mlops WHERE nombre_parametro='rf62_k'-PARAMETRO_CONFIGURACION_AUSENTE]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_configuracion_ausente_o_invalida_no_cae_a_constantes[UPDATE modulo4.parametros_mlops SET valor_actual='true' WHERE nombre_parametro='rf62_k'-PARAMETRO_CONFIGURACION_INVALIDO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_configuracion_ausente_o_invalida_no_cae_a_constantes[UPDATE modulo4.parametros_mlops SET valor_actual='1.5' WHERE nombre_parametro='rf62_n'-PARAMETRO_CONFIGURACION_INVALIDO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_configuracion_ausente_o_invalida_no_cae_a_constantes[UPDATE modulo4.parametros_mlops SET rango_maximo=1 WHERE nombre_parametro='rf62_k'-PARAMETRO_CONFIGURACION_INVALIDO]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_actualizacion_invalida_no_modifica_otro_parametro_del_lote",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_actualizacion_conserva_valor_por_defecto_y_atribuye_responsable",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_limites_persistidos_se_conservan_al_actualizar",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_error_de_conexion_se_traduce_sin_filtrar_detalles",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_cli_validacion_por_defecto_no_persiste",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_otro_commit_se_observa_en_misma_sesion_y_consumidor",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "integracion",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_persistencia_completa_dinamica_con_dev02",
+      "estado": "omitidas"
+    },
+    {
+      "grupo": "integracion_condicional_dev02",
+      "prueba": "tests.integration.test_dev14_parametros_dinamicos::test_rf62_persistencia_completa_dinamica_con_dev02",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[False]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[None]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[valor4]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[valor5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[nan]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[inf]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[-1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_k_invalido_no_activa_constante_de_respaldo[0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios2]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios3]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios4]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventanas_y_porcentaje_invalidos_se_rechazan[cambios5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_parametro_ausente_no_usa_valor_por_defecto",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rango_persistido_no_amplia_limites_funcionales",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_parametro_modifica_calculo_mismo_consumidor[rf62_k-1-4-serie0-None-outlier_estadistico]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_parametro_modifica_calculo_mismo_consumidor[rf62_m-3-4-serie1-None-sensor_congelado]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_parametro_modifica_calculo_mismo_consumidor[rf62_umbral_drift-5-20-serie2-calibracion2-posible_drift]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_parametro_modifica_calculo_mismo_consumidor[rf62_p-3-6-serie3-calibracion3-posible_drift]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_n_modifica_suficiencia_de_serie_sin_recrear_use_case",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_confianza_modifica_tipo_y_compromiso_sin_cambiar_bandas_de_severidad",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_sin_ia_no_se_consume_un_umbral_que_no_interviene",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_ventana_rf72_modifica_aceptacion_en_el_mismo_consumidor",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_carga_invalida_revierte_sin_escribir",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_sin_conflicto_ia_no_se_consume_un_umbral_innecesario",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_falta_configuracion_m09_no_se_reemplaza_por_cinco_minutos",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_muestreo_persistido_invalido_se_rechaza[0]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_muestreo_persistido_invalido_se_rechaza[True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_muestreo_persistido_invalido_se_rechaza[-1]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_muestreo_persistido_invalido_se_rechaza[1.5]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos0-False]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos0-True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos1-False]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos1-True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos2-False]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_acepta_nombre_canonico_y_alias_sin_duplicar_valor[campos2-True]",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_rechaza_aliases_con_valores_distintos",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_rf18_respuesta_mantiene_alias_y_publica_nombre_canonico",
+      "estado": "aprobadas"
+    },
+    {
+      "grupo": "configuracion",
+      "prueba": "tests.configuration.test_dev14_parametros_dinamicos::test_evento_edge_conserva_generacion_de_alerta_con_nueva_dependencia",
+      "estado": "aprobadas"
+    }
+  ],
+  "archivos_no_recolectables_por_fcntl": [
+    "tests/configuration/test_inc_m09_75_g142_disparo_automatico_vision.py",
+    "tests/telemetry/test_inc_m09_77_g137_observaciones_vision.py"
+  ],
+  "verificacion_estatica": {
+    "compileall": "aprobado",
+    "git_diff_check": "aprobado",
+    "bandit_medio_alto": "sin hallazgos",
+    "bandit_bajo": "Dos B110 preexistentes: _emitir_auditoria RF62 y bloque best-effort de alertas Edge",
+    "semgrep": "no ejecutado",
+    "bandit_comando": "uv tool run --offline bandit -f json -q <archivos Python de produccion cambiados>"
+  },
+  "migraciones_nuevas": false,
+  "push": false,
+  "limitaciones_entorno_resueltas": "Una repeticion M09 sin avance en el sandbox se detuvo y repitio fuera del sandbox. La ejecucion final completo 598 casos en 19.45 segundos. Bandit no pertenece al venv; se utilizo su cache local existente."
+}

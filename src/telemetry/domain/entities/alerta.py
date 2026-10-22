@@ -42,6 +42,26 @@ class ConflictoResolucion(str, Enum):
     EDGE_PREVALECE = "EDGE_PREVALECE"
 
 
+#: RF-60: alertas técnicas de dispositivos IoT (batería, conectividad,
+#: sobrecalentamiento). Comparten ``modulo3.alertas`` con las operativas.
+TIPO_ALERTA_TECNICA = "TECNICA"
+
+
+class AmbitoAlerta(str, Enum):
+    """Qué alertas atiende cada endpoint (RF-60, Restricción 5 — D-09).
+
+    ``/iot/alertas`` (recurso 32, que el Productor tiene con R y U) solo ve y
+    gestiona las operativas; ``/iot/alertas-tecnicas`` (recurso 36, Admin e
+    Ingeniero) solo las técnicas. Una alerta fuera del ámbito del endpoint no
+    existe para él (404), igual que una alerta de otra finca.
+    """
+    OPERATIVA = "OPERATIVA"
+    TECNICA = "TECNICA"
+
+    def admite(self, tipo_alerta: str) -> bool:
+        return (tipo_alerta == TIPO_ALERTA_TECNICA) == (self is AmbitoAlerta.TECNICA)
+
+
 class SeveridadAlerta(str, Enum):
     LEVE = "LEVE"
     MODERADO = "MODERADO"

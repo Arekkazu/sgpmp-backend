@@ -537,3 +537,33 @@ def test_byte_nulo_de_psycopg2_es_400_no_500() -> None:
 
     assert exc_info.value.code == "VALOR_NO_PERMITIDO"
     assert exc_info.value.status_code == 400
+
+
+def test_errcode_niveles_solapados_es_422_no_500() -> None:
+    """CU-M09-03: un nivel de alerta que se solapa con otro del umbral (P0113)
+    salía como 500 "Error inesperado en base de datos"."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0113",
+        message_primary=(
+            "OVERLAPPING_ALERT: El rango [0.00, 20.00] del nuevo nivel de alerta se solapa "
+            "con un rango ya existente para este umbral ambiental."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "NIVELES_SOLAPADOS"
+    assert exc_info.value.status_code == 422
+    assert "OVERLAPPING_ALERT" not in exc_info.value.message
+
+
+def test_error_no_mapeado_no_menciona_la_base_de_datos() -> None:
+    """CU-M09-03: el 500 genérico no debe delatar la capa que falló."""
+    exc = _integrity(pg_errors.InternalError_, sqlstate="P0999", message_primary="ALGO: detalle interno")
+
+    with pytest.raises(InfrastructureError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert "base de datos" not in exc_info.value.message.lower()

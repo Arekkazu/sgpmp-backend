@@ -6,8 +6,12 @@ RF-57 — CU03 Dev scope:
   GET   /iot/alertas/{id_alerta}       — Detalle de alerta con historial de estados
   PATCH /iot/alertas/{id_alerta}/estado — Transicionar estado de ciclo de vida
 
-Auth POST: dispositivo IoT — identidad verificada via access_key + device_id en body (sin JWT).
+Auth POST: token de servicio del broker (`Authorization: Bearer`); `serial` + device_id en el body.
 Auth REST: JWT Bearer + RBAC recurso 32 (alertas_operativas).
+
+RF-60 D-09: GET y PATCH solo atienden alertas operativas. Las técnicas
+(tipo_alerta = TECNICA) se consultan y gestionan por /iot/alertas-tecnicas
+(recurso 36); acá no aparecen en el listado y su detalle o PATCH da 404.
 """
 from __future__ import annotations
 
@@ -17,6 +21,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import AuthenticationError
@@ -26,10 +31,14 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.domain.entities.alerta import AmbitoAlerta
+from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
 from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 from src.telemetry.infrastructure.schema.alerta_schema import (
@@ -48,6 +57,7 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
+        parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
     )
 
 
@@ -60,7 +70,9 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         401: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Generar alerta desde evento de desviación (RF-57 FA-01–FA-08)",
 )
 def procesar_evento_alerta(
@@ -71,12 +83,12 @@ def procesar_evento_alerta(
     info = dispositivo_port.obtener_dispositivo_activo(
         device_id=dto.device_id,
         sensor_id=dto.sensor_id,
-        access_key=dto.access_key,
+        serial=dto.serial,
     )
     if info is None or not info.es_activo_dispositivo or not info.es_activo_sensor:
         raise AuthenticationError(
             code="DISPOSITIVO_NO_AUTORIZADO",
-            message="Credenciales de dispositivo inválidas o dispositivo inactivo.",
+            message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
         )
 
     resultado = _build_generar_use_case(db).execute(
@@ -134,6 +146,7 @@ def listar_alertas(
         fecha_hasta=fecha_hasta,
         pagina=pagina,
         por_pagina=por_pagina,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -169,6 +182,7 @@ def obtener_alerta(
     )
     alerta, historico = use_case.obtener_detalle(
         id_alerta,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -202,6 +216,8 @@ def actualizar_estado_alerta(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        ambito=AmbitoAlerta.OPERATIVA,
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,

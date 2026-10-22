@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, aliased
 
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.telemetria_calidad import ClasificacionCalidad, EstadoEvaluacion, TelemetriaCalidad
@@ -16,6 +17,37 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def _consulta_vigentes(self, id_telemetria: Optional[int] = None):
+        """Una evaluación no superada por lectura, con desempate estable.
+
+        Se respeta tanto el estado explícito como la cadena de sustitución.
+        El ranking resuelve registros históricos con varios VIGENTE sin
+        multiplicar lecturas ni recuperar una aptitud anterior por un filtro.
+        """
+        candidata = aliased(TelemetriaCalidadModel)
+        posterior = aliased(TelemetriaCalidadModel)
+        superada = self.db.query(posterior.id_evaluacion).filter(
+            posterior.id_evaluacion_superada == candidata.id_evaluacion,
+            posterior.id_telemetria == candidata.id_telemetria,
+        ).exists()
+        ranking = self.db.query(
+            candidata.id_evaluacion.label('id_evaluacion'),
+            func.row_number().over(
+                partition_by=candidata.id_telemetria,
+                order_by=(
+                    candidata.timestamp_evaluacion.desc(),
+                    candidata.fecha_creacion.desc(),
+                    candidata.id_evaluacion.desc(),
+                ),
+            ).label('posicion'),
+        ).filter(candidata.estado_evaluacion == 'VIGENTE', ~superada)
+        if id_telemetria is not None:
+            ranking = ranking.filter(candidata.id_telemetria == id_telemetria)
+        vigentes = ranking.subquery()
+        return self.db.query(TelemetriaCalidadModel).join(
+            vigentes, vigentes.c.id_evaluacion == TelemetriaCalidadModel.id_evaluacion,
+        ).filter(vigentes.c.posicion == 1)
 
     def guardar(self, evaluacion: TelemetriaCalidad) -> TelemetriaCalidad:
         try:
@@ -44,15 +76,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
             raise_from_db_error(exc)
 
     def obtener_por_lectura(self, id_telemetria: int) -> Optional[TelemetriaCalidad]:
-        orm = (
-            self.db.query(TelemetriaCalidadModel)
-            .filter(
-                TelemetriaCalidadModel.id_telemetria == id_telemetria,
-                TelemetriaCalidadModel.estado_evaluacion == 'VIGENTE',
-            )
-            .order_by(TelemetriaCalidadModel.fecha_creacion.desc())
-            .first()
-        )
+        orm = self._consulta_vigentes(id_telemetria).first()
         return self._a_entidad(orm) if orm else None
 
     def listar(
@@ -65,7 +89,10 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list[TelemetriaCalidad], int]:
-        q = self.db.query(TelemetriaCalidadModel)
+        # La consulta ordinaria expone aptitud vigente. El histórico SUPERADA
+        # sigue disponible cuando se solicita explícitamente ese estado.
+        q = (self._consulta_vigentes() if estado_evaluacion in (None, 'VIGENTE')
+             else self.db.query(TelemetriaCalidadModel))
         if id_sensor is not None:
             q = q.filter(TelemetriaCalidadModel.id_sensor == id_sensor)
         if clasificacion:
@@ -77,7 +104,10 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         if estado_evaluacion:
             q = q.filter(TelemetriaCalidadModel.estado_evaluacion == estado_evaluacion)
         total = q.count()
-        items = q.order_by(TelemetriaCalidadModel.timestamp_evaluacion.desc()).offset((pagina - 1) * por_pagina).limit(por_pagina).all()
+        items = q.order_by(
+            TelemetriaCalidadModel.timestamp_evaluacion.desc(),
+            TelemetriaCalidadModel.id_evaluacion.desc(),
+        ).offset((pagina - 1) * por_pagina).limit(por_pagina).all()
         return [self._a_entidad(o) for o in items], total
 
     def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None:
@@ -96,7 +126,7 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         fecha_hasta: datetime,
     ) -> list[TelemetriaCalidad]:
         items = (
-            self.db.query(TelemetriaCalidadModel)
+            self._consulta_vigentes()
             .filter(
                 TelemetriaCalidadModel.id_sensor == id_sensor,
                 TelemetriaCalidadModel.estado_evaluacion == 'VIGENTE',

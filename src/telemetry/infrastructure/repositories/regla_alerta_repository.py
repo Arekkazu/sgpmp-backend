@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.alerta import ReglaAlerta
@@ -55,6 +57,10 @@ class SqlAlchemyReglaAlertaRepository(ReglaAlertaRepository):
             .all()
         )
         return [self._a_entidad(o) for o in orms]
+
+    def obtener_por_id(self, id_regla_alertas: int) -> Optional[ReglaAlerta]:
+        orm = self.db.get(ReglaAlertaModel, id_regla_alertas)
+        return self._a_entidad(orm) if orm is not None else None
 
     @staticmethod
     def _a_entidad(orm: ReglaAlertaModel) -> ReglaAlerta:

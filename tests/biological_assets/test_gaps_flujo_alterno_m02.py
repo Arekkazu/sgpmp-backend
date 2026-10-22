@@ -18,6 +18,8 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+
+from src.shared.fechas import hoy_colombia
 from sqlalchemy.exc import ProgrammingError
 
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
@@ -207,7 +209,7 @@ class _Ciclo:
 
 
 def _registrar_productivo(**campos):
-    base = dict(tipo_producto='LECHE', cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1))
+    base = dict(id_metrica_produccion=1, cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1))
     base.update(campos)
     uc = RegistrarEventoProductivoUseCase(
         db=_Db(), activo_repo=_ActivoRepo(_activo()), evento_repo=_EventoRepo(),
@@ -236,7 +238,7 @@ def test_rf43_error_de_validacion_es_422(campos, codigo) -> None:
 
 def test_rf43_cantidad_invalida_ya_no_la_rechaza_el_dto() -> None:
     dto = RegistrarEventoProductivoDTO(
-        tipo_producto='LECHE', cantidad_producida=Decimal('0'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
+        id_metrica_produccion=1, cantidad_producida=Decimal('0'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
     )
     assert dto.cantidad_producida == 0
 
@@ -249,13 +251,18 @@ class _HistoricoRepo:
     def __init__(self) -> None:
         self.registros: list[dict] = []
 
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
+
     def registrar(self, **kwargs):
         self.registros.append(kwargs)
         return SimpleNamespace(id_historico=len(self.registros), **kwargs)
 
 
 def _cambiar_estado(estado: str = 'INACTIVO', **campos):
-    base = dict(estado_nuevo=estado, fecha_cambio_estado=AHORA.date(), motivo_cambio='revisión')
+    base = dict(estado_nuevo=estado, fecha_cambio_estado=hoy_colombia(), motivo_cambio='revisión')
     base.update(campos)
     historico = _HistoricoRepo()
     uc = CambiarEstadoUseCase(db=_Db(), repo=_ActivoRepo(_activo()), historico_repo=historico)
@@ -626,7 +633,7 @@ def test_rf52_e5_el_evento_registrado_lleva_la_llave_de_su_fila_rf46() -> None:
     )
 
     uc.execute(10, RegistrarEventoProductivoDTO(
-        tipo_producto='LECHE', cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
+        id_metrica_produccion=1, cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
     ), USUARIO)
 
     registrado = next(e for e in bitacora_repo.eventos if e.tipo_evento == 'EVENTO_PRODUCTIVO_REGISTRADO')

@@ -12,6 +12,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
+from src.biological_assets.application.use_cases.gestion._event_validations import no_anterior_a_creacion
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoBaja, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -22,6 +23,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class RegistrarEventoBajaUseCase:
@@ -83,7 +85,7 @@ class RegistrarEventoBajaUseCase:
 
         # E-03: fecha_baja no futura ni anterior al último evento
         ahora = datetime.now(timezone.utc)
-        hoy = ahora.date()
+        hoy = hoy_colombia()
         if dto.fecha_baja > hoy:
             raise ValidationError(
                 code='FECHA_BAJA_FUTURA',
@@ -98,12 +100,13 @@ class RegistrarEventoBajaUseCase:
         # de hoy se usa la hora real (`ahora`, siempre >= la creación, que ya
         # ocurrió); para un día pasado se usa el final de ese día, que nunca cae
         # en el futuro porque el día completo ya transcurrió.
-        fecha_dt = ahora if dto.fecha_baja == hoy else datetime.combine(dto.fecha_baja, time.max, tzinfo=timezone.utc)
+        fecha_dt = ahora if dto.fecha_baja == hoy else no_anterior_a_creacion(
+            dto.fecha_baja, datetime.combine(dto.fecha_baja, time.max, tzinfo=timezone.utc), activo,
+        )
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultima_utc = ultima_fecha.astimezone(timezone.utc)
-            ultimo_dia = ultima_utc.date()
+            ultimo_dia = fecha_colombia(ultima_fecha)
             if dto.fecha_baja < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_BAJA_CRONOLOGICAMENTE_INVALIDA',

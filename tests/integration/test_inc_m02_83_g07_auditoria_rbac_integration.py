@@ -76,7 +76,7 @@ def test_tc_m02_249_403_rbac_incrementa_bitacora_rf43(
         respuesta = client.post(
             '/activos-biologicos/80/eventos/productivo',
             json={
-                'tipo_producto': 'LECHE',
+                'id_metrica_produccion': 1,
                 'cantidad_producida': 12.5,
                 'unidad_medida': 'litros',
                 'fecha_evento': '2026-09-01',
