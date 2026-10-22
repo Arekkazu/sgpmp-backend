@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: verifica etapa nueva sin duplicados |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -172,7 +175,11 @@ def test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_o
     procesador(db_session).execute()
     procesador(db_session).execute()
     tipos = [x['tipo_evento'] for x in evidencias(db_session,identificador)]
-    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO','POSTCOMMIT_RF17_COMPLETADO'}
+    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO',
+        'POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF57_COMPLETADO'}
+    assert all(tipos.count(tipo)==1 for tipo in tipos)
+    rf57=next(e for e in evidencias(db_session,identificador) if e['tipo_evento']=='POSTCOMMIT_RF57_COMPLETADO')
+    assert rf57['accion_detallada']['resultado_etapa']['decision']=='EXCLUIDA_POR_CALIDAD'
     assert all(len(x['hash_integridad'])==64 for x in evidencias(db_session,identificador))
     from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
     from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository

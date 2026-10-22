@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-57: bloqueo por condicion operativa     |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +11,9 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 
 class AlertaRepository(ABC):
+    def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
+        """Serializa creación/consolidación por sensor y variable entre canales."""
+        raise NotImplementedError
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
         """Alerta vigente de la misma causa técnica, sin ventana temporal inventada."""

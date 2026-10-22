@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: conecta alerta critica al worker |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -15,12 +18,15 @@ from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo
 from src.telemetry.application.use_cases.ingesta.procesar_lectura_confirmada_use_case import ProcesarLecturaConfirmadaUseCase
 from src.telemetry.application.use_cases.ingesta.procesar_postcommit_use_case import ProcesarPostcommitUseCase
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
+from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.application.use_cases.alertas.generar_alerta_telemetria_use_case import GenerarAlertaTelemetriaUseCase
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
 from src.telemetry.infrastructure.adapters.parametros_heartbeat_pendientes_adapter import ParametrosHeartbeatPendientesAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
+from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -31,6 +37,8 @@ from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAl
 from src.telemetry.infrastructure.repositories.postcommit_repository import unidad_postcommit
 from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
+from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
+from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +80,15 @@ def _diagnostico(db, identificador, metodo, politica):
     getattr(servicio, metodo)(heartbeat, infraestructura)
 
 
+def _alerta_critica(db, identificador):
+    return GenerarAlertaTelemetriaUseCase(
+        SqlAlchemyLecturaPostcommitRepository(db), _lectura(db).reclasificar,
+        GenararAlertaUseCase(db, SqlAlchemyAlertaRepository(db),
+            SqlAlchemyHistoricoEstadoAlertaRepository(db), SqlAlchemyReglaAlertaRepository(db),
+            ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db))),
+    ).execute(identificador)
+
+
 def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, limite=50, reintento_seg=60):
     parametros = parametros_heartbeat or ParametrosHeartbeatPendientesAdapter()
     return ProcesarPostcommitUseCase(
@@ -80,6 +97,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF61: lambda db, i: _lectura(db).vincular_lectura(i),
             EtapaPostcommit.RF62: lambda db, i: _lectura(db).evaluar_lectura(i),
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
+            EtapaPostcommit.RF57: _alerta_critica,
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),
             EtapaPostcommit.HEARTBEAT_SENSORES: lambda db, i: _diagnostico(db, i, 'sensores', diagnostico_heartbeat),

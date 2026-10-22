@@ -1,12 +1,24 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: contexto de alerta desde M09     |
 """Consultas derivadas: nunca se leen los flags obsoletos de telemetrias."""
 from sqlalchemy import select, text
 
 from src.telemetry.domain.entities.telemetria import Telemetria
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
 from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import variable_para_alerta
 
 
 class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
+    def contexto_alerta(self, lectura):
+        variable = variable_para_alerta(self.db, id_variable=lectura.id_variable)
+        dispositivo = self.db.execute(text('''SELECT d.serial,d.id_infraestructura,i.id_finca
+            FROM modulo9.dispositivos_iot d JOIN modulo9.infraestructuras i
+              ON i.id_infraestructura=d.id_infraestructura WHERE d.id_dispositivo_iot=:id'''),
+            {'id': lectura.id_dispositivo_iot}).mappings().one()
+        return {'variable': variable, **dict(dispositivo)}
+
     def obtener_por_id(self, id_telemetria):
         columnas = [c for c in TelemetriaModel.__table__.c
                     if c.name not in ('apto_para_ia', 'apto_para_nic41')]

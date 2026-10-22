@@ -1,10 +1,13 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-57: consolida condicion sin carreras    |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import func, literal_column, or_, select, text
 from sqlalchemy.orm import Session
 
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
@@ -13,6 +16,7 @@ from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import variable_para_alerta
 
 
 class SqlAlchemyAlertaRepository(AlertaRepository):
@@ -22,12 +26,13 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
 
     def guardar(self, alerta: Alerta) -> Alerta:
         try:
+            variable = variable_para_alerta(self.db, codigo=alerta.tipo_variable) if alerta.tipo_alerta != 'TECNICA' else None
             orm = AlertaModel(
                 tipo_alerta=alerta.tipo_alerta,
                 severidad=alerta.severidad,
                 estado_alerta=alerta.estado_alerta,
                 origen_evento=alerta.origen_evento,
-                tipo_variable=alerta.tipo_variable,
+                tipo_variable=variable['tipo_variable'] if variable else alerta.tipo_variable,
                 valor=alerta.valor,
                 unidad=alerta.unidad,
                 reglas_activas=list(alerta.reglas_activas or []),
@@ -86,18 +91,31 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         tipo_variable: str,
         ventana_min: int = 30,
     ) -> Optional[Alerta]:
+        variable = variable_para_alerta(self.db, codigo=tipo_variable)
+        equivalentes = variable['aliases'] if variable else [tipo_variable.upper()]
         orm = (
             self.db.query(AlertaModel)
             .filter(
                 AlertaModel.id_sensor == id_sensor,
-                AlertaModel.tipo_variable == tipo_variable.upper(),
+                AlertaModel.tipo_variable.in_(equivalentes),
                 AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
-                AlertaModel.fecha_generacion >= func.now() - text(f"interval '{ventana_min} minutes'"),
+                AlertaModel.fecha_generacion >= func.now() - ventana_min * literal_column("interval '1 minute'"),
             )
             .order_by(AlertaModel.fecha_generacion.desc())
+            .populate_existing()
+            .with_for_update()
             .first()
         )
         return self._a_entidad(orm) if orm else None
+
+    def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
+        variable = variable_para_alerta(self.db, codigo=tipo_variable)
+        clave = str(variable['id_variable']) if variable else tipo_variable.upper()
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                {'clave': f'rf57:{id_sensor}:{clave}'})
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
         orm = (
@@ -120,7 +138,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         nueva_severidad: Optional[str] = None,
     ) -> None:
         try:
-            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).first()
+            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().first()
             if orm is None:
                 return
             orm.frecuencia_evento = (orm.frecuencia_evento or 1) + 1
