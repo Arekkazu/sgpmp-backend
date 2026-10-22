@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 """Consultas derivadas: nunca se leen los flags obsoletos de telemetrias."""
 from sqlalchemy import select, text
 
@@ -24,6 +27,12 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
               AND fecha_fin_vinculacion IS NULL
             ORDER BY fecha_creacion DESC, id_vinculacion_lectura DESC LIMIT 1
         """), {'id': identificador}).mappings().first()
+
+    def evaluacion_omitida(self, identificador):
+        return self.db.execute(text("""SELECT EXISTS(SELECT 1 FROM modulo3.bitacora_auditoria_iot
+            WHERE componente_origen='RF62' AND entidad_afectada_tipo='CALIDAD_DATO'
+              AND entidad_afectada_id=:id AND tipo_evento='EVALUACION_OMITIDA_POR_INACTIVIDAD')"""),
+            {'id':str(identificador)}).scalar_one()
 
     def evaluacion_vigente(self, identificador):
         return self.db.execute(text("""SELECT q.id_evaluacion, q.apto_para_ia, q.apto_para_nic41

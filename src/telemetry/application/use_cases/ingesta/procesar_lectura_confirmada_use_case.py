@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 from src.shared.errors import ServiceUnavailableError
 
 
@@ -17,12 +20,14 @@ class ProcesarLecturaConfirmadaUseCase:
         if self.lecturas.evaluacion_vigente(identificador) is not None:
             return
         lectura = self.lecturas.obtener_por_id(identificador)
-        self.evaluar.execute(
+        resultado = self.evaluar.execute(
             id_telemetria=identificador, id_sensor=lectura.id_sensor,
             id_variable=lectura.id_variable, valor=lectura.valor_crudo,
             valor_ajustado=lectura.valor_ajustado, timestamp_captura=lectura.timestamp_captura,
             estado_calidad_rf53=lectura.estado_calidad, parametros_calibracion=lectura.parametros_calibracion,
         )
+        if resultado is None and self.lecturas.evaluacion_omitida(identificador):
+            return
         if self.lecturas.evaluacion_vigente(identificador) is None:
             raise RuntimeError('RF-62 no persistió una evaluación vigente.')
 
