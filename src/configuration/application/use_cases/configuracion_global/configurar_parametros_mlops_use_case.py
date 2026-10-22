@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: valida parametros y siembra idempotente |
+# | 2026-10-22 | Leandro | DEV-28 RF-62: valida snapshot de pesos y tramos de vision |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
@@ -12,6 +13,7 @@ from src.shared.errors import ServiceUnavailableError, ValidationError
 from src.configuration.domain.entities.parametros_heartbeat import (
     LIMITES_HEARTBEAT, TEMPORALES, validar_heartbeat_configurado,
 )
+from src.configuration.domain.entities.parametros_vision import LIMITES_VISION, vision_configurada
 
 _LIMITES = {
     RF62_K: (0, None), RF62_M: (1, None), RF62_N: (2, None),
@@ -19,6 +21,7 @@ _LIMITES = {
     RF57_CONFIANZA: (Decimal('0.70'), Decimal('0.95')),
     RF72_VENTANA: (7, 365),
     **LIMITES_HEARTBEAT,
+    **LIMITES_VISION,
 }
 
 
@@ -36,6 +39,8 @@ class ConfigurarParametrosMLOpsUseCase:
             nombres.update(PARAMETROS_CALIDAD)
         if nombres.intersection(LIMITES_HEARTBEAT):
             nombres.update(LIMITES_HEARTBEAT)
+        if nombres.intersection(LIMITES_VISION):
+            nombres.update(LIMITES_VISION)
         actuales = self.parametros_repo.obtener(sorted(nombres))
         nuevos = {}
         for nombre, valor in cambios.items():
@@ -43,6 +48,8 @@ class ConfigurarParametrosMLOpsUseCase:
             minimo, maximo = (previo.minimo, previo.maximo) if previo else _LIMITES[nombre]
             nuevos[nombre] = ParametroMLOps(nombre, valor, minimo, maximo)
         try:
+            if set(nuevos).intersection(LIMITES_VISION):
+                vision_configurada(actuales | nuevos)
             if set(nuevos).intersection(PARAMETROS_CALIDAD):
                 calidad_configurada(actuales | nuevos)
             if RF57_CONFIANZA in nuevos:

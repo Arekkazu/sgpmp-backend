@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-60: reclama vision con evidencia y lock de DEV-05 |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -20,10 +23,13 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 from src.telemetry.infrastructure.models.bitacora_auditoria_iot_model import BitacoraAuditoriaIotModel
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
+from src.telemetry.infrastructure.models.observacion_vision_model import ObservacionVisionModel
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 
 
 def _fuente(etapa):
+    if etapa.es_vision:
+        return ObservacionVisionModel.__table__, 'id_observacion_vision', 'LECTURA'
     if etapa.es_heartbeat:
         return HeartbeatModel.__table__, 'id_heartbeat', 'HEARTBEAT'
     return TelemetriaModel.__table__, 'id_telemetria', 'LECTURA'
@@ -67,6 +73,8 @@ class SqlAlchemyPostcommitRepository:
             consulta = consulta.where(tabla.c[campo].is_not(None))
             if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
                 consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
+        if etapa.es_vision:
+            consulta = consulta.where(tabla.c.fecha_inicio_ventana.is_not(None))
         if etapa.requisito:
             consulta = consulta.where(_registro(etapa.requisito, identificador))
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())
@@ -89,7 +97,7 @@ class SqlAlchemyPostcommitRepository:
         return True
 
     def registrar(self, etapa, identificador, error=None):
-        componente = ComponenteOrigen.RF60 if etapa.es_heartbeat else ComponenteOrigen(etapa.value)
+        componente = ComponenteOrigen.RF60 if etapa.es_heartbeat or etapa.es_vision else ComponenteOrigen(etapa.value)
         clasificacion, retencion = clasificar_componente(componente)
         evento = EventoAuditoriaIot(
             id_evento=None, tipo_evento=_tipo(etapa, error is not None),
