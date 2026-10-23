@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -24,12 +27,13 @@ from sqlalchemy.orm import Session
 from src.shared.database import get_db
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import ServiceUnavailableError, ValidationError
-from src.shared.rbac import require_permission
+from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.monitoreo.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.telemetry.application.use_cases.monitoreo.obtener_dashboard_use_case import ObtenerDashboardUseCase
 from src.telemetry.domain.entities.monitoreo import FiltrosHistorial
+from src.telemetry.infrastructure.adapters.aviso_sin_umbral_email_adapter import AvisoSinUmbralEmailAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.repositories.historial_telemetria_repository import SqlAlchemyHistorialTelemetriaRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
@@ -43,6 +47,10 @@ from src.telemetry.infrastructure.schema.monitoreo_schema import (
 )
 
 router = APIRouter(prefix="/iot/monitoreo", tags=["Telemetría IoT - Monitoreo"])
+
+# RF-58 CA-8 (DB-08): lo tienen los roles técnicos, no el Productor. Por nombre: su
+# id_recurso sale de la secuencia y no coincide entre bases.
+_RECURSO_DATOS_TECNICOS = 'datos_tecnicos_dashboard'
 
 
 # ---------------------------------------------------------------------------
@@ -67,12 +75,16 @@ def obtener_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
-    use_case = ObtenerDashboardUseCase(monitoreo_repo=SqlAlchemyMonitoreoRepository(db))
+    use_case = ObtenerDashboardUseCase(
+        monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
+        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+    )
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
-        id_rol_usuario=usuario_actual.id_rol,
+        # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
+        ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -104,12 +116,16 @@ def obtener_dashboard_por_unidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
-    use_case = ObtenerDashboardUseCase(monitoreo_repo=SqlAlchemyMonitoreoRepository(db))
+    use_case = ObtenerDashboardUseCase(
+        monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
+        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+    )
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
-        id_rol_usuario=usuario_actual.id_rol,
+        # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
+        ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),

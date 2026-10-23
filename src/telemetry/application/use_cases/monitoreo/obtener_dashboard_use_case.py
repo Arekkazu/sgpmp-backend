@@ -1,12 +1,23 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva, SemaforoCalculator
+from src.telemetry.domain.repositories.aviso_sin_umbral_port import AvisoSinUmbralPort
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
 
-# id_rol del Productor — solo para filtrar campos técnicos en la presentación
-_ROL_PRODUCTOR = 2
+logger = logging.getLogger(__name__)
+
+# R2 / E2: lecturas que llegan al panel (DB-12) pero no son valores operativos normales.
+_ANOMALIAS = ('FUERA_DE_RANGO', 'ERROR_CALIBRACION')
+ETIQUETA_SIN_UMBRAL = 'Sin umbral configurado'
+ETIQUETA_REQUIERE_CALIBRACION = 'Requiere calibración'
+ETIQUETA_EN_REVISION = 'En revisión técnica'
+ETIQUETA_FUERA_DE_RANGO = 'Lectura fuera de rango'
 
 
 class ObtenerDashboardUseCase:
@@ -14,21 +25,31 @@ class ObtenerDashboardUseCase:
 
     Lee el estado actual de sensores desde `estados_actuales_sensores` y
     aplica las reglas de negocio del semáforo antes de devolver los datos.
-    No emite commit ni modifica datos (operación de solo lectura).
+    No modifica la telemetría; lo único que puede escribir es el aviso de E7.
     """
 
-    def __init__(self, monitoreo_repo: MonitoreoRepository) -> None:
+    def __init__(
+        self,
+        monitoreo_repo: MonitoreoRepository,
+        aviso_sin_umbral: Optional[AvisoSinUmbralPort] = None,
+    ) -> None:
         self.monitoreo_repo = monitoreo_repo
+        self.aviso_sin_umbral = aviso_sin_umbral
 
     def execute(
         self,
         id_infraestructura: Optional[int],
         pagina: int,
         por_pagina: int,
-        id_rol_usuario: int,
         *,
+        ver_datos_tecnicos: bool,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], list[ResumenUnidadProductiva], int]:
+        """``ver_datos_tecnicos``: el rol tiene R sobre ``datos_tecnicos_dashboard`` (DB-08).
+
+        DEV-39: antes se decidía con ``id_rol == 2`` quemado; un rol personalizado de
+        productor recibía batería y RSSI. Ahora lo resuelve el router por permiso.
+        """
         sensores, total = self.monitoreo_repo.obtener_estados_sensores(
             id_infraestructura=id_infraestructura,
             pagina=pagina,
@@ -36,14 +57,23 @@ class ObtenerDashboardUseCase:
             ids_fincas_permitidas=ids_fincas_permitidas,
         )
 
+        sin_umbral: list[EstadoSensorActual] = []
         for sensor in sensores:
+            # E7 (DB-12): la caché deja GRIS cuando ninguna especie del área tiene umbral
+            # activo para la variable. El GRIS por dato desactualizado (CA-5) es otro caso.
+            sensor.sin_umbral = sensor.estado_semaforo == 'GRIS' and not sensor.dato_desactualizado
             sensor.estado_semaforo = self._calcular_semaforo_efectivo(sensor)
+            self._marcar_estado(sensor, ver_datos_tecnicos)
+            if sensor.sin_umbral:
+                sin_umbral.append(sensor)
 
-            # CA-8: Productor no recibe datos técnicos del dispositivo
-            if id_rol_usuario == _ROL_PRODUCTOR:
+            # CA-8: sin el permiso de datos técnicos no se reciben datos del dispositivo
+            if not ver_datos_tecnicos:
                 sensor.nivel_bateria_pct = None
                 sensor.calidad_senal_rssi = None
                 sensor.calidad_senal_snr = None
+
+        self._avisar_sin_umbral(sin_umbral)
 
         resumen = self.monitoreo_repo.obtener_resumen_unidades(
             ids_fincas_permitidas=ids_fincas_permitidas,
@@ -76,3 +106,33 @@ class ObtenerDashboardUseCase:
         tiene_critica = sensor.severidad_alerta == 'CRITICO'
         tiene_activa = sensor.id_alerta is not None
         return SemaforoCalculator.aplicar_reglas_alerta(estado, tiene_critica, tiene_activa)
+
+    @staticmethod
+    def _marcar_estado(sensor: EstadoSensorActual, ver_datos_tecnicos: bool) -> None:
+        """R2 / E2 / E7: indicador y etiqueta de lo que no es un valor operativo normal.
+
+        Nada se oculta del panel (R2: "no deben ser descartados ni ocultados"). En
+        ERROR_CALIBRACION el valor solo lo ve la vista técnica (E2: "solo visible en
+        detalle para el Ingeniero de Campo"); el resto ve el indicador.
+        """
+        if sensor.estado_calidad in _ANOMALIAS:
+            sensor.indicador_anomalia = True
+            sensor.es_valor_operativo = False
+            if sensor.estado_calidad == 'ERROR_CALIBRACION':
+                if ver_datos_tecnicos:
+                    sensor.etiqueta_estado = ETIQUETA_REQUIERE_CALIBRACION
+                else:
+                    sensor.etiqueta_estado = ETIQUETA_EN_REVISION
+                    sensor.ultimo_valor = None
+            else:
+                sensor.etiqueta_estado = ETIQUETA_FUERA_DE_RANGO
+        elif sensor.sin_umbral:
+            sensor.etiqueta_estado = ETIQUETA_SIN_UMBRAL
+
+    def _avisar_sin_umbral(self, sensores: list[EstadoSensorActual]) -> None:
+        if not sensores or self.aviso_sin_umbral is None:
+            return
+        try:
+            self.aviso_sin_umbral.avisar(sensores)
+        except Exception:  # el dashboard responde igual aunque el aviso falle
+            logger.exception('RF-58 E7: no se pudo avisar de las variables sin umbral')
