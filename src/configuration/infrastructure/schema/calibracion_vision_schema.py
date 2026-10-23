@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-24 RF-24: respuesta con una calibración por especie del área |
 """Schemas de respuesta de la calibración por visión (RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -64,17 +61,6 @@ class CalibracionVisionResponse(BaseModel):
             iteraciones=calibracion.iteraciones,
             observaciones=calibracion.observaciones,
         )
-
-
-class CalibracionVisionAreaResponse(CalibracionVisionResponse):
-    """RFC-012 (DEV-24): los campos de arriba son los de la primera especie (compatibilidad);
-    ``calibraciones`` trae una por cada especie calibrada del área."""
-    calibraciones: list[CalibracionVisionResponse]
-
-    @classmethod
-    def from_entities(cls, calibraciones) -> "CalibracionVisionAreaResponse":
-        items = [CalibracionVisionResponse.from_entity(c) for c in calibraciones]
-        return cls(**items[0].model_dump(), calibraciones=items)
 
 
 class ListaCalibracionesVisionResponse(BaseModel):

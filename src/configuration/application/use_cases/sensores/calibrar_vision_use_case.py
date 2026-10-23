@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-24 RF-24: una línea base por cada especie del área (RFC-012) |
 """Caso de uso: calibración por visión — línea base por (área, especie) (RF-24 v2.0, RFC-011).
 
 Flujo (ficha RF-24 v2.0, modalidad VISION):
@@ -20,10 +17,6 @@ FALLIDO, best-effort como en la modalidad SENSOR (RFC-006).
 
 Disparo automático (#551): M02 llama ``execute_automatico`` tras un alta de lote
 o un cierre de ciclo, como el usuario de servicio y fuera del request.
-
-RFC-012 (DEV-24): un área puede alojar varias especies. Las observaciones son del
-área, así que el cálculo se hace una vez y se publica una línea base por cada
-especie presente (o solo la del ``especie_id`` indicado).
 """
 from __future__ import annotations
 
@@ -151,12 +144,10 @@ class CalibrarVisionUseCase:
         usuario_actual: UsuarioActual,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
-    ) -> list[CalibracionVision]:
-        """Una calibración por especie calibrada, ordenadas por ``id_especie``."""
+    ) -> CalibracionVision:
         area: Optional[Infraestructura] = None
         try:
             area = self._obtener_area(dto, ids_fincas_permitidas)
-            especies = self._especies(area, dto.especie_id)
             observaciones = self._observaciones(
                 area, self._camaras_vision(area), dto.ventana_observacion.inicio, dto.ventana_observacion.fin
             )
@@ -166,26 +157,22 @@ class CalibrarVisionUseCase:
                 self.eventos_repo,
                 id_usuario=usuario_actual.id_usuario,
                 id_infraestructura=dto.area_id,
-                id_especie=dto.especie_id or (area.id_especie if area else None),
+                id_especie=area.id_especie if area else None,
                 error=exc,
             )
             raise
 
-        resultado = calcular_linea_base(observaciones, self.parametros)
-        calibraciones = [
-            CalibracionVision.desde_resultado(
-                resultado,
-                id_infraestructura=area.id_infraestructura,
-                id_especie=id_especie,
-                origen_disparo=OrigenDisparo.MANUAL,
-                id_usuario=usuario_actual.id_usuario,
-                ventana_observacion=dto.ventana_observacion.model_dump(mode="json"),
-                fecha_calibracion=dto.fecha_calibracion or datetime.datetime.now(datetime.timezone.utc),
-                observaciones=dto.observaciones,
-            )
-            for id_especie in especies
-        ]
-        return self._guardar(calibraciones, id_usuario_auditoria=usuario_actual.id_usuario)
+        calibracion = CalibracionVision.desde_resultado(
+            calcular_linea_base(observaciones, self.parametros),
+            id_infraestructura=area.id_infraestructura,
+            id_especie=area.id_especie,
+            origen_disparo=OrigenDisparo.MANUAL,
+            id_usuario=usuario_actual.id_usuario,
+            ventana_observacion=dto.ventana_observacion.model_dump(mode="json"),
+            fecha_calibracion=dto.fecha_calibracion or datetime.datetime.now(datetime.timezone.utc),
+            observaciones=dto.observaciones,
+        )
+        return self._guardar(calibracion, id_usuario_auditoria=usuario_actual.id_usuario)
 
     def execute_automatico(
         self,
@@ -194,7 +181,7 @@ class CalibrarVisionUseCase:
         *,
         id_usuario_auditoria: int,
         motivo_disparo: str,
-    ) -> Optional[list[CalibracionVision]]:
+    ) -> Optional[CalibracionVision]:
         """Disparo del Sistema cuando M02 informa un nuevo lote o un fin de ciclo (#551).
 
         La calibración queda con ``origen_disparo = AUTOMATICO`` e ``id_usuario`` nulo;
@@ -224,71 +211,58 @@ class CalibrarVisionUseCase:
             )
             raise
 
-        resultado = calcular_linea_base(observaciones, self.parametros)
-        calibraciones = [
-            CalibracionVision.desde_resultado(
-                resultado,
-                id_infraestructura=area.id_infraestructura,
-                id_especie=id_especie,
-                origen_disparo=OrigenDisparo.AUTOMATICO,
-                id_usuario=None,
-                ventana_observacion={"inicio": inicio.isoformat(), "fin": momento.isoformat()},
-                fecha_calibracion=momento,
-                observaciones=motivo_disparo,
-            )
-            for id_especie in sorted(area.id_especies)
-        ]
-        return self._guardar(calibraciones, id_usuario_auditoria=id_usuario_auditoria)
+        calibracion = CalibracionVision.desde_resultado(
+            calcular_linea_base(observaciones, self.parametros),
+            id_infraestructura=area.id_infraestructura,
+            id_especie=area.id_especie,
+            origen_disparo=OrigenDisparo.AUTOMATICO,
+            id_usuario=None,
+            ventana_observacion={"inicio": inicio.isoformat(), "fin": momento.isoformat()},
+            fecha_calibracion=momento,
+            observaciones=motivo_disparo,
+        )
+        return self._guardar(calibracion, id_usuario_auditoria=id_usuario_auditoria)
 
-    def _guardar(
-        self, calibraciones: list[CalibracionVision], *, id_usuario_auditoria: int
-    ) -> list[CalibracionVision]:
-        # Mismo resultado para todas las especies: o se publican todas o ninguna.
-        if not calibraciones[0].es_exitosa:
-            self._registrar_fallidas(calibraciones, id_usuario_auditoria)
+    def _guardar(self, calibracion: CalibracionVision, *, id_usuario_auditoria: int) -> CalibracionVision:
+        if not calibracion.es_exitosa:
+            self._registrar_fallida(calibracion, id_usuario_auditoria)
 
         try:
-            guardadas = []
-            for calibracion in calibraciones:
-                guardada = self.calibracion_repo.guardar(calibracion)
-                # Reemplaza la línea base vigente del par (área, especie).
-                self.linea_base_repo.publicar(
-                    LineaBaseVision(
-                        id_infraestructura=guardada.id_infraestructura,
-                        id_especie=guardada.id_especie,
-                        id_calibracion_vision=guardada.id_calibracion_vision,
-                        valor=guardada.linea_base,
-                        fecha_publicacion=guardada.fecha_calibracion,
-                    )
+            guardada = self.calibracion_repo.guardar(calibracion)
+            # Reemplaza la línea base vigente del par (área, especie).
+            self.linea_base_repo.publicar(
+                LineaBaseVision(
+                    id_infraestructura=guardada.id_infraestructura,
+                    id_especie=guardada.id_especie,
+                    id_calibracion_vision=guardada.id_calibracion_vision,
+                    valor=guardada.linea_base,
+                    fecha_publicacion=guardada.fecha_calibracion,
                 )
-                # RF-10: sin traza no hay línea base nueva (rollback y 500, como en SENSOR).
-                try:
-                    self.eventos_repo.registrar(
-                        tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
-                        exitoso=True,
-                        id_usuario=id_usuario_auditoria,
-                        detalle={"operacion": "CALIBRACION_VISION", **guardada._snapshot()},
-                        descripcion=(
-                            f"Línea base por visión publicada para el área {guardada.id_infraestructura} "
-                            f"y la especie {guardada.id_especie}"
-                        ),
-                        modulo="MODULO9",
-                    )
-                except Exception as exc:
-                    raise InfrastructureError(
-                        code="AUDITORIA_CALIBRACION_FALLIDA",
-                        message=(
-                            "Error de integridad: No se pudo garantizar la trazabilidad de la "
-                            "calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
-                        ),
-                        original_error=exc,
-                    )
-                guardadas.append(guardada)
+            )
+            # RF-10: sin traza no hay línea base nueva (rollback y 500, como en SENSOR).
+            try:
+                self.eventos_repo.registrar(
+                    tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
+                    exitoso=True,
+                    id_usuario=id_usuario_auditoria,
+                    detalle={"operacion": "CALIBRACION_VISION", **guardada._snapshot()},
+                    descripcion=f"Línea base por visión publicada para el área {guardada.id_infraestructura}",
+                    modulo="MODULO9",
+                )
+            except Exception as exc:
+                raise InfrastructureError(
+                    code="AUDITORIA_CALIBRACION_FALLIDA",
+                    message=(
+                        "Error de integridad: No se pudo garantizar la trazabilidad de la "
+                        "calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
+                    ),
+                    original_error=exc,
+                )
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-        return guardadas
+        return guardada
 
     def _obtener_area(
         self, dto: CalibrarVisionDTO, ids_fincas_permitidas: Optional[list[int]]
@@ -305,25 +279,12 @@ class CalibrarVisionUseCase:
             )
         return area
 
-    @staticmethod
-    def _especies(area: Infraestructura, especie_id: Optional[int]) -> list[int]:
-        """Especies a calibrar: todas las del área, o solo ``especie_id`` si se indicó."""
-        if especie_id is None:
-            return sorted(area.id_especies)
-        if especie_id not in area.id_especies:
-            raise BusinessRuleError(
-                code="ESPECIE_NO_ALOJADA_EN_AREA",
-                message=f"La especie {especie_id} no está habilitada en el área {area.id_infraestructura}.",
-                field="especie_id",
-            )
-        return [especie_id]
-
     def _camaras_vision(self, area: Infraestructura) -> list:
         """Cámaras activas del área si calibra por visión; vacía si no.
 
-        RF-20: el área necesita al menos una especie y un tipo_modelo_asignado POBLACIONAL.
+        RF-20: el área necesita especie y un tipo_modelo_asignado POBLACIONAL.
         """
-        if not area.id_especies or not es_poblacional(area.tipo_modelo_asignado):
+        if area.id_especie is None or not es_poblacional(area.tipo_modelo_asignado):
             return []
         return [c for c in self.camara_repo.listar_por_area(area.id_infraestructura) if c.es_activo]
 
@@ -345,42 +306,39 @@ class CalibrarVisionUseCase:
             raise _no_disponible(area.id_infraestructura)
         return observaciones
 
-    def _registrar_fallidas(self, calibraciones: list[CalibracionVision], id_usuario_auditoria: int) -> NoReturn:
+    def _registrar_fallida(self, calibracion: CalibracionVision, id_usuario_auditoria: int) -> NoReturn:
         # La ficha pide dejar el intento como FALLIDA (o NO CONVERGIDA) con el
         # motivo de la etapa, sin publicar línea base: la vigente se conserva.
         try:
-            guardadas = [self.calibracion_repo.guardar(c) for c in calibraciones]
+            guardada = self.calibracion_repo.guardar(calibracion)
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
 
-        primera = guardadas[0]
-        especies = ", ".join(str(g.id_especie) for g in guardadas)
         error = BusinessRuleError(
             code="LINEA_BASE_NO_CALCULADA",
             message=(
                 "No se pudo calcular la línea base: datos insuficientes o sin convergencia "
-                f"para el área {primera.id_infraestructura} y especie {especies}. "
+                f"para el área {guardada.id_infraestructura} y especie {guardada.id_especie}. "
                 "Se conserva la línea base vigente anterior."
             ),
         )
-        for guardada in guardadas:
-            auditar_rechazo_vision(
-                self.db,
-                self.eventos_repo,
-                id_usuario=id_usuario_auditoria,
-                id_infraestructura=guardada.id_infraestructura,
-                id_especie=guardada.id_especie,
-                error=error,
-                extra={
-                    "id_calibracion_vision": guardada.id_calibracion_vision,
-                    "estado": guardada.estado.value,
-                    "etapa_fallo": guardada.etapa_fallo.value if guardada.etapa_fallo else None,
-                    "motivo_etapa": guardada.motivo,
-                    "origen_disparo": guardada.origen_disparo.value,
-                },
-            )
+        auditar_rechazo_vision(
+            self.db,
+            self.eventos_repo,
+            id_usuario=id_usuario_auditoria,
+            id_infraestructura=guardada.id_infraestructura,
+            id_especie=guardada.id_especie,
+            error=error,
+            extra={
+                "id_calibracion_vision": guardada.id_calibracion_vision,
+                "estado": guardada.estado.value,
+                "etapa_fallo": guardada.etapa_fallo.value if guardada.etapa_fallo else None,
+                "motivo_etapa": guardada.motivo,
+                "origen_disparo": guardada.origen_disparo.value,
+            },
+        )
         raise error
 
 
@@ -414,30 +372,12 @@ class ConsultarCalibracionVisionUseCase:
         return self.calibracion_repo.listar_por_area(area_id)
 
     def obtener_linea_base_vigente(
-        self, area_id: int, *, especie_id: Optional[int] = None,
-        ids_fincas_permitidas: Optional[list[int]] = None,
+        self, area_id: int, *, ids_fincas_permitidas: Optional[list[int]] = None
     ) -> LineaBaseVision:
         area = self._area(area_id, ids_fincas_permitidas)
-        # RFC-012: con varias especies la línea base vigente es por especie (DEV-24).
-        if especie_id is None and len(area.id_especies) > 1:
-            raise BusinessRuleError(
-                code="ESPECIE_REQUERIDA",
-                message=(
-                    f"El área {area_id} aloja varias especies "
-                    f"({', '.join(str(e) for e in sorted(area.id_especies))}): indique especie_id."
-                ),
-                field="especie_id",
-            )
-        if especie_id is not None and especie_id not in area.id_especies:
-            raise BusinessRuleError(
-                code="ESPECIE_NO_ALOJADA_EN_AREA",
-                message=f"La especie {especie_id} no está habilitada en el área {area_id}.",
-                field="especie_id",
-            )
-        id_especie = especie_id if especie_id is not None else area.id_especie
         linea_base = (
-            self.linea_base_repo.obtener_vigente(area_id, id_especie)
-            if id_especie is not None else None
+            self.linea_base_repo.obtener_vigente(area_id, area.id_especie)
+            if area.id_especie is not None else None
         )
         if linea_base is None:
             raise NotFoundError(

@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-24 RF-24: especie_id opcional para calibrar una sola especie del área |
 """DTO de entrada para la calibración por visión (POST /configuracion/calibraciones-vision, RF-24 v2.0)."""
 from __future__ import annotations
 
@@ -36,5 +33,3 @@ class CalibrarVisionDTO(BaseDTO):
     # Por defecto, el momento en que se dispara el cálculo.
     fecha_calibracion: Optional[datetime] = None
     observaciones: Optional[str] = None
-    # RFC-012 (DEV-24): sin especie_id se calibra cada especie del área; con él, solo esa.
-    especie_id: Optional[int] = None

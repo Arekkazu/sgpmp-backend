@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-24 RF-24: execute_automatico devuelve una calibración por especie |
 """INC-M09-75-G142 (#551): el alta de un lote y el cierre de ciclo de M02 disparan la
 calibración por visión automática de M09 (RF-24 v2.0, TC-M09-288/289).
 
@@ -27,9 +24,7 @@ _MOMENTO = _T0 + timedelta(days=1)
 
 
 def _automatico(uc):
-    # DEV-24: una calibración por especie; el área de prueba tiene una sola.
-    resultado = uc.execute_automatico(2, _MOMENTO, id_usuario_auditoria=_SERVICIO, motivo_disparo="nuevo lote 792")
-    return resultado[0] if resultado else resultado
+    return uc.execute_automatico(2, _MOMENTO, id_usuario_auditoria=_SERVICIO, motivo_disparo="nuevo lote 792")
 
 
 # ── M09: execute_automatico ──────────────────────────────────────────────────
