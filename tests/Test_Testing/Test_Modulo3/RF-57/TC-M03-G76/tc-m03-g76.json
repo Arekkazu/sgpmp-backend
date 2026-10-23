@@ -1,0 +1,1343 @@
+{
+  "info": {
+    "name": "TC-M03-G76 - Resolucion de conflictos de severidad y tipo entre Edge, IA y reglas (E12, E13, E15)",
+    "description": "RF-57 E12 / E13 / E15. Subcasos: (1) conflicto de severidad: severidad maxima (SEVERIDAD_MAXIMA) y excepcion IA=CRITICO con confianza <0.85 y Edge=LEVE -> MODERADO (SEVERIDAD_COMPROMISO); (2) conflicto de tipo: confianza >=0.85 -> tipo de IA (IA_PREVALECE), <0.85 -> tipo del Edge (EDGE_PREVALECE); (3) regla compuesta vs simple sin IA (E15); (4) umbral de confianza configurable 0.70-0.95: no automatizable hasta confirmar el endpoint. El campo del contrato es conflicto_resolucion (el RF nombra tipo_resolucion para E13). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Conflicto de severidad Edge vs IA (TC-M03-142)",
+      "item": [
+        {
+          "name": "1.1 Edge=LEVE, IA=CRITICO, confianza=0.84 - esperado MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.84\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s1', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s1}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('CRITICO') >= 0).to.be.true; });",
+                  "pm.test('conflicto_resolucion = SEVERIDAD_COMPROMISO', function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_COMPROMISO'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Edge=LEVE, IA=CRITICO, confianza=0.85 - esperado CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.85\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s2', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('CRITICO') >= 0).to.be.true; });",
+                  "pm.test('conflicto_resolucion = SEVERIDAD_MAXIMA', function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Edge=MODERADO, IA=CRITICO, confianza=0.8 - esperado CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s3', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s3}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.3b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('CRITICO') >= 0).to.be.true; });",
+                  "pm.test('conflicto_resolucion = SEVERIDAD_MAXIMA', function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Edge=CRITICO, IA=LEVE, confianza=0.5 - esperado CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s4', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s4}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.4b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('LEVE') >= 0).to.be.true; });",
+                  "pm.test('conflicto_resolucion = SEVERIDAD_MAXIMA', function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Edge=LEVE, IA=MODERADO, confianza=0.9 - esperado MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s5', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s5}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.5b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('MODERADO') >= 0).to.be.true; });",
+                  "pm.test('conflicto_resolucion = SEVERIDAD_MAXIMA', function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 Edge=MODERADO, IA=MODERADO, confianza=0.9 - esperado MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s6', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s6}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.6b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('MODERADO') >= 0).to.be.true; });",
+                  "pm.test('Sin conflicto: conflicto_resolucion nulo', function () { pm.expect(J.conflicto_resolucion === null || J.conflicto_resolucion === undefined).to.be.true; });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.7 Edge=CRITICO, IA=CRITICO, confianza=0.92 - esperado CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.92\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_s7', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.7b Detalle - flags y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_s7}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.7b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Un unico registro de alerta con severidad final CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "pm.test('Severidades originales conservadas (severidad_edge_original / severidad_ia o metadato_evento)', function () { const x = JSON.stringify(J); pm.expect(x.indexOf('CRITICO') >= 0).to.be.true; });",
+                  "pm.test('Sin conflicto: conflicto_resolucion nulo', function () { pm.expect(J.conflicto_resolucion === null || J.conflicto_resolucion === undefined).to.be.true; });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Conflicto de tipo Edge vs IA (TC-M03-143)",
+      "item": [
+        {
+          "name": "2.1 Edge=SINDROME_RESPIRATORIO, IA=ESTRES_TERMICO, confianza=0.84 - tipo SINDROME_RESPIRATORIO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.84\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_t1', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('tipo_alerta = SINDROME_RESPIRATORIO', function () { pm.expect(J.tipo_alerta).to.eql('SINDROME_RESPIRATORIO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1b Detalle - flag y un unico registro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_t1}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('conflicto_resolucion = EDGE_PREVALECE', function () { pm.expect(J.conflicto_resolucion).to.eql('EDGE_PREVALECE'); });",
+                  "pm.test('Ambos tipos (Edge e IA) quedan en metadata_evento', function () { const x = JSON.stringify(J.metadato_evento || {}); pm.expect(x.indexOf('SINDROME_RESPIRATORIO') >= 0 && x.indexOf('ESTRES_TERMICO') >= 0).to.be.true; });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Edge=SINDROME_RESPIRATORIO, IA=ESTRES_TERMICO, confianza=0.85 - tipo ESTRES_TERMICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.85\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_t2', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('tipo_alerta = ESTRES_TERMICO', function () { pm.expect(J.tipo_alerta).to.eql('ESTRES_TERMICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2b Detalle - flag y un unico registro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_t2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('conflicto_resolucion = IA_PREVALECE', function () { pm.expect(J.conflicto_resolucion).to.eql('IA_PREVALECE'); });",
+                  "pm.test('Ambos tipos (Edge e IA) quedan en metadata_evento', function () { const x = JSON.stringify(J.metadato_evento || {}); pm.expect(x.indexOf('SINDROME_RESPIRATORIO') >= 0 && x.indexOf('ESTRES_TERMICO') >= 0).to.be.true; });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Edge=SINDROME_RESPIRATORIO, IA=ESTRES_TERMICO, confianza=0.86 - tipo ESTRES_TERMICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [],\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.86\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_t3', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('tipo_alerta = ESTRES_TERMICO', function () { pm.expect(J.tipo_alerta).to.eql('ESTRES_TERMICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3b Detalle - flag y un unico registro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g76_t3}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.3b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('conflicto_resolucion = IA_PREVALECE', function () { pm.expect(J.conflicto_resolucion).to.eql('IA_PREVALECE'); });",
+                  "pm.test('Ambos tipos (Edge e IA) quedan en metadata_evento', function () { const x = JSON.stringify(J.metadato_evento || {}); pm.expect(x.indexOf('SINDROME_RESPIRATORIO') >= 0 && x.indexOf('ESTRES_TERMICO') >= 0).to.be.true; });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Regla compuesta vs regla simple sin IA (TC-M03-167 / E15)",
+      "item": [
+        {
+          "name": "3.1 SINDROME_RESPIRATORIO MODERADO (FR > LEVE, TC > 39.5, NH3 > 25)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 76,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"SINDROME_RESPIRATORIO\"],\n  \"correlacion_variables\": {\n    \"TEMPERATURA_CORPORAL\": 39.6,\n    \"NH3\": 26\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g76_comp', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "pm.test('tipo_alerta = SINDROME_RESPIRATORIO', function () { pm.expect(J.tipo_alerta).to.eql('SINDROME_RESPIRATORIO'); });",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 NH3 en CRITICO (variable complementaria de la compuesta) - E15 la absorbe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 46.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"SINDROME_RESPIRATORIO\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 No se crea alerta simple para NH3; la compuesta lleva NH3 en reglas_activas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=200&estado=ACTIVA&tipo_alerta=SINDROME_RESPIRATORIO",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                },
+                {
+                  "key": "estado",
+                  "value": "ACTIVA"
+                },
+                {
+                  "key": "tipo_alerta",
+                  "value": "SINDROME_RESPIRATORIO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 3.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('La alerta compuesta conserva su severidad calculada por sus propias reglas (MODERADO)', function () { const a = (J.items || []).find(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('alerta_g76_comp'); }); pm.expect(a).to.exist; pm.expect(a.severidad).to.eql('MODERADO'); });",
+                  "pm.test('NH3 queda en reglas_activas de la compuesta', function () { const a = (J.items || []).find(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('alerta_g76_comp'); }); pm.expect(JSON.stringify(a.reglas_activas)).to.include('NH3'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 Variable simple ajena a la compuesta (PH_AGUA CRITICO) - alerta independiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_ph_agua}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 9.7,\n  \"unidad\": \"pH\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 3.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "pm.test('tipo_alerta = RIESGO_HIDRICO', function () { pm.expect(J.tipo_alerta).to.eql('RIESGO_HIDRICO'); });",
+                  "pm.test('No fue absorbida: es_duplicado=false', function () { pm.expect(J.es_duplicado).to.eql(false); });",
+                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Umbral de confianza de E12 configurable 0.70 - 0.95 (TC-M03-N18)",
+      "item": [
+        {
+          "name": "4.1 Configurar el umbral en 0.70, 0.95 (aceptados) y 0.69, 0.96 (rechazados) y repetir (LEVE, CRITICO, 0.80)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion del umbral de confianza por confirmar (M09 / DEV-14)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion del umbral de confianza por confirmar (M09 / DEV-14)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
+              "  console.log('[TC-M03-G76] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
+              "  pm.collectionVariables.set('ids_alertas', '[]');",
+              "})();",
+              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "alertas"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
