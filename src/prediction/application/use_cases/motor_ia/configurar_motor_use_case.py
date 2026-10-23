@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -74,7 +75,12 @@ class ConfigurarMotorUseCase:
         nodos = self._nodo_edge_port.listar_nodos_activos(dto.tipo_modelo) if dto.tipo_modelo in TIPOS_MODELO else []
         por_paradigma = self._validar(dto, nodos)
 
-        existente = self._repo.obtener_por_tipo(dto.tipo_modelo)
+        existente = self._repo.obtener_por_tipo(dto.tipo_modelo, bloquear=True)
+        try:
+            self._verificar_version_leida(existente, dto.config_version)
+        except PreconditionFailedError:
+            self._db.rollback()  # libera el bloqueo de la fila
+            raise
         snapshot_anterior = existente._snapshot() if existente else None
 
         if existente is None:
@@ -143,6 +149,27 @@ class ConfigurarMotorUseCase:
         return ResultadoConfiguracionMotor(
             entidad=entidad, es_nueva=es_nueva, sincronizacion=self._sincronizar(entidad, nodos)
         )
+
+    @staticmethod
+    def _verificar_version_leida(existente: Optional[ConfiguracionMotorIA], leida: Optional[int]) -> None:
+        """RF-65 CA-9: la edición solo procede sobre la config_version que el cliente leyó.
+
+        Sin config_version el cliente afirma que no existía configuración; si ya
+        existe, otro usuario la creó primero y también es un conflicto.
+        """
+        if existente is None or leida == existente.config_version:
+            return
+        if leida is None:
+            mensaje = (
+                f"Ya existe una configuración para {existente.tipo_modelo} (config_version "
+                f"{existente.config_version}). Recarga y reintenta enviando la config_version que leíste."
+            )
+        else:
+            mensaje = (
+                f"La configuración fue modificada por otro usuario (config_version vigente "
+                f"{existente.config_version}, enviada {leida}). Recarga y reintenta."
+            )
+        raise PreconditionFailedError(code="CONFLICTO_CONCURRENCIA", message=mensaje, field="config_version")
 
     def _sincronizar(self, entidad: ConfiguracionMotorIA, nodos: list[NodoEdge]) -> ResultadoSincronizacionMotor:
         """DEV-09: envía la configuración ya guardada a sus nodos y registra el veredicto de cada uno.
