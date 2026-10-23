@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | DEV-36 RF-65: config_version leída por el cliente (concurrencia optimista) |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -26,3 +29,6 @@ class ConfigurarMotorDTO(BaseDTO):
     hr_min_config: Optional[Decimal] = None
     hr_max_config: Optional[Decimal] = None
     densidad_maxima_config: Optional[Decimal] = None
+    # RF-65 CA-9: config_version que el cliente leyó. Obligatoria para editar una
+    # configuración existente: si ya cambió, 412 CONFLICTO_CONCURRENCIA.
+    config_version: Optional[int] = None

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | DEV-36 RF-65: versiones_activas_por_componente None como SQL NULL |
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,7 +28,9 @@ class ConfiguracionMotorIAModel(Base):
     umbral_riesgo_alto: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 3))
     umbral_alerta_critica: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 3))
     umbral_score_anomalia: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 3))
-    versiones_activas_por_componente: Mapped[Optional[dict]] = mapped_column(JSONB)
+    # none_as_null: None tiene que llegar como SQL NULL; 'null'::jsonb no cumple
+    # ck_configuracion_motor_umbrales_por_paradigma y rechaza toda configuración INDIVIDUAL/META.
+    versiones_activas_por_componente: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))
     ventana_temporal_min: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
     id_version_modelo_activa: Mapped[Optional[int]] = mapped_column(Integer)
     modo_ejecucion: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'SERVIDOR'"))

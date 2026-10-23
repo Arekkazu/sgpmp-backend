@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | DEV-36 RF-65: el repo falso acepta bloquear y la edición lleva config_version |
 """DEV-09 (RF-65 E7/E8/E10): la configuración del motor se sincroniza con sus nodos Edge.
 
 Al guardar, se envía a cada nodo con ``origen: "config_motor"`` (BRK-05,
@@ -54,7 +57,7 @@ class _ConfigRepo:
     def __init__(self, existente=None):
         self.existente = existente
 
-    def obtener_por_tipo(self, _tipo): return self.existente
+    def obtener_por_tipo(self, _tipo, **_kw): return self.existente
 
     def guardar(self, entidad):
         entidad.id_configuracion_motor = 4
@@ -127,10 +130,14 @@ def _dto(**cambios) -> ConfigurarMotorDTO:
 
 def _configurar(nodos, veredictos, existente=None, dto=None):
     repo, broker = _SincronizacionRepo(), _Broker(veredictos)
+    dto = dto or _dto()
+    if existente is not None and dto.config_version is None:
+        # DEV-36: editar exige la config_version vigente.
+        dto = dto.model_copy(update={"config_version": existente.config_version})
     resultado = ConfigurarMotorUseCase(
         db=_Db(), repo=_ConfigRepo(existente), auditoria_repo=_Auditoria(), version_port=_Versiones(),
         nodo_edge_port=_Nodos(nodos), sincronizacion_repo=repo, config_edge_port=broker,
-    ).execute(dto or _dto(), id_usuario=1)
+    ).execute(dto, id_usuario=1)
     return resultado, repo, broker
 
 
@@ -283,7 +290,8 @@ def test_post_motor_ia_responde_segun_la_sincronizacion(cliente, veredicto, exis
     client, ctx = cliente
     ctx["veredictos"] = {"EDGE-001": veredicto}
     ctx["existente"] = _existente(existente) if existente else None
-    r = client.post("/prediccion/motor-ia", json=_BODY)
+    # DEV-36: editar lleva la config_version vigente.
+    r = client.post("/prediccion/motor-ia", json=_BODY | ({"config_version": existente} if existente else {}))
     assert r.status_code == http, r.text
     cuerpo = r.json()
     assert cuerpo["tipo_modelo"] == TIPO  # la configuración quedó guardada en todos los casos
