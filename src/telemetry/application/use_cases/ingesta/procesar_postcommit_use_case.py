@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: confirma alerta y correlacion juntas |
 """Cada etapa confirma sus efectos y su evidencia juntos; las demás pueden avanzar."""
 import logging
 
@@ -26,8 +29,11 @@ class ProcesarPostcommitUseCase:
                     with self.unidad_factory() as unidad:
                         if not unidad.reclamar(etapa, identificador):
                             continue
-                        self.acciones[etapa](unidad.db, identificador)
-                        unidad.registrar(etapa, identificador)
+                        detalle = self.acciones[etapa](unidad.db, identificador)
+                        if isinstance(detalle, dict):
+                            unidad.registrar(etapa, identificador, detalle=detalle)
+                        else:
+                            unidad.registrar(etapa, identificador)
                         unidad.confirmar()
                     resultado['completados'] += 1
                 except Exception as exc:

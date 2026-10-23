@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                                |
 # |------------|---------|------------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
+# | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -107,6 +108,7 @@ class GenararAlertaUseCase:
         tiene_contexto_incompleto = (id_activo_biologico is None)
 
         # Fase 4: Deduplicación (FA-02/E4/CA-4/CA-5)
+        self.alerta_repo.bloquear_condicion(dto.sensor_id, dto.tipo_variable)
         alerta_existente = self.alerta_repo.buscar_activa_duplicada(
             id_sensor=dto.sensor_id,
             tipo_variable=dto.tipo_variable,
@@ -168,7 +170,7 @@ class GenararAlertaUseCase:
 
         try:
             alerta_guardada = self.alerta_repo.guardar(alerta)
-            # El trigger de INSERT registra el historial en esta transacción.
+            # trg_rf57_02_historico_inicial registra la creación en esta transacción.
             self.db.commit()
         except Exception:
             self.db.rollback()

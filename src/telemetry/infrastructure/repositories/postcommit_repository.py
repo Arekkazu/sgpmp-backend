@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: prerequisitos y correlacion durable |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -67,8 +70,8 @@ class SqlAlchemyPostcommitRepository:
             consulta = consulta.where(tabla.c[campo].is_not(None))
             if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
                 consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
-        if etapa.requisito:
-            consulta = consulta.where(_registro(etapa.requisito, identificador))
+        for requisito in etapa.requisitos:
+            consulta = consulta.where(_registro(requisito, identificador))
         return list(self.db.execute(consulta.order_by(tabla.c[columna]).limit(limite)).scalars())
 
     def reclamar(self, etapa, identificador):
@@ -84,11 +87,12 @@ class SqlAlchemyPostcommitRepository:
         # proceso acaba de confirmar la evidencia que faltaba al hacer la selección.
         if self.db.execute(select(_registro(etapa, str(identificador)))).scalar_one():
             return False
-        if etapa.requisito:
-            return self.db.execute(select(_registro(etapa.requisito, str(identificador)))).scalar_one()
+        for requisito in etapa.requisitos:
+            if not self.db.execute(select(_registro(requisito, str(identificador)))).scalar_one():
+                return False
         return True
 
-    def registrar(self, etapa, identificador, error=None):
+    def registrar(self, etapa, identificador, error=None, *, detalle=None):
         componente = ComponenteOrigen.RF60 if etapa.es_heartbeat else ComponenteOrigen(etapa.value)
         clasificacion, retencion = clasificar_componente(componente)
         evento = EventoAuditoriaIot(
@@ -98,7 +102,9 @@ class SqlAlchemyPostcommitRepository:
             descripcion='Etapa postcommit pendiente de reintento.' if error else 'Etapa postcommit completada.',
             entidad_afectada_tipo=EntidadAfectadaTipo(_fuente(etapa)[2]),
             entidad_afectada_id=str(identificador),
-            accion_detallada={'etapa': etapa.value, 'fuente': _fuente(etapa)[0].name, 'id_origen': identificador, 'error': error},
+            accion_detallada={'etapa': etapa.value, 'fuente': _fuente(etapa)[0].name,
+                'id_origen': identificador, 'error': error,
+                **({'resultado_etapa': detalle} if detalle is not None else {})},
             componente_origen=componente, clasificacion_registro=clasificacion,
             retencion_aplicable=retencion, severidad_log=SeveridadLog.WARNING if error else SeveridadLog.INFO,
         )
