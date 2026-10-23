@@ -1,10 +1,11 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74..81: flujo completo sin atajos      |
+# | 2026-10-23 | Arekkazu         | INTEG RFC-012..016: tras 4792129a64e6 y tipos de evento con ids fijos 33-38 |
 """M05 (RF-74 a RF-81): flujo completo de suministros sin atajos
 
 Revision ID: bf404c6f1018
-Revises: e5a3c9b17d42
+Revises: 4792129a64e6
 Create Date: 2026-10-22
 
 Por qué va por Alembic y no por SQL suelto vía MCP: es el patrón del repo
@@ -84,7 +85,7 @@ from alembic import op
 
 
 revision: str = 'bf404c6f1018'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '4792129a64e6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -98,13 +99,15 @@ _VALORES_ENUM_AUDITORIA = (
 )
 
 # (nombre, accion varchar(50))
+# (id, nombre, accion). Ids fijos tras 31/32 de DEV-25/DEV-32 (4792129a64e6), como
+# los demás tipos: el catálogo del código (evento_categoria.py) los referencia por id.
 _TIPOS_EVENTO = (
-    ("REPORTE_GASTOS_GENERADO", "Reporte de gastos asincrono disponible"),
-    ("REPORTE_GASTOS_FALLIDO", "Fallo en la generacion del reporte de gastos"),
-    ("HISTORIAL_SUMINISTROS_LISTO", "Resultado de historial de suministros listo"),
-    ("PROVISION_M06_PENDIENTE", "Provision de costos pendiente de entrega a M06"),
-    ("ALERTA_CONVERSION_ALIMENTICIA", "Conversion alimenticia critica"),
-    ("BATCH_ICA_INTERRUMPIDO", "Batch de conversion alimenticia interrumpido"),
+    (33, "REPORTE_GASTOS_GENERADO", "Reporte de gastos asincrono disponible"),
+    (34, "REPORTE_GASTOS_FALLIDO", "Fallo en la generacion del reporte de gastos"),
+    (35, "HISTORIAL_SUMINISTROS_LISTO", "Resultado de historial de suministros listo"),
+    (36, "PROVISION_M06_PENDIENTE", "Provision de costos pendiente de entrega a M06"),
+    (37, "ALERTA_CONVERSION_ALIMENTICIA", "Conversion alimenticia critica"),
+    (38, "BATCH_ICA_INTERRUMPIDO", "Batch de conversion alimenticia interrumpido"),
 )
 
 # (prefijo, nombre_rol, id_accion, verbo)
@@ -460,19 +463,35 @@ def upgrade() -> None:
             f"ALTER TYPE modulo5.enum_auditoria_suministro_tipo_operacion ADD VALUE IF NOT EXISTS '{valor}'"
         )
 
-    # 7. Tipos de evento de las notificaciones internas de M05 (se resuelven por nombre).
+    # 7. Tipos de evento de las notificaciones internas de M05 (el código los busca por nombre).
+    for id_tipo, nombre, accion in _TIPOS_EVENTO:
+        op.execute(f"""
+            DO $$
+            BEGIN
+                LOCK TABLE modulo1.tipos_eventos IN SHARE ROW EXCLUSIVE MODE;
+                IF EXISTS (
+                    SELECT 1 FROM modulo1.tipos_eventos
+                     WHERE (id_tipo_evento = {id_tipo} AND nombre <> '{nombre}')
+                        OR (nombre = '{nombre}' AND id_tipo_evento <> {id_tipo})
+                ) THEN
+                    RAISE EXCEPTION 'M05: conflicto de identidad del tipo {nombre} ({id_tipo})';
+                END IF;
+                INSERT INTO modulo1.tipos_eventos (id_tipo_evento, nombre, accion)
+                VALUES ({id_tipo}, '{nombre}', '{accion}')
+                ON CONFLICT (id_tipo_evento) DO NOTHING;
+            END $$;
+        """)
+    # No retroceder una secuencia que ya esté por delante del catálogo.
     op.execute("""
         SELECT setval(
             'modulo1.tipos_evento_id_tipo_evento_seq',
-            (SELECT max(id_tipo_evento) FROM modulo1.tipos_eventos)
+            GREATEST(
+                (SELECT max(id_tipo_evento) FROM modulo1.tipos_eventos),
+                (SELECT last_value FROM modulo1.tipos_evento_id_tipo_evento_seq)
+            ),
+            true
         )
     """)
-    for nombre, accion in _TIPOS_EVENTO:
-        op.execute(f"""
-            INSERT INTO modulo1.tipos_eventos (nombre, accion)
-            SELECT '{nombre}', '{accion}'
-            WHERE NOT EXISTS (SELECT 1 FROM modulo1.tipos_eventos WHERE nombre = '{nombre}')
-        """)
 
     # 8. RF-75/RF-76: costo del registro, observaciones.
     op.execute(_FN_COSTO_CONSUMO)
@@ -516,7 +535,7 @@ def downgrade() -> None:
         UPDATE modulo5.configuracion_batch_historial_suministros
         SET umbral_nivel3 = 10000, umbral_nivel4 = 50000, actualizado_en = now()
     """)
-    nombres = ", ".join(f"'{nombre}'" for nombre, _ in _TIPOS_EVENTO)
+    nombres = ", ".join(f"'{nombre}'" for _, nombre, _ in _TIPOS_EVENTO)
     op.execute(f"""
         DELETE FROM modulo1.tipos_eventos t
         WHERE t.nombre IN ({nombres})

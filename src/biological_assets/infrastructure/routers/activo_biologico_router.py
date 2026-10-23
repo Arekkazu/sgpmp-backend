@@ -3,8 +3,6 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
-# | Fecha      | Nombre           | Que se hizo                                   |
-# |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 

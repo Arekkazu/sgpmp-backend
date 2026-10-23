@@ -4,8 +4,6 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
 # | 2026-10-23 | Arekkazu | DEV-37 RF-73 E8: tarea periódica que sincroniza el respaldo de auditoría M04 |
-# | Fecha      | Nombre           | Que se hizo                                   |
-# |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 import asyncio
 import logging

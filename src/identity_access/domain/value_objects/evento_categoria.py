@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tipo de evento 32 NOTIFICACION_ALERTA |
+# | 2026-10-23 | Arekkazu | M05 RF-74..81: tipos de evento 33-38 de las notificaciones de suministros |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -77,6 +78,14 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Notificación de una alerta de RF-57 a un usuario (DEV-32): la emite un proceso
     # automático, igual que el 28.
     32: EventoCategoria.MODIFICACION,
+    # Notificaciones internas de M05 (migración bf404c6f1018): las emiten procesos
+    # automáticos (reportes, historial, provisión a M06, batch ICA), igual que el 32.
+    33: EventoCategoria.MODIFICACION,
+    34: EventoCategoria.MODIFICACION,
+    35: EventoCategoria.MODIFICACION,
+    36: EventoCategoria.MODIFICACION,
+    37: EventoCategoria.MODIFICACION,
+    38: EventoCategoria.MODIFICACION,
 }
 
 
@@ -118,6 +127,12 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     30: "CALIBRACION_EXITOSA",
     31: "CAMBIO_VARIABLE_CRITICA",
     32: "NOTIFICACION_ALERTA",
+    33: "REPORTE_GASTOS_GENERADO",
+    34: "REPORTE_GASTOS_FALLIDO",
+    35: "HISTORIAL_SUMINISTROS_LISTO",
+    36: "PROVISION_M06_PENDIENTE",
+    37: "ALERTA_CONVERSION_ALIMENTICIA",
+    38: "BATCH_ICA_INTERRUMPIDO",
 }
 
 
