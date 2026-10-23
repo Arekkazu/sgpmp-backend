@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-36 RF-65: lectura con FOR UPDATE e historial desde configuracion_ia_log |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -9,9 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.configuracion_motor_ia import ConfiguracionMotorIA
-from src.prediction.domain.entities.version_configuracion_motor import VersionConfiguracionMotor
 from src.prediction.domain.repositories.configuracion_motor_ia_repository import ConfiguracionMotorIARepository
-from src.prediction.infrastructure.models.configuracion_ia_log_model import ConfiguracionIALogModel
 from src.prediction.infrastructure.models.configuracion_motor_ia_model import ConfiguracionMotorIAModel
 from src.shared.db_error_translator import raise_from_db_error
 
@@ -45,54 +40,13 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_tipo(self, tipo_modelo: str, *, bloquear: bool = False) -> Optional[ConfiguracionMotorIA]:
-        consulta = self._db.query(ConfiguracionMotorIAModel).filter(
-            ConfiguracionMotorIAModel.tipo_modelo == tipo_modelo
+    def obtener_por_tipo(self, tipo_modelo: str) -> Optional[ConfiguracionMotorIA]:
+        orm = (
+            self._db.query(ConfiguracionMotorIAModel)
+            .filter(ConfiguracionMotorIAModel.tipo_modelo == tipo_modelo)
+            .first()
         )
-        if bloquear:
-            consulta = consulta.with_for_update().populate_existing()
-        orm = consulta.first()
         return self._a_entidad(orm) if orm else None
-
-    def listar_historial(self, id_configuracion_motor: int) -> list[VersionConfiguracionMotor]:
-        filas = (
-            self._db.query(ConfiguracionIALogModel)
-            .filter(ConfiguracionIALogModel.id_configuracion_motor == id_configuracion_motor)
-            .order_by(ConfiguracionIALogModel.config_version.desc(), ConfiguracionIALogModel.id_log.desc())
-            .all()
-        )
-        return [
-            VersionConfiguracionMotor(
-                configuracion=ConfiguracionMotorIA(
-                    id_configuracion_motor=f.id_configuracion_motor,
-                    tipo_modelo=f.tipo_modelo,
-                    umbral_riesgo_alto=f.umbral_riesgo_alto,
-                    umbral_alerta_critica=f.umbral_alerta_critica,
-                    umbral_score_anomalia=f.umbral_score_anomalia,
-                    versiones_activas_por_componente=f.versiones_activas_por_componente,
-                    ventana_temporal_min=f.ventana_temporal_min,
-                    id_version_modelo_activa=f.id_version_modelo_activa,
-                    modo_ejecucion=f.modo_ejecucion,
-                    config_version=f.config_version,
-                    w_factor_sanitario=f.w_factor_sanitario,
-                    w_factor_ambiental=f.w_factor_ambiental,
-                    w_factor_densidad=f.w_factor_densidad,
-                    temp_min_config=f.temp_min_config,
-                    temp_max_config=f.temp_max_config,
-                    hr_min_config=f.hr_min_config,
-                    hr_max_config=f.hr_max_config,
-                    densidad_maxima_config=f.densidad_maxima_config,
-                    es_activa=f.es_activa,
-                    id_usuario_responsable=f.id_usuario_responsable,
-                    fecha_creacion=f.fecha_creacion_config,
-                ),
-                es_vigente=False,
-                operacion=f.operacion,
-                id_usuario_cambio=f.id_usuario_cambio,
-                fecha_cambio=f.fecha_cambio,
-            )
-            for f in filas
-        ]
 
     def listar(self) -> list[ConfiguracionMotorIA]:
         orms = (

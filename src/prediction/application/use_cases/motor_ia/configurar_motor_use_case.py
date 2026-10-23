@@ -1,7 +1,6 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
-# | 2026-10-23 | Arekkazu     | DEV-36 RF-65: concurrencia optimista con config_version (412) |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,7 +25,7 @@ from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort
 from src.prediction.domain.repositories.sincronizacion_nodo_edge_repository import SincronizacionNodoEdgeRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 from src.shared.tipo_modelo import TIPOS_MODELO, es_poblacional
 
 _MODOS_VALIDOS = {"EDGE", "SERVIDOR", "HIBRIDO"}
@@ -75,15 +74,7 @@ class ConfigurarMotorUseCase:
         nodos = self._nodo_edge_port.listar_nodos_activos(dto.tipo_modelo) if dto.tipo_modelo in TIPOS_MODELO else []
         por_paradigma = self._validar(dto, nodos)
 
-        # FOR UPDATE: la segunda edición concurrente espera y luego ve la versión nueva.
-        existente = self._repo.obtener_por_tipo(dto.tipo_modelo, bloquear=True)
-        if existente is not None and dto.config_version != existente.config_version:
-            self._db.rollback()
-            raise PreconditionFailedError(
-                code="CONFLICTO_CONCURRENCIA",
-                message="La configuración fue modificada por otro usuario. Recarga y reintenta.",
-                field="config_version",
-            )
+        existente = self._repo.obtener_por_tipo(dto.tipo_modelo)
         snapshot_anterior = existente._snapshot() if existente else None
 
         if existente is None:

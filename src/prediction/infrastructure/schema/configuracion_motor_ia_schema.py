@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-36 RF-65: respuesta del historial de versiones |
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,7 +7,6 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from src.prediction.domain.entities.configuracion_motor_ia import ConfiguracionMotorIA
-from src.prediction.domain.entities.version_configuracion_motor import VersionConfiguracionMotor
 
 
 class ConfiguracionMotorIAResponse(BaseModel):
@@ -102,31 +98,3 @@ class ConfiguracionMotorIAGuardadaResponse(ConfiguracionMotorIAResponse):
     """Respuesta de POST /prediccion/motor-ia: la configuración guardada y su sincronización."""
 
     sincronizacion: SincronizacionMotorSchema
-
-
-class VersionConfiguracionMotorResponse(BaseModel):
-    """Una versión de la configuración (RF-65 R5). ``operacion``, ``id_usuario_cambio`` y
-    ``fecha_cambio`` dicen cómo y cuándo fue reemplazada; son nulos en la vigente."""
-    config_version: int
-    es_vigente: bool
-    operacion: Optional[str] = None
-    id_usuario_cambio: Optional[int] = None
-    fecha_cambio: Optional[datetime] = None
-    configuracion: ConfiguracionMotorIAResponse
-
-    @classmethod
-    def from_entity(cls, version: VersionConfiguracionMotor) -> VersionConfiguracionMotorResponse:
-        return cls(
-            config_version=version.configuracion.config_version,
-            es_vigente=version.es_vigente,
-            operacion=version.operacion,
-            id_usuario_cambio=version.id_usuario_cambio,
-            fecha_cambio=version.fecha_cambio,
-            configuracion=ConfiguracionMotorIAResponse.from_entity(version.configuracion),
-        )
-
-
-class HistorialConfiguracionMotorResponse(BaseModel):
-    tipo_modelo: str
-    total: int
-    items: list[VersionConfiguracionMotorResponse]

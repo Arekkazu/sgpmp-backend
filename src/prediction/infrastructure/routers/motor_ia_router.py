@@ -1,7 +1,6 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
-# | 2026-10-23 | Arekkazu     | DEV-36 RF-65: 412 por config_version y GET /{tipo_modelo}/historial |
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
 RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
@@ -10,10 +9,6 @@ los umbrales y la versión activa dependen del paradigma del tipo_modelo).
   GET   /prediccion/motor-ia              — Listar todas las configuraciones activas
   GET   /prediccion/motor-ia/{tipo_modelo}— Obtener configuración por tipo de modelo
   GET   /prediccion/motor-ia/{tipo_modelo}/sincronizacion — Estado en cada nodo Edge (DEV-09)
-  GET   /prediccion/motor-ia/{tipo_modelo}/historial — Versiones de la configuración (DEV-36, R5)
-
-DEV-36 (RF-65 CA-9): editar exige la ``config_version`` que el cliente leyó; si otro
-usuario guardó antes, 412 CONFLICTO_CONCURRENCIA.
 
 DEV-09 (RF-65 E7/E8/E10): al guardar, la configuración se envía a los nodos Edge
 del tipo_modelo por el broker (``origen: "config_motor"``) y el código HTTP
@@ -50,8 +45,6 @@ from src.prediction.infrastructure.repositories.sincronizacion_nodo_edge_reposit
 from src.prediction.infrastructure.schema.configuracion_motor_ia_schema import (
     ConfiguracionMotorIAGuardadaResponse,
     ConfiguracionMotorIAListResponse,
-    HistorialConfiguracionMotorResponse,
-    VersionConfiguracionMotorResponse,
     ConfiguracionMotorIAResponse,
     SincronizacionMotorSchema,
 )
@@ -77,7 +70,6 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
-        412: {"model": ErrorResponse, "description": "CONFLICTO_CONCURRENCIA: config_version distinta a la vigente (CA-9)"},
         409: {
             "model": ConfiguracionMotorIAGuardadaResponse,
             "description": (
@@ -178,30 +170,3 @@ def consultar_sincronizacion(
         sincronizacion_repo=SqlAlchemySincronizacionNodoEdgeRepository(db),
     )
     return SincronizacionMotorSchema.model_validate(use_case.execute(tipo_modelo))
-
-
-@router.get(
-    "/{tipo_modelo}/historial",
-    response_model=HistorialConfiguracionMotorResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
-    responses={
-        401: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-    },
-    summary="Historial append-only de la configuración del motor (RF-65 R5)",
-)
-def consultar_historial(
-    tipo_modelo: str,
-    db: Session = Depends(get_db),
-) -> HistorialConfiguracionMotorResponse:
-    """La versión vigente y todas las anteriores, de la más nueva a la más vieja.
-
-    **Acceso:** `configuracion_motor_ia` · Leer.
-    """
-    versiones = ConsultarMotorUseCase(repo=SqlAlchemyConfiguracionMotorIARepository(db)).historial(tipo_modelo)
-    return HistorialConfiguracionMotorResponse(
-        tipo_modelo=tipo_modelo,
-        total=len(versiones),
-        items=[VersionConfiguracionMotorResponse.from_entity(v) for v in versiones],
-    )

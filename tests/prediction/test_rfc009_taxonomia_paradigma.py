@@ -2,7 +2,6 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
-# | 2026-10-23 | Arekkazu | DEV-36 RF-65: el repo falso acepta bloquear y la edición lleva config_version |
 """RFC-009 en M04: seis tipos de modelo en tres paradigmas.
 
 RF-65 (umbrales y versión activa por paradigma), RF-69 (componente, métricas
@@ -39,7 +38,7 @@ class _Auditoria:
 # ── RF-65: configuración del motor ─────────────────────────────────────────
 
 class _ConfigRepo:
-    def obtener_por_tipo(self, _tipo, **_kw): return None
+    def obtener_por_tipo(self, _tipo): return None
     def guardar(self, entidad):
         entidad.id_configuracion_motor = 1
         return entidad
