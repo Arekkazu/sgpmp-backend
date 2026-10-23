@@ -1,23 +1,27 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | Arekkazu     | DEV-37 RF-73 E2/E8: reintentos, respaldo completo y sincronizacion desde el respaldo |
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
-import os
+import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Optional
 
 from sqlalchemy import select, func
+from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+from src.prediction.domain.repositories.fallback_auditoria_m04_port import FallbackAuditoriaM04Port
+from src.prediction.infrastructure.adapters.fallback_auditoria_m04_archivo import FallbackAuditoriaM04Archivo
 from src.prediction.infrastructure.models.evento_auditoria_m04_model import EventoAuditoriaM04Model
+from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import InfrastructureError, NotFoundError
 from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
 
@@ -70,16 +74,16 @@ def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
     return [campo for campo in requeridos if campo not in payload]
 
 
-def _escribir_fallback(data: dict) -> None:
-    try:
-        logs_dir = Path("logs")
-        logs_dir.mkdir(exist_ok=True)
-        filename = logs_dir / f"audit_fallback_M04_{datetime.now(timezone.utc).strftime('%Y%m%d')}.log"
-        line = json.dumps({**data, "origen_registro": "FALLBACK"}, default=str)
-        with open(filename, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-    except Exception:
-        logger.exception("Error escribiendo fallback de auditoría M04")
+# RF-73 E2: reintentos ante una falla transitoria de la BD antes del respaldo local.
+_REINTENTOS = 3
+_ESPERA_BASE_SEG = 0.1
+
+
+def _es_transitorio(exc: Exception) -> bool:
+    """Caída o corte de conexión: reintentable. Un CHECK, un enum o una FK no lo son."""
+    return isinstance(exc, (OperationalError, InterfaceError)) or (
+        isinstance(exc, DBAPIError) and exc.connection_invalidated
+    )
 
 
 def _a_entidad(orm: EventoAuditoriaM04Model) -> EventoAuditoriaM04:
@@ -109,8 +113,9 @@ def _a_entidad(orm: EventoAuditoriaM04Model) -> EventoAuditoriaM04:
 
 
 class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, fallback: Optional[FallbackAuditoriaM04Port] = None) -> None:
         self._db = db
+        self._fallback = fallback or FallbackAuditoriaM04Archivo()
 
     def registrar(
         self,
@@ -135,11 +140,14 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
 
         payload_final, truncado = _truncar_payload(payload_evento)
         sev_final = "WARNING" if truncado else severidad_evento
-        ahora = datetime.now(timezone.utc).isoformat()
-        hash_ev = _calcular_hash(tipo_evento, payload_final, ahora)
+        fecha = datetime.now(timezone.utc)
+        hash_ev = _calcular_hash(tipo_evento, payload_final, fecha.isoformat())
         corr = correlacion_id or uuid.uuid4()
-
-        orm = EventoAuditoriaM04Model(
+        # id y fecha se fijan aquí: si el evento termina en el respaldo, se sincroniza
+        # con los mismos valores y sin duplicarse (RF-73 E8).
+        datos = dict(
+            id_evento=uuid.uuid4(),
+            fecha_evento=fecha,
             tipo_evento=tipo_evento,
             tipo_actor=tipo_actor,
             payload_evento=payload_final,
@@ -156,24 +164,78 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             codigo_error=codigo_error,
             descripcion_error=descripcion_error,
         )
+        for intento in range(1, _REINTENTOS + 1):
+            try:
+                # Savepoint: un intento fallido no invalida la transacción del caso de uso.
+                with self._db.begin_nested():
+                    self._db.add(EventoAuditoriaM04Model(**datos))
+                    self._db.flush()
+                return
+            except Exception as exc:
+                if not _es_transitorio(exc):
+                    # Un CHECK, un enum o una FK fallaría igual al sincronizar y trabaría
+                    # la cola FIFO del respaldo: solo se registra en el log técnico.
+                    logger.critical("RF-73: evento de auditoría M04 rechazado por la BD tipo=%s: %s", tipo_evento, exc)
+                    _lanzar_fallo_persistencia(exc)
+                if intento == _REINTENTOS:
+                    self._activar_respaldo(datos, exc, intento)
+                    _lanzar_fallo_persistencia(exc)
+                logger.warning("RF-73 E2: reintento %d de la auditoría M04 tipo=%s.", intento, tipo_evento)
+                time.sleep(_ESPERA_BASE_SEG * 2 ** (intento - 1))
+
+    def _activar_respaldo(self, datos: dict, exc: Exception, intentos: int) -> None:
+        """RF-73 E2/E8: el evento va al respaldo local y se deja AUDITORIA_FALLA_PERSISTENCIA
+        (CRITICAL) en el mismo respaldo, porque el repositorio central no responde."""
+        self._fallback.escribir(datos)
+        self._fallback.escribir(dict(
+            id_evento=uuid.uuid4(),
+            fecha_evento=datetime.now(timezone.utc),
+            tipo_evento="AUDITORIA_FALLA_PERSISTENCIA",
+            tipo_actor="SISTEMA",
+            id_sistema="DESARROLLO_M04",
+            payload_evento={"id_evento_respaldado": str(datos["id_evento"]),
+                            "tipo_evento_respaldado": datos["tipo_evento"],
+                            "intentos": intentos, "error": type(exc).__name__},
+            es_payload_truncado=False,
+            severidad_evento="CRITICAL",
+            correlacion_id=datos["correlacion_id"],
+            resultado_operacion="FALLIDO",
+            codigo_error="AUDITORIA_M04_NO_PERSISTIDA",
+        ))
+        # "Se notifica al sistema de monitoreo": CRITICAL en el log técnico.
+        logger.critical(
+            "RF-73 E2: AUDITORIA_FALLA_PERSISTENCIA tipo=%s tras %d intento(s): %s",
+            datos["tipo_evento"], intentos, exc,
+        )
+
+    def registrar_desde_fallback(self, evento: dict) -> bool:
+        id_evento = uuid.UUID(str(evento["id_evento"]))
+        if self._db.get(EventoAuditoriaM04Model, id_evento) is not None:
+            return False
         try:
-            self._db.add(orm)
+            self._db.add(EventoAuditoriaM04Model(
+                id_evento=id_evento,
+                fecha_evento=datetime.fromisoformat(str(evento["fecha_evento"])),
+                tipo_evento=evento["tipo_evento"],
+                tipo_actor=evento["tipo_actor"],
+                payload_evento=evento.get("payload_evento") or {},
+                es_payload_truncado=bool(evento.get("es_payload_truncado", False)),
+                severidad_evento=evento.get("severidad_evento", "INFO"),
+                id_usuario=evento.get("id_usuario"),
+                id_sistema=evento.get("id_sistema"),
+                id_referencia=evento.get("id_referencia"),
+                entidad_referencia=evento.get("entidad_referencia"),
+                resultado_operacion=evento.get("resultado_operacion"),
+                correlacion_id=uuid.UUID(str(evento["correlacion_id"])),
+                origen_registro="FALLBACK",
+                hash_evento=evento.get("hash_evento"),
+                codigo_error=evento.get("codigo_error"),
+                descripcion_error=evento.get("descripcion_error"),
+            ))
             self._db.flush()
         except Exception as exc:
-            if severidad_evento in ("ERROR", "CRITICAL"):
-                _escribir_fallback({
-                    "tipo_evento": tipo_evento,
-                    "tipo_actor": tipo_actor,
-                    "severidad_evento": severidad_evento,
-                    "payload_evento": payload_final,
-                    "id_usuario": id_usuario,
-                    "id_sistema": id_sistema,
-                    "id_referencia": id_referencia,
-                    "correlacion_id": str(corr),
-                    "hash_evento": hash_ev,
-                })
-            logger.error("Error al persistir evento de auditoría M04 tipo=%s: %s", tipo_evento, exc)
-            _lanzar_fallo_persistencia(exc)
+            raise_from_db_error(exc)
+        return True
 
     def _registrar_invalido(
         self,

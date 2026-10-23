@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
+# | 2026-10-23 | Arekkazu | DEV-37 RF-73 E8: tarea periódica que sincroniza el respaldo de auditoría M04 |
 import asyncio
 import logging
 import os
@@ -491,6 +492,40 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
             db.close()
 
 
+async def _sincronizar_fallback_auditoria_m04_periodicamente() -> None:
+    """RF-73 E8 (DEV-37): cuando la BD vuelve, sincroniza en orden FIFO los eventos que la
+    auditoría de M04 dejó en el respaldo local y avisa al Administrador."""
+    from src.prediction.application.use_cases.auditoria.sincronizar_fallback_auditoria_m04_use_case import (
+        SincronizarFallbackAuditoriaM04UseCase,
+    )
+    from src.prediction.infrastructure.adapters.aviso_version_modelo_email_adapter import AvisoVersionModeloEmailAdapter
+    from src.prediction.infrastructure.adapters.fallback_auditoria_m04_archivo import FallbackAuditoriaM04Archivo
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
+        SqlAlchemyEventoAuditoriaM04Repository,
+    )
+    from src.shared.database import sesion_sistema
+
+    intervalo = max(5, int(os.getenv("AUDITORIA_M04_FALLBACK_SYNC_SEG", "60")))
+    while True:
+        await asyncio.sleep(intervalo)
+        fallback = FallbackAuditoriaM04Archivo()
+        if not fallback.pendientes():
+            continue
+        db = sesion_sistema()
+        try:
+            resultado = await asyncio.to_thread(SincronizarFallbackAuditoriaM04UseCase(
+                db=db, repo=SqlAlchemyEventoAuditoriaM04Repository(db, fallback), fallback=fallback,
+                aviso=AvisoVersionModeloEmailAdapter(db),
+            ).execute)
+            if resultado.eventos:
+                logger.warning("RF-73 E8: %d eventos de auditoría M04 sincronizados desde el respaldo.",
+                               resultado.eventos)
+        except Exception:
+            logger.exception("RF-73 E8: error sincronizando el respaldo de auditoría M04.")
+        finally:
+            db.close()
+
+
 async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
     """RF-52 E1/E3: persiste por lotes, fuera del request, lo que quedó en el buffer
     de la bitácora de M02 (cola de alta carga o eventos pendientes por una caída)."""
@@ -610,6 +645,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
+        asyncio.create_task(_sincronizar_fallback_auditoria_m04_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
     ]
     yield
