@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-18 RF-01: el DTO de registro trae fecha de nacimiento válida |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Regresión de los gaps de flujo alterno del Módulo 1.
 
 Un caso por cada ❌ de `anotaciones/modulo_1/gaps_flujo_alterno_modulo1.md`:
@@ -450,9 +451,9 @@ def test_rf05_fecha_nacimiento_editada_respeta_la_edad_minima_del_registro(
     from src.identity_access.domain.entities.cuenta import Cuenta
     from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
     from src.shared.errors import ValidationError
-    from src.shared.fechas import hoy_colombia
+    from src.shared.fechas import hoy_usuario
 
-    hoy = hoy_colombia()
+    hoy = hoy_usuario()
     fecha = hoy.replace(year=hoy.year - anios_atras) - timedelta(days=dias_atras)
     usuario = SimpleNamespace(
         id_usuario=7, id_rol=2, nombre="Ana", apellidos="Pérez",

@@ -2,6 +2,7 @@
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74..81: flujo completo contra Postgres |
 # | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """M05 de punta a punta contra Postgres real (TestClient + triggers + migración bf404c6f1018).
 
 Cubre lo que los fakes no pueden: el ledger y el acumulado que llevan los
@@ -23,11 +24,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 pytestmark = pytest.mark.integration
 
-HOY = hoy_colombia()
+HOY = hoy_usuario()
 
 
 def _id() -> int:

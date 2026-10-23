@@ -1,6 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Middlewares globales de la aplicación FastAPI.
 
-- `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`
+- `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`,
+  fija la zona del usuario (`X-Zona-Horaria`, ver `src/shared/fechas.py`)
   y expone el correlativo como cabecera `X-Request-ID` en la respuesta.
 - `AccessLogMiddleware`: registra método, ruta, código de respuesta y latencia.
 - `SecurityHeadersMiddleware`: agrega las cabeceras de seguridad HTTP recomendadas
@@ -18,6 +22,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.shared import audit_context
+from src.shared.fechas import CABECERA_ZONA, establecer_zona_usuario
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +66,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
+        # Zona IANA del navegador para "hoy" y los días calendario; sin ella, UTC.
+        establecer_zona_usuario(request.headers.get(CABECERA_ZONA))
 
         response = await call_next(request)
         # Propaga el correlativo a la respuesta

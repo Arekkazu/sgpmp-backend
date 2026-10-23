@@ -1,7 +1,9 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTOs del orquestador OTA (DEV-15, D6 de AIOT-DEV-03)."""
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal, Optional
 
@@ -13,6 +15,7 @@ from src.prediction.domain.entities.distribucion_ota import (
     PORCENTAJE_PARCIAL_MIN,
 )
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 EventoOtaNodo = Literal["status", "download_progress", "integrity_ok", "activated", "rollback", "critical_failure"]
 
@@ -24,8 +27,8 @@ class CrearDistribucionOtaDTO(BaseDTO):
     id_version_modelo: int = Field(gt=0)
     lista_dispositivos_objetivo: list[int] = Field(min_length=1)
     modo_distribucion: Literal["INMEDIATO", "PROGRAMADO", "POR_LOTES"]
-    ventana_inicio: Optional[datetime] = None
-    ventana_fin: Optional[datetime] = None
+    ventana_inicio: Optional[FechaHoraUtc] = None
+    ventana_fin: Optional[FechaHoraUtc] = None
     nivel_bateria_minimo: Optional[Decimal] = Field(default=None, ge=0, le=100)
     tamano_fragmento_bytes: int = Field(gt=0)
     max_reintentos_descarga: int = Field(ge=0, le=20)

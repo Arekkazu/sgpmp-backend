@@ -1,17 +1,18 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from fastapi import File, Form, UploadFile
 from pydantic import UUID4
 
 from src.shared.errors import BusinessRuleError
+from src.shared.fechas import FechaHoraUtc
 
 
 def _json_de_formulario(valor: str, campo: str, tipo: type, descripcion: str):
@@ -41,7 +42,7 @@ class RegistrarVersionModeloDTO:
         hash_artefacto_sha256: str = Form(...),
         dataset_entrenamiento_hash: str = Form(...),
         metricas_validacion: str = Form(...),
-        fecha_entrenamiento: datetime = Form(...),
+        fecha_entrenamiento: FechaHoraUtc = Form(...),
         compatibilidad_variables: str = Form(...),
         id_proceso_rf71: uuid.UUID = Form(...),
         version_referencia: Optional[int] = Form(None),

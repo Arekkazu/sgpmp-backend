@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-30 RF-57: exige permiso especifico para descartar     |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta auditoria de calidad y 403   |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30 RF-57: descartar sobre el recurso real alertas_operativas |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -20,7 +21,6 @@ RF-60 D-09: GET y PATCH solo atienden alertas operativas. Las técnicas
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -53,6 +53,7 @@ from src.telemetry.infrastructure.schema.alerta_schema import (
     ListaAlertasSchema,
     ResultadoGeneracionAlertaSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"], route_class=RutaAlertaAuditada)
 
@@ -131,8 +132,8 @@ def listar_alertas(
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
     origen_evento: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),

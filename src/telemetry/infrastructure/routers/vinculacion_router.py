@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: mantiene alcance en modificaciones manuales |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para vinculación de lecturas teleméricas a activos biológicos.
 
 RF-61 — CU05 Dev scope:
@@ -13,7 +14,6 @@ Auth: JWT Bearer + RBAC recurso 37 (vinculaciones_lecturas).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -39,6 +39,7 @@ from src.telemetry.infrastructure.repositories.telemetria_repository import SqlA
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.vinculacion_lectura_schema import ListaVinculacionesSchema, VinculacionLecturaSchema
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/vinculaciones", tags=["Telemetría IoT - Vinculaciones RF-61"])
 
@@ -69,8 +70,8 @@ def listar_vinculaciones(
     estado_vinculacion: Optional[str] = Query(default=None),
     mecanismo_vinculacion: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),

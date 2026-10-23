@@ -1,13 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: especies (1..N) con especie_id como alias deprecado, nivel_criticidad |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para editar un área productiva (PATCH RF-20).
 
 Incluye ``fecha_actualizacion`` para concurrencia optimista (FA-14).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -15,6 +15,7 @@ from pydantic import Field, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 from src.shared.tipo_modelo import TipoModelo
+from src.shared.fechas import FechaHoraUtc
 
 
 class EditarInfraestructuraDTO(BaseDTO):
@@ -37,7 +38,7 @@ class EditarInfraestructuraDTO(BaseDTO):
     tipo_modelo_asignado: Optional[TipoModelo] = None
     # RFC-016: si no se envía, se conserva el valor actual del área.
     nivel_criticidad: Optional[Literal["ALTA", "MEDIA", "BAJA"]] = None
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
 
     @field_validator("nombre_infraestructura")
     @classmethod

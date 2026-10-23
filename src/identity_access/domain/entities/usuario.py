@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-18 RF-01: EDAD_MAXIMA=100 y guarda única del rango [18, 100) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Entidad de dominio ``Usuario`` del contexto de identidad y acceso.
 
 A diferencia del modelo ORM (``infrastructure/models/usuarios_model.py``), esta
@@ -26,7 +27,7 @@ from src.identity_access.domain.value_objects.identificacion import (
     mensaje_identificacion_invalida,
 )
 from src.shared.errors import ValidationError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 
 @dataclass(eq=False)
@@ -193,9 +194,9 @@ class Usuario:
         """Edad en años cumplidos para ``fecha_nacimiento`` (negativa si es futura).
 
         Args:
-            hoy: Fecha de referencia. Si es ``None`` usa el día actual en Colombia.
+            hoy: Fecha de referencia. Si es ``None`` usa el día actual en la zona del usuario.
         """
-        hoy = hoy or hoy_colombia()
+        hoy = hoy or hoy_usuario()
         return hoy.year - fecha_nacimiento.year - (
             (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
         )
@@ -206,7 +207,7 @@ class Usuario:
 
         Args:
             fecha_nacimiento: Fecha a evaluar.
-            hoy: Fecha de referencia. Si es ``None`` usa el día actual en Colombia.
+            hoy: Fecha de referencia. Si es ``None`` usa el día actual en la zona del usuario.
 
         Returns:
             ``"MINIMA"`` si no alcanza :data:`EDAD_MINIMA` (también si la fecha es

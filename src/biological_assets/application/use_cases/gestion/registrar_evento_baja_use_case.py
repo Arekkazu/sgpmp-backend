@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registro de baja de un activo o de individuos de un lote (RF-45)."""
 
 from __future__ import annotations
@@ -23,7 +26,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 
 class RegistrarEventoBajaUseCase:
@@ -85,7 +88,7 @@ class RegistrarEventoBajaUseCase:
 
         # E-03: fecha_baja no futura ni anterior al último evento
         ahora = datetime.now(timezone.utc)
-        hoy = hoy_colombia()
+        hoy = hoy_usuario()
         if dto.fecha_baja > hoy:
             raise ValidationError(
                 code='FECHA_BAJA_FUTURA',
@@ -106,7 +109,7 @@ class RegistrarEventoBajaUseCase:
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = fecha_colombia(ultima_fecha)
+            ultimo_dia = fecha_usuario(ultima_fecha)
             if dto.fecha_baja < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_BAJA_CRONOLOGICAMENTE_INVALIDA',

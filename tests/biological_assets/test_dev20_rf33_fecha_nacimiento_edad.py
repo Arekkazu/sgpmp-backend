@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-20/23: el puerto falso cubre la validación de capacidad |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DEV-20 (RF-33 1.4, RFC-014): fecha_nacimiento opcional y advertencia de edad del activo.
 
 Los 4 casos de RFC-014: especie sin esperanza de vida (no advierte), activo joven (no
@@ -29,7 +30,7 @@ from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto i
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.biological_assets.infrastructure.routers.activo_biologico_router import _activo_to_response
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 HOY = date(2026, 10, 23)
 
@@ -59,7 +60,7 @@ def test_evaluar_edad(fecha, esperanza, advierte):
         )
 
 
-def test_la_edad_usa_el_dia_en_colombia():
+def test_la_edad_usa_el_dia_en_colombia(en_colombia):
     # 2026-10-23 03:00 UTC es todavía 22-oct en Colombia: 1 día de edad al 23, no 0.
     assert evaluar_edad(datetime(2026, 10, 23, 3, 0, tzinfo=timezone.utc), 1, HOY).edad_dias == 1
 
@@ -81,7 +82,7 @@ def test_individual_sin_fecha_de_nacimiento_es_valido():
 
 
 def test_fecha_de_nacimiento_futura_se_rechaza():
-    manana = datetime.combine(hoy_colombia() + timedelta(days=1), datetime.min.time())
+    manana = datetime.combine(hoy_usuario() + timedelta(days=1), datetime.min.time())
     with pytest.raises(PydanticValidationError, match="fecha_nacimiento no puede ser futura"):
         _dto(fecha_nacimiento=manana)
     with pytest.raises(PydanticValidationError, match="fecha_nacimiento no puede ser futura"):
@@ -155,7 +156,7 @@ def _registrar(esperanza, fecha_nacimiento):
 
 
 HACE_20_ANOS = datetime(2006, 1, 1)
-HACE_UN_ANO = datetime.combine(hoy_colombia() - timedelta(days=365), datetime.min.time())
+HACE_UN_ANO = datetime.combine(hoy_usuario() - timedelta(days=365), datetime.min.time())
 
 
 @pytest.mark.parametrize(
@@ -186,7 +187,7 @@ def test_la_respuesta_del_registro_lleva_la_advertencia(eventos):
     activo.fecha_creacion = datetime.now(timezone.utc)
     respuesta = _activo_to_response(activo)
     assert respuesta.advertencia_edad == activo.advertencia_edad
-    assert respuesta.detalle_individual.fecha_nacimiento == HACE_20_ANOS
+    assert respuesta.detalle_individual.fecha_nacimiento == HACE_20_ANOS.replace(tzinfo=timezone.utc)  # sin zona entra como UTC
 
 
 def test_la_respuesta_admite_activo_sin_fecha_de_nacimiento(eventos):

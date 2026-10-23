@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74: E1/E5/E6 del RF y cálculo sin commit |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso núcleo: calcular el ICA de un activo para un período (RF-74).
 
 Reutilizado por el cálculo manual (Flujo A), el batch nocturno (Flujo C) y los
@@ -25,7 +26,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, NotFoundError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 from src.supplies.domain.entities.resultado_ica import ResultadoICA
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
 from src.supplies.domain.repositories.alerta_ica_port import AlertaICAPort
@@ -155,12 +156,12 @@ class CalcularICAUseCase:
 
         # Resolver la ventana de fechas del período (POR_CICLO usa la fase abierta).
         paso[0] = "resolver_periodo"
-        hoy = fecha_corte or hoy_colombia()
+        hoy = fecha_corte or hoy_usuario()
         fecha_inicio_ciclo = activo.fecha_inicio_ciclo
         if periodo == PeriodoEvaluacion.POR_CICLO:
             ciclo = self.ciclo_port.obtener_abierto(id_activo_biologico)
             if ciclo is not None and ciclo.fecha_inicio is not None:
-                fecha_inicio_ciclo = fecha_colombia(ciclo.fecha_inicio)
+                fecha_inicio_ciclo = fecha_usuario(ciclo.fecha_inicio)
         periodo_calc = PeriodoCalculo.resolver(
             periodo, hoy=hoy, fecha_inicio_ciclo=fecha_inicio_ciclo
         )

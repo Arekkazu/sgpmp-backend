@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, 429 compartido, bajas     |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: generar el reporte de gastos acumulados (RF-77).
 
 Decide síncrono vs. asíncrono según el rango solicitado (R8/R13: > 12 meses
@@ -38,7 +39,7 @@ from src.shared.errors import (
     TooManyRequestsError,
     ValidationError,
 )
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from src.supplies.domain.entities.reporte_gasto import FiltrosReporteGasto, ReporteGasto
 from src.supplies.domain.entities.trabajo_reporte_gasto import TrabajoReporteGasto
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
@@ -126,7 +127,7 @@ class GenerarReporteGastosUseCase:
                 ),
                 field="fecha_inicio_reporte",
             )
-        if filtros.fecha_fin > hoy_colombia():
+        if filtros.fecha_fin > hoy_usuario():
             raise ValidationError(
                 code="FECHA_FIN_FUTURA",
                 message=(

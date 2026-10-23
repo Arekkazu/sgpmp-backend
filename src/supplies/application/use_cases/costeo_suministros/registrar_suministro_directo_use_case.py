@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78: fases, códigos y efectos del RF    |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registrar un suministro en el ledger de RF-78.
 
 Orden (RF-78): Fase 3 idempotencia (E8 → 200 YA_PROCESADO) → tipo de
@@ -38,7 +39,7 @@ from src.shared.errors import (
     InfrastructureError,
     ServiceUnavailableError,
 )
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.registro_suministro_directo import RegistroSuministroDirecto
 from src.supplies.domain.repositories.auditoria_suministro_port import (
@@ -237,8 +238,8 @@ class RegistrarSuministroDirectoUseCase:
 
     @staticmethod
     def _validar_fecha_aplicacion(fecha_aplicacion: date, fecha_inicio_ciclo) -> None:
-        hoy = hoy_colombia()
-        inicio: Optional[date] = fecha_colombia(fecha_inicio_ciclo) if fecha_inicio_ciclo is not None else None
+        hoy = hoy_usuario()
+        inicio: Optional[date] = fecha_usuario(fecha_inicio_ciclo) if fecha_inicio_ciclo is not None else None
         if fecha_aplicacion > hoy or (inicio is not None and fecha_aplicacion < inicio):
             raise BusinessRuleError(
                 code="FECHA_FUERA_DE_RANGO",

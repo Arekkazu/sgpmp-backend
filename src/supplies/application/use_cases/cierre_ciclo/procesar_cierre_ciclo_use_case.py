@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-38→RF-74/76/77/78/79: cierre de ciclo  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Efectos en M05 del cierre del ciclo productivo (RF-38 en M02).
 
 Corre dentro de la transacción del cierre (no hace ``commit``), así el cierre y
@@ -20,7 +21,7 @@ from datetime import date
 from typing import Optional
 
 from src.shared.errors import ConflictError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from src.supplies.application.use_cases.eficiencia.calcular_ica_use_case import CalcularICAUseCase
 from src.supplies.application.use_cases.provision_nic41.consolidar_ciclo_use_case import ConsolidarCicloUseCase
 from src.supplies.application.use_cases.reporte_gastos.generar_reporte_gastos_use_case import (
@@ -55,7 +56,7 @@ class ProcesarCierreCicloSuministrosUseCase:
 
     def antes_de_cerrar(self, id_activo: int, id_usuario: int, fecha_cierre: date) -> None:
         vigente = self.medicamento_repo.max_fecha_fin_retiro_vigente(id_activo)
-        if vigente is not None and vigente >= hoy_colombia():
+        if vigente is not None and vigente >= hoy_usuario():
             raise ConflictError(
                 code="TRATAMIENTO_ACTIVO",
                 message=(

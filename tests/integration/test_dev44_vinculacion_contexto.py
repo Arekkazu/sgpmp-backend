@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: verifica DB-13, contexto, avisos y traslados reales |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-22/23: especies del área en la infraestructura; RF61_AVISOS sin canal |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """PostgreSQL aislado. Avisos usan dobles explicitos, sin acreditar entrega real."""
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
@@ -342,7 +343,7 @@ def test_rf48_uc_integra_cierre_o_revierte_todo(db_session,area,usuario,fallar):
     from src.biological_assets.infrastructure.repositories.activo_biologico_repository import SqlAlchemyActivoBiologicoRepository
     from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
     from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
-    from src.shared.fechas import hoy_colombia
+    from src.shared.fechas import hoy_usuario
     destino=db_session.execute(text('''INSERT INTO modulo9.infraestructuras(nombre,id_finca,superficie,es_activo,tipo)
         SELECT 'Destino DEV44',id_finca,100,true,'Estanque' FROM modulo9.infraestructuras
         WHERE id_infraestructura=:id RETURNING id_infraestructura'''),{'id':area}).scalar_one()
@@ -366,7 +367,7 @@ def test_rf48_uc_integra_cierre_o_revierte_todo(db_session,area,usuario,fallar):
     uc=RegistrarTransferenciaUseCase(db_session,SqlAlchemyActivoBiologicoRepository(db_session),
         SqlAlchemyTransferenciaRepository(db_session),infras,Mock(),vinculacion_traslado_port=puente)
     dto=RegistrarTransferenciaDTO(infraestructura_origen_id=area,infraestructura_destino_id=destino,
-        fecha_transferencia=hoy_colombia(),motivo_transferencia='Traslado de integracion DEV44')
+        fecha_transferencia=hoy_usuario(),motivo_transferencia='Traslado de integracion DEV44')
     if fallar:
         with pytest.raises(RuntimeError):uc.execute(animal,dto,SimpleNamespace(id_usuario=usuario))
     else:uc.execute(animal,dto,SimpleNamespace(id_usuario=usuario))

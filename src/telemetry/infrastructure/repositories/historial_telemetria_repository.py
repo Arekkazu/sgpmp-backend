@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -8,7 +9,7 @@ from datetime import datetime, time, timedelta
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.shared.fechas import ZONA_COLOMBIA
+from src.shared.fechas import zona_usuario
 from src.telemetry.domain.entities.monitoreo import (
     FiltrosHistorial,
     LecturaHistorica,
@@ -193,12 +194,13 @@ _MAX_VACIOS = 500
 
 def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
     conds: list[str] = []
-    # RF-59 E2 (DEV-38): las fechas son días calendario en Colombia. Antes el rango se
-    # cortaba a medianoche UTC y dejaba fuera las lecturas de 19:00 a 24:00 hora local
-    # del último día (y metía las del día anterior).
+    # RF-59 E2 (DEV-38): las fechas son días calendario del usuario (su zona llega en
+    # X-Zona-Horaria). Cortar a medianoche UTC dejaba fuera, en Colombia, las lecturas
+    # de 19:00 a 24:00 del último día (y metía las del día anterior).
+    zona = zona_usuario()
     params: dict = {
-        'fecha_inicio': datetime.combine(filtros.fecha_inicio, time.min, tzinfo=ZONA_COLOMBIA),
-        'fecha_fin_ex': datetime.combine(filtros.fecha_fin + timedelta(days=1), time.min, tzinfo=ZONA_COLOMBIA),
+        'fecha_inicio': datetime.combine(filtros.fecha_inicio, time.min, tzinfo=zona),
+        'fecha_fin_ex': datetime.combine(filtros.fecha_fin + timedelta(days=1), time.min, tzinfo=zona),
         'por_pagina': filtros.por_pagina,
         'offset': (filtros.pagina - 1) * filtros.por_pagina,
     }

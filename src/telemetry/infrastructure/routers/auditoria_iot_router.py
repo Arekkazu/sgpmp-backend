@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: GET de integridad protegido y POST compatible |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -20,7 +21,6 @@ from src.telemetry.infrastructure.adapters.aviso_integridad_m01_adapter import A
 import csv
 import io
 import json
-from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -40,6 +40,7 @@ from src.telemetry.infrastructure.schema.bitacora_auditoria_iot_schema import (
     ListaAuditoriaIotSchema,
     VerificacionIntegridadSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/auditoria", tags=["Telemetría IoT - Auditoría RF-63"])
 
@@ -53,8 +54,8 @@ router = APIRouter(prefix="/iot/auditoria", tags=["Telemetría IoT - Auditoría 
     summary="Listar bitácora de auditoría IoT (RF-63)",
 )
 def listar_auditoria(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     tipo_evento: Optional[str] = Query(default=None),
     severidad_log: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
@@ -95,8 +96,8 @@ def listar_auditoria(
     summary="Exportar bitácora de auditoría IoT (RF-63)",
 )
 def exportar_auditoria(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     tipo_evento: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
     formato: str = Query(default='json', pattern='^(json|csv)$'),
@@ -147,8 +148,8 @@ def exportar_auditoria(
     summary="Verificar integridad SHA-256 de la bitácora (RF-63 FA-11)",
 )
 def verificar_integridad(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VerificacionIntegridadSchema:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima, ingreso de
 individuos"): no existía ningún mecanismo de alta de individuos a un lote --
 solo el flujo de BAJA. `RegistrarEventoIngresoUseCase` es la contraparte,
@@ -219,10 +220,10 @@ def test_ingreso_fecha_futura_lanza_validation_error() -> None:
 
 
 @pytest.fixture
-def noche_en_colombia(monkeypatch) -> None:
+def noche_en_colombia(monkeypatch, en_colombia) -> None:
     # 2026-10-11 22:25 en Colombia == 2026-10-12 03:25 UTC
     monkeypatch.setattr(
-        fechas, '_ahora', lambda: datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(fechas.ZONA_COLOMBIA),
+        fechas, '_ahora', lambda: datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(en_colombia),
     )
 
 

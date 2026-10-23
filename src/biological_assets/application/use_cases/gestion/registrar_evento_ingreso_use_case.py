@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: ingreso de individuos a un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 
 class RegistrarEventoIngresoUseCase:
@@ -96,7 +97,7 @@ class RegistrarEventoIngresoUseCase:
             datetime(dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day, tzinfo=timezone.utc),
             activo,
         )
-        if dto.fecha_ingreso > hoy_colombia():
+        if dto.fecha_ingreso > hoy_usuario():
             raise ValidationError(
                 code='FECHA_INGRESO_FUTURA',
                 message='La fecha de ingreso no puede ser posterior a la fecha actual del sistema.',
@@ -105,7 +106,7 @@ class RegistrarEventoIngresoUseCase:
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = fecha_colombia(ultima_fecha)
+            ultimo_dia = fecha_usuario(ultima_fecha)
             if dto.fecha_ingreso < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA',

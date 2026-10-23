@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -15,7 +16,6 @@ Autorización RBAC:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -30,6 +30,7 @@ from src.prediction.infrastructure.schema.evento_auditoria_m04_schema import Aud
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/prediccion/auditoria", tags=["Predicción M04 - Auditoría RF-73"])
 
@@ -49,8 +50,8 @@ _RECURSO = 46  # modulo1.recursos: 'auditoria_m04'
 )
 def listar_auditoria(
     tipo_evento: Optional[str] = Query(default=None, description="Filtrar por tipo de evento"),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None, description="Filtrar por id de usuario actor"),
     id_sistema: Optional[str] = Query(default=None, description="Filtrar por sistema actor"),
     id_referencia: Optional[str] = Query(default=None, description="Filtrar por id de entidad referenciada"),
@@ -96,8 +97,8 @@ def listar_auditoria(
 )
 def exportar_auditoria(
     tipo_evento: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None),
     id_sistema: Optional[str] = Query(default=None),
     id_referencia: Optional[str] = Query(default=None),

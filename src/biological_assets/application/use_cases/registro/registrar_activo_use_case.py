@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: la regla C1 lee las especies del área (RFC-012) |
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registro de un activo biológico nuevo (RF-33)."""
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from src.biological_assets.application.use_cases._capacidad_area import validar_
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, ConflictError, ValidationError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -276,7 +277,7 @@ class RegistrarActivoBiologicoUseCase:
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
         # RFC-014 (RF-33 1.4): edad ≥ esperanza de vida de la especie → advertencia,
         # nunca rechazo. Sin fecha de nacimiento o sin esperanza de vida no se evalúa.
-        advertencia = evaluar_edad(dto.fecha_nacimiento, especie.esperanza_vida_dias, hoy_colombia())
+        advertencia = evaluar_edad(dto.fecha_nacimiento, especie.esperanza_vida_dias, hoy_usuario())
         # INC-M02-37-G24 (TC-M02-048): la densidad (cantidad/superficie) es
         # calculable desde el momento del registro, no solo tras el primer
         # evento de crecimiento — sin esto un lote recién creado queda con

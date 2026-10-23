@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: destinos leen las especies del área (RFC-012) |
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: integra vinculaciones en la misma transaccion |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 
 class RegistrarTransferenciaUseCase:
@@ -201,7 +202,7 @@ class RegistrarTransferenciaUseCase:
         # validación del proceso (RF-48, paso 6f) — se valida en el caso de
         # uso para responder 422 (BusinessRuleError), como declara el
         # contrato, y no como un error de estructura de Pydantic (400).
-        if dto.fecha_transferencia > hoy_colombia():
+        if dto.fecha_transferencia > hoy_usuario():
             raise BusinessRuleError(
                 code='FECHA_TRANSFERENCIA_FUTURA',
                 message='La fecha de transferencia no puede ser posterior a la fecha actual.',

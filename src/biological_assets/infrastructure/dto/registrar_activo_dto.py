@@ -1,18 +1,20 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos`` (RF-33)."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import model_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
+from src.shared.fechas import FechaHoraUtc
 
 
 class RegistrarActivoBiologicoDTO(BaseDTO):
@@ -37,7 +39,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
     identificador: Optional[str] = None
     raza: Optional[str] = None
     sexo: Optional[str] = None
-    fecha_nacimiento: Optional[datetime] = None
+    fecha_nacimiento: Optional[FechaHoraUtc] = None
     peso_inicial: Optional[Decimal] = None
     # Solo para POBLACIONAL
     cantidad_inicial: Optional[int] = None
@@ -72,8 +74,8 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
             if self.raza is not None or self.sexo is not None or self.fecha_nacimiento is not None:
                 raise ValueError("raza, sexo y fecha_nacimiento no aplican para activos de tipo POBLACIONAL.")
 
-        # RFC-014: si se informa, la fecha de nacimiento no puede ser futura (día en Colombia).
-        if self.fecha_nacimiento is not None and fecha_colombia(self.fecha_nacimiento) > hoy_colombia():
+        # RFC-014: si se informa, la fecha de nacimiento no puede ser futura (día en la zona del usuario).
+        if self.fecha_nacimiento is not None and fecha_usuario(self.fecha_nacimiento) > hoy_usuario():
             raise ValueError("fecha_nacimiento no puede ser futura.")
 
         return self
@@ -81,7 +83,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
     @model_validator(mode='after')
     def validar_fecha_inicio_ciclo(self) -> RegistrarActivoBiologicoDTO:
         # FA-04
-        hoy = hoy_colombia()
+        hoy = hoy_usuario()
         limite_inferior = date(1970, 1, 1)
         if self.fecha_inicio_ciclo > hoy:
             raise ValueError("fecha_inicio_ciclo no puede ser futura.")

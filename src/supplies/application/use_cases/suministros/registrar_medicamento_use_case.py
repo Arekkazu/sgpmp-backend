@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-76: mensajes y E11 del RF, ledger      |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registrar una aplicación de medicamento (RF-76).
 
 Valida estado del activo, ciclo abierto, vía de administración, evento
@@ -30,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, InfrastructureError, NotFoundError, ValidationError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.medicamento import Medicamento
 from src.supplies.domain.repositories.activo_consulta_port import (
@@ -136,7 +137,7 @@ class RegistrarMedicamentoUseCase:
                 field="id_activo_biologico",
             )
 
-        hoy = hoy_colombia()
+        hoy = hoy_usuario()
         if dto.fecha_aplicacion > hoy:
             raise ValidationError(
                 code="FECHA_FUTURA",

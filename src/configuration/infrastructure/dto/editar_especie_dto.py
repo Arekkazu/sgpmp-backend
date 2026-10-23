@@ -2,13 +2,13 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-19 RF-15: esperanza_vida_dias opcional, > 0 (RFC-014) |
 # | 2026-10-20 | Arekkazu | DEV-21 RF-15: densidad_poblacional_max (alias del nombre anterior), > 0 y máximo 2 decimales |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para la edición de una especie productiva (Flujo B — RF-15).
 
 Incluye ``fecha_actualizacion`` como mecanismo de concurrencia optimista:
 el cliente envía el timestamp que obtuvo al leer la especie; si difiere del
 valor actual en BD, el use case rechaza la operación con 412.
 """
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -22,6 +22,7 @@ from src.configuration.infrastructure.dto.alias_densidad_poblacional import (
 )
 from src.shared.tipo_modelo import GrupoManejo
 from src.shared.regex import NOMBRE
+from src.shared.fechas import FechaHoraUtc
 
 
 class EditarEspecieDTO(BaseDTO):
@@ -36,7 +37,7 @@ class EditarEspecieDTO(BaseDTO):
     # RF-15 v1.1: omitido conserva el actual; no se puede vaciar (es obligatorio).
     grupo_manejo: Optional[GrupoManejo] = None
     # Null en una especie que nunca se editó: el registro no la llena (#231).
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
 
     @field_validator("nombre")
     @classmethod

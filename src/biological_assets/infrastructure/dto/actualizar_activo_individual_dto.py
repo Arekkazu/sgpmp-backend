@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``PATCH /activos-biologicos/{id_activo}`` (RF-35)."""
 
 from __future__ import annotations
@@ -12,7 +13,8 @@ from typing import Any, Optional
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
+from src.shared.fechas import FechaHoraUtc
 
 
 class ActualizarActivoIndividualDTO(BaseDTO):
@@ -29,11 +31,11 @@ class ActualizarActivoIndividualDTO(BaseDTO):
 
     raza: Optional[str] = None
     sexo: Optional[str] = None
-    fecha_nacimiento: Optional[datetime] = None
+    fecha_nacimiento: Optional[FechaHoraUtc] = None
     peso_inicial: Optional[Decimal] = None
     # Concurrencia optimista (RF-35). Optional: la columna nace NULL sin
     # backfill, se establece recién en la primera edición del activo.
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
     # Declarado solo para rechazarlo con un mensaje que remita a RF-44, en vez
     # del genérico de extra='forbid'.
     estado_activo: Any = None
@@ -56,6 +58,6 @@ class ActualizarActivoIndividualDTO(BaseDTO):
     @classmethod
     def fecha_nacimiento_no_futura(cls, valor: Optional[datetime]) -> Optional[datetime]:
         # RFC-014 (DEV-20): misma regla que el registro. Omitida (None) no cambia la fecha.
-        if valor is not None and fecha_colombia(valor) > hoy_colombia():
+        if valor is not None and fecha_usuario(valor) > hoy_usuario():
             raise ValueError('fecha_nacimiento no puede ser futura.')
         return valor

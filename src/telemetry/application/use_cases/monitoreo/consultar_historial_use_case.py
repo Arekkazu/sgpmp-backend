@@ -1,13 +1,14 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
 from dataclasses import asdict
 from typing import Optional
 
 from src.shared.errors import BusinessRuleError, ValidationError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
     RegistrarEventoAuditoriaIotUseCase,
 )
@@ -87,8 +88,8 @@ class ConsultarHistorialUseCase:
 
     @staticmethod
     def _validar_fechas(filtros: FiltrosHistorial) -> None:
-        # E2 (DEV-38): "hoy" es el día en Colombia; date.today() dependía de la zona del servidor.
-        hoy = hoy_colombia()
+        # E2 (DEV-38): "hoy" es el día en la zona del usuario; date.today() dependía de la zona del servidor.
+        hoy = hoy_usuario()
         if filtros.fecha_inicio > filtros.fecha_fin:
             raise ValidationError(
                 code='FECHA_INICIO_POSTERIOR',

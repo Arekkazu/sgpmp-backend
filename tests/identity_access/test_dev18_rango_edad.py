@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-18 RF-01: rango de edad [18, 100) en registro y perfil |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DEV-18 (RFC-013): la edad válida es [18, 100), en el registro (403) y en la
 edición de perfil (400), con una sola guarda en la entidad ``Usuario``."""
 from __future__ import annotations
@@ -73,10 +74,10 @@ def _registrar(fecha_nacimiento: date):
     [(17, "EDAD_MINIMA_REQUERIDA"), (100, "EDAD_FUERA_DE_RANGO")],
 )
 def test_registro_fuera_de_rango_es_403_sin_guardar(monkeypatch, anios, codigo):
-    from src.shared.fechas import hoy_colombia
+    from src.shared.fechas import hoy_usuario
 
     monkeypatch.setattr(modulo.Usuario, "registrar_nuevo", lambda **d: SimpleNamespace(**d))
-    hoy = hoy_colombia()
+    hoy = hoy_usuario()
     with pytest.raises(AuthorizationError) as exc:
         _registrar(hoy.replace(year=hoy.year - anios))
     assert exc.value.status_code == 403
@@ -91,9 +92,9 @@ def test_perfil_con_100_anios_es_400(monkeypatch):
     from src.identity_access.domain.entities.cuenta import Cuenta
     from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
     from src.shared.errors import ValidationError
-    from src.shared.fechas import hoy_colombia
+    from src.shared.fechas import hoy_usuario
 
-    hoy = hoy_colombia()
+    hoy = hoy_usuario()
     usuario = SimpleNamespace(id_usuario=7, id_rol=2, nombre="Ana", apellidos="Pérez",
                               correo="ana@example.com", fecha_nacimiento=None, version=1)
     cuenta = Cuenta(id_cuenta_usuario=8, id_usuario=7, id_estado_cuenta=Cuenta.ESTADO_PENDIENTE_DATOS)

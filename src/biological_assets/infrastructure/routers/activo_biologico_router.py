@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -210,6 +211,7 @@ from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
@@ -974,7 +976,7 @@ def consultar_asociacion(
         'ACTIVA',
         description="'ACTIVA' devuelve la asociación vigente. 'HISTORIAL' devuelve todos los períodos.",
     ),
-    fecha_referencia: Optional[datetime] = Query(
+    fecha_referencia: Optional[FechaHoraUtc] = Query(
         default=None,
         description=(
             'Consulta cuál era la asociación vigente en una fecha pasada (CA-3, útil para RF-61). '

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: mensajes del RF, CA-10 y ledger    |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registrar un consumo de alimento (RF-75).
 
 Orquesta las validaciones de negocio que requieren datos cross-module (estado
@@ -24,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
 from src.supplies.domain.entities.consumo_alimento import ConsumoAlimento
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
@@ -108,7 +109,7 @@ class RegistrarConsumoAlimentoUseCase:
                 field="id_tipo_alimento",
             )
 
-        if dto.fecha_consumo > hoy_colombia():
+        if dto.fecha_consumo > hoy_usuario():
             raise ValidationError(
                 code="FECHA_FUTURA",
                 message=(
@@ -203,5 +204,5 @@ class RegistrarConsumoAlimentoUseCase:
     @staticmethod
     def _cota_inferior(fecha_fase: Optional[datetime], fecha_inicio_ciclo: Optional[date]) -> Optional[date]:
         if fecha_fase is not None:
-            return fecha_colombia(fecha_fase)
+            return fecha_usuario(fecha_fase)
         return fecha_inicio_ciclo

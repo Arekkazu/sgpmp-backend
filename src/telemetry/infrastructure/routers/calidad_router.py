@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -13,7 +14,6 @@ Auth: JWT Bearer + RBAC recurso 38 (calidad_telemetria).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -44,6 +44,7 @@ from src.telemetry.infrastructure.schema.telemetria_calidad_schema import (
     ReevaluacionResponseSchema,
     TelemetriaCalidadSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62"])
 
@@ -59,8 +60,8 @@ router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62
 def listar_calidad(
     id_sensor: Optional[int] = Query(default=None),
     clasificacion: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     estado_evaluacion: Optional[str] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
