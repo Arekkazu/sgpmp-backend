@@ -1,0 +1,505 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G005 Integridad del catálogo frente a las variables IoT y a los modelos",
+    "description": "Parte Postman de TC-M04-012/014 (RF-64, CA-13 y CA-12). 012: contrasta todas las patologías de /prediccion/patologias contra el catálogo I3P-1 vigente de M09 (/configuracion/variables-ambientales): ninguna debe referenciar una variable fuera del catálogo. La verificación en BD (huérfanas e inactivas) y la baja de una variable están en test_tc_m04_012_integridad_variables_bd.py. 014 (regresión): registra IDs y estados de los modelos (/prediccion/modelos), da de alta una patología propia y comprueba que los modelos no cambian; luego la modifica y exige que los modelos dependientes queden como REQUIERE_REENTRENAMIENTO y el resto intactos. Notas del código: las versiones de modelo no guardan las patologías que cubren (solo compatibilidad_variables), sus estados son APROBADO/RECHAZADO/ACTIVO/DEPRECADO (no existe REQUIERE_REENTRENAMIENTO), el bloqueo PATOLOGIA_EN_USO_POR_MODELO del PATCH usa un adaptador stub que siempre responde 'sin modelos' y el registro de modelos es solo interno (X-RF71-Internal-Key), así que QA no puede crear un modelo dependiente. Datos propios: especie y patología.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Integridad Catalogo {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G005\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-012 Integración con el catálogo I3P-1",
+      "item": [
+        {
+          "name": "TC-M04-012 - Catálogo de variables I3P-1 vigente (M09, RF-16)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Variables responde 200', function () { pm.response.to.have.status(200); });",
+                  "const ids = (pm.response.json().items || []).map(v => v.id_variable_ambiental);",
+                  "pm.collectionVariables.set('ids_i3p1', JSON.stringify(ids));",
+                  "pm.test('El catálogo I3P-1 no está vacío', function () { pm.expect(ids.length).to.be.above(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-012 - Todas las patologías referencian solo variables válidas de I3P-1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo de patologías responde 200', function () { pm.response.to.have.status(200); });",
+                  "const validos = new Set(JSON.parse(pm.collectionVariables.get('ids_i3p1')));",
+                  "const huerfanas = [];",
+                  "(pm.response.json().items || []).forEach(p => (p.variables_sensoricas_asociadas || []).forEach(v => {",
+                  "  if (!validos.has(v.id_variable_ambiental)) huerfanas.push(p.id_patologia + '->' + v.id_variable_ambiental);",
+                  "}));",
+                  "pm.test('TC-M04-012: ninguna patología referencia una variable fuera de I3P-1', function () {",
+                  "  pm.expect(huerfanas, 'patología->variable').to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-014 Regresión de modelos ante cambios del catálogo",
+      "item": [
+        {
+          "name": "TC-M04-014 - Estado e IDs de los modelos antes del alta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('modelos_antes', JSON.stringify((pm.response.json().items || []).map(m => [m.id_version_modelo, m.estado_version, m.esta_produccion, m.nombre_version]).sort((a, b) => a[0] - b[0])));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-014 - Alta de una patología nueva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_patologia', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Regresion Modelos {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 15],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-014 - El alta no altera los modelos existentes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-014: mismos modelos, mismos estados', function () {",
+                  "  pm.expect(JSON.stringify((pm.response.json().items || []).map(m => [m.id_version_modelo, m.estado_version, m.esta_produccion, m.nombre_version]).sort((a, b) => a[0] - b[0]))).to.eql(pm.collectionVariables.get('modelos_antes'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-014 - Modificar la patología",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "const bloqueada = pm.response.code === 409;",
+                  "pm.test('TC-M04-014: la modificación se procesa (200) o se bloquea por estar en uso (409)', function () {",
+                  "  pm.expect(ok || bloqueada, 'HTTP ' + pm.response.code).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Regresion Modelos {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida y progresiva de las variables fisiológicas asociadas.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-014 - Los modelos dependientes quedan como REQUIERE_REENTRENAMIENTO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modelos responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const id = Number(pm.collectionVariables.get('id_patologia'));",
+                  "const campos = ['patologias', 'patologias_cubiertas', 'id_patologias', 'ids_patologias'];",
+                  "const exponeDependencia = items.some(m => campos.some(c => c in m));",
+                  "pm.test('TC-M04-014: los modelos exponen de qué patologías dependen', function () {",
+                  "  pm.expect(exponeDependencia, 'ningún modelo informa sus patologías: no hay vínculo modelo-patología').to.eql(true);",
+                  "});",
+                  "const dependientes = items.filter(m => campos.some(c => (m[c] || []).map(x => Number(x.id_patologia || x)).includes(id)));",
+                  "pm.test('TC-M04-014: todo modelo dependiente de la patología modificada pasa a REQUIERE_REENTRENAMIENTO', function () {",
+                  "  pm.expect(dependientes.filter(m => m.estado_version !== 'REQUIERE_REENTRENAMIENTO').map(m => m.id_version_modelo)).to.eql([]);",
+                  "});",
+                  "pm.test('TC-M04-014: los modelos no dependientes conservan su estado', function () {",
+                  "  const antes = new Map(JSON.parse(pm.collectionVariables.get('modelos_antes')).map(m => [m[0], m[1]]));",
+                  "  const cambiados = items.filter(m => !dependientes.includes(m) && antes.has(m.id_version_modelo) && antes.get(m.id_version_modelo) !== m.estado_version);",
+                  "  pm.expect(cambiados.map(m => m.id_version_modelo)).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?limit=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "ids_i3p1",
+      "value": ""
+    },
+    {
+      "key": "modelos_antes",
+      "value": ""
+    },
+    {
+      "key": "id_patologia",
+      "value": ""
+    }
+  ]
+}
