@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: capacidad_maxima derivada y especies del área desde la tabla puente |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Adapter de ``InfraestructuraConsultaPort`` que lee infraestructuras, ocupación y
 sensores de M09.
 """
@@ -18,8 +19,16 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
     InfraestructuraConsulta,
     InfraestructuraConsultaPort,
 )
-from src.configuration.domain.services.capacidad_area import capacidad_efectiva
-from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+from src.configuration.domain.services.capacidad_area import EspecieDelArea, capacidad_efectiva
+from src.configuration.infrastructure.models.especie_model import EspecieModel
+from src.configuration.infrastructure.models.infraestructura_model import (
+    InfraestructuraEspecieModel,
+    InfraestructuraModel,
+)
+from src.shared.db_error_translator import raise_from_db_error
+
+# Espacio de nombres del advisory lock de capacidad por área (DEV-23).
+_LOCK_CAPACIDAD_AREA = 4802
 from src.configuration.infrastructure.repositories.infraestructura_repository import (
     SqlAlchemyInfraestructuraRepository,
 )
@@ -75,6 +84,33 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
             {'id_infra': id_infraestructura, 'ind': 'INDIVIDUAL'},
         ).fetchone()
         return int(row.total) if row else 0
+
+    def obtener_especie(self, id_especie: int) -> Optional[EspecieDelArea]:
+        orm = self.db.get(EspecieModel, id_especie)
+        if orm is None or not orm.es_activo:
+            return None
+        return EspecieDelArea(
+            id_especie=orm.id_especie,
+            nombre=orm.nombre,
+            grupo_manejo=orm.grupo_manejo,
+            densidad=orm.densidad_maxima_por_especie,
+        )
+
+    def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        try:
+            self.db.add(InfraestructuraEspecieModel(id_infraestructura=id_infraestructura, id_especie=id_especie))
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def bloquear_capacidad(self, id_infraestructura: int) -> None:
+        # Advisory lock y no SELECT ... FOR UPDATE: con RLS, FOR UPDATE aplica la
+        # política UPDATE de infraestructuras (solo Administrador) y un Productor
+        # no podría registrar. El lock se libera solo al terminar la transacción.
+        self.db.execute(
+            text('SELECT pg_advisory_xact_lock(:ns, :id)'),
+            {'ns': _LOCK_CAPACIDAD_AREA, 'id': id_infraestructura},
+        )
 
     def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:
         """Sensores con asociación de área activa (RF-22) en la infraestructura dada."""

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -320,6 +321,8 @@ class ResultadoConsultaAsociacion:
     historial: Optional[list[HistorialInfraestructura]] = None
     sensores_en_infraestructura: list[SensorEnInfraestructura] = field(default_factory=list)
     advertencia_integridad: Optional[str] = None
+    # RFC-012 (RF-34 1.2, H-12.2): capacidad efectiva del área vigente, derivada de RF-20.
+    capacidad_maxima: Optional[int] = None
 
 
 @dataclass

@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -1001,7 +1002,10 @@ def consultar_asociacion(
         tipo_consulta=resultado.tipo_consulta,
         id_activo_biologico=resultado.id_activo_biologico,
         asociacion_activa=(
-            _historial_to_response(resultado.asociacion_activa) if resultado.asociacion_activa else None
+            _historial_to_response(resultado.asociacion_activa).model_copy(
+                update={'capacidad_maxima': resultado.capacidad_maxima}
+            )
+            if resultado.asociacion_activa else None
         ),
         historial=(
             [_historial_to_response(h) for h in resultado.historial]

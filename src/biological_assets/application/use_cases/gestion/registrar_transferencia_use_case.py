@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: destinos leen las especies del área (RFC-012) |
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: integra vinculaciones en la misma transaccion |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._capacidad_area import admite_entrada, validar_entrada_al_area
 from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
@@ -22,7 +24,6 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
 from src.biological_assets.domain.repositories.vinculacion_traslado_port import VinculacionTrasladoPort
-from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -152,17 +153,6 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_destino_id',
             )
 
-        # E-07: compatibilidad C1 — especie
-        if infra_destino.id_especies and activo.id_especie not in infra_destino.id_especies:
-            raise BusinessRuleError(
-                code='INCOMPATIBILIDAD_ESPECIE',
-                message=(
-                    f'La infraestructura {infra_destino.nombre} no está habilitada para la especie del activo. '
-                    'Seleccione una infraestructura compatible con la especie.'
-                ),
-                field='infraestructura_destino_id',
-            )
-
         # E-07b: compatibilidad C2 — tipo de infraestructura vs especie del activo
         if not self.infra_port.es_tipo_compatible(infra_destino.tipo, activo.id_especie):
             raise BusinessRuleError(
@@ -196,37 +186,16 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_destino_id',
             )
 
-        # E-09: capacidad C3
-        if infra_destino.capacidad_maxima is not None:
-            cantidad_activo = self._cantidad_a_transferir(activo)
-            ocupacion_actual = self.infra_port.calcular_ocupacion(dto.infraestructura_destino_id)
-            if ocupacion_actual + cantidad_activo > infra_destino.capacidad_maxima:
-                raise BusinessRuleError(
-                    code='CAPACIDAD_EXCEDIDA',
-                    message=(
-                        f'La infraestructura {infra_destino.nombre} no tiene capacidad disponible. '
-                        f'Capacidad máxima: {infra_destino.capacidad_maxima}, '
-                        f'ocupación actual: {ocupacion_actual}.'
-                    ),
-                    field='infraestructura_destino_id',
-                )
-
-        # RF-36: el cupo físico de la infraestructura y la densidad biológica
-        # máxima de la especie son restricciones independientes.
-        if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional is not None:
-            if infra_destino.superficie is None:
-                raise BusinessRuleError(
-                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
-                    message='La infraestructura destino debe tener superficie para validar la densidad.',
-                    field='infraestructura_destino_id',
-                )
-            calcular_y_validar_densidad(
-                cantidad_actual=activo.detalle_poblacional.cantidad_actual,
-                superficie=infra_destino.superficie,
-                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
-                    activo.id_especie
-                ),
-            )
+        # E-07 (C1) + E-09 (C3), RFC-012 (RF-48 1.2, DEV-23): el destino aloja o acepta
+        # la especie (mismo grupo_manejo; se asocia en la misma transacción) y
+        # Σ individuos del destino + los del activo ≤ floor(MIN densidad, entrante
+        # incluida, × superficie). Si el entrante baja el MIN y el destino quedaría en
+        # infracción, se rechaza al entrante (H-12.3); lo alojado no se toca. La densidad
+        # propia del lote queda implicada por esta regla (MIN ≤ densidad de su especie).
+        asociar_especie = validar_entrada_al_area(
+            self.infra_port, infra_destino, id_especie=activo.id_especie,
+            entrantes=self._cantidad_a_transferir(activo), field='infraestructura_destino_id',
+        )
 
         # E-10: fecha de transferencia no puede ser futura. Es la última
         # validación del proceso (RF-48, paso 6f) — se valida en el caso de
@@ -261,6 +230,9 @@ class RegistrarTransferenciaUseCase:
         )
 
         try:
+            if asociar_especie:
+                self.infra_port.asociar_especie(dto.infraestructura_destino_id, activo.id_especie)
+
             # a) Cerrar asociación origen en historial_infraestructura_activo
             self.db.execute(
                 text(
@@ -374,20 +346,19 @@ class RegistrarTransferenciaUseCase:
         infra_origen = self.infra_port.obtener_activa(activo.id_infraestructura)
         id_finca_origen = infra_origen.id_finca if infra_origen else None
         cantidad_activo = self._cantidad_a_transferir(activo)
+        # RFC-012 (DEV-23): misma regla que el POST (grupo, densidades y cupo con el
+        # MIN incluyendo al entrante). Sin densidad en su especie, ningún destino sirve.
+        especie_activo = self.infra_port.obtener_especie(activo.id_especie)
 
         disponibles = []
         for i in self.infra_port.listar_activas(excluir_id=activo.id_infraestructura):
             if id_finca_origen is not None and i.id_finca != id_finca_origen:
                 continue
-            if i.id_especies and activo.id_especie not in i.id_especies:
+            if especie_activo is None or not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
                 continue
-            if not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
+            ocupacion_actual = self.infra_port.calcular_ocupacion(i.id_infraestructura)
+            if not admite_entrada(i, especie_activo, ocupacion=ocupacion_actual, entrantes=cantidad_activo):
                 continue
-            ocupacion_actual = None
-            if i.capacidad_maxima is not None:
-                ocupacion_actual = self.infra_port.calcular_ocupacion(i.id_infraestructura)
-                if ocupacion_actual + cantidad_activo > i.capacidad_maxima:
-                    continue
             disponibles.append((i, ocupacion_actual))
 
         # La ocupación viaja para que el selector muestre el cupo real (TC-DIS-134).
