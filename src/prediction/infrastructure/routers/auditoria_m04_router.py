@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -7,7 +10,7 @@ RF-73 CU-09 Dev scope:
 
 Autorización RBAC:
   recurso auditoria_m04 = id_recurso 46
-  R=2 (Admin), E=5 (Admin)
+  R=2 (Administrador; Veterinario desde DB-08, DEV-37: RF-73 actores), E=5 (Administrador)
 """
 from __future__ import annotations
 

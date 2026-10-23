@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 import asyncio
 import logging
 import os
@@ -513,6 +514,40 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
             db.close()
 
 
+async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
+    """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
+    respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
+    from src.prediction.application.use_cases.auditoria.sincronizar_respaldo_auditoria_m04_use_case import (
+        SincronizarRespaldoAuditoriaM04UseCase,
+    )
+    from src.prediction.infrastructure.adapters.aviso_auditoria_m04_email_adapter import AvisoAuditoriaM04EmailAdapter
+    from src.prediction.infrastructure.adapters.respaldo_auditoria_m04_archivo_adapter import (
+        RespaldoAuditoriaM04ArchivoAdapter,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
+        SqlAlchemyEventoAuditoriaM04Repository,
+    )
+    from src.shared.database import sesion_sistema
+
+    respaldo = RespaldoAuditoriaM04ArchivoAdapter()
+    while True:
+        await asyncio.sleep(30)
+        if not respaldo.hay_pendientes():
+            continue
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(SincronizarRespaldoAuditoriaM04UseCase(
+                db=db,
+                repo=SqlAlchemyEventoAuditoriaM04Repository(db, respaldo),
+                respaldo=respaldo,
+                aviso=AvisoAuditoriaM04EmailAdapter(db),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudo sincronizar el respaldo de auditoría de M04; se reintentará.")
+        finally:
+            db.close()
+
+
 async def _reconciliar_bitacora_m02_diariamente() -> None:
     """RF-52 E5: a las 05:00 UTC cruza el historial RF-46 con la bitácora de M02
     (después del archivado de RF-10, a las 04:00) y avisa al administrador si
@@ -611,6 +646,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
+        asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
     ]
     yield
     for task in tasks:
