@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -24,6 +27,7 @@ from src.prediction.application.use_cases.versiones_modelo.activar_version_model
 from src.prediction.application.use_cases.versiones_modelo.consultar_versiones_use_case import ConsultarVersionesUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_notas_version_use_case import RegistrarNotasVersionUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_version_modelo_use_case import RegistrarVersionModeloUseCase
+from src.prediction.infrastructure.adapters.aviso_version_modelo_email_adapter import AvisoVersionModeloEmailAdapter
 from src.prediction.infrastructure.adapters.variable_i3p1_m09_adapter import VariableI3P1M09Adapter
 from src.prediction.infrastructure.dto.registrar_notas_version_dto import RegistrarNotasVersionDTO
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
@@ -61,6 +65,7 @@ async def registrar_version_modelo(
         repo=SqlAlchemyVersionModeloRepository(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         variable_port=VariableI3P1M09Adapter(db),
+        aviso_port=AvisoVersionModeloEmailAdapter(db),
     )
     entidad = use_case.execute(dto, internal_key=x_rf71_internal_key)
     return VersionModeloResponse.from_entity(entidad)

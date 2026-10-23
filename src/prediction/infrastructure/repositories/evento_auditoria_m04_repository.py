@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 from __future__ import annotations
 
 import hashlib
@@ -122,6 +125,8 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         entidad_referencia: Optional[str] = None,
         resultado_operacion: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
+        codigo_error: Optional[str] = None,
+        descripcion_error: Optional[str] = None,
     ) -> None:
         campos_faltantes = _validar_payload(tipo_evento, payload_evento)
         if campos_faltantes:
@@ -148,6 +153,8 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             correlacion_id=corr,
             origen_registro="DESARROLLO_M04",
             hash_evento=hash_ev,
+            codigo_error=codigo_error,
+            descripcion_error=descripcion_error,
         )
         try:
             self._db.add(orm)

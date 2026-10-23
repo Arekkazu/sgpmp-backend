@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 """RFC-009 en M04: seis tipos de modelo en tres paradigmas.
 
 RF-65 (umbrales y versión activa por paradigma), RF-69 (componente, métricas
@@ -165,7 +168,8 @@ def test_individual_sigue_validandose_por_f1_y_recall():
 
 
 def _registrador():
-    return RegistrarVersionModeloUseCase(db=_Db(), repo=None, auditoria_repo=_Auditoria(), variable_port=None)
+    return RegistrarVersionModeloUseCase(db=_Db(), repo=None, auditoria_repo=_Auditoria(), variable_port=None,
+                                         aviso_port=None)
 
 
 @pytest.mark.parametrize("componente", [None, "CAMARA"])

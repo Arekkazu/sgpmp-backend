@@ -68,10 +68,12 @@ Respuesta esperada `201` (métricas < umbrales → RECHAZADO):
 }
 ```
 
+RF-69 E3 (DEV-48): después del commit se avisa por correo a quien revisa las versiones, `(43 version_modelo, U)` — Veterinario y Administrador —, con la versión, el tipo de modelo y el motivo del rechazo.
+
 Errores posibles:
 | HTTP | code | FA |
 |------|------|----|
-| 403 | REGISTRO_INTERNO_REQUERIDO | FA-02: X-RF71-Internal-Key ausente o incorrecta |
+| 403 | REGISTRO_INTERNO_REQUERIDO | FA-02 / RF-69 E1b: X-RF71-Internal-Key ausente o incorrecta. Registra `INTENTO_CARGA_MODELO_EXTERNO` (CRITICAL) y avisa por correo a quien tiene `(46 auditoria_m04, R)` — Administrador —, como mucho un aviso cada 5 min (DEV-48) |
 | 422 | ARTEFACTO_SUPERA_TAMANO_MAXIMO | FA-03: archivo > 500 MB |
 | 422 | FORMATO_ARTEFACTO_INVALIDO | FA-01: no es ONNX ni TF SavedModel |
 | 422 | HASH_SHA256_INVALIDO | FA-04: hash no tiene 64 hex chars |
