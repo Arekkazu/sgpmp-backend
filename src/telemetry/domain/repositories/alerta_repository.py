@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido (E10) |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -72,3 +75,9 @@ class AlertaRepository(ABC):
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
     ) -> tuple[list[Alerta], int]: ...
+
+    @abstractmethod
+    def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
+        """RF-57 E10: pasa a VENCIDA las alertas operativas ACTIVA cuya ``fecha_vencimiento``
+        ya pasó y las devuelve. Sin commit. Las filas bloqueadas por otra transacción
+        (otra instancia del job o un usuario atendiéndola) se saltan."""
