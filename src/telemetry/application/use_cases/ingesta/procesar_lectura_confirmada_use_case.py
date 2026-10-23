@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-22 | Leandro | DEV-44 RF-61: clasifica capturas con su contexto historico cerrado |
 from src.shared.errors import ServiceUnavailableError
 
 
@@ -37,6 +38,8 @@ class ProcesarLecturaConfirmadaUseCase:
         if lectura is None:
             return  # RF-58 no proyecta estas lecturas; RF-62 conserva su rechazo/calidad.
         vinculo = self.lecturas.vinculacion(lectura.id_telemetria)
+        if vinculo is None:
+            vinculo = self.lecturas.vinculacion_historica(lectura.id_telemetria)
         if vinculo is None:
             raise ServiceUnavailableError('VINCULACION_PENDIENTE', 'La lectura actual aún no tiene vinculación RF-61.')
         self.lecturas.restaurar_cache(lectura)

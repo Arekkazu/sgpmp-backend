@@ -5,6 +5,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: recupera conectividad tras telemetria valida |
 # | 2026-10-22 | Leandro | DEV-28 RF-60: conecta diagnostico postcommit de vision |
+# | 2026-10-22 | Leandro | DEV-44 RF-61: conecta evidencia y reintento de avisos |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -22,6 +23,8 @@ from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_c
 from src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case import EvaluarEstadoDispositivosUseCase
 from src.telemetry.application.use_cases.infraestructura.evaluar_diagnostico_heartbeat_use_case import EvaluarDiagnosticoHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
+from src.telemetry.application.use_cases.infraestructura.procesar_avisos_vinculacion_use_case import ProcesarAvisosVinculacionUseCase
+from src.telemetry.infrastructure.adapters.destinatarios_vinculacion_m01_adapter import DestinatariosVinculacionM01Adapter
 from src.telemetry.application.use_cases.ingesta.procesar_lectura_confirmada_use_case import ProcesarLecturaConfirmadaUseCase
 from src.telemetry.application.use_cases.ingesta.procesar_postcommit_use_case import ProcesarPostcommitUseCase
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
@@ -58,7 +61,7 @@ def _lectura(db):
     lecturas = SqlAlchemyLecturaPostcommitRepository(db)
     return ProcesarLecturaConfirmadaUseCase(
         lecturas,
-        VincularLecturaActivoUseCase(db, SqlAlchemyVinculacionLecturaRepository(db), ActivoBiologicoM02Adapter(db)),
+        VincularLecturaActivoUseCase(db, SqlAlchemyVinculacionLecturaRepository(db), ActivoBiologicoM02Adapter(db),SqlAlchemyBitacoraAuditoriaIotRepository(db)),
         EvaluarCalidadTelemetriaUseCase(db, lecturas, SqlAlchemyTelemetriaCalidadRepository(db),
                                       ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db),
                                                                     SqlAlchemyConfiguracionGlobalRepository(db)),
@@ -115,12 +118,13 @@ def _vision(db,identificador):
         SqlAlchemyBitacoraAuditoriaIotRepository(db)).execute(identificador)
 
 
-def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, limite=50, reintento_seg=60):
+def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60):
     parametros = parametros_heartbeat
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
         {
             EtapaPostcommit.RF61: lambda db, i: _lectura(db).vincular_lectura(i),
+            EtapaPostcommit.RF61_AVISOS: lambda db,i: ProcesarAvisosVinculacionUseCase(SqlAlchemyVinculacionLecturaRepository(db),avisos_vinculacion,DestinatariosVinculacionM01Adapter(db)).execute(i),
             EtapaPostcommit.RF62: lambda db, i: _lectura(db).evaluar_lectura(i),
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.RF57: _alerta_critica,

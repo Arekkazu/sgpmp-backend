@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: preserva vistas dependientes al aplicar DB-13 |
 """FixActualizacionesCatalogoVinculaciones
 
 Revision ID: 04cdc3f4d54a
@@ -141,6 +144,7 @@ def _recrear_dependencias(confirmado: str, pendientes: list[str], comentario_ck:
 def _cambiar_enum(
     valores: str, mapeo: str, confirmado: str, pendientes: list[str], comentario_ck: str
 ) -> None:
+    vistas = _retirar_vistas_dependientes()
     op.execute(f"CREATE TYPE {ENUM}_tmp AS ENUM ({valores})")
     _soltar_dependencias()
 
@@ -160,6 +164,72 @@ def _cambiar_enum(
     op.execute(f"ALTER TYPE {ENUM} OWNER TO sgpmp_owner")
 
     _recrear_dependencias(confirmado, pendientes, comentario_ck)
+    _restaurar_vistas(vistas,confirmado)
+
+
+def _retirar_vistas_dependientes():
+    """Sin CASCADE: preserva definiciones, owner, opciones, comentarios y grants."""
+    conn=op.get_bind()
+    vistas=[dict(f) for f in conn.execute(sa.text('''WITH RECURSIVE dependientes AS (
+        SELECT c.oid,1 profundidad FROM pg_depend d JOIN pg_rewrite r ON r.oid=d.objid
+          JOIN pg_class c ON c.oid=r.ev_class
+          WHERE d.refobjid='modulo3.vinculaciones_lecturas'::regclass AND c.relkind IN ('v','m')
+        UNION ALL
+        SELECT c.oid,p.profundidad+1 FROM dependientes p JOIN pg_depend d ON d.refobjid=p.oid
+          JOIN pg_rewrite r ON r.oid=d.objid JOIN pg_class c ON c.oid=r.ev_class
+          WHERE c.oid<>p.oid AND c.relkind IN ('v','m') AND p.profundidad<50)
+        SELECT c.oid,n.nspname,c.relname,c.relkind,c.reloptions,pg_get_userbyid(c.relowner) propietario,
+          pg_get_viewdef(c.oid,true) definicion,obj_description(c.oid,'pg_class') comentario,max(p.profundidad) profundidad
+        FROM dependientes p JOIN pg_class c ON c.oid=p.oid JOIN pg_namespace n ON n.oid=c.relnamespace
+        GROUP BY c.oid,n.nspname ORDER BY profundidad,c.oid''')).mappings()]
+    for v in vistas:
+        if v['relkind']!='v':
+            raise RuntimeError('DB-13 requiere plan explicito para una vista materializada dependiente.')
+        v['grants']=[dict(f) for f in conn.execute(sa.text('''SELECT x.grantee,pg_get_userbyid(x.grantee) rol,
+            x.privilege_type,x.is_grantable FROM pg_class c,
+            LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) x WHERE c.oid=:oid'''),{'oid':v['oid']}).mappings()]
+        v['columnas']=[dict(f) for f in conn.execute(sa.text('''SELECT attname,attacl,
+            col_description(attrelid,attnum) comentario FROM pg_attribute
+            WHERE attrelid=:oid AND attnum>0 AND NOT attisdropped'''),{'oid':v['oid']}).mappings()]
+        if any(c['attacl'] is not None for c in v['columnas']):
+            raise RuntimeError('DB-13 requiere conservar grants por columna antes de reemplazar esta vista.')
+    q=conn.dialect.identifier_preparer.quote
+    for v in reversed(vistas):
+        conn.execute(sa.text('DROP VIEW '+q(v['nspname'])+'.'+q(v['relname'])))
+    return vistas
+
+
+def _restaurar_vistas(vistas,confirmado):
+    conn=op.get_bind()
+    q=conn.dialect.identifier_preparer.quote
+    def literal(valor):
+        return conn.execute(sa.select(sa.func.quote_literal(valor))).scalar_one()
+    for v in vistas:
+        nombre=q(v['nspname'])+'.'+q(v['relname'])
+        opciones=' WITH ('+', '.join(v['reloptions'])+')' if v['reloptions'] else ''
+        definicion=v['definicion']
+        mapeo={'VINCULADA':'CONFIRMADA','CORREGIDA':'SUPERADA'} if confirmado=='CONFIRMADA' else {
+            'CONFIRMADA':'VINCULADA','SUPERADA':'CORREGIDA','PENDIENTE_REVISION':'AMBIGUA'}
+        for viejo,nuevo in mapeo.items():
+            definicion=definicion.replace("'"+viejo+"'::"+ENUM,"'"+nuevo+"'::"+ENUM)
+        conn.execute(sa.text('CREATE VIEW '+nombre+opciones+' AS '+definicion))
+        conn.execute(sa.text('ALTER VIEW '+nombre+' OWNER TO '+q(v['propietario'])))
+        # El creador puede tener default privileges distintos al owner original.
+        actuales=conn.execute(sa.text('''SELECT DISTINCT x.grantee,pg_get_userbyid(x.grantee) rol
+            FROM pg_class c,LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) x
+            WHERE c.oid=to_regclass(:nombre)'''),{'nombre':nombre}).mappings().all()
+        for permiso in actuales:
+            rol='PUBLIC' if permiso['grantee']==0 else q(permiso['rol'])
+            conn.execute(sa.text('REVOKE ALL ON '+nombre+' FROM '+rol))
+        for permiso in v['grants']:
+            rol='PUBLIC' if permiso['grantee']==0 else q(permiso['rol'])
+            conn.execute(sa.text('GRANT '+permiso['privilege_type']+' ON '+nombre+' TO '+rol+
+                (' WITH GRANT OPTION' if permiso['is_grantable'] else '')))
+        if v['comentario'] is not None:
+            conn.execute(sa.text('COMMENT ON VIEW '+nombre+' IS '+literal(v['comentario'])))
+        for columna in v['columnas']:
+            if columna['comentario'] is not None:
+                conn.execute(sa.text('COMMENT ON COLUMN '+nombre+'.'+q(columna['attname'])+' IS '+literal(columna['comentario'])))
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +252,7 @@ def upgrade() -> None:
     # Funciones de trigger con los literales nuevos
     op.execute(FN_UNICIDAD_NUEVA)
     op.execute(FN_CERRAR_NUEVA)
+    _actualizar_procedimiento_correccion(True)
 
     # Paso B: columnas nuevas
     op.add_column(
@@ -245,3 +316,17 @@ def downgrade() -> None:
     # Funciones de trigger con los literales originales
     op.execute(FN_UNICIDAD_ORIGINAL)
     op.execute(FN_CERRAR_ORIGINAL)
+    _actualizar_procedimiento_correccion(False)
+
+
+def _actualizar_procedimiento_correccion(nuevo):
+    """El procedimiento publicado tambien contiene literales del enum anterior."""
+    conn=op.get_bind()
+    definiciones=conn.execute(sa.text('''SELECT pg_get_functiondef(p.oid) FROM pg_proc p
+        JOIN pg_namespace n ON n.oid=p.pronamespace
+        WHERE n.nspname='modulo3' AND p.proname='sp_corregir_vinculacion' AND p.prokind='p' ''')).scalars().all()
+    mapeo={'VINCULADA':'CONFIRMADA','CORREGIDA':'SUPERADA'} if nuevo else {'CONFIRMADA':'VINCULADA','SUPERADA':'CORREGIDA'}
+    for definicion in definiciones:
+        for antes,despues in mapeo.items():
+            definicion=definicion.replace("'"+antes+"'","'"+despues+"'")
+        conn.execute(sa.text(definicion))

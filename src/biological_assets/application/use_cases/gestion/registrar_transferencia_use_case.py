@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: destinos leen las especies del área (RFC-012) |
+# | 2026-10-22 | Leandro | DEV-44 RF-48/61: integra vinculaciones en la misma transaccion |
 """Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
+from src.biological_assets.domain.repositories.vinculacion_traslado_port import VinculacionTrasladoPort
 from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
@@ -45,6 +47,7 @@ class RegistrarTransferenciaUseCase:
         infra_port: InfraestructuraConsultaPort,
         parametros_port: ParametrosEspeciePort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        vinculacion_traslado_port: VinculacionTrasladoPort | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
@@ -52,6 +55,7 @@ class RegistrarTransferenciaUseCase:
         self.infra_port = infra_port
         self.bitacora_repo = bitacora_repo
         self.parametros_port = parametros_port
+        self.vinculacion_traslado_port=vinculacion_traslado_port
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
         return ejecutar_con_auditoria_de_rechazo(
@@ -311,6 +315,11 @@ class RegistrarTransferenciaUseCase:
 
             # d) Registrar evento en movimientos
             resultado = self.transferencia_repo.guardar(transferencia)
+
+            if self.vinculacion_traslado_port is not None:
+                self.vinculacion_traslado_port.procesar(id_activo=id_activo,
+                    origen=dto.infraestructura_origen_id,destino=dto.infraestructura_destino_id,
+                    fecha_efectiva=ahora,id_movimiento=resultado.id_movimiento,id_usuario=usuario.id_usuario)
 
             self.db.commit()
         except AppError:
