@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from datetime import datetime
@@ -92,6 +95,34 @@ class SincronizacionMotorSchema(BaseModel):
     estado: str
     mensaje: str
     nodos: list[SincronizacionNodoSchema]
+
+
+class VersionConfiguracionMotorSchema(BaseModel):
+    """Una versión de la configuración (RF-65 Restricción 5, DEV-36)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    config_version: int
+    vigente: bool
+    # UPDATE/DELETE que reemplazó esta versión (null en la vigente).
+    operacion: Optional[str] = None
+    id_usuario_responsable: int
+    vigente_desde: Optional[datetime] = None
+    vigente_hasta: Optional[datetime] = None
+    # Usuario que la reemplazó (null en la vigente y en DELETE).
+    id_usuario_cambio: Optional[int] = None
+    configuracion: dict
+
+
+class HistorialConfiguracionMotorSchema(BaseModel):
+    """Historial append-only de ``modulo4.configuracion_ia_log`` más la versión vigente."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    tipo_modelo: str
+    config_version_vigente: Optional[int] = None
+    total: int
+    versiones: list[VersionConfiguracionMotorSchema]
 
 
 class ConfiguracionMotorIAGuardadaResponse(ConfiguracionMotorIAResponse):

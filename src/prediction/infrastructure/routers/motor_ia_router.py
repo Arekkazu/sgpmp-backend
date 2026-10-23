@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
 RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
@@ -6,6 +9,12 @@ los umbrales y la versión activa dependen del paradigma del tipo_modelo).
   GET   /prediccion/motor-ia              — Listar todas las configuraciones activas
   GET   /prediccion/motor-ia/{tipo_modelo}— Obtener configuración por tipo de modelo
   GET   /prediccion/motor-ia/{tipo_modelo}/sincronizacion — Estado en cada nodo Edge (DEV-09)
+  GET   /prediccion/motor-ia/{tipo_modelo}/historial — Versiones de la configuración (DEV-36)
+
+DEV-36 (RF-65 CA-9): el POST recibe la config_version que el cliente leyó y
+responde 412 CONFLICTO_CONCURRENCIA si ya no es la vigente (o si omite la
+versión y la configuración ya existe). Restricción 5: el historial sale del log
+append-only ``modulo4.configuracion_ia_log`` (DB-14).
 
 DEV-09 (RF-65 E7/E8/E10): al guardar, la configuración se envía a los nodos Edge
 del tipo_modelo por el broker (``origen: "config_motor"``) y el código HTTP
@@ -26,6 +35,9 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.motor_ia.configurar_motor_use_case import ConfigurarMotorUseCase
+from src.prediction.application.use_cases.motor_ia.consultar_historial_motor_use_case import (
+    ConsultarHistorialMotorUseCase,
+)
 from src.prediction.application.use_cases.motor_ia.consultar_motor_use_case import ConsultarMotorUseCase
 from src.prediction.application.use_cases.motor_ia.consultar_sincronizacion_motor_use_case import (
     ConsultarSincronizacionMotorUseCase,
@@ -36,6 +48,9 @@ from src.prediction.infrastructure.adapters.version_modelo_adapter import Versio
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
 from src.prediction.infrastructure.repositories.configuracion_motor_ia_repository import SqlAlchemyConfiguracionMotorIARepository
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+from src.prediction.infrastructure.repositories.historial_configuracion_motor_repository import (
+    SqlAlchemyHistorialConfiguracionMotorRepository,
+)
 from src.prediction.infrastructure.repositories.sincronizacion_nodo_edge_repository import (
     SqlAlchemySincronizacionNodoEdgeRepository,
 )
@@ -43,6 +58,7 @@ from src.prediction.infrastructure.schema.configuracion_motor_ia_schema import (
     ConfiguracionMotorIAGuardadaResponse,
     ConfiguracionMotorIAListResponse,
     ConfiguracionMotorIAResponse,
+    HistorialConfiguracionMotorSchema,
     SincronizacionMotorSchema,
 )
 from src.shared.database import get_db
@@ -71,7 +87,11 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
             "model": ConfiguracionMotorIAGuardadaResponse,
             "description": "Configuración guardada; algún nodo confirmó otra config_version (E10)",
         },
-        412: {"model": ErrorResponse},
+        412: {
+            "model": ErrorResponse,
+            "description": "CONFLICTO_CONCURRENCIA: la config_version enviada ya no es la vigente (CA-9); "
+            "MODELO_NO_ACTIVO: la versión de modelo no está ACTIVO",
+        },
         422: {"model": ErrorResponse},
     },
     summary="Configurar motor de inferencia IA por tipo de modelo (RF-65)",
@@ -165,3 +185,25 @@ def consultar_sincronizacion(
         sincronizacion_repo=SqlAlchemySincronizacionNodoEdgeRepository(db),
     )
     return SincronizacionMotorSchema.model_validate(use_case.execute(tipo_modelo))
+
+
+@router.get(
+    "/{tipo_modelo}/historial",
+    response_model=HistorialConfiguracionMotorSchema,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+    summary="Historial append-only de la configuración del motor (RF-65 Restricción 5)",
+)
+def consultar_historial(
+    tipo_modelo: str,
+    db: Session = Depends(get_db),
+) -> HistorialConfiguracionMotorSchema:
+    use_case = ConsultarHistorialMotorUseCase(
+        repo=SqlAlchemyConfiguracionMotorIARepository(db),
+        historial_repo=SqlAlchemyHistorialConfiguracionMotorRepository(db),
+    )
+    return HistorialConfiguracionMotorSchema.model_validate(use_case.execute(tipo_modelo))
