@@ -57,3 +57,21 @@ def test_la_cabecera_llega_al_endpoint_y_la_query_queda_en_utc():
     r = cliente.get('/x', params={'desde': '2026-10-23T22:00:00-05:00'}, headers={'X-Zona-Horaria': 'America/Bogota'})
     assert r.json() == {'zona': 'America/Bogota', 'desde': '2026-10-24T03:00:00+00:00'}
     assert cliente.get('/x').json()['zona'] == 'UTC'
+
+
+def test_limites_del_dia_en_la_zona_del_usuario(en_colombia):
+    from datetime import date
+    assert fechas.inicio_dia_usuario(date(2026, 10, 23)) == datetime(2026, 10, 23, 5, 0, tzinfo=timezone.utc)
+    assert fechas.fin_dia_usuario(date(2026, 10, 23)) == datetime(2026, 10, 24, 4, 59, 59, 999999, tzinfo=timezone.utc)
+    assert fechas.nombre_zona_usuario() == 'America/Bogota'
+
+
+def test_sin_zona_los_limites_y_la_etiqueta_son_utc():
+    from datetime import date
+    assert fechas.inicio_dia_usuario(date(2026, 10, 23)) == datetime(2026, 10, 23, 0, 0, tzinfo=timezone.utc)
+    assert fechas.nombre_zona_usuario() == 'UTC'
+    assert fechas.etiqueta_zona(fechas.en_zona_usuario(datetime(2026, 1, 1, tzinfo=timezone.utc))) == 'UTC'
+
+
+def test_etiqueta_con_desfase(en_colombia):
+    assert fechas.etiqueta_zona(fechas.en_zona_usuario(datetime(2026, 1, 1, tzinfo=timezone.utc))) == 'UTC-05:00'

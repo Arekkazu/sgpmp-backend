@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74 E6: descarta pesajes ≤ 0            |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Adaptador de consulta de pesaje (RF-40) contra ``modulo2`` para el ICA (RF-74).
 
 El peso vive en ``modulo2.eventos_crecimeinto`` (``id_evento`` comparte identidad con
@@ -25,6 +26,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.supplies.domain.repositories.pesaje_consulta_port import PesajeConsultaPort
+from src.shared.fechas import nombre_zona_usuario
 
 # Variantes de tipo_medicion que representan un pesaje (RF-40).
 _TIPOS_PESO = ("PESO", "PESO_VIVO")
@@ -53,15 +55,15 @@ class PesajeM02Adapter(PesajeConsultaPort):
         condicion = f"{columna} > 0" if valido else f"{columna} <= 0"
         return self.db.execute(
             text(
-                f"SELECT {columna} AS peso, ea.fecha::date AS fecha "
+                f"SELECT {columna} AS peso, (ea.fecha AT TIME ZONE :tz)::date AS fecha "
                 "FROM modulo2.eventos_crecimeinto ec "
                 "JOIN modulo2.eventos_activos ea ON ea.id_eventos = ec.id_evento "
                 "WHERE ea.id_activo_biologico = :id "
                 "  AND upper(ec.tipo_medicion) = ANY(:tipos) "
                 f"  AND {condicion} "
-                "  AND ea.fecha::date <= :fecha "
+                "  AND (ea.fecha AT TIME ZONE :tz)::date <= :fecha "
                 "ORDER BY ea.fecha DESC "
                 "LIMIT 1"
             ),
-            {"id": id_activo_biologico, "tipos": list(_TIPOS_PESO), "fecha": fecha},
+            {"id": id_activo_biologico, "tipos": list(_TIPOS_PESO), "fecha": fecha, "tz": nombre_zona_usuario()},
         ).fetchone()

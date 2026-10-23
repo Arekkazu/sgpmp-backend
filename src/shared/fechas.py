@@ -19,7 +19,7 @@ Las tareas en segundo plano no tienen usuario detrás y trabajan en UTC.
 from __future__ import annotations
 
 from contextvars import ContextVar, Token
-from datetime import date, datetime, timezone, tzinfo
+from datetime import date, datetime, time, timezone, tzinfo
 from typing import Annotated, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -69,8 +69,40 @@ def hoy_usuario() -> date:
     return _ahora().date()
 
 
+def en_zona_usuario(valor: datetime) -> datetime:
+    """El mismo instante en la hora local del usuario, para mostrarlo en un mensaje."""
+    return a_utc(valor).astimezone(zona_usuario())
+
+
+def etiqueta_zona(valor: datetime) -> str:
+    """``UTC-05:00`` (o ``UTC``) de un instante ya convertido, para no dejar la hora ambigua."""
+    desfase = valor.strftime("%z")
+    if desfase in ("", "+0000"):
+        return "UTC"
+    return f"UTC{desfase[:3]}:{desfase[3:]}"
+
+
 def fecha_usuario(valor: datetime | date) -> date:
     """Día calendario, en la zona del usuario, de un instante (un ``date`` pasa tal cual)."""
     if isinstance(valor, datetime):
         return a_utc(valor).astimezone(zona_usuario()).date()
     return valor
+
+
+def inicio_dia_usuario(dia: date) -> datetime:
+    """Instante UTC en que empieza ``dia`` para el usuario (su medianoche local)."""
+    return datetime.combine(dia, time.min, tzinfo=zona_usuario()).astimezone(timezone.utc)
+
+
+def fin_dia_usuario(dia: date) -> datetime:
+    """Instante UTC del último microsegundo de ``dia`` para el usuario."""
+    return datetime.combine(dia, time.max, tzinfo=zona_usuario()).astimezone(timezone.utc)
+
+
+def nombre_zona_usuario() -> str:
+    """Nombre de la zona para SQL: ``(col AT TIME ZONE :tz)::date`` es el día del usuario.
+
+    Un ``col::date`` a secas toma el día de la sesión de Postgres, que es UTC.
+    """
+    zona = zona_usuario()
+    return getattr(zona, "key", "UTC")

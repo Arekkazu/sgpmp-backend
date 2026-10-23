@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Implementación de :class:`DetalleGastoReadPort` (RF-77).
 
 SQL propio con ``text()`` (patrón de ``historial_telemetria_repository.py``)
@@ -20,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from src.supplies.domain.entities.reporte_gasto import LineaGasto
 from src.supplies.domain.repositories.detalle_gasto_read_port import DetalleGastoReadPort
+from src.shared.fechas import nombre_zona_usuario
 
 _SQL_DETALLE = text(
     """
@@ -28,7 +30,7 @@ _SQL_DETALLE = text(
            rca.id_activo_biologico,
            ab.id_infraestructura,
            ab.id_especie,
-           COALESCE(rca.fecha_consumo, rca.fecha_registro::date) AS fecha,
+           COALESCE(rca.fecha_consumo, (rca.fecha_registro AT TIME ZONE :tz)::date) AS fecha,
            COALESCE(ta.nombre, rca.tipo_alimento) AS descripcion,
            rca.cantidad_suministrada AS cantidad,
            rca.costo_unitario,
@@ -38,7 +40,7 @@ _SQL_DETALLE = text(
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = rca.id_activo_biologico
     LEFT JOIN modulo5.tipos_alimentos ta ON ta.id_tipo_elemento = rca.id_tipo_alimento
     WHERE rca.estado_registro = 'VALIDADO'
-      AND COALESCE(rca.fecha_consumo, rca.fecha_registro::date) BETWEEN :fecha_inicio AND :fecha_fin
+      AND COALESCE(rca.fecha_consumo, (rca.fecha_registro AT TIME ZONE :tz)::date) BETWEEN :fecha_inicio AND :fecha_fin
       AND (:id_activo_biologico IS NULL OR rca.id_activo_biologico = :id_activo_biologico)
       AND (:id_infraestructura IS NULL OR ab.id_infraestructura = :id_infraestructura)
       AND (:id_especie IS NULL OR ab.id_especie = :id_especie)
@@ -77,7 +79,7 @@ _SQL_BAJAS = text(
     SELECT COALESCE(SUM(eb.cantidad_afectada), 0)
     FROM modulo2.eventos_bajas eb
     JOIN modulo2.eventos_activos ea ON ea.id_eventos = eb.id_evento
-    WHERE ea.id_activo_biologico = :id AND ea.fecha::date BETWEEN :fecha_inicio AND :fecha_fin
+    WHERE ea.id_activo_biologico = :id AND (ea.fecha AT TIME ZONE :tz)::date BETWEEN :fecha_inicio AND :fecha_fin
     """
 )
 
@@ -106,6 +108,7 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
                 "id_infraestructura": id_infraestructura,
                 "id_especie": id_especie,
                 "ids_permitidos": ids_permitidos,
+                "tz": nombre_zona_usuario(),
             },
         ).mappings().all()
 
@@ -138,6 +141,7 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
     def contar_bajas(self, id_activo_biologico: int, fecha_inicio: date, fecha_fin: date) -> int:
         return int(
             self.db.execute(
-                _SQL_BAJAS, {"id": id_activo_biologico, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin}
+                _SQL_BAJAS,
+                {"id": id_activo_biologico, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin, "tz": nombre_zona_usuario()},
             ).scalar()
         )

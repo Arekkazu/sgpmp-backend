@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ from src.prediction.infrastructure.dto.registrar_retroalimentacion_dto import Re
 from src.configuration.domain.entities.parametro_mlops import RF72_VENTANA, numero_configurado
 from src.configuration.domain.repositories.parametros_mlops_port import ParametrosMLOpsPort
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
+from src.shared.fechas import en_zona_usuario
 
 _GRUPO_SIN_PROBLEMA = frozenset({"CORRECTO", "SIN_EVENTO"})
 _GRUPO_CON_PROBLEMA = frozenset({"PARCIAL", "INCORRECTO"})
@@ -73,7 +75,7 @@ class RegistrarRetroalimentacionUseCase:
                     f"La retroalimentación no puede registrarse. Han transcurrido más de "
                     f"{ventana_dias} días desde el resultado de inferencia "
                     f"{dto.id_resultado_inferencia}. La ventana válida para este resultado venció el "
-                    f"{fecha_limite.strftime('%Y-%m-%d')}. Contacte al administrador si requiere "
+                    f"{en_zona_usuario(fecha_limite).strftime('%Y-%m-%d')}. Contacte al administrador si requiere "
                     f"registrar retroalimentación fuera de este plazo."
                 ),
             )

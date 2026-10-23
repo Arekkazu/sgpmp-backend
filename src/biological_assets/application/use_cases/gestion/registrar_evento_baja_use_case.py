@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -26,7 +26,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_usuario, hoy_usuario
+from src.shared.fechas import fecha_usuario, fin_dia_usuario, hoy_usuario
 
 
 class RegistrarEventoBajaUseCase:
@@ -104,7 +104,7 @@ class RegistrarEventoBajaUseCase:
         # ocurrió); para un día pasado se usa el final de ese día, que nunca cae
         # en el futuro porque el día completo ya transcurrió.
         fecha_dt = ahora if dto.fecha_baja == hoy else no_anterior_a_creacion(
-            dto.fecha_baja, datetime.combine(dto.fecha_baja, time.max, tzinfo=timezone.utc), activo,
+            dto.fecha_baja, fin_dia_usuario(dto.fecha_baja), activo,
         )
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)

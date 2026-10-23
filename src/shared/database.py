@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -12,8 +15,10 @@ import logging
 import os
 import time
 from contextlib import contextmanager
+from datetime import timezone
 from typing import Iterator, Optional
 
+import psycopg2.extensions as pg_ext
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import create_engine, event, text
@@ -47,9 +52,26 @@ if not DATABASE_URL:
 # falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
 # siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
 # (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
+# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
-    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
+    connect_args={"options": "-c timezone=UTC"},
 )
+
+# Las pocas columnas `timestamp` sin zona (`modulo1.usuarios.fecha_registro`,
+# `auditoria.logs_*`, varias vistas) guardan hora UTC porque la sesión es UTC,
+# pero llegaban a Python sin zona y la API las serializaba sin offset: el
+# navegador las leía como hora local. Se marcan UTC al leerlas.
+_TIMESTAMP_SIN_ZONA = pg_ext.string_types[1114]
+
+
+def _timestamp_utc(valor, cursor):
+    fecha = _TIMESTAMP_SIN_ZONA(valor, cursor)
+    return fecha.replace(tzinfo=timezone.utc) if fecha is not None else None
+
+
+pg_ext.register_type(pg_ext.new_type((1114,), "TIMESTAMP_UTC", _timestamp_utc))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).

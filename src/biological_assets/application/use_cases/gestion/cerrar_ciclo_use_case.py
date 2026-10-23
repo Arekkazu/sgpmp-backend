@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_usuario, hoy_usuario
+from src.shared.fechas import fecha_usuario, fin_dia_usuario, hoy_usuario
 
 
 class CerrarCicloUseCase:
@@ -135,7 +135,7 @@ class CerrarCicloUseCase:
         if dto.fecha_cierre == hoy_usuario():
             fecha_cierre_dt = ahora
         else:
-            fecha_cierre_dt = datetime.combine(dto.fecha_cierre, time.max, tzinfo=timezone.utc)
+            fecha_cierre_dt = fin_dia_usuario(dto.fecha_cierre)
 
         try:
             # M05 (RF-76/RF-74): sin tratamientos con retiro vigente y CA final del ciclo,
