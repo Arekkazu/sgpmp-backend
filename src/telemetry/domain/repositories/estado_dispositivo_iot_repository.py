@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de lectura de estado bloqueada |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,6 +10,12 @@ from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositi
 
 
 class EstadoDispositivoIoTRepository(ABC):
+
+    def bloquear_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]:
+        raise NotImplementedError
+
+    def pertenece_a_fincas(self, id_dispositivo_iot: int, fincas: list[int]) -> bool:
+        raise NotImplementedError
 
     @abstractmethod
     def obtener_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]: ...

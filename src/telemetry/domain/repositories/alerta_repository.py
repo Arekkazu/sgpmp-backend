@@ -2,10 +2,9 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: pendientes de notificar y conteos de tormenta (Fase 8, E8) |
-# | Fecha      | Nombre  | Que se hizo                                      |
-# |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-57: bloqueo por condicion operativa     |
 # | 2026-10-21 | Leandro | DEV-43 RF-62: puerto de alerta tecnica idempotente |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de bateria unica y recuperacion |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -30,6 +29,16 @@ class AlertaRepository(ABC):
         raise NotImplementedError
 
     def escalar_calidad(self, id_alerta: int, severidad: str):
+        raise NotImplementedError
+
+    def bloquear_dispositivo(self, id_dispositivo: int) -> None:
+        """Serializa condiciones técnicas con el lock de DEV-05 hasta el commit."""
+        raise NotImplementedError
+
+    def escalar_bateria(self, id_alerta: int, causa: str, severidad: str, metadatos: dict) -> None:
+        raise NotImplementedError
+
+    def listar_conectividad_abierta(self, id_dispositivo: int) -> list[Alerta]:
         raise NotImplementedError
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):

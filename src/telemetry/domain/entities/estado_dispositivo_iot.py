@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: algoritmo unico con umbrales dinamicos |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: restringe transiciones manuales       |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,6 +22,13 @@ class EstadoDispositivoIoT:
     causas_secundarias: Optional[Any]
     fecha_ultima_actualizacion: datetime
     id_usuario: Optional[int]
+
+    def validar_transicion_manual(self, destino: str) -> None:
+        if (self.estado_actual, destino) not in {
+            ('INACTIVO', 'EN_MANTENIMIENTO'), ('EN_MANTENIMIENTO', 'ACTIVO'),
+        }:
+            raise BusinessRuleError('TRANSICION_INVALIDA',
+                f'No se permite la transición manual de {self.estado_actual} a {destino}.')
 
     def evaluar_transicion(
         self,
@@ -72,5 +80,5 @@ class EstadoDispositivoIoT:
         self.fecha_ultima_actualizacion = ahora
         if id_heartbeat is not None:
             self.id_ultimo_heartbeat = id_heartbeat
-        if id_usuario is not None:
-            self.id_usuario = id_usuario
+        # Una transición automática no se atribuye al último operador manual.
+        self.id_usuario = id_usuario

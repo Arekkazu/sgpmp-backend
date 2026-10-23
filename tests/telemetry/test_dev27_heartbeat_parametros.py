@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: prueba politica dinamica y cadena    |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: configura lectura bloqueada en doble de prueba |
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -136,6 +137,7 @@ def test_inactivo_genera_critico_aunque_exista_periodo_previo():
     ahora=datetime.now(timezone.utc)
     estado=EstadoDispositivoIoT(1,1,'SIN_SEÑAL',ahora-timedelta(hours=3),None,None,None,None,ahora,None)
     estados.listar_activos.return_value=[estado]
+    estados.bloquear_por_dispositivo.return_value=estado
     alertas.buscar_tecnica_activa_dispositivo.return_value=None
     politica.obtener_comunicacion.return_value=ParametrosComunicacionHeartbeat(120,600,300,3600,None)
     historial,periodos,hist_alertas=Mock(),Mock(),Mock()

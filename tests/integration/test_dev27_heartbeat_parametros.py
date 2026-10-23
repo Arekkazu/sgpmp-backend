@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: integra politica, HTTP y postcommit |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: verifica apagado y escalamiento con tipo inmutable |
 """PostgreSQL aislado: parámetros reales y mismo worker HTTP/SQL, sin broker real."""
 from datetime import datetime, timedelta, timezone
 import importlib.util
@@ -85,7 +86,7 @@ def test_http_y_sql_completan_diagnostico_real_sin_duplicados(client, db_session
     for dispositivo, identificador in ((equipo,id_http),(otro,id_sql)):
         alertas = filas_alertas(db_session, dispositivo)
         assert {a['tipo_variable'] for a in alertas} == {
-            'BATERIA_CRITICA','SEÑAL_DEGRADADA','SENSOR_FISICO_FALLIDO',
+            'APAGADO_INMINENTE','SEÑAL_DEGRADADA','SENSOR_FISICO_FALLIDO',
             'SOBRECALENTAMIENTO','FIRMWARE_DESACTUALIZADO'}
         assert len(alertas) == 5
         assert next(a for a in alertas if a['tipo_variable']=='SOBRECALENTAMIENTO')['severidad']=='CRITICO'
@@ -122,7 +123,7 @@ def test_cambio_bd_modifica_alerta_en_mismo_worker(db_session,equipo,politica):
     h.guardar_heartbeat(db_session,equipo,bateria=20,buffer='I')
     worker.execute()
     assert [(a['tipo_variable'],a['severidad']) for a in filas_alertas(db_session,equipo)]==[
-        ('BATERIA_BAJA','MODERADO'),('BATERIA_CRITICA','CRITICO')]
+        ('BATERIA_BAJA','CRITICO')]
 
 
 def test_telemetria_mas_reciente_confirma_contacto_aunque_heartbeat_sea_antiguo(db_session,equipo,politica):
@@ -153,7 +154,7 @@ def test_falta_parametro_deja_etapa_pendiente_y_recupera_tras_configurar(db_sess
     time.sleep(1.1)
     worker.execute()
     worker.execute()
-    assert [a['tipo_variable'] for a in filas_alertas(db_session,equipo)]==['BATERIA_CRITICA']
+    assert [a['tipo_variable'] for a in filas_alertas(db_session,equipo)]==['APAGADO_INMINENTE']
     assert sum(e['tipo_evento']=='POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO'
         for e in h.evidencias(db_session,identificador,'HEARTBEAT'))==1
 

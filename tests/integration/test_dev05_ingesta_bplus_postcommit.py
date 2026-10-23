@@ -1,5 +1,6 @@
-# | Fecha      | Nombre  | Que se hizo                                      |
-# |------------|---------|--------------------------------------------------|
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: espera etapa RF60 y apagado inminente |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: regresion con politica persistida   |
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: verifica etapa nueva sin duplicados |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
@@ -196,7 +197,8 @@ def test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_o
     procesador(db_session).execute()
     tipos = [x['tipo_evento'] for x in evidencias(db_session,identificador)]
     assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO',
-        'POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF57_COMPLETADO'}
+        'POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF57_COMPLETADO',
+        'POSTCOMMIT_RF60_COMPLETADO'}
     assert all(tipos.count(tipo)==1 for tipo in tipos)
     rf57=next(e for e in evidencias(db_session,identificador) if e['tipo_evento']=='POSTCOMMIT_RF57_COMPLETADO')
     assert rf57['accion_detallada']['resultado_etapa']['decision']=='EXCLUIDA_POR_CALIDAD'
@@ -301,7 +303,7 @@ def test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial
         obtener_comunicacion=lambda _id: ParametrosComunicacionHeartbeat(60,600,300,3600,'I'))
     procesador(db_session,parametros_heartbeat=parametros).execute()
     filas=db_session.execute(text('SELECT id_alerta,tipo_variable FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).all()
-    assert len(filas)==2 and {x[1] for x in filas}=={'BATERIA_CRITICA','SEÑAL_DEGRADADA'}
+    assert len(filas)==2 and {x[1] for x in filas}=={'APAGADO_INMINENTE','SEÑAL_DEGRADADA'}
     for fila in filas:
         assert db_session.execute(text('SELECT count(*) FROM modulo3.historico_estados_alertas WHERE id_alerta=:id'),{'id':fila[0]}).scalar_one()==1
 
