@@ -6,6 +6,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: recupera conectividad tras telemetria valida |
 # | 2026-10-22 | Leandro | DEV-28 RF-60: conecta diagnostico postcommit de vision |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: conecta evidencia y reintento de avisos |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: conecta auditoria de HTTP y persistencia MQTT |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -15,6 +16,7 @@ from sqlalchemy import text
 
 from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.telemetry.infrastructure.repositories.evidencia_fuentes_iot import auditar_lectura, auditar_ingesta, auditar_heartbeat, auditar_transicion
 from src.shared.database import engine
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
@@ -123,6 +125,10 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
         {
+            EtapaPostcommit.RF53_LECTURAS: auditar_lectura,
+            EtapaPostcommit.RF53_AUDITORIA: auditar_ingesta,
+            EtapaPostcommit.RF60_TRANSICIONES: auditar_transicion,
+            EtapaPostcommit.HEARTBEAT_AUDITORIA: auditar_heartbeat,
             EtapaPostcommit.RF61: lambda db, i: _lectura(db).vincular_lectura(i),
             EtapaPostcommit.RF61_AVISOS: lambda db,i: ProcesarAvisosVinculacionUseCase(SqlAlchemyVinculacionLecturaRepository(db),avisos_vinculacion,DestinatariosVinculacionM01Adapter(db)).execute(i),
             EtapaPostcommit.RF62: lambda db, i: _lectura(db).evaluar_lectura(i),

@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: evita duplicar historial de alerta tecnica |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: evalua umbrales y alerta INACTIVO critica |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: evalua diagnosticos aunque no cambie estado |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: conserva al trigger como fuente unica de transiciones |
 """Evaluación periódica: parámetros reales y algoritmo único de RF-60."""
 from datetime import datetime, timezone
 

@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: regresion con politica persistida   |
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: verifica etapa nueva sin duplicados |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: explicita asociacion RF-22 en fixture de ingesta |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: exige eventos de ingesta y heartbeat sin duplicados |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -203,7 +204,7 @@ def test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_o
     tipos = [x['tipo_evento'] for x in evidencias(db_session,identificador)]
     assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO',
         'POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF57_COMPLETADO',
-        'POSTCOMMIT_RF60_COMPLETADO'}
+        'POSTCOMMIT_RF60_COMPLETADO','TELEMETRIA_VALIDADA','POSTCOMMIT_RF53_LECTURAS_COMPLETADO'}
     assert all(tipos.count(tipo)==1 for tipo in tipos)
     rf57=next(e for e in evidencias(db_session,identificador) if e['tipo_evento']=='POSTCOMMIT_RF57_COMPLETADO')
     assert rf57['accion_detallada']['resultado_etapa']['decision']=='EXCLUIDA_POR_CALIDAD'
@@ -288,7 +289,7 @@ def test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica(db_session,
     procesador(db_session).execute()
     # RF-60 Restricción 12: el contacto reciente tiene prioridad sobre el buffer.
     assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
-    assert len(evidencias(db_session,identificador,'HEARTBEAT'))==2
+    assert [e['tipo_evento'] for e in evidencias(db_session,identificador,'HEARTBEAT')].count('HEARTBEAT_RECIBIDO')==1
     assert db_session.execute(text('SELECT count(*) FROM modulo3.heartbeats WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()==1
 
 
@@ -297,7 +298,7 @@ def test_umbrales_ausentes_quedan_pendientes_sin_perder_estado_buffer(db_session
     resultado=procesador(db_session).execute()
     assert resultado['fallidos']>=1
     eventos=evidencias(db_session,identificador,'HEARTBEAT')
-    assert {x['tipo_evento'] for x in eventos}=={'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_FALLIDO'}
+    assert {x['tipo_evento'] for x in eventos}=={'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_FALLIDO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     assert 'PARAMETRO_CONFIGURACION_AUSENTE' in repr(eventos)
     assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
 
@@ -348,7 +349,7 @@ def test_limites_de_alertas_son_los_parametros_del_puerto(db_session,equipo,bate
         obtener_comunicacion=lambda _id: ParametrosComunicacionHeartbeat(60,600,300,3600,'I'))
     procesador(db_session,parametros_heartbeat=parametros).execute()
     assert {x['tipo_evento'] for x in evidencias(db_session,identificador,'HEARTBEAT')}=={
-        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO'}
+        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     filas=db_session.execute(text('SELECT tipo_variable FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).scalars().all()
     assert set(filas)==esperadas
 
@@ -400,7 +401,7 @@ def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(clien
     identificador=response.json()['id_heartbeat']
     procesador(db_session).execute()
     assert {x['tipo_evento'] for x in evidencias(db_session,identificador,'HEARTBEAT')}=={
-        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO'}
+        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     assert db_session.execute(text('SELECT count(*) FROM modulo3.heartbeats WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()==1
 
 

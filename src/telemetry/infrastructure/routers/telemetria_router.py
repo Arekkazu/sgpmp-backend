@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: conecta catalogo M09 y bitacora      |
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: publica sobre normativo sin ocultar DB-09 |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -19,6 +20,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header
+from src.telemetry.infrastructure.routers.ruta_ingesta_auditada import RutaIngestaAuditada
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker

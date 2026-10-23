@@ -6,6 +6,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-57: consolida condicion sin carreras    |
 # | 2026-10-21 | Leandro | DEV-43 RF-62: consolida diagnosticos tecnicos por sensor |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: serializa bateria y busca alertas recuperables |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: audita alertas y consolidacion atomicamente |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,10 @@ from sqlalchemy.orm import Session
 
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta, TipoAlerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
@@ -121,9 +126,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             self.db.add(orm)
             self.db.flush()
             self.db.refresh(orm)
+            self._auditar(orm, 'ALERTA_GENERADA', {'estado_nuevo': orm.estado_alerta})
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def _auditar(self, orm, tipo, detalle, usuario=None):
+        registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(self.db), tipo,
+            ComponenteOrigen.RF57, entidad=EntidadAfectadaTipo.ALERTA,
+            identificador=orm.id_alerta, usuario=usuario,
+            detalle=detalle | {'id_telemetria': orm.id_telemetria,
+                              'id_dispositivo_iot': orm.id_dispositivo_ioit})
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
         consulta = self.db.query(AlertaModel).filter(
@@ -194,11 +207,14 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().first()
             if orm is None:
                 return
+            anterior = orm.frecuencia_evento or 1
             orm.frecuencia_evento = (orm.frecuencia_evento or 1) + 1
             orm.ultima_ocurrencia = ultima_ocurrencia
             if nueva_severidad is not None:
                 orm.severidad = nueva_severidad
             self.db.flush()
+            self._auditar(orm, 'DUPLICADO_ALERTA_CORRELACIONADO',
+                          {'frecuencia_anterior': anterior, 'frecuencia_nueva': orm.frecuencia_evento})
         except Exception as exc:
             raise_from_db_error(exc)
 
@@ -216,6 +232,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             if orm is None:
                 from src.shared.errors import NotFoundError
                 raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
+            anterior = orm.estado_alerta
             # Antes de mutar el ORM: execute puede hacer autoflush. El contexto
             # es local a la transacción y se limpia también si no hay motivo.
             self.db.execute(
@@ -235,6 +252,11 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                     orm.motivo_descarte = motivo
             self.db.flush()
             self.db.refresh(orm)
+            if anterior != nuevo_estado:
+                tipo = {'EN_ATENCION': 'ALERTA_RECONOCIDA', 'RESUELTA': 'ALERTA_RESUELTA',
+                        'DESCARTADA': 'ALERTA_DESCARTADA', 'VENCIDA': 'ALERTA_VENCIDA'}[nuevo_estado]
+                self._auditar(orm, tipo, {'estado_anterior': anterior, 'estado_nuevo': nuevo_estado,
+                                        'motivo': motivo}, id_usuario)
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
