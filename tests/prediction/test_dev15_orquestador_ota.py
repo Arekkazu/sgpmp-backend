@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-26 RF-69/70: OTA distribuye versiones APROBADO    |
 """DEV-15 (RF-70/RF-73, D6 de AIOT-DEV-03): orquestador OTA de modelos por componente.
 
 Fakes en memoria que respetan la regla de DB-04 (un despliegue vigente por
@@ -258,12 +261,23 @@ def test_otro_componente_en_el_mismo_nodo_si_se_puede_distribuir():
     assert ctx.crear(id_version_modelo=4).despliegues[0].componente == "ANOMALIAS"
 
 
+@pytest.mark.parametrize("estado", ["APROBADO", "ACTIVO"])
+def test_se_distribuye_una_version_aprobada_o_activa(estado):
+    # DEV-26 (RFC-015 C3): APROBADO se distribuye y se activa después; ACTIVO, para nodos nuevos (P-2).
+    resultado = _Ctx(versiones=[_version(estado=estado)]).crear()
+    assert resultado.distribucion.id_version_modelo == 3
+    assert len(resultado.despliegues) == 1
+
+
 @pytest.mark.parametrize(
     "version, codigo",
-    [(_version(estado="APROBADO"), "VERSION_NO_DISTRIBUIBLE"), (_version(ruta=None), "ARTEFACTO_NO_DISPONIBLE"),
+    [(_version(estado="EN_VALIDACION"), "VERSION_NO_DISTRIBUIBLE"),
+     (_version(estado="RECHAZADO"), "VERSION_NO_DISTRIBUIBLE"),
+     (_version(estado="DEPRECADO"), "VERSION_NO_DISTRIBUIBLE"),
+     (_version(ruta=None), "ARTEFACTO_NO_DISPONIBLE"),
      (_version(sha=None), "ARTEFACTO_NO_DISPONIBLE")],
 )
-def test_solo_se_distribuye_una_version_activa_con_artefacto(version, codigo):
+def test_no_se_distribuye_una_version_no_aprobada_o_sin_artefacto(version, codigo):
     with pytest.raises(BusinessRuleError) as exc:
         _Ctx(versiones=[version]).crear()
     assert exc.value.code == codigo
