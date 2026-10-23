@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-23 | Leandro | DEV-24 RF-24: probar DB-06 real, HTTP, atomicidad, concurrencia y RLS en PostgreSQL. |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016: estado_calibracion con el catálogo de DB-09 |
 """Requiere DB-06 (#613) y nivel_criticidad de DB-07 (#614), sin crear tablas alternativas."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -66,7 +67,8 @@ def preparar(db, usuario, cantidad=2):
             (id_dispositivo_iot,id_infraestructura,fecha_observacion,cobertura_ventana,cantidad_tracks,
              cantidad_tracks_perdidos,fps_efectivo,estado_calibracion,json_vector,indice_calidad,
              clasificacion_calidad,es_apto_para_ia)
-            VALUES (:device,:area,:fecha,.95,20,0,25,'CALIBRADA',
+            VALUES (:device,:area,:fecha,.95,20,0,25,'CALIBRADO',  -- catálogo de DB-09
+
              CAST(:vector AS jsonb),95,'APTO',true)'''),
             {**equipo, 'fecha': inicio + timedelta(minutes=i),
              'vector': json.dumps({'densidad_actividad': .5, 'dispersion_espacial': 2.4, 'tasa_movimiento': 1.8})})
