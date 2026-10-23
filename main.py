@@ -5,13 +5,14 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -91,7 +92,7 @@ from src.shared import almacen_logos
 from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
-from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware, documentar_zona_horaria
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -713,6 +714,13 @@ lo que el cliente debe interpretar (y traducir).
 
 **Concurrencia optimista.** Las ediciones piden el `fecha_actualizacion` o la
 `version` leídos; si el registro cambió entretanto responden 412.
+
+**Fechas y zona horaria.** Los instantes se guardan y se devuelven en UTC; se
+envían en ISO 8601 con zona (`2026-10-23T22:00:00-05:00` o `...Z`) y uno sin
+zona se toma como UTC. Los días calendario van como `YYYY-MM-DD`. "Hoy", las
+fechas futuras, los filtros por día y las horas de los mensajes se calculan en
+la zona de la cabecera `X-Zona-Horaria` (ej. `America/Bogota`), que cada
+endpoint documenta; sin ella, en UTC.
 """
 
 # Descripción de los tags de M01, M02 y M09; el orden aquí es el de Swagger.
@@ -755,6 +763,8 @@ app = FastAPI(
     description=DESCRIPCION_API,
     version="1.0.0",
     openapi_tags=TAGS_OPENAPI,
+    # Cabecera X-Zona-Horaria en cada endpoint de Swagger (ver src/shared/fechas.py).
+    dependencies=[Depends(documentar_zona_horaria)],
 )
 
 # Allowlist explícita, sin depender de que ENV valga literalmente "production"

@@ -17,8 +17,8 @@
 import uuid
 import time
 import logging
-from typing import Optional
-from fastapi import Request
+from typing import Annotated, Optional
+from fastapi import Header, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.shared import audit_context
@@ -41,6 +41,30 @@ def _get_client_ip(request: Request) -> Optional[str]:
         IP del cliente como string, o `None` si no está disponible.
     """
     return request.client.host if request.client else None
+
+
+def documentar_zona_horaria(
+    x_zona_horaria: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Zona-Horaria",
+            description=(
+                "Zona horaria IANA del usuario. Define \"hoy\", las fechas futuras, los "
+                "filtros por día y las horas de mensajes y correos. Sin ella, o inválida, "
+                "todo se calcula en UTC. El frontend la envía siempre."
+            ),
+            openapi_examples={
+                "bogota": {"summary": "Colombia", "value": "America/Bogota"},
+                "utc": {"summary": "UTC (igual que no enviarla)", "value": "UTC"},
+            },
+        ),
+    ] = None,
+) -> None:
+    """Solo documenta la cabecera en Swagger para que "Try it out" la envíe.
+
+    La lee `RequestContextMiddleware`: los validadores de los DTO usan "hoy"
+    antes de que FastAPI resuelva las dependencias.
+    """
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
