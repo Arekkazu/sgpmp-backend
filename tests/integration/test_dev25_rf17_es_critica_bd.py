@@ -1,12 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: PATCH es_critica con el permiso de DB-08 (Administrador 200, Veterinario 403) |
+# | 2026-10-23 | Arekkazu | DEV-25 RF-17: docstring con el recurso variables_ambientales_criticas |
 """DEV-25 (RFC-016 B.7): solo el Administrador marca una variable como crítica y el
 cambio queda en ``modulo1.eventos``.
 
-Requiere la BD con DB-08 aplicada (el Veterinario ya no tiene U sobre
-``umbrales_ambientales``) y el tipo de evento 31 ``CAMBIO_VARIABLE_CRITICA``, que la
-prueba siembra si falta.
+Requiere la BD con DB-08 aplicada: el Veterinario conserva U sobre
+``umbrales_ambientales`` pero no tiene ``variables_ambientales_criticas``. El tipo de
+evento 31 lo siembra 4792129a64e6; la prueba lo inserta si falta.
 """
 import pytest
 from fastapi import FastAPI
