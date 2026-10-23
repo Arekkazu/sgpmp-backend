@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-07: encadenada tras DB-06 (un solo head) |
 """FixVidaNacimientoCriticidad
 
 Revision ID: 032b0b6db060
-Revises: e5a3c9b17d42
+Revises: a0183109ae88
 Create Date: 2026-10-20 16:07:28.469311
 
 """
@@ -12,7 +15,7 @@ import sqlalchemy as sa
 
 
 revision: str = '032b0b6db060'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = 'a0183109ae88'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

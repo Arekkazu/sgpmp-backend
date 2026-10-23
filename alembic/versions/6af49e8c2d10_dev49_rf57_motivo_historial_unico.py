@@ -1,10 +1,11 @@
 # | Fecha      | Nombre  | Que se hizo                                          |
 # |------------|---------|------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conserva motivo en el historial unico  |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016: va despues de DEV-42 y conserva su actor por transicion |
 """Conservar el motivo manual al delegar el historial al trigger de RF-57.
 
 Revision ID: 6af49e8c2d10
-Revises: e5a3c9b17d42
+Revises: f42a70c6b102
 
 No cambia estados, tablas ni permisos. El contexto local evita perder el motivo
 de EN_ATENCION/RESUELTA que antes solo guardaba el INSERT redundante de Python.
@@ -13,7 +14,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "6af49e8c2d10"
-down_revision = "e5a3c9b17d42"
+down_revision = 'f42a70c6b102'
 branch_labels = None
 depends_on = None
 
@@ -49,7 +50,8 @@ BEGIN
         id_alerta, estado_anterior, estado_nuevo, id_usuario, motivo, fecha_cambio
     ) VALUES (
         NEW.id_alerta, OLD.estado_alerta, NEW.estado_alerta,
-        COALESCE(NEW.id_usuario_resolucion, NEW.id_usuario_atencion),
+        -- DEV-42 (f42a70c6b102, la revisión anterior): el actor según la transición.
+        CASE WHEN NEW.estado_alerta = 'EN_ATENCION' THEN NEW.id_usuario_atencion ELSE NEW.id_usuario_resolucion END,
         {motivo}, now()
     );
     RETURN NEW;

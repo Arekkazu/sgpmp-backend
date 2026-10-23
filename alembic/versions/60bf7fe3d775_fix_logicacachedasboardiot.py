@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-12: GRIS por sensor->area->especies (las tablas usadas no existian) |
 """fix_logicaCacheDasboardIot
 
 Revision ID: 60bf7fe3d775
-Revises: e5a3c9b17d42
+Revises: 97ecff4d7d0c
 Create Date: 2026-10-21 23:03:39.047852
 
 """
@@ -13,7 +16,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '60bf7fe3d775'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '97ecff4d7d0c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -40,15 +43,21 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- RF-58 (3): Semáforo GRIS si no hay umbral activo para la variable
-    -- y la especie asociada a la infraestructura del sensor
+    -- RF-58 (3): Semáforo GRIS si ninguna especie del área donde está el sensor
+    -- al momento de la captura tiene un umbral activo para la variable.
+    -- El sensor no lleva especie: sensor -> área (sensores_areas_asociadas, vigente
+    -- en la captura, como en DB-03) -> especies del área (DB-06) -> umbral.
     SELECT EXISTS (
         SELECT 1
-        FROM modulo3.sensores s
+        FROM modulo9.sensores_areas_asociadas saa
+        JOIN modulo9.infraestructuras_especies ie
+          ON ie.id_infraestructura = saa.id_infraestructura
         JOIN modulo9.umbrales_ambientales u
-          ON u.id_especie  = s.id_especie
-         AND u.id_variable = NEW.id_variable
-        WHERE s.id_sensor = NEW.id_sensor
+          ON u.id_especie            = ie.id_especie
+         AND u.id_variable_ambiental = NEW.id_variable
+        WHERE saa.id_sensor = NEW.id_sensor
+          AND saa.fecha_asociacion <= NEW.timestamp_captura
+          AND (saa.fecha_finalizacion IS NULL OR saa.fecha_finalizacion > NEW.timestamp_captura)
           AND u.es_activo = TRUE
     )
     INTO v_tiene_umbral;

@@ -1,10 +1,11 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: preserva vistas dependientes al aplicar DB-13 |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-13: cadena lineal y owner del enum solo si existe sgpmp_owner |
 """FixActualizacionesCatalogoVinculaciones
 
 Revision ID: 04cdc3f4d54a
-Revises: e5a3c9b17d42
+Revises: 60bf7fe3d775
 Create Date: 2026-10-21 23:41:33.266806
 
 """
@@ -17,7 +18,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '04cdc3f4d54a'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '60bf7fe3d775'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -161,7 +162,12 @@ def _cambiar_enum(
 
     op.execute(f"DROP TYPE {ENUM}")
     op.execute(f"ALTER TYPE {ENUM}_tmp RENAME TO enum_estado_vinculacion")
-    op.execute(f"ALTER TYPE {ENUM} OWNER TO sgpmp_owner")
+    # Sin el rol (BD construida desde cero: pruebas, CI) el tipo queda con el owner de la migración.
+    op.execute(f"""DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sgpmp_owner') THEN
+            ALTER TYPE {ENUM} OWNER TO sgpmp_owner;
+        END IF;
+    END $$""")
 
     _recrear_dependencias(confirmado, pendientes, comentario_ck)
     _restaurar_vistas(vistas,confirmado)

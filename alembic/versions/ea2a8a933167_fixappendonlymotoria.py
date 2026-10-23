@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-14: cadena lineal y roles opcionales en BD nueva |
 """FixAppendOnlyMotorIA
 
 Revision ID: ea2a8a933167
-Revises: e5a3c9b17d42
+Revises: 04cdc3f4d54a
 Create Date: 2026-10-21 23:58:20.248329
 
 """
@@ -13,10 +16,19 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'ea2a8a933167'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '04cdc3f4d54a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+
+
+def _si_existe_rol(rol: str, sentencia: str) -> None:
+    # En una BD construida desde cero (pruebas, CI) los roles de los ambientes no existen.
+    op.execute(f"""DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{rol}') THEN
+            EXECUTE '{sentencia}';
+        END IF;
+    END $$""")
 
 
 def upgrade() -> None:
@@ -78,16 +90,16 @@ def upgrade() -> None:
         """
     )
 
-    op.execute("ALTER TABLE modulo4.configuracion_ia_log OWNER TO sgpmp_owner")
+    _si_existe_rol("sgpmp_owner", "ALTER TABLE modulo4.configuracion_ia_log OWNER TO sgpmp_owner")
 
     # Solo lectura para los roles; los INSERT los hace la función del trigger
     # (SECURITY DEFINER, owner sgpmp_owner).
     for rol in (
         "rol_aiot", "rol_app", "rol_dev", "rol_impl", "rol_migracion", "sgpmp_app",
     ):
-        op.execute(f"REVOKE ALL ON TABLE modulo4.configuracion_ia_log FROM {rol}")
-        op.execute(f"GRANT SELECT ON TABLE modulo4.configuracion_ia_log TO {rol}")
-    op.execute("GRANT ALL ON TABLE modulo4.configuracion_ia_log TO sgpmp_owner")
+        _si_existe_rol(rol, f"REVOKE ALL ON TABLE modulo4.configuracion_ia_log FROM {rol}")
+        _si_existe_rol(rol, f"GRANT SELECT ON TABLE modulo4.configuracion_ia_log TO {rol}")
+    _si_existe_rol("sgpmp_owner", "GRANT ALL ON TABLE modulo4.configuracion_ia_log TO sgpmp_owner")
 
     op.execute(
         """
@@ -152,9 +164,7 @@ END;
 $BODY$;
         """
     )
-    op.execute(
-        "ALTER FUNCTION modulo4.fn_rf65_log_configuracion_motor() OWNER TO sgpmp_owner"
-    )
+    _si_existe_rol("sgpmp_owner", "ALTER FUNCTION modulo4.fn_rf65_log_configuracion_motor() OWNER TO sgpmp_owner")
 
     # ------------------------------------------------------------------
     # 3. Función que protege el log (append-only)
@@ -176,7 +186,7 @@ END;
 $BODY$;
         """
     )
-    op.execute("ALTER FUNCTION modulo4.fn_rf65_log_inmutable() OWNER TO sgpmp_owner")
+    _si_existe_rol("sgpmp_owner", "ALTER FUNCTION modulo4.fn_rf65_log_inmutable() OWNER TO sgpmp_owner")
 
     # ------------------------------------------------------------------
     # 4. Triggers

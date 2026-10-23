@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-10: vigencia por fecha_asociacion/fecha_finalizacion, mantenimiento desde RF-60 y UNIQUE con INCLUDE |
 """fix_segundoFnIngestaTelemetria
 
 Revision ID: 15cb081c4835
-Revises: e5a3c9b17d42
+Revises: be29f17bb7fc
 Create Date: 2026-10-21 22:07:13.078248
 
 """
@@ -16,7 +19,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '15cb081c4835'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = 'be29f17bb7fc'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -77,7 +80,8 @@ def _quitar_constraint_duplicado() -> None:
         return
     if ok is None:
         raise RuntimeError(f"{UQ_VIGENTE} no existe: quitar {UQ_DUPLICADO} dejaría la tabla sin unicidad")
-    if dup != ok:
+    # El duplicado repite las columnas en INCLUDE (DEV/TEST): mismo UNIQUE, se compara sin él.
+    if dup.split(" INCLUDE ")[0] != ok:
         raise RuntimeError(f"Los constraints no son equivalentes: {dup} vs {ok}")
     usados = _fetch(
         "SELECT p.oid::regproc::text FROM pg_proc p "
@@ -114,16 +118,15 @@ def _columnas(esquema: str, tabla: str) -> set[str]:
 
 def _preflight() -> str:
     asoc = _columnas("modulo9", "sensores_areas_asociadas")
-    if "es_activo" not in asoc:
-        raise RuntimeError("modulo9.sensores_areas_asociadas no existe o no tiene es_activo")
-    col_sensor = next((c for c in ("id_sensor", "id_sensores") if c in asoc), None)
-    if col_sensor is None:
-        raise RuntimeError("modulo9.sensores_areas_asociadas no tiene id_sensor ni id_sensores")
-    extra = asoc & {"fecha_fin", "estado_asociacion"}
-    if extra:
-        log.warning("RF-53: sensores_areas_asociadas tiene %s; el predicado usa solo es_activo = TRUE. Revísalo.", sorted(extra))
-    if "estado_operativo" not in _columnas("modulo9", "dispositivos_iot"):
-        raise RuntimeError("modulo9.dispositivos_iot no tiene estado_operativo")
+    # La tabla no tiene es_activo: la vigencia es la ventana fecha_asociacion /
+    # fecha_finalizacion, la misma que usa la vinculación de DB-03 (1164e0abedec).
+    faltan = {"id_sensor", "fecha_asociacion", "fecha_finalizacion"} - asoc
+    if faltan:
+        raise RuntimeError(f"modulo9.sensores_areas_asociadas no tiene {sorted(faltan)}")
+    col_sensor = "id_sensor"
+    # EN_MANTENIMIENTO es un estado de RF-60 (modulo3.estados_dispositivos_iot), no de M09.
+    if "estado_actual" not in _columnas("modulo3", "estados_dispositivos_iot"):
+        raise RuntimeError("modulo3.estados_dispositivos_iot no tiene estado_actual")
     if "frecuencia_muestreo" not in _columnas("modulo9", "configuraciones_globales"):
         raise RuntimeError("modulo9.configuraciones_globales no tiene frecuencia_muestreo")
     return col_sensor
@@ -171,9 +174,9 @@ def _bloque_a(col_sensor: str) -> str:
             ----------------------------------------------------------------------------
             IF EXISTS (
                 SELECT 1
-                FROM modulo9.dispositivos_iot d_mto
+                FROM modulo3.estados_dispositivos_iot d_mto
                 WHERE d_mto.id_dispositivo_iot = p_id_dispositivo
-                  AND d_mto.estado_operativo::text = 'EN_MANTENIMIENTO'
+                  AND d_mto.estado_actual = 'EN_MANTENIMIENTO'
             ) THEN
 {rechazo('EN_MANTENIMIENTO', 'ERROR_AUTENTICACION: Dispositivo en mantenimiento.')}            END IF;
 
@@ -181,7 +184,8 @@ def _bloque_a(col_sensor: str) -> str:
                 SELECT 1
                 FROM modulo9.sensores_areas_asociadas saa
                 WHERE saa.{col_sensor} = p_id_sensor
-                  AND saa.es_activo = TRUE
+                  AND saa.fecha_asociacion <= p_timestamp_captura
+                  AND (saa.fecha_finalizacion IS NULL OR saa.fecha_finalizacion > p_timestamp_captura)
             ) THEN
 {rechazo('SENSOR_SIN_ASOCIACION', 'ERROR_AUTENTICACION: Sensor no asociado a una unidad productiva.')}            END IF;
             -- <<< RFC053_A_FIN

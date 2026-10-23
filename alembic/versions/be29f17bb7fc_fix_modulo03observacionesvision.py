@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-09: encadenada tras DB-08 (un solo head) |
 """fix_modulo03ObservacionesVision
 
 Revision ID: be29f17bb7fc
-Revises: e5a3c9b17d42
+Revises: 495a6545bdb1
 Create Date: 2026-10-21 21:20:11.916204
 
 """
@@ -12,7 +15,7 @@ import sqlalchemy as sa
 
 
 revision: str = 'be29f17bb7fc'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '495a6545bdb1'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

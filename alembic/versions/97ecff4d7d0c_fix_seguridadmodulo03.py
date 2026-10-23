@@ -1,10 +1,11 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: integra DB-11 oficial sin cambiar sus protecciones |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-11: encadenada tras DB-10 (un solo head) |
 """fix_seguridadModulo03
 
 Revision ID: 97ecff4d7d0c
-Revises: e5a3c9b17d42
+Revises: 15cb081c4835
 Create Date: 2026-10-21 22:27:20.070659
 
 """
@@ -15,7 +16,7 @@ import sqlalchemy as sa
 
 
 revision: str = '97ecff4d7d0c'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = '15cb081c4835'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

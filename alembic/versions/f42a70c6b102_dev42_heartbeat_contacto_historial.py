@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: contacto servidor, reloj e historia unica |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-42: encadenada tras DEV-40 (un solo head) |
 """RF-60 DEV-42: corrige el trigger compartido por HTTP y broker.
 
 No altera tablas ni los triggers de inmutabilidad.
@@ -8,7 +9,7 @@ No altera tablas ni los triggers de inmutabilidad.
 from alembic import op
 
 revision = "f42a70c6b102"
-down_revision = "e5a3c9b17d42"
+down_revision = 'f40c53a37834'
 branch_labels = None
 depends_on = None
 

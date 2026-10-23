@@ -1,10 +1,11 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: persiste codigo y categoria en M09   |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-40: encadenada tras DB-14 (un solo head) |
 """DEV-40 RF-53: metadatos del catálogo dinámico de telemetría.
 
 Revision ID: f40c53a37834
-Revises: e5a3c9b17d42
+Revises: ea2a8a933167
 Create Date: 2026-10-21
 
 RF-53 define códigos y categorías, pero M09 solo persistía nombre/unidad/rango.
@@ -20,7 +21,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = 'f40c53a37834'
-down_revision: Union[str, Sequence[str], None] = 'e5a3c9b17d42'
+down_revision: Union[str, Sequence[str], None] = 'ea2a8a933167'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

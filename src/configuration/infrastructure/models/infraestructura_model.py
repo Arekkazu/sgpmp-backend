@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: quita id_especie/capacidad_maxima, agrega nivel_criticidad y la puente de especies |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-06: PK id_infraestructura_especie y FK segun la convencion |
 """Modelo ORM para `modulo9.infraestructuras` (RF-20).
 
 El tipo de área (`tipo`) referencia por nombre el catálogo administrable
@@ -56,7 +57,7 @@ class InfraestructuraModel(Base):
         back_populates='infraestructura',
         cascade='all, delete-orphan',
         lazy='selectin',
-        order_by='InfraestructuraEspecieModel.id_infraestructuras_especies',
+        order_by='InfraestructuraEspecieModel.id_infraestructura_especie',
     )
 
 
@@ -66,19 +67,19 @@ class InfraestructuraEspecieModel(Base):
     __table_args__ = (
         ForeignKeyConstraint(
             ['id_especie'], ['modulo9.especies.id_especie'],
-            ondelete='RESTRICT', name='fk_infraestructuras_especies_especie',
+            ondelete='RESTRICT', name='infraestructuras_especies_id_especie_fkey',
         ),
         ForeignKeyConstraint(
             ['id_infraestructura'], ['modulo9.infraestructuras.id_infraestructura'],
-            ondelete='CASCADE', name='fk_infraestructuras_especies_infraestructura',
+            ondelete='CASCADE', name='infraestructuras_especies_id_infraestructura_fkey',
         ),
-        PrimaryKeyConstraint('id_infraestructuras_especies', name='infraestructuras_especies_pkey'),
+        PrimaryKeyConstraint('id_infraestructura_especie', name='infraestructuras_especies_pkey'),
         UniqueConstraint('id_infraestructura', 'id_especie', name='uq_infraestructuras_especies'),
         Index('idx_infraestructuras_especies_id_especie', 'id_especie'),
         {'schema': 'modulo9'},
     )
 
-    id_infraestructuras_especies: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    id_infraestructura_especie: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
     id_infraestructura: Mapped[int] = mapped_column(Integer, nullable=False)
     id_especie: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(
