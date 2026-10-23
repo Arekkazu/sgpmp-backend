@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,7 +25,7 @@ from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort
 from src.prediction.domain.repositories.sincronizacion_nodo_edge_repository import SincronizacionNodoEdgeRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 from src.shared.tipo_modelo import TIPOS_MODELO, es_poblacional
 
 _MODOS_VALIDOS = {"EDGE", "SERVIDOR", "HIBRIDO"}
@@ -269,7 +272,10 @@ class ConfigurarMotorUseCase:
         }
 
     def _validar_version(self, id_version: int, tipo_modelo: str, componente: Optional[str], campo: str) -> None:
-        """RF-65 4.e: la versión vinculada existe, está ACTIVO y su llave (tipo_modelo, componente) coincide."""
+        """RF-65 4.e: la versión vinculada existe, está ACTIVO y su llave (tipo_modelo, componente) coincide.
+
+        E2 (versión no validada) y E5 (configuración incompatible con la versión) responden 409 (RF-65, DEV-33).
+        """
         llave = self._version_port.obtener_llave(id_version)
         if llave is None:
             raise NotFoundError(
@@ -279,7 +285,7 @@ class ConfigurarMotorUseCase:
             )
         estado, tipo_version, componente_version = llave
         if estado != _ESTADO_ACTIVO:
-            raise PreconditionFailedError(
+            raise ConflictError(
                 code="MODELO_NO_ACTIVO",
                 message=(
                     f"La versión {id_version} está en estado '{estado}'. "
@@ -288,7 +294,7 @@ class ConfigurarMotorUseCase:
                 field=campo,
             )
         if (tipo_version, componente_version) != (tipo_modelo, componente):
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="VERSION_MODELO_INCOMPATIBLE",
                 message=(
                     f"La versión {id_version} es de ({tipo_version}, {componente_version}) y no corresponde "
