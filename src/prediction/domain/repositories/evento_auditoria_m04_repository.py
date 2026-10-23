@@ -1,7 +1,6 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
-# | 2026-10-23 | Arekkazu     | DEV-37 RF-73 E8: insertar un evento del respaldo local |
 from __future__ import annotations
 
 import uuid
@@ -49,8 +48,3 @@ class EventoAuditoriaM04Repository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_evento: uuid.UUID) -> "EventoAuditoriaM04": ...
-
-    @abstractmethod
-    def registrar_desde_fallback(self, evento: dict) -> bool:
-        """RF-73 E8: inserta un evento del respaldo local con su ``id_evento`` y su
-        ``fecha_evento`` originales y ``origen_registro = FALLBACK``. False si ya estaba."""

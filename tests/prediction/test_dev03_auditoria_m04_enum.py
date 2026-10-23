@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-37 RF-73: la sesión falsa admite savepoints |
 """DEV-03 (RF-67/70/73): la auditoría M04 solo emite valores que existen en sus enums.
 
 Cinco use cases emitían ``tipo_evento`` fuera de ``enum_tipo_evento_auditoria_m04``
@@ -13,8 +10,6 @@ consultar o exportar la auditoría perdía su evento. Fakes en memoria, sin DB;
 estas mismas listas contra ``pg_enum``.
 """
 from __future__ import annotations
-
-import contextlib
 
 import re
 from datetime import date, timedelta
@@ -182,10 +177,6 @@ def test_exportar_auditoria_emite_exportacion_generada():
 # ── El repositorio ya no se traga el error del flush ───────────────────────
 
 class _SesionFlushFalla:
-    @contextlib.contextmanager
-    def begin_nested(self):  # DEV-37: cada intento va en un savepoint
-        yield
-
     def add(self, _orm): pass
     def flush(self): raise RuntimeError("invalid input value for enum")
 

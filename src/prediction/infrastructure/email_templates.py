@@ -1,7 +1,6 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
-# | 2026-10-23 | Arekkazu | DEV-37 RF-73 E8: correo del respaldo de auditoría activado |
 """Templates HTML de los correos del módulo de Predicción (RF-69 E1b y E3, DEV-48).
 
 Avisos informativos, sin links al frontend. Usan la plantilla común de RF-14
@@ -59,24 +58,4 @@ def version_rechazada_email(nombre: Optional[str], version: VersionModelo) -> st
         evento="Versión de modelo rechazada",
         tono="atencion",
         detalles=detalles,
-    )
-
-
-def fallback_auditoria_activado_email(nombre: Optional[str], inicio_contingencia: Optional[str], eventos: int) -> str:
-    """RF-73 E8: la auditoría de M04 usó el respaldo local y ya se sincronizó."""
-    return renderizar_correo(
-        titulo="La auditoría de Predicción usó el respaldo local",
-        nombre=nombre,
-        parrafos=[
-            "El repositorio central de auditoría no estuvo disponible y los eventos del módulo de "
-            "Predicción se guardaron en el respaldo local del servicio.",
-            "El repositorio ya se recuperó y los eventos se sincronizaron en orden, con su fecha "
-            "original y origen FALLBACK. Revise la causa de la contingencia.",
-        ],
-        evento="AUDITORIA_FALLBACK_ACTIVADO",
-        tono="critico",
-        detalles=[
-            ("Inicio de la contingencia", inicio_contingencia or "desconocido"),
-            ("Eventos sincronizados", str(eventos)),
-        ],
     )
