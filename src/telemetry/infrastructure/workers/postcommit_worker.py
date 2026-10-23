@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60: conecta adaptadores reales por etapa |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -19,7 +22,7 @@ from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
-from src.telemetry.infrastructure.adapters.parametros_heartbeat_pendientes_adapter import ParametrosHeartbeatPendientesAdapter
+from src.telemetry.infrastructure.adapters.parametros_heartbeat_mlops_adapter import ParametrosHeartbeatMLOpsAdapter, DiagnosticoHeartbeatMLOpsAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -29,6 +32,7 @@ from src.telemetry.infrastructure.repositories.heartbeat_repository import SqlAl
 from src.telemetry.infrastructure.repositories.lectura_postcommit_repository import SqlAlchemyLecturaPostcommitRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
 from src.telemetry.infrastructure.repositories.postcommit_repository import unidad_postcommit
+from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
 from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
 
@@ -53,7 +57,8 @@ def _heartbeat(db, identificador, alertas, parametros):
     heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
     servicio = ProcesarHeartbeatPersistidoUseCase(
         SqlAlchemyEstadoDispositivoIoTRepository(db),
-        SqlAlchemyAlertaRepository(db), parametros,
+        SqlAlchemyAlertaRepository(db), parametros or ParametrosHeartbeatMLOpsAdapter(db),
+        SqlAlchemyPeriodoInactividadRepository(db),
     )
     if alertas:
         infraestructura = SqlAlchemyLecturaPostcommitRepository(db).infraestructura(heartbeat.id_dispositivo_iot)
@@ -68,12 +73,12 @@ def _heartbeat(db, identificador, alertas, parametros):
 def _diagnostico(db, identificador, metodo, politica):
     heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
     infraestructura = SqlAlchemyLecturaPostcommitRepository(db).infraestructura(heartbeat.id_dispositivo_iot)
-    servicio = EvaluarDiagnosticoHeartbeatUseCase(SqlAlchemyAlertaRepository(db), politica)
+    servicio = EvaluarDiagnosticoHeartbeatUseCase(SqlAlchemyAlertaRepository(db), politica or DiagnosticoHeartbeatMLOpsAdapter(db))
     getattr(servicio, metodo)(heartbeat, infraestructura)
 
 
 def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, limite=50, reintento_seg=60):
-    parametros = parametros_heartbeat or ParametrosHeartbeatPendientesAdapter()
+    parametros = parametros_heartbeat
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
         {

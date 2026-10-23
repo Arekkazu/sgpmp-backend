@@ -2,6 +2,9 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
 import asyncio
 import logging
 import os
@@ -100,6 +103,7 @@ async def _evaluar_dispositivos_periodicamente() -> None:
     from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
     from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
     from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
+    from src.telemetry.infrastructure.adapters.parametros_heartbeat_mlops_adapter import ParametrosHeartbeatMLOpsAdapter
 
     while True:
         await asyncio.sleep(60)
@@ -112,6 +116,7 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
                 alerta_repo=SqlAlchemyAlertaRepository(db),
                 historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+                parametros_port=ParametrosHeartbeatMLOpsAdapter(db),
             )
             n = use_case.execute()
             if n > 0:
