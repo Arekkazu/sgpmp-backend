@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | HOTFIX AIOT-DEV-03: pasar BROKER_SERVICE_TOKEN |
 name: sgpmp-backend-test
 
 services:
@@ -64,6 +67,11 @@ services:
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:?MQTT_BROKER_URL requerido para TEST}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:?MQTT_BROKER_TOKEN requerido para TEST}
+      # Token broker -> backend (AIOT-DEV-03): el broker lo envia en Authorization:
+      # Bearer al llamar /iot/*. Mismo valor que BROKER_SERVICE_TOKEN del broker de
+      # TEST. Vacio => esos endpoints responden 503 TOKEN_SERVICIO_NO_CONFIGURADO
+      # (no se exige con :? para no tumbar el despliegue si falta en Dokploy).
+      BROKER_SERVICE_TOKEN: ${BROKER_SERVICE_TOKEN:-}
       # Sandbox transaccional de pruebas (rollback por X-Test-Run-Id). Apagado por
       # defecto: solo se activa definiendo ENABLE_TEST_SANDBOX=true en este entorno.
       ENABLE_TEST_SANDBOX: ${ENABLE_TEST_SANDBOX:-false}
