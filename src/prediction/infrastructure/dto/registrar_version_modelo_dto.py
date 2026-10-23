@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 from __future__ import annotations
 
 import json
@@ -7,6 +10,23 @@ from typing import Optional
 
 from fastapi import File, Form, UploadFile
 from pydantic import UUID4
+
+from src.shared.errors import BusinessRuleError
+
+
+def _json_de_formulario(valor: str, campo: str, tipo: type, descripcion: str):
+    """RF-69 E2 (DEV-34): un campo JSON del formulario que no parsea o no es del tipo esperado es 422."""
+    try:
+        resultado = json.loads(valor)
+    except (json.JSONDecodeError, TypeError):
+        resultado = None
+    if not isinstance(resultado, tipo):
+        raise BusinessRuleError(
+            code="METADATOS_JSON_INVALIDO",
+            message=f"Los metadatos del modelo son inválidos o incompletos: {campo} debe ser {descripcion} JSON válido.",
+            field=campo,
+        )
+    return resultado
 
 
 class RegistrarVersionModeloDTO:
@@ -32,9 +52,11 @@ class RegistrarVersionModeloDTO:
         self.tipo_modelo = tipo_modelo
         self.hash_artefacto_sha256 = hash_artefacto_sha256
         self.dataset_entrenamiento_hash = dataset_entrenamiento_hash
-        self.metricas_validacion: dict = json.loads(metricas_validacion)
+        self.metricas_validacion: dict = _json_de_formulario(metricas_validacion, "metricas_validacion", dict, "un objeto")
         self.fecha_entrenamiento = fecha_entrenamiento
-        self.compatibilidad_variables: list = json.loads(compatibilidad_variables)
+        self.compatibilidad_variables: list = _json_de_formulario(
+            compatibilidad_variables, "compatibilidad_variables", list, "una lista"
+        )
         self.id_proceso_rf71 = id_proceso_rf71
         self.version_referencia = version_referencia
         self.archivo_modelo = archivo_modelo
