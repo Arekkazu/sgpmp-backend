@@ -154,7 +154,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
 
 ---
 
-## FA-03 — Modelo no activo (412)
+## FA-03 / E2 — Modelo no activo (409)
 
 ```bash
 # Asumiendo que la versión 5 existe pero está en estado APROBADO (no ACTIVO)
@@ -174,7 +174,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   }' | python3 -m json.tool
 ```
 
-**Respuesta esperada (412)**:
+**Respuesta esperada (409)** — DEV-33: RF-65 E2 fija 409 (antes 412):
 ```json
 {
   "code": "MODELO_NO_ACTIVO",

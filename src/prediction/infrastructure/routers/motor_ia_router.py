@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
 RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
@@ -69,9 +72,11 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
         404: {"model": ErrorResponse},
         409: {
             "model": ConfiguracionMotorIAGuardadaResponse,
-            "description": "Configuración guardada; algún nodo confirmó otra config_version (E10)",
+            "description": (
+                "E10: configuración guardada; algún nodo confirmó otra config_version (cuerpo de configuración). "
+                "E2 MODELO_NO_ACTIVO / E5 VERSION_MODELO_INCOMPATIBLE: no se guarda nada (cuerpo ErrorResponse)"
+            ),
         },
-        412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
     summary="Configurar motor de inferencia IA por tipo de modelo (RF-65)",
