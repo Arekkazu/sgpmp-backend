@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-81: tipo real del ledger y ciclo exacto |
+# | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
 """Implementación de :class:`HistorialSuministroReadPort` (RF-81).
 
 SQL propio con ``text()`` sobre ``modulo5.registro_suministro`` (no la vista
@@ -154,7 +155,11 @@ class SqlAlchemyHistorialSuministroReadRepository(HistorialSuministroReadPort):
         if tiempo_limite_segundos is None:
             return self._consultar(filtros, ids_activos_permitidos)
         try:
-            self.db.execute(text(f"SET LOCAL statement_timeout = '{int(tiempo_limite_segundos)}s'"))
+            # Igual que SET LOCAL (`true` = solo esta transacción), pero con el valor como parámetro.
+            self.db.execute(
+                text("SELECT set_config('statement_timeout', :limite, true)"),
+                {"limite": f"{int(tiempo_limite_segundos)}s"},
+            )
             resultado = self._consultar(filtros, ids_activos_permitidos)
             self.db.execute(text("SET LOCAL statement_timeout = 0"))
             return resultado

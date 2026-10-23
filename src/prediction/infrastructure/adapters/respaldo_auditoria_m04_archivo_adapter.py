@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: SAST Bearer (timeout parametrizado y candados con nombre fijo) |
 """RF-73 E8: respaldo en disco ``logs/audit_fallback_M04_YYYYMMDD.log`` (JSON por línea).
 
 Mismo esquema de exclusión que el buffer de la bitácora de M02
@@ -28,6 +29,11 @@ from src.prediction.domain.repositories.respaldo_auditoria_m04_port import Respa
 logger = logging.getLogger(__name__)
 
 _PATRON = "audit_fallback_M04_????????.log"
+# Candados con nombre fijo: el archivo nunca se arma con texto recibido.
+_CANDADOS = {
+    "escritura": "audit_fallback_M04.escritura.lock",
+    "sincronizacion": "audit_fallback_M04.sincronizacion.lock",
+}
 
 
 class RespaldoAuditoriaM04ArchivoAdapter(RespaldoAuditoriaM04Port):
@@ -42,7 +48,7 @@ class RespaldoAuditoriaM04ArchivoAdapter(RespaldoAuditoriaM04Port):
     @contextmanager
     def _bloqueo(self, nombre: str, esperar: bool = True) -> Iterator[None]:
         self._dir.mkdir(parents=True, exist_ok=True)
-        with open(self._dir / f"audit_fallback_M04.{nombre}.lock", "a") as candado:
+        with open(self._dir / _CANDADOS[nombre], "a") as candado:
             fcntl.flock(candado, fcntl.LOCK_EX if esperar else fcntl.LOCK_EX | fcntl.LOCK_NB)
             try:
                 yield
