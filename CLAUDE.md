@@ -34,6 +34,28 @@ versión y no queda en la trazabilidad, aunque el cambio sí sea real.
 
 ---
 
+## Tabla de seguimiento en cabecera (obligatoria desde 2026-10-20)
+
+**Todo archivo de código que se cree o edite — incluido por una IA — debe
+llevar al inicio, en comentarios, una tabla de seguimiento**, y se actualiza
+al terminar el cambio, antes del commit:
+
+```python
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-20 | usuario-git      | DEV-29 RF-56: rechaza dispositivo inactivo    |
+"""Docstring del módulo (sigue funcionando debajo de la tabla)."""
+```
+
+- **Fecha** del cambio (`YYYY-MM-DD`), **Nombre**: el usuario de git de quien hace el cambio (`git config user.name` en esa máquina, nunca un nombre fijo) y **Que se hizo**: ID de la tarea + RF + una frase corta. Es un rastro rápido de qué ha sufrido el archivo, no el contenido del PR.
+- Una fila por tarea y por archivo (no una por cada edición); la fila nueva va al final.
+- Solo hacia adelante: un archivo sin tabla la recibe la primera vez que se toca; no se reconstruye historial de git.
+- Si el archivo tiene shebang (`#!`), la tabla va debajo. Antes del docstring o de `from __future__` no rompe nada. Aplica también a migraciones de Alembic y scripts.
+- No aplica a archivos que no admiten comentarios o que se generan solos: JSON, lockfiles, `CHANGELOG.md`.
+- En conflictos de merge sobre la tabla se conservan las filas de ambos lados.
+
+---
+
 ## Stack
 
 | Componente   | Tecnología                        |
