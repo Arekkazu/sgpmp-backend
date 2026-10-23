@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: E7 token inválido en bitácora, 429 por dispositivo (E6) y bitácora de rechazos |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 
 RF-56 — CU02 Dev scope:
@@ -11,11 +14,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
-from src.shared.database import get_db_sistema
+from src.shared.database import get_db_sistema, sesion_sistema
+from src.shared.errors import AuthenticationError
+from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edge import registrar_intento_no_autorizado
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case import RecibirEventoEdgeUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
@@ -30,6 +36,20 @@ from src.telemetry.infrastructure.schema.evento_edge_schema import EventoEdgeRes
 router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos Edge"])
 
 
+def _token_broker_auditado(request: Request, authorization: Optional[str] = Header(default=None)) -> None:
+    """RF-56 E7: el token inválido del broker también deja su intento en la bitácora."""
+    try:
+        require_token_servicio_broker(authorization)
+    except AuthenticationError as exc:
+        db = sesion_sistema()
+        try:
+            registrar_intento_no_autorizado(db, SqlAlchemyBitacoraAuditoriaIotRepository(db), codigo=exc.code,
+                                            direccion_ip=request.client.host if request.client else None)
+        finally:
+            db.close()
+        raise
+
+
 @router.post(
     "",
     response_model=EventoEdgeResponse,
@@ -38,9 +58,10 @@ router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos 
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_token_servicio_broker)],
+    dependencies=[Depends(_token_broker_auditado)],
     summary="Recibir evento Edge clasificado por RF-55 y consolidar paquete a M04 (RF-56)",
 )
 def recibir_evento_edge(
@@ -55,6 +76,7 @@ def recibir_evento_edge(
         dispositivo_port=DispositivoM09Adapter(db),
         motor_inferencia_port=MotorInferenciaStubAdapter(),
         parametros_alertas_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     resultado = use_case.execute(dto, gateway_id=x_gateway_id)
     return EventoEdgeResponse.model_validate(resultado.__dict__)
