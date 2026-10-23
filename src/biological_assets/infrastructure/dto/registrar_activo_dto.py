@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """DTO de entrada de ``POST /activos-biologicos`` (RF-33)."""
 
 from __future__ import annotations
@@ -9,14 +12,14 @@ from typing import Optional
 from pydantic import model_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class RegistrarActivoBiologicoDTO(BaseDTO):
     """Registro de un activo biológico.
 
-    ``tipo_activo``: ``INDIVIDUAL`` (exige ``raza``, ``sexo``, ``fecha_nacimiento``) |
-    ``POBLACIONAL`` (exige ``cantidad_inicial``). ``origen_financiero``: ``compra`` |
+    ``tipo_activo``: ``INDIVIDUAL`` (exige ``raza`` y ``sexo``; ``fecha_nacimiento`` es
+    opcional, RFC-014) | ``POBLACIONAL`` (exige ``cantidad_inicial``). ``origen_financiero``: ``compra`` |
     ``nacimiento`` | ``donacion`` | ``transferencia_interna``; en compras se exigen
     ``costo_adquisicion`` y ``soporte_documental``. ``atributos_dinamicos`` se valida
     contra los parámetros de la especie configurados en M09.
@@ -47,15 +50,14 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
             raise ValueError("tipo_activo debe ser 'INDIVIDUAL' o 'POBLACIONAL'.")
 
         if tipo == 'INDIVIDUAL':
-            # FA-02: identificador, raza, sexo, fecha_nacimiento requeridos para INDIVIDUAL
+            # FA-02: identificador, raza y sexo requeridos para INDIVIDUAL.
+            # RFC-014 (DEV-20): fecha_nacimiento es opcional.
             if not self.identificador:
                 raise ValueError("identificador es requerido para activos de tipo INDIVIDUAL.")
             if not self.raza:
                 raise ValueError("raza es requerida para activos de tipo INDIVIDUAL.")
             if not self.sexo:
                 raise ValueError("sexo es requerido para activos de tipo INDIVIDUAL.")
-            if self.fecha_nacimiento is None:
-                raise ValueError("fecha_nacimiento es requerida para activos de tipo INDIVIDUAL.")
             if self.cantidad_inicial is not None:
                 raise ValueError("cantidad_inicial no aplica para activos de tipo INDIVIDUAL.")
 
@@ -69,6 +71,10 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
                 raise ValueError("identificador no aplica para activos de tipo POBLACIONAL.")
             if self.raza is not None or self.sexo is not None or self.fecha_nacimiento is not None:
                 raise ValueError("raza, sexo y fecha_nacimiento no aplican para activos de tipo POBLACIONAL.")
+
+        # RFC-014: si se informa, la fecha de nacimiento no puede ser futura (día en Colombia).
+        if self.fecha_nacimiento is not None and fecha_colombia(self.fecha_nacimiento) > hoy_colombia():
+            raise ValueError("fecha_nacimiento no puede ser futura.")
 
         return self
 

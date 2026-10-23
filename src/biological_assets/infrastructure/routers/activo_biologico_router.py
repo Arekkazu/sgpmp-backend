@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -398,6 +399,7 @@ def _activo_to_response(
         fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
+        advertencia_edad=activo.advertencia_edad,
     )
 
 
@@ -455,6 +457,10 @@ def registrar_activo(
     identificador único (409), origen financiero y atributos dinámicos de la
     especie (ver `GET /activos-biologicos/parametros-especie`). En lotes valida la
     densidad contra el máximo de la especie.
+
+    `fecha_nacimiento` es opcional (RFC-014) y no puede ser futura. Si la edad del
+    activo alcanza o supera la esperanza de vida de la especie, responde 201 igual,
+    con `advertencia_edad` (nunca rechaza por la edad).
     """
     use_case = RegistrarActivoBiologicoUseCase(
         db=db,

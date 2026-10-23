@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """DTO de entrada de ``PATCH /activos-biologicos/{id_activo}`` (RF-35)."""
 
 from __future__ import annotations
@@ -9,6 +12,7 @@ from typing import Any, Optional
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import fecha_colombia, hoy_colombia
 
 
 class ActualizarActivoIndividualDTO(BaseDTO):
@@ -47,3 +51,11 @@ class ActualizarActivoIndividualDTO(BaseDTO):
         if all(v is None for v in [self.raza, self.sexo, self.fecha_nacimiento, self.peso_inicial]):
             raise ValueError('Al menos un campo debe estar presente para actualizar.')
         return self
+
+    @field_validator('fecha_nacimiento')
+    @classmethod
+    def fecha_nacimiento_no_futura(cls, valor: Optional[datetime]) -> Optional[datetime]:
+        # RFC-014 (DEV-20): misma regla que el registro. Omitida (None) no cambia la fecha.
+        if valor is not None and fecha_colombia(valor) > hoy_colombia():
+            raise ValueError('fecha_nacimiento no puede ser futura.')
+        return valor
