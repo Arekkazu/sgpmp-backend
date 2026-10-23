@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: verifica catalogo y bitacora en PG  |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-10: el sensor del fixture se asocia al area |
 """HTTP, catálogo M09 y bitácora reales en PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -49,6 +50,10 @@ def _crear_equipo(db_session):
     sensor = db_session.execute(text('''INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
         VALUES (:device,true,'Sensor catalogo') RETURNING id_sensores
     '''), {'device': device}).scalar_one()
+    db_session.execute(text('''INSERT INTO modulo9.sensores_areas_asociadas(id_sensor,id_dispositivo_iot,id_infraestructura,
+        punto_instalacion,tiene_estado,fecha_asociacion,id_usuario)
+        SELECT :sensor,:device,:area,'DEV40',true,now()-interval '1 day',min(id_usuario)
+        FROM modulo1.usuarios'''),{'sensor':sensor,'device':device,'area':area})  # DB-10 rechaza sensores sin unidad productiva
     db_session.commit()
     return dict(device=device, sensor=sensor, serial=tag)
 

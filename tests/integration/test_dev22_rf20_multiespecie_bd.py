@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: área multiespecie contra la tabla puente de DB-06 (RFC-012) |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DB-06: PK id_infraestructura_especie |
 """DEV-22 (RFC-012, RF-20): registrar/editar un área con varias especies escribe la
 tabla puente ``modulo9.infraestructuras_especies`` (DB-06) y la capacidad se deriva.
 
@@ -61,7 +62,7 @@ def escenario(db_session, crear_usuario_db, crear_auth_headers):
 def _puente(db, area):
     return db.execute(text(
         "SELECT id_especie, fecha_creacion FROM modulo9.infraestructuras_especies "
-        "WHERE id_infraestructura = :a ORDER BY id_infraestructuras_especies"
+        "WHERE id_infraestructura = :a ORDER BY id_infraestructura_especie"
     ), {"a": area}).all()
 
 

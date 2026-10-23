@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: prueba clasificacion y etapa critica |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-40: CATALOGO_I3P1 ya retirado |
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -168,7 +169,8 @@ def test_codigo_m09_tiene_precedencia_sobre_alias_de_compatibilidad():
 
 def test_catalogo_posterior_dev40_no_depende_de_constante_legacy(monkeypatch):
     from src.telemetry.domain.entities import telemetria as contrato
-    monkeypatch.delattr(contrato,'CATALOGO_I3P1')
+    # DEV-40 ya retiró la constante; si reaparece, la prueba la quita igual.
+    monkeypatch.delattr(contrato,'CATALOGO_I3P1',raising=False)
     db = catalogo([{'id_variable_ambiental':123,'nombre':'Variable nueva','unidad':'ppm',
         'codigo_telemetria':'VARIABLE_NUEVA'}])
     assert variable_para_alerta(db,id_variable=123)['tipo_variable']=='VARIABLE_NUEVA'

@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: integra politica, HTTP y postcommit |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: verifica apagado y escalamiento con tipo inmutable |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-47: evidencias de heartbeat incluyen recepcion y auditoria |
 """PostgreSQL aislado: parámetros reales y mismo worker HTTP/SQL, sin broker real."""
 from datetime import datetime, timedelta, timezone
 import importlib.util
@@ -91,7 +92,12 @@ def test_http_y_sql_completan_diagnostico_real_sin_duplicados(client, db_session
         assert len(alertas) == 5
         assert next(a for a in alertas if a['tipo_variable']=='SOBRECALENTAMIENTO')['severidad']=='CRITICO'
         eventos = h.evidencias(db_session, identificador, 'HEARTBEAT')
-        assert len(eventos) == 5 and all(e['tipo_evento'].endswith('_COMPLETADO') for e in eventos)
+        # DEV-47 agrega HEARTBEAT_RECIBIDO y la etapa HEARTBEAT_AUDITORIA a las 5 de RF-60.
+        tipos = sorted(e['tipo_evento'] for e in eventos)
+        assert tipos == sorted(['HEARTBEAT_RECIBIDO', 'POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO',
+            'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO', 'POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO',
+            'POSTCOMMIT_HEARTBEAT_SENSORES_COMPLETADO', 'POSTCOMMIT_HEARTBEAT_TEMPERATURA_COMPLETADO',
+            'POSTCOMMIT_HEARTBEAT_FIRMWARE_COMPLETADO'])
         for alerta in alertas:
             assert db_session.execute(text('SELECT count(*) FROM modulo3.historico_estados_alertas WHERE id_alerta=:id'), {'id':alerta['id_alerta']}).scalar_one()==1
 

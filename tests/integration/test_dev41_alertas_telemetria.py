@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: integra SQL broker, worker y concurrencia |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-44: el activo del fixture tiene historial de ubicacion |
 """Frontera SQL real del broker B+; no hay broker MQTT externo en estas pruebas."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -49,9 +50,15 @@ def preparar(db, *, calibrado=True, variable=9, unidad='°C', categoria='AMBIENT
         (id_especie,identificador,id_infraestructura,tipo,fecha_inicio_ciclo,id_estado,
          descripcion,origen_financiero,costo_adquisicion,atributos_dinamicos,id_usuario,
          fecha_creacion,soporte_documental,detalles_procedencia)
-        VALUES(:especie,:codigo,:area,'INDIVIDUAL',current_date,1,'DEV-41','compra',100,'{}',:uid,now(),'doc','')
+        VALUES(:especie,:codigo,:area,'INDIVIDUAL',current_date,1,'DEV-41','compra',100,'{}',:uid,now()-interval '1 day','doc','')
         RETURNING id_activo_biologico'''), {'especie':especie,'codigo':'DEV41-'+tag,
         'area':equipo['area'],'uid':usuario}).scalar_one()
+    # DEV-44: RF-61 ubica al activo por su historial a la hora de captura; el
+    # activo tiene que estar en el área antes de las lecturas de la prueba.
+    # (el registro de M02 crea esta fila en el repositorio; el INSERT directo de la prueba no).
+    db.execute(text('''INSERT INTO modulo2.historial_infraestructura_activo
+        (id_activo_biologico,id_infraestructura,fecha_inicio,id_usuario_registro)
+        VALUES(:a,:area,now()-interval '1 day',:uid)'''), {'a':activo,'area':equipo['area'],'uid':usuario})
     umbral = db.execute(text('''INSERT INTO modulo9.umbrales_ambientales
         (id_especie,id_variable_ambiental,unidad_medida,valor_min,valor_max,es_activo,fecha_actualizacion,id_usuario)
         VALUES(:e,:v,:u,20,50,true,now(),:uid) RETURNING id_umbral_ambiental'''),

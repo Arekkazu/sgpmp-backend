@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                          |
 # |------------|---------|------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica flujos HTTP y triggers reales  |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-27/42: evaluador con parametros y lectura con lock |
 """DEV-49 con JWT, broker, repositorios y PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -169,11 +170,18 @@ def test_creacion_tecnica_una_fila_preserva_motivo(db_session, hardware49):
     estado = Mock(estado_actual="ACTIVO", id_dispositivo_iot=hardware49["device"],
                   fecha_ultimo_contacto=datetime.now(timezone.utc) - timedelta(days=2))
     estado.evaluar_transicion.return_value = "INACTIVO"
+    # DEV-27: la transición se aplica sobre la entidad y los umbrales vienen del puerto.
+    estado.aplicar_transicion.side_effect = lambda nuevo, *_: setattr(estado, "estado_actual", nuevo)
     estados, periodos, transiciones, historia = Mock(), Mock(), Mock(), Mock()
     estados.listar_activos.return_value = [estado]
+    estados.bloquear_por_dispositivo.return_value = estado  # DEV-42: re-lee con lock
     periodos.obtener_abierto_por_dispositivo.return_value = None
+    parametros = Mock()
+    parametros.obtener_comunicacion.return_value = Mock(
+        estado_local_buffer=None, umbral_activo=60, umbral_sin_senal=120, umbral_inactivo=600,
+        id_infraestructura=None)
     caso = EvaluarEstadoDispositivosUseCase(db_session, estados, transiciones, periodos,
-                                           SqlAlchemyAlertaRepository(db_session), historia)
+                                           SqlAlchemyAlertaRepository(db_session), historia, parametros)
     assert caso.execute() == 1
     id_alerta = db_session.execute(text("""
         SELECT id_alerta FROM modulo3.alertas WHERE id_dispositivo_ioit=:id AND tipo_alerta='TECNICA'

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: verifica DB-13, contexto, avisos y traslados reales |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-22: id_especies en la infraestructura; RF61_AVISOS sin canal |
 """PostgreSQL aislado. Avisos usan dobles explicitos, sin acreditar entrega real."""
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
@@ -280,7 +281,8 @@ def test_etapa_postcommit_aviso_pendiente_no_borra_vinculo_y_recupera(db_session
     identificador,captura=lectura(db_session,area,usuario)
     worker=construir_procesador(db_session.get_bind(),identidad=False)
     assert ejecutar_etapa(db_session,worker,EtapaPostcommit.RF61,identificador)
-    with pytest.raises(ServiceUnavailableError):ejecutar_etapa(db_session,worker,EtapaPostcommit.RF61_AVISOS,identificador)
+    # Sin canal de aviso la etapa no corre: queda pendiente y no deja fallos en la bitácora.
+    assert EtapaPostcommit.RF61_AVISOS not in worker.acciones
     repo=SqlAlchemyVinculacionLecturaRepository(db_session)
     assert repo.vigente(identificador).estado_vinculacion=='PENDIENTE_REVISION'
     avisos=Mock();avisos.ambiguedad.return_value=True
@@ -347,7 +349,7 @@ def test_rf48_uc_integra_cierre_o_revierte_todo(db_session,area,usuario,fallar):
     finca=db_session.execute(text('SELECT id_finca FROM modulo9.infraestructuras WHERE id_infraestructura=:id'),{'id':area}).scalar_one()
     infras=Mock()
     infras.obtener_activa.side_effect=lambda i:SimpleNamespace(id_infraestructura=i,nombre='Origen' if i==area else 'Destino',
-        id_especie=2,id_finca=finca,tipo='Estanque',superficie=100,capacidad_maxima=10000)
+        id_especies=[2],id_finca=finca,tipo='Estanque',superficie=100,capacidad_maxima=10000)
     infras.es_tipo_compatible.return_value=True
     infras.calcular_ocupacion.return_value=0
     puente=VinculacionTrasladoM03Adapter(db_session)

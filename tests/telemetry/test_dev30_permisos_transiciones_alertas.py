@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                           |
 # |------------|---------|-------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: prueba autorizacion y transiciones REST  |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30/49: recurso alertas_operativas e historial por trigger |
 """DEV-30: dominio y HTTP con repositorios/datos de permisos explícitos en memoria.
 
 Estas pruebas no demuestran el despliegue de DB-08 ni la autenticación JWT real.
@@ -97,7 +98,7 @@ def flujo(monkeypatch):
     usuario = UsuarioActual(id_usuario=43, id_token=1, id_rol=871, id_estado_cuenta=2)
     permisos = {"U": True, "D": False}
     permiso_u = Mock(side_effect=lambda _db, _rol, recurso, accion: permisos["U"] and (recurso, accion) == (32, 3))
-    permiso_d = Mock(side_effect=lambda _db, _rol, recurso, accion: permisos["D"] and (recurso, accion) == ("alertas", 4))
+    permiso_d = Mock(side_effect=lambda _db, _rol, recurso, accion: permisos["D"] and (recurso, accion) == ("alertas_operativas", 4))
     monkeypatch.setattr(rbac, "tiene_permiso", permiso_u)
     monkeypatch.setattr(alerta_router, "tiene_permiso_sobre", permiso_d)
     app = FastAPI()
@@ -123,7 +124,7 @@ def test_u_sin_d_no_permite_descartar(flujo):
     flujo[3].obtener_por_id.assert_not_called()
     flujo[3].actualizar_estado.assert_not_called()
     flujo[2].commit.assert_not_called()
-    flujo[6].assert_called_once_with(flujo[2], flujo[4].id_rol, "alertas", 4)
+    flujo[6].assert_called_once_with(flujo[2], flujo[4].id_rol, "alertas_operativas", 4)
 
 
 def test_permiso_d_explicito_permite_descartar(flujo):
@@ -132,7 +133,8 @@ def test_permiso_d_explicito_permite_descartar(flujo):
     assert respuesta.status_code == 200, respuesta.text
     assert respuesta.json()["estado_alerta"] == "DESCARTADA"
     assert flujo[1]["alerta"].estado_alerta == "DESCARTADA"
-    assert len(flujo[1]["historial"]) == 1
+    # DEV-49: el historial lo escribe el trigger de RF-57 en PostgreSQL, no Python.
+    assert flujo[1]["historial"] == []
     flujo[2].commit.assert_called_once()
 
 

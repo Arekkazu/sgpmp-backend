@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                          |
 # |------------|---------|------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: prueba RBAC y persistencia PostgreSQL   |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-49: el fallo inducido pasa a la auditoria (historial por trigger) |
 """HTTP, JWT, RBAC, repositorios y triggers reales en PostgreSQL exclusivo.
 
 Si existe el recurso DB-08, la fixture configura explícitamente D/alertas
@@ -197,14 +198,17 @@ def test_sin_token_no_autoriza(escenario):
 
 
 def test_fallo_de_historial_revierte_estado_en_postgresql(escenario, monkeypatch):
-    from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
+    # DEV-49: el historial lo escribe el trigger en la misma sentencia del UPDATE.
+    # Se induce el fallo en la auditoría de DEV-47, que va en la misma transacción
+    # después del cambio de estado: el estado y el historial tienen que revertirse.
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 
     def fallar(*args, **kwargs):
         raise RuntimeError("Fallo de persistencia inducido por la prueba")
 
     id_alerta = _crear_alerta(escenario[1])
     previo = _registros(escenario[1], id_alerta)
-    monkeypatch.setattr(SqlAlchemyHistoricoEstadoAlertaRepository, "registrar", fallar)
+    monkeypatch.setattr(SqlAlchemyAlertaRepository, "_auditar", fallar)
     respuesta = _patch(escenario, id_alerta, "EN_ATENCION")
     assert respuesta.status_code == 500  # Fallo inesperado, no una regla de negocio.
     assert _registros(escenario[1], id_alerta) == previo
