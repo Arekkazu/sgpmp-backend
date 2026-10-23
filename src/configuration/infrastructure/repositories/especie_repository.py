@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: áreas de una especie se leen de la tabla puente (RFC-012) |
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: persiste esperanza_vida_dias (RFC-014) |
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: áreas ocupadas de la especie para validar la reducción de densidad |
 """Implementación SQLAlchemy del puerto :class:`EspecieRepository`.
 
 Único punto donde se cruza la frontera ORM ↔ dominio para el agregado
@@ -11,6 +13,7 @@ trabaja siempre con la entidad pura.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import func, text
@@ -18,11 +21,18 @@ from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.especie import Especie
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
+from src.configuration.domain.services.capacidad_area import AreaOcupada
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
+from src.configuration.infrastructure.adapters.infraestructura_dependency_adapter import (
+    InfraestructuraDependencyAdapter,
+)
 from src.configuration.infrastructure.models.especie_model import EspecieModel
 from src.configuration.infrastructure.models.infraestructura_model import (
     InfraestructuraEspecieModel,
     InfraestructuraModel,
+)
+from src.configuration.infrastructure.repositories.infraestructura_repository import (
+    SqlAlchemyInfraestructuraRepository,
 )
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.rehidratar import rehidratar
@@ -44,6 +54,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             descripcion=orm.descripcion,
             densidad_maxima_por_especie=orm.densidad_maxima_por_especie,
             grupo_manejo=orm.grupo_manejo,
+            esperanza_vida_dias=orm.esperanza_vida_dias,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
             fecha_actualizacion=orm.fecha_actualizacion,
@@ -56,6 +67,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             descripcion=especie.descripcion,
             densidad_maxima_por_especie=especie.densidad_maxima_por_especie,
             grupo_manejo=especie.grupo_manejo,
+            esperanza_vida_dias=especie.esperanza_vida_dias,
             es_activo=especie.es_activo,
             fecha_creacion=especie.fecha_creacion or datetime.now(timezone.utc),
         )
@@ -94,6 +106,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         orm.descripcion = especie.descripcion
         orm.densidad_maxima_por_especie = especie.densidad_maxima_por_especie
         orm.grupo_manejo = especie.grupo_manejo
+        orm.esperanza_vida_dias = especie.esperanza_vida_dias
         orm.es_activo = especie.es_activo
         orm.fecha_actualizacion = especie.fecha_actualizacion
         try:
@@ -137,3 +150,23 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             ),
             {"id": id_especie},
         ).scalar() or 0
+
+    def listar_areas_ocupadas(self, id_especie: int) -> list[AreaOcupada]:
+        areas = self.db.query(InfraestructuraModel).join(
+            InfraestructuraEspecieModel,
+            InfraestructuraEspecieModel.id_infraestructura == InfraestructuraModel.id_infraestructura,
+        ).filter(
+            InfraestructuraEspecieModel.id_especie == id_especie,
+            InfraestructuraModel.es_activo.is_(True),
+        ).all()
+        infra_repo = SqlAlchemyInfraestructuraRepository(self.db)
+        dependencias = InfraestructuraDependencyAdapter(self.db)
+        ocupadas = []
+        for orm in areas:
+            carga = dependencias.calcular_carga(orm.id_infraestructura)
+            if carga:
+                ocupadas.append(AreaOcupada(
+                    nombre=orm.nombre, superficie=Decimal(str(orm.superficie)),
+                    especies=infra_repo.especies_del_area(orm), carga=carga,
+                ))
+        return ocupadas
