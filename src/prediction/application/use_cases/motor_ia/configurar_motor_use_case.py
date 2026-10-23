@@ -26,7 +26,7 @@ from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort
 from src.prediction.domain.repositories.sincronizacion_nodo_edge_repository import SincronizacionNodoEdgeRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
 from src.shared.tipo_modelo import TIPOS_MODELO, es_poblacional
 
 _MODOS_VALIDOS = {"EDGE", "SERVIDOR", "HIBRIDO"}

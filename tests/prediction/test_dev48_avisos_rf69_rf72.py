@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69/72: avisos e incidente de persistencia   |
+# | 2026-10-23 | Arekkazu | DEV-48: el aviso al Administrador usa E sobre auditoria_m04 |
 """DEV-48: avisos de RF-69 (E1b carga externa, E3 versión rechazada) e incidente de RF-72 E8.
 
 Fakes en memoria, sin DB ni SMTP: el envío se intercepta en el adaptador.
@@ -177,8 +178,9 @@ def test_adaptador_resuelve_destinatarios_por_permiso_y_envia(monkeypatch, ident
                               componente=None, detalle_validacion="f1_score_global=0.50 < umbral requerido 0.80")
     aviso.avisar_version_rechazada(version)
 
-    # E1b: auditoría M04 (46, R) → Administrador. E3: versión de modelo (43, U) → Veterinario.
-    assert [(p["id_recurso"], p["id_accion"]) for p in db.parametros] == [(46, 2), (43, 3)]
+    # E1b: auditoría M04 (46, E) → Administrador (el Veterinario tiene R desde DB-08).
+    # E3: versión de modelo (43, U) → Veterinario.
+    assert [(p["id_recurso"], p["id_accion"]) for p in db.parametros] == [(46, 5), (43, 3)]
     assert all(p["correo_servicio"] == "servicio.sistema@sgpmp.local" for p in db.parametros)
     assert identidades == [db, db]  # sin usuario en sesión: identidad de servicio
     assert [c["to"] for c in enviados] == ["admin@x.co", "admin@x.co"]  # sin correo no se envía
