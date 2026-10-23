@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 """TC-M09-71-G31 (frontend #317): al filtrar el dashboard por área, los KPIs
 salían bien pero `resumen_unidades` llegaba vacío y el cliente no pintaba
 ninguna tarjeta. El resumen debe traer la unidad filtrada, y solo esa.
@@ -40,13 +43,13 @@ class _RepoFake:
 
 
 def test_filtro_por_area_devuelve_solo_su_unidad_con_semaforo_recalculado():
-    _, resumen, _ = ObtenerDashboardUseCase(_RepoFake()).execute(7, 1, 50, id_rol_usuario=1)
+    _, resumen, _ = ObtenerDashboardUseCase(_RepoFake()).execute(7, 1, 50, ver_datos_tecnicos=True)
 
     assert [u.id_infraestructura for u in resumen] == [7]
     assert resumen[0].estado_general == 'ROJO'
 
 
 def test_sin_filtro_devuelve_todas_las_unidades():
-    _, resumen, _ = ObtenerDashboardUseCase(_RepoFake()).execute(None, 1, 50, id_rol_usuario=1)
+    _, resumen, _ = ObtenerDashboardUseCase(_RepoFake()).execute(None, 1, 50, ver_datos_tecnicos=True)
 
     assert [u.id_infraestructura for u in resumen] == [7, 8]
