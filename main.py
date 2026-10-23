@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
 import asyncio
 import logging
 import os
@@ -127,6 +128,7 @@ async def _vencer_alertas_sla_periodicamente() -> None:
     from src.telemetry.application.use_cases.alertas.vencer_alertas_sla_use_case import VencerAlertasSlaUseCase
     from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
     from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
 
     while True:
         await asyncio.sleep(60)
@@ -136,12 +138,43 @@ async def _vencer_alertas_sla_periodicamente() -> None:
                 db=db,
                 alerta_repo=SqlAlchemyAlertaRepository(db),
                 auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
             )
             n = await asyncio.to_thread(use_case.execute)
             if n > 0:
                 logger.info('VencerAlertasSla: %d alertas pasaron a VENCIDA.', n)
         except Exception:
             logger.exception('VencerAlertasSla: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _notificar_alertas_periodicamente() -> None:
+    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 10 s."""
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.notificar_alertas_use_case import NotificarAlertasUseCase
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+    from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
+    while True:
+        await asyncio.sleep(10)
+        db = sesion_sistema()
+        try:
+            use_case = NotificarAlertasUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+                parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('NotificarAlertas: %d alertas notificadas.', n)
+        except Exception:
+            logger.exception('NotificarAlertas: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -566,6 +599,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
+        asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),

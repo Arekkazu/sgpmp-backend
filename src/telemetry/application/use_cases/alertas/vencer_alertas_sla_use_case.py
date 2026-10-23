@@ -1,13 +1,14 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica de SLA vencido → VENCIDA, incumplimiento y escalamiento (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: envía la notificación de escalamiento al vencer (E10) |
 """Caso de uso: vencer alertas sin atender por SLA (RF-57 E10, CA-12, Restricción 12).
 
 Una alerta operativa ACTIVA que supera su ``fecha_vencimiento`` (5 min CRITICO,
 30 min MODERADO, 2 h LEVE desde su generación) pasa a VENCIDA. Se registra el
 incumplimiento en la bitácora RF-63 y, para CRITICO y MODERADO, el escalamiento
 al Veterinario o al Administrador. El envío de la notificación de escalamiento
-es de DEV-32 (canal de correo de RF-14).
+sale por el canal de RF-14 a quien puede descartar alertas en la finca (DEV-32).
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
 )
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+from src.telemetry.domain.repositories.notificacion_alerta_port import NotificacionAlertaPort
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +41,12 @@ DESTINATARIOS_ESCALAMIENTO = ("Veterinario", "Administrador")
 
 class VencerAlertasSlaUseCase:
 
-    def __init__(self, db: Session, alerta_repo: AlertaRepository, auditoria_repo: BitacoraAuditoriaIotRepository) -> None:
+    def __init__(self, db: Session, alerta_repo: AlertaRepository, auditoria_repo: BitacoraAuditoriaIotRepository,
+                 notificacion_port: Optional[NotificacionAlertaPort] = None) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
         self.auditoria_repo = auditoria_repo
+        self.notificacion = notificacion_port
 
     def execute(self, ahora: Optional[datetime] = None) -> int:
         """Devuelve cuántas alertas pasaron a VENCIDA."""
@@ -58,7 +62,16 @@ class VencerAlertasSlaUseCase:
         auditoria = RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo)
         for alerta in vencidas:
             self._auditar(auditoria, alerta, ahora)
+            if self.notificacion is not None and alerta.severidad in _SEVERIDADES_QUE_ESCALAN:
+                self._escalar(alerta)
         return len(vencidas)
+
+    def _escalar(self, alerta: Alerta) -> None:
+        titulo = f"Escalamiento: alerta {alerta.severidad} #{alerta.id_alerta} sin atender"
+        cuerpo = (f"La alerta #{alerta.id_alerta} ({alerta.tipo_alerta}, {alerta.tipo_variable}) no se atendió dentro "
+                  f"del SLA y pasó a VENCIDA. Revísela en el panel de alertas.")
+        for id_usuario in self.notificacion.destinatarios(alerta.id_infraestructura, escalamiento=True):
+            self.notificacion.enviar(id_usuario, titulo, cuerpo, agrupable=False)
 
     @staticmethod
     def _auditar(auditoria: RegistrarEventoAuditoriaIotUseCase, alerta: Alerta, ahora: datetime) -> None:

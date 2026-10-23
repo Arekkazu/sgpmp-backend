@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: el tipo 31 CAMBIO_VARIABLE_CRITICA es MODIFICACION |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: el tipo 32 NOTIFICACION_ALERTA es MODIFICACION |
 """Pruebas de regresión para las categorías de auditoría de RF-10."""
 from __future__ import annotations
 
@@ -35,7 +36,8 @@ TIPOS_POR_CATEGORIA = {
     # modificar la calibración de un sensor de M09.
     # 30 = CALIBRACION_EXITOSA (RF-24/RF-10): cambio de configuración técnica.
     # 31 = CAMBIO_VARIABLE_CRITICA (RFC-016 B.7): cambio de configuración del catálogo.
-    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30, 31),
+    # 32 = NOTIFICACION_ALERTA (RF-57, DEV-32): notificación de una alerta.
+    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30, 31, 32),
     EventoCategoria.CONSULTA: (*range(16, 20), 26),
 }
 
@@ -108,7 +110,7 @@ def test_catalogo_cubre_todos_los_tipos_actuales_sin_duplicados() -> None:
         for tipo in tipos_categoria
     ]
 
-    assert sorted(tipos) == list(range(1, 32))
+    assert sorted(tipos) == list(range(1, 33))
     assert len(tipos) == len(set(tipos))
 
 

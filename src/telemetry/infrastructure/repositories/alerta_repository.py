@@ -1,9 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido, FOR UPDATE SKIP LOCKED (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: pendientes de notificar y conteos de tormenta (Fase 8, E8) |
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
-from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta
+from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta, TipoAlerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
 
@@ -306,6 +307,45 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             id_usuario_resolucion=orm.id_usuario_resolucion,
             referencia_alerta_original=orm.referencia_alerta_original,
         )
+
+    def reclamar_pendientes_notificacion(self, ahora: datetime, ventana_min: int = 10, limite: int = 100) -> list[Alerta]:
+        try:
+            filas = (
+                self.db.query(AlertaModel)
+                .filter(
+                    AlertaModel.fecha_notificacion.is_(None),
+                    AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                    AlertaModel.fecha_generacion >= ahora - timedelta(minutes=ventana_min),
+                )
+                .order_by(AlertaModel.fecha_generacion)
+                .limit(limite)
+                .with_for_update(skip_locked=True)
+                .all()
+            )
+            for orm in filas:
+                orm.fecha_notificacion = ahora
+            self.db.flush()
+            return [self._a_entidad(orm) for orm in filas]
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
+        filas = (
+            self.db.query(AlertaModel.id_infraestructura, func.count())
+            .filter(AlertaModel.fecha_generacion >= desde, AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                    AlertaModel.tipo_alerta != TipoAlerta.TORMENTA_DE_ALERTAS.value)
+            .group_by(AlertaModel.id_infraestructura)
+            .all()
+        )
+        return sum(n for _, n in filas), {area: n for area, n in filas if area is not None}
+
+    def existe_tormenta_desde(self, desde: datetime) -> bool:
+        return self.db.query(
+            self.db.query(AlertaModel).filter(
+                AlertaModel.tipo_alerta == TipoAlerta.TORMENTA_DE_ALERTAS.value,
+                AlertaModel.fecha_generacion >= desde,
+            ).exists()
+        ).scalar()
 
     def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
         try:

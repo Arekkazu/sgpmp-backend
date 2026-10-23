@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tipo de evento 32 NOTIFICACION_ALERTA |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -73,6 +74,9 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     30: EventoCategoria.MODIFICACION,
     # Variable ambiental marcada o desmarcada como crítica (RFC-016 B.7, RF-17).
     31: EventoCategoria.MODIFICACION,
+    # Notificación de una alerta de RF-57 a un usuario (DEV-32): la emite un proceso
+    # automático, igual que el 28.
+    32: EventoCategoria.MODIFICACION,
 }
 
 
@@ -113,6 +117,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     29: "CALIBRACION_RECHAZADA",
     30: "CALIBRACION_EXITOSA",
     31: "CAMBIO_VARIABLE_CRITICA",
+    32: "NOTIFICACION_ALERTA",
 }
 
 
