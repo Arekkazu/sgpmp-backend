@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta adaptadores reales por etapa |
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: conecta alerta critica al worker |
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -13,6 +14,8 @@ from src.configuration.infrastructure.repositories.configuracion_global_reposito
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.shared.database import engine
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
+from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
+from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import ProcesarHeartbeatPersistidoUseCase
 from src.telemetry.application.use_cases.infraestructura.evaluar_diagnostico_heartbeat_use_case import EvaluarDiagnosticoHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
@@ -53,7 +56,9 @@ def _lectura(db):
         EvaluarCalidadTelemetriaUseCase(db, lecturas, SqlAlchemyTelemetriaCalidadRepository(db),
                                       ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db),
                                                                     SqlAlchemyConfiguracionGlobalRepository(db)),
-                                      SqlAlchemyBitacoraAuditoriaIotRepository(db)),
+                                      SqlAlchemyBitacoraAuditoriaIotRepository(db),
+                                      contexto_port=ContextoCalidadM09RF60Adapter(db),
+                                      alertas_calidad=GenerarAlertaCalidadUseCase(SqlAlchemyAlertaRepository(db))),
         ReclasificarSemaforoUseCase(db, lecturas, EspecieActivoM02Adapter(db),
                                   UmbralHistoricoM09Adapter(db), SqlAlchemyMonitoreoRepository(db)),
     )

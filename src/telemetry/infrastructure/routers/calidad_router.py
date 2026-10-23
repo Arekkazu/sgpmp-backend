@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -14,6 +17,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
@@ -26,6 +30,9 @@ from src.telemetry.application.use_cases.calidad.consultar_calidad_use_case impo
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
+from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
+from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
+from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.telemetry.infrastructure.dto.solicitar_reevaluacion_dto import SolicitarReevaluacionDTO
@@ -108,6 +115,7 @@ def obtener_calidad(
     response_model=TelemetriaCalidadSchema,
     status_code=201,
     responses={
+        200: {"description":"Evaluación omitida por inactividad RF-60; no se crea evaluación."},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -139,17 +147,22 @@ def evaluar_calidad(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
         parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        contexto_port=ContextoCalidadM09RF60Adapter(db),
+        alertas_calidad=GenerarAlertaCalidadUseCase(SqlAlchemyAlertaRepository(db)),
     )
     evaluacion = use_case.execute(
         id_telemetria=id_telemetria,
         id_sensor=row[0],
         id_variable=row[1],
         valor=Decimal(str(row[2])),
-        valor_ajustado=Decimal(str(row[3])) if row[3] else None,
+        valor_ajustado=Decimal(str(row[3])) if row[3] is not None else None,
         timestamp_captura=row[4],
         estado_calidad_rf53=row[5],
         parametros_calibracion=row[6],
     )
+    if evaluacion is None:
+        return JSONResponse(status_code=200,content={
+            "id_telemetria":id_telemetria,"resultado":"EVALUACION_OMITIDA_POR_INACTIVIDAD"})
     return TelemetriaCalidadSchema.model_validate(evaluacion)
 
 

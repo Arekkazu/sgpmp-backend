@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -23,6 +26,7 @@ from sqlalchemy.orm import Session
 from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -220,6 +224,8 @@ def listar_alertas_tecnicas(
         estado=estado,
         severidad=severidad,
         ambito=AmbitoAlerta.TECNICA,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario,usuario_actual.id_rol),
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,
@@ -258,6 +264,10 @@ def actualizar_estado_alerta_tecnica(
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         ambito=AmbitoAlerta.TECNICA,
     )
+    permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario,usuario_actual.id_rol)
+    ConsultarAlertasUseCase(SqlAlchemyAlertaRepository(db),SqlAlchemyHistoricoEstadoAlertaRepository(db)).obtener_detalle(
+        id_alerta,ambito=AmbitoAlerta.TECNICA,ids_fincas_permitidas=permitidas)
     alerta = use_case.execute(
         id_alerta=id_alerta,
         dto=dto,

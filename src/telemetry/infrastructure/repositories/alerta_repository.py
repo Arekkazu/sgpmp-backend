@@ -8,6 +8,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-57: consolida condicion sin carreras    |
+# | 2026-10-21 | Leandro | DEV-43 RF-62: consolida diagnosticos tecnicos por sensor |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -30,6 +31,31 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def bloquear_condicion_calidad(self, id_sensor, anomalia):
+        self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                        {'clave':f'rf62:alerta:{id_sensor}:{anomalia}'})
+
+    def buscar_tecnica_calidad(self, id_sensor, anomalia, id_telemetria):
+        orm = self.db.query(AlertaModel).filter(
+            AlertaModel.tipo_alerta == 'TECNICA', AlertaModel.id_sensor == id_sensor,
+            AlertaModel.metadato_evento['componente_origen'].astext == 'RF62',
+            AlertaModel.metadato_evento['anomalia'].astext == anomalia,
+            or_(AlertaModel.estado_alerta.in_(['ACTIVA','EN_ATENCION']),
+                AlertaModel.id_telemetria == id_telemetria),
+        ).order_by(AlertaModel.id_alerta.desc()).with_for_update().populate_existing().first()
+        return self._a_entidad(orm) if orm else None
+
+    def contexto_sensor_calidad(self, id_sensor):
+        return dict(self.db.execute(text('''SELECT s.id_dispositivo_iot,d.id_infraestructura
+            FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d
+              ON d.id_dispositivo_iot=s.id_dispositivo_iot
+            WHERE s.id_sensores=:id'''), {'id':id_sensor}).mappings().one())
+
+    def escalar_calidad(self, id_alerta, severidad):
+        orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).with_for_update().one()
+        orm.severidad = severidad
+        self.db.flush()
 
     def guardar(self, alerta: Alerta) -> Alerta:
         try:

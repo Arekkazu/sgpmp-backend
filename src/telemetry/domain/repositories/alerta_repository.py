@@ -5,6 +5,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-57: bloqueo por condicion operativa     |
+# | 2026-10-21 | Leandro | DEV-43 RF-62: puerto de alerta tecnica idempotente |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,6 +18,18 @@ from src.telemetry.domain.entities.alerta import Alerta
 class AlertaRepository(ABC):
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
+        raise NotImplementedError
+
+    def bloquear_condicion_calidad(self, id_sensor: int, anomalia: str):
+        raise NotImplementedError
+
+    def buscar_tecnica_calidad(self, id_sensor: int, anomalia: str, id_telemetria: int):
+        raise NotImplementedError
+
+    def contexto_sensor_calidad(self, id_sensor: int) -> dict:
+        raise NotImplementedError
+
+    def escalar_calidad(self, id_alerta: int, severidad: str):
         raise NotImplementedError
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
