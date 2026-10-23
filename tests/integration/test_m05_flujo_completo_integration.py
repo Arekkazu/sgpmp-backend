@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-74..81: flujo completo contra Postgres |
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """M05 de punta a punta contra Postgres real (TestClient + triggers + migración bf404c6f1018).
 
 Cubre lo que los fakes no pueden: el ledger y el acumulado que llevan los
@@ -353,3 +354,23 @@ def test_reporte_gastos_exporta_pdf_y_vence(cliente, db_session, admin, crear_us
         "activo_biologico_id": esc["activo"],
     })
     assert invertido.status_code == 400  # E2
+
+
+def test_catalogo_tipos_alimento_ordenado_y_solo_activos(cliente, db_session, admin):
+    _, headers = admin
+    activo, cesado = _nombre("A Concentrado"), _nombre("A Pasto")
+    db_session.execute(text(
+        "INSERT INTO modulo5.tipos_alimentos (nombre, costo_unitario, unidad_medida, estado) "
+        "VALUES (:a, 2500, 'kg', 'ACTIVO'), (:i, 900, 'kg', 'CESADO')"), {"a": activo, "i": cesado})
+    db_session.flush()
+
+    r = cliente.get("/suministros/consumo-alimentos/tipos-alimento", headers=headers)
+    assert r.status_code == 200, r.text
+    nombres = [x["nombre"] for x in r.json()["items"]]
+    assert activo in nombres and cesado not in nombres
+    assert nombres == sorted(nombres)
+    elegido = next(x for x in r.json()["items"] if x["nombre"] == activo)
+    assert elegido["unidad_medida"] == "kg" and Decimal(elegido["costo_unitario"]) == Decimal("2500")
+
+    todos = cliente.get("/suministros/consumo-alimentos/tipos-alimento", headers=headers, params={"solo_activos": False})
+    assert {activo, cesado} <= {x["nombre"] for x in todos.json()["items"]}

@@ -1,12 +1,14 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75: E5 405, alcance y wiring nuevo     |
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """Router FastAPI para el registro de consumo de alimento (`/suministros/consumo-alimentos`).
 
 Expone los flujos de RF-75 (CU-01):
   POST   /suministros/consumo-alimentos               — Registrar consumo
   POST   /suministros/consumo-alimentos/{id}/anulacion — Anular consumo
   GET    /suministros/consumo-alimentos               — Consultar/buscar consumos
+  GET    /suministros/consumo-alimentos/tipos-alimento — Catálogo de tipos de alimento
   PUT/PATCH/DELETE /suministros/consumo-alimentos/{id} — 405: registro inmutable (E5)
 
 Autorización delegada al RBAC centralizado (``src/shared/rbac.py``):
@@ -29,12 +31,15 @@ from src.supplies.infrastructure.dto.registrar_consumo_alimento_dto import Regis
 from src.supplies.infrastructure.factories.suministros_factory import (
     build_anular_consumo_use_case,
     build_consultar_consumos_use_case,
+    build_listar_tipos_alimento_use_case,
     build_rechazar_modificacion_use_case,
     build_registrar_consumo_use_case,
 )
 from src.supplies.infrastructure.schema.consumo_alimento_schema import (
     ConsultaConsumosResponse,
     ConsumoAlimentoResponse,
+    ListaTiposAlimentoResponse,
+    TipoAlimentoResponse,
 )
 
 router = APIRouter(prefix="/suministros/consumo-alimentos", tags=["Suministros - Consumo de alimentos"])
@@ -118,6 +123,31 @@ def consultar_consumos(
     )
     items = [ConsumoAlimentoResponse.model_validate(c) for c in consumos]
     return ConsultaConsumosResponse(total=len(items), items=items)
+
+
+@router.get(
+    "/tipos-alimento",
+    response_model=ListaTiposAlimentoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Catálogo de tipos de alimento para registrar un consumo (RF-75)",
+)
+def listar_tipos_alimento(
+    solo_activos: bool = Query(True, description="Solo los ACTIVO (no los CESADO), que son los únicos que admite el registro."),
+    db: Session = Depends(get_db),
+) -> ListaTiposAlimentoResponse:
+    tipos = build_listar_tipos_alimento_use_case(db).execute(solo_activos=solo_activos)
+    items = [
+        TipoAlimentoResponse(
+            id_tipo_alimento=t.id_tipo_elemento,
+            nombre=t.nombre,
+            unidad_medida=t.unidad_medida,
+            costo_unitario=t.costo_unitario,
+            estado=t.estado,
+        )
+        for t in tipos
+    ]
+    return ListaTiposAlimentoResponse(total=len(items), items=items)
 
 
 _RESPUESTAS_405 = {404: {"model": ErrorResponse}, 405: {"model": ErrorResponse}}

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75/76: wiring de consumo y medicamento |
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """Fábricas de wiring de RF-75/RF-76 (consumo de alimento y medicamentos).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases listos.
@@ -14,6 +15,7 @@ from src.supplies.application.use_cases.suministros.anular_consumo_alimento_use_
     AnularConsumoAlimentoUseCase,
 )
 from src.supplies.application.use_cases.suministros.anular_medicamento_use_case import AnularMedicamentoUseCase
+from src.supplies.application.use_cases.suministros.listar_tipos_alimento_use_case import ListarTiposAlimentoUseCase
 from src.supplies.application.use_cases.suministros.consultar_consumos_use_case import ConsultarConsumosUseCase
 from src.supplies.application.use_cases.suministros.consultar_medicamentos_use_case import (
     ConsultarMedicamentosUseCase,
@@ -73,6 +75,10 @@ def build_consultar_consumos_use_case(db: Session) -> ConsultarConsumosUseCase:
         consumo_repo=SqlAlchemyConsumoAlimentoRepository(db),
         alcance_port=AlcanceActivoM02Adapter(db),
     )
+
+
+def build_listar_tipos_alimento_use_case(db: Session) -> ListarTiposAlimentoUseCase:
+    return ListarTiposAlimentoUseCase(consumo_repo=SqlAlchemyConsumoAlimentoRepository(db))
 
 
 def build_registrar_medicamento_use_case(db: Session) -> RegistrarMedicamentoUseCase:

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-75 CA-10: último consumo validado      |
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """Puerto del repositorio de consumos de alimento (RF-75).
 
 Expresado en términos de dominio: recibe y devuelve la entidad
@@ -39,6 +40,11 @@ class ConsumoAlimentoRepository(ABC):
     @abstractmethod
     def obtener_tipo_alimento(self, id_tipo_alimento: int) -> Optional[TipoAlimentoRef]:
         """Devuelve el tipo de alimento del catálogo o ``None`` si no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_tipos_alimento(self, *, solo_activos: bool) -> list[TipoAlimentoRef]:
+        """Catálogo de tipos de alimento ordenado por nombre; con ``solo_activos`` omite los inactivos."""
         raise NotImplementedError
 
     @abstractmethod
