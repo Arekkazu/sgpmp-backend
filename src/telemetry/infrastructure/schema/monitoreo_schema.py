@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 from __future__ import annotations
 
 from datetime import datetime
@@ -112,9 +115,26 @@ class ResumenEstadisticoSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VacioTemporalSchema(BaseModel):
+    """RF-59 E7 / CA-17 — intervalo sin lecturas mayor que 3 × la frecuencia de muestreo."""
+    sensor_id: int
+    tipo_variable: str
+    desde: datetime
+    hasta: datetime
+    duracion_min: int
+    frecuencia_esperada_min: int
+
+
 class HistorialPageSchema(BaseModel):
-    """RF-59 — respuesta paginada del historial."""
+    """RF-59 — respuesta paginada del historial.
+
+    ``total`` son los registros navegables (como mucho 10 000, CA-19); ``total_encontrado``
+    los que cumplen los filtros. Si los supera, ``truncado`` y ``aviso`` lo explican (E6).
+    """
     total: int
+    total_encontrado: int
+    truncado: bool = False
+    aviso: Optional[str] = None
     pagina: int
     por_pagina: int
     paginas_totales: int
@@ -122,3 +142,4 @@ class HistorialPageSchema(BaseModel):
     rango_real_datos: dict[str, Any]
     items: list[LecturaHistoricaSchema]
     estadisticas: list[ResumenEstadisticoSchema]
+    vacios_temporales: list[VacioTemporalSchema] = []

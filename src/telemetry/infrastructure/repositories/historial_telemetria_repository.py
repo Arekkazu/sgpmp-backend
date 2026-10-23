@@ -1,11 +1,20 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, time, timedelta
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.telemetry.domain.entities.monitoreo import FiltrosHistorial, LecturaHistorica, ResumenEstadistico
+from src.shared.fechas import ZONA_COLOMBIA
+from src.telemetry.domain.entities.monitoreo import (
+    FiltrosHistorial,
+    LecturaHistorica,
+    ResumenEstadistico,
+    VacioTemporal,
+)
 from src.telemetry.domain.repositories.historial_telemetria_repository import HistorialTelemetriaRepository
 
 # Filtros base siempre presentes; los opcionales se agregan dinámicamente
@@ -101,6 +110,14 @@ SELECT
     COUNT(CASE WHEN t.estado_calidad::text != 'LECTURA_VALIDA' THEN 1 END) AS fuera_rango
 FROM modulo3.telemetrias t
 LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable
+-- DEV-38: mismas uniones que el conteo. Sin vl_lat/ab/esp, filtrar por especie
+-- daba 500 (esp no existía) y el área/finca no coincidía con la de las lecturas.
+LEFT JOIN LATERAL (
+    SELECT v.id_activo_biologico, v.id_infraestructura
+    FROM modulo3.vinculaciones_lecturas v
+    WHERE v.id_telemetria = t.id_telemetria
+    ORDER BY v.fecha_creacion DESC LIMIT 1
+) vl_lat ON true
 LEFT JOIN LATERAL (
     SELECT saa2.id_infraestructura
     FROM modulo9.sensores_areas_asociadas saa2
@@ -110,8 +127,9 @@ LEFT JOIN LATERAL (
     ORDER BY saa2.fecha_asociacion DESC LIMIT 1
 ) saa_lat ON true
 LEFT JOIN modulo9.infraestructuras i
-    ON i.id_infraestructura = saa_lat.id_infraestructura
-LEFT JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+    ON i.id_infraestructura = COALESCE(vl_lat.id_infraestructura, saa_lat.id_infraestructura)
+LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = vl_lat.id_activo_biologico
+LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
 WHERE t.timestamp_captura >= :fecha_inicio
   AND t.timestamp_captura < :fecha_fin_ex
   {filtros_where}
@@ -119,12 +137,68 @@ GROUP BY va.nombre
 ORDER BY va.nombre
 """
 
+# RF-59 E7 / CA-17 (DEV-38): vacío = hueco entre dos lecturas consecutivas del mismo
+# sensor y variable mayor que 3 × la frecuencia de muestreo (la de la lectura anterior,
+# o la global de RF-18 si la lectura no la trae). Mismos filtros que el conteo.
+_VACIOS_HISTORIAL = """
+WITH serie AS (
+    SELECT
+        t.id_sensor,
+        va.nombre AS tipo_variable,
+        t.timestamp_captura,
+        LAG(t.timestamp_captura) OVER w AS anterior,
+        COALESCE(
+            LAG(t.frecuencia_muestreo_min) OVER w,
+            t.frecuencia_muestreo_min,
+            (SELECT cg.frecuencia_muestreo FROM modulo9.vw_rf18_configuracion_global_activa cg LIMIT 1)
+        ) AS frecuencia_min
+    FROM modulo3.telemetrias t
+    LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable
+    LEFT JOIN LATERAL (
+        SELECT v.id_activo_biologico, v.id_infraestructura
+        FROM modulo3.vinculaciones_lecturas v
+        WHERE v.id_telemetria = t.id_telemetria
+        ORDER BY v.fecha_creacion DESC LIMIT 1
+    ) vl_lat ON true
+    LEFT JOIN LATERAL (
+        SELECT saa2.id_infraestructura
+        FROM modulo9.sensores_areas_asociadas saa2
+        WHERE saa2.id_sensor = t.id_sensor
+          AND saa2.fecha_asociacion <= t.timestamp_captura
+          AND (saa2.fecha_finalizacion IS NULL OR saa2.fecha_finalizacion > t.timestamp_captura)
+        ORDER BY saa2.fecha_asociacion DESC LIMIT 1
+    ) saa_lat ON true
+    LEFT JOIN modulo9.infraestructuras i
+        ON i.id_infraestructura = COALESCE(vl_lat.id_infraestructura, saa_lat.id_infraestructura)
+    LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = vl_lat.id_activo_biologico
+    LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
+    WHERE t.timestamp_captura >= :fecha_inicio
+      AND t.timestamp_captura < :fecha_fin_ex
+      {filtros_where}
+    WINDOW w AS (PARTITION BY t.id_sensor, t.id_variable ORDER BY t.timestamp_captura)
+)
+SELECT id_sensor, tipo_variable, anterior AS desde, timestamp_captura AS hasta, frecuencia_min,
+       CAST(EXTRACT(EPOCH FROM (timestamp_captura - anterior)) / 60 AS integer) AS duracion_min
+FROM serie
+WHERE anterior IS NOT NULL
+  AND frecuencia_min IS NOT NULL AND frecuencia_min > 0
+  AND timestamp_captura - anterior > make_interval(mins => 3 * frecuencia_min)
+ORDER BY anterior
+LIMIT :max_vacios
+"""
+
+# Tope de vacíos devueltos: con un sensor caído muchos días la lista no crece sin límite.
+_MAX_VACIOS = 500
+
 
 def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
     conds: list[str] = []
+    # RF-59 E2 (DEV-38): las fechas son días calendario en Colombia. Antes el rango se
+    # cortaba a medianoche UTC y dejaba fuera las lecturas de 19:00 a 24:00 hora local
+    # del último día (y metía las del día anterior).
     params: dict = {
-        'fecha_inicio': datetime.combine(filtros.fecha_inicio, datetime.min.time()).replace(tzinfo=timezone.utc),
-        'fecha_fin_ex': datetime.combine(filtros.fecha_fin, datetime.max.time()).replace(tzinfo=timezone.utc),
+        'fecha_inicio': datetime.combine(filtros.fecha_inicio, time.min, tzinfo=ZONA_COLOMBIA),
+        'fecha_fin_ex': datetime.combine(filtros.fecha_fin + timedelta(days=1), time.min, tzinfo=ZONA_COLOMBIA),
         'por_pagina': filtros.por_pagina,
         'offset': (filtros.pagina - 1) * filtros.por_pagina,
     }
@@ -215,6 +289,23 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
                 total_alertas_en_periodo=0,
             ))
         return result
+
+    def detectar_vacios(self, filtros: FiltrosHistorial) -> list[VacioTemporal]:
+        sql, params = _build_query(filtros, _VACIOS_HISTORIAL)
+        params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
+        params['max_vacios'] = _MAX_VACIOS
+        filas = self.db.execute(text(sql), params).mappings().all()
+        return [
+            VacioTemporal(
+                sensor_id=f['id_sensor'],
+                tipo_variable=f['tipo_variable'] or '',
+                desde=f['desde'],
+                hasta=f['hasta'],
+                duracion_min=f['duracion_min'],
+                frecuencia_esperada_min=f['frecuencia_min'],
+            )
+            for f in filas
+        ]
 
     @staticmethod
     def _fila_a_entidad(f: dict) -> LecturaHistorica:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -95,6 +98,18 @@ class ResumenEstadistico:
     pct_dentro_rango: Optional[float]
     pct_fuera_rango: Optional[float]
     total_alertas_en_periodo: int = 0
+
+
+@dataclass
+class VacioTemporal:
+    """RF-59 E7 / CA-17: intervalo sin lecturas de un sensor y variable, mayor que
+    3 × su frecuencia de muestreo (minutos)."""
+    sensor_id: int
+    tipo_variable: str
+    desde: datetime
+    hasta: datetime
+    duracion_min: int
+    frecuencia_esperada_min: int
 
 
 @dataclass
