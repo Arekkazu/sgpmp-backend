@@ -7,6 +7,7 @@
 # | 2026-10-22 | Leandro | DEV-28 RF-60: conecta diagnostico postcommit de vision |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: conecta evidencia y reintento de avisos |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conecta auditoria de HTTP y persistencia MQTT |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -122,15 +123,12 @@ def _vision(db,identificador):
 
 def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60):
     parametros = parametros_heartbeat
-    return ProcesarPostcommitUseCase(
-        lambda: unidad_postcommit(engine_bd, identidad=identidad),
-        {
+    acciones = {
             EtapaPostcommit.RF53_LECTURAS: auditar_lectura,
             EtapaPostcommit.RF53_AUDITORIA: auditar_ingesta,
             EtapaPostcommit.RF60_TRANSICIONES: auditar_transicion,
             EtapaPostcommit.HEARTBEAT_AUDITORIA: auditar_heartbeat,
             EtapaPostcommit.RF61: lambda db, i: _lectura(db).vincular_lectura(i),
-            EtapaPostcommit.RF61_AVISOS: lambda db,i: ProcesarAvisosVinculacionUseCase(SqlAlchemyVinculacionLecturaRepository(db),avisos_vinculacion,DestinatariosVinculacionM01Adapter(db)).execute(i),
             EtapaPostcommit.RF62: lambda db, i: _lectura(db).evaluar_lectura(i),
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.RF57: _alerta_critica,
@@ -141,7 +139,16 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.HEARTBEAT_SENSORES: lambda db, i: _diagnostico(db, i, 'sensores', diagnostico_heartbeat),
             EtapaPostcommit.HEARTBEAT_TEMPERATURA: lambda db, i: _diagnostico(db, i, 'temperatura', diagnostico_heartbeat),
             EtapaPostcommit.HEARTBEAT_FIRMWARE: lambda db, i: _diagnostico(db, i, 'firmware', diagnostico_heartbeat),
-        }, limite=limite, reintento_seg=reintento_seg,
+    }
+    # RF-61 E3: sin canal de aviso integrado la etapa no corre. Si corriera, cada
+    # reintento dejaría un POSTCOMMIT_RF61_AVISOS_FALLIDO en la bitácora inmutable
+    # (DB-11) por cada lectura ambigua; queda pendiente y se procesa al conectarlo.
+    if avisos_vinculacion is not None:
+        acciones[EtapaPostcommit.RF61_AVISOS] = lambda db, i: ProcesarAvisosVinculacionUseCase(
+            SqlAlchemyVinculacionLecturaRepository(db), avisos_vinculacion, DestinatariosVinculacionM01Adapter(db)).execute(i)
+    return ProcesarPostcommitUseCase(
+        lambda: unidad_postcommit(engine_bd, identidad=identidad),
+        acciones, limite=limite, reintento_seg=reintento_seg,
     )
 
 

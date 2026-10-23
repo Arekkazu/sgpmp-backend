@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: comparte efectos de comunicacion    |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-57: conserva motivo_generacion de DEV-49 |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: recuperacion selectiva y heartbeat ausente |
 """Efectos de aplicación comunes al worker y al evaluador periódico, sin commits."""
 from src.telemetry.domain.entities.alerta import Alerta
@@ -46,7 +47,9 @@ def completar_transicion_comunicacion(estado, parametros, tiempo, ahora, alertas
                 fecha_evento=ahora, fecha_generacion=ahora,
                 id_dispositivo_ioit=estado.id_dispositivo_iot,
                 id_infraestructura=parametros.id_infraestructura,
-                metadato_evento={'estado_operativo': nuevo, 'tiempo_sin_contacto_seg': tiempo,
+                # DEV-49: el trigger de RF-57 toma este motivo para el historial inicial.
+                metadato_evento={'estado_operativo': nuevo, 'motivo_generacion': f'Dispositivo en estado {nuevo}',
+                    'tiempo_sin_contacto_seg': tiempo,
                     'umbral_activo_seg': parametros.umbral_activo,
                     'umbral_sin_senal_seg': parametros.umbral_sin_senal,
                     'umbral_inactivo_seg': parametros.umbral_inactivo},

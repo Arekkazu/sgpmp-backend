@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: PATCH /{id} marca es_critica, solo Administrador (RFC-016) |
+# | 2026-10-23 | Arekkazu | DEV-25 RF-17: es_critica exige el recurso variables_ambientales_criticas de DB-08 |
 """Router FastAPI para el catálogo de variables ambientales (`/configuracion/variables-ambientales`).
 
 Catálogo predefinido (RF-17) — el mismo consumido por
@@ -8,8 +9,9 @@ Catálogo predefinido (RF-17) — el mismo consumido por
 de alerta. Comparte el recurso RBAC `umbrales_ambientales` porque solo tiene
 sentido para quien ya puede ver/gestionar umbrales.
 
-RFC-016 B.7: `PATCH /{id}` marca la variable como crítica; solo el Administrador
-tiene U sobre el recurso (DB-08).
+RFC-016 B.7: `PATCH /{id}` marca la variable como crítica. Además de U sobre
+`umbrales_ambientales` exige U sobre `variables_ambientales_criticas` (DB-08),
+que solo tiene el Administrador: el Veterinario edita umbrales pero no `es_critica`.
 
 Autorización RBAC:
   recurso umbrales_ambientales = id_recurso 20
@@ -35,12 +37,14 @@ from src.configuration.infrastructure.schema.umbral_schema import VariableAmbien
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.shared.database import get_db
-from src.shared.rbac import require_permission
+from src.shared.errors import AuthorizationError
+from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/configuracion/variables-ambientales', tags=['Configuración - Variables Ambientales'])
 
 _RECURSO = 20  # modulo1.recursos: 'umbrales_ambientales'
+_RECURSO_CRITICAS = 'variables_ambientales_criticas'  # DB-08, solo Administrador
 
 
 @router.get(
@@ -84,8 +88,15 @@ def actualizar_variable_critica(
     """Una lectura de una variable crítica entra como crítica en la cola de ingesta del
     broker (RF-53 E15), sin importar su nivel de umbral. El cambio queda auditado.
 
-    **Acceso:** `umbrales_ambientales` · Actualizar (solo Administrador).
+    **Acceso:** `umbrales_ambientales` · Actualizar y `variables_ambientales_criticas` ·
+    Actualizar (solo Administrador).
     """
+    # Por nombre: el id del recurso sale de la secuencia y difiere entre bases.
+    if not tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_CRITICAS, 3):
+        raise AuthorizationError(
+            code="ACCESO_DENEGADO",
+            message="Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        )
     use_case = ActualizarVariableCriticaUseCase(
         db=db,
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),

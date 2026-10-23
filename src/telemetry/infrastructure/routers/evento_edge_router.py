@@ -1,8 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E7 token inválido en bitácora, 429 por dispositivo (E6) y bitácora de rechazos |
-# | Fecha      | Nombre  | Que se hizo                                             |
-# |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: inyecta bitacora para indisponibilidad IA  |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 

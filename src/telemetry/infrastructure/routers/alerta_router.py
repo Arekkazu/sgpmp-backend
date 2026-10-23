@@ -1,9 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo                                             |
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: exige permiso especifico para descartar     |
-# | Fecha      | Nombre  | Que se hizo                                       |
-# |------------|---------|---------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta auditoria de calidad y 403   |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30 RF-57: descartar sobre el recurso real alertas_operativas |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -222,7 +221,7 @@ def actualizar_estado_alerta(
 ) -> AlertaSchema:
     # DB-08: D sobre el recurso por nombre; U sigue siendo obligatorio.
     if dto.nuevo_estado == EstadoAlerta.DESCARTADA and not tiene_permiso_sobre(
-        db, usuario_actual.id_rol, "alertas", 4,
+        db, usuario_actual.id_rol, "alertas_operativas", 4,
     ):
         raise AuthorizationError(
             code="ACCESO_DENEGADO",
