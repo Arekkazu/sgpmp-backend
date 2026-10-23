@@ -1,3 +1,8 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: aplica alcance de finca al mantenimiento |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -14,15 +19,16 @@ Auth REST: JWT Bearer + RBAC recurso 35 (infraestructura_iot) / recurso 36 (aler
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -49,6 +55,7 @@ from src.telemetry.infrastructure.repositories.periodo_inactividad_repository im
 from src.telemetry.infrastructure.schema.alerta_schema import AlertaSchema, ListaAlertasSchema
 from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
 from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
@@ -187,6 +194,8 @@ def aplicar_mantenimiento_dispositivo(
         dto=dto,
         id_usuario=usuario_actual.id_usuario,
         nombre_usuario=nombre_usuario,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol),
     )
     return EstadoDispositivoIoTSchema.model_validate(estado)
 
@@ -205,8 +214,8 @@ def aplicar_mantenimiento_dispositivo(
 def listar_alertas_tecnicas(
     estado: Optional[str] = Query(default=None),
     severidad: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -220,6 +229,8 @@ def listar_alertas_tecnicas(
         estado=estado,
         severidad=severidad,
         ambito=AmbitoAlerta.TECNICA,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario,usuario_actual.id_rol),
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,
@@ -258,6 +269,10 @@ def actualizar_estado_alerta_tecnica(
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         ambito=AmbitoAlerta.TECNICA,
     )
+    permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario,usuario_actual.id_rol)
+    ConsultarAlertasUseCase(SqlAlchemyAlertaRepository(db),SqlAlchemyHistoricoEstadoAlertaRepository(db)).obtener_detalle(
+        id_alerta,ambito=AmbitoAlerta.TECNICA,ids_fincas_permitidas=permitidas)
     alerta = use_case.execute(
         id_alerta=id_alerta,
         dto=dto,

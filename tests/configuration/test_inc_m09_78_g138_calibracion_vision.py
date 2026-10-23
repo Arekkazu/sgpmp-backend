@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: adaptar fixtures monoespecie al contrato DB-06. |
 """INC-M09-78-G138 (#514): RF-24 v2.0, modalidad VISION (línea base por área y especie).
 
 QA no encontraba ninguna operación VISION publicada. Estos tests cubren:
@@ -62,13 +65,14 @@ class _Camaras:
 
 class _Observaciones:
     def __init__(self, obs): self.obs, self.pedidas = obs, None
-    def listar(self, ids, inicio, fin):
+    def listar(self, ids, inicio, fin, *, id_infraestructura=None):
         self.pedidas = ids
         return self.obs
 
 
 class _Calibraciones:
-    def __init__(self): self.guardadas = []
+    def __init__(self): self.guardadas, self.bloqueadas = [], []
+    def bloquear_area(self, id_area): self.bloqueadas.append(id_area)
     def guardar(self, cal):
         cal.id_calibracion_vision = len(self.guardadas) + 1
         self.guardadas.append(cal)
@@ -96,7 +100,9 @@ class _Eventos:
 
 def _area(**kw):
     base = dict(id_infraestructura=2, id_finca=1, id_especie=4, tipo_modelo_asignado="MODELO_AVES", es_activo=True)
-    return SimpleNamespace(**{**base, **kw})
+    base.update(kw)
+    base.setdefault("id_especies", [base["id_especie"]] if base["id_especie"] is not None else [])
+    return SimpleNamespace(**base)
 
 
 def _camara(activa=True, id_=30):

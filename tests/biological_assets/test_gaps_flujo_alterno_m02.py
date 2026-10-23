@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Códigos HTTP de flujo alterno del Módulo 2, fijados contra el texto de cada RF.
 
 Cubre los gaps de `anotaciones/modulo_2/gaps_flujo_alterno_modulo2.md`: casos donde
@@ -19,7 +22,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from sqlalchemy.exc import ProgrammingError
 
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
@@ -262,7 +265,7 @@ class _HistoricoRepo:
 
 
 def _cambiar_estado(estado: str = 'INACTIVO', **campos):
-    base = dict(estado_nuevo=estado, fecha_cambio_estado=hoy_colombia(), motivo_cambio='revisión')
+    base = dict(estado_nuevo=estado, fecha_cambio_estado=hoy_usuario(), motivo_cambio='revisión')
     base.update(campos)
     historico = _HistoricoRepo()
     uc = CambiarEstadoUseCase(db=_Db(), repo=_ActivoRepo(_activo()), historico_repo=historico)

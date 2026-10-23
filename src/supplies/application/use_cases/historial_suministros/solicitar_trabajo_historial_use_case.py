@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81 R8: 3 exportaciones por usuario     |
 """Caso de uso: encolar un trabajo pesado de historial de suministros (RF-81).
 
 Cubre las dos rutas que exigen procesamiento asíncrono: ``CONSULTA_PESADA``
@@ -5,6 +8,8 @@ Cubre las dos rutas que exigen procesamiento asíncrono: ``CONSULTA_PESADA``
 límite de concurrencia por tipo de trabajo (429) antes de encolar.
 """
 from __future__ import annotations
+
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -32,13 +37,16 @@ class SolicitarTrabajoHistorialUseCase:
         self.config_repo = config_repo
 
     def execute(
-        self, tipo_trabajo: str, filtros: FiltrosHistorialSuministro, id_usuario: int, id_rol: int
+        self, tipo_trabajo: str, filtros: FiltrosHistorialSuministro, id_usuario: int, id_rol: int,
+        formato_exportacion: Optional[str] = None,
     ) -> TrabajoHistorialSuministro:
         config = self.config_repo.obtener()
         es_exportacion = tipo_trabajo == TipoTrabajoHistorial.EXPORTACION.value
         limite = config.limite_concurrencia_exportaciones if es_exportacion else config.limite_concurrencia_consultas
+        # R8: el límite de exportaciones es por usuario; el de consultas pesadas, del sistema.
+        activos = self.trabajo_repo.contar_activos(tipo_trabajo, id_usuario if es_exportacion else None)
 
-        if self.trabajo_repo.contar_activos(tipo_trabajo) >= limite:
+        if activos >= limite:
             if es_exportacion:
                 raise TooManyRequestsError(
                     code="LIMITE_EXPORTACIONES_EXCEDIDO",
@@ -54,7 +62,7 @@ class SolicitarTrabajoHistorialUseCase:
 
         trabajo = TrabajoHistorialSuministro(
             tipo_trabajo=tipo_trabajo,
-            parametros=self._filtros_a_dict(filtros, id_rol),
+            parametros={**self._filtros_a_dict(filtros, id_rol), "formato_exportacion": formato_exportacion},
             id_usuario_solicitante=id_usuario,
         )
         try:

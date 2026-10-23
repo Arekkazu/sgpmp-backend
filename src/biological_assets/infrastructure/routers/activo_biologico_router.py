@@ -1,3 +1,10 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -61,6 +68,9 @@ from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_ad
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
+from src.biological_assets.infrastructure.adapters.cierre_ciclo_suministros_m05_adapter import (
+    CierreCicloSuministrosM05Adapter,
+)
 from src.biological_assets.infrastructure.adapters.recalibracion_vision_m09_adapter import RecalibracionVisionM09Adapter
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
@@ -101,6 +111,7 @@ from src.biological_assets.infrastructure.repositories.evento_activo_repository 
 from src.biological_assets.application.use_cases.gestion.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_ficha_integral_use_case import ConsultarFichaIntegralUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import RegistrarTransferenciaUseCase
+from src.telemetry.infrastructure.adapters.vinculacion_traslado_m03_adapter import VinculacionTrasladoM03Adapter
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
@@ -200,6 +211,7 @@ from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
@@ -394,6 +406,7 @@ def _activo_to_response(
         fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
+        advertencia_edad=activo.advertencia_edad,
     )
 
 
@@ -451,6 +464,10 @@ def registrar_activo(
     identificador único (409), origen financiero y atributos dinámicos de la
     especie (ver `GET /activos-biologicos/parametros-especie`). En lotes valida la
     densidad contra el máximo de la especie.
+
+    `fecha_nacimiento` es opcional (RFC-014) y no puede ser futura. Si la edad del
+    activo alcanza o supera la esperanza de vida de la especie, responde 201 igual,
+    con `advertencia_edad` (nunca rechaza por la edad).
     """
     use_case = RegistrarActivoBiologicoUseCase(
         db=db,
@@ -959,7 +976,7 @@ def consultar_asociacion(
         'ACTIVA',
         description="'ACTIVA' devuelve la asociación vigente. 'HISTORIAL' devuelve todos los períodos.",
     ),
-    fecha_referencia: Optional[datetime] = Query(
+    fecha_referencia: Optional[FechaHoraUtc] = Query(
         default=None,
         description=(
             'Consulta cuál era la asociación vigente en una fecha pasada (CA-3, útil para RF-61). '
@@ -991,7 +1008,10 @@ def consultar_asociacion(
         tipo_consulta=resultado.tipo_consulta,
         id_activo_biologico=resultado.id_activo_biologico,
         asociacion_activa=(
-            _historial_to_response(resultado.asociacion_activa) if resultado.asociacion_activa else None
+            _historial_to_response(resultado.asociacion_activa).model_copy(
+                update={'capacidad_maxima': resultado.capacidad_maxima}
+            )
+            if resultado.asociacion_activa else None
         ),
         historial=(
             [_historial_to_response(h) for h in resultado.historial]
@@ -1407,6 +1427,7 @@ def cerrar_ciclo(
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
         recalibracion_vision=RecalibracionVisionM09Adapter(background_tasks),
+        suministros=CierreCicloSuministrosM05Adapter(db),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CierreActivoResponse(
@@ -1889,6 +1910,7 @@ def registrar_transferencia(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        vinculacion_traslado_port=VinculacionTrasladoM03Adapter(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return TransferenciaResponse(

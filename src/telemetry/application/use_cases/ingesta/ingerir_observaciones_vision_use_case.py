@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: preserva legado y explicita dependencia DB-09 |
 """Caso de uso: ingesta de observaciones de visión por área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
 La cámara se resuelve por serial en D4, o device_id + serial en el lote legado,
@@ -15,13 +18,13 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AuthenticationError, BusinessRuleError, ValidationError
+from src.shared.errors import AuthenticationError, BusinessRuleError, ValidationError, ServiceUnavailableError
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import _MAX_DRIFT_FUTURO_SEG
 from src.telemetry.domain.entities.observacion_vision import ObservacionVision
 from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
 from src.telemetry.domain.repositories.observacion_vision_repository import ObservacionVisionRepository
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO, ObservacionVisionDTO
-from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO
 
 
 @dataclass
@@ -47,11 +50,12 @@ class IngerirObservacionesVisionUseCase:
         self.repo = repo
         self.dispositivo_port = dispositivo_port
 
-    def execute(self, dto: IngerirObservacionesVisionDTO | ObservacionVisionD4DTO) -> ResultadoIngestaVision:
-        es_d4 = isinstance(dto, ObservacionVisionD4DTO)
+    def execute(self, dto: IngerirObservacionesVisionDTO | ObservacionVisionD4DTO | ObservacionVisionD4LegadoDTO) -> ResultadoIngestaVision:
+        normativo = isinstance(dto, ObservacionVisionD4DTO)
+        es_d4 = isinstance(dto, (ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO))
         if es_d4:
             camara = self.dispositivo_port.obtener_camara_por_serial(dto.serial)
-            observaciones = [ObservacionVisionDTO(
+            observaciones = [] if normativo else [ObservacionVisionDTO(
                 timestamp_captura=dto.ventana_fin,
                 vector={k: float(v) for k, v in dto.componentes.model_dump().items()},
                 **dto.calidad.model_dump(),
@@ -82,6 +86,13 @@ class IngerirObservacionesVisionUseCase:
                 message=f'La cámara {camara.id_dispositivo_iot} no está asociada al área {dto.area_id} (RF-22).',
                 field='area_id',
             )
+
+        if normativo:
+            # DB-09 no esta en dev ni en la base oficial inspeccionada. No se
+            # descartan campos ni se convierten estados para insertar en el
+            # esquema legado. El indice decimal tampoco se trunca a SMALLINT.
+            raise ServiceUnavailableError('CONTRATO_VISION_PENDIENTE',
+                'El sobre normativo requiere integrar DB-09 y su persistencia de calidad asincrona.')
 
         limite_futuro = datetime.now(timezone.utc) + timedelta(seconds=_MAX_DRIFT_FUTURO_SEG)
         for i, obs in enumerate(observaciones):

@@ -1,19 +1,25 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Optional
 
 from sqlalchemy import select, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+from src.prediction.domain.repositories.respaldo_auditoria_m04_port import RespaldoAuditoriaM04Port
 from src.prediction.infrastructure.models.evento_auditoria_m04_model import EventoAuditoriaM04Model
 from src.shared.errors import InfrastructureError, NotFoundError
 from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
@@ -67,16 +73,17 @@ def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
     return [campo for campo in requeridos if campo not in payload]
 
 
-def _escribir_fallback(data: dict) -> None:
-    try:
-        logs_dir = Path("logs")
-        logs_dir.mkdir(exist_ok=True)
-        filename = logs_dir / f"audit_fallback_M04_{datetime.now(timezone.utc).strftime('%Y%m%d')}.log"
-        line = json.dumps({**data, "origen_registro": "FALLBACK"}, default=str)
-        with open(filename, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-    except Exception:
-        logger.exception("Error escribiendo fallback de auditoría M04")
+# RF-73 E2: reintentos ante falla de persistencia antes de ir al respaldo local.
+_REINTENTOS = int(os.getenv("AUDITORIA_M04_REINTENTOS", "3"))
+_PAUSA_REINTENTO = 0.2  # segundos; crece con cada intento (0.2, 0.4): cabe en los 2 s de RNF-01
+_ID_SISTEMA = "DESARROLLO_M04"
+
+# Columnas del evento que van al respaldo y vuelven en la sincronización.
+_CAMPOS_RESPALDO = (
+    "id_evento", "tipo_evento", "fecha_evento", "tipo_actor", "correlacion_id", "payload_evento",
+    "es_payload_truncado", "severidad_evento", "id_usuario", "id_sistema", "id_referencia",
+    "entidad_referencia", "resultado_operacion", "codigo_error", "descripcion_error", "hash_evento",
+)
 
 
 def _a_entidad(orm: EventoAuditoriaM04Model) -> EventoAuditoriaM04:
@@ -106,8 +113,23 @@ def _a_entidad(orm: EventoAuditoriaM04Model) -> EventoAuditoriaM04:
 
 
 class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
-    def __init__(self, db: Session) -> None:
+    def __init__(
+        self,
+        db: Session,
+        respaldo: Optional[RespaldoAuditoriaM04Port] = None,
+        *,
+        reintentos: int = _REINTENTOS,
+        pausa_reintento: float = _PAUSA_REINTENTO,
+    ) -> None:
         self._db = db
+        if respaldo is None:
+            from src.prediction.infrastructure.adapters.respaldo_auditoria_m04_archivo_adapter import (
+                RespaldoAuditoriaM04ArchivoAdapter,
+            )
+            respaldo = RespaldoAuditoriaM04ArchivoAdapter()
+        self._respaldo = respaldo
+        self._reintentos = max(1, reintentos)
+        self._pausa = pausa_reintento
 
     def registrar(
         self,
@@ -122,6 +144,8 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         entidad_referencia: Optional[str] = None,
         resultado_operacion: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
+        codigo_error: Optional[str] = None,
+        descripcion_error: Optional[str] = None,
     ) -> None:
         campos_faltantes = _validar_payload(tipo_evento, payload_evento)
         if campos_faltantes:
@@ -130,11 +154,12 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
 
         payload_final, truncado = _truncar_payload(payload_evento)
         sev_final = "WARNING" if truncado else severidad_evento
-        ahora = datetime.now(timezone.utc).isoformat()
-        hash_ev = _calcular_hash(tipo_evento, payload_final, ahora)
-        corr = correlacion_id or uuid.uuid4()
-
-        orm = EventoAuditoriaM04Model(
+        ahora = datetime.now(timezone.utc)
+        self._persistir(dict(
+            # id y fecha se fijan aquí: si el evento termina en el respaldo, la
+            # sincronización conserva los originales (RF-73 CA-14).
+            id_evento=uuid.uuid4(),
+            fecha_evento=ahora,
             tipo_evento=tipo_evento,
             tipo_actor=tipo_actor,
             payload_evento=payload_final,
@@ -145,28 +170,92 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             id_referencia=id_referencia,
             entidad_referencia=entidad_referencia,
             resultado_operacion=resultado_operacion,
-            correlacion_id=corr,
-            origen_registro="DESARROLLO_M04",
-            hash_evento=hash_ev,
+            correlacion_id=correlacion_id or uuid.uuid4(),
+            hash_evento=_calcular_hash(tipo_evento, payload_final, ahora.isoformat()),
+            codigo_error=codigo_error,
+            descripcion_error=descripcion_error,
+        ))
+
+    def _persistir(self, campos: dict) -> None:
+        """RF-73 E2: N intentos, cada uno en su savepoint; si todos fallan, respaldo local.
+
+        El savepoint aísla el intento: un fallo no deja inutilizable la sesión del
+        use case (D-03) ni revierte lo que este ya escribió. Con el evento a salvo
+        en el respaldo no se interrumpe el flujo (RNF-07); solo si tampoco se pudo
+        respaldar se lanza 500, porque el evento se perdería.
+        """
+        error = None
+        for intento in range(1, self._reintentos + 1):
+            try:
+                with self._db.begin_nested():
+                    self._db.add(EventoAuditoriaM04Model(origen_registro=_ID_SISTEMA, **campos))
+                    self._db.flush()
+                return
+            except Exception as exc:
+                error = exc
+                logger.warning(
+                    "Intento %s/%s de persistir el evento de auditoría M04 %s falló: %s",
+                    intento, self._reintentos, campos["tipo_evento"], exc,
+                )
+                if intento < self._reintentos:
+                    time.sleep(self._pausa * intento)
+
+        falla = {
+            "id_evento": uuid.uuid4(),
+            "fecha_evento": datetime.now(timezone.utc),
+            "tipo_evento": "AUDITORIA_FALLA_PERSISTENCIA",
+            "tipo_actor": "SISTEMA",
+            "id_sistema": _ID_SISTEMA,
+            "severidad_evento": "CRITICAL",
+            "resultado_operacion": "FALLIDO",
+            "correlacion_id": campos["correlacion_id"],
+            "codigo_error": type(error).__name__[:50],
+            "descripcion_error": str(error)[:2000],
+            "payload_evento": {
+                "id_evento_original": str(campos["id_evento"]),
+                "tipo_evento_original": campos["tipo_evento"],
+                "severidad_original": campos["severidad_evento"],
+                "intentos": self._reintentos,
+                "destino": "RESPALDO_LOCAL",
+            },
+        }
+        falla["hash_evento"] = _calcular_hash(
+            falla["tipo_evento"], falla["payload_evento"], falla["fecha_evento"].isoformat()
+        )
+        # Monitoreo (E2): log CRITICAL con lo necesario para rastrear el evento.
+        logger.critical(
+            "AUDITORIA_FALLA_PERSISTENCIA: el evento M04 %s (%s, id %s) no se persistió tras %s intentos "
+            "y va al respaldo local. Error: %s",
+            campos["tipo_evento"], campos["severidad_evento"], campos["id_evento"], self._reintentos, error,
         )
         try:
-            self._db.add(orm)
-            self._db.flush()
+            self._respaldo.guardar(_a_respaldo(campos, motivo="FALLA_PERSISTENCIA", error=error))
+            self._respaldo.guardar(_a_respaldo(falla, motivo="FALLA_PERSISTENCIA", error=error))
+        except Exception as exc_respaldo:
+            logger.critical("Tampoco se pudo escribir el respaldo de auditoría M04: %s", exc_respaldo)
+            _lanzar_fallo_persistencia(error)
+
+    def insertar_desde_respaldo(self, evento: dict) -> bool:
+        """RF-73 E8: inserta un evento del respaldo con su id y fecha originales.
+
+        Idempotente por ``id_evento``: si una sincronización anterior alcanzó a
+        guardarlo antes de caerse, no se duplica. Devuelve False en ese caso.
+        """
+        valores = {campo: evento.get(campo) for campo in _CAMPOS_RESPALDO}
+        valores["id_evento"] = uuid.UUID(str(valores["id_evento"]))
+        valores["correlacion_id"] = uuid.UUID(str(valores["correlacion_id"]))
+        valores["fecha_evento"] = datetime.fromisoformat(str(valores["fecha_evento"]))
+        valores["es_payload_truncado"] = bool(valores["es_payload_truncado"])
+        valores["origen_registro"] = "FALLBACK"
+        try:
+            resultado = self._db.execute(
+                pg_insert(EventoAuditoriaM04Model)
+                .values(**valores)
+                .on_conflict_do_nothing(index_elements=[EventoAuditoriaM04Model.id_evento])
+            )
         except Exception as exc:
-            if severidad_evento in ("ERROR", "CRITICAL"):
-                _escribir_fallback({
-                    "tipo_evento": tipo_evento,
-                    "tipo_actor": tipo_actor,
-                    "severidad_evento": severidad_evento,
-                    "payload_evento": payload_final,
-                    "id_usuario": id_usuario,
-                    "id_sistema": id_sistema,
-                    "id_referencia": id_referencia,
-                    "correlacion_id": str(corr),
-                    "hash_evento": hash_ev,
-                })
-            logger.error("Error al persistir evento de auditoría M04 tipo=%s: %s", tipo_evento, exc)
             _lanzar_fallo_persistencia(exc)
+        return resultado.rowcount == 1
 
     def _registrar_invalido(
         self,
@@ -180,25 +269,20 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             "campos_faltantes": campos_faltantes,
             "payload_recibido": payload_orig,
         }
-        try:
-            self._db.add(EventoAuditoriaM04Model(
-                tipo_evento="AUDITORIA_EVENTO_INVALIDO",
-                tipo_actor="SISTEMA",
-                # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
-                # este evento nunca llegaba a guardarse.
-                id_sistema="DESARROLLO_M04",
-                payload_evento=payload,
-                severidad_evento="ERROR",
-                correlacion_id=correlacion_id or uuid.uuid4(),
-                origen_registro="DESARROLLO_M04",
-                hash_evento=_calcular_hash(
-                    "AUDITORIA_EVENTO_INVALIDO", payload, datetime.now(timezone.utc).isoformat()
-                ),
-            ))
-            self._db.flush()
-        except Exception as exc:
-            logger.error("Error al persistir evento AUDITORIA_EVENTO_INVALIDO: %s", exc)
-            _lanzar_fallo_persistencia(exc)
+        ahora = datetime.now(timezone.utc)
+        self._persistir(dict(
+            id_evento=uuid.uuid4(),
+            fecha_evento=ahora,
+            tipo_evento="AUDITORIA_EVENTO_INVALIDO",
+            tipo_actor="SISTEMA",
+            # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
+            # este evento nunca llegaba a guardarse.
+            id_sistema=_ID_SISTEMA,
+            payload_evento=payload,
+            severidad_evento="ERROR",
+            correlacion_id=correlacion_id or uuid.uuid4(),
+            hash_evento=_calcular_hash("AUDITORIA_EVENTO_INVALIDO", payload, ahora.isoformat()),
+        ))
 
     def consultar(
         self,
@@ -251,6 +335,21 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
                 message=f"No existe el evento de auditoría con id {id_evento}.",
             )
         return _a_entidad(orm)
+
+
+def _a_respaldo(campos: dict, *, motivo: str, error: Optional[Exception]) -> dict:
+    """Evento completo (columnas de la bitácora) más el motivo por el que se respaldó."""
+    fila = {campo: campos.get(campo) for campo in _CAMPOS_RESPALDO}
+    fila["fecha_evento"] = campos["fecha_evento"].isoformat()
+    fila["id_evento"] = str(campos["id_evento"])
+    fila["correlacion_id"] = str(campos["correlacion_id"])
+    fila["modulo"] = "M04"
+    fila["respaldo"] = {
+        "motivo": motivo,
+        "error": str(error)[:500] if error else None,
+        "guardado_en": datetime.now(timezone.utc).isoformat(),
+    }
+    return fila
 
 
 def _lanzar_fallo_persistencia(exc: Exception) -> None:

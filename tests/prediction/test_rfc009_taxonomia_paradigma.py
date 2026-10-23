@@ -1,3 +1,8 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 """RFC-009 en M04: seis tipos de modelo en tres paradigmas.
 
 RF-65 (umbrales y versión activa por paradigma), RF-69 (componente, métricas
@@ -18,7 +23,7 @@ from src.prediction.application.use_cases.versiones_modelo.registrar_version_mod
 from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import _validar_payload
-from src.shared.errors import BusinessRuleError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError
 
 
 class _Db:
@@ -34,7 +39,7 @@ class _Auditoria:
 # ── RF-65: configuración del motor ─────────────────────────────────────────
 
 class _ConfigRepo:
-    def obtener_por_tipo(self, _tipo): return None
+    def obtener_por_tipo(self, _tipo, **_kw): return None
     def guardar(self, entidad):
         entidad.id_configuracion_motor = 1
         return entidad
@@ -88,9 +93,10 @@ def test_poblacional_sin_umbral_de_anomalia_valido_es_422(umbral):
 @pytest.mark.parametrize(
     "versiones, error, codigo",
     [
-        ({"DETECTOR": 11}, BusinessRuleError, "VERSION_MODELO_INCOMPATIBLE"),  # otro tipo_modelo
-        ({"SEGUIMIENTO": 10}, BusinessRuleError, "VERSION_MODELO_INCOMPATIBLE"),  # otro componente
-        ({"ANOMALIAS": 12}, PreconditionFailedError, "MODELO_NO_ACTIVO"),
+        # DEV-33: RF-65 E5 y E2 responden 409.
+        ({"DETECTOR": 11}, ConflictError, "VERSION_MODELO_INCOMPATIBLE"),  # otro tipo_modelo
+        ({"SEGUIMIENTO": 10}, ConflictError, "VERSION_MODELO_INCOMPATIBLE"),  # otro componente
+        ({"ANOMALIAS": 12}, ConflictError, "MODELO_NO_ACTIVO"),
     ],
 )
 def test_poblacional_valida_la_llave_tipo_componente_de_cada_version(versiones, error, codigo):
@@ -98,6 +104,7 @@ def test_poblacional_valida_la_llave_tipo_componente_de_cada_version(versiones, 
         _configurar(tipo_modelo="MODELO_AVES", umbral_score_anomalia=Decimal("0.5"),
                     versiones_activas_por_componente=versiones)
     assert e.value.code == codigo
+    assert e.value.status_code == 409
 
 
 def test_individual_exige_umbrales_supervisados():
@@ -113,10 +120,11 @@ def test_individual_conserva_sus_reglas_y_descarta_el_umbral_de_anomalia():
     )
     assert entidad.paradigma == "INDIVIDUAL" and entidad.umbral_score_anomalia is None
     assert entidad.id_version_modelo_activa == 20
-    with pytest.raises(BusinessRuleError) as e:
+    with pytest.raises(ConflictError) as e:
         _configurar(tipo_modelo="MODELO_ESPECIES_MEDIANAS", umbral_riesgo_alto=Decimal("0.7"),
                     umbral_alerta_critica=Decimal("0.9"), id_version_modelo_activa=20)
     assert e.value.code == "VERSION_MODELO_INCOMPATIBLE"
+    assert e.value.status_code == 409
 
 
 def test_los_tipos_por_tamano_ya_no_son_validos():
@@ -165,7 +173,8 @@ def test_individual_sigue_validandose_por_f1_y_recall():
 
 
 def _registrador():
-    return RegistrarVersionModeloUseCase(db=_Db(), repo=None, auditoria_repo=_Auditoria(), variable_port=None)
+    return RegistrarVersionModeloUseCase(db=_Db(), repo=None, auditoria_repo=_Auditoria(), variable_port=None,
+                                         aviso_port=None)
 
 
 @pytest.mark.parametrize("componente", [None, "CAMARA"])

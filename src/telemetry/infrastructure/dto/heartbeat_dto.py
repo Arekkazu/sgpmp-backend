@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: valida zona horaria y literales de buffer |
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,3 +52,17 @@ class HeartbeatDTO(DiagnosticoHeartbeatDTO):
     coordenadas: Optional[Any] = None
     fecha_registro: datetime
     reloj_sincronizado: bool = False
+
+    @field_validator('fecha_registro')
+    @classmethod
+    def validar_zona_horaria(cls, valor):
+        if valor.utcoffset() is None:
+            raise ValueError('La fecha del heartbeat debe incluir zona horaria.')
+        return valor
+
+    @field_validator('estado_local_buffer')
+    @classmethod
+    def validar_buffer(cls, valor):
+        if valor is not None and valor not in ('I', 'A', 'L'):
+            raise ValueError('El estado de buffer debe ser I, A o L.')
+        return valor

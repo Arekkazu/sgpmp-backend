@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para el módulo de auditoría (`/auditoria`).
 
 Expone la consulta paginada del log de eventos con filtros por usuario,
@@ -51,9 +54,10 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 )
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError, MethodNotAllowedError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
 
@@ -195,8 +199,8 @@ def consultar_auditoria(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
         None,
         description=(
             "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
@@ -253,8 +257,8 @@ def consultar_auditoria_archivada(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
         None,
         description=(
             "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
@@ -339,8 +343,8 @@ def exportar_auditoria(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(None),
     archivados: bool = Query(False, description="Exportar el archivo histórico en vez del log activo."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
@@ -367,7 +371,7 @@ def exportar_auditoria(
         archivados=archivados,
     )
 
-    nombre = f"auditoria-{hoy_colombia().isoformat()}.csv"
+    nombre = f"auditoria-{hoy_usuario().isoformat()}.csv"
     return StreamingResponse(
         lineas,
         media_type="text/csv; charset=utf-8",
@@ -396,8 +400,8 @@ def solicitar_exportacion(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(None),
     archivados: bool = Query(False),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),

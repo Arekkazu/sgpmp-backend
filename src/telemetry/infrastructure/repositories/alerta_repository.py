@@ -1,18 +1,32 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido, FOR UPDATE SKIP LOCKED (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: pendientes de notificar y conteos de tormenta (Fase 8, E8) |
+# | 2026-10-21 | Leandro | DEV-49 RF-57: transporta motivo al trigger historico |
+# | 2026-10-21 | Leandro | DEV-41 RF-57: consolida condicion sin carreras    |
+# | 2026-10-21 | Leandro | DEV-43 RF-62: consolida diagnosticos tecnicos por sensor |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: serializa bateria y busca alertas recuperables |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: audita alertas y consolidacion atomicamente |
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import func, literal_column, or_, select, text
 from sqlalchemy.orm import Session
 
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
 from src.shared.db_error_translator import raise_from_db_error
-from src.telemetry.domain.entities.alerta import Alerta
+from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta, TipoAlerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import variable_para_alerta
 
 
 class SqlAlchemyAlertaRepository(AlertaRepository):
@@ -20,14 +34,63 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
     def __init__(self, db: Session) -> None:
         self.db = db
 
+    def bloquear_condicion_calidad(self, id_sensor, anomalia):
+        self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                        {'clave':f'rf62:alerta:{id_sensor}:{anomalia}'})
+
+    def buscar_tecnica_calidad(self, id_sensor, anomalia, id_telemetria):
+        orm = self.db.query(AlertaModel).filter(
+            AlertaModel.tipo_alerta == 'TECNICA', AlertaModel.id_sensor == id_sensor,
+            AlertaModel.metadato_evento['componente_origen'].astext == 'RF62',
+            AlertaModel.metadato_evento['anomalia'].astext == anomalia,
+            or_(AlertaModel.estado_alerta.in_(['ACTIVA','EN_ATENCION']),
+                AlertaModel.id_telemetria == id_telemetria),
+        ).order_by(AlertaModel.id_alerta.desc()).with_for_update().populate_existing().first()
+        return self._a_entidad(orm) if orm else None
+
+    def contexto_sensor_calidad(self, id_sensor):
+        return dict(self.db.execute(text('''SELECT s.id_dispositivo_iot,d.id_infraestructura
+            FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d
+              ON d.id_dispositivo_iot=s.id_dispositivo_iot
+            WHERE s.id_sensores=:id'''), {'id':id_sensor}).mappings().one())
+
+    def escalar_calidad(self, id_alerta, severidad):
+        orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).with_for_update().one()
+        orm.severidad = severidad
+        self.db.flush()
+
+    def bloquear_dispositivo(self, id_dispositivo: int) -> None:
+        self.db.execute(text('SELECT pg_advisory_xact_lock(3505, :id)'), {'id': id_dispositivo})
+
+    def escalar_bateria(self, id_alerta, causa, severidad, metadatos):
+        orm = self.db.get(AlertaModel, id_alerta, populate_existing=True)
+        orm.severidad = severidad
+        # RF-57 P0006 protege el tipo original. La condición vigente es
+        # diagnóstico, sin reescribir evidencia ni fingir una recuperación.
+        orm.diagnostico = causa
+        orm.metadato_evento = dict(orm.metadato_evento or {}, **metadatos,
+            condicion_bateria=causa, condicion_bateria_inicial=orm.tipo_variable)
+        self.db.flush()
+
+    def listar_conectividad_abierta(self, id_dispositivo):
+        filas = self.db.query(AlertaModel).filter(
+            AlertaModel.tipo_alerta == 'TECNICA',
+            AlertaModel.id_dispositivo_ioit == id_dispositivo,
+            AlertaModel.tipo_variable.in_(['DISPOSITIVO_SIN_SEÑAL', 'DISPOSITIVO_INACTIVO',
+                                         'FALLO_CONECTIVIDAD', 'HEARTBEAT_AUSENTE']),
+            AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+        ).order_by(AlertaModel.id_alerta).all()
+        return [self._a_entidad(fila) for fila in filas]
+
     def guardar(self, alerta: Alerta) -> Alerta:
         try:
+            variable = variable_para_alerta(self.db, codigo=alerta.tipo_variable) if alerta.tipo_alerta != 'TECNICA' else None
             orm = AlertaModel(
                 tipo_alerta=alerta.tipo_alerta,
                 severidad=alerta.severidad,
                 estado_alerta=alerta.estado_alerta,
                 origen_evento=alerta.origen_evento,
-                tipo_variable=alerta.tipo_variable,
+                tipo_variable=variable['tipo_variable'] if variable else alerta.tipo_variable,
                 valor=alerta.valor,
                 unidad=alerta.unidad,
                 reglas_activas=list(alerta.reglas_activas or []),
@@ -63,9 +126,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             self.db.add(orm)
             self.db.flush()
             self.db.refresh(orm)
+            self._auditar(orm, 'ALERTA_GENERADA', {'estado_nuevo': orm.estado_alerta})
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def _auditar(self, orm, tipo, detalle, usuario=None):
+        registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(self.db), tipo,
+            ComponenteOrigen.RF57, entidad=EntidadAfectadaTipo.ALERTA,
+            identificador=orm.id_alerta, usuario=usuario,
+            detalle=detalle | {'id_telemetria': orm.id_telemetria,
+                              'id_dispositivo_iot': orm.id_dispositivo_ioit})
 
     def buscar_tecnica_activa_dispositivo(self, id_dispositivo: int, causa: str, *, sensores_fallidos: Optional[list[str]] = None):
         consulta = self.db.query(AlertaModel).filter(
@@ -86,18 +157,31 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         tipo_variable: str,
         ventana_min: int = 30,
     ) -> Optional[Alerta]:
+        variable = variable_para_alerta(self.db, codigo=tipo_variable)
+        equivalentes = variable['aliases'] if variable else [tipo_variable.upper()]
         orm = (
             self.db.query(AlertaModel)
             .filter(
                 AlertaModel.id_sensor == id_sensor,
-                AlertaModel.tipo_variable == tipo_variable.upper(),
+                AlertaModel.tipo_variable.in_(equivalentes),
                 AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
-                AlertaModel.fecha_generacion >= func.now() - text(f"interval '{ventana_min} minutes'"),
+                AlertaModel.fecha_generacion >= func.now() - ventana_min * literal_column("interval '1 minute'"),
             )
             .order_by(AlertaModel.fecha_generacion.desc())
+            .populate_existing()
+            .with_for_update()
             .first()
         )
         return self._a_entidad(orm) if orm else None
+
+    def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
+        variable = variable_para_alerta(self.db, codigo=tipo_variable)
+        clave = str(variable['id_variable']) if variable else tipo_variable.upper()
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                {'clave': f'rf57:{id_sensor}:{clave}'})
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
         orm = (
@@ -120,14 +204,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         nueva_severidad: Optional[str] = None,
     ) -> None:
         try:
-            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).first()
+            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().first()
             if orm is None:
                 return
+            anterior = orm.frecuencia_evento or 1
             orm.frecuencia_evento = (orm.frecuencia_evento or 1) + 1
             orm.ultima_ocurrencia = ultima_ocurrencia
             if nueva_severidad is not None:
                 orm.severidad = nueva_severidad
             self.db.flush()
+            self._auditar(orm, 'DUPLICADO_ALERTA_CORRELACIONADO',
+                          {'frecuencia_anterior': anterior, 'frecuencia_nueva': orm.frecuencia_evento})
         except Exception as exc:
             raise_from_db_error(exc)
 
@@ -145,6 +232,13 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             if orm is None:
                 from src.shared.errors import NotFoundError
                 raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
+            anterior = orm.estado_alerta
+            # Antes de mutar el ORM: execute puede hacer autoflush. El contexto
+            # es local a la transacción y se limpia también si no hay motivo.
+            self.db.execute(
+                text("SELECT set_config('app.rf57_motivo_transicion', :motivo, true)"),
+                {"motivo": motivo or ""},
+            )
             orm.estado_alerta = nuevo_estado
             if nuevo_estado == 'EN_ATENCION':
                 orm.fecha_atencion = fecha_atencion
@@ -152,10 +246,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             elif nuevo_estado in ('RESUELTA', 'DESCARTADA'):
                 orm.fecha_resolucion = fecha_resolucion
                 orm.id_usuario_resolucion = id_usuario
+                if nuevo_estado == 'RESUELTA' and orm.tipo_alerta == 'TECNICA' and motivo:
+                    orm.diagnostico = motivo
                 if nuevo_estado == 'DESCARTADA':
                     orm.motivo_descarte = motivo
             self.db.flush()
             self.db.refresh(orm)
+            if anterior != nuevo_estado:
+                tipo = {'EN_ATENCION': 'ALERTA_RECONOCIDA', 'RESUELTA': 'ALERTA_RESUELTA',
+                        'DESCARTADA': 'ALERTA_DESCARTADA', 'VENCIDA': 'ALERTA_VENCIDA'}[nuevo_estado]
+                self._auditar(orm, tipo, {'estado_anterior': anterior, 'estado_nuevo': nuevo_estado,
+                                        'motivo': motivo}, id_usuario)
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
@@ -303,3 +404,66 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             id_usuario_resolucion=orm.id_usuario_resolucion,
             referencia_alerta_original=orm.referencia_alerta_original,
         )
+
+    def reclamar_pendientes_notificacion(self, ahora: datetime, ventana_min: int = 10, limite: int = 100) -> list[Alerta]:
+        try:
+            filas = (
+                self.db.query(AlertaModel)
+                .filter(
+                    AlertaModel.fecha_notificacion.is_(None),
+                    AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                    AlertaModel.fecha_generacion >= ahora - timedelta(minutes=ventana_min),
+                )
+                .order_by(AlertaModel.fecha_generacion)
+                .limit(limite)
+                .with_for_update(skip_locked=True)
+                .all()
+            )
+            for orm in filas:
+                orm.fecha_notificacion = ahora
+            self.db.flush()
+            return [self._a_entidad(orm) for orm in filas]
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
+        filas = (
+            self.db.query(AlertaModel.id_infraestructura, func.count())
+            .filter(AlertaModel.fecha_generacion >= desde, AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                    AlertaModel.tipo_alerta != TipoAlerta.TORMENTA_DE_ALERTAS.value)
+            .group_by(AlertaModel.id_infraestructura)
+            .all()
+        )
+        return sum(n for _, n in filas), {area: n for area, n in filas if area is not None}
+
+    def existe_tormenta_desde(self, desde: datetime) -> bool:
+        return self.db.query(
+            self.db.query(AlertaModel).filter(
+                AlertaModel.tipo_alerta == TipoAlerta.TORMENTA_DE_ALERTAS.value,
+                AlertaModel.fecha_generacion >= desde,
+            ).exists()
+        ).scalar()
+
+    def vencer_activas_con_sla_cumplido(self, ahora: datetime, limite: int = 200) -> list[Alerta]:
+        try:
+            filas = (
+                self.db.query(AlertaModel)
+                .filter(
+                    AlertaModel.estado_alerta == EstadoAlerta.ACTIVA.value,
+                    AlertaModel.fecha_vencimiento <= ahora,
+                    # RF-60 D-09: las técnicas se cierran al reconectar, no por SLA.
+                    AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                )
+                .order_by(AlertaModel.fecha_vencimiento)
+                .limit(limite)
+                .with_for_update(skip_locked=True)
+                .all()
+            )
+            # El trigger trg_rf57_03 valida la transición, fija fecha_resolucion y
+            # escribe el histórico con el motivo "SLA vencido sin atención".
+            for orm in filas:
+                orm.estado_alerta = EstadoAlerta.VENCIDA.value
+            self.db.flush()
+            return [self._a_entidad(orm) for orm in filas]
+        except Exception as exc:
+            raise_from_db_error(exc)

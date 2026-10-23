@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: expone marca externa sin editar evidencia |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -92,3 +95,4 @@ class EventoAuditoriaIot:
     registro_incompleto: bool = False
     componente_origen: Optional[ComponenteOrigen] = None
     timestamp_registro: Optional[datetime] = None
+    integridad_comprometida: bool = False  # Proyección externa; no forma parte del hash.

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-80: emisión, reintentos y sus fechas   |
 """Puerto de auditoría de eventos de negocio RF-78/RF-79 (CU-05).
 
 Puerto angosto de escritura (patrón ``NotificacionMedicamentoPort``): el use
@@ -10,7 +13,8 @@ enum PG en el Gap 4 de ``anotaciones/modulo_5/cu05_gaps_bd_rf78_rf79.md``.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -31,6 +35,8 @@ class EventoAuditoriaSuministro:
     detalle_causa: Optional[str] = None
     numero_reintentos: Optional[int] = None
     registro_incompleto: bool = False
+    fecha_intentos: list[datetime] = field(default_factory=list)
+    fecha_emision: Optional[datetime] = None
 
 
 class AuditoriaSuministroPort(ABC):

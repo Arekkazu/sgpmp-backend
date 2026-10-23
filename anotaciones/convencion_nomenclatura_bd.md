@@ -62,6 +62,11 @@ los nombres de abajo):
   `SECURITY DEFINER`). `declarar_identidad` lo pone junto con los de arriba.
   Se mantiene por compatibilidad; no confundir con
   `app.current_user_id` de arriba pese al nombre parecido.
+- `app.zona_horaria` (texto, zona IANA como `America/Bogota`) — leída por
+  `modulo1.fn_hoy_usuario()` (`STABLE`, migración `1425bc9cdb59`), que reemplaza a
+  `CURRENT_DATE` en las funciones y CHECK de los módulos 1, 2, 4 y 5. La declara
+  un listener `after_begin` de `src/shared/database.py` con la cabecera
+  `X-Zona-Horaria` del request; sin ella (o inválida) la función da el día UTC.
 
 Las funciones de contexto viven en `modulo1` (directriz del DBA, PR #469): no
 se crea un schema aparte para ellas. Una función o trigger PL/pgSQL sin

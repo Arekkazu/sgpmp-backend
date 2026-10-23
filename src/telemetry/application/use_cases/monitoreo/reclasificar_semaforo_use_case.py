@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-17/53: expone clasificacion por lectura  |
 from __future__ import annotations
 
 from typing import Optional
@@ -41,6 +44,25 @@ class ReclasificarSemaforoUseCase:
         self.monitoreo_repo = monitoreo_repo
 
     def execute(self, id_telemetria: int, id_activo_biologico: Optional[int]) -> Optional[str]:
+        clasificacion = self.clasificar_lectura(id_telemetria, id_activo_biologico)
+        if clasificacion is None:
+            return None
+        telemetria = clasificacion['lectura']
+        estado = clasificacion['estado_semaforo']
+        self.monitoreo_repo.actualizar_estado_semaforo_si_vigente(
+            id_sensor=telemetria.id_sensor,
+            timestamp_captura=telemetria.timestamp_captura,
+            estado_semaforo=estado,
+        )
+        self.db.commit()
+        return estado
+
+    def clasificar_lectura(self, id_telemetria: int, id_activo_biologico: Optional[int]) -> Optional[dict]:
+        """Clasificación RF-17 exacta del origen, sin usar el cache del último dato.
+
+        RF-57 reutiliza esta operación sin modificar la proyección RF-58. Una
+        lectura tardía puede ser crítica aunque el último dato ya sea normal.
+        """
         if id_activo_biologico is None:
             return None
 
@@ -66,10 +88,5 @@ class ReclasificarSemaforoUseCase:
 
         estado = SemaforoCalculator.calcular_por_niveles(valor=valor, niveles=umbral['niveles'])
 
-        self.monitoreo_repo.actualizar_estado_semaforo_si_vigente(
-            id_sensor=telemetria.id_sensor,
-            timestamp_captura=telemetria.timestamp_captura,
-            estado_semaforo=estado,
-        )
-        self.db.commit()
-        return estado
+        return {'lectura': telemetria, 'valor': valor, 'id_especie': id_especie,
+                'umbral': umbral, 'estado_semaforo': estado}

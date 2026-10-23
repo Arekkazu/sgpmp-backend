@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: ledger por origen y costo vigente  |
 """Implementación SQLAlchemy del puerto :class:`RegistroSuministroRepository` (RF-78, CU-05).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -11,6 +14,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -20,6 +24,27 @@ from src.supplies.infrastructure.models.registro_suministro_model import Registr
 
 _ESCALA_CANTIDAD = Decimal("0.0001")
 _ESCALA_PRECIO = Decimal("0.01")
+
+# id interno del consumo (RF-75) / medicamento (RF-76) → id_registro_rf75/76 que enlaza el ledger.
+_SQL_REF_ORIGEN = {
+    "ALIMENTO": text(
+        "SELECT id_registro_rf75 FROM modulo5.registros_consumo_alimentos WHERE id_consumo_alimeto = :id"
+    ),
+    "MEDICAMENTO": text(
+        "SELECT id_registro_rf76 FROM modulo5.registros_medicamentos WHERE id_registro_medicamento = :id"
+    ),
+}
+
+_SQL_ORIGEN_VALIDADO = {
+    "ALIMENTO": text(
+        "SELECT EXISTS (SELECT 1 FROM modulo5.registros_consumo_alimentos "
+        "WHERE id_registro_rf75 = :ref AND estado_registro = 'VALIDADO')"
+    ),
+    "MEDICAMENTO": text(
+        "SELECT EXISTS (SELECT 1 FROM modulo5.registros_medicamentos "
+        "WHERE id_registro_rf76 = :ref AND estado_registro = 'VALIDADO')"
+    ),
+}
 
 _CONFLICTO_DUP = {
     "uq_registro_suministro_dedup_contenido": (
@@ -62,6 +87,8 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
             motivo_correccion=orm.motivo_correccion,
             id_idempotencia=orm.id_idempotencia,
             fecha_registro=orm.fecha_registro,
+            id_registro_rf75=orm.id_registro_rf75,
+            id_registro_rf76=orm.id_registro_rf76,
         )
 
     # ── Operaciones del puerto ───────────────────────────────────────────────
@@ -140,3 +167,35 @@ class SqlAlchemyRegistroSuministroRepository(RegistroSuministroRepository):
             .all()
         )
         return [self._a_entidad(o) for o in registros]
+
+    def obtener_por_origen(self, tipo_suministro: str, id_origen: int) -> Optional[RegistroSuministroDirecto]:
+        ref = self.db.execute(_SQL_REF_ORIGEN[tipo_suministro], {"id": id_origen}).scalar()
+        return self.obtener_por_referencia_rf(tipo_suministro, ref) if ref is not None else None
+
+    def obtener_por_referencia_rf(self, tipo_suministro: str, id_registro_rf: UUID) -> Optional[RegistroSuministroDirecto]:
+        if not self.db.execute(_SQL_ORIGEN_VALIDADO[tipo_suministro], {"ref": id_registro_rf}).scalar():
+            return None
+        columna = (
+            RegistroSuministroModel.id_registro_rf75
+            if tipo_suministro == "ALIMENTO"
+            else RegistroSuministroModel.id_registro_rf76
+        )
+        orm = (
+            self.db.query(RegistroSuministroModel)
+            .filter(columna == id_registro_rf, RegistroSuministroModel.tipo_operacion == "REGISTRO")
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
+    def costo_vigente(self, id_registro_suministro: UUID) -> Decimal:
+        total = (
+            self.db.query(func.coalesce(func.sum(RegistroSuministroModel.costo_registro), 0))
+            .filter(
+                or_(
+                    RegistroSuministroModel.id_registro_suministro == id_registro_suministro,
+                    RegistroSuministroModel.id_registro_original == id_registro_suministro,
+                )
+            )
+            .scalar()
+        )
+        return Decimal(total)
