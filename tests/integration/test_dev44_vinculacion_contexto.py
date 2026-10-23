@@ -1,11 +1,13 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: verifica DB-13, contexto, avisos y traslados reales |
-# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-22: id_especies en la infraestructura; RF61_AVISOS sin canal |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-22/23: especies del área en la infraestructura; RF61_AVISOS sin canal |
 """PostgreSQL aislado. Avisos usan dobles explicitos, sin acreditar entrega real."""
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from types import SimpleNamespace
+from decimal import Decimal
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from unittest.mock import Mock
 from concurrent.futures import ThreadPoolExecutor
 import importlib.util
@@ -349,7 +351,9 @@ def test_rf48_uc_integra_cierre_o_revierte_todo(db_session,area,usuario,fallar):
     finca=db_session.execute(text('SELECT id_finca FROM modulo9.infraestructuras WHERE id_infraestructura=:id'),{'id':area}).scalar_one()
     infras=Mock()
     infras.obtener_activa.side_effect=lambda i:SimpleNamespace(id_infraestructura=i,nombre='Origen' if i==area else 'Destino',
-        id_especies=[2],id_finca=finca,tipo='Estanque',superficie=100,capacidad_maxima=10000)
+        id_especies=[2],id_finca=finca,tipo='Estanque',superficie=100,capacidad_maxima=10000,
+        # DEV-23: la entrada valida la capacidad con las especies del área (100 ind/m²).
+        especies=[EspecieDelArea(2,'Especie DEV44','ACUICULTURA',Decimal('100'))])
     infras.es_tipo_compatible.return_value=True
     infras.calcular_ocupacion.return_value=0
     puente=VinculacionTrasladoM03Adapter(db_session)

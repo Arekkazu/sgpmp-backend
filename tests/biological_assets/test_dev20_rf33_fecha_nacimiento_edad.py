@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-20/23: el puerto falso cubre la validación de capacidad |
 """DEV-20 (RF-33 1.4, RFC-014): fecha_nacimiento opcional y advertencia de edad del activo.
 
 Los 4 casos de RFC-014: especie sin esperanza de vida (no advierte), activo joven (no
@@ -23,6 +24,7 @@ from src.biological_assets.domain.entities.activo_biologico import ActivoBiologi
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsulta
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
 from src.biological_assets.domain.services.edad_activo import evaluar_edad
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.biological_assets.infrastructure.routers.activo_biologico_router import _activo_to_response
@@ -120,9 +122,16 @@ class _Especie:
 
 
 class _Infra:
+    # DEV-23: la entrada al área valida capacidad; el área ya aloja la especie con
+    # densidad, sin ocupación, para que la prueba se centre en la edad (RFC-014).
     def obtener_activa(self, id_infraestructura):
         return InfraestructuraConsulta(id_infraestructura=id_infraestructura, nombre="Potrero 1", tipo="potrero",
-                                       es_activo=True, superficie=Decimal("500"), id_finca=5, especies=[])
+                                       es_activo=True, superficie=Decimal("500"), id_finca=5,
+                                       especies=[EspecieDelArea(1, "Bovino", "ESPECIES_GRANDES", Decimal("2"))])
+
+    def bloquear_capacidad(self, id_infraestructura): pass
+    def calcular_ocupacion(self, id_infraestructura): return 0
+    def asociar_especie(self, id_infraestructura, id_especie): pass
 
 
 class _Parametros:
