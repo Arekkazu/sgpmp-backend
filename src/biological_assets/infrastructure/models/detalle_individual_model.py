@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Modelo ORM de ``modulo2.detalles_activos_individuales``: raza, sexo, nacimiento y
 peso de un activo INDIVIDUAL.
 """
@@ -37,7 +40,8 @@ class DetalleActivoIndividualModel(Base):
     raza: Mapped[str] = mapped_column(String(50), nullable=False)
     sexo: Mapped[str] = mapped_column(String(10), nullable=False)
     # Columna con typo en DB — se respeta tal cual
-    fecha_nacimeinto: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # DB-07 / RFC-014: opcional.
+    fecha_nacimeinto: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     peso_inicial: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4))
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

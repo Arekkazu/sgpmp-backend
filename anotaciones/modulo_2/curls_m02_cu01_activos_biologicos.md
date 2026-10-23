@@ -64,10 +64,50 @@ Errores posibles:
 - `400 ATRIBUTO_INVALIDO` — clave en `atributos_dinamicos` no corresponde a métrica de la especie (FA-07)
 - `400` (validación Pydantic) — `fecha_inicio_ciclo` futura o anterior a 1970 (FA-04)
 - `400` (validación Pydantic) — INDIVIDUAL sin `identificador` / con `cantidad_inicial` (FA-02)
+- `400` (validación Pydantic) — `fecha_nacimiento` futura (RFC-014, DEV-20). `fecha_nacimiento` es **opcional** en INDIVIDUAL y sigue prohibida en POBLACIONAL
 - `400` (validación Pydantic) — `origen_financiero` fuera del catálogo (`compra`/`nacimiento`/`donacion`/`transferencia_interna`)
 - `422 COSTO_ADQUISICION_INVALIDO` / `422 SOPORTE_DOCUMENTAL_REQUERIDO` / `422 SOPORTE_DOCUMENTAL_INVALIDO` — `costo_adquisicion`/`soporte_documental` incoherentes con `origen_financiero` (FA-08; corregido de 400 a 422 por issue #28, ver `cu01_gaps_bd_rf33_rf34.md`)
 - `403 ACCESO_DENEGADO` — rol sin permiso C sobre `activos_biologicos` (Contador, Veterinario)
 - `409 IDENTIFICADOR_DUPLICADO` — `identificador` ya registrado (FA-03)
+
+---
+
+### POST /activos-biologicos — Activo INDIVIDUAL con advertencia de edad (RFC-014, DEV-20)
+
+`fecha_nacimiento` es opcional. Si se informa y la especie tiene `esperanza_vida_dias` (RF-15), se calcula la edad en días al día de hoy en Colombia. Si **alcanza o supera** la esperanza de vida, el registro se completa igual (`201`) y la respuesta trae `advertencia_edad`. **Nunca se rechaza** por la edad.
+
+```bash
+# Especie con esperanza_vida_dias = 3650 y un animal nacido hace ~20 años
+curl -X POST http://localhost:8000/activos-biologicos \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo_activo": "INDIVIDUAL",
+    "id_especie": 2,
+    "fecha_inicio_ciclo": "2026-01-15",
+    "origen_financiero": "compra",
+    "costo_adquisicion": 1500.00,
+    "soporte_documental": "factura-001.pdf",
+    "id_infraestructura": 1,
+    "identificador": "BOV-ANCIANO-01",
+    "raza": "Angus",
+    "sexo": "Macho",
+    "fecha_nacimiento": "2006-01-01T00:00:00Z"
+  }'
+```
+
+Respuesta esperada `201` (fragmento):
+```json
+{
+  "id_activo_biologico": 52,
+  "detalle_individual": { "raza": "Angus", "sexo": "Macho", "fecha_nacimiento": "2006-01-01T00:00:00Z", "peso_inicial": null },
+  "advertencia_edad": "La edad del activo (7600 días) alcanza o supera la esperanza de vida de la especie (3650 días). Verifique la fecha de nacimiento."
+}
+```
+
+El evento `ACTIVO_REGISTRADO` de la bitácora (RF-52) queda con `severidad_log = WARNING` y `detalle_tecnico.advertencia_edad = {mensaje, edad_dias, esperanza_vida_dias}`.
+
+Sin advertencia (`advertencia_edad: null`, evento `INFO`) en los otros tres casos de RFC-014: especie sin `esperanza_vida_dias`, activo más joven que la esperanza de vida, o sin `fecha_nacimiento` (en ese caso `detalle_individual.fecha_nacimiento` es `null`).
 
 ---
 

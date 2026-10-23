@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -23,7 +26,8 @@ class DetalleIndividual:
     """Datos propios de un activo INDIVIDUAL (un animal identificado)."""
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    # RFC-014 (DEV-20): opcional; sin ella no se calcula la edad.
+    fecha_nacimiento: Optional[datetime]
     peso_inicial: Optional[Decimal] = None
     id_detalle: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
@@ -427,6 +431,9 @@ class ActivoBiologico:
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
     nombre_estado: Optional[str] = None
+    # RFC-014 (DEV-20): advertencia de edad del registro. No se persiste; la
+    # constancia queda en el evento ACTIVO_REGISTRADO de la bitácora.
+    advertencia_edad: Optional[str] = None
 
     @classmethod
     def crear(cls, dto: object, id_usuario: int) -> ActivoBiologico:

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -53,7 +56,7 @@ class DetalleIndividualResponse(BaseModel):
     id_detalle: Optional[int]
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    fecha_nacimiento: Optional[datetime]  # RFC-014: opcional
     peso_inicial: Optional[Decimal]
     fecha_creacion: Optional[datetime]
 
@@ -143,6 +146,8 @@ class ActivoBiologicoResponse(BaseModel):
     # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
     nombre_especie: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
+    # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
+    advertencia_edad: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
