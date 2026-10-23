@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: conserva al trigger como fuente unica de transiciones |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -6,7 +9,6 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.alerta import Alerta
-from src.telemetry.domain.entities.historico_transicion_dispositivo import HistoricoTransicionDispositivo
 from src.telemetry.domain.entities.periodo_inactividad import PeriodoInactividad
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.estado_dispositivo_iot_repository import EstadoDispositivoIoTRepository
@@ -61,17 +63,8 @@ class EvaluarEstadoDispositivosUseCase:
                 estado.tiempo_sin_contacto = tiempo_seg
                 self.estado_repo.actualizar(estado)
 
-                self.transicion_repo.registrar(HistoricoTransicionDispositivo(
-                    id_transaccion=None,
-                    id_dispositivo_iot=estado.id_dispositivo_iot,
-                    estado_anterior=estado_anterior,
-                    estado_nuevo=nuevo_estado,
-                    causa_primaria='FALLO_CONECTIVIDAD',
-                    causa_secundaria=None,
-                    id_usuario_responsable=None,
-                    notas='Transición automática por evaluación periódica (sin heartbeat).',
-                    fecha_transicion=ahora,
-                ))
+                # El trigger fn_log_transicion_dispositivo ya conserva esta
+                # transición y su actor. RF-63 proyecta esa fuente una sola vez.
 
                 # Abrir periodo de inactividad si transición a SIN_SEÑAL o INACTIVO
                 if nuevo_estado in ('SIN_SEÑAL', 'INACTIVO'):

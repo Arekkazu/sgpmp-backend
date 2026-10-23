@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: recupera avisos sin duplicar vinculacion |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: recupera resultados por lectura y transicion sin duplicarlos |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -27,6 +28,12 @@ from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 
 
 def _fuente(etapa):
+    if etapa is EtapaPostcommit.RF53_AUDITORIA:
+        from src.telemetry.infrastructure.models.bitacora_ingest_model import BitacoraIngestModel
+        return BitacoraIngestModel.__table__, 'id_bitacora_ingest', None
+    if etapa is EtapaPostcommit.RF60_TRANSICIONES:
+        from src.telemetry.infrastructure.models.historico_transicion_dispositivo_model import HistoricoTransicionDispositivoModel
+        return HistoricoTransicionDispositivoModel.__table__, 'id_transaccion', None
     if etapa.es_heartbeat:
         return HeartbeatModel.__table__, 'id_heartbeat', 'HEARTBEAT'
     return TelemetriaModel.__table__, 'id_telemetria', 'LECTURA'
@@ -87,7 +94,7 @@ class SqlAlchemyPostcommitRepository:
         if fila is None:
             return False
         # Serializa también distintas filas del mismo dispositivo, sin I/O externo.
-        if not self.db.execute(text('SELECT pg_try_advisory_xact_lock(3505, :id)'), {'id': fila[0]}).scalar_one():
+        if fila[0] is not None and not self.db.execute(text('SELECT pg_try_advisory_xact_lock(3505, :id)'), {'id': fila[0]}).scalar_one():
             return False
         # Una nueva sentencia/snapshot tras el lock evita duplicados si otro
         # proceso acaba de confirmar la evidencia que faltaba al hacer la selección.
@@ -98,14 +105,14 @@ class SqlAlchemyPostcommitRepository:
         return True
 
     def registrar(self, etapa, identificador, error=None):
-        componente = ComponenteOrigen.RF60 if etapa.es_heartbeat else ComponenteOrigen.RF61 if etapa is EtapaPostcommit.RF61_AVISOS else ComponenteOrigen(etapa.value)
+        componente = ComponenteOrigen.RF53 if etapa in (EtapaPostcommit.RF53_LECTURAS, EtapaPostcommit.RF53_AUDITORIA) else ComponenteOrigen.RF60 if etapa.es_heartbeat or etapa is EtapaPostcommit.RF60_TRANSICIONES else ComponenteOrigen.RF61 if etapa is EtapaPostcommit.RF61_AVISOS else ComponenteOrigen(etapa.value)
         clasificacion, retencion = clasificar_componente(componente)
         evento = EventoAuditoriaIot(
             id_evento=None, tipo_evento=_tipo(etapa, error is not None),
             fecha_hora=self.db.execute(text('SELECT clock_timestamp()')).scalar_one(),
             resultado=TipoResultado.FALLIDO if error else TipoResultado.EXITOSO,
             descripcion='Etapa postcommit pendiente de reintento.' if error else 'Etapa postcommit completada.',
-            entidad_afectada_tipo=EntidadAfectadaTipo(_fuente(etapa)[2]),
+            entidad_afectada_tipo=EntidadAfectadaTipo(_fuente(etapa)[2]) if _fuente(etapa)[2] else None,
             entidad_afectada_id=str(identificador),
             accion_detallada={'etapa': etapa.value, 'fuente': _fuente(etapa)[0].name, 'id_origen': identificador, 'error': error},
             componente_origen=componente, clasificacion_registro=clasificacion,

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: contrato de incidentes append-only |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -34,3 +37,12 @@ class BitacoraAuditoriaIotRepository(ABC):
         fecha_desde: Optional[datetime] = None,
         fecha_hasta: Optional[datetime] = None,
     ) -> list[EventoAuditoriaIot]: ...
+
+    def bloquear_integridad(self, id_evento: UUID) -> None:
+        raise NotImplementedError
+
+    def buscar_incidente(self, clave: dict) -> Optional[EventoAuditoriaIot]:
+        raise NotImplementedError
+
+    def aviso_confirmado(self, id_incidente: UUID) -> bool:
+        raise NotImplementedError

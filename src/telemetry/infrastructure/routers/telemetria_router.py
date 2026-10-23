@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -15,6 +18,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header
+from src.telemetry.infrastructure.routers.ruta_ingesta_auditada import RutaIngestaAuditada
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
@@ -43,7 +47,7 @@ from src.telemetry.infrastructure.schema.telemetria_schema import (
 from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
 from src.telemetry.infrastructure.repositories.ingesta_telemetria_repository import SqlAlchemyIngestaTelemetriaRepository
 
-router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
+router = APIRouter(route_class=RutaIngestaAuditada, prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
 
 
 def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
