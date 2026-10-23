@@ -1,9 +1,13 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-75: E5 405, alcance y wiring nuevo     |
 """Router FastAPI para el registro de consumo de alimento (`/suministros/consumo-alimentos`).
 
 Expone los flujos de RF-75 (CU-01):
   POST   /suministros/consumo-alimentos               — Registrar consumo
   POST   /suministros/consumo-alimentos/{id}/anulacion — Anular consumo
   GET    /suministros/consumo-alimentos               — Consultar/buscar consumos
+  PUT/PATCH/DELETE /suministros/consumo-alimentos/{id} — 405: registro inmutable (E5)
 
 Autorización delegada al RBAC centralizado (``src/shared/rbac.py``):
   recurso ``consumo_alimentos`` = id_recurso 47; acciones C=1, R=2, D=4.
@@ -20,19 +24,13 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
-from src.supplies.application.use_cases.suministros.anular_consumo_alimento_use_case import (
-    AnularConsumoAlimentoUseCase,
-)
-from src.supplies.application.use_cases.suministros.consultar_consumos_use_case import ConsultarConsumosUseCase
-from src.supplies.application.use_cases.suministros.registrar_consumo_alimento_use_case import (
-    RegistrarConsumoAlimentoUseCase,
-)
-from src.supplies.infrastructure.adapters.activo_m02_adapter import ActivoM02Adapter
-from src.supplies.infrastructure.adapters.ciclo_m02_adapter import CicloM02Adapter
 from src.supplies.infrastructure.dto.anular_registro_dto import AnularRegistroDTO
 from src.supplies.infrastructure.dto.registrar_consumo_alimento_dto import RegistrarConsumoAlimentoDTO
-from src.supplies.infrastructure.repositories.consumo_alimento_repository import (
-    SqlAlchemyConsumoAlimentoRepository,
+from src.supplies.infrastructure.factories.suministros_factory import (
+    build_anular_consumo_use_case,
+    build_consultar_consumos_use_case,
+    build_rechazar_modificacion_use_case,
+    build_registrar_consumo_use_case,
 )
 from src.supplies.infrastructure.schema.consumo_alimento_schema import (
     ConsultaConsumosResponse,
@@ -64,13 +62,7 @@ def registrar_consumo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsumoAlimentoResponse:
-    use_case = RegistrarConsumoAlimentoUseCase(
-        db=db,
-        consumo_repo=SqlAlchemyConsumoAlimentoRepository(db),
-        activo_port=ActivoM02Adapter(db),
-        ciclo_port=CicloM02Adapter(db),
-    )
-    consumo = use_case.execute(dto, usuario_actual)
+    consumo = build_registrar_consumo_use_case(db).execute(dto, usuario_actual)
     return ConsumoAlimentoResponse.model_validate(consumo)
 
 
@@ -93,11 +85,7 @@ def anular_consumo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsumoAlimentoResponse:
-    use_case = AnularConsumoAlimentoUseCase(
-        db=db,
-        consumo_repo=SqlAlchemyConsumoAlimentoRepository(db),
-    )
-    consumo = use_case.execute(id_consumo, dto, usuario_actual)
+    consumo = build_anular_consumo_use_case(db).execute(id_consumo, dto, usuario_actual)
     return ConsumoAlimentoResponse.model_validate(consumo)
 
 
@@ -118,9 +106,10 @@ def consultar_consumos(
     tipo_alimento: Optional[str] = Query(None, description="Filtrar por tipo de alimento."),
     estado_registro: Optional[str] = Query(None, description="VALIDADO o ANULADO."),
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaConsumosResponse:
-    use_case = ConsultarConsumosUseCase(consumo_repo=SqlAlchemyConsumoAlimentoRepository(db))
-    consumos = use_case.execute(
+    consumos = build_consultar_consumos_use_case(db).execute(
+        usuario_actual,
         id_activo_biologico=id_activo_biologico,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
@@ -129,3 +118,18 @@ def consultar_consumos(
     )
     items = [ConsumoAlimentoResponse.model_validate(c) for c in consumos]
     return ConsultaConsumosResponse(total=len(items), items=items)
+
+
+_RESPUESTAS_405 = {404: {"model": ErrorResponse}, 405: {"model": ErrorResponse}}
+
+
+# Un registro por método: con `methods=[...]` FastAPI repite el operationId y el OpenAPI queda inválido.
+@router.put("/{id_consumo}", responses=_RESPUESTAS_405, dependencies=[Depends(require_permission(_RECURSO, 2))],
+            summary="Bloqueado: un consumo VALIDADO es inmutable (RF-75 E5)")
+@router.patch("/{id_consumo}", responses=_RESPUESTAS_405, dependencies=[Depends(require_permission(_RECURSO, 2))],
+              summary="Bloqueado: un consumo VALIDADO es inmutable (RF-75 E5)")
+@router.delete("/{id_consumo}", responses=_RESPUESTAS_405, dependencies=[Depends(require_permission(_RECURSO, 2))],
+               summary="Bloqueado: un consumo VALIDADO es inmutable (RF-75 E5)")
+def rechazar_modificacion_consumo(id_consumo: int, db: Session = Depends(get_db)) -> None:
+    """RF-75 E5: el registro no se edita ni se borra; se anula y se crea uno nuevo (405)."""
+    build_rechazar_modificacion_use_case(db).consumo(id_consumo)
