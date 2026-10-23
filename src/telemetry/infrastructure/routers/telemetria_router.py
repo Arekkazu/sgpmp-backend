@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: conecta catalogo M09 y bitacora      |
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: publica sobre normativo sin ocultar DB-09 |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -33,7 +34,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
-from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.schema.telemetria_schema import (
@@ -144,7 +145,7 @@ def sincronizar_buffer(
     summary="Ingerir sobre D4 de visión o lote compatible (RF-53/56/62)",
 )
 def ingerir_observaciones_vision(
-    dto: ObservacionVisionD4DTO | IngerirObservacionesVisionDTO,
+    dto: ObservacionVisionD4DTO | ObservacionVisionD4LegadoDTO | IngerirObservacionesVisionDTO,
     db: Session = Depends(get_db_sistema),
 ) -> IngestaVisionResponse:
     resultado = IngerirObservacionesVisionUseCase(

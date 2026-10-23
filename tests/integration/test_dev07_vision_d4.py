@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: conserva pruebas explicitas del contrato legado |
 """D4 con token de servicio → PostgreSQL DB-03 → consumidor RF-24 existente.
 
 Sin broker ni motor IA real. El cálculo RF-62 comprobado es el heredado; las
@@ -22,7 +25,7 @@ from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import telemetria_router
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import IngerirObservacionesVisionUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
-from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4LegadoDTO as ObservacionVisionD4DTO
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.configuration.infrastructure.adapters.observacion_vision_m03_adapter import ObservacionVisionM03Adapter
 
@@ -173,7 +176,8 @@ def test_error_tras_insert_revierte_todo_el_lote(client,db_session,equipo,monkey
     assert not filas(db_session,equipo)
 
 
-def test_concurrencia_no_crea_dos_observaciones(integration_engine):
+def test_concurrencia_no_crea_dos_observaciones(motor_vision_concurrente):
+    integration_engine=motor_vision_concurrente
     with Session(integration_engine) as db:equipo=hardware(db)
     datos=sobre(equipo)
     def procesar():

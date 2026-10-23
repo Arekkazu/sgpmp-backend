@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: conecta alerta critica al worker |
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: recupera conectividad tras telemetria valida |
+# | 2026-10-22 | Leandro | DEV-28 RF-60: conecta diagnostico postcommit de vision |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -27,6 +28,9 @@ from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_cas
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_telemetria_use_case import GenerarAlertaTelemetriaUseCase
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
+from src.telemetry.application.use_cases.calidad.evaluar_ventanas_vision_use_case import EvaluarVentanasVisionUseCase
+from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
+from src.telemetry.infrastructure.repositories.ventanas_vision_repository import SqlAlchemyVentanasVisionRepository
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
@@ -105,6 +109,10 @@ def _alerta_critica(db, identificador):
             SqlAlchemyHistoricoEstadoAlertaRepository(db), SqlAlchemyReglaAlertaRepository(db),
             ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db))),
     ).execute(identificador)
+def _vision(db,identificador):
+    EvaluarVentanasVisionUseCase(SqlAlchemyVentanasVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        SqlAlchemyBitacoraAuditoriaIotRepository(db)).execute(identificador)
 
 
 def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, limite=50, reintento_seg=60):
@@ -117,6 +125,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.RF57: _alerta_critica,
             EtapaPostcommit.RF60: lambda db, i: _recuperar_comunicacion(db, i),
+            EtapaPostcommit.VISION_DETECCION: _vision,
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),
             EtapaPostcommit.HEARTBEAT_SENSORES: lambda db, i: _diagnostico(db, i, 'sensores', diagnostico_heartbeat),
