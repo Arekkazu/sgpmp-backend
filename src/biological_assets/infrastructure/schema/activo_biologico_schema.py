@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -57,7 +58,7 @@ class DetalleIndividualResponse(BaseModel):
     id_detalle: Optional[int]
     raza: str
     sexo: str
-    fecha_nacimiento: Optional[datetime]  # RFC-014: opcional
+    fecha_nacimiento: Optional[date]  # RFC-014: opcional; día calendario
     peso_inicial: Optional[Decimal]
     fecha_creacion: Optional[datetime]
 

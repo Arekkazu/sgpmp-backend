@@ -493,6 +493,31 @@ Esto convierte `IntegrityError` de SQLAlchemy en `ConflictError` (409) con el ca
 
 ---
 
+### Fechas y zonas horarias (`src/shared/fechas.py`)
+
+Regla: **la BD guarda UTC y cada quien ve su zona**. Hay dos tipos de dato y no se mezclan:
+
+| Tipo | Columna | Entrada (DTO/Query/Form) | Salida |
+|------|---------|--------------------------|--------|
+| Instante ("se registró a las 22:00") | `timestamptz` | `FechaHoraUtc`: con zona se convierte a UTC; sin zona se toma como UTC | ISO 8601 con offset UTC; el navegador lo muestra en su hora local |
+| Día calendario ("nació el 12") | `date` | `date` (`YYYY-MM-DD`), sin conversión | El mismo `YYYY-MM-DD` |
+
+Lo que depende de dónde está el usuario ("hoy", "fecha futura", "lo del día 23")
+usa la cabecera **`X-Zona-Horaria`** (IANA, ej. `America/Bogota`), que el
+frontend envía en cada petición. `RequestContextMiddleware` la guarda por
+request; sin ella o inválida, todo es UTC (también en tareas de fondo).
+
+- "Hoy": `hoy_usuario()`. Nunca `date.today()`, `datetime.now().date()` ni un offset fijo.
+- Día → instante: `inicio_dia_usuario(d)` / `fin_dia_usuario(d)`. Instante → día: `fecha_usuario(dt)`.
+- SQL: `(col AT TIME ZONE :tz)::date` con `tz = nombre_zona_usuario()`; un `col::date` a secas da el día UTC.
+- Horas en mensajes de error: `en_zona_usuario(dt)`. En correos, `formatear_fecha` (agrega `UTC-05:00`).
+- En la BD, `modulo1.fn_hoy_usuario()` reemplaza a `CURRENT_DATE`: lee `app.zona_horaria`, que
+  `src/shared/database.py` declara en cada transacción. La sesión de Postgres está fija en UTC.
+- Excepción: `heartbeat_dto.fecha_registro` (DEV-42) exige zona explícita y rechaza valores sin ella.
+- Pruebas: la fixture `en_colombia` (`tests/conftest.py`) simula la cabecera; sin ella las pruebas corren en UTC.
+
+---
+
 ## Jerarquía de errores (`src/shared/errors.py`)
 
 Todos heredan de `AppError`. El handler global los convierte a la respuesta HTTP correspondiente.

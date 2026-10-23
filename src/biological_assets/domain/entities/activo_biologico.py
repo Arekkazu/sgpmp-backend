@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -27,8 +28,8 @@ class DetalleIndividual:
     """Datos propios de un activo INDIVIDUAL (un animal identificado)."""
     raza: str
     sexo: str
-    # RFC-014 (DEV-20): opcional; sin ella no se calcula la edad.
-    fecha_nacimiento: Optional[datetime]
+    # RFC-014 (DEV-20): opcional; sin ella no se calcula la edad. Día calendario, sin zona.
+    fecha_nacimiento: Optional[date]
     peso_inicial: Optional[Decimal] = None
     id_detalle: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
@@ -485,7 +486,7 @@ class ActivoBiologico:
         self,
         raza: Optional[str],
         sexo: Optional[str],
-        fecha_nacimiento: Optional[datetime],
+        fecha_nacimiento: Optional[date],
         peso_inicial: Optional[Decimal],
     ) -> None:
         """Actualiza raza, sexo, fecha de nacimiento o peso inicial (RF-35).

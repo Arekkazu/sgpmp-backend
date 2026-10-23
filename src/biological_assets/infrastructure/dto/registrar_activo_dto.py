@@ -13,8 +13,7 @@ from typing import Optional
 from pydantic import model_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.fechas import fecha_usuario, hoy_usuario
-from src.shared.fechas import FechaHoraUtc
+from src.shared.fechas import hoy_usuario
 
 
 class RegistrarActivoBiologicoDTO(BaseDTO):
@@ -39,7 +38,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
     identificador: Optional[str] = None
     raza: Optional[str] = None
     sexo: Optional[str] = None
-    fecha_nacimiento: Optional[FechaHoraUtc] = None
+    fecha_nacimiento: Optional[date] = None  # día calendario (YYYY-MM-DD), sin zona
     peso_inicial: Optional[Decimal] = None
     # Solo para POBLACIONAL
     cantidad_inicial: Optional[int] = None
@@ -75,7 +74,7 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
                 raise ValueError("raza, sexo y fecha_nacimiento no aplican para activos de tipo POBLACIONAL.")
 
         # RFC-014: si se informa, la fecha de nacimiento no puede ser futura (día en la zona del usuario).
-        if self.fecha_nacimiento is not None and fecha_usuario(self.fecha_nacimiento) > hoy_usuario():
+        if self.fecha_nacimiento is not None and self.fecha_nacimiento > hoy_usuario():
             raise ValueError("fecha_nacimiento no puede ser futura.")
 
         return self

@@ -6,15 +6,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date
 from decimal import Decimal
 from typing import Any, Optional
 
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.fechas import fecha_usuario, hoy_usuario
-from src.shared.fechas import FechaHoraUtc
+from src.shared.fechas import FechaHoraUtc, hoy_usuario
 
 
 class ActualizarActivoIndividualDTO(BaseDTO):
@@ -31,7 +30,7 @@ class ActualizarActivoIndividualDTO(BaseDTO):
 
     raza: Optional[str] = None
     sexo: Optional[str] = None
-    fecha_nacimiento: Optional[FechaHoraUtc] = None
+    fecha_nacimiento: Optional[date] = None  # día calendario (YYYY-MM-DD), sin zona
     peso_inicial: Optional[Decimal] = None
     # Concurrencia optimista (RF-35). Optional: la columna nace NULL sin
     # backfill, se establece recién en la primera edición del activo.
@@ -56,8 +55,8 @@ class ActualizarActivoIndividualDTO(BaseDTO):
 
     @field_validator('fecha_nacimiento')
     @classmethod
-    def fecha_nacimiento_no_futura(cls, valor: Optional[datetime]) -> Optional[datetime]:
+    def fecha_nacimiento_no_futura(cls, valor: Optional[date]) -> Optional[date]:
         # RFC-014 (DEV-20): misma regla que el registro. Omitida (None) no cambia la fecha.
-        if valor is not None and fecha_usuario(valor) > hoy_usuario():
+        if valor is not None and valor > hoy_usuario():
             raise ValueError('fecha_nacimiento no puede ser futura.')
         return valor

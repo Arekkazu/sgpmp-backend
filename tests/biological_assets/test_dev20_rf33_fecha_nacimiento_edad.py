@@ -40,9 +40,9 @@ HOY = date(2026, 10, 23)
 @pytest.mark.parametrize(
     "fecha, esperanza, advierte",
     [
-        (datetime(2010, 1, 1), None, False),                 # especie sin esperanza de vida
-        (datetime(2026, 1, 1), 3650, False),                 # activo joven
-        (datetime(2010, 1, 1), 3650, True),                  # edad ≥ esperanza
+        (date(2010, 1, 1), None, False),                 # especie sin esperanza de vida
+        (date(2026, 1, 1), 3650, False),                 # activo joven
+        (date(2010, 1, 1), 3650, True),                  # edad ≥ esperanza
         (None, 3650, False),                                 # sin fecha de nacimiento
         (HOY - timedelta(days=3650), 3650, True),            # justo en el límite: alcanza
         (HOY - timedelta(days=3649), 3650, False),           # un día antes del límite
@@ -60,9 +60,14 @@ def test_evaluar_edad(fecha, esperanza, advierte):
         )
 
 
-def test_la_edad_usa_el_dia_en_colombia(en_colombia):
-    # 2026-10-23 03:00 UTC es todavía 22-oct en Colombia: 1 día de edad al 23, no 0.
-    assert evaluar_edad(datetime(2026, 10, 23, 3, 0, tzinfo=timezone.utc), 1, HOY).edad_dias == 1
+def test_la_fecha_de_nacimiento_es_un_dia_sin_zona(en_colombia):
+    # Un día calendario no se corre con la zona: nacido el 22, al 23 tiene 1 día.
+    assert evaluar_edad(date(2026, 10, 22), 1, HOY).edad_dias == 1
+
+
+def test_un_cliente_viejo_que_envia_la_medianoche_utc_sigue_funcionando():
+    # El frontend anterior enviaba `new Date('YYYY-MM-DD').toISOString()`.
+    assert _dto(fecha_nacimiento='2025-03-01T00:00:00.000Z').fecha_nacimiento == date(2025, 3, 1)
 
 
 # --- DTO de registro y de edición -------------------------------------------------------
@@ -82,7 +87,7 @@ def test_individual_sin_fecha_de_nacimiento_es_valido():
 
 
 def test_fecha_de_nacimiento_futura_se_rechaza():
-    manana = datetime.combine(hoy_usuario() + timedelta(days=1), datetime.min.time())
+    manana = hoy_usuario() + timedelta(days=1)
     with pytest.raises(PydanticValidationError, match="fecha_nacimiento no puede ser futura"):
         _dto(fecha_nacimiento=manana)
     with pytest.raises(PydanticValidationError, match="fecha_nacimiento no puede ser futura"):
@@ -92,7 +97,7 @@ def test_fecha_de_nacimiento_futura_se_rechaza():
 def test_poblacional_sigue_sin_admitir_fecha_de_nacimiento():
     with pytest.raises(PydanticValidationError, match="no aplican para activos de tipo POBLACIONAL"):
         _dto(tipo_activo="POBLACIONAL", identificador=None, raza=None, sexo=None, cantidad_inicial=10,
-             fecha_nacimiento=datetime(2025, 1, 1))
+             fecha_nacimiento=date(2025, 1, 1))
 
 
 # --- Caso de uso: 201 + advertencia y constancia en la bitácora -------------------------
@@ -155,8 +160,8 @@ def _registrar(esperanza, fecha_nacimiento):
     return uc.execute(_dto(fecha_nacimiento=fecha_nacimiento), UsuarioActual(id_usuario=7, id_token=1, id_rol=2))
 
 
-HACE_20_ANOS = datetime(2006, 1, 1)
-HACE_UN_ANO = datetime.combine(hoy_usuario() - timedelta(days=365), datetime.min.time())
+HACE_20_ANOS = date(2006, 1, 1)
+HACE_UN_ANO = hoy_usuario() - timedelta(days=365)
 
 
 @pytest.mark.parametrize(
@@ -187,7 +192,7 @@ def test_la_respuesta_del_registro_lleva_la_advertencia(eventos):
     activo.fecha_creacion = datetime.now(timezone.utc)
     respuesta = _activo_to_response(activo)
     assert respuesta.advertencia_edad == activo.advertencia_edad
-    assert respuesta.detalle_individual.fecha_nacimiento == HACE_20_ANOS.replace(tzinfo=timezone.utc)  # sin zona entra como UTC
+    assert respuesta.detalle_individual.fecha_nacimiento == HACE_20_ANOS
 
 
 def test_la_respuesta_admite_activo_sin_fecha_de_nacimiento(eventos):

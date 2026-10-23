@@ -26,6 +26,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.shared.errors import ServiceUnavailableError
+from src.shared.fechas import nombre_zona_usuario
 
 load_dotenv()
 
@@ -137,6 +138,17 @@ def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
     identidad = session.info.get(_CLAVE_IDENTIDAD)
     if identidad is not None:
         _aplicar_identidad(conexion, identidad)
+
+
+@event.listens_for(Session, "after_begin")
+def _declarar_zona_usuario(_session: Session, _transaccion, conexion) -> None:
+    """`modulo1.fn_hoy_usuario()` lee `app.zona_horaria` para que los triggers
+    usen el mismo "hoy" que la API. Sin zona (UTC) no hace falta el viaje: la
+    función ya cae a UTC. `true` la limita a la transacción, como la identidad.
+    """
+    zona = nombre_zona_usuario()
+    if zona != "UTC":
+        conexion.execute(text("SELECT set_config('app.zona_horaria', :zona, true)"), {"zona": zona})
 
 
 def _declarar(db: Session, identidad) -> None:

@@ -10,10 +10,8 @@ la advertencia de trazabilidad cuando la edad alcanza o supera la esperanza de v
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
-
-from src.shared.fechas import fecha_usuario
 
 
 @dataclass(frozen=True)
@@ -30,7 +28,7 @@ class AdvertenciaEdad:
 
 
 def evaluar_edad(
-    fecha_nacimiento: Optional[datetime | date],
+    fecha_nacimiento: Optional[date],
     esperanza_vida_dias: Optional[int],
     hoy: date,
 ) -> Optional[AdvertenciaEdad]:
@@ -40,7 +38,7 @@ def evaluar_edad(
     """
     if fecha_nacimiento is None or esperanza_vida_dias is None:
         return None
-    edad_dias = (hoy - fecha_usuario(fecha_nacimiento)).days
+    edad_dias = (hoy - fecha_nacimiento).days
     if edad_dias < esperanza_vida_dias:
         return None
     return AdvertenciaEdad(edad_dias=edad_dias, esperanza_vida_dias=esperanza_vida_dias)
