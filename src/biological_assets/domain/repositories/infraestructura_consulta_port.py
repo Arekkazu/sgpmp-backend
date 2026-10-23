@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: el área expone sus especies y la capacidad derivada a M02 (RFC-012) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
 
 from __future__ import annotations
@@ -62,6 +63,19 @@ class InfraestructuraConsultaPort(ABC):
     @abstractmethod
     def calcular_ocupacion(self, id_infraestructura: int) -> int:
         """Retorna la cantidad total de individuos activos en la infraestructura."""
+
+    @abstractmethod
+    def obtener_especie(self, id_especie: int) -> Optional[EspecieDelArea]:
+        """RFC-012: grupo de manejo y densidad de una especie activa (None si no existe o está inactiva)."""
+
+    @abstractmethod
+    def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        """RFC-012: asocia la especie al área (tabla puente de DB-06), dentro de la transacción en curso."""
+
+    @abstractmethod
+    def bloquear_capacidad(self, id_infraestructura: int) -> None:
+        """Serializa hasta el fin de la transacción las entradas de individuos al área,
+        para que dos altas simultáneas no pasen ambas el chequeo de capacidad."""
 
     @abstractmethod
     def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:

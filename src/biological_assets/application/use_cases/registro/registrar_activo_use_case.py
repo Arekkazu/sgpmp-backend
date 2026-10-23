@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-22 RF-20: la regla C1 lee las especies del área (RFC-012) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """Caso de uso: registro de un activo biológico nuevo (RF-33)."""
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from src.biological_assets.domain.repositories.especie_consulta_port import Espe
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.domain.repositories.recalibracion_vision_port import RecalibracionVisionPort
-from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
+from src.biological_assets.application.use_cases._capacidad_area import validar_entrada_al_area
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, ConflictError, ValidationError
@@ -244,20 +245,6 @@ class RegistrarActivoBiologicoUseCase:
                 field='id_infraestructura',
             )
 
-        # Regla C1 (RF-48/RF-20 v1.1): el área debe estar habilitada para la especie.
-        # El formulario ya filtra por especie, pero escribir el ID la saltaba.
-        # Sin especies = área anterior a RF-20 v1.1. RFC-012 (asociar la especie si es
-        # del mismo grupo) lo completa DEV-23.
-        if infra.id_especies and dto.id_especie not in infra.id_especies:
-            raise BusinessRuleError(
-                code='INCOMPATIBILIDAD_ESPECIE',
-                message=(
-                    f'La infraestructura {infra.nombre} no está habilitada para la especie del activo. '
-                    'Seleccione una infraestructura compatible con la especie.'
-                ),
-                field='id_infraestructura',
-            )
-
         # FA-03: unicidad del identificador para INDIVIDUAL
         if dto.tipo_activo == 'INDIVIDUAL' and self.repo.existe_identificador(dto.identificador):
             raise ConflictError(
@@ -274,27 +261,27 @@ class RegistrarActivoBiologicoUseCase:
             dto.id_especie,
         )
 
+        # RFC-012 (RF-33 1.4, DEV-23): reemplaza el chequeo monoespecie y el de densidad
+        # por lote. Si la especie no está en el área se asocia (mismo grupo_manejo, si no
+        # 422); toda especie necesita densidad (422); Σ individuos del área + los del
+        # activo ≤ capacidad efectiva (422). INDIVIDUAL cuenta 1, POBLACIONAL su cantidad.
+        entrantes = dto.cantidad_inicial if dto.tipo_activo == 'POBLACIONAL' else 1
+        asociar_especie = validar_entrada_al_area(
+            self.infra_port, infra, id_especie=dto.id_especie, entrantes=entrantes, field='id_infraestructura',
+        )
+
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
         # INC-M02-37-G24 (TC-M02-048): la densidad (cantidad/superficie) es
         # calculable desde el momento del registro, no solo tras el primer
         # evento de crecimiento — sin esto un lote recién creado queda con
-        # densidad=null hasta su primera medición.
+        # densidad=null hasta su primera medición. Su límite ya lo cubre la
+        # capacidad efectiva del área (DEV-23).
         if activo.detalle_poblacional is not None:
-            if infra.superficie is None:
-                raise BusinessRuleError(
-                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
-                    message='La infraestructura debe tener una superficie mayor a cero para calcular la densidad.',
-                    field='id_infraestructura',
-                )
-            activo.detalle_poblacional.densidad = calcular_y_validar_densidad(
-                cantidad_actual=activo.detalle_poblacional.cantidad_actual,
-                superficie=infra.superficie,
-                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
-                    dto.id_especie
-                ),
-            )
+            activo.recalcular_densidad(infra.superficie)
 
         try:
+            if asociar_especie:
+                self.infra_port.asociar_especie(infra.id_infraestructura, dto.id_especie)
             activo = self.repo.guardar(activo)
             # RF-33: snapshot inicial (Evento 0) — version=1, tipo_evento=CREACION
             historial = self.repo.registrar_historial(HistorialActivo(

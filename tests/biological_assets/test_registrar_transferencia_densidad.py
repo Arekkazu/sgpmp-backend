@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """DEF-RF48-02 / INC-M02-40-G28 (RF-36 + RF-48): al transferir un lote
 poblacional a una infraestructura con distinta superficie, `id_infraestructura`
 y el historial se actualizaban correctamente, pero
@@ -28,10 +31,11 @@ from src.biological_assets.domain.entities.activo_biologico import (
     Transferencia,
 )
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError
+from src.shared.errors import BusinessRuleError
 
 
 class DbFake:
@@ -72,14 +76,28 @@ class TransferenciaRepoFake:
 
 
 class InfraPortFake:
-    def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
+    """Destinos sin especies asociadas: la del activo entra con ``densidad_especie`` y
+    la capacidad es floor(densidad × superficie) (RFC-012, DEV-23)."""
+
+    def __init__(self, infras: dict[int, InfraestructuraConsulta], densidad_especie: Decimal | None) -> None:
         self.infras = infras
+        self.densidad_especie = densidad_especie
+        self.asociadas: list[tuple[int, int]] = []
 
     def obtener_activa(self, id_infraestructura: int):
         return self.infras.get(id_infraestructura)
 
     def calcular_ocupacion(self, _id: int) -> int:
         return 0
+
+    def obtener_especie(self, id_especie: int):
+        return EspecieDelArea(id_especie, 'Tilapia', 'PECES', self.densidad_especie)
+
+    def bloquear_capacidad(self, _id: int) -> None:
+        pass
+
+    def asociar_especie(self, id_infraestructura: int, id_especie: int) -> None:
+        self.asociadas.append((id_infraestructura, id_especie))
 
     def es_tipo_compatible(self, _tipo_infraestructura: str, _id_especie: int) -> bool:
         return True
@@ -142,7 +160,7 @@ def test_densidad_se_recalcula_contra_la_superficie_destino() -> None:
         infra_port=InfraPortFake({
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('2500')),
-        }),
+        }, densidad_especie=Decimal('0.01')),
         parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
@@ -173,7 +191,7 @@ def test_activo_individual_no_toca_detalle_poblacional() -> None:
         infra_port=InfraPortFake({
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('2500')),
-        }),
+        }, densidad_especie=Decimal('0.01')),
         parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
@@ -193,7 +211,7 @@ def test_destino_sin_superficie_configurada_rechaza_transferencia() -> None:
         infra_port=InfraPortFake({
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=None),
-        }),
+        }, densidad_especie=Decimal('0.01')),
         parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
@@ -215,14 +233,16 @@ def test_transferencia_rechaza_densidad_superior_al_limite_de_especie() -> None:
         infra_port=InfraPortFake({
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('100')),
-        }),
+        }, densidad_especie=Decimal('0.2')),
         parametros_port=ParametrosPortFake(Decimal('0.2')),
     )
 
-    with pytest.raises(ConflictError) as exc_info:
+    # DEV-23: floor(0.2 × 100) = 20 < 50 → 422 por capacidad del destino (antes 409 por lote).
+    with pytest.raises(BusinessRuleError) as exc_info:
         uc.execute(130, _dto(origen=3, destino=1), _usuario())
 
-    assert exc_info.value.code == 'DENSIDAD_MAXIMA_SUPERADA'
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'CAPACIDAD_EXCEDIDA'
     assert db.ejecutados == []
 
 
@@ -236,12 +256,12 @@ def test_transferencia_sin_limite_de_especie_no_omite_validacion() -> None:
         infra_port=InfraPortFake({
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('2500')),
-        }),
+        }, densidad_especie=None),
         parametros_port=ParametrosPortFake(None),
     )
 
     with pytest.raises(BusinessRuleError) as exc_info:
         uc.execute(130, _dto(origen=3, destino=1), _usuario())
 
-    assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
+    assert exc_info.value.code == 'ESPECIE_SIN_DENSIDAD'  # DEV-23 (H-12.4)
     assert db.ejecutados == []
