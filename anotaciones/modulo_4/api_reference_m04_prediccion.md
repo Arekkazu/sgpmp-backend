@@ -143,7 +143,7 @@ Esto no es un problema de RBAC (la sesión y el permiso sí se validan correctam
 | `variables_sensoricas_asociadas` | `list[int]` | Debe seguir cumpliendo las reglas del catálogo I3P-1 |
 | `fecha_actualizacion` | `datetime \| None` | Control de concurrencia optimista (412 si no coincide) |
 
-**Reglas adicionales:** una patología con `es_base=true` **no puede editarse** (`422 PATOLOGIA_BASE_INMUTABLE`); si `ModeloActivoPort.tiene_modelos_activos` retorna `true` (hoy siempre `False` por el stub), se rechaza con `409 PATOLOGIA_EN_USO_POR_MODELO`.
+**Reglas adicionales:** una patología con `es_base=true` **no puede editarse ni inactivarse** (`405 PATOLOGIA_BASE_INMUTABLE`, RF-64 E2/CA-3, DEV-35); si `ModeloActivoPort.tiene_modelos_activos` retorna `true` (hoy siempre `False` por el stub), se rechaza con `409 PATOLOGIA_EN_USO_POR_MODELO`.
 
 **Response:** `PatologiaM04Response`
 
