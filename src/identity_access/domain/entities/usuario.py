@@ -1,9 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: EDAD_MAXIMA=100 y guarda única del rango [18, 100) |
 """Entidad de dominio ``Usuario`` del contexto de identidad y acceso.
 
 A diferencia del modelo ORM (``infrastructure/models/usuarios_model.py``), esta
 clase es Python puro: no sabe nada de SQLAlchemy ni de tablas. Representa el
 *concepto de negocio* "usuario" y concentra las reglas y cálculos propios de
-ese concepto (nombre completo, mayoría de edad, rol por defecto al registrarse).
+ese concepto (nombre completo, rango de edad, rol por defecto al registrarse).
 
 Una entidad se identifica por su identidad (``id_usuario``), no por sus
 atributos: dos instancias con el mismo ``id_usuario`` son el mismo usuario
@@ -53,6 +56,8 @@ class Usuario:
     """
 
     EDAD_MINIMA: ClassVar[int] = 18
+    # RFC-013: el rango válido es [EDAD_MINIMA, EDAD_MAXIMA); 100 años ya queda fuera.
+    EDAD_MAXIMA: ClassVar[int] = 100
     ROL_PRODUCTOR: ClassVar[int] = 2
 
     correo: Email
@@ -195,16 +200,25 @@ class Usuario:
             (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
         )
 
-    def es_mayor_de_edad(self, hoy: Optional[date] = None) -> bool:
-        """Indica si el usuario alcanza la edad mínima para registrarse.
+    @classmethod
+    def limite_edad_incumplido(cls, fecha_nacimiento: date, hoy: Optional[date] = None) -> Optional[str]:
+        """Guarda única del rango de edad de RF-01 (registro y edición de perfil).
 
         Args:
-            hoy: Fecha de referencia. Si es ``None`` usa la fecha actual.
+            fecha_nacimiento: Fecha a evaluar.
+            hoy: Fecha de referencia. Si es ``None`` usa el día actual en Colombia.
 
         Returns:
-            ``True`` si tiene al menos :data:`EDAD_MINIMA` años.
+            ``"MINIMA"`` si no alcanza :data:`EDAD_MINIMA` (también si la fecha es
+            futura), ``"MAXIMA"`` si tiene :data:`EDAD_MAXIMA` años o más y
+            ``None`` si está dentro del rango.
         """
-        return self.edad(hoy) >= self.EDAD_MINIMA
+        edad = cls.edad_desde(fecha_nacimiento, hoy)
+        if edad < cls.EDAD_MINIMA:
+            return "MINIMA"
+        if edad >= cls.EDAD_MAXIMA:
+            return "MAXIMA"
+        return None
 
     def __eq__(self, other: object) -> bool:
         # Igualdad por identidad: mismo id_usuario => mismo usuario. Dos usuarios

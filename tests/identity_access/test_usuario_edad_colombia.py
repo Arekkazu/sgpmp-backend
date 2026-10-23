@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: usa la guarda de rango en vez de es_mayor_de_edad |
 """RF-01: la edad mínima se calcula con el día de Colombia, no con el del
 proceso (UTC en el contenedor), que desde las 19:00 ya va en el día siguiente.
 """
@@ -19,4 +22,4 @@ def test_quien_cumple_18_manana_en_colombia_aun_no_es_mayor_de_edad(monkeypatch)
     usuario.fecha_nacimiento = date(2008, 10, 12)
 
     assert usuario.edad() == 17
-    assert not usuario.es_mayor_de_edad()
+    assert Usuario.limite_edad_incumplido(usuario.fecha_nacimiento) == "MINIMA"

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: el DTO de registro trae fecha de nacimiento válida |
 """Regresión de los gaps de flujo alterno del Módulo 1.
 
 Un caso por cada ❌ de `anotaciones/modulo_1/gaps_flujo_alterno_modulo1.md`:
@@ -5,6 +8,7 @@ el código de respuesta que el RF pide y que el módulo no devolvía.
 """
 from __future__ import annotations
 
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -68,7 +72,7 @@ def _ejecutar_registro(notificacion_service) -> _DbFake:
         confirmar_contrasena="Contrasena1!",
         nombre="Ana",
         apellidos="Pérez",
-        fecha_nacimiento=None,
+        fecha_nacimiento=date(1990, 1, 1),
         genero=SimpleNamespace(value="F"),
         tipo_identificacion="CC",
         numero_identificacion="0012345678",
