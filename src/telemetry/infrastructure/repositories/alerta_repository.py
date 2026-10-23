@@ -2,6 +2,9 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: vencer alertas activas con SLA cumplido, FOR UPDATE SKIP LOCKED (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: pendientes de notificar y conteos de tormenta (Fase 8, E8) |
+# | Fecha      | Nombre  | Que se hizo                                         |
+# |------------|---------|-----------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: transporta motivo al trigger historico |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -149,6 +152,12 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             if orm is None:
                 from src.shared.errors import NotFoundError
                 raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
+            # Antes de mutar el ORM: execute puede hacer autoflush. El contexto
+            # es local a la transacción y se limpia también si no hay motivo.
+            self.db.execute(
+                text("SELECT set_config('app.rf57_motivo_transicion', :motivo, true)"),
+                {"motivo": motivo or ""},
+            )
             orm.estado_alerta = nuevo_estado
             if nuevo_estado == 'EN_ATENCION':
                 orm.fecha_atencion = fecha_atencion

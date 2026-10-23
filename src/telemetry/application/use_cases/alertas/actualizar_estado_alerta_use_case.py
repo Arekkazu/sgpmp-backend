@@ -1,6 +1,9 @@
 # | Fecha      | Nombre  | Que se hizo                                            |
 # |------------|---------|--------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: impide vencimientos por el flujo manual   |
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: elimina el historial redundante     |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -27,6 +30,7 @@ class ActualizarEstadoAlertaUseCase:
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
+        # Se conserva la firma de ensamblado; la escritura pertenece al trigger.
         self.historico_repo = historico_repo
         self.ambito = ambito
         self.auditoria_repo = auditoria_repo
@@ -38,7 +42,6 @@ class ActualizarEstadoAlertaUseCase:
         if alerta is None or not self.ambito.admite(alerta.tipo_alerta):
             raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
 
-        estado_anterior = alerta.estado_alerta
         try:
             # El vencimiento pertenece al procesamiento interno por SLA.
             # La entidad conserva esa transición para DEV-31, no para REST.
@@ -56,13 +59,7 @@ class ActualizarEstadoAlertaUseCase:
                 fecha_atencion=alerta.fecha_atencion,
                 fecha_resolucion=alerta.fecha_resolucion,
             )
-            self.historico_repo.registrar(
-                id_alerta=id_alerta,
-                estado_anterior=estado_anterior,
-                estado_nuevo=alerta.estado_alerta,
-                id_usuario=id_usuario,
-                motivo=dto.motivo,
-            )
+            # El trigger de UPDATE guarda actor y motivo de forma atómica.
             self.db.commit()
         except Exception as exc:
             self.db.rollback()

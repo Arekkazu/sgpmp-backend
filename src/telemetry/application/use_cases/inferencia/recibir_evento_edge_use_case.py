@@ -2,7 +2,10 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: rechaza dispositivo o sensor inactivos (401)      |
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 rechazo temporal en bitácora, E6 límite por dispositivo, E7 intento no autorizado |
+# | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 from __future__ import annotations
+
+import logging
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -42,6 +45,7 @@ _MAX_VENTANA_BUFFER_HORAS = 72
 # RF-56 E6: eventos por minuto y por dispositivo; los CRITICO no cuentan (se priorizan).
 # ponytail: contador en memoria por proceso (src/shared/rate_limit.py); compartido si hay réplicas.
 LIMITE_EVENTOS_POR_MINUTO = 60
+logger = logging.getLogger(__name__)
 
 
 class RecibirEventoEdgeUseCase:
@@ -200,13 +204,15 @@ class RecibirEventoEdgeUseCase:
                 historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
                 regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
                 parametros_port=self.parametros_alertas_port,
+                auditoria_repo=self.auditoria_repo,
             ).execute(
                 dto=alerta_dto,
                 id_dispositivo_ioit=dispositivo_id_iot,
                 id_infraestructura=id_infraestructura,
             )
         except Exception:
-            pass
+            self.db.rollback()
+            logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
     @staticmethod
     def _validar_temporal(ts_captura: datetime, ahora: datetime, origen: str) -> None:

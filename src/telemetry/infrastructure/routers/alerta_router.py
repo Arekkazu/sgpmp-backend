@@ -1,6 +1,9 @@
 # | Fecha      | Nombre  | Que se hizo                                             |
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: exige permiso especifico para descartar     |
+# | Fecha      | Nombre  | Que se hizo                                       |
+# |------------|---------|---------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: conecta auditoria de calidad y 403   |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -40,6 +43,7 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
+from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
@@ -51,7 +55,7 @@ from src.telemetry.infrastructure.schema.alerta_schema import (
     ResultadoGeneracionAlertaSchema,
 )
 
-router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"])
+router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"], route_class=RutaAlertaAuditada)
 
 
 def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
@@ -61,6 +65,7 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
         parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
 
 
@@ -117,7 +122,7 @@ def procesar_evento_alerta(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 2))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
     summary="Listar alertas con filtros (RF-57 FA-09)",
 )
 def listar_alertas(
@@ -171,7 +176,7 @@ def listar_alertas(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 2))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
     summary="Obtener detalle de alerta con historial de estados (RF-57 FA-09)",
 )
 def obtener_alerta(
@@ -206,7 +211,7 @@ def obtener_alerta(
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 3))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 3))],
     summary="Actualizar estado de alerta (RF-57 FA-10)",
 )
 def actualizar_estado_alerta(

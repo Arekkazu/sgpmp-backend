@@ -1,6 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E7 token inválido en bitácora, 429 por dispositivo (E6) y bitácora de rechazos |
+# | Fecha      | Nombre  | Que se hizo                                             |
+# |------------|---------|---------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-49 RF-57: inyecta bitacora para indisponibilidad IA  |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 
 RF-56 — CU02 Dev scope:
@@ -31,6 +34,7 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.evento_edge_repository import SqlAlchemyEventoEdgeRepository
 from src.telemetry.infrastructure.repositories.paquete_inferencia_repository import SqlAlchemyPaqueteInferenciaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.evento_edge_schema import EventoEdgeResponse
 
 router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos Edge"])
