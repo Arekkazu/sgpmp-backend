@@ -4,6 +4,9 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
 # | 2026-10-23 | Arekkazu | DEV-37 RF-73 E8: tarea periódica que sincroniza el respaldo de auditoría M04 |
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 import asyncio
 import logging
 import os
@@ -408,6 +411,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.historial_suministros_factory import (
         build_procesar_cola_historial_suministros_use_case,
+        build_purgar_archivos_vencidos_use_case,
     )
     from src.supplies.infrastructure.repositories.configuracion_batch_historial_repository import (
         SqlAlchemyConfiguracionBatchHistorialRepository,
@@ -435,6 +439,40 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
             logger.exception("Error en el poller de trabajos de historial de suministros.")
         finally:
             db.close()
+
+        # RF-77 (24 h) / RF-81 (72 h): purga de archivos exportados vencidos.
+        db = sesion_sistema()
+        try:
+            purgados = build_purgar_archivos_vencidos_use_case(db).execute()
+            if purgados:
+                logger.info("Purga de exportaciones de M05: %d archivo(s) vencido(s).", purgados)
+        except Exception:
+            logger.exception("Error purgando los archivos exportados vencidos de M05.")
+        finally:
+            db.close()
+
+
+async def _despachar_provisiones_m06_periodicamente() -> None:
+    """RF-79: entrega a M06 los eventos del outbox de provisiones (CA-1: ≤ 5 s)."""
+    from src.shared.database import sesion_sistema
+    from src.supplies.infrastructure.factories.provision_nic41_factory import (
+        build_despachar_provisiones_m06_use_case,
+    )
+
+    while True:
+        await asyncio.sleep(2)
+
+        def despachar() -> int:
+            db = sesion_sistema()
+            try:
+                return build_despachar_provisiones_m06_use_case(db).ejecutar()
+            finally:
+                db.close()
+
+        try:
+            await asyncio.to_thread(despachar)
+        except Exception:
+            logger.exception("Error en el despachador de provisiones hacia M06.")
 
 
 async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
@@ -643,6 +681,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+        asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_sincronizar_fallback_auditoria_m04_periodicamente()),

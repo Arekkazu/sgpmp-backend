@@ -1,10 +1,15 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: releer el acumulado tras el trigger |
 """Implementación SQLAlchemy del puerto :class:`AcumuladoCicloRepository` (RF-78, CU-05).
 
 Solo lectura — la mutación del acumulado la hace el trigger de BD
 ``trg_acumular_costo_ciclo`` (ver ``anotaciones/modulo_5/cu05_gaps_bd_rf78_rf79.md``
 Gap 6). ``acumulado_por_categoria`` llega de ``jsonb`` como ``dict[str, float]``
 (psycopg2 decodifica números JSON como ``float``); se reconvierte a ``Decimal``
-vía ``str()`` para no perder precisión.
+vía ``str()`` para no perder precisión. Las lecturas usan ``populate_existing``:
+el trigger cambia la fila dentro de la misma transacción y la copia que ya
+tuviera la sesión quedaría desactualizada.
 """
 from __future__ import annotations
 
@@ -50,6 +55,7 @@ class SqlAlchemyAcumuladoCicloRepository(AcumuladoCicloRepository):
         orm = (
             self.db.query(AcumuladoCicloModel)
             .filter(AcumuladoCicloModel.id_gestion_fases == id_gestion_fases)
+            .populate_existing()
             .first()
         )
         return self._a_entidad(orm) if orm else None
@@ -64,6 +70,7 @@ class SqlAlchemyAcumuladoCicloRepository(AcumuladoCicloRepository):
                 self.db.query(AcumuladoCicloModel)
                 .filter(AcumuladoCicloModel.id_gestion_fases == id_gestion_fases)
                 .with_for_update()
+                .populate_existing()
                 .first()
             )
         except Exception as exc:

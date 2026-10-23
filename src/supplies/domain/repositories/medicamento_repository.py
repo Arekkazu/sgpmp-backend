@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76 E11: tratamientos activos           |
 """Puerto del repositorio de aplicaciones de medicamento (RF-76).
 
 Expresado en términos de dominio: recibe y devuelve la entidad ``Medicamento``.
@@ -49,6 +52,11 @@ class MedicamentoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def contar_tratamientos_activos(self, id_activo: int, hoy: date) -> int:
+        """Tratamientos VALIDADOS con retiro vigente (``fecha_fin_retiro >= hoy``) — RF-76 E11."""
+        raise NotImplementedError
+
+    @abstractmethod
     def obtener_tratamiento_vigente(self, id_activo: int) -> Optional[Medicamento]:
         """Devuelve el tratamiento VALIDADO con la ``fecha_fin_retiro`` más lejana (o ``None``).
 
@@ -67,6 +75,7 @@ class MedicamentoRepository(ABC):
         fecha_desde: Optional[date] = None,
         fecha_hasta: Optional[date] = None,
         estado_registro: Optional[str] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[Medicamento]:
         """Lista aplicaciones aplicando los filtros de búsqueda de RF-76."""
         raise NotImplementedError

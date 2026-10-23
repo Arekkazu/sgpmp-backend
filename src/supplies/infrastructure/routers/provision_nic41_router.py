@@ -1,8 +1,10 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-79 R2: sin consolidado de ciclo activo |
 """Router FastAPI para la provisión de costos NIC-41 (`/suministros/nic41`).
 
 Expone los flujos de RF-79 (CU-05):
   POST   /suministros/nic41/ciclo/{id_gestion_fases}/consolidar         — Consolidar al cierre del ciclo
-  POST   /suministros/nic41/ciclo/{id_gestion_fases}/consolidar-manual  — Provisión ad-hoc (auditoría/recálculo)
   POST   /suministros/nic41/{id_provision}/correccion                  — Nueva versión de un reporte
   GET    /suministros/nic41/{id_provision}                             — Consultar un reporte (paginado)
   GET    /suministros/nic41/ciclo/{id_gestion_fases}/versiones         — Listar la cadena de versiones
@@ -24,7 +26,6 @@ from src.supplies.infrastructure.factories.provision_nic41_factory import (
     build_consolidar_ciclo_use_case,
     build_consultar_provision_use_case,
     build_corregir_provision_use_case,
-    build_generar_provision_manual_use_case,
     build_listar_versiones_provision_use_case,
 )
 from src.supplies.infrastructure.schema.provision_nic41_schema import (
@@ -62,29 +63,12 @@ def consolidar_ciclo(
 
 
 @router.post(
-    "/ciclo/{id_gestion_fases}/consolidar-manual",
-    response_model=ProvisionNic41Response,
-    status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 5))],
-    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
-    summary="Generar una provisión CONSOLIDADO manual ad-hoc, sin exigir cierre (RF-79)",
-)
-def consolidar_ciclo_manual(
-    id_gestion_fases: int,
-    db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> ProvisionNic41Response:
-    use_case = build_generar_provision_manual_use_case(db)
-    resultado = use_case.execute(id_gestion_fases, usuario_actual)
-    return ProvisionNic41Response.desde_entidad(resultado)
-
-
-@router.post(
     "/{id_provision}/correccion",
     response_model=ProvisionNic41Response,
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 5))],
-    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse},
+               404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
     summary="Generar una nueva versión de un reporte consolidado NIC-41 (RF-79 E4)",
 )
 def corregir_provision(
