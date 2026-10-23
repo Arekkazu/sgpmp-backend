@@ -1,6 +1,3 @@
-# | Fecha      | Nombre   | Que se hizo |
-# |------------|----------|-------------|
-# | 2026-10-23 | Arekkazu | DEV-24 RF-24: área con id_especies y una calibración por especie |
 """INC-M09-77-G137 (#513): ingesta de observaciones de visión (RF-53/56/62 v2.0) que
 alimenta la calibración VISION de RF-24 en vez del stub vacío."""
 from __future__ import annotations
@@ -152,7 +149,7 @@ def test_lo_ingerido_permite_publicar_la_linea_base_vision():
                 n_tracks=o.cantidad_tracks, componentes=o.vector,
             ) for o in repo.filas if o.id_dispositivo_iot in ids and inicio <= o.fecha_observacion <= fin]
 
-    area = Mock(id_infraestructura=2, id_especie=4, id_especies=[4], tipo_modelo_asignado="MODELO_AVES")
+    area = Mock(id_infraestructura=2, id_especie=4, tipo_modelo_asignado="MODELO_AVES")
     infra, camaras, cal, lb, eventos = Mock(), Mock(), Mock(), Mock(), Mock()
     infra.obtener_por_id.return_value = area
     camaras.listar_por_area.return_value = [Mock(id_dispositivo_iot=12, es_activo=True)]
@@ -162,7 +159,7 @@ def test_lo_ingerido_permite_publicar_la_linea_base_vision():
                                eventos_repo=eventos)
     dto = CalibrarVisionDTO(modo_calibracion="VISION", area_id=2,
                             ventana_observacion={"inicio": T0.isoformat(), "fin": (T0 + timedelta(hours=1)).isoformat()})
-    [resultado] = uc.execute(dto, Mock(id_usuario=7))  # DEV-24: una por especie
+    resultado = uc.execute(dto, Mock(id_usuario=7))
     assert resultado.estado == EstadoCalibracionVision.EXITOSA
     assert set(resultado.linea_base["valores"]) == {"densidad_actividad", "tasa_movimiento"}
     lb.publicar.assert_called_once()
