@@ -1,12 +1,15 @@
+# | Fecha      | Nombre  | Que se hizo                                            |
+# |------------|---------|--------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: impide vencimientos por el flujo manual   |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AppError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
-from src.telemetry.domain.entities.alerta import Alerta, AmbitoAlerta
+from src.telemetry.domain.entities.alerta import Alerta, AmbitoAlerta, EstadoAlerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
@@ -37,6 +40,13 @@ class ActualizarEstadoAlertaUseCase:
 
         estado_anterior = alerta.estado_alerta
         try:
+            # El vencimiento pertenece al procesamiento interno por SLA.
+            # La entidad conserva esa transición para DEV-31, no para REST.
+            if dto.nuevo_estado == EstadoAlerta.VENCIDA:
+                raise BusinessRuleError(
+                    code="TRANSICION_INVALIDA",
+                    message="El estado VENCIDA solo puede establecerse automáticamente por SLA.",
+                )
             alerta.transicionar(dto.nuevo_estado, id_usuario, dto.motivo)
             alerta_actualizada = self.alerta_repo.actualizar_estado(
                 id_alerta=id_alerta,

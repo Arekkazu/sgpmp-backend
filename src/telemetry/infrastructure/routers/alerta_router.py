@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                             |
+# |------------|---------|---------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: exige permiso especifico para descartar     |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -24,14 +27,14 @@ from sqlalchemy.orm import Session
 from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.errors import AuthenticationError
-from src.shared.rbac import require_permission
+from src.shared.errors import AuthenticationError, AuthorizationError
+from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
-from src.telemetry.domain.entities.alerta import AmbitoAlerta
+from src.telemetry.domain.entities.alerta import AmbitoAlerta, EstadoAlerta
 from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
@@ -212,6 +215,14 @@ def actualizar_estado_alerta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AlertaSchema:
+    # DB-08: D sobre el recurso por nombre; U sigue siendo obligatorio.
+    if dto.nuevo_estado == EstadoAlerta.DESCARTADA and not tiene_permiso_sobre(
+        db, usuario_actual.id_rol, "alertas", 4,
+    ):
+        raise AuthorizationError(
+            code="ACCESO_DENEGADO",
+            message="Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        )
     use_case = ActualizarEstadoAlertaUseCase(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
