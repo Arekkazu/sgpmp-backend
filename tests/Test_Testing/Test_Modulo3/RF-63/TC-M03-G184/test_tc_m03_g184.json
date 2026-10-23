@@ -1,0 +1,1169 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g184-bfla-v1",
+    "name": "TC-M03-G184 - OWASP API5 BFLA en Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G184 (RF-63). Verifica autorización granular a nivel de función (BFLA) para roles Admin, Productor, Veterinario, Ingeniero de Campo y Contador sobre los 4 endpoints de auditoría.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "role_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "test_id_evento",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Autenticacion-MultiRol",
+      "item": [
+        {
+          "name": "00-Login-ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para admin\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-PRODUCTOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para productor\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_productor\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-VETERINARIO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"juan.carlos.qa133@sgpmp-test.com\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para veterinario\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_veterinario\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-INGENIERO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"gestor.granja.test@pecuaria.co\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para ingeniero\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_ingeniero\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-CONTADOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para contador\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_contador\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-Setup-Obtener-ID-Evento",
+      "item": [
+        {
+          "name": "01-Obtener-Id-Evento-Existente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.items && res.items.length > 0) {",
+                  "    pm.collectionVariables.set(\"test_id_evento\", res.items[0].id_evento);",
+                  "} else {",
+                  "    pm.collectionVariables.set(\"test_id_evento\", \"00000000-0000-0000-0000-000000000001\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-BFLA-GET-Listar-Auditoria",
+      "item": [
+        {
+          "name": "02-Listar-ADMIN-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - ADMINISTRADOR autorizado en listar auditoría\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03-Listar-PRODUCTOR-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - PRODUCTOR denegado en listar auditoría\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04-Listar-VETERINARIO-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - VETERINARIO denegado en listar auditoría\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05-Listar-INGENIERO_CAMPO-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - INGENIERO_CAMPO autorizado con permiso (39,2)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "console.log(\"[INFO BFLA] INGENIERO_CAMPO accede a la bitácora técnica.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06-Listar-CONTADOR-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - CONTADOR autorizado con permiso (39,2)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "console.log(\"[DISCREPANCIA CON EL CASO] Contador ve el listado general; el backend autoriza por permiso (39,2) sin filtrar registros exclusivamente NIC41 en SQL.\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-BFLA-GET-Detalle-Auditoria",
+      "item": [
+        {
+          "name": "07-Detalle-ADMIN-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - ADMINISTRADOR autorizado en detalle\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08-Detalle-PRODUCTOR-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - PRODUCTOR denegado en detalle\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09-Detalle-VETERINARIO-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - VETERINARIO denegado en detalle\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10-Detalle-INGENIERO_CAMPO-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - INGENIERO_CAMPO autorizado en detalle\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11-Detalle-CONTADOR-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - CONTADOR autorizado en detalle\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04-BFLA-GET-Exportar-Auditoria",
+      "item": [
+        {
+          "name": "12-Exportar-ADMIN-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar?formato=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - ADMINISTRADOR autorizado en exportar\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13-Exportar-PRODUCTOR-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar?formato=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - PRODUCTOR denegado en exportar\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14-Exportar-INGENIERO_CAMPO-Denegado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar?formato=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - INGENIERO_CAMPO denegado en exportar (carece de accion 5)\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15-Exportar-CONTADOR-Permitido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar?formato=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - CONTADOR autorizado en exportar con permiso (39,5)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-BFLA-POST-Verificar-Integridad",
+      "item": [
+        {
+          "name": "16-Verificar-Integridad-ADMIN-Permitido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - ADMINISTRADOR autorizado en verificación de integridad\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17-Verificar-Integridad-INGENIERO_CAMPO-Denegado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403 - INGENIERO_CAMPO denegado en verificar integridad (carece de acción 5)\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "console.log(\"[CONFIRMACION RBAC] INGENIERO_CAMPO solo posee (39,2). Acción (39,5) responde 403.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18-Verificar-Integridad-CONTADOR-Permitido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - CONTADOR autorizado en verificar integridad con permiso (39,5)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06-Inmutabilidad-BFLA-Solo-Lectura",
+      "item": [
+        {
+          "name": "19-Intento-DELETE-Admin-Rechazado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 405 (o 404) - Ni el ADMINISTRADOR puede borrar eventos (Solo Lectura / Append-Only)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([405, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20-Intento-PATCH-Admin-Rechazado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad_log\": \"INFO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 405 (o 404) - Ni el ADMINISTRADOR puede modificar eventos\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([405, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

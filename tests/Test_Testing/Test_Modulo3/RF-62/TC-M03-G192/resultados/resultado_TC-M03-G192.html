@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Caso TC-M03-G192 - RFC-011 Calidad Visión</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 40px; }
+        .container { max-width: 900px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { color: #f43f5e; margin-top: 0; font-size: 26px; border-bottom: 2px solid #334155; padding-bottom: 12px; }
+        .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 20px; }
+        .badge-blocked { background-color: #ef4444; color: #ffffff; }
+        .card { background: #0f172a; border-left: 4px solid #ef4444; padding: 18px; border-radius: 6px; margin-bottom: 20px; }
+        .card h3 { margin: 0 0 8px 0; color: #38bdf8; font-size: 18px; }
+        .card p { margin: 0; color: #cbd5e1; line-height: 1.5; font-size: 14px; }
+        code { background: #334155; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #f1f5f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TC-M03-G192: Evaluación de Calidad de Observaciones de Visión (RFC-011)</h1>
+        <span class="badge badge-blocked">[BLOQUEADO POR ENDPOINT NO IMPLEMENTADO]</span>
+        <p>Este conjunto de pruebas no puede ser ejecutado contra el entorno TEST desplegado dado que el endpoint para evaluar observaciones de visión computacional no existe en el backend.</p>
+
+        <div class="card">
+            <h3>Diagnóstico de Endpoints en Backend</h3>
+            <p><strong>Hallazgo:</strong> En <code>src/telemetry/infrastructure/routers/calidad_router.py:105</code> solo existe <code>POST /{id_telemetria}/evaluar</code>, el cual opera estrictamente sobre lecturas escalares de <code>modulo3.telemetrias</code>. No existe <code>/iot/calidad/vision/{id}/evaluar</code> ni en <code>openapi-test.json</code> ni en el código fuente.</p>
+        </div>
+
+        <div class="card">
+            <h3>Subcasos Afectados (TC-369 a TC-373)</h3>
+            <p><strong>TC-M03-369:</strong> Evaluación nominal (índice 100, APTO, apto_para_ia=true, apto_para_nic41=false). <code>[BLOQUEADO]</code></p>
+            <p><strong>TC-M03-370:</strong> 8 variantes de degradación (cobertura, ratio tracks, fps). <code>[BLOQUEADO]</code></p>
+            <p><strong>TC-M03-371:</strong> Fronteras exactas de descuento (0.70/0.69, 0.40/0.39, fps 10/9/5). <code>[BLOQUEADO]</code></p>
+            <p><strong>TC-M03-372:</strong> Acumulación y saturación a 0. <code>[BLOQUEADO]</code></p>
+            <p><strong>TC-M03-373:</strong> Clasificación INDETERMINADA y alertamiento RF-60. <code>[BLOQUEADO]</code></p>
+        </div>
+    </div>
+</body>
+</html>

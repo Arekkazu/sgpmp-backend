@@ -1,0 +1,1080 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g183-owasp-api2-v1",
+    "name": "TC-M03-G183 - OWASP API2 Autenticación y Tokens Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G183 (RF-63). Verifica rechazo de peticiones sin token o malformadas, tokens expirados y manipulados (alg=none, firma inválida, payload alterado).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "jwt_secret",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "test_id_evento",
+      "value": ""
+    },
+    {
+      "key": "token_expirado_1h",
+      "value": ""
+    },
+    {
+      "key": "token_expirado_1s",
+      "value": ""
+    },
+    {
+      "key": "token_alg_none",
+      "value": ""
+    },
+    {
+      "key": "token_alterado",
+      "value": ""
+    },
+    {
+      "key": "token_clave_falsa",
+      "value": ""
+    },
+    {
+      "key": "subcaso_350a_bloqueado",
+      "value": "false"
+    },
+    {
+      "key": "subcaso_350b_bloqueado",
+      "value": "false"
+    },
+    {
+      "key": "msg_351a",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Baseline-Token-y-Setup",
+      "item": [
+        {
+          "name": "00-Login-Admin-Baseline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para generar token base\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").and.not.be.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01-Setup-Obtener-ID-Evento-Base",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.items && res.items.length > 0) {",
+                  "    pm.collectionVariables.set(\"test_id_evento\", res.items[0].id_evento);",
+                  "} else {",
+                  "    pm.collectionVariables.set(\"test_id_evento\", \"00000000-0000-0000-0000-000000000001\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-TC-M03-349-Sin-Cabecera-O-Malformada",
+      "item": [
+        {
+          "name": "349-SinHeader-Listar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-HeaderVacio-Listar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-BearerSinToken-Listar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-SinHeader-Detalle-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-HeaderVacio-Detalle-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-BearerSinToken-Detalle-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{test_id_evento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{test_id_evento}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-SinHeader-Exportar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-HeaderVacio-Exportar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-BearerSinToken-Exportar-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/exportar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "exportar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-SinHeader-Verificar-Integridad",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-HeaderVacio-Verificar-Integridad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "349-BearerSinToken-Verificar-Integridad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 estándar sin fugar trazas internas\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-M03-350-Tokens-Expirados",
+      "item": [
+        {
+          "name": "350-A-Token-Expirado-1-Hora",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_1h}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jwtSecret = pm.collectionVariables.get(\"jwt_secret\");",
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (!jwtSecret || jwtSecret.trim() === \"\") {",
+                  "    console.log(\"[BLOQUEADO] Subcaso 350(a): TEST_JWT_SECRET no definido en el entorno. Subcaso bloqueado sin pm.test.\");",
+                  "    pm.collectionVariables.set(\"subcaso_350a_bloqueado\", \"true\");",
+                  "} else {",
+                  "    pm.collectionVariables.set(\"subcaso_350a_bloqueado\", \"false\");",
+                  "    if (baseToken && baseToken.includes(\".\")) {",
+                  "        const parts = baseToken.split(\".\");",
+                  "        let payload = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(parts[1])));",
+                  "        payload.exp = Math.floor(Date.now() / 1000) - 3600;",
+                  "        const newPayloadStr = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload))).replace(/=+$/, \"\");",
+                  "        const tokenContent = parts[0] + \".\" + newPayloadStr;",
+                  "        const hash = CryptoJS.HmacSHA256(tokenContent, jwtSecret);",
+                  "        const newSig = CryptoJS.enc.Base64.stringify(hash).replace(/\\+/g, \"-\").replace(/\\//g, \"_\").replace(/=+$/, \"\");",
+                  "        pm.collectionVariables.set(\"token_expirado_1h\", parts[0] + \".\" + newPayloadStr + \".\" + newSig);",
+                  "    }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const bloqueado = pm.collectionVariables.get(\"subcaso_350a_bloqueado\");",
+                  "if (bloqueado === \"true\") {",
+                  "    console.log(\"[BLOQUEADO] Subcaso 350(a) ignorado en ejecución de aserciones por falta de TEST_JWT_SECRET.\");",
+                  "} else {",
+                  "    pm.test(\"Status 401 - Token expirado hace 1h rechazado\", function () {",
+                  "        pm.response.to.have.status(401);",
+                  "    });",
+                  "    pm.test(\"Error uniforme TOKEN_EXPIRADO\", function () {",
+                  "        const b = pm.response.json();",
+                  "        pm.expect(b.error_code).to.equal(\"TOKEN_EXPIRADO\");",
+                  "        pm.collectionVariables.set(\"msg_350a\", b.message);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "350-B-Token-Expirado-1-Segundo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_1s}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jwtSecret = pm.collectionVariables.get(\"jwt_secret\");",
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (!jwtSecret || jwtSecret.trim() === \"\") {",
+                  "    console.log(\"[BLOQUEADO] Subcaso 350(b): TEST_JWT_SECRET no definido en el entorno. Subcaso bloqueado sin pm.test.\");",
+                  "    pm.collectionVariables.set(\"subcaso_350b_bloqueado\", \"true\");",
+                  "} else {",
+                  "    pm.collectionVariables.set(\"subcaso_350b_bloqueado\", \"false\");",
+                  "    if (baseToken && baseToken.includes(\".\")) {",
+                  "        const parts = baseToken.split(\".\");",
+                  "        let payload = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(parts[1])));",
+                  "        payload.exp = Math.floor(Date.now() / 1000) - 1;",
+                  "        const newPayloadStr = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload))).replace(/=+$/, \"\");",
+                  "        const tokenContent = parts[0] + \".\" + newPayloadStr;",
+                  "        const hash = CryptoJS.HmacSHA256(tokenContent, jwtSecret);",
+                  "        const newSig = CryptoJS.enc.Base64.stringify(hash).replace(/\\+/g, \"-\").replace(/\\//g, \"_\").replace(/=+$/, \"\");",
+                  "        pm.collectionVariables.set(\"token_expirado_1s\", parts[0] + \".\" + newPayloadStr + \".\" + newSig);",
+                  "    }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const bloqueado = pm.collectionVariables.get(\"subcaso_350b_bloqueado\");",
+                  "if (bloqueado === \"true\") {",
+                  "    console.log(\"[BLOQUEADO] Subcaso 350(b) ignorado por falta de TEST_JWT_SECRET.\");",
+                  "} else {",
+                  "    pm.test(\"Status 401 - Token con exp expirado hace 1s rechazado\", function () {",
+                  "        pm.response.to.have.status(401);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-351-Tokens-Manipulados-y-Uniformidad",
+      "item": [
+        {
+          "name": "351-A-Token-Algoritmo-None",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_alg_none}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    const headerNone = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: \"none\", typ: \"JWT\" }))).replace(/=+$/, \"\");",
+                  "    pm.collectionVariables.set(\"token_alg_none\", headerNone + \".\" + parts[1] + \".\");",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Token con alg=none rechazado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje uniforme TOKEN_INVALIDO\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "    pm.collectionVariables.set(\"msg_351a\", b.message);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "351-B-Token-Payload-Alterado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_alterado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    try {",
+                  "        let payload = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(parts[1])));",
+                  "        payload.sub = \"999999\";",
+                  "        payload.rol = 1;",
+                  "        const newPayloadStr = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload))).replace(/=+$/, \"\");",
+                  "        pm.collectionVariables.set(\"token_alterado\", parts[0] + \".\" + newPayloadStr + \".\" + parts[2]);",
+                  "    } catch (e) {",
+                  "        pm.collectionVariables.set(\"token_alterado\", baseToken);",
+                  "    }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Payload alterado rechazado por firma rota\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje uniforme TOKEN_INVALIDO idéntico a 351(a)\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "    const msgA = pm.collectionVariables.get(\"msg_351a\");",
+                  "    if (msgA) {",
+                  "        pm.expect(b.message).to.equal(msgA);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "351-C-Token-Firma-Clave-Incorrecta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_clave_falsa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    const tokenContent = parts[0] + \".\" + parts[1];",
+                  "    const fakeSecret = \"clave_completamente_falsa_para_test_seguridad_123\";",
+                  "    const hash = CryptoJS.HmacSHA256(tokenContent, fakeSecret);",
+                  "    const fakeSig = CryptoJS.enc.Base64.stringify(hash).replace(/\\+/g, \"-\").replace(/\\//g, \"_\").replace(/=+$/, \"\");",
+                  "    pm.collectionVariables.set(\"token_clave_falsa\", tokenContent + \".\" + fakeSig);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Token con firma de clave ajena rechazado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje genérico uniforme sin filtrar internals criptográficos\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
