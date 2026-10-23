@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: conserva pruebas explicitas del contrato legado |
+# | 2026-10-23 | Arekkazu | DEV-24 RF-24: área con id_especies y una calibración por especie |
 """D4 con token de servicio → PostgreSQL DB-03 → consumidor RF-24 existente.
 
 Sin broker ni motor IA real. El cálculo RF-62 comprobado es el heredado; las
@@ -207,12 +208,12 @@ def test_rf24_consume_observaciones_d4_persistidas_para_linea_base(client,db_ses
     inicio=fin-timedelta(hours=2)
     assert len(adapter.listar([equipo['device']],inicio,fin))==40
     infra,camaras,cal,lb,eventos=Mock(),Mock(),Mock(),Mock(),Mock()
-    infra.obtener_por_id.return_value=SimpleNamespace(id_infraestructura=equipo['area'],id_especie=4,tipo_modelo_asignado='MODELO_AVES')
+    infra.obtener_por_id.return_value=SimpleNamespace(id_infraestructura=equipo['area'],id_especie=4,id_especies=[4],tipo_modelo_asignado='MODELO_AVES')
     camaras.listar_por_area.return_value=[SimpleNamespace(id_dispositivo_iot=equipo['device'],es_activo=True)]
     cal.guardar.side_effect=lambda c:c
     uc=CalibrarVisionUseCase(Mock(),infra,camaras,adapter,cal,lb,eventos)
     dto=CalibrarVisionDTO(modo_calibracion='VISION',area_id=equipo['area'],ventana_observacion={'inicio':inicio,'fin':fin})
-    resultado=uc.execute(dto,SimpleNamespace(id_usuario=7))
+    [resultado]=uc.execute(dto,SimpleNamespace(id_usuario=7))  # DEV-24: una por especie
     assert resultado.estado.value=='EXITOSA'
     assert set(resultado.linea_base['valores'])=={'densidad_actividad','dispersion_espacial','tasa_movimiento'}
     lb.publicar.assert_called_once()

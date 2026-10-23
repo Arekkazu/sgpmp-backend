@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | DEV-24 RF-24: área con id_especies y execute que devuelve una calibración por especie |
 """INC-M09-78-G138 (#514): RF-24 v2.0, modalidad VISION (línea base por área y especie).
 
 QA no encontraba ninguna operación VISION publicada. Estos tests cubren:
@@ -96,7 +99,10 @@ class _Eventos:
 
 def _area(**kw):
     base = dict(id_infraestructura=2, id_finca=1, id_especie=4, tipo_modelo_asignado="MODELO_AVES", es_activo=True)
-    return SimpleNamespace(**{**base, **kw})
+    datos = {**base, **kw}
+    # RFC-012 (DEV-24): el área expone sus especies; id_especie es la única si hay una.
+    datos.setdefault("id_especies", [] if datos["id_especie"] is None else [datos["id_especie"]])
+    return SimpleNamespace(**datos)
 
 
 def _camara(activa=True, id_=30):
@@ -240,7 +246,7 @@ def test_sin_observaciones_queda_fallida_en_filtrado_y_conserva_la_vigente():
 def test_calculo_exitoso_publica_y_reemplaza_la_linea_base():
     anterior = SimpleNamespace(id_infraestructura=2, id_especie=4, id_calibracion_vision=1)
     lineas, eventos, db = _LineasBase(anterior), _Eventos(), _Db()
-    cal = _uc(obs=_obs(), lineas=lineas, eventos=eventos, db=db).execute(_dto(observaciones="nuevo lote"), _USUARIO)
+    [cal] = _uc(obs=_obs(), lineas=lineas, eventos=eventos, db=db).execute(_dto(observaciones="nuevo lote"), _USUARIO)
     assert cal.estado == EstadoCalibracionVision.EXITOSA and cal.id_usuario == 7
     assert set(cal.linea_base["valores"]) == {"densidad_actividad", "tasa_movimiento"}
     assert lineas.vigente is not anterior and lineas.vigente.id_calibracion_vision == cal.id_calibracion_vision
