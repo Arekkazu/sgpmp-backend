@@ -2,8 +2,6 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
-# | Fecha      | Nombre  | Que se hizo                                      |
-# |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
 import asyncio
 import logging
