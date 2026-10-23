@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 from __future__ import annotations
 
 import uuid
@@ -6,7 +9,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import BusinessRuleError, ConflictError
 from src.shared.tipo_modelo import es_poblacional, paradigma_de
 
 _UMBRAL_F1 = Decimal("0.80")
@@ -144,9 +147,12 @@ class VersionModelo:
             self.detalle_validacion = None
 
     def activar(self) -> None:
-        """Transiciona a ACTIVO. Solo válido desde APROBADO y con notas_validacion."""
+        """Transiciona a ACTIVO. Solo válido desde APROBADO y con notas_validacion.
+
+        RF-69 E4 (DEV-34): activar una versión en estado distinto de APROBADO es 409.
+        """
         if self.estado_version in ("DEPRECADO", "RECHAZADO"):
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="TRANSICION_ESTADO_INVALIDA",
                 message=(
                     f"Los modelos en estado {self.estado_version} son terminales "
@@ -154,7 +160,7 @@ class VersionModelo:
                 ),
             )
         if self.estado_version != "APROBADO":
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="VERSION_NO_APROBADA",
                 message=(
                     f"Solo las versiones en estado APROBADO pueden activarse. "
