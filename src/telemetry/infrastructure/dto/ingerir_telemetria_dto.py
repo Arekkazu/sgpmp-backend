@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: valida referencia y categoria escalar |
 from __future__ import annotations
 
 from datetime import datetime
@@ -7,6 +10,7 @@ from typing import Optional
 from pydantic import Field, field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.telemetry.domain.entities.telemetria import CategoriaTelemetria
 
 
 class IngerirTelemetriaDTO(BaseDTO):
@@ -32,6 +36,17 @@ class IngerirTelemetriaDTO(BaseDTO):
     calidad_senal_snr: Optional[Decimal] = None
     checksum: Optional[str] = None
     categoria_variable: Optional[str] = None
+    id_variable: Optional[int] = Field(default=None, gt=0)
+
+    @field_validator('categoria_variable')
+    @classmethod
+    def validar_categoria(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        categoria = v.upper()
+        if categoria not in {item.value for item in CategoriaTelemetria}:
+            raise ValueError('categoria_variable debe ser AMBIENTAL, ANIMAL o HIDRICA.')
+        return categoria
 
     @field_validator('origen')
     @classmethod
