@@ -1,5 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: la regla derogada (cambiar especie con activos) pasa a retiro de especie (RFC-012) |
 """RF-20 v1.1 (RFC-009): especie del área, coherencia con `tipo_modelo_asignado`,
-cambio de especie con activos alojados, reactivación del área y cambio de la
+retiro de especie con activos alojados (RFC-012), reactivación del área y cambio de la
 familia de modelo de la especie (RF-15).
 
 Fakes en memoria, sin DB.
@@ -88,8 +91,9 @@ class _SinPropagar:
 
 
 class _Dependencias:
-    def __init__(self, otras=(0, None)): self.otras = otras
-    def contar_activos_de_otra_especie(self, _id, _especie): return self.otras
+    def __init__(self, por_especie=None, carga=0): self.por_especie, self.carga = por_especie or {}, carga
+    def contar_activos_por_especie(self, _id): return self.por_especie
+    def calcular_carga(self, _id): return self.carga
 
 
 def _registrar(especie_id, tipo_modelo=None):
@@ -110,15 +114,15 @@ def _area(id_especie=1, tipo_modelo="MODELO_AVES", es_activo=True):
         id_infraestructura=10, nombre=NombreInfraestructura("Galpón 1"), tipo="Galpón",
         superficie=Superficie(Decimal("120")), id_finca=1, es_activo=es_activo,
         fecha_actualizacion=datetime(2026, 10, 1, tzinfo=timezone.utc),
-        id_especie=id_especie, tipo_modelo_asignado=tipo_modelo,
+        id_especies=[id_especie], tipo_modelo_asignado=tipo_modelo,
     )
 
 
-def _editar(area, especie_id, tipo_modelo, otras=(0, None)):
+def _editar(area, especie_id, tipo_modelo, por_especie=None):
     infra_repo = _InfraRepo(area)
     uc = EditarInfraestructuraUseCase(
         db=_Db(), infra_repo=infra_repo, finca_repo=_Fincas(), tipo_area_repo=_TiposArea(),
-        auditoria_repo=_Auditoria(), especie_repo=_EspecieRepo(), dependency_port=_Dependencias(otras),
+        auditoria_repo=_Auditoria(), especie_repo=_EspecieRepo(), dependency_port=_Dependencias(por_especie),
         propagador_tipo_modelo=_SinPropagar(),
     )
     dto = EditarInfraestructuraDTO(
@@ -130,7 +134,7 @@ def _editar(area, especie_id, tipo_modelo, otras=(0, None)):
 
 def test_registra_area_con_especie_y_modelo_coherente():
     infra, repo, db = _registrar(1, "MODELO_AVES")
-    assert (repo.guardada.id_especie, repo.guardada.tipo_modelo_asignado) == (1, "MODELO_AVES")
+    assert (repo.guardada.id_especies, repo.guardada.tipo_modelo_asignado) == ([1], "MODELO_AVES")
     assert db.commits == 1
 
 
@@ -162,14 +166,15 @@ def test_incoherencia_especie_modelo_es_422(especie_id, tipo_modelo):
     assert tipo_modelo in e.value.message
 
 
-def test_no_cambia_especie_con_activos_de_otra_especie_alojados():
+def test_no_retira_la_especie_con_activos_alojados():
+    """RFC-012: reemplazar la especie la retira; con activos suyos alojados es 422."""
     with pytest.raises(BusinessRuleError) as e:
-        _editar(_area(), 2, "MODELO_ESPECIES_GRANDES", otras=(7, "Pollo de engorde"))
-    assert e.value.code == "AREA_CON_ACTIVOS_DE_OTRA_ESPECIE" and e.value.status_code == 422
+        _editar(_area(), 2, "MODELO_ESPECIES_GRANDES", por_especie={1: 7})
+    assert e.value.code == "ESPECIE_CON_ACTIVOS_ALOJADOS" and e.value.status_code == 422
     assert "7 activos" in e.value.message and "Pollo de engorde" in e.value.message
 
 
-def test_cambia_especie_si_no_hay_activos_de_otra_especie():
+def test_cambia_especie_si_la_retirada_no_tiene_activos():
     infra = _editar(_area(), 2, "MODELO_ESPECIES_GRANDES")
     assert (infra.id_especie, infra.tipo_modelo_asignado) == (2, "MODELO_ESPECIES_GRANDES")
 

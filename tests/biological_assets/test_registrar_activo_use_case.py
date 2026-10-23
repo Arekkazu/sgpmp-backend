@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: el doble del área declara sus especies (RFC-012) |
 """RF-33: snapshot inicial (Evento 0) y código HTTP del flujo de costo inválido.
 
 - El registro exitoso debe dejar un snapshot version=1/tipo_evento=CREACION en
@@ -21,6 +24,7 @@ from src.biological_assets.application.use_cases.registro.registrar_activo_use_c
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistorialActivo
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsulta
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -72,7 +76,8 @@ class InfraFake:
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
-            superficie=self.superficie, id_finca=5, id_especie=self.id_especie,
+            superficie=self.superficie, id_finca=5,
+            especies=[EspecieDelArea(self.id_especie, 'Bovino', None, None)] if self.id_especie is not None else [],
         )
 
 

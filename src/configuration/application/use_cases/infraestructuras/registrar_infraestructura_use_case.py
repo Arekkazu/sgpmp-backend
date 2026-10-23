@@ -1,9 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: registra 1..N especies del mismo grupo y nivel_criticidad |
 """Caso de uso: Registrar área productiva (POST RF-20)."""
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especie_y_modelo
+from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especies_y_modelo
 from src.configuration.application.use_cases.infraestructuras.propagar_tipo_modelo_edge import PropagadorTipoModeloEdge
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
@@ -67,7 +70,10 @@ class RegistrarInfraestructuraUseCase:
                 field="tipo_area",
             )
 
-        validar_especie_y_modelo(self.especie_repo, dto.especie_id, dto.tipo_modelo_asignado)
+        # RFC-012: un área nueva no aloja activos, así que la capacidad no se valida aquí.
+        validar_especies_y_modelo(
+            self.especie_repo, dto.especies, dto.tipo_modelo_asignado, nombre_area=dto.nombre_infraestructura,
+        )
 
         nombre = NombreInfraestructura(dto.nombre_infraestructura)
         superficie = Superficie(dto.superficie)
@@ -78,8 +84,9 @@ class RegistrarInfraestructuraUseCase:
             superficie=superficie,
             id_finca=dto.finca_id,
             descripcion=dto.descripcion_infraestructura,
-            id_especie=dto.especie_id,
+            id_especies=dto.especies,
             tipo_modelo_asignado=dto.tipo_modelo_asignado,
+            nivel_criticidad=dto.nivel_criticidad,
         )
 
         try:

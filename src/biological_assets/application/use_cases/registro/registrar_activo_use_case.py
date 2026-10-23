@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-22 RF-20: la regla C1 lee las especies del área (RFC-012) |
 """Caso de uso: registro de un activo biológico nuevo (RF-33)."""
 
 from __future__ import annotations
@@ -243,8 +246,9 @@ class RegistrarActivoBiologicoUseCase:
 
         # Regla C1 (RF-48/RF-20 v1.1): el área debe estar habilitada para la especie.
         # El formulario ya filtra por especie, pero escribir el ID la saltaba.
-        # ``None`` = área anterior a RF-20 v1.1, sin especie declarada.
-        if infra.id_especie is not None and infra.id_especie != dto.id_especie:
+        # Sin especies = área anterior a RF-20 v1.1. RFC-012 (asociar la especie si es
+        # del mismo grupo) lo completa DEV-23.
+        if infra.id_especies and dto.id_especie not in infra.id_especies:
             raise BusinessRuleError(
                 code='INCOMPATIBILIDAD_ESPECIE',
                 message=(
