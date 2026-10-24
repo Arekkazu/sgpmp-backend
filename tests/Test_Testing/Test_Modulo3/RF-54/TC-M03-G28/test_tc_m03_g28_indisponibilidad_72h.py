@@ -27,7 +27,8 @@ en el backend real:
 
 Carga: 046 envia ~3.200 lecturas a TEST; coordinar el horario con el equipo.
 
-Requisitos: acceso de red a TEST. Variables opcionales: BASE_URL, MARGEN_MIN, TIMEOUT_LOTE.
+Requisitos: acceso de red a TEST y BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el
+/iot/* responde 401). Variables opcionales: BASE_URL, MARGEN_MIN, TIMEOUT_LOTE.
 
 Como correrlo (desde la raiz del repo):
 
@@ -48,6 +49,11 @@ BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69
 URL_CAIDA = "http://127.0.0.1:9"  # backend inalcanzable desde el punto de vista del nodo
 MARGEN_MIN = int(os.getenv("MARGEN_MIN", "2"))
 TIMEOUT = 60
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 LOTE_MAX = 500
 # Un lote de 500 pasa registro por registro por todo el pipeline de ingesta (vinculacion, calidad): margen amplio.
 TIMEOUT_LOTE = int(os.getenv("TIMEOUT_LOTE", "600"))
@@ -74,16 +80,17 @@ class _NodoEdgeSimulado:
     def capturar_offline(self, sensor_id, tipo, unidad, valor, ts: datetime) -> None:
         self.buffer.append({"device_id": self.device_id, "sensor_id": sensor_id, "tipo_variable": tipo, "valor": valor,
                             "unidad": unidad, "timestamp_captura": ts.isoformat(), "origen": "BUFFER_LOCAL",
-                            "access_key": self.access_key})
+                            "serial": self.access_key})
 
     def monitorear(self) -> bool:
         """Un intervalo de monitoreo de disponibilidad: heartbeat al backend configurado."""
         try:
             r = requests.post(
                 f"{self.url}/iot/heartbeat",
-                json={"tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if self.buffer else "I",
+                json={
+                "device_id": self.device_id, "serial": self.access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if self.buffer else "I",
                       "datos_pendientes_buffer": len(self.buffer), "fecha_registro": datetime.now(timezone.utc).isoformat()},
-                headers={"X-Device-Id": str(self.device_id), "X-Device-API-Key": self.access_key}, timeout=5,
+                headers=_HEADERS_BROKER, timeout=5,
             )
             ok = r.status_code == 200
         except requests.exceptions.RequestException:
@@ -96,7 +103,7 @@ class _NodoEdgeSimulado:
         cola = sorted(self.buffer, key=lambda r: r["timestamp_captura"])
         for i in range(0, len(cola), LOTE_MAX):
             respuestas.append(requests.post(f"{self.url}/iot/telemetria/batch",
-                                            json={"registros": cola[i:i + LOTE_MAX]}, timeout=TIMEOUT_LOTE))
+                                            json={"registros": cola[i:i + LOTE_MAX]}, headers=_HEADERS_BROKER, timeout=TIMEOUT_LOTE))
         if all(r.status_code == 200 for r in respuestas):
             self.buffer = []
         return respuestas

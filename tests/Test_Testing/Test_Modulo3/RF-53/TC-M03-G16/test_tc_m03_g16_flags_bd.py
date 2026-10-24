@@ -18,6 +18,7 @@ Como se verifica (Postman + BD):
 
 Requisitos: newman en el PATH y acceso de red a TEST (API y Postgres 5448).
 Variables opcionales: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
+BROKER_TOKEN: token de servicio del broker de TEST (DEV-06), sin el cual /iot/* responde 401.
 
 Como correrlo (desde la raiz del repo):
 
@@ -54,7 +55,9 @@ def ids(tmp_path_factory) -> dict:
         pytest.skip("newman no esta instalado en el PATH")
     salida = tmp_path_factory.mktemp("g16") / "environment.json"
     proceso = subprocess.run(
-        [newman, "run", str(_COLECCION), "--export-environment", str(salida), "-r", "cli"],
+        # DEV-06: /iot/* exige el token de servicio del broker; se toma de BROKER_TOKEN y no se versiona.
+        [newman, "run", str(_COLECCION), "--export-environment", str(salida), "-r", "cli",
+         "--env-var", f"broker_token={os.getenv('BROKER_TOKEN', '')}"],
         capture_output=True, text=True, encoding="utf-8",
     )
     if not salida.exists():

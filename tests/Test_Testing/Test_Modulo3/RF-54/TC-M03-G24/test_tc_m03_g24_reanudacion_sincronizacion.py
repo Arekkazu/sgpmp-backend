@@ -23,7 +23,8 @@ de POST /iot/telemetria/batch e historial RF-59.
   pendientes, que devuelve el dispositivo a ACTIVO. La emision del evento en el nodo y la detencion
   "controlada" del envio son internas del firmware: SKIP.
 
-Requisitos: acceso de red a TEST. Variables opcionales: BASE_URL, ESPERA_RECONEXION_SEG.
+Requisitos: acceso de red a TEST y BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el
+/iot/* responde 401). Variables opcionales: BASE_URL, ESPERA_RECONEXION_SEG.
 
 Como correrlo (desde la raiz del repo):
 
@@ -43,6 +44,11 @@ import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 # Espera entre el corte y la reconexion (la ficha dice 1 minuto); tambien deja terminar al servidor el lote cortado.
 ESPERA_RECONEXION_SEG = float(os.getenv("ESPERA_RECONEXION_SEG", "60"))
 
@@ -61,7 +67,7 @@ class _NodoEdgeSimulado:
         self.buffer.append({
             "indice": len(self.buffer) + 1, "device_id": self.device_id, "sensor_id": self.sensor_id,
             "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": valor, "unidad": "°C",
-            "timestamp_captura": ts.isoformat(), "origen": "BUFFER_LOCAL", "access_key": self.access_key,
+            "timestamp_captura": ts.isoformat(), "origen": "BUFFER_LOCAL", "serial": self.access_key,
         })
 
     def pendientes(self) -> list[dict]:
@@ -71,9 +77,10 @@ class _NodoEdgeSimulado:
         pendientes = len(self.pendientes())
         r = requests.post(
             f"{BASE_URL}/iot/heartbeat",
-            json={"tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if pendientes else "I",
+            json={
+                "device_id": self.device_id, "serial": self.access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if pendientes else "I",
                   "datos_pendientes_buffer": pendientes, "fecha_registro": datetime.now(timezone.utc).isoformat()},
-            headers={"X-Device-Id": str(self.device_id), "X-Device-API-Key": self.access_key}, timeout=TIMEOUT,
+            headers=_HEADERS_BROKER, timeout=TIMEOUT,
         )
         self.heartbeats.append(r.status_code)
         return r.status_code
@@ -82,7 +89,7 @@ class _NodoEdgeSimulado:
         """Envia un lote; solo avanza el checkpoint si recibe la confirmacion del backend."""
         cuerpo = {"registros": [{k: v for k, v in x.items() if k != "indice"} for x in lote]}
         try:
-            r = requests.post(f"{BASE_URL}/iot/telemetria/batch", json=cuerpo, timeout=timeout)
+            r = requests.post(f"{BASE_URL}/iot/telemetria/batch", json=cuerpo, headers=_HEADERS_BROKER, timeout=timeout)
         except requests.exceptions.RequestException as exc:
             resultado = {"confirmado": False, "error": type(exc).__name__}
         else:

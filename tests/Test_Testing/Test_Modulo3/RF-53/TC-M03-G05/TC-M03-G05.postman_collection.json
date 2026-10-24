@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G05 Validación del catálogo de variables y unidades",
-    "description": "Automatiza TC-M03-013/014/015 (RF-53, CU01, CA-1 y flujo alterno E11) contra POST /iot/telemetria: tipo_variable TEMPERATURA_SUELO fuera del catálogo I3P-1 (013); TEMPERATURA_AMBIENTAL con '%' y PH_AGUA con 'C' (014), todos esperados 400 ERROR_UNIDAD sin persistencia (verificado en el historial RF-59); y TEMPERATURA_AMBIENTAL 77 °F normalizada a 25 °C como LECTURA_VALIDA (015). La regla de conversión del sistema está definida para '°F' (no 'F'): se envía '°F' y una nota final comprueba que 'F' literal se rechaza. Notas: el catálogo de tipos de variable (CATALOGO_I3P1) y las reglas de conversión están fijos en el código; solo los rangos físicos vienen de modulo9.variables_ambientales, lo que no cumple el 'catálogo dinámico' de CA-1. La unidad original (°F) no queda en ningún campo consultable por API, así que la trazabilidad de la conversión y la bitácora (sin endpoint) quedan para la verificación en BD. Datos propios: finca, especies, galpón y estanque, y por área un dispositivo + sensor asociado (RF-22) y calibrado (RF-24).",
+    "description": "Automatiza TC-M03-013/014/015 (RF-53, CU01, CA-1 y flujo alterno E11) contra POST /iot/telemetria: tipo_variable TEMPERATURA_SUELO fuera del catálogo I3P-1 (013); TEMPERATURA_AMBIENTAL con '%' y PH_AGUA con 'C' (014), todos esperados 400 ERROR_UNIDAD sin persistencia (verificado en el historial RF-59); y TEMPERATURA_AMBIENTAL 77 °F normalizada a 25 °C como LECTURA_VALIDA (015). La regla de conversión del sistema está definida para '°F' (no 'F'): se envía '°F' y una nota final comprueba que 'F' literal se rechaza. Notas: el catálogo de tipos de variable (CATALOGO_I3P1) y las reglas de conversión están fijos en el código; solo los rangos físicos vienen de modulo9.variables_ambientales, lo que no cumple el 'catálogo dinámico' de CA-1. La unidad original (°F) no queda en ningún campo consultable por API, así que la trazabilidad de la conversión y la bitácora (sin endpoint) quedan para la verificación en BD. Datos propios: finca, especies, galpón y estanque, y por área un dispositivo + sensor asociado (RF-22) y calibrado (RF-24). Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -66,7 +66,7 @@
                   "pm.collectionVariables.set('sufijo', sufijo);",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // fecha_fin futura -> 400 FECHA_FIN_FUTURA"
                 ]
               }
             },
@@ -798,6 +798,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -812,7 +816,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_SUELO\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_SUELO\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{key_t}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -859,6 +863,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -873,7 +881,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"%\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"%\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{key_t}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -915,6 +923,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -929,7 +941,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_ph}},\n  \"sensor_id\": {{sensor_ph}},\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 7.2,\n  \"unidad\": \"C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_ph}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_ph}},\n  \"sensor_id\": {{sensor_ph}},\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 7.2,\n  \"unidad\": \"C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{key_ph}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1083,6 +1095,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1097,7 +1113,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"°F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"°F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{key_t}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1200,6 +1216,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1214,7 +1234,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{key_t}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

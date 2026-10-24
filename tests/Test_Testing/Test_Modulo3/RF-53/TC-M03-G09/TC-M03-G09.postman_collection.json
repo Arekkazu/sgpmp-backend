@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G09 Cálculo y aplicación de calibración del valor recibido",
-    "description": "Automatiza TC-M03-022/023 (RF-53, CU01, flujo alterno E8). 022: dos juegos de parámetros RF-24 (ganancia 1.02 / offset -0.5 de la ficha, y 0.98 / +0.3) sobre sensores distintos; lectura de 25.0 °C -> valor_ajustado = valor_crudo x ganancia + offset (25.0 y 24.8), LECTURA_VALIDA, verificado en el historial RF-59 y los parámetros aplicados en la evaluación de calidad RF-62. 023: sensor asociado pero sin calibración -> el dato se persiste (201) como ERROR_CALIBRACION con valor_ajustado null. Nota: RF-24 valida el offset contra el rango de la categoría del sensor (TEMPERATURA 0 a 45), por lo que el offset -0.5 de la ficha se rechazaría al calibrar. El flag 'calibrado' no se expone por API (se infiere de valor_ajustado no nulo; verificación directa en BD). Datos propios: finca, especie, galpón, dispositivo y tres sensores de temperatura asociados (RF-22).",
+    "description": "Automatiza TC-M03-022/023 (RF-53, CU01, flujo alterno E8). 022: dos juegos de parámetros RF-24 (ganancia 1.02 / offset -0.5 de la ficha, y 0.98 / +0.3) sobre sensores distintos; lectura de 25.0 °C -> valor_ajustado = valor_crudo x ganancia + offset (25.0 y 24.8), LECTURA_VALIDA, verificado en el historial RF-59 y los parámetros aplicados en la evaluación de calidad RF-62. 023: sensor asociado pero sin calibración -> el dato se persiste (201) como ERROR_CALIBRACION con valor_ajustado null. Nota: RF-24 valida el offset contra el rango de la categoría del sensor (TEMPERATURA 0 a 45), por lo que el offset -0.5 de la ficha se rechazaría al calibrar. El flag 'calibrado' no se expone por API (se infiere de valor_ajustado no nulo; verificación directa en BD). Datos propios: finca, especie, galpón, dispositivo y tres sensores de temperatura asociados (RF-22). Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -66,7 +66,7 @@
                   "pm.collectionVariables.set('sufijo', sufijo);",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // fecha_fin futura -> 400 FECHA_FIN_FUTURA"
                 ]
               }
             },
@@ -752,6 +752,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -766,7 +770,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -909,6 +913,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -923,7 +931,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_b}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_b}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1071,6 +1079,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1085,7 +1097,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

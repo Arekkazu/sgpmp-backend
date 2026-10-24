@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G04 Rechazo de timestamp_captura futuro (desincronización de reloj)",
-    "description": "Automatiza TC-M03-011 (RF-53, CU01, flujo alterno E7). Envía a POST /iot/telemetria tres lecturas del mismo sensor con timestamp_captura = hora del servidor, +1 s y +2 h. La hora del servidor se estima con el header Date de la respuesta anterior (resolución de 1 s), así el resultado no depende del reloj de quien ejecuta. Esperado según la ficha: la primera 201, las dos futuras 400 ERROR_TIEMPO, y en el historial (RF-59) solo la primera. Nota: el código actual tolera 30 s de desfase NTP hacia el futuro (_MAX_DRIFT_FUTURO_SEG), así que +1 s se aceptaría; la ficha no contempla esa tolerancia. La bitácora de ingesta no tiene endpoint de consulta. La colección crea sus propios datos: finca, especie, galpón, dispositivo y sensor.",
+    "description": "Automatiza TC-M03-011 (RF-53, CU01, flujo alterno E7). Envía a POST /iot/telemetria tres lecturas del mismo sensor con timestamp_captura = hora del servidor, +1 s y +2 h. La hora del servidor se estima con el header Date de la respuesta anterior (resolución de 1 s), así el resultado no depende del reloj de quien ejecuta. Esperado según la ficha: la primera 201, las dos futuras 400 ERROR_TIEMPO, y en el historial (RF-59) solo la primera. Nota: el código actual tolera 30 s de desfase NTP hacia el futuro (_MAX_DRIFT_FUTURO_SEG), así que +1 s se aceptaría; la ficha no contempla esa tolerancia. La bitácora de ingesta no tiene endpoint de consulta. La colección crea sus propios datos: finca, especie, galpón, dispositivo y sensor. Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -66,7 +66,7 @@
                   "pm.collectionVariables.set('sufijo', sufijo);",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 2 * 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // fecha_fin futura -> 400 FECHA_FIN_FUTURA"
                 ]
               }
             },
@@ -391,6 +391,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -405,7 +409,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -453,6 +457,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -467,7 +475,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -509,6 +517,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -523,7 +535,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
