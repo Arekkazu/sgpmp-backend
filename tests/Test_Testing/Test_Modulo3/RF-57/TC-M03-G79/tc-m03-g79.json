@@ -1,13 +1,39 @@
 {
   "info": {
     "name": "TC-M03-G79 - Ciclo de vida y actualizacion de estado de la alerta (Fase 9, CA-11, E11, RFC-008 del RF-57 v1.1)",
-    "description": "RF-57 CA-11 / E11 / RFC-008. Estados: ACTIVA, EN_ATENCION, RESUELTA, DESCARTADA, VENCIDA (CERRADA no existe: 422 TRANSICION_INVALIDA). Subcasos 1-9 del caso agrupado. DISCREPANCIAS CONOCIDAS con la implementacion actual que el script deja visibles: (a) en el codigo VENCIDA -> EN_ATENCION esta permitida; (b) el contrato PATCH usa nuevo_estado (el RF nombra estado_alerta); (c) el id de la alerta es entero; (d) un estado no catalogado lo rechaza la validacion del DTO (422) y puede no traer error_code TRANSICION_INVALIDA. Roles: admin, productor, veterinario, ingeniero. Variable token_expirado para el caso de sesion vencida. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "description": "RF-57 CA-11 / E11 / RFC-008. Estados: ACTIVA, EN_ATENCION, RESUELTA, DESCARTADA, VENCIDA (CERRADA no existe: 422 TRANSICION_INVALIDA). Subcasos 1-9 del caso agrupado. DISCREPANCIAS CONOCIDAS con la implementacion actual que el script deja visibles: (a) en el codigo VENCIDA -> EN_ATENCION esta permitida; (b) el contrato PATCH usa nuevo_estado (el RF nombra estado_alerta); (c) el id de la alerta es entero; (d) un estado no catalogado lo rechaza la validacion del DTO (422) y puede no traer error_code TRANSICION_INVALIDA. Roles: admin, productor, veterinario, ingeniero. Variable token_expirado para el caso de sesion vencida. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g79.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G79.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. NOTA 2026-10-24: se retiraron 47 pasos que usan sensores no disponibles en TEST (pH, NH3, CO2, TDS, frecuencia respiratoria, frecuencia cardiaca, temperatura corporal) o dependen de ellos. Detalle en PENDIENTES_SENSORES_M3.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
     },
     {
       "key": "correo_admin",
@@ -62,7 +88,11 @@
       "value": "1"
     },
     {
-      "key": "access_key",
+      "key": "serial",
+      "value": ""
+    },
+    {
+      "key": "broker_service_token",
       "value": ""
     },
     {
@@ -225,6 +255,79 @@
       }
     },
     {
+      "name": "0Z. Preparacion: crear evento edge valido (POST /iot/eventos-edge) para usar su id como id_evento_edge_computing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_service_token}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/eventos-edge",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"clasificacion_rf55\": \"NORMAL\",\n  \"severidad\": \"LEVE\",\n  \"variables_involucradas\": [{\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.0,\n      \"unidad\": \"°C\"\n    }],\n  \"timestamp_captura\": \"{{ts_now}}\",\n  \"timestamp_procesamiento_edge\": \"{{ts_now}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"estado_conectividad\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+              "pm.variables.set('ts_now', _iso(_n));",
+              "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+              "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+              "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+              "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+              "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+              "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+              "pm.variables.set('uniq', String(_n).slice(-9));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "console.log('[TC-M03-G79 0Z] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+              "const _guardar = function (j) {",
+              "  const k = ['id_evento_edge_computing', 'id_evento_edge', 'id_evento', 'id'].find(function (n) { return j && j[n] !== undefined && j[n] !== null; })",
+              "          || Object.keys(j || {}).find(function (n) { return /^id_/.test(n) && typeof j[n] === 'number'; });",
+              "  if (k) { pm.collectionVariables.set('id_evento_edge', String(j[k])); console.log('[TC-M03-G79 0Z] id_evento_edge = ' + j[k] + ' (campo ' + k + ')'); return true; }",
+              "  return false; };",
+              "const _cands = [\"NORMAL\", \"LEVE\", \"ANOMALIA\", \"ALERTA\", \"CRITICO\"];",
+              "const _fin = function () { pm.test('Preparacion: evento edge de referencia creado y id_evento_edge disponible (si falla, revisar el codigo y mensaje del log; o pasar --env-var id_evento_edge=<id existente>)', function () { pm.expect(pm.collectionVariables.get('id_evento_edge')).to.not.eql('1'); }); };",
+              "const _intentar = function (i) {",
+              "  const b = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); b.clasificacion_rf55 = _cands[i];",
+              "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+              "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/iot/eventos-edge', method: 'POST', header: h, body: {mode: 'raw', raw: JSON.stringify(b)}}, function (e, r) {",
+              "    let j = {}; try { j = r.json(); } catch (x) {}",
+              "    console.log('[TC-M03-G79 0Z] reintento clasificacion_rf55=' + _cands[i] + ' -> ' + (r ? r.code : e) + ' ' + (r ? r.text().slice(0, 300) : ''));",
+              "    if (r && r.code === 201) { _guardar(j); _fin(); } else if (r && (r.code === 400 || r.code === 422) && i + 1 < _cands.length) { _intentar(i + 1); } else { _fin(); } });",
+              "};",
+              "if (pm.response.code === 201) { _guardar(J); _fin(); }",
+              "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
+              "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Transiciones validas e invalidas (TC-M03-147)",
       "item": [
         {
@@ -235,12 +338,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -370,12 +477,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 75.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 75.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -711,430 +822,12 @@
               }
             }
           ]
-        },
-        {
-          "name": "1.8a Alerta ACTIVA para ACTIVA->RESUELTA directo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_ph_agua}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 8.6,\n  \"unidad\": \"pH\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.8a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_act', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.8b ACTIVA->RESUELTA (sin pasar por EN_ATENCION) - rechazada",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_act}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.8b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 403/409/422', function () { pm.expect([403, 409, 422]).to.include(pm.response.code); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.8c La alerta sigue ACTIVA",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_act}}"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.8c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El estado no cambia: ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.9a Pasar a EN_ATENCION",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_act}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.9a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.9b EN_ATENCION->DESCARTADA (el RF no la lista) - rechazada",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_act}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.9b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 403/409/422', function () { pm.expect([403, 409, 422]).to.include(pm.response.code); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.9c La alerta sigue EN_ATENCION",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_act}}"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 1.9c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El estado no cambia: EN_ATENCION', function () { pm.expect(J.estado_alerta).to.eql('EN_ATENCION'); });"
-                ]
-              }
-            }
-          ]
         }
       ]
     },
     {
       "name": "2. Validacion de la solicitud de actualizacion (TC-M03-148)",
       "item": [
-        {
-          "name": "2.0 Alerta para pruebas de motivo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_tds}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TDS\",\n  \"valor\": 1200,\n  \"unidad\": \"µS/cm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 2.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_mot', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "2.1 Descartar con motivo de 500 caracteres (maximo) - aceptado",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_mot}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('estado DESCARTADA', function () { pm.expect(J.estado_alerta).to.eql('DESCARTADA'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "2.2a Otra alerta para motivo excedido",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_co2}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"CO2\",\n  \"valor\": 3100,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 2.2a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_mot2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "2.2b Descartar con motivo de 501 caracteres - rechazado 422",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_mot2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 2.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
         {
           "name": "2.3 PATCH sobre alerta inexistente - 404",
           "request": {
@@ -1210,274 +903,6 @@
       "name": "3. Autorizacion por rol y transicion (TC-M03-149)",
       "item": [
         {
-          "name": "3.productor.0a Alerta para productor (EN_ATENCION y RESUELTA)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.0a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_productor_1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.productor.1 productor: ACTIVA->EN_ATENCION",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_productor}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G79-productor][OBSERVADO] EN_ATENCION = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.productor.2 productor: EN_ATENCION->RESUELTA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_productor}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G79-productor][OBSERVADO] RESUELTA = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.productor.2x Limpieza admin: cerrar la alerta si quedo abierta",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.2x] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.productor.3a Alerta para DESCARTAR con productor",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.3a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_productor_2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.productor.3 productor: ACTIVA->DESCARTADA (solo Veterinario o Administrador)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_productor}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"Falso positivo QA productor\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.productor.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 403', function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "3.veterinario.0a Alerta para veterinario (EN_ATENCION y RESUELTA)",
           "request": {
             "method": "POST",
@@ -1485,12 +910,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 30.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 30.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1659,12 +1088,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 30.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 30.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1744,618 +1177,6 @@
               }
             }
           ]
-        },
-        {
-          "name": "3.admin.0a Alerta para admin (EN_ATENCION y RESUELTA)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_cardiaca}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 30.0,\n  \"unidad\": \"lpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.0a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_admin_1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.admin.1 admin: ACTIVA->EN_ATENCION",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_admin_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G79-admin][OBSERVADO] EN_ATENCION = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.admin.2 admin: EN_ATENCION->RESUELTA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_admin_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G79-admin][OBSERVADO] RESUELTA = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.admin.2x Limpieza admin: cerrar la alerta si quedo abierta",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_admin_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.2x] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.admin.3a Alerta para DESCARTAR con admin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_cardiaca}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 30.0,\n  \"unidad\": \"lpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.3a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_admin_2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.admin.3 admin: ACTIVA->DESCARTADA (solo Veterinario o Administrador)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_admin_2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"Falso positivo QA admin\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.admin.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.0a Alerta para ingeniero (EN_ATENCION y RESUELTA)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_corporal}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 30.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.0a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_ingeniero_1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.1 ingeniero: ACTIVA->EN_ATENCION",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_ingeniero}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_ingeniero_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/403', function () { pm.expect([200, 403]).to.include(pm.response.code); });",
-                  "console.log('[G79-ingeniero][OBSERVADO] EN_ATENCION = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.2 ingeniero: EN_ATENCION->RESUELTA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_ingeniero}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_ingeniero_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/403', function () { pm.expect([200, 403]).to.include(pm.response.code); });",
-                  "console.log('[G79-ingeniero][OBSERVADO] RESUELTA = ' + JSON.stringify({status: pm.response.code}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.2x Limpieza admin: cerrar la alerta si quedo abierta",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_ingeniero_1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.2x] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.3a Alerta para DESCARTAR con ingeniero",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_corporal}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 30.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.3a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_ingeniero_2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.ingeniero.3 ingeniero: ACTIVA->DESCARTADA (solo Veterinario o Administrador)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_ingeniero}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_ingeniero_2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"Falso positivo QA ingeniero\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.ingeniero.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 403', function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.x1 Sin autenticacion - 401",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.x1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 401', function () { pm.response.to.have.status(401); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.x2 Sesion expirada - 401",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_expirado}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_productor_2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 3.x2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 401', function () { pm.response.to.have.status(401); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
         }
       ]
     },
@@ -2370,12 +1191,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2464,12 +1289,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2675,462 +1504,8 @@
       ]
     },
     {
-      "name": "6. Descarte por falso positivo: motivo y usuario (TC-M03-N23 / E11)",
-      "item": [
-        {
-          "name": "6.1a Alerta para descartar con motivo (Veterinario)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_ph_agua}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 8.6,\n  \"unidad\": \"pH\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 6.1a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_fp1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "6.1b Descartar con motivo como Veterinario",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_veterinario}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_fp1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"Falso positivo - sensor sucio\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 6.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('motivo_descarte guardado', function () { pm.expect(J.motivo_descarte).to.eql('Falso positivo - sensor sucio'); });",
-                  "pm.test('Usuario de resolucion registrado', function () { pm.expect(J.id_usuario_resolucion).to.exist; });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "6.2a Alerta para descartar SIN motivo (Administrador)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 26.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 6.2a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_fp2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "6.2b Descartar sin motivo - se documenta (el RF deja el motivo como obligatorio u opcional segun E11)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_fp2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 6.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });",
-                  "console.log('[G79-6.2b][OBSERVADO] descarte sin motivo = ' + JSON.stringify({status: pm.response.code, resp: J}));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "6.3 Historial inmutable: el descarte queda en el historial",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_fp1}}"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 6.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Historial con DESCARTADA y motivo', function () { const h = (J.historico_estados || []).find(function (x) { return x.estado_nuevo === 'DESCARTADA'; }); pm.expect(h).to.exist; pm.expect((h || {}).motivo).to.exist; });"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "7. Estado no catalogado, incluido CERRADA (TC-M03-N24)",
       "item": [
-        {
-          "name": "7.0a Alerta ACTIVA para probar CERRADA",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_co2}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"CO2\",\n  \"valor\": 3100,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.0a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_c1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.0b Alerta EN_ATENCION",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_tds}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TDS\",\n  \"valor\": 1200,\n  \"unidad\": \"µS/cm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.0b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a79_c2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.0c Llevar a EN_ATENCION",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.0c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.1 CERRADA sobre alerta ACTIVA - 422 TRANSICION_INVALIDA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"CERRADA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
-                  "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.2 CERRADA sobre alerta EN_ATENCION - 422 TRANSICION_INVALIDA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c2}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"CERRADA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
-                  "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
         {
           "name": "7.3 CERRADA sobre alerta RESUELTA - 422 TRANSICION_INVALIDA",
           "request": {
@@ -3167,263 +1542,6 @@
                   "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
                   "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
                   "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.4 nuevo_estado='cerrada' - 422 TRANSICION_INVALIDA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"cerrada\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
-                  "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.5 nuevo_estado='FINALIZADA' - 422 TRANSICION_INVALIDA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"FINALIZADA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
-                  "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.6 nuevo_estado='' - 422 TRANSICION_INVALIDA",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('error_code = TRANSICION_INVALIDA (RFC-008)', function () { pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
-                  "pm.test('Formato de error estandar', function () { pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.7 nuevo_estado=null - 422",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": null\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.8 Campo estado_alerta='CERRADA' (nombre del RF) - 422",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"estado_alerta\": \"CERRADA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.9 La alerta ACTIVA no cambio",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c1}}"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.9] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El estado no cambia: ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "7.10 La alerta EN_ATENCION no cambio",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas/{{a79_c2}}"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G79 7.10] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El estado no cambia: EN_ATENCION', function () { pm.expect(J.estado_alerta).to.eql('EN_ATENCION'); });"
                 ]
               }
             }
@@ -3557,12 +1675,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 4.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 4.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3887,55 +2009,24 @@
       ]
     },
     {
-      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "(function () {",
-              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
-              "  console.log('[TC-M03-G79] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
-              "  pm.collectionVariables.set('ids_alertas', '[]');",
-              "})();",
-              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M03-G79] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "iot",
-            "alertas"
-          ],
-          "query": [
-            {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
-              "key": "por_pagina",
-              "value": "1"
-            }
-          ]
-        }
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
       }
     }
   ]
