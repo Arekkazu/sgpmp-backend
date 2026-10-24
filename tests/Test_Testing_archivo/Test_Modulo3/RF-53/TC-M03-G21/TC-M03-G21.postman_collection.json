@@ -1,0 +1,1705 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G21 Protección del historial de telemetría contra modificación y eliminación",
+    "description": "Parte Postman de TC-M03-073/074 (RF-53; ASVS V8 y V4). Registra una lectura propia de 25.0 °C y luego intenta PUT, PATCH y DELETE sobre ella en /iot/telemetria/{id} y /telemetria/lecturas/{id} (la ruta de la ficha): como Administrador (073a) y como Contador, Productor y sin token como un dispositivo (074). Ninguna operación debe completarse: 403 por falta de permisos, o 404/405 si el endpoint no existe (la ficha lo contempla). Al final el historial RF-59 debe conservar la lectura con su valor, timestamp e id originales. El intento por acceso directo a BD (073b) lo hace test_tc_m03_g21_inmutabilidad_bd.py con el id exportado (g21_*). Nota: la API solo expone POST para la telemetría; no existe endpoint de modificación ni eliminación. Datos propios: finca, especie, galpón, dispositivo, sensor y la lectura.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios y logins)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Administrador (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar finca propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "const ymd = (x) => x.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Inmutable Telemetria {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"El Caguan\",\n    \"latitud\": \"2.93\",\n    \"longitud\": \"-75.28\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie porcina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Inmutable {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G21\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Galpón",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Galpón creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Galpon Inmutable {{sufijo}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo ambiental ACTIVO (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_id', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('access_key', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G21-{{sufijo}}\",\n  \"descripcion\": \"Nodo ambiental TC-M03-G21\",\n  \"id_infraestructura\": {{id_area}},\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_id', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor temperatura {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar la lectura que se intentará alterar (25.0 °C)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_original', new Date(Date.now() - 5000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lectura registrada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_tel', pm.response.json().id_telemetria);",
+                  "pm.environment.set('g21_id_telemetria', String(pm.response.json().id_telemetria));",
+                  "pm.environment.set('g21_valor_original', '25.0');",
+                  "pm.environment.set('g21_ts_original', pm.collectionVariables.get('ts_original'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_original}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Contador (sin privilegios administrativos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Contador (sin privilegios administrativos) (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_contador', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Productor (sin privilegios administrativos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (sin privilegios administrativos) (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_productor', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M03-073a Modificación/eliminación por API con rol administrativo",
+      "item": [
+        {
+          "name": "TC-M03-073a - Administrador: PUT /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-073a - Administrador: PATCH /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-073a - Administrador: DELETE /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-073a - Administrador: PUT /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-073a - Administrador: PATCH /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-073a - Administrador: DELETE /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-073a (Administrador, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M03-074 Modificación/eliminación por API sin privilegios",
+      "item": [
+        {
+          "name": "TC-M03-074 - Contador: PUT /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Contador: PATCH /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Contador: DELETE /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Contador: PUT /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Contador: PATCH /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Contador: DELETE /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Contador, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: PUT /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: PATCH /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: DELETE /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: PUT /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: PATCH /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Productor: DELETE /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Productor, DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): PUT /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): PATCH /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): DELETE /iot/telemetria/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): PUT /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), PUT): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): PATCH /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), PATCH): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 999.0,\n  \"estado_calidad\": \"LECTURA_VALIDA\",\n  \"timestamp_captura\": \"2020-01-01T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-074 - Sin token (dispositivo IoT): DELETE /telemetria/lecturas/{id}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-074 (Sin token (dispositivo IoT), DELETE): la operación no se completa', function () {",
+                  "  pm.expect(pm.response.code, 'HTTP ' + pm.response.code).to.be.oneOf([401, 403, 404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/telemetria/lecturas/{{id_tel}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "telemetria",
+                "lecturas",
+                "{{id_tel}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Verificación del registro original",
+      "item": [
+        {
+          "name": "TC-M03-073/074 - El registro conserva valor, timestamp e id originales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.test('El sensor sigue teniendo exactamente la lectura original', function () {",
+                  "  pm.expect(items.map(x => x.id_telemetria)).to.eql([Number(pm.collectionVariables.get('id_tel'))]);",
+                  "});",
+                  "const it = items[0];",
+                  "if (it) {",
+                  "  pm.test('Valor original 25.0 (no 999)', function () { pm.expect(Number(it.valor)).to.eql(25); });",
+                  "  pm.test('timestamp_captura original', function () {",
+                  "    pm.expect(new Date(it.timestamp_captura).getTime()).to.eql(new Date(pm.collectionVariables.get('ts_original')).getTime());",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{sensor_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": ""
+    },
+    {
+      "key": "fecha_hasta",
+      "value": ""
+    },
+    {
+      "key": "ts_original",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_tel",
+      "value": ""
+    }
+  ]
+}

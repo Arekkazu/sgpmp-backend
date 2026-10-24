@@ -12,7 +12,8 @@ class TelemetriaCalidadRepository(ABC):
     def guardar(self, evaluacion: TelemetriaCalidad) -> TelemetriaCalidad: ...
 
     @abstractmethod
-    def obtener_por_lectura(self, id_telemetria: int) -> Optional[TelemetriaCalidad]: ...
+    def obtener_por_lectura(self, id_telemetria: int) -> Optional[TelemetriaCalidad]:
+        """Evaluación vigente no superada; única fuente de aptitud escalar."""
 
     @abstractmethod
     def listar(
@@ -24,7 +25,8 @@ class TelemetriaCalidadRepository(ABC):
         estado_evaluacion: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
-    ) -> tuple[list[TelemetriaCalidad], int]: ...
+    ) -> tuple[list[TelemetriaCalidad], int]:
+        """Lista vigentes por defecto; SUPERADA permite consultar el histórico."""
 
     @abstractmethod
     def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None: ...

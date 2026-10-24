@@ -1,0 +1,613 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G001 Alta y consulta del catálogo de patologías",
+    "description": "Automatiza TC-M04-001/002 (RF-64, CU01, flujo feliz) contra el catálogo de patologías de M04 (/prediccion/patologias). 001: crea una patología para una especie bovina propia (grupo ESPECIES_GRANDES, RF-15) con 3 variables I3P-1 (13 temperatura corporal, 14 frecuencia cardíaca, 15 frecuencia respiratoria; RF-16) y descripción clínica de 120 caracteres; verifica id único, es_base=false, activa, variables asociadas, version_catalogo incrementada y que quede persistida (detalle). 002: consultas sin filtros, por especie, por estado ACTIVA (solo_activas) y por nombre parcial; las 8 patologías base se distinguen de las agregadas por es_base. Notas: especie_aplicable es el id de la especie (o 'TODAS'), el estado es el booleano es_activo, version_catalogo es por patología (empieza en 1 y sube al editar) y el GET no tiene parámetro de búsqueda por nombre (se prueba nombre_patologia). La creación es del rol veterinario: completar correo_veterinario/contrasena_veterinario (por defecto, el Administrador). La distinción visual de es_base en la UI (CA-4) va en un caso de Frontend aparte.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "pm.collectionVariables.set('nombre_patologia', 'Neumonia Febril Bovina ' + sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie bovina propia (RF-15)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie bovina creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Patologias {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G001\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Catálogo I3P-1: las 3 variables existen (RF-16)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Variables responde 200', function () { pm.response.to.have.status(200); });",
+                  "const ids = (pm.response.json().items || []).map(v => v.id_variable_ambiental);",
+                  "pm.test('Precondición: variables [13, 14, 15] en I3P-1', function () { pm.expect(ids).to.include.members([13, 14, 15]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Estado del catálogo antes del alta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.collectionVariables.set('total_antes', String(items.length));",
+                  "pm.collectionVariables.set('version_antes', String(Math.max(0, ...items.map(p => p.version_catalogo || 0))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-001 Crear patología válida",
+      "item": [
+        {
+          "name": "TC-M04-001 - Crear patología BOVINO con 3 variables I3P-1 y descripción de 120 caracteres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-001: patología creada (201)', function () { pm.response.to.have.status(201); });",
+                  "const p = pm.response.json();",
+                  "pm.collectionVariables.set('id_patologia', p.id_patologia);",
+                  "pm.test('TC-M04-001: id_patologia asignado', function () { pm.expect(p.id_patologia).to.be.a('number').and.above(0); });",
+                  "pm.test('TC-M04-001: es_base = false (agregada, no base)', function () { pm.expect(p.es_base).to.eql(false); });",
+                  "pm.test('TC-M04-001: estado ACTIVA', function () { pm.expect(p.es_activo).to.eql(true); });",
+                  "pm.test('TC-M04-001: especie_aplicable = la especie bovina', function () { pm.expect(String(p.especie_aplicable)).to.eql(String(pm.collectionVariables.get('id_especie'))); });",
+                  "pm.test('TC-M04-001: las 3 variables quedan asociadas', function () { pm.expect((p.variables_sensoricas_asociadas || []).map(v => v.id_variable_ambiental).sort()).to.eql([13, 14, 15]); });",
+                  "pm.test('TC-M04-001: version_catalogo incrementada respecto al catálogo previo', function () {",
+                  "  pm.expect(p.version_catalogo).to.be.above(Number(pm.collectionVariables.get('version_antes')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"{{nombre_patologia}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15],\n  \"descripcion_clinica\": \"Cuadro respiratorio febril del bovino con aumento sostenido de temperatura corporal, taquicardia y taquipnea en reposo..\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-001 - La patología queda persistida (detalle)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "pm.test('TC-M04-001: persistida con el mismo id, nombre y descripción', function () {",
+                  "  pm.expect(p.id_patologia).to.eql(Number(pm.collectionVariables.get('id_patologia')));",
+                  "  pm.expect(p.nombre_patologia).to.eql(pm.collectionVariables.get('nombre_patologia'));",
+                  "  pm.expect(p.descripcion_clinica.length).to.eql(120);",
+                  "});",
+                  "pm.test('TC-M04-001: es_base=false y activa en el detalle', function () { pm.expect([p.es_base, p.es_activo]).to.eql([false, true]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-002 Consultar y buscar el catálogo",
+      "item": [
+        {
+          "name": "TC-M04-002a - Consulta sin filtros",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sin filtros responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
+                  "pm.test('TC-M04-002a: incluye la patología nueva', function () { pm.expect(nueva, 'patología nueva').to.exist; });",
+                  "pm.test('TC-M04-002a: total = antes + 1', function () { pm.expect(items.length).to.eql(Number(pm.collectionVariables.get('total_antes')) + 1); });",
+                  "pm.test('TC-M04-002a: las 8 patologías base se distinguen de las agregadas (es_base)', function () {",
+                  "  pm.expect(items.filter(p => p.es_base === true).length).to.eql(8);",
+                  "  pm.expect(nueva && nueva.es_base).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-002b - Filtro por especie (la bovina propia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Por especie responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
+                  "pm.test('TC-M04-002b: incluye la patología nueva', function () { pm.expect(nueva, 'patología nueva').to.exist; });",
+                  "pm.test('TC-M04-002b: todas aplican a la especie filtrada', function () {",
+                  "  pm.expect(items.filter(p => String(p.especie_aplicable) !== String(pm.collectionVariables.get('id_especie'))).length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?especie_aplicable={{id_especie}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "especie_aplicable",
+                  "value": "{{id_especie}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-002c - Filtro por estado = ACTIVA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Por estado responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
+                  "pm.test('TC-M04-002c: incluye la patología nueva', function () { pm.expect(nueva, 'patología nueva').to.exist; });",
+                  "pm.test('TC-M04-002c: todas están activas', function () { pm.expect(items.every(p => p.es_activo === true)).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_activas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_activas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-002d - Solo las patologías base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Solo base responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
+                  "pm.test('TC-M04-002d: son exactamente las 8 patologías base', function () {",
+                  "  pm.expect(items.length).to.eql(8); pm.expect(items.every(p => p.es_base === true)).to.eql(true);",
+                  "});",
+                  "pm.test('TC-M04-002d: la agregada no aparece entre las base', function () { pm.expect(nueva).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_base=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_base",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-002e - Búsqueda por nombre parcial",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('fragmento', 'Febril Bovina ' + pm.collectionVariables.get('sufijo').slice(0, 4));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Por nombre responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
+                  "const frag = pm.collectionVariables.get('fragmento').toLowerCase();",
+                  "pm.test('TC-M04-002e: incluye la patología buscada', function () { pm.expect(nueva, 'patología nueva').to.exist; });",
+                  "pm.test('TC-M04-002e: todos los resultados contienen el texto buscado', function () {",
+                  "  pm.expect(items.filter(p => !p.nombre_patologia.toLowerCase().includes(frag)).map(p => p.nombre_patologia)).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?nombre_patologia={{fragmento}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "nombre_patologia",
+                  "value": "{{fragmento}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "nombre_patologia",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "total_antes",
+      "value": ""
+    },
+    {
+      "key": "version_antes",
+      "value": ""
+    },
+    {
+      "key": "id_patologia",
+      "value": ""
+    },
+    {
+      "key": "fragmento",
+      "value": ""
+    }
+  ]
+}

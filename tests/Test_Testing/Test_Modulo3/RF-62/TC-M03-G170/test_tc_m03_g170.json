@@ -1,0 +1,1050 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g170-reevaluacion-v1",
+    "name": "TC-M03-G170 - Re-evaluacion Explicita POST /iot/calidad/reevaluar",
+    "description": "Suite automatizada Newman para TC-M03-G170 (RF-62 / RF-63). Cobertura de re-evaluación explícita masiva: caso feliz (TC-324), validaciones 422 de causa (TC-325) y rango de fechas (TC-326).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request a nivel de colección:",
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "vigentes_iniciales",
+      "value": ""
+    },
+    {
+      "key": "superadas_reportadas",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Preflight-y-Descubrimiento",
+      "item": [
+        {
+          "name": "00-Preflight-Login-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso en /sesiones/\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").and.not.be.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01-Descubrimiento-Sensor-G170",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT s.id_sensores, s.id_dispositivo_iot, d.serial FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d ON s.id_dispositivo_iot = d.id_dispositivo_iot WHERE s.es_activo = true AND d.es_activo = true ORDER BY s.id_sensores ASC LIMIT 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Sensor descubierto\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    pm.collectionVariables.set(\"sensor_id\", rows[0].id_sensores);",
+                  "    pm.collectionVariables.set(\"device_id\", rows[0].id_dispositivo_iot);",
+                  "    pm.collectionVariables.set(\"device_serial\", rows[0].serial);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-Fixture-Evaluaciones-Previas",
+      "item": [
+        {
+          "name": "10-Fixture-Siembra-5-Telemetrias",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": null,\n      \"sensor_id\": null,\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-10T10:00:00Z\",\n      \"access_key\": \"{{device_serial}}\",\n      \"origen\": \"BUFFER_LOCAL\"\n    },\n    {\n      \"device_id\": null,\n      \"sensor_id\": null,\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-10T10:10:00Z\",\n      \"access_key\": \"{{device_serial}}\",\n      \"origen\": \"BUFFER_LOCAL\"\n    },\n    {\n      \"device_id\": null,\n      \"sensor_id\": null,\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.4,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-10T10:20:00Z\",\n      \"access_key\": \"{{device_serial}}\",\n      \"origen\": \"BUFFER_LOCAL\"\n    },\n    {\n      \"device_id\": null,\n      \"sensor_id\": null,\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-10T10:30:00Z\",\n      \"access_key\": \"{{device_serial}}\",\n      \"origen\": \"BUFFER_LOCAL\"\n    },\n    {\n      \"device_id\": null,\n      \"sensor_id\": null,\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-10T10:40:00Z\",\n      \"access_key\": \"{{device_serial}}\",\n      \"origen\": \"BUFFER_LOCAL\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Batch 5 lecturas fixture\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().aceptados).to.equal(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11-Fixture-Crear-5-Evaluaciones-VIGENTES",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"INSERT INTO modulo3.telemetria_calidad (id_telemetria, id_sensor, timestamp_evaluacion, indice_calidad, clasificacion_calidad, apto_para_ia, apto_para_nic41, flags_detectados, parametros_aplicados, parametros_calibracion_aplicados, estado_evaluacion, version_evaluacion) SELECT t.id_telemetria, t.id_sensor, t.timestamp_captura, 90, 'APTO', true, true, '{\\\"posible_drift\\\": {\\\"activo\\\": true}}'::jsonb, '{\\\"k\\\": 3}'::jsonb, '{\\\"ganancia\\\": 1, \\\"offset\\\": -1.4}'::jsonb, 'VIGENTE', 'v1.0-inicial' FROM modulo3.telemetrias t WHERE t.id_sensor = {{sensor_id}} AND t.timestamp_captura >= '2026-10-10T10:00:00Z' AND t.timestamp_captura <= '2026-10-10T10:40:00Z' RETURNING id_evaluacion\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - 5 evaluaciones vigentes creadas para el fixture\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.equal(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-Validaciones-422-Previas",
+      "item": [
+        {
+          "name": "20-Snapshot-Conteo-Inicial-VIGENTES",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS total_vigentes FROM modulo3.telemetria_calidad WHERE id_sensor = {{sensor_id}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Snapshot inicial conteo vigentes\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.collectionVariables.set(\"vigentes_iniciales\", rows[0].total_vigentes);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21-TC325a-Sin-Causa-Documentada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T10:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:40:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 422 - Rechazo por ausencia de causa_documentada\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22-TC325b-Causa-Vacia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T10:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:40:00Z\",\n  \"causa_documentada\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 422 - Rechazo por causa vacía (<10 caracteres)\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23-TC325c-Causa-Longitud-Insuficiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T10:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:40:00Z\",\n  \"causa_documentada\": \"ab\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 422 - Rechazo por causa < 10 caracteres\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24-TC325d-Causa-Solo-Preferencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T10:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:40:00Z\",\n  \"causa_documentada\": \"quiero cambiar el umbral_drift de 5% a 3%\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Verificación causa preferencia CA-17\", function () {",
+                  "    // Registra el código observado sin forzar ajuste",
+                  "    console.log(\"[TC-325d] Status observado con causa de preferencia:\", pm.response.code);",
+                  "    pm.expect([200, 400, 422]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25-TC326-Rango-Fechas-Inconsistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T12:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:00:00Z\",\n  \"causa_documentada\": \"Corrección de offset mal configurado en M09\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[DISCREPANCIA] Rechazo por rango inconsistente fecha_desde > fecha_hasta exige HTTP 422\", function () {",
+                  "    console.log(\"[TC-326] Status observado con fecha_desde > fecha_hasta:\", pm.response.code);",
+                  "    pm.expect(pm.response.code, \"Discrepancia: El caso exige HTTP 422 por validación de rango inconsistente\").to.equal(422);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26-TC326bis-Fechas-Iguales-Observacion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T10:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:00:00Z\",\n  \"causa_documentada\": \"Revisión de lectura puntual por error técnico\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Subcaso no definido por RF: solo observación de código sin pm.expect",
+                  "console.log(\"[TC-326bis] Observación fecha_desde == fecha_hasta:\", pm.response.code, pm.response.text());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27-Verificar-Inmutabilidad-Tras-Errores-422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS total_vigentes FROM modulo3.telemetria_calidad WHERE id_sensor = {{sensor_id}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Inmutabilidad confirmada tras solicitudes 422\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    const countPost = parseInt(rows[0].total_vigentes, 10);",
+                  "    const countPre = parseInt(pm.collectionVariables.get(\"vigentes_iniciales\"), 10);",
+                  "    pm.expect(countPost).to.equal(countPre);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-324-Caso-Feliz-Reevaluacion",
+      "item": [
+        {
+          "name": "30-TC324-Ejecutar-Reevaluacion-Masiva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": null,\n  \"fecha_desde\": \"2026-10-10T09:50:00Z\",\n  \"fecha_hasta\": \"2026-10-10T10:50:00Z\",\n  \"causa_documentada\": \"Offset de calibración mal configurado en RF-24 generó drift falso masivo\",\n  \"parametros_correctos\": {\n    \"ganancia\": 1,\n    \"offset\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Re-evaluación completada con éxito\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.evaluaciones_superadas).to.be.at.least(5);",
+                  "    pm.collectionVariables.set(\"superadas_reportadas\", res.evaluaciones_superadas);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "31-TC324-Verificar-Evaluaciones-En-SUPERADA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS total_superadas FROM modulo3.telemetria_calidad WHERE id_sensor = {{sensor_id}} AND estado_evaluacion = 'SUPERADA' AND motivo_reevaluacion LIKE '%Offset de calibración mal configurado%'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Evaluaciones previas transicionaron a SUPERADA\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    const totalSup = parseInt(rows[0].total_superadas, 10);",
+                  "    pm.expect(totalSup).to.be.at.least(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "32-TC324-Discrepancia-Nomenclatura-D7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT DISTINCT estado_evaluacion FROM modulo3.telemetria_calidad WHERE id_sensor = {{sensor_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[DISCREPANCIA CASO vs D7] Nomenclatura canónica de estados es VIGENTE y SUPERADA (ACTIVA descartada)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    const estados = rows.map(r => r.estado_evaluacion);",
+                  "    pm.expect(estados).to.include(\"SUPERADA\");",
+                  "    pm.expect(estados).to.not.include(\"ACTIVA\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "33-TC324-Verificar-Auditoria-RF63",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT tipo_evento, componente_origen, descripcion, accion_detallada FROM modulo3.bitacora_auditoria_iot WHERE componente_origen = 'RF-62' AND descripcion LIKE '%Re-evaluación solicitada%' ORDER BY id_evento DESC LIMIT 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Registro de auditoría RF-63 emitido\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    pm.expect(rows[0].tipo_evento).to.equal(\"REEVALUACION_CALIDAD_SOLICITADA\");",
+                  "    console.log(\"[AUDITORIA RF-63 DETALLE]:\", JSON.stringify(rows[0].accion_detallada));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "34-TC324-Notificacion-M04-M06-BLOQUEADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT 1 AS bloqueado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// SUB-CASO BLOQUEADO: No contiene pm.test para no falsear el reporte en el scanner.",
+                  "console.log(\"[BLOQUEADO] TC-M03-324: Notificación a M04/M06 no es verificable directamente vía REST/SQL en entorno TEST.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "35-TC324-Verificacion-Invariante-D7-Final",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT id_telemetria, COUNT(*) AS vigentes FROM modulo3.telemetria_calidad WHERE id_sensor = {{sensor_id}} AND estado_evaluacion = 'VIGENTE' GROUP BY id_telemetria HAVING COUNT(*) > 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[DEFECTO CONOCIDO D7] Invariante una sola VIGENTE por lectura\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    // No deben existir duplicados vigentes para la misma lectura",
+                  "    pm.expect(rows.length).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

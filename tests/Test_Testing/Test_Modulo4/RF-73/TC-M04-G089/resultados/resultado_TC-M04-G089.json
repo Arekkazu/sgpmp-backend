@@ -1,0 +1,44 @@
+{
+  "tc": "TC-M04-G089",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G089: Límites de paginación",
+  "estado_general": "Aprobado",
+  "stats": {
+    "tests": 5,
+    "passes": 5,
+    "failures": 0
+  },
+  "checkpoints": [
+    {
+      "paso": "NW-01: Autenticación Admin",
+      "esperado": "Status 200 con token JWT",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M04-273: Paginación default 50",
+      "esperado": "Status 200, por_pagina=50, items <= 50",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M04-274: Paginación máxima 200",
+      "esperado": "Status 200, por_pagina=200, items <= 200",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M04-275: Paginación excedida 201",
+      "esperado": "Status 422 con detalle de validación",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-Teardown: Rollback transaccional",
+      "esperado": "Status 200 con Rollback exitoso",
+      "obtenido": "OK",
+      "estado": "OK"
+    }
+  ],
+  "pendientes_dev": []
+}

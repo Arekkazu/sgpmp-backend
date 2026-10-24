@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+
+logger = logging.getLogger(__name__)
 
 
 class ConsultarAuditoriaM04UseCase:
@@ -55,11 +58,13 @@ class ConsultarAuditoriaM04UseCase:
     ) -> None:
         try:
             self._repo.registrar(
-                tipo_evento="CONSULTA_AUDITORIA_M04",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
                 severidad_evento="INFO",
+                resultado_operacion="EXITOSO",
                 payload_evento={
+                    "consulta": "AUDITORIA_M04",
                     "total_resultados": total_resultados,
                     "filtro_tipo_evento": filtro_tipo_evento,
                     "pagina": pagina,
@@ -67,4 +72,7 @@ class ConsultarAuditoriaM04UseCase:
             )
             self._db.commit()
         except Exception:
+            # La consulta ya se resolvió: no se le niega al usuario por la auditoría,
+            # pero la pérdida del evento tiene que quedar a la vista.
+            logger.exception("No se registró el evento de auditoría de la consulta M04")
             self._db.rollback()

@@ -1,0 +1,207 @@
+/**
+ * build_collection.cjs - TC-M04-G083: Distribución OTA e Integridad (RF-73)
+ * Módulo 4: Predicción e IA
+ * 
+ * Subcasos:
+ * - TC-M04-257 (MODELO_DISTRIBUIDO_EDGE): [BLOQUEADO] - Endpoints de distribución OTA no expuestos en API REST (solo daemons Edge/IoT).
+ * - TC-M04-258 (HASH_INVALIDO_DETECTADO): [BLOQUEADO] - Imposible simular corrupción en nodo Edge sin endpoint de distribución activa.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const collection = {
+  info: {
+    name: "TC-M04-G083: Distribución OTA e integridad (RF-73)",
+    _postman_id: "a0483001-0000-4000-8000-000000000083",
+    description: "Suite de auditoría para la distribución OTA e integridad de modelos Edge (RF-73 / RF-70) bajo Sandbox Transaccional SGPMP.",
+    schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  event: [
+    {
+      listen: "prerequest",
+      script: {
+        type: "text/javascript",
+        exec: [
+          "if (!pm.collectionVariables.get(\"run_id\")) {",
+          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
+        ]
+      }
+    }
+  ],
+  variable: [
+    { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "run_id", value: "", type: "string" },
+    { key: "sandbox_secret", value: "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff", type: "string" },
+    { key: "admin_password", value: "", type: "string" },
+    { key: "token", value: "", type: "string" },
+    { key: "correlacion_id_g083", value: "e0483001-0000-4000-8000-000000000083", type: "string" }
+  ],
+  item: [
+    {
+      name: "01-Login-ADMIN",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.collectionVariables.set('token', data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "POST",
+        header: [
+          { key: "Content-Type", value: "application/json" }
+        ],
+        body: {
+          mode: "raw",
+          raw: JSON.stringify({
+            correo_electronico: "administador.dev@gmail.com",
+            contrasena: "{{admin_password}}"
+          })
+        },
+        url: {
+          raw: "{{baseUrl}}/sesiones/",
+          host: ["{{baseUrl}}"],
+          path: ["sesiones", ""]
+        }
+      }
+    },
+    {
+      name: "02-Preflight-Despliegues-OTA",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"02.01: Consulta de despliegues OTA existentes (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('items');",
+              "    pm.expect(Array.isArray(data.items)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/despliegues?limit=10&offset=0",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "despliegues"],
+          query: [
+            { key: "limit", value: "10" },
+            { key: "offset", value: "0" }
+          ]
+        }
+      }
+    },
+    {
+      name: "03-TC-M04-257-Modelo-Distribuido-Edge-Diagnostico",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "console.log('[BLOQUEADO] TC-M04-257 (MODELO_DISTRIBUIDO_EDGE): No existe endpoint REST para disparar la distribución OTA al nodo Edge. La API solo expone consulta en /prediccion/despliegues y /prediccion/modelos/{id}/ota-status.');"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?tipo_evento=MODELO_DISTRIBUIDO_EDGE",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "tipo_evento", value: "MODELO_DISTRIBUIDO_EDGE" }
+          ]
+        }
+      }
+    },
+    {
+      name: "04-TC-M04-258-Hash-Invalido-Detectado-Diagnostico",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "console.log('[BLOQUEADO] TC-M04-258 (HASH_INVALIDO_DETECTADO): Simulación de hash corrupto en nodo Edge (id_sistema=\"nodo_edge\") no es viable por API REST al no existir endpoint de distribución OTA activa.');"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "GET",
+        header: [
+          { key: "Authorization", value: "Bearer {{token}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/prediccion/auditoria?tipo_evento=HASH_INVALIDO_DETECTADO",
+          host: ["{{baseUrl}}"],
+          path: ["prediccion", "auditoria"],
+          query: [
+            { key: "tipo_evento", value: "HASH_INVALIDO_DETECTADO" }
+          ]
+        }
+      }
+    },
+    {
+      name: "05-Teardown-Sandbox-Rollback",
+      event: [
+        {
+          listen: "test",
+          script: {
+            type: "text/javascript",
+            exec: [
+              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var statusMsg = data.status || data.mensaje || \"\";",
+              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      request: {
+        method: "DELETE",
+        header: [
+          { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
+        ],
+        url: {
+          raw: "{{baseUrl}}/test-control/runs/{{run_id}}",
+          host: ["{{baseUrl}}"],
+          path: ["test-control", "runs", "{{run_id}}"]
+        }
+      }
+    }
+  ]
+};
+
+const targetDir = path.resolve(__dirname);
+const targetFile = path.join(targetDir, 'test_tc_m04_g083.json');
+fs.writeFileSync(targetFile, JSON.stringify(collection, null, 2), 'utf8');
+console.log(`Colección TC-M04-G083 generada exitosamente en ${targetFile}`);

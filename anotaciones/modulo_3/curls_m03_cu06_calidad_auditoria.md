@@ -17,7 +17,12 @@
 
 ## GET /iot/calidad — Listar evaluaciones de calidad (RF-62)
 
-### Flujo principal — listar todas las evaluaciones
+### Flujo principal — listar evaluaciones vigentes
+
+DEV-02: la aptitud escalar se obtiene de `modulo3.telemetria_calidad`, nunca
+de las columnas legadas de `telemetrias`. La consulta ordinaria devuelve una
+evaluación no superada por lectura. Para consultar evaluaciones históricas
+marcadas como superadas, enviar `estado_evaluacion=SUPERADA`.
 
 ```bash
 curl -s -X GET "http://localhost:8000/iot/calidad?pagina=1&por_pagina=20" \

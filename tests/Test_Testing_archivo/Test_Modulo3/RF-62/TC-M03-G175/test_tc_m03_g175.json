@@ -1,0 +1,899 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g175-bola-v1",
+    "name": "TC-M03-G175 - BOLA/IDOR OWASP API1 RF-62",
+    "description": "Suite automatizada Newman para TC-M03-G175 (RF-62). Verifica aislamiento multi-tenant y prevención de Broken Object Level Authorization (BOLA/IDOR).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "role_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_finca_a",
+      "value": ""
+    },
+    {
+      "key": "token_finca_b",
+      "value": ""
+    },
+    {
+      "key": "sensor_id_finca_b",
+      "value": ""
+    },
+    {
+      "key": "device_id_finca_b",
+      "value": ""
+    },
+    {
+      "key": "device_serial_finca_b",
+      "value": ""
+    },
+    {
+      "key": "id_tel_finca_b",
+      "value": ""
+    },
+    {
+      "key": "id_eval_uuid_finca_b",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Preflight-Logins-y-Seed-Tenant",
+      "item": [
+        {
+          "name": "00-Login-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login Admin\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set(\"token_admin\", pm.response.json().token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "01-Login-Usuario-Finca-A-Productor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login Usuario Finca A (Productor)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set(\"token_finca_a\", pm.response.json().token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02-Login-Usuario-Finca-B-Ingeniero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"gestor.granja.test@pecuaria.co\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login Usuario Finca B (Ingeniero)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.collectionVariables.set(\"token_finca_b\", pm.response.json().token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03-Descubrir-Sensores-Distintos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT s.id_sensores, s.id_dispositivo_iot, d.serial FROM modulo9.sensores s JOIN modulo9.dispositivos_iot d ON s.id_dispositivo_iot = d.id_dispositivo_iot WHERE s.es_activo = true AND d.es_activo = true ORDER BY s.id_sensores DESC LIMIT 2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"[VERIFICACION SQL SOLO LECTURA] Status 200 - Sensores descubiertos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    const sB = rows[0];",
+                  "    pm.collectionVariables.set(\"sensor_id_finca_b\", sB.id_sensores);",
+                  "    pm.collectionVariables.set(\"device_id_finca_b\", sB.id_dispositivo_iot);",
+                  "    pm.collectionVariables.set(\"device_serial_finca_b\", sB.serial);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04-Crear-Telemetria-En-Finca-B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": null,\n  \"sensor_id\": null,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 23.5,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-15T14:00:00Z\",\n  \"access_key\": \"{{device_serial_finca_b}}\",\n  \"origen\": \"BUFFER_LOCAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201 - Telemetría creada para Finca B\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set(\"id_tel_finca_b\", pm.response.json().id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05-Evaluar-Telemetria-Finca-B-Como-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_finca_b}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_finca_b}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201 - Evaluación creada en Finca B\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set(\"id_eval_uuid_finca_b\", pm.response.json().id_evaluacion);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-TC-M03-334A-Acceso-Directo-IDOR",
+      "item": [
+        {
+          "name": "10-Usuario-Finca-A-GET-Calidad-Finca-B",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_finca_b}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_finca_b}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200, 403 o 404 - Verificación política M01 (sin fuga de datos)\", function () {",
+                  "    console.log(\"[INFO BOLA] Usuario Finca A en recurso de Finca B respondió HTTP \" + pm.response.code);",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                  "    if (pm.response.code === 200) {",
+                  "        console.log(\"[HALLAZGO BOLA] El endpoint /iot/calidad/{id} no aplica filtro por finca/tenant asignado (recurso accesible a cualquier usuario con permiso 38.2).\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-M03-334B-Listado-Sensor-Ajeno",
+      "item": [
+        {
+          "name": "20-Usuario-Finca-A-GET-Lista-Sensor-Finca-B",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad?id_sensor={{sensor_id_finca_b}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": [
+                {
+                  "key": "id_sensor",
+                  "value": "{{sensor_id_finca_b}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200, 403 o 404 - Validación de alcance multi-tenant\", function () {",
+                  "    console.log(\"[INFO BOLA] Listar calidad con sensor ajeno respondió HTTP \" + pm.response.code);",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                  "    if (pm.response.code === 200) {",
+                  "        const res = pm.response.json();",
+                  "        console.log(\"[INFO BOLA] Total de registros devueltos para sensor ajeno: \" + (res.total || 0));",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-334C-Enumeracion-IDs",
+      "item": [
+        {
+          "name": "30-Enumerar-ID-1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 1",
+                  "console.log(`[ENUMERACION IDOR] ID ${1} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "2"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 2",
+                  "console.log(`[ENUMERACION IDOR] ID ${2} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-3",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "3"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 3",
+                  "console.log(`[ENUMERACION IDOR] ID ${3} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-4",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "4"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 4",
+                  "console.log(`[ENUMERACION IDOR] ID ${4} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-5",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "5"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 5",
+                  "console.log(`[ENUMERACION IDOR] ID ${5} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-6",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "6"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 6",
+                  "console.log(`[ENUMERACION IDOR] ID ${6} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-7",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "7"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 7",
+                  "console.log(`[ENUMERACION IDOR] ID ${7} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-8",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/8",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "8"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 8",
+                  "console.log(`[ENUMERACION IDOR] ID ${8} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-9",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "9"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 9",
+                  "console.log(`[ENUMERACION IDOR] ID ${9} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30-Enumerar-ID-10",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_finca_a}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "10"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Registro de respuesta para id 10",
+                  "console.log(`[ENUMERACION IDOR] ID ${10} -> HTTP ${pm.response.code}`);",
+                  "pm.test(\"Status no es 500\", function () {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

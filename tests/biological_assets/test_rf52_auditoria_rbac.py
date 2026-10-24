@@ -167,7 +167,7 @@ def test_contrato_http_tc_m02_249_retorna_403_y_persiste_auditoria() -> None:
         respuesta = client.post(
             '/activos-biologicos/80/eventos/productivo',
             json={
-                'tipo_producto': 'LECHE',
+                'id_metrica_produccion': 1,
                 'cantidad_producida': 12.5,
                 'unidad_medida': 'litros',
                 'fecha_evento': '2026-09-01',
@@ -204,6 +204,8 @@ def test_todas_las_rutas_m02_protegidas_auditan_el_rf_que_las_origina() -> None:
         ('PATCH', '/activos-biologicos/{id_activo}/estado'): 'RF44',
         ('POST', '/activos-biologicos/{id_activo}/cierre'): 'RF38',
         ('POST', '/activos-biologicos/{id_activo}/eventos/reproductivo'): 'RF42',
+        ('GET', '/activos-biologicos/{id_activo}/metricas'): 'RF43',
+        ('GET', '/activos-biologicos/{id_activo}/patologias'): 'RF41',
         ('POST', '/activos-biologicos/{id_activo}/eventos/productivo'): 'RF43',
         ('GET', '/activos-biologicos/{id_activo}/historial'): 'RF46',
         ('GET', '/activos-biologicos/{id_activo}/ficha-integral'): 'RF47',

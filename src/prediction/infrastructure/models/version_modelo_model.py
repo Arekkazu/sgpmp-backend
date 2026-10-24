@@ -58,3 +58,5 @@ class VersionModeloModel(Base):
     # RF-69 v2.0 (RFC-009): solo POBLACIONAL.
     componente: Mapped[Optional[str]] = mapped_column(String(20))
     metricas_poblacionales: Mapped[Optional[dict]] = mapped_column(JSONB)
+    # DEV-15 / DB-04: firma del artefacto (D6).
+    firma_artefacto: Mapped[Optional[str]] = mapped_column(Text)

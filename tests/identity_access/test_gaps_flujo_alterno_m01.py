@@ -427,6 +427,63 @@ def test_rf11_editar_un_usuario_eliminado_responde_410() -> None:
     assert db.commits == 0
 
 
+@pytest.mark.parametrize(
+    ("anios_atras", "dias_atras", "rechaza"),
+    [(0, -1, True), (17, 0, True), (18, 0, False)],
+    ids=["futura", "17-anios", "18-anios-exactos"],
+)
+def test_rf05_fecha_nacimiento_editada_respeta_la_edad_minima_del_registro(
+    anios_atras: int, dias_atras: int, rechaza: bool
+) -> None:
+    """RF-05 valida todos los campos antes de guardar: completar el perfil
+    PENDIENTE_DATOS no puede dejar una fecha de nacimiento futura ni de un
+    menor de edad, que el registro (RF-01) sí rechaza."""
+    from datetime import timedelta
+
+    from src.identity_access.application.use_cases.perfil.editar_perfil_use_case import (
+        EditarPerfilUseCase,
+    )
+    from src.identity_access.domain.entities.cuenta import Cuenta
+    from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
+    from src.shared.errors import ValidationError
+    from src.shared.fechas import hoy_colombia
+
+    hoy = hoy_colombia()
+    fecha = hoy.replace(year=hoy.year - anios_atras) - timedelta(days=dias_atras)
+    usuario = SimpleNamespace(
+        id_usuario=7, id_rol=2, nombre="Ana", apellidos="Pérez",
+        correo="ana@example.com", fecha_nacimiento=None, version=1,
+    )
+    cuenta = Cuenta(id_cuenta_usuario=8, id_usuario=7, id_estado_cuenta=Cuenta.ESTADO_PENDIENTE_DATOS)
+    db = _DbFake()
+
+    class _LlegoAGuardar(Exception):
+        pass
+
+    def _actualizar(*_a, **_k):
+        raise _LlegoAGuardar
+
+    uc = EditarPerfilUseCase(
+        usuarios_repo=SimpleNamespace(obtener_por_id=lambda _i: usuario, actualizar=_actualizar),
+        cuentas_repo=SimpleNamespace(obtener_por_usuario=lambda _i: cuenta),
+        sesiones_repo=SimpleNamespace(),
+        eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+        roles_repo=SimpleNamespace(),
+        db=db,
+    )
+    dto = EditarPerfilDTO(nombre="Ana", apellidos="Pérez", version=1, fecha_nacimiento=fecha)
+
+    if rechaza:
+        with pytest.raises(ValidationError) as error:
+            uc.execute(id_usuario=7, dto=dto, usuario_actual=SimpleNamespace(id_usuario=7, id_rol=2))
+        assert error.value.code == "EDAD_MINIMA_REQUERIDA"
+        assert error.value.field == "fecha_nacimiento"
+        assert db.commits == 0
+    else:
+        with pytest.raises(_LlegoAGuardar):
+            uc.execute(id_usuario=7, dto=dto, usuario_actual=SimpleNamespace(id_usuario=7, id_rol=2))
+
+
 class _PortNotificacionFake:
     def __init__(self, estado_cuenta: int) -> None:
         self.estado_cuenta = estado_cuenta

@@ -44,7 +44,7 @@ def _obs(i: int = 0, **extra) -> dict:
 
 def _dto(n: int = 1, **sobre) -> IngerirObservacionesVisionDTO:
     return IngerirObservacionesVisionDTO(**{
-        "device_id": 12, "access_key": "CAM-001", "area_id": 2,
+        "device_id": 12, "serial": "CAM-001", "area_id": 2,
         "observaciones": [_obs(i) for i in range(n)], **sobre,
     })
 
@@ -174,13 +174,14 @@ def cliente(monkeypatch):
     monkeypatch.setattr(telemetria_router, "SqlAlchemyObservacionVisionRepository", lambda db: repo)
     monkeypatch.setattr(telemetria_router, "DispositivoM09Adapter", lambda db: puerto)
     app.dependency_overrides[get_db_sistema] = lambda: Mock()
-    yield TestClient(app)
+    monkeypatch.setenv("BROKER_SERVICE_TOKEN", "token-de-prueba")
+    yield TestClient(app, headers={"Authorization": "Bearer token-de-prueba"})
     app.dependency_overrides.pop(get_db_sistema, None)
 
 
 def test_http_201_publica_indice_y_aptitudes(cliente):
     r = cliente.post("/iot/telemetria/vision", json={
-        "device_id": 12, "access_key": "CAM-001", "area_id": 2, "observaciones": [_obs(0)]})
+        "device_id": 12, "serial": "CAM-001", "area_id": 2, "observaciones": [_obs(0)]})
     assert r.status_code == 201, r.text
     cuerpo = r.json()
     assert (cuerpo["aceptadas"], cuerpo["duplicadas"]) == (1, 0)
@@ -195,12 +196,12 @@ def test_http_201_publica_indice_y_aptitudes(cliente):
 ], ids=["vector-vacio", "cobertura-fuera-de-rango", "estado-desconocido"])
 def test_http_rechaza_observacion_mal_formada(cliente, obs):
     r = cliente.post("/iot/telemetria/vision", json={
-        "device_id": 12, "access_key": "CAM-001", "area_id": 2, "observaciones": [obs]})
+        "device_id": 12, "serial": "CAM-001", "area_id": 2, "observaciones": [obs]})
     assert r.status_code in (400, 422), r.text
 
 
 def test_http_rechaza_componente_no_finito(cliente):
-    cuerpo = ('{"device_id":12,"access_key":"CAM-001","area_id":2,"observaciones":[{'
+    cuerpo = ('{"device_id":12,"serial":"CAM-001","area_id":2,"observaciones":[{'
               '"timestamp_captura":"2026-10-08T12:00:00Z","cobertura_ventana":"0.9","n_tracks":1,'
               '"n_tracks_perdidos":0,"fps_efectivo":"24","estado_calibracion":"CALIBRADA",'
               '"vector":{"densidad_actividad":NaN}}]}')

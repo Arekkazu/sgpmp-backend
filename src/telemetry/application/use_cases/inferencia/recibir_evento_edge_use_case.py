@@ -20,6 +20,7 @@ from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
 from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeRepository
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
+from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -39,12 +40,14 @@ class RecibirEventoEdgeUseCase:
         paquete_repo: PaqueteInferenciaRepository,
         dispositivo_port: DispositivoPort,
         motor_inferencia_port: MotorInferenciaPort,
+        parametros_alertas_port: ParametrosAlertasPort,
     ) -> None:
         self.db = db
         self.evento_edge_repo = evento_edge_repo
         self.paquete_repo = paquete_repo
         self.dispositivo_port = dispositivo_port
         self.motor_inferencia_port = motor_inferencia_port
+        self.parametros_alertas_port = parametros_alertas_port
 
     def execute(
         self,
@@ -61,12 +64,12 @@ class RecibirEventoEdgeUseCase:
 
         # Paso 2: Validar identidad del dispositivo
         dispositivo = self.dispositivo_port.obtener_dispositivo_activo(
-            dto.device_id, dto.sensor_id, dto.access_key
+            dto.device_id, dto.sensor_id, dto.serial
         )
         if dispositivo is None:
             raise AuthenticationError(
                 code="DISPOSITIVO_NO_AUTORIZADO",
-                message="El dispositivo, sensor o credencial no son válidos o el dispositivo está inactivo.",
+                message="El dispositivo o el sensor no corresponden al serial, o el dispositivo está inactivo.",
             )
 
         ts_procesamiento = dto.timestamp_procesamiento_edge
@@ -149,7 +152,7 @@ class RecibirEventoEdgeUseCase:
             alerta_dto = ProcesarEventoAlertaDTO(
                 device_id=dto.device_id,
                 sensor_id=dto.sensor_id,
-                access_key=dto.access_key,
+                serial=dto.serial,
                 tipo_variable=var_primaria.tipo_variable,
                 valor=var_primaria.valor,
                 unidad=var_primaria.unidad,
@@ -167,6 +170,7 @@ class RecibirEventoEdgeUseCase:
                 alerta_repo=SqlAlchemyAlertaRepository(self.db),
                 historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
                 regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
+                parametros_port=self.parametros_alertas_port,
             ).execute(
                 dto=alerta_dto,
                 id_dispositivo_ioit=dispositivo_id_iot,

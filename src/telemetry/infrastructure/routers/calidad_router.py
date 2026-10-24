@@ -25,7 +25,9 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.telemetry.application.use_cases.calidad.consultar_calidad_use_case import ConsultarCalidadUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
-from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
+from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.telemetry.infrastructure.dto.solicitar_reevaluacion_dto import SolicitarReevaluacionDTO
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
@@ -135,7 +137,7 @@ def evaluar_calidad(
         db=db,
         telemetria_repo=SqlAlchemyTelemetriaRepository(db),
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
-        parametros_port=ParametrosCalidadStubAdapter(),
+        parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     evaluacion = use_case.execute(
@@ -172,7 +174,7 @@ def solicitar_reevaluacion(
         db=db,
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
         telemetria_repo=SqlAlchemyTelemetriaRepository(db),
-        parametros_port=ParametrosCalidadStubAdapter(),
+        parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)

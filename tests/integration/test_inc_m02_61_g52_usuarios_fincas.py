@@ -167,3 +167,23 @@ def test_finca_inexistente_responde_404(
 
     assert r.status_code == 404
     assert r.json()["error_code"] == "FINCA_NO_ENCONTRADA"
+
+
+def test_usuario_eliminado_responde_410(
+    client, db_session, crear_usuario_db, crear_auth_headers, rol_sin_alcance_global,
+) -> None:
+    admin = crear_usuario_db(id_rol=ID_ROL_ADMINISTRADOR)
+    eliminado = crear_usuario_db(id_rol=rol_sin_alcance_global)
+    db_session.execute(
+        text("UPDATE modulo1.cuentas_usuarios SET id_estado_cuenta = 5 WHERE id_usuario = :u"),
+        {"u": eliminado["id_usuario"]},
+    )
+
+    r = client.put(
+        f"/usuarios/{eliminado['id_usuario']}/fincas",
+        json={"ids_fincas": []},
+        headers=crear_auth_headers(admin),
+    )
+
+    assert r.status_code == 410
+    assert r.json()["error_code"] == "USUARIO_ELIMINADO"

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especie_y_modelo
+from src.configuration.application.use_cases.infraestructuras.propagar_tipo_modelo_edge import PropagadorTipoModeloEdge
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
@@ -36,6 +37,7 @@ class EditarInfraestructuraUseCase:
         auditoria_repo: AuditoriaInfraestructuraRepository,
         especie_repo: EspecieRepository,
         dependency_port: InfraestructuraDependencyPort,
+        propagador_tipo_modelo: PropagadorTipoModeloEdge,
     ) -> None:
         self.db = db
         self.infra_repo = infra_repo
@@ -44,6 +46,7 @@ class EditarInfraestructuraUseCase:
         self.auditoria_repo = auditoria_repo
         self.especie_repo = especie_repo
         self.dependency_port = dependency_port
+        self.propagador_tipo_modelo = propagador_tipo_modelo
 
     def execute(
         self, id_infraestructura: int, dto: EditarInfraestructuraDTO, usuario_actual: UsuarioActual
@@ -119,6 +122,7 @@ class EditarInfraestructuraUseCase:
                 )
 
         snapshot_anterior = infra._snapshot()
+        cambia_modelo = dto.tipo_modelo_asignado != infra.tipo_modelo_asignado
 
         nombre = NombreInfraestructura(dto.nombre_infraestructura)
         superficie = Superficie(dto.superficie)
@@ -147,4 +151,7 @@ class EditarInfraestructuraUseCase:
             self.db.rollback()
             raise
 
+        # DEV-10 (D-06): solo si cambió el modelo; editar el nombre no reinicia el nodo.
+        if cambia_modelo:
+            self.propagador_tipo_modelo.propagar(infra_actualizada, usuario_actual.id_usuario)
         return infra_actualizada

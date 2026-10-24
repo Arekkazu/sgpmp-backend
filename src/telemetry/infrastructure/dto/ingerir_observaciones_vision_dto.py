@@ -1,20 +1,22 @@
 """DTO de ingesta de observaciones de visión (POST /iot/telemetria/vision, RF-53/RF-56 v2.0).
 
-Contrato PROVISIONAL hasta ET-01 (INC-M09-77-G137, #513). Los nombres de las
-dimensiones de calidad son los de RFC-011 / RF-62 v2.0.
+Lote legado INC-M09-77-G137 (#513), conservado por compatibilidad. El sobre
+D4 se declara por separado en observacion_vision_d4_dto.py. Las diferencias
+con AIOT-SPEC-01 y el catálogo SQL están documentadas en el informe DEV-07.
 """
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import Field, FiniteFloat
+from pydantic import ConfigDict, Field, FiniteFloat
 
 from src.shared.base_dto import BaseDTO
 from src.telemetry.domain.entities.observacion_vision import EstadoCalibracionCamara
 
 
 class ObservacionVisionDTO(BaseDTO):
+    model_config = ConfigDict(extra='forbid')
     timestamp_captura: datetime
     cobertura_ventana: Decimal = Field(..., ge=0, le=1, decimal_places=4)
     n_tracks: int = Field(..., ge=0)
@@ -27,8 +29,9 @@ class ObservacionVisionDTO(BaseDTO):
 
 
 class IngerirObservacionesVisionDTO(BaseDTO):
+    model_config = ConfigDict(extra='forbid')
     device_id: int = Field(..., gt=0)
-    access_key: str = Field(..., min_length=1, max_length=100)
+    serial: str = Field(..., min_length=1, max_length=100)
     # RF-56 v2.0: el sobre de visión lleva el área observada.
     area_id: int = Field(..., gt=0)
     observaciones: list[ObservacionVisionDTO] = Field(..., min_length=1, max_length=500)

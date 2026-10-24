@@ -14,7 +14,11 @@ class TelemetriaRepository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_telemetria: int) -> Optional[Telemetria]:
-        """Retorna la telemetría por id, o None si no existe."""
+        """Retorna la lectura y aptitud de su evaluación vigente RF-62, o None.
+
+        Sin evaluación vigente, ambas aptitudes son False. Las columnas legadas
+        de telemetrias no son fuente de aptitud.
+        """
 
     @abstractmethod
     def existe_duplicado(
@@ -38,12 +42,3 @@ class TelemetriaRepository(ABC):
         hasta_timestamp: datetime,
     ) -> list[Decimal]:
         """Retorna las últimas N lecturas válidas del sensor anteriores a hasta_timestamp."""
-
-    @abstractmethod
-    def actualizar_flags_aptitud(
-        self,
-        id_telemetria: int,
-        apto_para_ia: bool,
-        apto_para_nic41: bool,
-    ) -> None:
-        """Actualiza apto_para_ia y apto_para_nic41 en la fila de telemetría."""

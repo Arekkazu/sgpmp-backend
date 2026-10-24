@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.configuracion_motor_ia import ConfiguracionMotorIA
+from src.prediction.domain.entities.sincronizacion_nodo_edge import (
+    ESTADO_APLICADA,
+    ESTADO_DESINCRONIZADO,
+    NodoEdge,
+    ResultadoSincronizacionMotor,
+    consolidar,
+)
+from src.prediction.domain.repositories.config_motor_edge_port import ConfigMotorEdgePort
 from src.prediction.domain.repositories.configuracion_motor_ia_repository import ConfiguracionMotorIARepository
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort
+from src.prediction.domain.repositories.sincronizacion_nodo_edge_repository import SincronizacionNodoEdgeRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
 from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
@@ -16,6 +27,23 @@ from src.shared.tipo_modelo import TIPOS_MODELO, es_poblacional
 
 _MODOS_VALIDOS = {"EDGE", "SERVIDOR", "HIBRIDO"}
 _ESTADO_ACTIVO = "ACTIVO"
+
+
+@dataclass
+class ResultadoConfiguracionMotor:
+    entidad: ConfiguracionMotorIA
+    es_nueva: bool
+    # DEV-09: estado de la configuración en los nodos Edge del tipo_modelo.
+    sincronizacion: ResultadoSincronizacionMotor
+
+
+def payload_config_motor(entidad: ConfiguracionMotorIA) -> dict:
+    """Cuerpo del comando ``origen: "config_motor"`` del broker (sin ``origen``/``serial``)."""
+    return {
+        "tipo_modelo": entidad.tipo_modelo,
+        "config_version": entidad.config_version,
+        "configuracion": entidad._snapshot(),
+    }
 
 
 class ConfigurarMotorUseCase:
@@ -27,16 +55,21 @@ class ConfigurarMotorUseCase:
         auditoria_repo: EventoAuditoriaM04Repository,
         version_port: VersionModeloPort,
         nodo_edge_port: NodoEdgePort,
+        sincronizacion_repo: SincronizacionNodoEdgeRepository,
+        config_edge_port: ConfigMotorEdgePort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._auditoria_repo = auditoria_repo
         self._version_port = version_port
         self._nodo_edge_port = nodo_edge_port
+        self._sincronizacion_repo = sincronizacion_repo
+        self._config_edge_port = config_edge_port
 
-    def execute(self, dto: ConfigurarMotorDTO, id_usuario: int) -> tuple[ConfiguracionMotorIA, bool]:
-        """Devuelve (entidad, es_nueva) donde es_nueva=True si fue INSERT, False si fue UPDATE."""
-        por_paradigma = self._validar(dto)
+    def execute(self, dto: ConfigurarMotorDTO, id_usuario: int) -> ResultadoConfiguracionMotor:
+        """Guarda la configuración (es_nueva=True si fue INSERT) y la sincroniza con sus nodos Edge."""
+        nodos = self._nodo_edge_port.listar_nodos_activos(dto.tipo_modelo) if dto.tipo_modelo in TIPOS_MODELO else []
+        por_paradigma = self._validar(dto, nodos)
 
         existente = self._repo.obtener_por_tipo(dto.tipo_modelo)
         snapshot_anterior = existente._snapshot() if existente else None
@@ -104,9 +137,54 @@ class ConfigurarMotorUseCase:
         except Exception:
             self._db.rollback()
 
-        return entidad, es_nueva
+        return ResultadoConfiguracionMotor(
+            entidad=entidad, es_nueva=es_nueva, sincronizacion=self._sincronizar(entidad, nodos)
+        )
 
-    def _validar(self, dto: ConfigurarMotorDTO) -> dict:
+    def _sincronizar(self, entidad: ConfiguracionMotorIA, nodos: list[NodoEdge]) -> ResultadoSincronizacionMotor:
+        """DEV-09: envía la configuración ya guardada a sus nodos y registra el veredicto de cada uno.
+
+        Va después del commit: si un nodo no confirma, la configuración sigue
+        guardada y el router lo informa con 202 (E7/E8) o 409 (E10).
+        """
+        if not nodos:
+            return consolidar([])
+        resultados = self._config_edge_port.propagar_config(
+            [n.serial for n in nodos], payload_config_motor(entidad)
+        )
+        ahora = datetime.now(timezone.utc)
+        registrados = []
+        try:
+            for nodo in nodos:
+                resultado = resultados[nodo.serial]
+                estado = resultado.estado_sincronizacion(entidad.config_version)
+                if estado == ESTADO_APLICADA:
+                    motivo = None
+                elif estado == ESTADO_DESINCRONIZADO:
+                    motivo = (
+                        f"El nodo confirmó con config_version {resultado.config_version} "
+                        f"y el servidor está en {entidad.config_version}."
+                    )
+                else:
+                    motivo = resultado.mensaje
+                registrados.append(
+                    self._sincronizacion_repo.registrar_intento(
+                        nodo=nodo,
+                        tipo_modelo=entidad.tipo_modelo,
+                        config_version_servidor=entidad.config_version,
+                        config_version_nodo=resultado.config_version,
+                        estado_sincronizacion=estado,
+                        motivo_fallo=motivo,
+                        fecha_intento=ahora,
+                    )
+                )
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
+        return consolidar(registrados)
+
+    def _validar(self, dto: ConfigurarMotorDTO, nodos: list[NodoEdge]) -> dict:
         """Valida el DTO y devuelve los campos que dependen del paradigma (RFC-009).
 
         Los campos que no aplican al paradigma se descartan en vez de rechazarse,
@@ -125,7 +203,7 @@ class ConfigurarMotorUseCase:
                 field="modo_ejecucion",
             )
 
-        self._validar_comunes(dto)
+        self._validar_comunes(dto, nodos)
         if es_poblacional(dto.tipo_modelo):
             return self._validar_poblacional(dto)
         return self._validar_individual_o_meta(dto)
@@ -219,7 +297,7 @@ class ConfigurarMotorUseCase:
                 field=campo,
             )
 
-    def _validar_comunes(self, dto: ConfigurarMotorDTO) -> None:
+    def _validar_comunes(self, dto: ConfigurarMotorDTO, nodos: list[NodoEdge]) -> None:
         # FA-01: ventana temporal
         if not (5 <= dto.ventana_temporal_min <= 15):
             raise BusinessRuleError(
@@ -239,7 +317,7 @@ class ConfigurarMotorUseCase:
 
         # FA-08: modo EDGE/HIBRIDO requiere nodos disponibles
         if dto.modo_ejecucion in ("EDGE", "HIBRIDO"):
-            if not self._nodo_edge_port.hay_nodos_activos(dto.tipo_modelo):
+            if not nodos:
                 raise BusinessRuleError(
                     code="MODO_EDGE_SIN_NODOS",
                     message=(
