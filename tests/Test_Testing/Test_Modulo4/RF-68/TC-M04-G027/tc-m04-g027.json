@@ -15,8 +15,13 @@
           "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
           "}",
           "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });"
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
         ]
       }
     }
@@ -32,11 +37,11 @@
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": "admin@pecuaria.co"
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
@@ -61,18 +66,22 @@
     {
       "key": "contagio_banda_alto_min",
       "value": "0.60"
+    },
+    {
+      "key": "endpoint_disponible",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login admin (Administrador)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login admin (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -96,6 +105,75 @@
             }
           }
         }
+      }
+    },
+    {
+      "name": "0B. Precondicion: existe el endpoint de ejecucion (si no, el caso queda BLOQUEADO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Precondicion: el endpoint de ejecucion existe. Si responde 404/405 el caso queda BLOQUEADO (funcionalidad no implementada) y las peticiones que dependen de el se omiten.",
+              "var _rvar = 'ruta_contagio';",
+              "var _cands = [\"/prediccion/riesgo-contagio\", \"/prediccion/contagio\", \"/prediccion/riesgo-contagio/calcular\", \"/prediccion/contagio/calcular\", \"/prediccion/estimar-contagio\"];",
+              "var _base = pm.collectionVariables.get('base_url');",
+              "var _tok = pm.collectionVariables.get('token_admin');",
+              "var _rid = pm.variables.get('run_id'); var _sec = pm.variables.get('sandbox_secret') || '';",
+              "var _faltan = function (c) { return c === 404 || c === 405; };",
+              "var _resumen = [];",
+              "var _final = function (existe, ruta) {",
+              "    pm.collectionVariables.set('endpoint_disponible', existe ? 'true' : 'false');",
+              "    if (existe && ruta) { pm.collectionVariables.set(_rvar, ruta); }",
+              "    console.log('[TC-M04-G027 0B] endpoint ' + (existe ? ('DISPONIBLE en ' + ruta) : 'NO DISPONIBLE') + ' | probados: ' + _resumen.join(' ; '));",
+              "    pm.test('0B. Existe el endpoint de ejecucion (POST distinto de 404/405). Si falla: caso BLOQUEADO, funcionalidad no implementada', function () {",
+              "        pm.expect(existe, 'Ninguna ruta candidata existe: ' + _resumen.join(' ; ')).to.eql(true);",
+              "    });",
+              "};",
+              "_resumen.push(pm.collectionVariables.get(_rvar) + ' -> ' + pm.response.code);",
+              "if (!_faltan(pm.response.code)) {",
+              "    _final(true, pm.collectionVariables.get(_rvar));",
+              "} else {",
+              "    var _i = 0;",
+              "    var _sig = function () {",
+              "        if (_i >= _cands.length) { _final(false, null); return; }",
+              "        var _r = _cands[_i++];",
+              "        if (_r === pm.collectionVariables.get(_rvar)) { _sig(); return; }",
+              "        pm.sendRequest({ url: _base + _r, method: 'POST', header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tok, 'X-Test-Run-Id': _rid, 'X-Sandbox-Secret': _sec }, body: { mode: 'raw', raw: '{}' } }, function (err, res) {",
+              "            var _c = err ? 0 : res.code;",
+              "            _resumen.push(_r + ' -> ' + (err ? 'error' : _c));",
+              "            if (!err && !_faltan(_c)) { _final(true, _r); } else { _sig(); }",
+              "        });",
+              "    };",
+              "    _sig();",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}{{ruta_contagio}}"
       }
     },
     {
@@ -221,12 +299,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 A.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });"
+                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });",
+                  "}"
                 ]
               }
             }
@@ -285,12 +368,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 B.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Alto', function () { pm.expect(_niv).to.eql('alto'); });"
+                  "pm.test('nivel_riesgo_contagio = Alto', function () { pm.expect(_niv).to.eql('alto'); });",
+                  "}"
                 ]
               }
             }
@@ -354,12 +442,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 C.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Bajo', function () { pm.expect(_niv).to.eql('bajo'); });"
+                  "pm.test('nivel_riesgo_contagio = Bajo', function () { pm.expect(_niv).to.eql('bajo'); });",
+                  "}"
                 ]
               }
             }
@@ -418,12 +511,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 C.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Bajo', function () { pm.expect(_niv).to.eql('bajo'); });"
+                  "pm.test('nivel_riesgo_contagio = Bajo', function () { pm.expect(_niv).to.eql('bajo'); });",
+                  "}"
                 ]
               }
             }
@@ -482,12 +580,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 C.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });"
+                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });",
+                  "}"
                 ]
               }
             }
@@ -551,12 +654,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 D.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });"
+                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });",
+                  "}"
                 ]
               }
             }
@@ -615,12 +723,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 D.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });"
+                  "pm.test('nivel_riesgo_contagio = Medio', function () { pm.expect(_niv).to.eql('medio'); });",
+                  "}"
                 ]
               }
             }
@@ -679,12 +792,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G027 D.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "const _niv = String(R.nivel_riesgo_contagio || '').toLowerCase();",
-                  "pm.test('nivel_riesgo_contagio = Alto', function () { pm.expect(_niv).to.eql('alto'); });"
+                  "pm.test('nivel_riesgo_contagio = Alto', function () { pm.expect(_niv).to.eql('alto'); });",
+                  "}"
                 ]
               }
             }

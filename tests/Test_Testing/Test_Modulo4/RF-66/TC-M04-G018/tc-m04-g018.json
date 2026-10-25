@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M04-G018 - Clasificacion del resultado: nivel de riesgo, enfermedad estimada y alerta critica, con limites exactos (RF-66 restricciones 6-8, CA-2, Fase 5/6)",
-    "description": "Subcasos: (1) TC-M04-06 nivel_riesgo por argmax y excepcion de prioridad por umbral_riesgo_alto (0.29/0.30/0.31). (2) TC-M04-07 enfermedad_estimada y confianza_global por argmax del vector de enfermedad. (3) TC-M04-08 alerta CRITICO hacia RF-57 con umbral_alerta_critica=0.75 (HALLAZGO: Fase 6 usa \">\" y CA-2 usa \">=\"; en 0.75 exacto se documenta el comportamiento real sin asumirlo). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambientes: DEV https://api.inmero.co/api-sgpmp-dev, TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m04-g018.json -e <environment>.json --env-var sandbox_secret=<SECRETO_SANDBOX> -r cli,htmlextra --reporter-htmlextra-export resultados/resultado_TC-M04-G018.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados).",
+    "description": "Subcasos: (1) TC-M04-06 nivel_riesgo por argmax y excepcion de prioridad por umbral_riesgo_alto (0.49/0.50/0.51). (2) TC-M04-07 enfermedad_estimada y confianza_global por argmax del vector de enfermedad. (3) TC-M04-08 alerta CRITICO hacia RF-57 con umbral_alerta_critica=0.75 (HALLAZGO: Fase 6 usa \">\" y CA-2 usa \">=\"; en 0.75 exacto se documenta el comportamiento real sin asumirlo). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambientes: DEV https://api.inmero.co/api-sgpmp-dev, TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m04-g018.json -e <environment>.json --env-var sandbox_secret=<SECRETO_SANDBOX> -r cli,htmlextra --reporter-htmlextra-export resultados/resultado_TC-M04-G018.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -15,8 +15,13 @@
           "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
           "}",
           "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });"
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
         ]
       }
     }
@@ -32,11 +37,11 @@
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": "admin@pecuaria.co"
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
@@ -85,18 +90,22 @@
     {
       "key": "id_inferencia",
       "value": ""
+    },
+    {
+      "key": "endpoint_disponible",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login admin (Administrador)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login admin (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -123,10 +132,79 @@
       }
     },
     {
+      "name": "0B. Precondicion: existe el endpoint de ejecucion (si no, el caso queda BLOQUEADO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Precondicion: el endpoint de ejecucion existe. Si responde 404/405 el caso queda BLOQUEADO (funcionalidad no implementada) y las peticiones que dependen de el se omiten.",
+              "var _rvar = 'ruta_inferencia';",
+              "var _cands = [\"/prediccion/inferencias\", \"/prediccion/inferencia\", \"/prediccion/motor-ia/inferir\", \"/prediccion/motor-ia/inferencias\", \"/prediccion/ejecutar-inferencia\"];",
+              "var _base = pm.collectionVariables.get('base_url');",
+              "var _tok = pm.collectionVariables.get('token_admin');",
+              "var _rid = pm.variables.get('run_id'); var _sec = pm.variables.get('sandbox_secret') || '';",
+              "var _faltan = function (c) { return c === 404 || c === 405; };",
+              "var _resumen = [];",
+              "var _final = function (existe, ruta) {",
+              "    pm.collectionVariables.set('endpoint_disponible', existe ? 'true' : 'false');",
+              "    if (existe && ruta) { pm.collectionVariables.set(_rvar, ruta); }",
+              "    console.log('[TC-M04-G018 0B] endpoint ' + (existe ? ('DISPONIBLE en ' + ruta) : 'NO DISPONIBLE') + ' | probados: ' + _resumen.join(' ; '));",
+              "    pm.test('0B. Existe el endpoint de ejecucion (POST distinto de 404/405). Si falla: caso BLOQUEADO, funcionalidad no implementada', function () {",
+              "        pm.expect(existe, 'Ninguna ruta candidata existe: ' + _resumen.join(' ; ')).to.eql(true);",
+              "    });",
+              "};",
+              "_resumen.push(pm.collectionVariables.get(_rvar) + ' -> ' + pm.response.code);",
+              "if (!_faltan(pm.response.code)) {",
+              "    _final(true, pm.collectionVariables.get(_rvar));",
+              "} else {",
+              "    var _i = 0;",
+              "    var _sig = function () {",
+              "        if (_i >= _cands.length) { _final(false, null); return; }",
+              "        var _r = _cands[_i++];",
+              "        if (_r === pm.collectionVariables.get(_rvar)) { _sig(); return; }",
+              "        pm.sendRequest({ url: _base + _r, method: 'POST', header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tok, 'X-Test-Run-Id': _rid, 'X-Sandbox-Secret': _sec }, body: { mode: 'raw', raw: '{}' } }, function (err, res) {",
+              "            var _c = err ? 0 : res.code;",
+              "            _resumen.push(_r + ' -> ' + (err ? 'error' : _c));",
+              "            if (!err && !_faltan(_c)) { _final(true, _r); } else { _sig(); }",
+              "        });",
+              "    };",
+              "    _sig();",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}{{ruta_inferencia}}"
+      }
+    },
+    {
       "name": "0. Preparacion de umbrales",
       "item": [
         {
-          "name": "0C. Configurar umbrales del ensayo (umbral_riesgo_alto=0.30, umbral_alerta_critica=0.75)",
+          "name": "0C. Configurar umbrales del ensayo (umbral_riesgo_alto=0.50 (minimo permitido por RF-65), umbral_alerta_critica=0.75)",
           "request": {
             "method": "POST",
             "header": [
@@ -142,7 +220,7 @@
             "url": "{{base_url}}/prediccion/motor-ia",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_modelo\": \"MODELO_ESPECIES_GRANDES\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.3,\n  \"umbral_alerta_critica\": 0.75\n}",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_ESPECIES_GRANDES\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.5,\n  \"umbral_alerta_critica\": 0.75\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -180,10 +258,9 @@
                 "exec": [
                   "console.log('[TC-M04-G018 0C.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/201/400/422', function () { pm.expect([200, 201, 400, 422]).to.include(pm.response.code); });",
+                  "pm.test('HTTP en 200/201 (umbral dentro del rango 0.50-0.95 de RF-65)', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "console.log('[TC-M04-G018][OBSERVADO] RF-65 FA-01 valida umbral_riesgo_alto en [0.50, 0.95]; la ficha usa 0.30. status=' + pm.response.code);",
-                  "pm.collectionVariables.set('umbral_riesgo_alto', (pm.response.code < 300 && R.umbral_riesgo_alto) ? String(R.umbral_riesgo_alto) : '0.30');",
+                  "pm.collectionVariables.set('umbral_riesgo_alto', (pm.response.code < 300 && R.umbral_riesgo_alto) ? String(R.umbral_riesgo_alto) : '0.50');",
                   "pm.collectionVariables.set('umbral_alerta_critica', (pm.response.code < 300 && R.umbral_alerta_critica) ? String(R.umbral_alerta_critica) : '0.75');"
                 ]
               }
@@ -196,7 +273,7 @@
       "name": "1. TC-M04-06 - nivel_riesgo por argmax y excepcion de prioridad (limite exacto)",
       "item": [
         {
-          "name": "1.1 Alto por debajo del umbral (0.29): NO aplica la excepcion",
+          "name": "1.1 Alto por debajo del umbral (0.49): NO aplica la excepcion",
           "request": {
             "method": "POST",
             "header": [
@@ -240,7 +317,7 @@
                   "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
                   "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
                   "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
-                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.50'); const _r = (x) => Math.round(x * 1000) / 1000;",
                   "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
                 ]
               }
@@ -250,18 +327,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"nivel_riesgo = 1 (Medio por argmax)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(1); });"
+                  "pm.test(\"nivel_riesgo = 1 (Medio por argmax)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(1); });",
+                  "}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2 Alto exactamente en el umbral (0.30): SI aplica la excepcion (regla \">=\")",
+          "name": "1.2 Alto exactamente en el umbral (0.50, empate con Medio): SI aplica la excepcion (regla \">=\")",
           "request": {
             "method": "POST",
             "header": [
@@ -305,7 +387,7 @@
                   "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
                   "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
                   "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
-                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.50'); const _r = (x) => Math.round(x * 1000) / 1000;",
                   "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
                 ]
               }
@@ -315,18 +397,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });",
+                  "}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.3 Alto por encima del umbral (0.31): SI aplica la excepcion",
+          "name": "1.3 Alto por encima del umbral (0.51): SI aplica la excepcion",
           "request": {
             "method": "POST",
             "header": [
@@ -370,7 +457,7 @@
                   "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
                   "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
                   "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
-                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.30'); const _r = (x) => Math.round(x * 1000) / 1000;",
+                  "const _u = parseFloat(pm.collectionVariables.get('umbral_riesgo_alto') || '0.50'); const _r = (x) => Math.round(x * 1000) / 1000;",
                   "pm.variables.set('u_bajo', String(_r(_u - 0.01))); pm.variables.set('u_igual', String(_r(_u))); pm.variables.set('u_alto', String(_r(_u + 0.01))); pm.variables.set('u_medio_bajo', String(_r(1 - _u + 0.01))); pm.variables.set('u_medio_igual', String(_r(1 - _u))); pm.variables.set('u_medio_alto', String(_r(1 - _u - 0.01)));"
                 ]
               }
@@ -380,11 +467,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                  "pm.test(\"nivel_riesgo = 2 (Alto por excepcion)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });",
+                  "}"
                 ]
               }
             }
@@ -443,11 +535,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"nivel_riesgo = 2 por argmax\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                  "pm.test(\"nivel_riesgo = 2 por argmax\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });",
+                  "}"
                 ]
               }
             }
@@ -511,13 +608,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "pm.test(\"enfermedad_estimada = Mastitis\", function () { pm.expect(R.enfermedad_estimada).to.eql(\"Mastitis\"); });",
                   "pm.test(\"confianza_global = 0.72 exacto\", function () { pm.expect(Math.abs(Number(R.confianza_global) - 0.72)).to.be.below(1e-09); });",
-                  "pm.test('confianza_global NO se mezcla con el vector de riesgo (max riesgo = 0.55)', function () { pm.expect(Number(R.confianza_global)).to.not.eql(0.55); });"
+                  "pm.test('confianza_global NO se mezcla con el vector de riesgo (max riesgo = 0.55)', function () { pm.expect(Number(R.confianza_global)).to.not.eql(0.55); });",
+                  "}"
                 ]
               }
             }
@@ -581,11 +683,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });"
+                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });",
+                  "}"
                 ]
               }
             }
@@ -644,11 +751,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"Sin alerta CRITICO (alerta_id vacio)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) === null).to.be.true; });"
+                  "pm.test(\"Sin alerta CRITICO (alerta_id vacio)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) === null).to.be.true; });",
+                  "}"
                 ]
               }
             }
@@ -707,12 +819,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 3.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "console.log('[OBSERVADO] alerta en limite exacto 0.75 (Fase 6 \">\" vs CA-2 \">=\") = ' + JSON.stringify({nivel_riesgo: R.nivel_riesgo, alerta_id: (R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null)}));",
-                  "pm.test('Limite exacto 0.75: comportamiento registrado para escalar a requerimientos (sin asumir cual fuente es autoritativa)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+                  "pm.test('Limite exacto 0.75: comportamiento registrado para escalar a requerimientos (sin asumir cual fuente es autoritativa)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "}"
                 ]
               }
             }
@@ -771,11 +888,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G018 3.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });"
+                  "pm.test(\"alerta_id presente (alerta CRITICO emitida hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });",
+                  "}"
                 ]
               }
             }
