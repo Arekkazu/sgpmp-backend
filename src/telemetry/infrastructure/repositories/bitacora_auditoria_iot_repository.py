@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: serializa incidentes y consulta avisos persistidos |
+# | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 from __future__ import annotations
 
 from datetime import datetime
@@ -75,8 +76,18 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         resultado: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        id_usuario: Optional[int] = None,
+        rf_origen: Optional[str] = None,
+        registro_incompleto: Optional[bool] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
         q = self.db.query(BitacoraAuditoriaIotModel)
+        if id_usuario is not None:
+            q = q.filter(BitacoraAuditoriaIotModel.id_usuario == id_usuario)
+        if rf_origen:
+            # rf_origen es componente_origen: se filtra por él pero no se expone (RF-63).
+            q = q.filter(BitacoraAuditoriaIotModel.componente_origen == rf_origen)
+        if registro_incompleto is not None:
+            q = q.filter(BitacoraAuditoriaIotModel.registro_incompleto == registro_incompleto)
         if fecha_desde:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora >= fecha_desde)
         if fecha_hasta:
@@ -99,13 +110,17 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         self,
         fecha_desde: Optional[datetime] = None,
         fecha_hasta: Optional[datetime] = None,
+        limite: Optional[int] = None,
     ) -> list[EventoAuditoriaIot]:
         q = self.db.query(BitacoraAuditoriaIotModel)
         if fecha_desde:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora >= fecha_desde)
         if fecha_hasta:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora <= fecha_hasta)
-        return [self._a_entidad(o) for o in q.order_by(BitacoraAuditoriaIotModel.fecha_hora).all()]
+        q = q.order_by(BitacoraAuditoriaIotModel.fecha_hora)
+        if limite is not None:
+            q = q.limit(limite)
+        return [self._a_entidad(o) for o in q.all()]
 
     def _marcar(self, eventos):
         if not eventos:
