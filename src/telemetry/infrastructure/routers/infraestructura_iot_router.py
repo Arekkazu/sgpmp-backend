@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: aplica alcance de finca al mantenimiento |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -36,6 +37,7 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.infraestructura.aplicar_mantenimiento_dispositivo_use_case import AplicarMantenimientoDispositivoUseCase
+from src.telemetry.application.use_cases.infraestructura.listar_dispositivos_use_case import ListarDispositivosUseCase
 from src.telemetry.application.use_cases.infraestructura.obtener_estado_dispositivo_use_case import ObtenerEstadoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.registrar_evento_buffer_use_case import RegistrarEventoBufferUseCase
@@ -53,7 +55,7 @@ from src.telemetry.infrastructure.repositories.historico_estado_alerta_repositor
 from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
 from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
 from src.telemetry.infrastructure.schema.alerta_schema import AlertaSchema, ListaAlertasSchema
-from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
+from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import DispositivoConEstadoSchema, EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
 from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
 from src.shared.fechas import FechaHoraUtc
 
@@ -109,6 +111,31 @@ def recibir_evento_buffer(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     ).execute(dto)
     return EventoBufferReciboSchema.model_validate(resultado)
+
+
+@router.get(
+    "/dispositivos",
+    response_model=list[DispositivoConEstadoSchema],
+    status_code=200,
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    dependencies=[Depends(require_permission(35, 2))],
+    summary="Listar dispositivos IoT con su estado actual (RF-60)",
+)
+def listar_dispositivos(
+    estado: Optional[str] = Query(default=None, description="ACTIVO, SIN_SEÑAL, BUFFER_ACTIVO, INACTIVO, EN_MANTENIMIENTO o DESCONOCIDO"),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[DispositivoConEstadoSchema]:
+    """Dispositivos activos de las fincas del usuario con estado, batería, señal y último
+    contacto; primero los que fallan (M3-10). El Administrador ve todas las fincas.
+
+    **Acceso:** `infraestructura_iot` · Leer.
+    """
+    filas = ListarDispositivosUseCase(SqlAlchemyEstadoDispositivoIoTRepository(db)).execute(
+        AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol),
+        estado=estado,
+    )
+    return [DispositivoConEstadoSchema.model_validate(f) for f in filas]
 
 
 @router.get(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: bloquea estados y verifica alcance de finca |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: listado de dispositivos con estado, batería y señal |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
+from src.telemetry.domain.entities.dispositivo_con_estado import DispositivoConEstado
 from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositivoIoT
 from src.telemetry.domain.repositories.estado_dispositivo_iot_repository import EstadoDispositivoIoTRepository
 from src.telemetry.infrastructure.models.estado_dispositivo_iot_model import EstadoDispositivoIoTModel
@@ -34,6 +36,34 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
               ON i.id_infraestructura=d.id_infraestructura
             WHERE d.id_dispositivo_iot=:id AND i.id_finca=ANY(:fincas))'''),
             {'id': id_dispositivo_iot, 'fincas': fincas}).scalar_one())
+
+    def listar_con_estado(self, ids_fincas_permitidas, estado=None):
+        # M3-10: el estado vigente es el más reciente (UNIQUE en BD, LIMIT 1 por si un
+        # entorno conserva duplicados); batería y señal salen del último heartbeat.
+        filas = self.db.execute(text('''
+            SELECT d.id_dispositivo_iot, d.serial, d.descripcion, d.id_infraestructura,
+                   i.nombre AS nombre_infraestructura, f.nombre AS nombre_finca,
+                   coalesce(e.estado_actual::text, 'DESCONOCIDO') AS estado_actual,
+                   e.fecha_ultimo_contacto, h.nivel_bateria_pct, h.calidad_senal_rssi
+            FROM modulo9.dispositivos_iot d
+            JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura
+            JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+            LEFT JOIN LATERAL (
+                SELECT x.estado_actual, x.fecha_ultimo_contacto, x.id_ultimo_heardbeat
+                FROM modulo3.estados_dispositivos_iot x
+                WHERE x.id_dispositivo_iot = d.id_dispositivo_iot
+                ORDER BY x.fecha_ultima_actualizacion DESC LIMIT 1
+            ) e ON true
+            LEFT JOIN modulo3.heartbeats h ON h.id_heartbeat = e.id_ultimo_heardbeat
+            WHERE d.es_activo
+              AND (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
+              AND (CAST(:estado AS text) IS NULL OR coalesce(e.estado_actual::text, 'DESCONOCIDO') = :estado)
+            ORDER BY CASE coalesce(e.estado_actual::text, 'DESCONOCIDO')
+                       WHEN 'SIN_SEÑAL' THEN 0 WHEN 'INACTIVO' THEN 1 WHEN 'DESCONOCIDO' THEN 2
+                       WHEN 'BUFFER_ACTIVO' THEN 3 WHEN 'EN_MANTENIMIENTO' THEN 4 ELSE 5 END,
+                     f.nombre, i.nombre, d.serial
+        '''), {'fincas': ids_fincas_permitidas, 'estado': estado}).mappings().all()
+        return [DispositivoConEstado(**dict(f)) for f in filas]
 
     def obtener_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]:
         # Un estado actual por dispositivo (garantizado por UNIQUE en DB). Se ordena y
