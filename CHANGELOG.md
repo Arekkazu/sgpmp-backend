@@ -1,3 +1,15 @@
+## [1.4.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.2...v1.4.0-rc.3) (2026-10-25)
+
+### Features
+
+* **rf60-mod3:** GET /iot/dispositivos lista los dispositivos de las fincas del usuario con su estado (M3-10) ([aa3878d](https://github.com/Arekkazu/sgpmp-backend/commit/aa3878d2631acde47e2e7013109f0c8f8399961f))
+
+### Bug Fixes
+
+* **rf57-mod3:** alertas con nombres de finca, area y sensor, autor en el historial y filtro por fecha de resolucion (M3-05, M3-06, M3-08) ([1d1a616](https://github.com/Arekkazu/sgpmp-backend/commit/1d1a61652a5aaa8a0ee4555c0800c46c0811a966)), closes [#876](https://github.com/Arekkazu/sgpmp-backend/issues/876) [#399](https://github.com/Arekkazu/sgpmp-backend/issues/399) [#80](https://github.com/Arekkazu/sgpmp-backend/issues/80)
+* **rf62-mod3:** la calidad de telemetria se limita a las fincas del usuario (M3-14) ([43e5f42](https://github.com/Arekkazu/sgpmp-backend/commit/43e5f42f13fdff24b9840a7d8824c3c96236337c))
+* **rf69-prediction:** las notas de validacion clinica no se sobrescriben (M4-06) ([5c19d57](https://github.com/Arekkazu/sgpmp-backend/commit/5c19d57533b5663fd6d897d823fcdc6789816245))
+
 ## [1.4.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.1...v1.4.0-rc.2) (2026-10-23)
 
 ### Features
