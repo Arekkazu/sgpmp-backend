@@ -1,7 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-150-G92 RLS: down_revision al head real de dev (c32b50fa71e7 no existe) |
 """fix_rls_sensores
 
 Revision ID: f62b120bb13f
-Revises: c32b50fa71e7
+Revises: 517bee7b766c
 Create Date: 2026-10-25 16:36:33.758172
 
 INC-M03-150-G92 (RUN-G92-V1-20261025-075632):
@@ -30,7 +33,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'f62b120bb13f'
-down_revision: Union[str, Sequence[str], None] = 'c32b50fa71e7'
+down_revision: Union[str, Sequence[str], None] = '517bee7b766c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
