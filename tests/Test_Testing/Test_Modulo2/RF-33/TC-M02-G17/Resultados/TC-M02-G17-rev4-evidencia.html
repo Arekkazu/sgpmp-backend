@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>TC-M02-G17 rev4</title></head><body><h1>TC-M02-G17 rev4 — TC-M02-187</h1><p>Global: APROBADO</p><p>187: APROBADO</p><pre>{
+  &quot;resultado&quot;: &quot;APROBADO&quot;,
+  &quot;endpoint&quot;: &quot;POST /activos-biologicos&quot;,
+  &quot;metrica&quot;: {
+    &quot;id_especie&quot;: 1,
+    &quot;nombre_especie&quot;: &quot;Tilapia Roja&quot;,
+    &quot;estado_especie&quot;: &quot;activa&quot;,
+    &quot;id_metrica&quot;: 27,
+    &quot;nombre&quot;: &quot;Peso al nacer (Obligatorio QA)&quot;,
+    &quot;tipo_dato&quot;: &quot;NUMERICO&quot;,
+    &quot;es_obligatorio&quot;: true,
+    &quot;aplicabilidad&quot;: &quot;INDIVIDUAL&quot;,
+    &quot;estado_metrica&quot;: &quot;activa&quot;,
+    &quot;otras_obligatorias&quot;: []
+  },
+  &quot;control&quot;: {
+    &quot;http&quot;: 201,
+    &quot;error_code&quot;: null,
+    &quot;message&quot;: null,
+    &quot;fields&quot;: null,
+    &quot;id_creado&quot;: 632,
+    &quot;claves_atributos_enviados&quot;: [
+      &quot;Peso al nacer (Obligatorio QA)&quot;
+    ],
+    &quot;body&quot;: &quot;{\&quot;id_activo_biologico\&quot;: 632, \&quot;id_especie\&quot;: 1, \&quot;tipo\&quot;: \&quot;INDIVIDUAL\&quot;, \&quot;identificador\&quot;: \&quot;QAG17R4C181809874853\&quot;, \&quot;fecha_inicio_ciclo\&quot;: \&quot;2026-09-09\&quot;, \&quot;detalles_procedencia\&quot;: null, \&quot;origen_financiero\&quot;: \&quot;nacimiento\&quot;, \&quot;costo_adquisicion\&quot;: null, \&quot;soporte_documental\&quot;: null, \&quot;descripcion\&quot;: null, \&quot;id_infraestructura\&quot;: 3, \&quot;atributos_dinamicos\&quot;: {\&quot;Peso al nacer (Obligatorio QA)\&quot;: 1.0}, \&quot;id_estado\&quot;: 1, \&quot;nombre_estado\&quot;: \&quot;ACTIVO\&quot;, \&quot;id_usuario\&quot;: 2, \&quot;fecha_creacion\&quot;: \&quot;2026-09-26T18:18:24.795447Z\&quot;, \&quot;fecha_actualizacion\&quot;: null, \&quot;detalle_individual\&quot;: {\&quot;id_detalle\&quot;: 467, \&quot;raza\&quot;: \&quot;QA-G17-R4\&quot;, \&quot;sexo\&quot;: \&quot;Macho\&quot;, \&quot;fecha_nacimiento\&quot;: \&quot;2025-01-15T00:00:00Z\&quot;, \&quot;peso_inicial\&quot;: \&quot;2.500\&quot;, \&quot;fecha_creacion\&quot;: \&quot;2026-09-26T18:18:24.795447Z\&quot;}, \&quot;detalle_poblacional\&quot;: null}&quot;,
+    &quot;infra&quot;: 3,
+    &quot;atributos_enviados&quot;: {
+      &quot;Peso al nacer (Obligatorio QA)&quot;: 1.0
+    },
+    &quot;restauracion&quot;: {
+      &quot;id&quot;: 632,
+      &quot;http_estado&quot;: 200,
+      &quot;http_get&quot;: 200,
+      &quot;estado&quot;: &quot;INACTIVO&quot;
+    }
+  },
+  &quot;omision&quot;: {
+    &quot;http&quot;: 422,
+    &quot;error_code&quot;: &quot;ATRIBUTO_REQUERIDO&quot;,
+    &quot;message&quot;: &quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.&quot;,
+    &quot;fields&quot;: [
+      {
+        &quot;field&quot;: &quot;atributos_dinamicos.Peso al nacer (Obligatorio QA)&quot;,
+        &quot;message&quot;: &quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.&quot;
+      }
+    ],
+    &quot;id_creado&quot;: null,
+    &quot;claves_atributos_enviados&quot;: [],
+    &quot;body&quot;: &quot;{\&quot;error_code\&quot;: \&quot;ATRIBUTO_REQUERIDO\&quot;, \&quot;message\&quot;: \&quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.\&quot;, \&quot;fields\&quot;: [{\&quot;field\&quot;: \&quot;atributos_dinamicos.Peso al nacer (Obligatorio QA)\&quot;, \&quot;message\&quot;: \&quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.\&quot;}], \&quot;timestamp\&quot;: \&quot;2026-09-26T18:18:27.339133+00:00\&quot;}&quot;,
+    &quot;clave_omitida&quot;: &quot;Peso al nacer (Obligatorio QA)&quot;,
+    &quot;clave_presente_en_json&quot;: false,
+    &quot;busqueda_identificador&quot;: {
+      &quot;http&quot;: 200,
+      &quot;ids&quot;: []
+    }
+  },
+  &quot;null&quot;: {
+    &quot;http&quot;: 422,
+    &quot;error_code&quot;: &quot;ATRIBUTO_REQUERIDO&quot;,
+    &quot;message&quot;: &quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.&quot;,
+    &quot;fields&quot;: [
+      {
+        &quot;field&quot;: &quot;atributos_dinamicos.Peso al nacer (Obligatorio QA)&quot;,
+        &quot;message&quot;: &quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.&quot;
+      }
+    ],
+    &quot;id_creado&quot;: null,
+    &quot;claves_atributos_enviados&quot;: null,
+    &quot;body&quot;: &quot;{\&quot;error_code\&quot;: \&quot;ATRIBUTO_REQUERIDO\&quot;, \&quot;message\&quot;: \&quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.\&quot;, \&quot;fields\&quot;: [{\&quot;field\&quot;: \&quot;atributos_dinamicos.Peso al nacer (Obligatorio QA)\&quot;, \&quot;message\&quot;: \&quot;El atributo dinámico &#x27;Peso al nacer (Obligatorio QA)&#x27; es obligatorio.\&quot;}], \&quot;timestamp\&quot;: \&quot;2026-09-26T18:18:29.524386+00:00\&quot;}&quot;,
+    &quot;atributo&quot;: {
+      &quot;Peso al nacer (Obligatorio QA)&quot;: null
+    }
+  },
+  &quot;conclusion&quot;: &quot;Precondicion OK: especie 1 Tilapia Roja activa; metrica &#x27;Peso al nacer (Obligatorio QA)&#x27; obligatoria=True tipo=NUMERICO aplica=INDIVIDUAL. Control HTTP 201 id=632 restaurado INACTIVO. Omision (clave &#x27;Peso al nacer (Obligatorio QA)&#x27; ausente) HTTP 422 ATRIBUTO_REQUERIDO sin ID. Null HTTP 422 ATRIBUTO_REQUERIDO. Bloqueo historico 187 resuelto.&quot;,
+  &quot;busqueda&quot;: {
+    &quot;especies_http&quot;: 200,
+    &quot;scan&quot;: [
+      {
+        &quot;id_especie&quot;: 1,
+        &quot;http&quot;: 200,
+        &quot;n&quot;: 4,
+        &quot;especie_activa&quot;: true
+      }
+    ],
+    &quot;encontrada&quot;: true
+  }
+}</pre><p>Rev1/rev2/rev3 intactas. 188/189 no reejecutados.</p></body></html>

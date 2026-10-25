@@ -1,0 +1,349 @@
+{
+  "info": {
+    "_postman_id": "a118c0de-0000-4118-9118-tc09g118v30",
+    "name": "TC-M09-G118 v3.0 - Validaciones previas a aplicar una plantilla (alineada al RF-32)",
+    "description": "v3.0 (2026-10). Alinea TC-228 y TC-229 con el RF-32. TC-228: el flujo alterno 'Incompatibilidad de esquema (Version Legacy)' del RF-32 exige HTTP 422 (la v2.0 exigia 412, tomado del RF-30; el backend ya responde 422). TC-229: el flujo alterno 'Configuracion destino no encontrada o inactiva' exige HTTP 404 tanto si la especie no existe como si esta inactiva (la v2.0 exigia 422 para inactiva, por la ficha); el backend responde 404 si no existe y 422 ESPECIE_DESTINO_INACTIVA si esta inactiva, por lo que se espera UNA aserción en rojo (TC-229 inactiva) que documenta esa desviacion del RF; el paso 5 (inexistente) es el control que debe pasar. Ademas: ids de especie inactiva y de plantilla obsoleta se descubren dinamicamente en vez de fijarse (11 y 1), y TC-227 envia la fecha_actualizacion real de la especie destino en vez de null para no provocar un 409 espurio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie_origen",
+      "value": ""
+    },
+    {
+      "key": "id_especie_destino",
+      "value": ""
+    },
+    {
+      "key": "fecha_actualizacion_json",
+      "value": "null"
+    },
+    {
+      "key": "id_especie_inactiva",
+      "value": ""
+    },
+    {
+      "key": "id_plantilla_valida",
+      "value": ""
+    },
+    {
+      "key": "id_plantilla_obsoleta",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "0B. Obtener 2 especies activas distintas (origen y destino) y la fecha_actualizacion real del destino",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "pm.test('Hay al menos 2 especies activas', function () { pm.expect(body.items.length).to.be.above(1); });",
+              "if (body.items && body.items.length > 1) {",
+              "  pm.collectionVariables.set('id_especie_origen', body.items[0].id_especie);",
+              "  var destino = body.items[1];",
+              "  pm.collectionVariables.set('id_especie_destino', destino.id_especie);",
+              "  var f = destino.fecha_actualizacion;",
+              "  pm.collectionVariables.set('fecha_actualizacion_json', (f === null || f === undefined) ? 'null' : JSON.stringify(f));",
+              "  console.log('origen=' + body.items[0].id_especie + ' destino=' + destino.id_especie + ' fecha_actualizacion=' + f);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "0C. Precondicion - localizar una especie INACTIVA (para TC-229)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var items = pm.response.json().items || [];",
+              "var inactiva = items.find(function (e) { return e.es_activo === false || e.activo === false; });",
+              "pm.test('Precondicion TC-229: existe al menos una especie inactiva en el entorno', function () { pm.expect(inactiva, 'No hay especie inactiva en este entorno').to.not.be.undefined; });",
+              "if (inactiva) { pm.collectionVariables.set('id_especie_inactiva', inactiva.id_especie); console.log('especie inactiva id=' + inactiva.id_especie); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      }
+    },
+    {
+      "name": "0D. Precondicion - localizar una plantilla semilla con esquema anterior a schema_version (para TC-228)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var items = pm.response.json().items || [];",
+              "var compat = [1, 2];",
+              "var obsoleta = items.find(function (p) { var v = (p.params_snapshot || {}).schema_version; return compat.indexOf(v) === -1; });",
+              "pm.test('Precondicion TC-228: existe una plantilla con esquema incompatible (sin schema_version vigente) en el entorno', function () { pm.expect(obsoleta, 'No hay plantilla semilla obsoleta en este entorno').to.not.be.undefined; });",
+              "if (obsoleta) { pm.collectionVariables.set('id_plantilla_obsoleta', obsoleta.id_plantilla); console.log('plantilla obsoleta id=' + obsoleta.id_plantilla + ' nombre=' + obsoleta.template_name + ' schema_version=' + (obsoleta.params_snapshot || {}).schema_version); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "1. Crear plantilla valida sobre la especie origen",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1 - la plantilla se crea con 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_valida', pm.response.json().id_plantilla); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-G118-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_origen}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"Peso Test G118 {{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "2. TC-M09-227 v3.0 - Aplicar una plantilla con esquema vigente sobre especie activa responde 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-227] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-227 - aplicar una plantilla con esquema vigente sobre una especie activa responde 200 OK', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_valida}}/aplicar",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": {{fecha_actualizacion_json}}\n}"
+        }
+      }
+    },
+    {
+      "name": "3. TC-M09-228 v3.0 - Esquema legacy/incompatible: RF-32 exige 422",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-228] plantilla id=' + pm.collectionVariables.get('id_plantilla_obsoleta') + ' status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-228 - aplicar una plantilla con esquema incompatible se rechaza con 422 (RF-32, flujo alterno Incompatibilidad de esquema)', function () { pm.response.to.have.status(422); });",
+              "var b = pm.response.json();",
+              "console.log('TC-228 INFO: error_code=' + b.error_code + ' | el RF define el mensaje \"Error de compatibilidad: La plantilla [NOMBRE] (v[X]) utiliza una estructura de datos antigua...\"; mensaje obtenido: ' + b.message);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_obsoleta}}/aplicar",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}"
+        }
+      }
+    },
+    {
+      "name": "4. TC-M09-229 v3.0 - Destino INACTIVO: RF-32 exige 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-229 inactiva] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-229 - aplicar sobre una especie destino INACTIVA responde 404 (RF-32, flujo alterno Configuracion destino no encontrada o inactiva)', function () { pm.response.to.have.status(404); });",
+              "console.log('TC-229 INFO: error_code=' + pm.response.json().error_code);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_valida}}/aplicar",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie_destino\": {{id_especie_inactiva}},\n  \"fecha_actualizacion_especie_destino\": null\n}"
+        }
+      }
+    },
+    {
+      "name": "5. TC-M09-229 v3.0 (control) - Destino INEXISTENTE: RF-32 exige 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-229 inexistente] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M09-229 - aplicar sobre una especie destino INEXISTENTE responde 404 (RF-32)', function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_valida}}/aplicar",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie_destino\": 999999999,\n  \"fecha_actualizacion_especie_destino\": null\n}"
+        }
+      }
+    }
+  ]
+}

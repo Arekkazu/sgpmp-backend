@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "TC-M09-G108 (TC-M09-207/208)",
+    "description": "Restriccion de autenticacion y autorizacion para gestionar plantillas de configuracion (RF-30, CU-07). TC-M09-207: impedir la gestion (creacion/versionado) de plantillas a un usuario no autenticado (sin JWT o con JWT invalido) -- se espera 401/403 sin filtrar informacion. TC-M09-208: impedir la operacion a un usuario autenticado pero SIN el rol autorizado (Productor intentando gestionar plantillas) -- se espera 403. Ejecutar con: newman run tc-m09-108.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-108.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "correo_productor", "value": "u20212200102@usco.edu.co" },
+    { "key": "contrasena_productor", "value": "Recuperada#30" },
+    { "key": "token_productor", "value": "" },
+    { "key": "template_name", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (para obtener id_especie valido)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login admin exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa (para el payload de las plantillas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('template_name', 'QA-AuthCheck-' + Date.now());",
+        "    console.log('id_especie elegido: ' + body.items[0].id_especie);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "0C. Login usuario Productor (Maria Garcia, sin permiso sobre plantillas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN PRODUCTOR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login productor exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) {",
+        "    pm.collectionVariables.set('token_productor', pm.response.json().token);",
+        "} else {",
+        "    console.log('ATENCION: revisa correo_productor/contrasena_productor -- pueden estar desactualizados, ver usuarios_prueba_estado.md');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "1. TC-M09-207a - Gestionar plantilla SIN token (sin header Authorization)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN TOKEN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-207a: sin JWT debe rechazarse (401 o 403), nunca 200/201', function () {",
+        "    pm.expect([401, 403]).to.include(pm.response.code);",
+        "});",
+        "pm.test('TC-M09-207a: la respuesta no debe filtrar datos internos (sin id_plantilla ni version)', function () {",
+        "    var body = pm.response.json();",
+        "    pm.expect(body).to.not.have.property('id_plantilla');",
+        "    pm.expect(body).to.not.have.property('version');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}-sin-token\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": { \"schema_version\": 1, \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ] }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-207b - Gestionar plantilla con JWT invalido/malformado",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TOKEN INVALIDO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-207b: JWT invalido debe rechazarse (401 o 403), nunca 200/201', function () {",
+        "    pm.expect([401, 403]).to.include(pm.response.code);",
+        "});",
+        "pm.test('TC-M09-207b: la respuesta no debe filtrar datos internos (sin id_plantilla ni version)', function () {",
+        "    var body = pm.response.json();",
+        "    pm.expect(body).to.not.have.property('id_plantilla');",
+        "    pm.expect(body).to.not.have.property('version');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer token.invalido.manipulado123" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}-token-invalido\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": { \"schema_version\": 1, \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ] }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. TC-M09-208 - Gestionar plantilla autenticado como Productor (sin permiso, debe dar 403)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[PRODUCTOR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-208: usuario autenticado pero sin rol autorizado debe dar 403', function () {",
+        "    pm.response.to.have.status(403);",
+        "});",
+        "pm.test('TC-M09-208: la respuesta no debe filtrar datos internos (sin id_plantilla ni version)', function () {",
+        "    var body = pm.response.json();",
+        "    pm.expect(body).to.not.have.property('id_plantilla');",
+        "    pm.expect(body).to.not.have.property('version');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}-productor\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": { \"schema_version\": 1, \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ] }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "4. Control - el mismo admin SI puede gestionar (confirma que el endpoint funciona normalmente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONTROL ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Control: admin.test SI puede crear plantilla (201) -- confirma que el endpoint no esta caido', function () {",
+        "    pm.response.to.have.status(201);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}-control-admin\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": { \"schema_version\": 1, \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ] }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

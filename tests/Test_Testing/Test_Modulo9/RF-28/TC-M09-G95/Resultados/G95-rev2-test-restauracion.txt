@@ -1,0 +1,23 @@
+TC-M09-G95 / TC-M09-180 — restauración post-ejecución rev2 TEST
+Fecha: 2026-09-25T07:33:00Z (aprox.)
+
+Tras el PASS de Cypress el PATCH de restauración con el JWT del login devolvió HTTP 401 TOKEN_REVOCADO.
+Causa: POST /sesiones/refresh HTTP 200 (dos veces al entrar a /configuracion) rota/revoca el access token capturado en el login; cy.request con ese Bearer ya no es válido (misma clase que el after() de G94-179).
+
+No se usó SQL. Restauración oficial:
+
+- POST /sesiones login contador@pecuaria.co → 200 (login adicional solo para restauración)
+- PATCH /configuracion/personalizacion/dashboard → 200
+  layout_config:
+    id_widget 10 @ F1 C1 span 2
+    id_widget 11 @ F1 C3 span 2
+  active_widget: hist_temp, hist_hum
+  version_perfil: 6
+- GET posterior: misma grilla.
+
+Nota de alcance:
+El GET inicial del contador antes de cualquier PATCH de esta evaluación era id_dashboard_layout=null (default de rol).
+El primer PATCH de la corrida fallida (misma grilla) creó modulo9.dashboard_layouts id=6.
+No existe endpoint de borrado de la fila personal; POST /restaurar escribe el default sobre la fila, no la elimina.
+Widgets y posiciones coinciden con el default del rol Contador.
+No se tocó el layout de admin@pecuaria.co ni productor@pecuaria.co.

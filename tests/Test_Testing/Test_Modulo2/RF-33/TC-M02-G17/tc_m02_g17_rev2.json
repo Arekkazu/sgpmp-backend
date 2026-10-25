@@ -1,0 +1,532 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g17-rf33-rev2",
+    "name": "TC-M02-G17 rev2 - Atributos dinamicos y TRANSFERENCIA_INTERNA",
+    "description": "Segunda evaluacion TEST. No modifica RF-16. Password via --env-var. DTO real: origen_financiero=transferencia_interna, soporte_documental (no *_costo).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "loginOk", "value": "0" },
+    { "key": "infraestructura_id", "value": "" },
+    { "key": "especie4_metricas", "value": "" },
+    { "key": "metricas_http_resumen", "value": "" },
+    { "key": "hay187", "value": "0" },
+    { "key": "hay188", "value": "0" },
+    { "key": "especie_187", "value": "" },
+    { "key": "nombre_attr_187", "value": "" },
+    { "key": "tipo_activo_187", "value": "POBLACIONAL" },
+    { "key": "config_187", "value": "" },
+    { "key": "especie_188", "value": "" },
+    { "key": "nombre_attr_188", "value": "" },
+    { "key": "tipo_dato_188", "value": "" },
+    { "key": "tipo_enviado_188", "value": "" },
+    { "key": "valor_188", "value": "" },
+    { "key": "tipo_activo_188", "value": "POBLACIONAL" },
+    { "key": "config_188", "value": "" },
+    { "key": "especie_189", "value": "4" },
+    { "key": "id_189", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin (unico)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Token presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "  pm.collectionVariables.set('loginOk', '1');",
+              "} else { pm.collectionVariables.set('loginOk', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - Infraactiva finca 1",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET infraestructuras responde', function () { pm.expect(pm.response.code).to.be.a('number'); });",
+              "if (pm.response.code === 200) {",
+              "  const body = pm.response.json() || {};",
+              "  const items = body.items || body.registros || [];",
+              "  const inf = items.find(function (x) { return x.es_activo === true || x.es_activa === true; }) || items[0];",
+              "  pm.test('Hay infraestructura', function () { pm.expect(inf).to.exist; });",
+              "  if (inf) pm.collectionVariables.set('infraestructura_id', String(inf.id_infraestructura || inf.id));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true"
+      }
+    },
+    {
+      "name": "03 - Catalogo especies + descubrimiento RF-16",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET especies HTTP 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code !== 200) { return; }",
+              "const body = pm.response.json() || {};",
+              "const especies = body.items || body.registros || [];",
+              "pm.test('Hay especies en catalogo', function () { pm.expect(especies.length).to.be.above(0); });",
+              "const base = pm.environment.get('base_url') || pm.collectionVariables.get('base_url');",
+              "const token = pm.collectionVariables.get('token');",
+              "function tipoActivo(aplica) {",
+              "  const a = String(aplica || 'AMBOS').toUpperCase();",
+              "  return a === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'POBLACIONAL';",
+              "}",
+              "function valorIncompatible(tipoDato) {",
+              "  const t = String(tipoDato || '').toUpperCase();",
+              "  if (t === 'TEXTO') return { valor: 12345, enviado: 'number' };",
+              "  if (t === 'BOOLEANO') return { valor: 'no-bool', enviado: 'string' };",
+              "  return { valor: 'no-es-numero', enviado: 'string' };",
+              "}",
+              "const httpResumen = [];",
+              "let hay187 = false;",
+              "let hay188 = false;",
+              "especies.slice(0, 40).forEach(function (esp) {",
+              "  const idEsp = esp.id_especie || esp.id;",
+              "  if (!idEsp) return;",
+              "  const activa = esp.es_activo !== false && String(esp.estado || 'ACTIVO').toUpperCase() !== 'INACTIVO';",
+              "  if (!activa) return;",
+              "  const url = base + '/configuracion/metricas?id_especie=' + idEsp + '&solo_activas=true';",
+              "  pm.sendRequest({ url: url, method: 'GET', header: { Authorization: 'Bearer ' + token } }, function (err, res) {",
+              "    const code = err ? 0 : res.code;",
+              "    let items = [];",
+              "    try { const j = res.json() || {}; items = j.items || []; } catch (e) {}",
+              "    httpResumen.push({ id_especie: idEsp, nombre: esp.nombre || esp.nombre_comun, http: code, n: items.length });",
+              "    pm.collectionVariables.set('metricas_http_resumen', JSON.stringify(httpResumen));",
+              "    if (Number(idEsp) === 4) {",
+              "      pm.collectionVariables.set('especie4_metricas', JSON.stringify({ http: code, items: items }));",
+              "    }",
+              "    if (code !== 200) { return; }",
+              "    items.forEach(function (m) {",
+              "      if (!hay187 && m.es_obligatorio === true) {",
+              "        hay187 = true;",
+              "        pm.collectionVariables.set('hay187', '1');",
+              "        pm.collectionVariables.set('especie_187', String(idEsp));",
+              "        pm.collectionVariables.set('nombre_attr_187', String(m.nombre));",
+              "        pm.collectionVariables.set('tipo_activo_187', tipoActivo(m.aplica_a_tipo_activo));",
+              "        pm.collectionVariables.set('config_187', JSON.stringify({ id_especie: idEsp, metrica: m }));",
+              "      }",
+              "      const td = String(m.tipo_dato || '').toUpperCase();",
+              "      if (!hay188 && ['NUMERICO','ENTERO','TEXTO','BOOLEANO'].indexOf(td) >= 0) {",
+              "        hay188 = true;",
+              "        const inc = valorIncompatible(td);",
+              "        pm.collectionVariables.set('hay188', '1');",
+              "        pm.collectionVariables.set('especie_188', String(idEsp));",
+              "        pm.collectionVariables.set('nombre_attr_188', String(m.nombre));",
+              "        pm.collectionVariables.set('tipo_dato_188', td);",
+              "        pm.collectionVariables.set('tipo_enviado_188', inc.enviado);",
+              "        pm.collectionVariables.set('valor_188', typeof inc.valor === 'string' ? inc.valor : JSON.stringify(inc.valor));",
+              "        pm.collectionVariables.set('tipo_activo_188', tipoActivo(m.aplica_a_tipo_activo));",
+              "        pm.collectionVariables.set('config_188', JSON.stringify({ id_especie: idEsp, metrica: m, valor_incompatible: inc.valor }));",
+              "      }",
+              "    });",
+              "  });",
+              "});",
+              "const esp189 = especies.find(function (e) { return Number(e.id_especie || e.id) === 4; }) || especies[0];",
+              "if (esp189) pm.collectionVariables.set('especie_189', String(esp189.id_especie || esp189.id));",
+              "pm.test('Descubrimiento RF-16 lanzado (metricas por especie activa)', function () {",
+              "  pm.expect(especies.length).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "04 - Pausa para completar sendRequest RF-16",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "console.log('hay187=' + pm.collectionVariables.get('hay187') + ' especie=' + pm.collectionVariables.get('especie_187') + ' attr=' + pm.collectionVariables.get('nombre_attr_187'));",
+              "console.log('hay188=' + pm.collectionVariables.get('hay188') + ' especie=' + pm.collectionVariables.get('especie_188') + ' attr=' + pm.collectionVariables.get('nombre_attr_188') + ' tipo=' + pm.collectionVariables.get('tipo_dato_188'));",
+              "console.log('especie4', pm.collectionVariables.get('especie4_metricas'));",
+              "console.log('resumen', pm.collectionVariables.get('metricas_http_resumen'));",
+              "pm.test('Variables de descubrimiento disponibles (pueden quedar 0 si RF-16 no ofrece config)', function () {",
+              "  pm.expect(pm.collectionVariables.get('hay187')).to.be.oneOf(['0','1']);",
+              "  pm.expect(pm.collectionVariables.get('hay188')).to.be.oneOf(['0','1']);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "05 - TC-M02-187 omitir atributo obligatorio",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('hay187') !== '1') { pm.execution.skipRequest(); }",
+              "const tipo = pm.collectionVariables.get('tipo_activo_187');",
+              "const body = {",
+              "  tipo_activo: tipo,",
+              "  id_especie: Number(pm.collectionVariables.get('especie_187')),",
+              "  fecha_inicio_ciclo: '2026-09-09',",
+              "  origen_financiero: 'nacimiento',",
+              "  id_infraestructura: Number(pm.collectionVariables.get('infraestructura_id')),",
+              "  atributos_dinamicos: {}",
+              "};",
+              "if (tipo === 'INDIVIDUAL') {",
+              "  body.identificador = 'QA-G17-187-' + Date.now();",
+              "  body.raza = 'QA';",
+              "  body.sexo = 'Macho';",
+              "  body.fecha_nacimiento = '2025-01-15T00:00:00Z';",
+              "} else {",
+              "  body.cantidad_inicial = 10;",
+              "  body.peso_promedio_inicial = 2.5;",
+              "}",
+              "pm.collectionVariables.set('payload_187_omit', JSON.stringify(body));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "if (pm.collectionVariables.get('hay187') !== '1') {",
+              "  pm.test.skip('TC-M02-187 BLOQUEADO POR CONFIGURACION: ninguna especie activa con es_obligatorio=true en GET /configuracion/metricas');",
+              "  return;",
+              "}",
+              "const code = pm.response.code;",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "console.log('TC-M02-187 omitir HTTP', code, JSON.stringify(json));",
+              "if (code === 500) {",
+              "  pm.test('TC-M02-187 BLOQUEADO: HTTP 500 no demuestra rechazo de atributo obligatorio', function () {",
+              "    pm.expect.fail('HTTP 500 ERROR_INTERNO; validacion no comprobable');",
+              "  });",
+              "  return;",
+              "}",
+              "pm.test('TC-M02-187 HTTP 422', function () { pm.expect(code).to.eql(422); });",
+              "pm.test('TC-M02-187 error_code ATRIBUTO_REQUERIDO (o equivalente de atributo obligatorio)', function () {",
+              "  const ec = String(json.error_code || '');",
+              "  const msg = String(json.message || '').toLowerCase();",
+              "  const ok = ec === 'ATRIBUTO_REQUERIDO' || msg.indexOf('obligatorio') >= 0;",
+              "  pm.expect(ok, 'error_code=' + ec + ' message=' + json.message).to.eql(true);",
+              "});",
+              "pm.test('TC-M02-187 no crea activo (sin id)', function () {",
+              "  pm.expect(json.id_activo_biologico == null).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{{payload_187_omit}}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "06 - TC-M02-187 atributo obligatorio null",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('hay187') !== '1') { pm.execution.skipRequest(); }",
+              "const n = pm.collectionVariables.get('nombre_attr_187');",
+              "const tipo = pm.collectionVariables.get('tipo_activo_187');",
+              "const esp = pm.collectionVariables.get('especie_187');",
+              "const inf = pm.collectionVariables.get('infraestructura_id');",
+              "const attrs = {}; attrs[n] = null;",
+              "const body = {",
+              "  tipo_activo: tipo,",
+              "  id_especie: Number(esp),",
+              "  fecha_inicio_ciclo: '2026-09-09',",
+              "  origen_financiero: 'nacimiento',",
+              "  id_infraestructura: Number(inf),",
+              "  atributos_dinamicos: attrs",
+              "};",
+              "if (tipo === 'INDIVIDUAL') {",
+              "  body.identificador = 'QA-G17-187N-' + Date.now();",
+              "  body.raza = 'QA';",
+              "  body.sexo = 'Macho';",
+              "  body.fecha_nacimiento = '2025-01-15T00:00:00Z';",
+              "} else {",
+              "  body.cantidad_inicial = 10;",
+              "  body.peso_promedio_inicial = 2.5;",
+              "}",
+              "pm.collectionVariables.set('payload_187_null', JSON.stringify(body));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "if (pm.collectionVariables.get('hay187') !== '1') { pm.test.skip('Sin atributo obligatorio'); return; }",
+              "const code = pm.response.code;",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "console.log('TC-M02-187 null HTTP', code, JSON.stringify(json));",
+              "if (code === 500) {",
+              "  pm.test('TC-M02-187 null BLOQUEADO HTTP 500', function () { pm.expect.fail('HTTP 500'); });",
+              "  return;",
+              "}",
+              "pm.test('TC-M02-187 null HTTP 422', function () { pm.expect(code).to.eql(422); });",
+              "pm.test('TC-M02-187 null ATRIBUTO_REQUERIDO', function () {",
+              "  const ec = String(json.error_code || '');",
+              "  const msg = String(json.message || '').toLowerCase();",
+              "  pm.expect(ec === 'ATRIBUTO_REQUERIDO' || msg.indexOf('obligatorio') >= 0).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{{payload_187_null}}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "07 - TC-M02-188 tipo de dato incompatible",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }",
+              "if (pm.collectionVariables.get('hay188') !== '1') { pm.execution.skipRequest(); }",
+              "const n = pm.collectionVariables.get('nombre_attr_188');",
+              "let rawVal = pm.collectionVariables.get('valor_188');",
+              "let valor = rawVal;",
+              "try { if (rawVal && rawVal[0] !== '\"' && !isNaN(Number(rawVal))) valor = Number(rawVal); } catch (e) {}",
+              "if (pm.collectionVariables.get('tipo_enviado_188') === 'number') valor = Number(rawVal);",
+              "const attrs = {}; attrs[n] = valor;",
+              "const tipo = pm.collectionVariables.get('tipo_activo_188');",
+              "const body = {",
+              "  tipo_activo: tipo,",
+              "  id_especie: Number(pm.collectionVariables.get('especie_188')),",
+              "  fecha_inicio_ciclo: '2026-09-09',",
+              "  origen_financiero: 'nacimiento',",
+              "  id_infraestructura: Number(pm.collectionVariables.get('infraestructura_id')),",
+              "  atributos_dinamicos: attrs",
+              "};",
+              "if (tipo === 'INDIVIDUAL') {",
+              "  body.identificador = 'QA-G17-188-' + Date.now();",
+              "  body.raza = 'QA';",
+              "  body.sexo = 'Macho';",
+              "  body.fecha_nacimiento = '2025-01-15T00:00:00Z';",
+              "} else {",
+              "  body.cantidad_inicial = 10;",
+              "  body.peso_promedio_inicial = 2.5;",
+              "}",
+              "pm.collectionVariables.set('payload_188', JSON.stringify(body));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "if (pm.collectionVariables.get('hay188') !== '1') {",
+              "  pm.test.skip('TC-M02-188 BLOQUEADO POR CONFIGURACION: no hay tipo_dato NUMERICO/ENTERO/TEXTO/BOOLEANO consultable');",
+              "  return;",
+              "}",
+              "const code = pm.response.code;",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "console.log('TC-M02-188 HTTP', code, JSON.stringify(json));",
+              "if (code === 500) {",
+              "  pm.test('TC-M02-188 BLOQUEADO HTTP 500', function () { pm.expect.fail('HTTP 500'); });",
+              "  return;",
+              "}",
+              "pm.test('TC-M02-188 HTTP 422', function () { pm.expect(code).to.eql(422); });",
+              "pm.test('TC-M02-188 error_code ATRIBUTO_TIPO_INVALIDO (o equivalente de tipo)', function () {",
+              "  const ec = String(json.error_code || '');",
+              "  const msg = String(json.message || '').toLowerCase();",
+              "  const ok = ec === 'ATRIBUTO_TIPO_INVALIDO' || msg.indexOf('tipo') >= 0;",
+              "  pm.expect(ok, 'error_code=' + ec + ' message=' + json.message).to.eql(true);",
+              "});",
+              "pm.test('TC-M02-188 no crea activo', function () { pm.expect(json.id_activo_biologico == null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{{payload_188}}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "08 - TC-M02-189 TRANSFERENCIA_INTERNA sin costo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "const code = pm.response.code;",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "console.log('TC-M02-189 HTTP', code, JSON.stringify(json));",
+              "if (code === 500) {",
+              "  pm.test('TC-M02-189 BLOQUEADO HTTP 500: no se comprueba aceptacion de transferencia_interna', function () {",
+              "    pm.expect.fail('HTTP 500 ERROR_INTERNO');",
+              "  });",
+              "  return;",
+              "}",
+              "pm.test('TC-M02-189 HTTP 201', function () { pm.expect(code).to.eql(201); });",
+              "const id = json.id_activo_biologico;",
+              "pm.test('TC-M02-189 ID generado', function () { pm.expect(id).to.exist; });",
+              "if (id) pm.collectionVariables.set('id_189', String(id));",
+              "const origen = String(json.origen_financiero || '').toLowerCase();",
+              "pm.test('TC-M02-189 origen_financiero transferencia_interna', function () {",
+              "  pm.expect(origen).to.eql('transferencia_interna');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_189}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"transferencia_interna\",\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "09 - TC-M02-189 GET activo creado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }",
+              "if (!pm.collectionVariables.get('id_189')) { pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_189')) { pm.test.skip('No hay ID 189'); return; }",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('TC-M02-189 GET HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('TC-M02-189 persistido transferencia_interna', function () {",
+              "  pm.expect(String(json.origen_financiero || '').toLowerCase()).to.eql('transferencia_interna');",
+              "});",
+              "pm.test('TC-M02-189 costo no exigido (null o ausente con valor nulo)', function () {",
+              "  const c = json.costo_adquisicion;",
+              "  pm.expect(c === null || c === undefined || c === '' || Number(c) === 0).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_189}}"
+      }
+    }
+  ]
+}

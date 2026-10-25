@@ -1,0 +1,134 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g83-rf25",
+    "name": "TC-M09-G83 - Manejo de rol inexistente durante la carga de interfaz",
+    "description": "RF-25 / CU-06. Prueba de validación mediante Newman para verificar el manejo de un rol inexistente durante la carga de la interfaz.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo",
+      "value": "ingeniero@pecuaria.co"
+    },
+    {
+      "key": "contrasena",
+      "value": "Pruebas12#"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "rolInexistente",
+      "value": "999999"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Autenticación exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const token = json.token || json.access_token || json.accessToken;",
+              "",
+              "pm.test('El login retorna un JWT', function () {",
+              "    pm.expect(token, 'No se encontró el JWT en la respuesta').to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (token) {",
+              "    pm.collectionVariables.set('token', token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - RF-25 - Carga de interfaz con rol inexistente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/interfaz/contexto",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "interfaz",
+            "contexto"
+          ]
+        },
+        "description": "Consulta el contexto de interfaz de RF-25. El escenario de prueba contempla un JWT con rol inexistente. La variable rolInexistente documenta el valor utilizado para dicho escenario."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El backend no debe conceder permisos incorrectos', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "pm.test('No debe exponer información interna', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).not.to.include('traceback');",
+              "    pm.expect(body).not.to.include('stack trace');",
+              "    pm.expect(body).not.to.include('internal server error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

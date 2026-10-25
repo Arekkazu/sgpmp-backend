@@ -1,0 +1,641 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g96-rf28-dev",
+    "name": "TC-M09-G96 DEV - Validación grilla y widgets dashboard (RF-28)",
+    "description": "DEV only. Password via Newman --env-var contrasena (never stored here). Restore uses PATCH of the GET snapshot, not POST /restaurar. Execution order: PRECHECK, 184, 185, 181, 182, 183, RESTORE.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "correo", "value": "admin.dev@gmail.com" },
+    { "key": "token", "value": "" },
+    { "key": "precheck_ok", "value": "0" },
+    { "key": "login_ok", "value": "0" },
+    { "key": "widget_id", "value": "" },
+    { "key": "widget_id_b", "value": "" },
+    { "key": "widget_clave", "value": "" },
+    { "key": "snapshot_grid", "value": "[]" },
+    { "key": "snapshot_active", "value": "[]" },
+    { "key": "snapshot_version", "value": "" },
+    { "key": "version_actual", "value": "" },
+    { "key": "mutacion_181", "value": "0" },
+    { "key": "login_http", "value": "" },
+    { "key": "abort_reason", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00-PRECHECK",
+      "item": [
+        {
+          "name": "00.1 POST /sesiones (un solo login)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            },
+            "url": "{{baseUrl}}/sesiones/"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.collectionVariables.set('login_http', String(code));",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-G96 login HTTP 200 (un intento)', function () {",
+                  "    pm.expect(code).to.eql(200);",
+                  "});",
+                  "if (code === 200 && json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    pm.collectionVariables.set('login_ok', '1');",
+                  "} else {",
+                  "    pm.collectionVariables.set('login_ok', '0');",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'Login HTTP ' + code + ' — G96 BLOQUEADO, sin reintento ni PATCH');",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 GET dashboard (snapshot inicial)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "pm.test('PRECHECK GET dashboard 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200) {",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'GET dashboard HTTP ' + code);",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('snapshot_grid', JSON.stringify(json.grid || []));",
+                  "pm.collectionVariables.set('snapshot_active', JSON.stringify(json.active_widget || []));",
+                  "pm.collectionVariables.set('snapshot_version', json.version_perfil == null ? '' : String(json.version_perfil));",
+                  "pm.collectionVariables.set('version_actual', json.version_perfil == null ? '' : String(json.version_perfil));",
+                  "pm.test('PRECHECK snapshot tiene grid y active_widget', function () {",
+                  "    pm.expect(json).to.have.property('grid');",
+                  "    pm.expect(json).to.have.property('active_widget');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 GET widgets (catálogo dinámico)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard/widgets"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "pm.test('PRECHECK GET widgets 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200) {",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'GET widgets HTTP ' + code);",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const widgets = Array.isArray(json) ? json : [];",
+                  "pm.test('PRECHECK catálogo no vacío', function () {",
+                  "    pm.expect(widgets.length, 'widgets autorizados').to.be.above(0);",
+                  "});",
+                  "if (!widgets.length) {",
+                  "    pm.collectionVariables.set('precheck_ok', '0');",
+                  "    pm.collectionVariables.set('abort_reason', 'Catálogo vacío: ningún widget autorizado');",
+                  "    pm.execution.setNextRequest(null);",
+                  "    return;",
+                  "}",
+                  "const a = widgets[0];",
+                  "const b = widgets.length > 1 ? widgets[1] : widgets[0];",
+                  "pm.collectionVariables.set('widget_id', String(a.id_widget));",
+                  "pm.collectionVariables.set('widget_id_b', String(b.id_widget));",
+                  "pm.collectionVariables.set('widget_clave', String(a.clave));",
+                  "pm.collectionVariables.set('precheck_ok', '1');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-184",
+      "item": [
+        {
+          "name": "TC-M09-184 PATCH solapamiento misma celda",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const idA = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const idB = parseInt(pm.collectionVariables.get('widget_id_b'), 10);",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "const body = {",
+                  "    layout_config: [",
+                  "        { id_widget: idA, posicion_fila: 1, posicion_columna: 1, span_columnas: 1, visible: true, orden: 0 },",
+                  "        { id_widget: idB, posicion_fila: 1, posicion_columna: 1, span_columnas: 1, visible: true, orden: 1 }",
+                  "    ],",
+                  "    active_widget: [pm.collectionVariables.get('widget_clave')]",
+                  "};",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-184 HTTP 409', function () { pm.expect(code).to.eql(409); });",
+                  "pm.test('TC-M09-184 error_code SOLAPAMIENTO_WIDGETS', function () {",
+                  "    pm.expect(json.error_code).to.eql('SOLAPAMIENTO_WIDGETS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M09-184 GET confirma snapshot intacto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "function norm(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const snap = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const act = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "pm.test('TC-M09-184 GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('TC-M09-184 grid igual al snapshot (sin persistencia)', function () {",
+                  "    pm.expect(norm(json.grid)).to.eql(norm(snap));",
+                  "});",
+                  "pm.test('TC-M09-184 active_widget igual al snapshot', function () {",
+                  "    pm.expect(json.active_widget || []).to.eql(act);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-185",
+      "item": [
+        {
+          "name": "TC-M09-185 PATCH span=2 en columna 4",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const idA = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "const body = {",
+                  "    layout_config: [",
+                  "        { id_widget: idA, posicion_fila: 1, posicion_columna: 4, span_columnas: 2, visible: true, orden: 0 }",
+                  "    ],",
+                  "    active_widget: [pm.collectionVariables.get('widget_clave')]",
+                  "};",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-185 HTTP 400', function () { pm.expect(code).to.eql(400); });",
+                  "pm.test('TC-M09-185 error_code DESBORDE_HORIZONTAL', function () {",
+                  "    pm.expect(json.error_code).to.eql('DESBORDE_HORIZONTAL');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M09-185 GET confirma snapshot intacto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "function norm(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const snap = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const act = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "pm.test('TC-M09-185 GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('TC-M09-185 grid igual al snapshot (sin persistencia)', function () {",
+                  "    pm.expect(norm(json.grid)).to.eql(norm(snap));",
+                  "});",
+                  "pm.test('TC-M09-185 active_widget igual al snapshot', function () {",
+                  "    pm.expect(json.active_widget || []).to.eql(act);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-181",
+      "item": [
+        {
+          "name": "TC-M09-181 PATCH grilla completa 4x3 (12 visibles span=1)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const idA = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const clave = pm.collectionVariables.get('widget_clave');",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "const layout = [];",
+                  "let orden = 0;",
+                  "for (let f = 1; f <= 3; f++) {",
+                  "    for (let c = 1; c <= 4; c++) {",
+                  "        layout.push({ id_widget: idA, posicion_fila: f, posicion_columna: c, span_columnas: 1, visible: true, orden: orden++ });",
+                  "    }",
+                  "}",
+                  "const body = { layout_config: layout, active_widget: [clave] };",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.collectionVariables.set('layout_12', JSON.stringify(layout));",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-181 HTTP 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code === 200) {",
+                  "    pm.collectionVariables.set('mutacion_181', '1');",
+                  "    if (json.version_perfil != null) {",
+                  "        pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "    }",
+                  "    const visibles = (json.grid || []).filter(function (w) { return w.visible; });",
+                  "    pm.test('TC-M09-181 grid tiene 12 visibles', function () {",
+                  "        pm.expect(visibles.length).to.eql(12);",
+                  "    });",
+                  "    pm.test('TC-M09-181 filas 1-3, columnas 1-4, span=1, 12 celdas únicas', function () {",
+                  "        const celdas = {};",
+                  "        visibles.forEach(function (w) {",
+                  "            pm.expect(w.posicion_fila).to.be.within(1, 3);",
+                  "            pm.expect(w.posicion_columna).to.be.within(1, 4);",
+                  "            pm.expect(w.span_columnas).to.eql(1);",
+                  "            const k = w.posicion_fila + ',' + w.posicion_columna;",
+                  "            pm.expect(celdas[k], 'celda duplicada ' + k).to.be.undefined;",
+                  "            celdas[k] = true;",
+                  "        });",
+                  "        pm.expect(Object.keys(celdas).length).to.eql(12);",
+                  "    });",
+                  "} else {",
+                  "    pm.collectionVariables.set('mutacion_181', '0');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-182",
+      "item": [
+        {
+          "name": "TC-M09-182 GET exactamente 12 widgets visibles persistidos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-182 181 persistió (precondición)', function () {",
+                  "    pm.expect(pm.collectionVariables.get('mutacion_181')).to.eql('1');",
+                  "});",
+                  "if (pm.collectionVariables.get('mutacion_181') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "const json = pm.response.json();",
+                  "if (json.version_perfil != null) {",
+                  "    pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "}",
+                  "const visibles = (json.grid || []).filter(function (w) { return w.visible; });",
+                  "pm.test('TC-M09-182 GET 200', function () { pm.expect(code).to.eql(200); });",
+                  "pm.test('TC-M09-182 exactamente 12 visibles persistidos', function () {",
+                  "    pm.expect(visibles.length).to.eql(12);",
+                  "});",
+                  "pm.test('TC-M09-182 no más de 12 visibles', function () {",
+                  "    pm.expect(visibles.length).to.be.at.most(12);",
+                  "});",
+                  "pm.test('TC-M09-182 cobertura 12 celdas 4x3', function () {",
+                  "    const celdas = {};",
+                  "    visibles.forEach(function (w) {",
+                  "        pm.expect(w.posicion_fila).to.be.within(1, 3);",
+                  "        pm.expect(w.posicion_columna).to.be.within(1, 4);",
+                  "        celdas[w.posicion_fila + ',' + w.posicion_columna] = true;",
+                  "    });",
+                  "    pm.expect(Object.keys(celdas).length).to.eql(12);",
+                  "});",
+                  "pm.test('TC-M09-182 active_widget no excede 12', function () {",
+                  "    pm.expect((json.active_widget || []).length).to.be.at.most(12);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-183",
+      "item": [
+        {
+          "name": "TC-M09-183 PATCH 13 visibles (límite)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const idA = parseInt(pm.collectionVariables.get('widget_id'), 10);",
+                  "const clave = pm.collectionVariables.get('widget_clave');",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "const layout = [];",
+                  "let orden = 0;",
+                  "for (let f = 1; f <= 3; f++) {",
+                  "    for (let c = 1; c <= 4; c++) {",
+                  "        layout.push({ id_widget: idA, posicion_fila: f, posicion_columna: c, span_columnas: 1, visible: true, orden: orden++ });",
+                  "    }",
+                  "}",
+                  "layout.push({ id_widget: idA, posicion_fila: 1, posicion_columna: 1, span_columnas: 1, visible: true, orden: 12 });",
+                  "const body = { layout_config: layout, active_widget: [clave] };",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "pm.test('TC-M09-183 181 persistió (precondición)', function () {",
+                  "    pm.expect(pm.collectionVariables.get('mutacion_181')).to.eql('1');",
+                  "});",
+                  "if (pm.collectionVariables.get('mutacion_181') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('TC-M09-183 HTTP 400', function () { pm.expect(code).to.eql(400); });",
+                  "pm.test('TC-M09-183 error_code LIMITE_WIDGETS_ALCANZADO', function () {",
+                  "    pm.expect(json.error_code).to.eql('LIMITE_WIDGETS_ALCANZADO');",
+                  "});",
+                  "pm.test('TC-M09-183 no es SOLAPAMIENTO_WIDGETS (el límite se evalúa antes)', function () {",
+                  "    pm.expect(json.error_code).to.not.eql('SOLAPAMIENTO_WIDGETS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "TC-M09-183 GET conserva los 12 de 181",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('precheck_ok') !== '1') { return; }",
+                  "if (pm.collectionVariables.get('mutacion_181') !== '1') { return; }",
+                  "const json = pm.response.json();",
+                  "if (json.version_perfil != null) {",
+                  "    pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "}",
+                  "const visibles = (json.grid || []).filter(function (w) { return w.visible; });",
+                  "pm.test('TC-M09-183 GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('TC-M09-183 siguen exactamente 12 visibles', function () {",
+                  "    pm.expect(visibles.length).to.eql(12);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-RESTORE",
+      "item": [
+        {
+          "name": "99.1 GET version_perfil actual (antes de restaurar)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "pm.test('RESTORE pre-GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.version_perfil != null) {",
+                  "        pm.collectionVariables.set('version_actual', String(json.version_perfil));",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "99.2 PATCH restaurar snapshot inicial (no POST /restaurar)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const grid = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const active = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "const ver = pm.collectionVariables.get('version_actual');",
+                  "const body = { layout_config: grid, active_widget: active };",
+                  "if (ver) { body.version_perfil = parseInt(ver, 10); }",
+                  "pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body) });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "const code = pm.response.code;",
+                  "let json = {};",
+                  "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                  "pm.test('RESTORE PATCH HTTP 200', function () { pm.expect(code).to.eql(200); });",
+                  "if (code !== 200) {",
+                  "    pm.collectionVariables.set('abort_reason', 'RESTORE PATCH HTTP ' + code + ' error_code=' + (json.error_code || ''));",
+                  "    pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          }
+        },
+        {
+          "name": "99.3 GET verifica restauración exacta",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/configuracion/personalizacion/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+                  "function norm(grid) {",
+                  "    return (grid || []).map(function (w) {",
+                  "        return [w.id_widget, w.posicion_fila, w.posicion_columna, w.span_columnas, !!w.visible].join(':');",
+                  "    }).sort();",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const snap = JSON.parse(pm.collectionVariables.get('snapshot_grid') || '[]');",
+                  "const act = JSON.parse(pm.collectionVariables.get('snapshot_active') || '[]');",
+                  "pm.test('RESTORE GET 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('RESTORE grid coincide (id, fila, col, span, visible)', function () {",
+                  "    pm.expect(norm(json.grid)).to.eql(norm(snap));",
+                  "});",
+                  "pm.test('RESTORE active_widget coincide', function () {",
+                  "    pm.expect(json.active_widget || []).to.eql(act);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

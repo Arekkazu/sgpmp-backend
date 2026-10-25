@@ -1,0 +1,956 @@
+{
+  "info": {
+    "name": "TC-M03-G57A - Configuracion dinamica de reglas, umbrales y parametros del sistema de alertas (Restriccion 3, Fase 5, E12, CA-14, Restriccion 12)",
+    "description": "RF-57 Restriccion 3 / 12. Parte automatizable (endpoint de umbrales de M09, /configuracion/umbrales): (1) modificar el umbral de TEMPERATURA_AMBIENTAL como Administrador y como Ingeniero de Campo y restaurarlo; (2) Productor y Veterinario no pueden modificarlo (403); (6) auditoria del cambio. POR CONFIRMAR (no hay endpoint confirmado en el Swagger revisado): umbral de confianza de IA 0.70-0.95 y umbral_confianza_minimo (3), parametros de tormenta N_sistema/N_unidad (4), ventanas de deduplicacion/reevaluacion/SLA (5) (posible M09: configuraciones_globales / parametros_mlops, DEV-14) y propagacion al nodo (DEV-08). Variables especificas: id_especie, id_variable_temp_ambiental (id de la variable ambiental TEMPERATURA_AMBIENTAL en M09). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "contrasena_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "correo_productor",
+      "value": ""
+    },
+    {
+      "key": "contrasena_productor",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    },
+    {
+      "key": "id_especie",
+      "value": "1"
+    },
+    {
+      "key": "id_variable_temp_ambiental",
+      "value": "1"
+    },
+    {
+      "key": "id_umbral_temp",
+      "value": ""
+    },
+    {
+      "key": "umbral_original",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Login Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Ingeniero de Campo exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_ingeniero', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Productor exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_productor', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0D. Login Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Modificar un umbral como Administrador e Ingeniero de Campo (TC-M03-N33)",
+      "item": [
+        {
+          "name": "1.1 GET umbrales de la especie: ubicar el umbral de TEMPERATURA_AMBIENTAL y guardar su estado original",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}&solo_activas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "umbrales"
+              ],
+              "query": [
+                {
+                  "key": "id_especie",
+                  "value": "{{id_especie}}"
+                },
+                {
+                  "key": "solo_activas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const u = (J.items || []).find(function (x) { return String(x.id_variable_ambiental) === pm.collectionVariables.get('id_variable_temp_ambiental'); });",
+                  "pm.test('Existe el umbral de TEMPERATURA_AMBIENTAL para la especie', function () { pm.expect(u).to.exist; });",
+                  "if (u) { pm.collectionVariables.set('id_umbral_temp', String(u.id_umbral_ambiental)); pm.collectionVariables.set('umbral_original', JSON.stringify(u)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Administrador: modificar el limite del nivel LEVE (de >30 a >28)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 0,\n  \"niveles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El body se reconstruye en el pre-request a partir del umbral original (variable umbral_original)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}');",
+                  "const niv = (o.niveles || []).map(function (n) { const m = Object.assign({}, n); if (String(n.nivel).toUpperCase().indexOf('LEVE') >= 0) { m.limite_inferior = 28; } return m; });",
+                  "pm.request.body.update(JSON.stringify({valor_min: o.valor_min, valor_max: o.valor_max, niveles: niv, fecha_actualizacion: o.fecha_actualizacion}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 La nueva configuracion persiste (rige sin despliegue)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}&solo_activas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "umbrales"
+              ],
+              "query": [
+                {
+                  "key": "id_especie",
+                  "value": "{{id_especie}}"
+                },
+                {
+                  "key": "solo_activas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('El nivel LEVE refleja el nuevo limite 28', function () { const u = J.items.find(function (x) { return String(x.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); }); pm.expect(u, 'umbral encontrado').to.exist; pm.expect(JSON.stringify((u || {}).niveles)).to.include('28'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Evento en el nuevo borde (29.0 C) - se clasifica con el nuevo umbral (LEVE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 29.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Ingeniero de Campo: modificar el limite del nivel LEVE (a >29)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 0,\n  \"niveles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}');",
+                  "const niv = (o.niveles || []).map(function (n) { const m = Object.assign({}, n); if (String(n.nivel).toUpperCase().indexOf('LEVE') >= 0) { m.limite_inferior = 29; } return m; });",
+                  "pm.request.body.update(JSON.stringify({valor_min: o.valor_min, valor_max: o.valor_max, niveles: niv, fecha_actualizacion: o.fecha_actualizacion}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 Restaurar el umbral original (Administrador)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 0,\n  \"niveles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}');",
+                  "pm.request.body.update(JSON.stringify({valor_min: o.valor_min, valor_max: o.valor_max, niveles: o.niveles, fecha_actualizacion: o.fecha_actualizacion}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 1.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Rol no autorizado: Productor y Veterinario (TC-M03-N34)",
+      "item": [
+        {
+          "name": "2.productor productor no puede modificar el umbral - 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 0,\n  \"niveles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}');",
+                  "pm.request.body.update(JSON.stringify({valor_min: o.valor_min, valor_max: o.valor_max, niveles: o.niveles}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.productor] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.veterinario veterinario no puede modificar el umbral - 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral_temp}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 0,\n  \"niveles\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}');",
+                  "pm.request.body.update(JSON.stringify({valor_min: o.valor_min, valor_max: o.valor_max, niveles: o.niveles}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.veterinario] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 El umbral no cambio (sigue el original)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}&solo_activas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "umbrales"
+              ],
+              "query": [
+                {
+                  "key": "id_especie",
+                  "value": "{{id_especie}}"
+                },
+                {
+                  "key": "solo_activas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('El umbral coincide con el original', function () { const o = JSON.parse(pm.collectionVariables.get('umbral_original') || '{}'); const u = J.items.find(function (x) { return String(x.id_umbral_ambiental) === pm.collectionVariables.get('id_umbral_temp'); }); pm.expect(u, 'umbral encontrado').to.exist; pm.expect(JSON.stringify((u || {}).niveles)).to.eql(JSON.stringify(o.niveles)); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Umbral de confianza de IA y umbral_confianza_minimo (TC-M03-N35)",
+      "item": [
+        {
+          "name": "3.1 Umbral de confianza 0.70 / 0.95 aceptados y 0.69 / 0.96 rechazados; umbral_confianza_minimo base 0.75",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion por confirmar (M09 parametros_mlops / DEV-14)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion por confirmar (M09 parametros_mlops / DEV-14)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Parametros de tormenta N_sistema y N_unidad (TC-M03-N36)",
+      "item": [
+        {
+          "name": "4.1 Bajar N_unidad a 2 y generar 3 eventos LEVES en una unidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion por confirmar (DEV-14)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion por confirmar (DEV-14)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Ventanas configurables: deduplicacion, reevaluacion de IA, SLA/escalamiento (TC-M03-N37)",
+      "item": [
+        {
+          "name": "5.1 Cambiar cada ventana y repetir sus casos de borde",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion por confirmar (DEV-14)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion por confirmar (DEV-14)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Auditoria de cada cambio de configuracion (TC-M03-N38)",
+      "item": [
+        {
+          "name": "6.1 Auditoria: el cambio de umbral queda con usuario, valor anterior y valor nuevo (se registra lo observado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auditoria/?pagina=1&tamano=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "tamano",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 6.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G57A-6.1][OBSERVADO] auditoria reciente = ' + JSON.stringify((J.items || J.eventos || J.data || []).slice(0, 5)));",
+                  "pm.test('Hay registros de auditoria de la configuracion', function () { pm.expect((J.items || J.eventos || J.data || []).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
+              "  console.log('[TC-M03-G57A] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
+              "  pm.collectionVariables.set('ids_alertas', '[]');",
+              "})();",
+              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "alertas"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

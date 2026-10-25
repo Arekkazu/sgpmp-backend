@@ -1,0 +1,127 @@
+{
+  "info": {
+    "_postman_id": "f3a2d8b0-9e5c-4a12-8b3d-tc09118v20",
+    "name": "TC-M09-G118 v2.0 - Validaciones previas a aplicar una plantilla",
+    "description": "Retest de TC-M09-G118 (TC-227/228/229). La primera ejecucion (2026-09-04) encontro que TC-227 (aplicar plantilla valida) fallaba con 500 ERROR_INTERNO -- el mismo defecto critico y transversal de RF-32 ya confirmado corregido en TC-M09-G116 (2026-09-12) -- lo que dejaba a TC-228 sin poder concluirse (no se podia distinguir un rechazo por esquema obsoleto de un 500 generico). TC-229 ya funcionaba correctamente desde la primera ejecucion. Esta coleccion re-verifica TC-227 con el codigo actual, prueba TC-228 aplicando una de las 3 plantillas semilla del entorno (anteriores a la existencia de schema_version, que ya se sabe por evidencia previa que el sistema rechaza con 412), y reconfirma TC-229 sin cambios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_origen", "value": "" },
+    { "key": "id_especie_destino", "value": "" },
+    { "key": "id_especie_inactiva", "value": "11" },
+    { "key": "id_plantilla_valida", "value": "" },
+    { "key": "id_plantilla_semilla_obsoleta", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener 2 especies activas distintas (origen y destino)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos 2 especies activas', function () { pm.expect(body.items.length).to.be.above(1); });",
+        "if (body.items && body.items.length > 1) {",
+        "    pm.collectionVariables.set('id_especie_origen', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('id_especie_destino', body.items[1].id_especie);",
+        "    console.log('[ESPECIES] origen=' + body.items[0].id_especie + ' destino=' + body.items[1].id_especie);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1a. Crear plantilla valida (para TC-M09-227 y TC-M09-229)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR PLANTILLA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('1a - la plantilla se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_valida', pm.response.json().id_plantilla); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-G118-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_origen}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"Peso Test G118 {{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-227 v2.0 - Aplicar una plantilla con esquema vigente sobre especie activa debe responder 200",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-227] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 500) { console.log('DEFECTO SIGUE PRESENTE: aplicar una plantilla con esquema vigente sigue respondiendo 500.'); }",
+        "pm.test('TC-M09-227 v2.0 - aplicar una plantilla con schema_version vigente sobre una especie activa debe responder 200 OK', function () {",
+        "    pm.response.to.have.status(200);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_valida}}/aplicar"
+      }
+    },
+    {
+      "name": "3. TC-M09-228 v2.0 - Rechazar aplicacion de una plantilla con esquema incompatible (412)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-228] plantilla semilla obsoleta id=' + pm.collectionVariables.get('id_plantilla_semilla_obsoleta') + ' status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 500) { console.log('OBSERVACION: sigue devolviendo 500 en vez de 412 -- no se puede distinguir esta validacion del defecto general.'); }",
+        "if (pm.response.code === 200) { console.log('ADVERTENCIA: se aplico una plantilla con esquema anterior a schema_version sin ningun rechazo.'); }",
+        "pm.test('TC-M09-228 v2.0 - aplicar una plantilla con esquema anterior a schema_version debe rechazarse con 412 VERSION_SNAPSHOT_INCOMPATIBLE', function () {",
+        "    pm.response.to.have.status(412);",
+        "});",
+        "if (pm.response.code === 412) {",
+        "    var err = pm.response.json();",
+        "    pm.test('3 - el error trae el codigo VERSION_SNAPSHOT_INCOMPATIBLE', function () {",
+        "        pm.expect(err.error_code).to.eql('VERSION_SNAPSHOT_INCOMPATIBLE');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_semilla_obsoleta}}/aplicar"
+      }
+    },
+    {
+      "name": "4. TC-M09-229 v2.0 - Rechazar aplicacion sobre especie destino inactiva (422)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-229] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-229 v2.0 - aplicar una plantilla sobre una especie destino inactiva debe rechazarse con 422 ESPECIE_DESTINO_INACTIVA', function () {",
+        "    pm.response.to.have.status(422);",
+        "});",
+        "if (pm.response.code === 422) {",
+        "    var err = pm.response.json();",
+        "    pm.test('4 - el error trae el codigo ESPECIE_DESTINO_INACTIVA', function () {",
+        "        pm.expect(err.error_code).to.eql('ESPECIE_DESTINO_INACTIVA');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_inactiva}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_valida}}/aplicar"
+      }
+    }
+  ]
+}

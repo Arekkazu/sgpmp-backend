@@ -1,0 +1,753 @@
+{
+  "grupo": "TC-M09-G29",
+  "tipo": "REEVALUACION V4",
+  "runId": "G29-REEVAL-V4-20261005-052412",
+  "fecha": "2026-10-05T05:27:53.210693+00:00",
+  "ambienteDecisorio": "DEV",
+  "nota": "Preflight de solo lectura. 0 escrituras de API, 0 SQL, 0 MQTT, 0 cambios de infraestructura. Sin secretos persistidos.",
+  "git": {
+    "backend": {
+      "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+      "ramaEsperada": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+      "head": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+      "statusShort": "?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV4/",
+      "headVsOriginTest": "0\t0",
+      "headVsOriginDev": "365\t0",
+      "diffCachedStat": "",
+      "diffHeadVsOriginDev_src_configuration": ""
+    },
+    "frontend": {
+      "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+      "ramaEsperada": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+      "head": "cd3af47c07302f7310b17e6800642aab2253f479",
+      "statusShort": "",
+      "headVsOriginTest": "2\t0",
+      "headVsOriginDev": "406\t0",
+      "diffCachedStat": ""
+    }
+  },
+  "dev": {
+    "health": {
+      "estado": 200,
+      "cuerpo": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    "openapi": {
+      "estado": 200,
+      "version": "1.0.0"
+    },
+    "frontend": "https://dev.inmero.co/",
+    "broker": "https://api.inmero.co/broker-sigab-dev"
+  },
+  "actor": {
+    "correo": "admin.dev@gmail.com",
+    "loginEstado": 200,
+    "clavesRespuestaLogin": [
+      "expira_en",
+      "message",
+      "perfil_incompleto",
+      "tipo",
+      "token"
+    ],
+    "tokenPersistido": false,
+    "identidad": {
+      "id_usuario": 50,
+      "nombre": "Admin",
+      "apellidos": "Camila",
+      "correo_electronico": "admin.dev@gmail.com",
+      "nombre_rol": "Administrador",
+      "estado_cuenta": "Activo",
+      "fincas": []
+    },
+    "permisosRecurso20_umbralesAmbientales": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "puedeEjecutarRf17": true
+  },
+  "rf17Openapi": {
+    "rutas": {
+      "/configuracion/umbrales": [
+        "get",
+        "post"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}/auditoria": [
+        "get"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}": [
+        "patch"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}/desactivar": [
+        "patch"
+      ]
+    },
+    "camposSincronizacionEnRespuesta": [
+      "estado_sincronizacion",
+      "fecha_ultima_sincronizacion",
+      "motivo_fallo_sincronizacion"
+    ],
+    "declaraDestinoEdgeTopicOAck": false,
+    "nota": "La respuesta expone estado/fecha/motivo de sincronizacion, pero el contrato no declara destino Edge, topic, payload publicado ni mecanica de ACK."
+  },
+  "catalogos": {
+    "especiesActivas": [
+      {
+        "id": 4,
+        "nombre": "Cachama Blanca"
+      },
+      {
+        "id": 3,
+        "nombre": "Camarón Blanco"
+      },
+      {
+        "id": 5,
+        "nombre": "Mojarra Plateada"
+      },
+      {
+        "id": 12,
+        "nombre": "Prueba"
+      },
+      {
+        "id": 10,
+        "nombre": "Tilapia"
+      },
+      {
+        "id": 2,
+        "nombre": "Trucha Arcoíris"
+      }
+    ],
+    "existeBovino": false,
+    "variablesAmbientales": [
+      {
+        "id": 16,
+        "nombre": "Actividad/Movimiento",
+        "unidad": "m/s²",
+        "min": "0",
+        "max": "200"
+      },
+      {
+        "id": 11,
+        "nombre": "Amoniaco (NH3)",
+        "unidad": "ppm",
+        "min": "0",
+        "max": "500"
+      },
+      {
+        "id": 4,
+        "nombre": "Amoniaco total",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "10"
+      },
+      {
+        "id": 8,
+        "nombre": "Conductividad eléctrica",
+        "unidad": "µS/cm",
+        "min": "0",
+        "max": "5000"
+      },
+      {
+        "id": 12,
+        "nombre": "Dióxido de Carbono (CO2)",
+        "unidad": "ppm",
+        "min": "0",
+        "max": "100000"
+      },
+      {
+        "id": 14,
+        "nombre": "Frecuencia Cardiaca",
+        "unidad": "bpm",
+        "min": "0",
+        "max": "500"
+      },
+      {
+        "id": 15,
+        "nombre": "Frecuencia Respiratoria",
+        "unidad": "rpm",
+        "min": "0",
+        "max": "200"
+      },
+      {
+        "id": 10,
+        "nombre": "Humedad Relativa",
+        "unidad": "%",
+        "min": "0",
+        "max": "100"
+      },
+      {
+        "id": 5,
+        "nombre": "Nitrito",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "5"
+      },
+      {
+        "id": 3,
+        "nombre": "Oxígeno disuelto",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "20"
+      },
+      {
+        "id": 2,
+        "nombre": "pH del agua",
+        "unidad": "pH",
+        "min": "0",
+        "max": "14"
+      },
+      {
+        "id": 6,
+        "nombre": "Salinidad",
+        "unidad": "ppt",
+        "min": "0",
+        "max": "45"
+      },
+      {
+        "id": 9,
+        "nombre": "Temperatura Ambiental",
+        "unidad": "°C",
+        "min": "-50",
+        "max": "100"
+      },
+      {
+        "id": 13,
+        "nombre": "Temperatura Corporal",
+        "unidad": "°C",
+        "min": "30",
+        "max": "50"
+      },
+      {
+        "id": 1,
+        "nombre": "Temperatura del agua",
+        "unidad": "°C",
+        "min": "0",
+        "max": "45"
+      },
+      {
+        "id": 7,
+        "nombre": "Turbidez",
+        "unidad": "NTU",
+        "min": "0",
+        "max": "500"
+      }
+    ],
+    "umbralesActuales": [
+      {
+        "id_umbral_ambiental": 10,
+        "id_especie": 4,
+        "id_variable_ambiental": 1,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 11,
+        "id_especie": 4,
+        "id_variable_ambiental": 3,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 7,
+        "id_especie": 3,
+        "id_variable_ambiental": 1,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 9,
+        "id_especie": 3,
+        "id_variable_ambiental": 4,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 8,
+        "id_especie": 3,
+        "id_variable_ambiental": 6,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 12,
+        "id_especie": 5,
+        "id_variable_ambiental": 1,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 13,
+        "id_especie": 5,
+        "id_variable_ambiental": 2,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 4,
+        "id_especie": 2,
+        "id_variable_ambiental": 1,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 5,
+        "id_especie": 2,
+        "id_variable_ambiental": 2,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 6,
+        "id_especie": 2,
+        "id_variable_ambiental": 3,
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      }
+    ],
+    "censoSincronizacion": {
+      "umbralesTotales": 10,
+      "estadosObservados": [
+        "PENDIENTE"
+      ],
+      "conFechaDeSincronizacion": 0,
+      "algunoSincronizadoAlgunaVez": false
+    }
+  },
+  "fixtureAiot": {
+    "finca": {
+      "id_finca": 3,
+      "nombre": "Camaronera Costa Azul",
+      "ubicacion": {
+        "departamento": "Cordoba",
+        "municipio": "Monteria",
+        "vereda": "Costa Azul",
+        "latitud": "8.7479",
+        "longitud": "-75.8814"
+      },
+      "tamano_h": "25.00",
+      "es_activo": true,
+      "fecha_creacion": "2026-04-28T14:42:28Z",
+      "fecha_actualizacion": "2026-09-08T01:20:01.104079Z",
+      "id_usuario": 29
+    },
+    "area": {
+      "id_infraestructura": 6,
+      "nombre_infraestructura": "Piscina-Cam-01",
+      "tipo_area": "Estanque",
+      "superficie": "5000.00",
+      "id_finca": 3,
+      "descripcion_infraestructura": "Estanque de engorde de camarón blanco con recirculación parcial",
+      "es_activo": true,
+      "fecha_actualizacion": null
+    },
+    "dispositivos": {
+      "DISPOSITIVOCAMARONERA41": {
+        "existe": true,
+        "id_dispositivo_iot": 38,
+        "tipo": "GATEWAY_EDGE",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "estadoOperativo": "SIN_SEÑAL",
+        "fechaUltimoContacto": "2026-10-05T05:17:06.446609Z",
+        "ultimasTransicionesDeEstado": [
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T05:22:51.029795Z"
+          },
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+            "fecha_transicion": "2026-10-05T05:22:51.028609Z"
+          },
+          {
+            "estado_anterior": "SIN_SEÑAL",
+            "estado_nuevo": "ACTIVO",
+            "notas": "Reconexión por heartbeat id=480",
+            "fecha_transicion": "2026-10-05T03:21:51.882429Z"
+          }
+        ],
+        "configuracionesRemotasRf23": {
+          "total": 0,
+          "ultimas": []
+        }
+      },
+      "ESP32PRUEBA2": {
+        "existe": true,
+        "id_dispositivo_iot": 41,
+        "tipo": "SENSOR_AMBIENTAL",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "estadoOperativo": "SIN_SEÑAL",
+        "fechaUltimoContacto": "2026-10-05T05:17:06.657352Z",
+        "ultimasTransicionesDeEstado": [
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T05:22:51.029795Z"
+          },
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+            "fecha_transicion": "2026-10-05T05:22:51.028609Z"
+          },
+          {
+            "estado_anterior": "SIN_SEÑAL",
+            "estado_nuevo": "ACTIVO",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T03:21:51.984535Z"
+          }
+        ],
+        "configuracionesRemotasRf23": {
+          "total": 9,
+          "ultimas": [
+            {
+              "id_configuracion_remota": 77,
+              "frecuencia_captura": 119,
+              "intervalo_transmision": 240,
+              "estado": "APLICADA",
+              "id_usuario": 50,
+              "fecha_creacion": "2026-10-05T05:11:31.447184Z",
+              "fecha_aplicacion": "2026-10-05T05:11:32.350490Z"
+            },
+            {
+              "id_configuracion_remota": 72,
+              "frecuencia_captura": 5,
+              "intervalo_transmision": 15,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T03:30:22.844502Z",
+              "fecha_aplicacion": "2026-10-05T03:30:24.739074Z"
+            },
+            {
+              "id_configuracion_remota": 71,
+              "frecuencia_captura": 5,
+              "intervalo_transmision": 15,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T02:23:51.746505Z",
+              "fecha_aplicacion": "2026-10-05T02:23:52.979253Z"
+            }
+          ]
+        }
+      },
+      "ESP32PRUEBA3": {
+        "existe": true,
+        "id_dispositivo_iot": 43,
+        "tipo": "SENSOR_AMBIENTAL",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "estadoOperativo": "SIN_SEÑAL",
+        "fechaUltimoContacto": "2026-10-05T05:19:36.912133Z",
+        "ultimasTransicionesDeEstado": [
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T05:24:51.052313Z"
+          },
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+            "fecha_transicion": "2026-10-05T05:24:51.050983Z"
+          },
+          {
+            "estado_anterior": "SIN_SEÑAL",
+            "estado_nuevo": "ACTIVO",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T03:21:51.989110Z"
+          }
+        ],
+        "configuracionesRemotasRf23": {
+          "total": 3,
+          "ultimas": [
+            {
+              "id_configuracion_remota": 73,
+              "frecuencia_captura": 5,
+              "intervalo_transmision": 15,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T03:30:35.047443Z",
+              "fecha_aplicacion": "2026-10-05T03:30:36.035909Z"
+            },
+            {
+              "id_configuracion_remota": 69,
+              "frecuencia_captura": 20,
+              "intervalo_transmision": 20,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T01:03:34.557151Z",
+              "fecha_aplicacion": "2026-10-05T01:03:34.899294Z"
+            },
+            {
+              "id_configuracion_remota": 64,
+              "frecuencia_captura": 10,
+              "intervalo_transmision": 15,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T00:40:24.771353Z",
+              "fecha_aplicacion": "2026-10-05T01:00:03.402427Z"
+            }
+          ]
+        }
+      },
+      "QA-G69-131-358": {
+        "existe": true,
+        "id_dispositivo_iot": 33,
+        "tipo": "GENERICO",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "estadoOperativo": "SIN_SEÑAL",
+        "fechaUltimoContacto": "2026-10-05T05:17:06.550940Z",
+        "ultimasTransicionesDeEstado": [
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática de estado operativo",
+            "fecha_transicion": "2026-10-05T05:22:51.029795Z"
+          },
+          {
+            "estado_anterior": "ACTIVO",
+            "estado_nuevo": "SIN_SEÑAL",
+            "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+            "fecha_transicion": "2026-10-05T05:22:51.028609Z"
+          },
+          {
+            "estado_anterior": "SIN_SEÑAL",
+            "estado_nuevo": "ACTIVO",
+            "notas": "Reconexión por heartbeat id=483",
+            "fecha_transicion": "2026-10-05T03:21:52.091182Z"
+          }
+        ],
+        "configuracionesRemotasRf23": {
+          "total": 11,
+          "ultimas": [
+            {
+              "id_configuracion_remota": 70,
+              "frecuencia_captura": 20,
+              "intervalo_transmision": 20,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T01:03:44.611212Z",
+              "fecha_aplicacion": "2026-10-05T01:03:45.929640Z"
+            },
+            {
+              "id_configuracion_remota": 67,
+              "frecuencia_captura": 15,
+              "intervalo_transmision": 15,
+              "estado": "APLICADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T00:54:37.549512Z",
+              "fecha_aplicacion": "2026-10-05T00:59:19.537562Z"
+            },
+            {
+              "id_configuracion_remota": 66,
+              "frecuencia_captura": 15,
+              "intervalo_transmision": 15,
+              "estado": "CANCELADA",
+              "id_usuario": 29,
+              "fecha_creacion": "2026-10-05T00:46:37.027273Z",
+              "fecha_aplicacion": null
+            }
+          ]
+        }
+      }
+    },
+    "credencialMqttGateway": {
+      "estado": 200,
+      "clavesDevueltas": [
+        "conectada",
+        "emitida",
+        "habilitada",
+        "seriales",
+        "usuario"
+      ],
+      "habilitada": true,
+      "conectada": true,
+      "nota": "usuario/password omitidos deliberadamente: son secretos."
+    }
+  },
+  "nodoSeleccionado": {
+    "serial": "ESP32PRUEBA2",
+    "detalle": {
+      "existe": true,
+      "id_dispositivo_iot": 41,
+      "tipo": "SENSOR_AMBIENTAL",
+      "id_infraestructura": 6,
+      "id_dispositivo_gateway": 38,
+      "es_activo": true,
+      "estadoOperativo": "SIN_SEÑAL",
+      "fechaUltimoContacto": "2026-10-05T05:17:06.657352Z",
+      "ultimasTransicionesDeEstado": [
+        {
+          "estado_anterior": "ACTIVO",
+          "estado_nuevo": "SIN_SEÑAL",
+          "notas": "Transición automática de estado operativo",
+          "fecha_transicion": "2026-10-05T05:22:51.029795Z"
+        },
+        {
+          "estado_anterior": "ACTIVO",
+          "estado_nuevo": "SIN_SEÑAL",
+          "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+          "fecha_transicion": "2026-10-05T05:22:51.028609Z"
+        },
+        {
+          "estado_anterior": "SIN_SEÑAL",
+          "estado_nuevo": "ACTIVO",
+          "notas": "Transición automática de estado operativo",
+          "fecha_transicion": "2026-10-05T03:21:51.984535Z"
+        }
+      ],
+      "configuracionesRemotasRf23": {
+        "total": 9,
+        "ultimas": [
+          {
+            "id_configuracion_remota": 77,
+            "frecuencia_captura": 119,
+            "intervalo_transmision": 240,
+            "estado": "APLICADA",
+            "id_usuario": 50,
+            "fecha_creacion": "2026-10-05T05:11:31.447184Z",
+            "fecha_aplicacion": "2026-10-05T05:11:32.350490Z"
+          },
+          {
+            "id_configuracion_remota": 72,
+            "frecuencia_captura": 5,
+            "intervalo_transmision": 15,
+            "estado": "APLICADA",
+            "id_usuario": 29,
+            "fecha_creacion": "2026-10-05T03:30:22.844502Z",
+            "fecha_aplicacion": "2026-10-05T03:30:24.739074Z"
+          },
+          {
+            "id_configuracion_remota": 71,
+            "frecuencia_captura": 5,
+            "intervalo_transmision": 15,
+            "estado": "APLICADA",
+            "id_usuario": 29,
+            "fecha_creacion": "2026-10-05T02:23:51.746505Z",
+            "fecha_aplicacion": "2026-10-05T02:23:52.979253Z"
+          }
+        ]
+      }
+    },
+    "criterio": "preferencia ESP32PRUEBA2; existente, es_activo, en el area Piscina-Cam-01 y colgado del gateway DISPOSITIVOCAMARONERA41",
+    "estadoOperativoAlLeer": "SIN_SEÑAL",
+    "notaEstadoOperativo": "El estado operativo es gobernado por el heartbeat y alterna ACTIVO/SIN_SENAL; no se usa como criterio de descarte del fixture.",
+    "unicoNodo": true
+  },
+  "implementacionRf17": {
+    "ramaInspeccionada": "origin/dev (ambiente decisorio)",
+    "headCoincideConOriginDevEnSrcConfiguration": true,
+    "inyeccionEnUmbralRouter": [
+      "origin/dev:src/configuration/infrastructure/routers/umbral_router.py:73:        edge_port=EdgeSincronizacionStubAdapter(),",
+      "origin/dev:src/configuration/infrastructure/routers/umbral_router.py:154:        edge_port=EdgeSincronizacionStubAdapter(),"
+    ],
+    "archivosQueMencionanElPuerto": [
+      "origin/dev:src/configuration/application/use_cases/umbrales/editar_umbral_use_case.py",
+      "origin/dev:src/configuration/application/use_cases/umbrales/registrar_umbral_use_case.py",
+      "origin/dev:src/configuration/domain/repositories/edge_sincronizacion_port.py",
+      "origin/dev:src/configuration/infrastructure/adapters/edge_sincronizacion_stub_adapter.py"
+    ],
+    "firmaDelPuerto": [
+      "origin/dev:src/configuration/domain/repositories/edge_sincronizacion_port.py:21:    def propagar_umbral(self, id_especie: int, id_variable_ambiental: int, payload: dict) -> ResultadoEnvioMqtt:",
+      "origin/dev:src/configuration/infrastructure/adapters/edge_sincronizacion_stub_adapter.py:32:    def propagar_umbral(self, id_especie: int, id_variable_ambiental: int, payload: dict) -> ResultadoEnvioMqtt:"
+    ],
+    "archivosQueMezclanUmbralYMqtt": [
+      "src/configuration/domain/repositories/edge_sincronizacion_port.py",
+      "src/configuration/infrastructure/adapters/edge_sincronizacion_stub_adapter.py"
+    ],
+    "oraculos": {
+      "stubSigueExistiendo": true,
+      "stubEsElAdaptadorInyectado": true,
+      "existeAdaptadorRealDelPuerto": false,
+      "rf17UsaMqttPortOMqttHttpAdapter": false,
+      "elPuertoRecibeDestinoEdge": false,
+      "existeTopicDeUmbrales": false,
+      "existeAckDeUmbrales": false,
+      "existeTimeoutDeUmbrales": false
+    },
+    "nota": "La firma del puerto es propagar_umbral(id_especie, id_variable_ambiental, payload): no admite dispositivo, gateway ni nodo destino, por lo que el fixture AIoT no es direccionable desde RF-17."
+  },
+  "rf17VsRf23": {
+    "rf23Endpoint": "POST /configuracion/dispositivos-iot/{id}/configurar",
+    "rf23AdaptadorInyectado": "MqttHttpAdapter (broker real)",
+    "rf23TotalConfiguracionesEnNodoSeleccionado": 9,
+    "rf23AplicadasEntreLasUltimas": 3,
+    "rf23PayloadObservado": [
+      "frecuencia_captura",
+      "intervalo_transmision"
+    ],
+    "rf23ContieneDatosDeUmbral": false,
+    "conclusion": "La propagacion real observable en DEV pertenece a RF-23 (configuracion remota del dispositivo), no a RF-17 (umbrales). Aprobar TC-M09-62 con evidencia de RF-23 seria sustituir el requerimiento del caso."
+  },
+  "gateEjecutabilidad": {
+    "A_devDisponible": true,
+    "B_actorPuedeEjecutarRf17": true,
+    "C_fixtureFuncionalValido": true,
+    "D_nodoEdgeValido": true,
+    "E_rf17IntentaPropagacionReal": false,
+    "F_evidenciaDeRecepcionODeAplicacionIdentificable": false,
+    "G_verificacionPosteriorRazonable": false,
+    "aprobado": false
+  },
+  "decision": {
+    "ejecutarEscrituraOficial": false,
+    "escriturasFuncionales": 0,
+    "motivo": "El gate falla en E, F y G: POST/PATCH /configuracion/umbrales terminan en EdgeSincronizacionStubAdapter, que devuelve siempre PENDIENTE sin contactar el broker. No hay destino Edge, topic, ACK ni timeout, de modo que ninguna escritura podria aportar evidencia de propagacion real. Seccion 16 del paquete: DETENER antes de la escritura.",
+    "tcM0962": "RECHAZADO (sin escritura)",
+    "tcM0963": "NO EJECUTADA"
+  }
+}

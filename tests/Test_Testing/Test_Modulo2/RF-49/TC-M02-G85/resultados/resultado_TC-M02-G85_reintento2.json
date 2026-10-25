@@ -1,0 +1,33 @@
+{
+  "tc": "TC-M02-G85",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G85-REEVAL-V3-20260919-141900",
+  "veredicto": "Aprobado",
+  "nota_global": "El caso agrupado TC-M02-G85 se aprueba en V3 tras corregir el vicio de diseño del spec original en TC-M02-148, donde se forzaba un cruce territorial (Finca 57 vs Finca 1) que disparaba el rechazo 409 INFRAESTRUCTURA_INCOMPATIBLE antes de alcanzar la validación biológica V7. El backend desplegó la migración 281e99d58ecb (modulo9.compatibilidad_sensores_especies) y la validación V7 en asociar_sensor_activo_use_case.py, respondiendo formalmente con HTTP 400.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-146: Rechazar asociación a activo en BAJA/VENDIDO/FALLECIDO",
+      "esperado": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA",
+      "obtenido": "HTTP 422 Unprocessable Entity, error_code: ACTIVO_EN_BAJA sobre activo 10",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_v3.html"
+    },
+    {
+      "paso": "TC-M02-147: Rechazar asociación entre fincas distintas (unidad territorial)",
+      "esperado": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE",
+      "obtenido": "HTTP 409 Conflict, error_code: INFRAESTRUCTURA_INCOMPATIBLE entre activo 108 (Finca 1) y sensor 8 (Finca 2)",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_v3.html"
+    },
+    {
+      "paso": "TC-M02-148: Rechazar incompatibilidad de especie sensor-activo o sensor sin parametrización",
+      "esperado": "HTTP 400 Bad Request, error_code COMPATIBILIDAD_SENSOR_NO_CONFIGURADA o INCOMPATIBILIDAD_ESPECIE_SENSOR",
+      "obtenido": "HTTP 400 Bad Request, error_code: COMPATIBILIDAD_SENSOR_NO_CONFIGURADA, mensaje indicando falta de parametrización biológica en M09 sobre sensor 37 y activo 6",
+      "estado": "OK",
+      "fuente": "evidencias/v3-run-20260919/reporte_v3.html",
+      "nota_qa": "Se validó exitosamente el rechazo HTTP 400 con código COMPATIBILIDAD_SENSOR_NO_CONFIGURADA (regla V7 de RF-49 R3/FA-04). Al usar un sensor activo intra-finca sin especies parametrizadas en modulo9.compatibilidad_sensores_especies, el backend falla cerrado conforme al diseño de seguridad implementado en el commit de fix."
+    }
+  ]
+}

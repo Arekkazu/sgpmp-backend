@@ -1,0 +1,58 @@
+{
+  "caso": "TC-M09-148",
+  "grupo": "TC-M09-G77",
+  "runId": "run-20260906-002256",
+  "ambiente": "TEST real HTTPS",
+  "resultado": "BLOCKED",
+  "contrato": {
+    "endpoint": "POST /configuracion/sensores/{id_sensor}/calibrar",
+    "recurso": 12,
+    "accion_crear": 1,
+    "status_rbac_esperado": 403,
+    "proteccion": "require_permission(12, 1)"
+  },
+  "actor_negativo": {
+    "preferido": {
+      "rol_esperado": "Productor",
+      "login_status": 403,
+      "causa_reportada": "cuenta desactivada"
+    },
+    "alternativo": {
+      "rol_esperado": "Contador",
+      "login_status": 403,
+      "causa_reportada": "cuenta desactivada"
+    },
+    "sesion_autenticada_disponible": false
+  },
+  "payload_valido_preparado_por_discovery": {
+    "id_dispositivo_iot": 1,
+    "dispositivo_activo": true,
+    "id_sensor": 3,
+    "sensor_activo": true,
+    "id_infraestructura": 1,
+    "asociacion_activa": true,
+    "categoria": "OXIGENO",
+    "rango_tecnico": {
+      "min": "0.0000",
+      "max": "20.0000"
+    },
+    "valor_referencia": "10.0000"
+  },
+  "historial": {
+    "before": {
+      "total": 2,
+      "ids": [9, 3]
+    },
+    "after": {
+      "total": 2,
+      "ids": [9, 3]
+    },
+    "sin_cambios": true
+  },
+  "operaciones": {
+    "post_calibracion": 0,
+    "modificaciones_directas_bd": 0,
+    "modificaciones_de_datos": 0
+  },
+  "secretos_persistidos": false
+}

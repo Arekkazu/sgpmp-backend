@@ -1,0 +1,1041 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g173-owasp-api2-v2",
+    "name": "TC-M03-G173 - OWASP API2 Autenticación y Tokens RF-62",
+    "description": "Suite automatizada Newman para TC-M03-G173 (RF-62). Verifica seguridad de autenticación y tokens JWT (OWASP API2) sobre todos los endpoints de calidad.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "jwt_secret",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_expirado",
+      "value": ""
+    },
+    {
+      "key": "token_alg_none",
+      "value": ""
+    },
+    {
+      "key": "token_alterado",
+      "value": ""
+    },
+    {
+      "key": "token_clave_falsa",
+      "value": ""
+    },
+    {
+      "key": "subcaso_332a_bloqueado",
+      "value": "false"
+    },
+    {
+      "key": "msg_332b",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Preflight-y-Baseline-Token",
+      "item": [
+        {
+          "name": "00-Preflight-Login-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para generar token base\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").and.not.be.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-TC-M03-331-Sin-Cabecera-O-Malformada",
+      "item": [
+        {
+          "name": "331-SinHeader-Listar-Calidad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-HeaderVacio-Listar-Calidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-BearerSinToken-Listar-Calidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-SinHeader-Obtener-Calidad-Por-ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-HeaderVacio-Obtener-Calidad-Por-ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-BearerSinToken-Obtener-Calidad-Por-ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-SinHeader-Evaluar-Calidad-Lectura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-HeaderVacio-Evaluar-Calidad-Lectura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-BearerSinToken-Evaluar-Calidad-Lectura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/1/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "1",
+                "evaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-SinHeader-Reevaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": 1,\n  \"fecha_desde\": \"2026-10-10T00:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T12:00:00Z\",\n  \"causa_documentada\": \"Error justificado de configuracion en sensor ambiental\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-HeaderVacio-Reevaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": " "
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": 1,\n  \"fecha_desde\": \"2026-10-10T00:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T12:00:00Z\",\n  \"causa_documentada\": \"Error justificado de configuracion en sensor ambiental\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "331-BearerSinToken-Reevaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer "
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/reevaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "reevaluar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": 1,\n  \"fecha_desde\": \"2026-10-10T00:00:00Z\",\n  \"fecha_hasta\": \"2026-10-10T12:00:00Z\",\n  \"causa_documentada\": \"Error justificado de configuracion en sensor ambiental\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - No autorizado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Estructura de error 401 conforme a estándar\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.be.a(\"string\");",
+                  "    pm.expect(b.message).to.be.a(\"string\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"traceback\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"sql\");",
+                  "    pm.expect(b.message.toLowerCase()).to.not.include(\"line \");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-M03-332-Manipulacion-Tokens-JWT",
+      "item": [
+        {
+          "name": "332-A-Token-Expirado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jwtSecret = pm.collectionVariables.get(\"jwt_secret\");",
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (!jwtSecret || jwtSecret.trim() === \"\") {",
+                  "    // [BLOQUEADO PURO]: Sin la clave secreta real para firmar con exp pasado, no se aísla el chequeo de expiración.",
+                  "    // Se prohíbe el uso de tokens sintéticos. Solo console.log, sin pm.test en la pestaña de tests.",
+                  "    console.log(\"[BLOQUEADO] Subcaso 332(a): TEST_JWT_SECRET no definido en el entorno. Subcaso bloqueado sin pm.test para evitar falsos positivos.\");",
+                  "    pm.collectionVariables.set(\"subcaso_332a_bloqueado\", \"true\");",
+                  "} else {",
+                  "    pm.collectionVariables.set(\"subcaso_332a_bloqueado\", \"false\");",
+                  "    if (baseToken && baseToken.includes(\".\")) {",
+                  "        const parts = baseToken.split(\".\");",
+                  "        let payload = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(parts[1])));",
+                  "        payload.exp = Math.floor(Date.now() / 1000) - 3600;",
+                  "        const newPayloadStr = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload))).replace(/=+$/, \"\");",
+                  "        const tokenContent = parts[0] + \".\" + newPayloadStr;",
+                  "        const hash = CryptoJS.HmacSHA256(tokenContent, jwtSecret);",
+                  "        const newSig = CryptoJS.enc.Base64.stringify(hash).replace(/\\+/g, \"-\").replace(/\\//g, \"_\").replace(/=+$/, \"\");",
+                  "        pm.collectionVariables.set(\"token_expirado\", parts[0] + \".\" + newPayloadStr + \".\" + newSig);",
+                  "    }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const bloqueado = pm.collectionVariables.get(\"subcaso_332a_bloqueado\");",
+                  "if (bloqueado === \"true\") {",
+                  "    console.log(\"[BLOQUEADO] Subcaso 332(a) ignorado en ejecución de aserciones por falta de TEST_JWT_SECRET.\");",
+                  "} else {",
+                  "    pm.test(\"Status 401 - Token expirado legítimo rechazado\", function () {",
+                  "        pm.response.to.have.status(401);",
+                  "    });",
+                  "    pm.test(\"Error uniforme TOKEN_EXPIRADO\", function () {",
+                  "        const b = pm.response.json();",
+                  "        pm.expect(b.error_code).to.equal(\"TOKEN_EXPIRADO\");",
+                  "        pm.collectionVariables.set(\"msg_332a\", b.message);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "332-B-Token-Algoritmo-None",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_alg_none}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    const headerNone = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: \"none\", typ: \"JWT\" }))).replace(/=+$/, \"\");",
+                  "    pm.collectionVariables.set(\"token_alg_none\", headerNone + \".\" + parts[1] + \".\");",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Token con alg=none rechazado\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje uniforme TOKEN_INVALIDO\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "    pm.collectionVariables.set(\"msg_332b\", b.message);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "332-C-Token-Payload-Alterado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_alterado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    try {",
+                  "        let payload = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Base64.parse(parts[1])));",
+                  "        payload.sub = \"999999\";",
+                  "        payload.rol = 1;",
+                  "        const newPayloadStr = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify(payload))).replace(/=+$/, \"\");",
+                  "        pm.collectionVariables.set(\"token_alterado\", parts[0] + \".\" + newPayloadStr + \".\" + parts[2]);",
+                  "    } catch (e) {",
+                  "        pm.collectionVariables.set(\"token_alterado\", baseToken);",
+                  "    }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Payload alterado rechazado por firma rota\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje uniforme idéntico a 332(b)\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "    const msgB = pm.collectionVariables.get(\"msg_332b\");",
+                  "    if (msgB) {",
+                  "        pm.expect(b.message, \"Mensaje idéntico entre manipulaciones b y c\").to.equal(msgB);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "332-D-Token-Firma-Clave-Incorrecta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_clave_falsa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const baseToken = pm.collectionVariables.get(\"token_admin\");",
+                  "if (baseToken && baseToken.includes(\".\")) {",
+                  "    const parts = baseToken.split(\".\");",
+                  "    const tokenContent = parts[0] + \".\" + parts[1];",
+                  "    const fakeSecret = \"clave_completamente_falsa_para_test_seguridad_123\";",
+                  "    const hash = CryptoJS.HmacSHA256(tokenContent, fakeSecret);",
+                  "    const fakeSig = CryptoJS.enc.Base64.stringify(hash).replace(/\\+/g, \"-\").replace(/\\//g, \"_\").replace(/=+$/, \"\");",
+                  "    pm.collectionVariables.set(\"token_clave_falsa\", tokenContent + \".\" + fakeSig);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 - Firma con clave espuria rechazada\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Mensaje uniforme idéntico a 332(b) y 332(c)\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.error_code).to.equal(\"TOKEN_INVALIDO\");",
+                  "    pm.expect(b.message).to.equal(\"El token es inválido o ha expirado.\");",
+                  "    const msgB = pm.collectionVariables.get(\"msg_332b\");",
+                  "    if (msgB) {",
+                  "        pm.expect(b.message, \"Mensaje idéntico entre manipulaciones b, c y d\").to.equal(msgB);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+TC-M01-074 rev2 TEST — exportar auditoría sin conexión
+Fecha: 2026-09-25
+Front: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+Usuario: admin@pecuaria.co (un login, HTTP 200)
+No se usó admin.dev@gmail.com.
+
+ONLINE: /dashboard → /auditoria. GET /auditoria/ HTTP 206. Tabla visible. Sin POST /sesiones/refresh. URL permanece /auditoria.
+Botón "Exportar CSV": visible, disabled=false, aria-disabled ausente.
+
+OFFLINE: navigator.onLine=false (defineProperty + evento offline, mismo mecanismo histórico; no CDP).
+Página permanece en /auditoria (no redirect /login).
+Botón igual: visible, disabled=false, aria-disabled ausente.
+Escenario D. Criterio matriz incumplido.
+
+RESTORE: navigator.onLine=true (after).
+
+Código: AuditoriaPage no usa useOnlineStatus; Exportar CSV disabled solo si eventos.length===0. CSV es Blob local.
+RolesPage sí deshabilita acciones offline (patrón existente no aplicado aquí).
+
+Cypress: 1 test, 1 fail (assertion de disabled). No es fallo de login/refresh/selector.
+Histórico: admin.dev, cy.visit('/login') sin base TEST, wait 1500, /exportar/i, sin intercept. No usaba CDP.
+
+Santiago: anotaciones/modulo_1/bug_1827_race_condicion_sesion_401.md (401 refresh intermitente, Playwright, sin Cypress). En ESTA corrida no se reprodujo.

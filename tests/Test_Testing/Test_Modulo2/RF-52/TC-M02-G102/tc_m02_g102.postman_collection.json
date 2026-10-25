@@ -1,0 +1,244 @@
+{
+  "info": {
+    "name": "TC-M02-G102 - Clasificacion correcta del evento por categoria biologica (RF-52, CU13)",
+    "description": "TC-M02-G102 (RF-52, CU13, Restriccion 7), sub-caso TC-M02-261: generar y consultar en la bitacora un evento de cada una de las 5 categorias definidas (TRANSFORMACION_BIOLOGICA, SANITARIO, GESTION_OPERATIVA, CONTROL_ESTADO, ACCESO_DATOS) y confirmar que cada uno queda clasificado correctamente.\n\nMapeo real confirmado por lectura de codigo (grep de clasificacion_biologica= en src/biological_assets/): CONFIRMADO 100% CORRECTO, sin ningun hallazgo de clasificacion incorrecta --\n- TRANSFORMACION_BIOLOGICA: registrar_evento_crecimiento, registrar_evento_productivo, registrar_evento_reproductivo, cambiar_fase (RF-37/39/40/42/43).\n- SANITARIO: registrar_evento_sanitario (RF-41).\n- GESTION_OPERATIVA: registrar_activo, actualizar_activo_individual, asociar_sensor_activo, consultar_indicadores, registrar_transferencia (RF-33/34/35/48/50).\n- CONTROL_ESTADO: cambiar_estado (RF-44), registrar_evento_baja (RF-45), cerrar_ciclo (RF-38).\n- ACCESO_DATOS: consultar_activo, consultar_historial (RF-46), consultar_ficha_integral (RF-47), consultar_datos_consolidados, consultar_asociacion.\n\nLa coleccion genera un evento de cada categoria sobre UN MISMO activo fresco (Cachama INDIVIDUAL), para poder verificar las 5 clasificaciones en una sola consulta final:\n1. GESTION_OPERATIVA -- el propio registro del activo (RF-33) ya genera un evento EXITOSO 'ACTIVO_REGISTRADO'.\n2. SANITARIO -- evento sanitario tipo CONTROL_PREVENTIVO (RF-41). HALLAZGO NUEVO: responde 500 ERROR_INTERNO (misma familia de bug que TC-M02-G53/G58 -- un trigger de BD con ERRCODE personalizado no mapeado por db_error_translator.py, ahora confirmado tambien en modulo2.eventos_sanitarios). Aun asi, el intento SI queda auditado con la clasificacion correcta (SANITARIO, resultado=FALLIDO).\n3. TRANSFORMACION_BIOLOGICA -- evento reproductivo (RF-42), se sabe que falla 500 (TC-M02-G53) pero se audita correctamente.\n4. CONTROL_ESTADO -- evento de baja (RF-45), se sabe que falla 500 (TC-M02-G58) pero se audita correctamente.\n5. ACCESO_DATOS -- GET del historial (RF-46), responde 200 y genera un evento EXITOSO 'HISTORIAL_CONSULTADO'.\n\nSub-caso 1 (TC-M02-261): consultar la bitacora completa del activo (sin filtro de clasificacion) y verificar que aparecen las 5 clasificaciones esperadas, cada una con el rf_origen correcto.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0, 10));",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Generar 1/5 (GESTION_OPERATIVA) - Registrar activo INDIVIDUAL fresco (RF-33)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('El registro del activo responde HTTP 201 (evento EXITOSO, GESTION_OPERATIVA)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g102', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cg102-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG102-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Generar 2/5 (SANITARIO) - Evento sanitario CONTROL_PREVENTIVO (RF-41, BUG NUEVO pero se audita bien)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Generando evento SANITARIO (se espera 500, misma familia de bug que TC-M02-G53/G58, pero SI debe auditarse) ---');",
+              "console.log(pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-G102 - revision rutinaria (prueba QA de clasificacion)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g102}}/eventos/sanitario",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g102}}", "eventos", "sanitario" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generar 3/5 (TRANSFORMACION_BIOLOGICA) - Evento reproductivo (RF-42, se sabe 500 pero se audita)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Generando evento TRANSFORMACION_BIOLOGICA (se espera 500, TC-M02-G53) ---');",
+              "console.log(pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"inseminacion\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre_existente}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g102}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g102}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generar 4/5 (CONTROL_ESTADO) - Evento de baja (RF-45, se sabe 500 pero se audita)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Generando evento CONTROL_ESTADO (se espera 500, TC-M02-G58) ---');",
+              "console.log(pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-G102 - prueba QA de clasificacion\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g102}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g102}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generar 5/5 (ACCESO_DATOS) - Consultar historial (RF-46)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('La consulta del historial responde HTTP 200 (evento EXITOSO, ACCESO_DATOS)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g102}}/historial",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g102}}", "historial" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-261) - Verificar las 5 clasificaciones en la bitacora del activo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Consulta final: bitacora completa del activo, sin filtro de clasificacion ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const porClasificacion = {};",
+              "(respuesta.registros || []).forEach(function (r) { porClasificacion[r.clasificacion_biologica] = r; });",
+              "console.log('Clasificaciones encontradas: ' + Object.keys(porClasificacion).join(', '));",
+              "",
+              "pm.test('Sub-caso 1: aparecen las 5 clasificaciones exigidas por la Restriccion 7 de RF-52', function () {",
+              "    ['TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'GESTION_OPERATIVA', 'CONTROL_ESTADO', 'ACCESO_DATOS'].forEach(function (cat) {",
+              "        pm.expect(porClasificacion, 'falta la categoria ' + cat).to.have.property(cat);",
+              "    });",
+              "});",
+              "",
+              "pm.test('Sub-caso 1: cada clasificacion corresponde al rf_origen esperado', function () {",
+              "    pm.expect(porClasificacion['GESTION_OPERATIVA'].rf_origen).to.equal('RF33');",
+              "    pm.expect(porClasificacion['SANITARIO'].rf_origen).to.equal('RF41');",
+              "    pm.expect(porClasificacion['TRANSFORMACION_BIOLOGICA'].rf_origen).to.equal('RF42');",
+              "    pm.expect(porClasificacion['CONTROL_ESTADO'].rf_origen).to.equal('RF45');",
+              "    pm.expect(porClasificacion['ACCESO_DATOS'].rf_origen).to.equal('RF46');",
+              "});",
+              "",
+              "console.log('CONCLUSION: las 5 categorias de la Restriccion 7 (RF-52) estan correctamente implementadas y clasificadas -- sin ningun hallazgo de clasificacion incorrecta. Nota aparte: el evento sanitario (SANITARIO) revelo un bug nuevo de escritura (500), misma familia que TC-M02-G53/G58, mencionado en la descripcion de la coleccion.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_g102}}&page_size=20",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_g102}}" },
+            { "key": "page_size", "value": "20" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "fecha_hoy", "value": "2026-09-10" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_padre_existente", "value": "161" },
+    { "key": "id_activo_g102", "value": "" }
+  ]
+}

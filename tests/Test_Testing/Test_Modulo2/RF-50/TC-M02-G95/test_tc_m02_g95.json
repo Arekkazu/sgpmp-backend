@@ -1,0 +1,159 @@
+{
+  "info": {
+    "name": "TC-M02-G95 - RF-50 reformulado",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Solo GET. Revalidar precondiciones BD y reemplazar variables antes de cada ejecucion. Token externo. Contrato vivo: metricas_actuales en raiz; ruta datos-consolidados CU12/RF-50. ID 310: infraestructura 49 inactiva, historial 236 abierto, fase 68 abierta sin cierre. Fuentes y evidencia de no mutacion en Resultados/TC-M02-G95_resultado.md."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "rf50Path",
+      "value": "datos-consolidados",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id310",
+      "value": "289",
+      "type": "string"
+    },
+    {
+      "key": "id311",
+      "value": "279",
+      "type": "string"
+    },
+    {
+      "key": "pesoBd",
+      "value": "250.00",
+      "type": "string"
+    },
+    {
+      "key": "unidadBd",
+      "value": "kg",
+      "type": "string"
+    },
+    {
+      "key": "fechaPesoBd",
+      "value": "2026-09-10",
+      "type": "string"
+    },
+    {
+      "key": "identificadorBd",
+      "value": "QAJE-CREC-OK",
+      "type": "string"
+    },
+    {
+      "key": "cantidadBd",
+      "value": "null",
+      "type": "string"
+    },
+    {
+      "key": "biomasaBd",
+      "value": "null",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-309",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body=pm.response.json();",
+              "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+              "pm.test('TC-M02-309 | HTTP 404',()=>pm.response.to.have.status(404));",
+              "",
+              "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+              "pm.test('TC-M02-309 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/activo.*(no existe|no encontrado|inexistente)/));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/99999/{{rf50Path}}?tipo_dato=todos&pagina=1&page_size=20"
+      }
+    },
+    {
+      "name": "TC-M02-310",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body=pm.response.json();",
+              "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+              "pm.test('TC-M02-310 | HTTP 409',()=>pm.response.to.have.status(409));",
+              "",
+              "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+              "pm.test('TC-M02-310 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/(inconsisten|integridad|jerarqu)/));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/{{id310}}/{{rf50Path}}?tipo_dato=todos&pagina=1&page_size=20"
+      }
+    },
+    {
+      "name": "TC-M02-311",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body=pm.response.json();",
+              "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+              "pm.test('TC-M02-311 | HTTP 200',()=>pm.response.to.have.status(200));",
+              "",
+              "const m=body.metricas_actuales;",
+              "pm.test('TC-M02-311 | Activo e identificador correctos',()=>{pm.expect(body.id_activo_biologico).to.eql(Number(pm.variables.get('id311')));pm.expect(body.identificador).to.eql(pm.variables.get('identificadorBd'));});",
+              "pm.test('TC-M02-311 | Peso numerico finito positivo',()=>{pm.expect(m.peso_actual).to.be.a('number');pm.expect(Number.isFinite(m.peso_actual)).to.eql(true);pm.expect(m.peso_actual).to.be.above(0);});",
+              "pm.test('TC-M02-311 | Peso API coincide con BD',()=>pm.expect(m.peso_actual).to.eql(Number(pm.variables.get('pesoBd'))));",
+              "pm.test('TC-M02-311 | Unidad API coincide con BD',()=>pm.expect(m.unidad_peso).to.eql(pm.variables.get('unidadBd')));",
+              "pm.test('TC-M02-311 | Fecha equivalente',()=>{pm.expect(new Date(m.fecha_ultimo_peso).getTime()).to.eql(new Date(pm.variables.get('fechaPesoBd')).getTime());});",
+              "pm.test('TC-M02-311 | Cantidad y biomasa coherentes',()=>{for(const [key,variable] of [['cantidad_actual','cantidadBd'],['biomasa_total','biomasaBd']]){if(key in m){const expected=JSON.parse(pm.variables.get(variable));if(expected===null)pm.expect(m[key]).to.eql(null);else{pm.expect(Number.isFinite(m[key])).to.eql(true);pm.expect(m[key]).to.eql(expected);}}}});",
+              "pm.test('TC-M02-311 | Sin metricas invalidas ni mezcla de activos',()=>{function walk(o){for(const [k,v] of Object.entries(o||{})){if(k==='id_activo_biologico')pm.expect(v).to.eql(Number(pm.variables.get('id311')));if(typeof v==='number')pm.expect(Number.isFinite(v)).to.eql(true);if(typeof v==='string')pm.expect(v).not.to.match(/^(NaN|[-+]?Infinity)$/);if(k.toLowerCase().includes('peso')&&typeof v==='number')pm.expect(v).to.be.at.least(0);if(v&&typeof v==='object')walk(v);}}walk(body);});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/activos-biologicos/{{id311}}/{{rf50Path}}?tipo_dato=metricas&pagina=1&page_size=20"
+      }
+    }
+  ]
+}

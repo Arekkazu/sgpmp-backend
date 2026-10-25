@@ -1,0 +1,339 @@
+{
+  "info": {
+    "name": "TC-M02-G40 v2.0 - Restricciones de estado y coherencia temporal para eventos biologicos (RFC: fecha invalida = HTTP 400)",
+    "description": "v2.0: alineada al requerimiento RF-39 (flujo alterno \"Fecha invalida - HTTP 400\"). La v1 esperaba 422 por convencion BusinessRuleError; el requerimiento manda. CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se construye con el flujo real de la API (fase + POST /cierre, RF-38), ya que los bugs que antes lo bloqueaban (INC-M02-37-01 e INC-M02-45-02) estan resueltos -- ver README.md. Las assertions de TC-M02-076 esperan 422 (BusinessRuleError, convencion documentada en CLAUDE.md): la ficha original decia 400, pero es una imprecision de la ficha, no del sistema -- el mensaje de negocio es exacto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "3"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "6"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "2"
+    },
+    {
+      "key": "id_activo_cerrado",
+      "value": ""
+    },
+    {
+      "key": "id_activo_fecha",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Setup - crear activo propio para TC-M02-075",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_cerrado}}\",\n  \"raza\": \"Camaron QA-G40 cerrado\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('identificador_cerrado', 'G40A-' + Date.now());",
+              "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_cerrado', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0C. Setup - registrar fase 1 (precondicion de /cierre)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}/fases",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G40 fase previa al cierre\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Fase 1 registrada (201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0D. Setup - cerrar el ciclo del activo (RF-38, precondicion CERRADO)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}/cierre",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\",\n  \"motivo_cierre\": \"venta\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('El activo queda CERRADO (200)', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().estado).to.eql('CERRADO');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-075 - Rechazar evento sobre activo CERRADO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-075] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39: CERRADO no admite nuevos eventos (409)', function () { pm.response.to.have.status(409); });",
+              "const body = pm.response.json();",
+              "pm.test('El mensaje indica que el estado actual no permite eventos', function () {",
+              "  pm.expect(body.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+              "  pm.expect(body.message.toLowerCase()).to.match(/cerrado/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2A. Setup - activo fresco para TC-M02-076 (fecha invalida)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador}}\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('identificador', 'G40B-' + Date.now());",
+              "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2B. TC-M02-076 - Rechazar fecha futura",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fecha}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39 v1.x: fecha futura se rechaza (HTTP 400, flujo alterno Fecha invalida)', function () { pm.response.to.have.status(400); });",
+              "const body = pm.response.json();",
+              "pm.test('El mensaje coincide con el documentado', function () {",
+              "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fecha}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-39 v1.x: fecha anterior al registro se rechaza (HTTP 400, flujo alterno Fecha invalida)', function () { pm.response.to.have.status(400); });",
+              "const body = pm.response.json();",
+              "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+              "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

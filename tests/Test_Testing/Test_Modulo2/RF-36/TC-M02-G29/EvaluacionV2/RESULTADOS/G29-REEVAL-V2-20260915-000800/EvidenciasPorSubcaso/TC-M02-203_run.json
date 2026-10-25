@@ -1,0 +1,2687 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m02-203-auditoria-crecimiento"
+    },
+    "item": [
+      {
+        "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+        "name": "0. Iniciar sesión como Administrador",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "5bab2e70-2bb7-4b77-a4b5-5f3801a62716",
+              "type": "text/javascript",
+              "exec": [
+                "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                "    pm.response.to.have.status(200);",
+                "    var res = pm.response.json();",
+                "    pm.expect(res.token).to.be.a('string');",
+                "    pm.collectionVariables.set('jwt_token', res.token);",
+                "});"
+              ],
+              "_lastExecutionId": "83fbb977-b21f-4570-b6c1-913f0696aec2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+        "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_lote}}",
+              "eventos",
+              "crecimiento"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+              "type": "text/javascript",
+              "exec": [
+                "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+              ],
+              "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                "    pm.expect([200, 201]).to.include(pm.response.code);",
+                "});"
+              ],
+              "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+            }
+          }
+        ]
+      },
+      {
+        "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+        "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "auditoria"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "id_activo_biologico",
+                "value": "{{id_lote}}"
+              },
+              {
+                "key": "rf_origen",
+                "value": "RF40"
+              },
+              {
+                "key": "resultado",
+                "value": "EXITOSO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "10"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                "    var res = pm.response.json();",
+                "    pm.expect(res.total_registros).to.be.above(0);",
+                "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                "});",
+                "",
+                "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                "    var res = pm.response.json();",
+                "    var audit = res.registros[0];",
+                "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                "});"
+              ],
+              "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "jwt_token"
+      },
+      {
+        "type": "string",
+        "value": "130",
+        "key": "id_lote"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m02-203-auditoria-crecimiento",
+      "name": "TC-M02-203 - Registro de auditoría tras evento CRECIMIENTO válido (RF-36 / RF-52)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Prueba de aceptación para RF-36 y RF-52: Registrar un evento de crecimiento válido y verificar la generación de la entrada de auditoría correspondiente con resultado EXITOSO.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "0d4b1afa-f667-4cd2-baca-705f7ad7e9be",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "300",
+        "key": "id_lote"
+      }
+    ]
+  },
+  "globals": {
+    "id": "10fd1839-5434-4d2c-8fe6-449435731389",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 5,
+        "pending": 0,
+        "failed": 3
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 381.6666666666667,
+      "responseMin": 115,
+      "responseMax": 879,
+      "responseSd": 351.9747465688728,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789449525042,
+      "completed": 1789449526425
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "764f1422-2a0a-48a3-875b-46c5984f9913",
+          "httpRequestId": "9e9abc23-588d-47b6-b40f-a0fa28ef1cea"
+        },
+        "item": {
+          "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+          "name": "0. Iniciar sesión como Administrador",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5bab2e70-2bb7-4b77-a4b5-5f3801a62716",
+                "type": "text/javascript",
+                "exec": [
+                  "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                  "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "83fbb977-b21f-4570-b6c1-913f0696aec2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3db32b60-34ed-4edf-8181-4e1f0a2a465b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "154",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "08fde1bb-0f68-488b-aa13-cd4032fac78e",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "406"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 05:18:45 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=g9Uaw5M0u3PPjbEMDrIBe_M4YmMOwXhBed1unBCyR_8; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "a652e7f2-e0b4-48c8-80f9-0f77e2b28770"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              77,
+              68,
+              81,
+              105,
+              76,
+              67,
+              74,
+              113,
+              100,
+              71,
+              107,
+              105,
+              79,
+              105,
+              73,
+              120,
+              78,
+              122,
+              89,
+              120,
+              78,
+              67,
+              73,
+              115,
+              73,
+              110,
+              74,
+              118,
+              98,
+              67,
+              73,
+              54,
+              77,
+              83,
+              119,
+              105,
+              90,
+              88,
+              104,
+              119,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              53,
+              78,
+              68,
+              99,
+              52,
+              77,
+              122,
+              73,
+              49,
+              76,
+              67,
+              74,
+              112,
+              89,
+              88,
+              81,
+              105,
+              79,
+              106,
+              69,
+              51,
+              79,
+              68,
+              107,
+              48,
+              78,
+              68,
+              107,
+              49,
+              77,
+              106,
+              86,
+              57,
+              46,
+              90,
+              118,
+              76,
+              48,
+              56,
+              49,
+              87,
+              70,
+              122,
+              99,
+              104,
+              99,
+              114,
+              106,
+              121,
+              67,
+              119,
+              100,
+              79,
+              105,
+              114,
+              113,
+              72,
+              83,
+              74,
+              54,
+              49,
+              97,
+              45,
+              68,
+              119,
+              87,
+              52,
+              66,
+              90,
+              80,
+              116,
+              82,
+              112,
+              104,
+              107,
+              51,
+              111,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 879,
+          "responseSize": 406
+        },
+        "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+        "assertions": [
+          {
+            "assertion": "Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f157f4ed-e85e-4be1-b0a9-518d2b297b73",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "252e819b-e858-4804-a290-f1c5a8c18dee"
+        },
+        "item": {
+          "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+          "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_lote}}",
+                "eventos",
+                "crecimiento"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+                "type": "text/javascript",
+                "exec": [
+                  "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                  "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                  "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+                ],
+                "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "300",
+              "eventos",
+              "crecimiento"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzYxNCIsInJvbCI6MSwiZXhwIjoxNzg5NDc4MzI1LCJpYXQiOjE3ODk0NDk1MjV9.ZvL081WFzchcrjyCwdOirqHSJ61a-DwW4BZPtRphk3o"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2384c990-8d87-4a01-b670-2bf234a5cc1d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "207",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=g9Uaw5M0u3PPjbEMDrIBe_M4YmMOwXhBed1unBCyR_8",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-15T05:17:46.012Z\"\n}"
+          }
+        },
+        "response": {
+          "id": "588ad9b9-4f74-4cfe-91d4-5742696c252c",
+          "status": "Internal Server Error",
+          "code": 500,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "202"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 05:18:45 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "c5923ca4-7124-4c65-ba9b-57ca1995d97a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              82,
+              82,
+              79,
+              82,
+              95,
+              73,
+              78,
+              84,
+              69,
+              82,
+              78,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              79,
+              99,
+              117,
+              114,
+              114,
+              105,
+              195,
+              179,
+              32,
+              117,
+              110,
+              32,
+              101,
+              114,
+              114,
+              111,
+              114,
+              32,
+              105,
+              110,
+              116,
+              101,
+              114,
+              110,
+              111,
+              46,
+              32,
+              73,
+              110,
+              116,
+              101,
+              110,
+              116,
+              97,
+              32,
+              100,
+              101,
+              32,
+              110,
+              117,
+              101,
+              118,
+              111,
+              59,
+              32,
+              115,
+              105,
+              32,
+              101,
+              108,
+              32,
+              112,
+              114,
+              111,
+              98,
+              108,
+              101,
+              109,
+              97,
+              32,
+              112,
+              101,
+              114,
+              115,
+              105,
+              115,
+              116,
+              101,
+              44,
+              32,
+              99,
+              111,
+              110,
+              116,
+              97,
+              99,
+              116,
+              97,
+              32,
+              97,
+              108,
+              32,
+              101,
+              113,
+              117,
+              105,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              115,
+              111,
+              112,
+              111,
+              114,
+              116,
+              101,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              53,
+              84,
+              48,
+              53,
+              58,
+              49,
+              56,
+              58,
+              52,
+              53,
+              46,
+              56,
+              51,
+              57,
+              54,
+              48,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 151,
+          "responseSize": 202
+        },
+        "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+        "assertions": [
+          {
+            "assertion": "Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)",
+              "message": "expected [ 200, 201 ] to include 500",
+              "stack": "AssertionError: expected [ 200, 201 ] to include 500\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7f280c9b-2aec-4d9c-8e06-16873cb43282",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d8202120-0d23-49a0-a3e3-f41cb7f51b99"
+        },
+        "item": {
+          "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+          "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "id_activo_biologico",
+                  "value": "{{id_lote}}"
+                },
+                {
+                  "key": "rf_origen",
+                  "value": "RF40"
+                },
+                {
+                  "key": "resultado",
+                  "value": "EXITOSO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.total_registros).to.be.above(0);",
+                  "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                  "    var res = pm.response.json();",
+                  "    var audit = res.registros[0];",
+                  "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                  "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                  "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                  "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                  "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                  "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                  "});"
+                ],
+                "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "auditoria"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "id_activo_biologico",
+                "value": "300"
+              },
+              {
+                "key": "rf_origen",
+                "value": "RF40"
+              },
+              {
+                "key": "resultado",
+                "value": "EXITOSO"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "10"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQiLCJqdGkiOiIxNzYxNCIsInJvbCI6MSwiZXhwIjoxNzg5NDc4MzI1LCJpYXQiOjE3ODk0NDk1MjV9.ZvL081WFzchcrjyCwdOirqHSJ61a-DwW4BZPtRphk3o"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "4602169b-bf46-4623-b3a8-c90dcc043155",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=g9Uaw5M0u3PPjbEMDrIBe_M4YmMOwXhBed1unBCyR_8",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "b3c427ad-5561-46c6-a987-2c75e67b01e9",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "98"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Tue, 15 Sep 2026 05:18:45 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "3e48d29e-e4f3-4096-bf58-8192de03fe01"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              48,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 115,
+          "responseSize": 98
+        },
+        "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+        "assertions": [
+          {
+            "assertion": "Código HTTP esperado: 200 OK al consultar auditoría",
+            "skipped": false
+          },
+          {
+            "assertion": "Existe al menos un registro de auditoría para el evento de crecimiento",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "Existe al menos un registro de auditoría para el evento de crecimiento",
+              "message": "expected +0 to be above +0",
+              "stack": "AssertionError: expected +0 to be above +0\n   at Object.eval sandbox-script.js:2:3)"
+            }
+          },
+          {
+            "assertion": "El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO",
+            "skipped": false,
+            "error": {
+              "name": "TypeError",
+              "index": 2,
+              "test": "El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO",
+              "message": "Cannot read properties of undefined (reading 'rf_origen')",
+              "stack": "TypeError: Cannot read properties of undefined (reading 'rf_origen')\n   at Object.eval sandbox-script.js:3:3)"
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 706
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)",
+          "message": "expected [ 200, 201 ] to include 500",
+          "stack": "AssertionError: expected [ 200, 201 ] to include 500\n   at Object.eval sandbox-script.js:1:2)",
+          "checksum": "36652d74400dd16ef7a5c22ee09a2f99",
+          "id": "0e89e7fd-6341-476c-927e-2738e227df55",
+          "timestamp": 1789449526189,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 2,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+          "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_lote}}",
+                "eventos",
+                "crecimiento"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+                "type": "text/javascript",
+                "exec": [
+                  "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                  "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                  "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+                ],
+                "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-203-auditoria-crecimiento"
+          },
+          "item": [
+            {
+              "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+              "name": "0. Iniciar sesión como Administrador",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5bab2e70-2bb7-4b77-a4b5-5f3801a62716",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.token).to.be.a('string');",
+                      "    pm.collectionVariables.set('jwt_token', res.token);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "83fbb977-b21f-4570-b6c1-913f0696aec2"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+              "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_lote}}",
+                    "eventos",
+                    "crecimiento"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                      "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                      "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+                    ],
+                    "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                      "    pm.expect([200, 201]).to.include(pm.response.code);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+              "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_activo_biologico",
+                      "value": "{{id_lote}}"
+                    },
+                    {
+                      "key": "rf_origen",
+                      "value": "RF40"
+                    },
+                    {
+                      "key": "resultado",
+                      "value": "EXITOSO"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "10"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.total_registros).to.be.above(0);",
+                      "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                      "});",
+                      "",
+                      "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                      "    var res = pm.response.json();",
+                      "    var audit = res.registros[0];",
+                      "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                      "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                      "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                      "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                      "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                      "});"
+                    ],
+                    "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "string",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "string",
+              "value": "",
+              "key": "jwt_token"
+            },
+            {
+              "type": "string",
+              "value": "130",
+              "key": "id_lote"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-203-auditoria-crecimiento",
+            "name": "TC-M02-203 - Registro de auditoría tras evento CRECIMIENTO válido (RF-36 / RF-52)",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Prueba de aceptación para RF-36 y RF-52: Registrar un evento de crecimiento válido y verificar la generación de la entrada de auditoría correspondiente con resultado EXITOSO.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "f157f4ed-e85e-4be1-b0a9-518d2b297b73",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "252e819b-e858-4804-a290-f1c5a8c18dee",
+          "scriptId": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+          "execution": "cc64c767-e915-408f-9716-b7ec90374425"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 1,
+          "test": "Existe al menos un registro de auditoría para el evento de crecimiento",
+          "message": "expected +0 to be above +0",
+          "stack": "AssertionError: expected +0 to be above +0\n   at Object.eval sandbox-script.js:2:3)",
+          "checksum": "5285e9b751bcdb65c52c4eb429e7fff8",
+          "id": "cf5220e2-94d3-4297-8371-b7b9d0f9622a",
+          "timestamp": 1789449526401,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 2,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:1 in test-script",
+        "source": {
+          "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+          "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "id_activo_biologico",
+                  "value": "{{id_lote}}"
+                },
+                {
+                  "key": "rf_origen",
+                  "value": "RF40"
+                },
+                {
+                  "key": "resultado",
+                  "value": "EXITOSO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.total_registros).to.be.above(0);",
+                  "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                  "    var res = pm.response.json();",
+                  "    var audit = res.registros[0];",
+                  "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                  "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                  "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                  "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                  "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                  "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                  "});"
+                ],
+                "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-203-auditoria-crecimiento"
+          },
+          "item": [
+            {
+              "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+              "name": "0. Iniciar sesión como Administrador",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5bab2e70-2bb7-4b77-a4b5-5f3801a62716",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.token).to.be.a('string');",
+                      "    pm.collectionVariables.set('jwt_token', res.token);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "83fbb977-b21f-4570-b6c1-913f0696aec2"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+              "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_lote}}",
+                    "eventos",
+                    "crecimiento"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                      "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                      "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+                    ],
+                    "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                      "    pm.expect([200, 201]).to.include(pm.response.code);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+              "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_activo_biologico",
+                      "value": "{{id_lote}}"
+                    },
+                    {
+                      "key": "rf_origen",
+                      "value": "RF40"
+                    },
+                    {
+                      "key": "resultado",
+                      "value": "EXITOSO"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "10"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.total_registros).to.be.above(0);",
+                      "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                      "});",
+                      "",
+                      "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                      "    var res = pm.response.json();",
+                      "    var audit = res.registros[0];",
+                      "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                      "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                      "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                      "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                      "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                      "});"
+                    ],
+                    "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "string",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "string",
+              "value": "",
+              "key": "jwt_token"
+            },
+            {
+              "type": "string",
+              "value": "130",
+              "key": "id_lote"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-203-auditoria-crecimiento",
+            "name": "TC-M02-203 - Registro de auditoría tras evento CRECIMIENTO válido (RF-36 / RF-52)",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Prueba de aceptación para RF-36 y RF-52: Registrar un evento de crecimiento válido y verificar la generación de la entrada de auditoría correspondiente con resultado EXITOSO.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "7f280c9b-2aec-4d9c-8e06-16873cb43282",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d8202120-0d23-49a0-a3e3-f41cb7f51b99",
+          "scriptId": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+          "execution": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+        }
+      },
+      {
+        "error": {
+          "name": "TypeError",
+          "index": 2,
+          "test": "El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO",
+          "message": "Cannot read properties of undefined (reading 'rf_origen')",
+          "stack": "TypeError: Cannot read properties of undefined (reading 'rf_origen')\n   at Object.eval sandbox-script.js:3:3)",
+          "checksum": "5754e1e8c9bfe3d550e5405ee4f479c5",
+          "id": "93b8ec9f-b236-492d-a999-089f2ba99d8f",
+          "timestamp": 1789449526402,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 3,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 3,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:2 in test-script",
+        "source": {
+          "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+          "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "id_activo_biologico",
+                  "value": "{{id_lote}}"
+                },
+                {
+                  "key": "rf_origen",
+                  "value": "RF40"
+                },
+                {
+                  "key": "resultado",
+                  "value": "EXITOSO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.total_registros).to.be.above(0);",
+                  "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                  "    var res = pm.response.json();",
+                  "    var audit = res.registros[0];",
+                  "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                  "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                  "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                  "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                  "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                  "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                  "});"
+                ],
+                "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-203-auditoria-crecimiento"
+          },
+          "item": [
+            {
+              "id": "19de245b-0e46-4bde-9228-30d8bbb12912",
+              "name": "0. Iniciar sesión como Administrador",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "5bab2e70-2bb7-4b77-a4b5-5f3801a62716",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.token).to.be.a('string');",
+                      "    pm.collectionVariables.set('jwt_token', res.token);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "83fbb977-b21f-4570-b6c1-913f0696aec2"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "124dbb3f-584c-47b3-b834-726255b3797d",
+              "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_lote}}",
+                    "eventos",
+                    "crecimiento"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "0721d6bf-b227-4b7a-a135-83f593c8b818",
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Corrección 2026-09-15: margen de seguridad de 60s hacia atrás para evitar rechazo por clock skew (FECHA_FUTURA).",
+                      "const safeDate = new Date(Date.now() - 60000).toISOString();",
+                      "pm.collectionVariables.set('fecha_evento_actual', safeDate);"
+                    ],
+                    "_lastExecutionId": "02d8fc55-3010-41c4-a819-30637b054e96"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "447cfec8-2606-4f81-aaf3-baab1231fc7c",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+                      "    pm.expect([200, 201]).to.include(pm.response.code);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "cc64c767-e915-408f-9716-b7ec90374425"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "764a2f99-0438-4a69-9c51-bf875a53a00f",
+              "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_activo_biologico",
+                      "value": "{{id_lote}}"
+                    },
+                    {
+                      "key": "rf_origen",
+                      "value": "RF40"
+                    },
+                    {
+                      "key": "resultado",
+                      "value": "EXITOSO"
+                    },
+                    {
+                      "key": "pagina",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "10"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+                      "    var res = pm.response.json();",
+                      "    pm.expect(res.total_registros).to.be.above(0);",
+                      "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+                      "});",
+                      "",
+                      "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+                      "    var res = pm.response.json();",
+                      "    var audit = res.registros[0];",
+                      "    pm.expect(audit.rf_origen).to.eql('RF40');",
+                      "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+                      "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+                      "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+                      "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+                      "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
+                      "});"
+                    ],
+                    "_lastExecutionId": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "string",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "string",
+              "value": "",
+              "key": "jwt_token"
+            },
+            {
+              "type": "string",
+              "value": "130",
+              "key": "id_lote"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-203-auditoria-crecimiento",
+            "name": "TC-M02-203 - Registro de auditoría tras evento CRECIMIENTO válido (RF-36 / RF-52)",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Prueba de aceptación para RF-36 y RF-52: Registrar un evento de crecimiento válido y verificar la generación de la entrada de auditoría correspondiente con resultado EXITOSO.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "7f280c9b-2aec-4d9c-8e06-16873cb43282",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "d8202120-0d23-49a0-a3e3-f41cb7f51b99",
+          "scriptId": "7b8ba9d4-747e-4f7f-90d3-72dd00156cc6",
+          "execution": "a5601b16-3071-4ab7-9093-2fdd44d5afe7"
+        }
+      }
+    ],
+    "error": null
+  }
+}

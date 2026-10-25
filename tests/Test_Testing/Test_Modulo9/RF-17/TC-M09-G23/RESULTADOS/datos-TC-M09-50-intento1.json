@@ -1,0 +1,61 @@
+{
+  "grupo": "TC-M09-G23",
+  "rol": "Administrador",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "b6131f190e01768599f3ef5e4f9c13487cd78f68",
+  "rama": "qa/juan-esteban-m09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-05T20:14:50.052Z",
+  "preflight": [
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    }
+  ],
+  "loginStatus": 200,
+  "plan": {
+    "caso": "TC-M09-50",
+    "especie": "Cachama Blanca",
+    "variable": "Temperatura Ambiental",
+    "unidad": "°C",
+    "limitesFisicos": [
+      -50,
+      100
+    ],
+    "beforeIds": [
+      10,
+      11
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 9,
+      "valor_min": 10,
+      "valor_max": 10,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": -20,
+          "limite_superior": 10
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 10,
+          "limite_superior": 40
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 40,
+          "limite_superior": 70
+        }
+      ]
+    }
+  }
+}

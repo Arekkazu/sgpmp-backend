@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>TC-M02-G29 - Reporte Consolidado Reevaluación V2</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 40px; }
+    .container { max-width: 900px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+    h1 { color: #38bdf8; margin-top: 0; font-size: 26px; border-bottom: 2px solid #334155; padding-bottom: 12px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
+    .badge-partial { background: #fef08a; color: #854d0e; }
+    .badge-pass { background: #bbf7d0; color: #166534; }
+    .badge-fail { background: #fecaca; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
+    th { background-color: #0f172a; color: #94a3b8; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    a.report-link { color: #38bdf8; text-decoration: none; font-weight: 600; }
+    a.report-link:hover { text-decoration: underline; color: #7dd3fc; }
+    .summary-box { background: #0f172a; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #38bdf8; }
+    .footer { font-size: 13px; color: #64748b; margin-top: 28px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TC-M02-G29 · Auditoría de Activos Biológicos (RF-36 / RF-52)</h1>
+    <span class="badge badge-partial">Veredicto: PASS PARCIAL (2/3 Subcasos 100% PASS)</span>
+    <p><strong>Identificador de Corrida:</strong> G29-REEVAL-V2-20260915-000800</p>
+    <p><strong>Lote de Prueba Evaluado:</strong> ID #300 (POBLACIONAL, Especie 40 Bovino Qa Je, 100 animales)</p>
+    
+    <div class="summary-box">
+      <strong>Resumen Ejecutivo:</strong>
+      Se verificó en vivo la resolución del trigger en BD (TC-M02-204) y el cierre formal de INC-M02-41-RF52 (TC-M02-205). El subcaso TC-M02-203 se encuentra bloqueado por la migración Alembic <code>b92f7e1a4c63</code> pendiente de aplicación en PostgreSQL TEST (columna <code>modulo9.metricas_produccion.tipo_dato</code>).
+    </div>
+
+    <h2>Sub-Reportes Detallados por Subcaso (Newman HtmlExtra)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Subcaso</th>
+          <th>Operación / Requerimiento</th>
+          <th>HTTP Status</th>
+          <th>Aserciones</th>
+          <th>Reporte Individual</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>TC-M02-203</strong></td>
+          <td>Auditoría tras CRECIMIENTO</td>
+          <td><span class="badge badge-fail">500 Internal Error</span></td>
+          <td>2 / 5 PASS</td>
+          <td><a class="report-link" href="EvidenciasPorSubcaso/TC-M02-203_report.html" target="_blank">Ver Reporte HTML &rarr;</a></td>
+        </tr>
+        <tr>
+          <td><strong>TC-M02-204</strong></td>
+          <td>Auditoría tras BAJA</td>
+          <td><span class="badge badge-pass">201 Created</span></td>
+          <td>5 / 5 PASS (100%)</td>
+          <td><a class="report-link" href="EvidenciasPorSubcaso/TC-M02-204_report.html" target="_blank">Ver Reporte HTML &rarr;</a></td>
+        </tr>
+        <tr>
+          <td><strong>TC-M02-205</strong></td>
+          <td>Auditoría tras RECHAZO (PATCH biomasa)</td>
+          <td><span class="badge badge-pass">400 Bad Request</span></td>
+          <td>7 / 7 PASS (100%)</td>
+          <td><a class="report-link" href="EvidenciasPorSubcaso/TC-M02-205_report.html" target="_blank">Ver Reporte HTML &rarr;</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Evidencias Adicionales de Ejecución</h2>
+    <ul>
+      <li><a class="report-link" href="console_v2.log">Log de Consola Newman (Corrida Definitiva Lote 300)</a></li>
+      <li><a class="report-link" href="EvidenciasPorSubcaso/console_v2_intento1.log">Log de Consola Newman (Intento 1 Preliminar Lote 334)</a></li>
+      <li><a class="report-link" href="newman_summary_v2.json">Resumen Consolidado JSON de Newman</a></li>
+      <li><a class="report-link" href="TC-M02-G29_reevaluacion_V2.md">Informe Oficial Técnico en Markdown</a></li>
+    </ul>
+
+    <div class="footer">
+      Sistema de Gestión de Producción y Mantenimiento Pecuario (SGPMP) &bull; QA Testing Suite V2
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,227 @@
+{
+  "grupo": "TC-M09-G77-v2.0",
+  "caso": "TC-M09-148-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "tipo": "Seguridad — OWASP API5",
+  "runId": "run-20261007-080541",
+  "commit": "30ddd72144102a60af006b265a20cb18c1c72c85",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/",
+  "administradorDeSetup": {
+    "usado": "administador.dev@gmail.com",
+    "credencial": "[REDACTED]",
+    "ejecutaPostDeCalibracion": false,
+    "getsQueLoRequirieron": [
+      {
+        "endpoint": "/configuracion/dispositivos-iot/3",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/sensores/6/asociaciones",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      }
+    ]
+  },
+  "fixture": {
+    "origen": "oficial sensor 6 / dispositivo 3 / infraestructura 3",
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "tiene_estado": true,
+      "fecha_finalizacion": null
+    },
+    "rango": {
+      "categoria": "TEMPERATURA",
+      "min": "0.0000",
+      "max": "45.0000"
+    },
+    "valor": "22.5000"
+  },
+  "presupuesto": {
+    "postCalibracionPlanificados": 2,
+    "postCalibracionEjecutados": 2,
+    "postSetupCuentaEjecutados": 0,
+    "postRestauracionCuentaEjecutados": 0
+  },
+  "subescenarios": {
+    "productor": {
+      "subescenario": "Productor",
+      "correo": "m2m.nuevo@ejemplo.com",
+      "id_usuario": 35,
+      "estadoOriginal": "Activo",
+      "activacionTemporal": false,
+      "httpActivacion": null,
+      "ejecutado": true,
+      "motivoBloqueo": null,
+      "cuentaActivaAlProbar": true,
+      "rolAlProbar": "Productor",
+      "permisos": {
+        "accionesSobreCalibraciones": [
+          2
+        ],
+        "total": 56,
+        "permisoDeCreacionInesperado": false
+      },
+      "httpEsperado": 403,
+      "httpObtenido": 403,
+      "error_code": "ACCESO_DENEGADO",
+      "mensajeEsperado": "Acceso denegado: La calibración de sensores es una función crítica restringida exclusivamente al Ingeniero de Campo o al Administrador.",
+      "mensajeObtenido": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+      "mensajeCoincide": false,
+      "diferenciaDeMensaje": {
+        "esperado": "Acceso denegado: La calibración de sensores es una función crítica restringida exclusivamente al Ingeniero de Campo o al Administrador.",
+        "obtenido": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "nota": "comparación exacta; un mensaje genérico no es PASS"
+      },
+      "devuelveIdCalibracion": false,
+      "fechaEnviada": "2026-10-07T08:05:52.383Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "calibracionesAtribuiblesAlActor": [],
+      "historicosIntactos": true,
+      "restauracion": {
+        "necesaria": false,
+        "estadoOriginal": "Activo",
+        "estadoFinal": "Activo",
+        "restaurado": "NO APLICABA"
+      },
+      "oraculo": {
+        "cuenta_activa_al_probar": true,
+        "rol_correcto": true,
+        "http_403": true,
+        "mensaje_exacto": false,
+        "sin_id_calibracion": true,
+        "sin_persistencia": true,
+        "historicos_intactos": true,
+        "estado_restaurado": true
+      },
+      "resultado": "RECHAZADO"
+    },
+    "contador": {
+      "subescenario": "Contador",
+      "correo": "contador@pecuaria.co",
+      "id_usuario": 5,
+      "estadoOriginal": "Activo",
+      "activacionTemporal": false,
+      "httpActivacion": null,
+      "ejecutado": true,
+      "motivoBloqueo": null,
+      "cuentaActivaAlProbar": true,
+      "rolAlProbar": "Contador",
+      "permisos": {
+        "accionesSobreCalibraciones": [],
+        "total": 25,
+        "permisoDeCreacionInesperado": false
+      },
+      "httpEsperado": 403,
+      "httpObtenido": 403,
+      "error_code": "ACCESO_DENEGADO",
+      "mensajeEsperado": "Acceso denegado: La calibración de sensores es una función crítica restringida exclusivamente al Ingeniero de Campo o al Administrador.",
+      "mensajeObtenido": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+      "mensajeCoincide": false,
+      "diferenciaDeMensaje": {
+        "esperado": "Acceso denegado: La calibración de sensores es una función crítica restringida exclusivamente al Ingeniero de Campo o al Administrador.",
+        "obtenido": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "nota": "comparación exacta; un mensaje genérico no es PASS"
+      },
+      "devuelveIdCalibracion": false,
+      "fechaEnviada": "2026-10-07T08:05:53.801Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "calibracionesAtribuiblesAlActor": [],
+      "historicosIntactos": true,
+      "restauracion": {
+        "necesaria": false,
+        "estadoOriginal": "Activo",
+        "estadoFinal": "Activo",
+        "restaurado": "NO APLICABA"
+      },
+      "oraculo": {
+        "cuenta_activa_al_probar": true,
+        "rol_correcto": true,
+        "http_403": true,
+        "mensaje_exacto": false,
+        "sin_id_calibracion": true,
+        "sin_persistencia": true,
+        "historicos_intactos": true,
+        "estado_restaurado": true
+      },
+      "resultado": "RECHAZADO"
+    }
+  },
+  "resultadoCaso": "RECHAZADO",
+  "stopAll": "NO",
+  "stopAllMotivo": null,
+  "restauracionPendiente": "NO",
+  "assertions": {
+    "total": 50,
+    "failed": 2,
+    "failures": [
+      {
+        "item": "productor POST calibrar",
+        "assertion": "12. Productor — message coincide exactamente con el FA del RF",
+        "error": "expected 'Acceso denegado. Su rol no tiene perm…' to deeply equal 'Acceso denegado: La calibración de se…'"
+      },
+      {
+        "item": "contador POST calibrar",
+        "assertion": "12. Contador — message coincide exactamente con el FA del RF",
+        "error": "expected 'Acceso denegado. Su rol no tiene perm…' to deeply equal 'Acceso denegado: La calibración de se…'"
+      }
+    ]
+  }
+}

@@ -1,0 +1,262 @@
+{
+  "info": {
+    "name": "TC-M02-G71 - Auditoria de baja y baja TOTAL de lote (RF-45/RF-52, CU09)",
+    "description": "TC-M02-G71 (RF-45/RF-52, CU09), sub-casos TC-M02-258 y TC-M02-259.\n\nAmbos sub-casos ejecutan una baja TOTAL (individual y de lote respectivamente), que ya se sabe que responde 500 por el bug de orden de operaciones documentado en TC-M02-G58 (_procesar_baja_con_cierre cierra el estado del activo a BAJA ANTES de insertar el evento; el trigger trg_evento_activo_estado_valido rechaza el INSERT porque el activo ya esta en BAJA). Se ejecutan de todas formas porque el objetivo de esta ficha es otro: verificar que, a pesar de ese bug de escritura, (1) el intento SI queda auditado, y (2) el bug tambien afecta la baja TOTAL de LOTE, no solo la individual (G58 solo lo habia confirmado con INDIVIDUAL).\n\nSub-caso 1 (TC-M02-258): registrar una baja (aqui, total individual) y consultar inmediatamente GET /activos-biologicos/auditoria?rf_origen=RF45. Confirmado en vivo que el intento SI queda auditado (tipo_evento=BAJA_REGISTRO_FALLIDO, resultado=FALLIDO, rf_origen=RF45, id_usuario_responsable presente) -- el mecanismo de auditoria funciona correctamente de forma independiente al bug de escritura, igual que ya se vio para RF-42 en TC-M02-G60.\n\nHALLAZGO (gap menor, no reportado antes): la ficha pide que la bitacora incluya 'tipo de baja, fecha y motivo'. registrar_evento_baja_use_case.py solo guarda `detalle_tecnico={'error': str(exc), 'tipo_baja': dto.tipo_baja}` en el camino de fallo -- el `motivo_baja` NO queda registrado en ningun campo de la bitacora (ni `descripcion` ni `detalle_tecnico`), solo `tipo_baja` y el `timestamp_evento` (que cubre 'fecha'). Comparar con RF-43 (TC-M02-G07), donde el detalle tecnico del evento productivo si incluye mas campos utiles.\n\nSub-caso 2 (TC-M02-259, NUEVO hallazgo): baja TOTAL de un LOTE (cantidad_afectada = cantidad_actual, aqui 500) tambien responde 500 -- confirma que el bug de TC-M02-G58 no es exclusivo de activos INDIVIDUAL, aplica igual quando una baja PARCIAL de lote termina de vaciar el lote (cantidad_actual llega a 0), disparando la misma `_procesar_baja_con_cierre`. Se usa el lote ya existente id_activo_biologico=61 (Cachama POBLACIONAL, cantidad_actual=500, ver TC-M02-G61/G65) en vez de uno fresco, por el mismo problema de trg_fn_evento_fecha_coherente ya documentado (un lote creado el mismo dia nunca podria recibir un evento con fecha valida). La transaccion fallida no corrompio el lote: cantidad_actual se confirma sin cambios tras el intento.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0, 10));",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion sub-caso 1 - Registrar activo INDIVIDUAL Cachama fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g71', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cg71-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG71-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 1/2 (TC-M02-258) - Registrar baja (se sabe que fallara con 500, ver TC-M02-G58)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 1: baja total individual (se sabe que fallara con 500, TC-M02-G58) ---');",
+              "console.log(pm.response.text());",
+              "console.log('Se continua de todas formas para verificar que la auditoria registre el intento.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-258 - venta total (prueba QA de auditoria)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g71}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g71}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 2/2 (TC-M02-258) - Consultar bitacora de auditoria (RF-52)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 2: bitacora de auditoria filtrada por rf_origen=RF45 e id_activo_biologico ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: existe al menos un registro de auditoria para el intento de baja, con rf_origen=RF45, usuario responsable y tipo_baja presentes', function () {",
+              "    pm.expect(respuesta.registros.length).to.be.greaterThan(0);",
+              "    const registro = respuesta.registros[0];",
+              "    pm.expect(registro.rf_origen).to.equal('RF45');",
+              "    pm.expect(registro.id_usuario_responsable).to.not.equal(null);",
+              "    pm.expect(registro.detalle_tecnico.tipo_baja).to.equal('venta');",
+              "    pm.expect(registro.resultado).to.be.oneOf(['EXITOSO', 'FALLIDO']);",
+              "});",
+              "pm.test('HALLAZGO: el motivo_baja NO queda registrado en ningun campo de la bitacora (ni descripcion ni detalle_tecnico) -- gap menor frente a lo que pide la ficha', function () {",
+              "    const registro = respuesta.registros[0];",
+              "    const motivoEnDescripcion = registro.descripcion && registro.descripcion.includes('venta total');",
+              "    const motivoEnDetalle = JSON.stringify(registro.detalle_tecnico || {}).includes('venta total');",
+              "    pm.expect(Boolean(motivoEnDescripcion || motivoEnDetalle)).to.equal(false);",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: ' + respuesta.registros.length + ' registro(s) de auditoria encontrados. resultado=' + (respuesta.registros[0] ? respuesta.registros[0].resultado : 'N/A') + ' (FALLIDO es lo esperado mientras el bug de TC-M02-G58 siga presente; el mecanismo de auditoria en si funciona correctamente, aunque no guarda el motivo_baja).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF45&id_activo_biologico={{id_activo_g71}}&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF45" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_g71}}" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/3 (TC-M02-259) - Capturar cantidad_actual base del lote existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: se usa un lote POBLACIONAL PRE-EXISTENTE (id_activo_lote, id=61) en vez de crear uno fresco -- mismo motivo que TC-M02-G61 (trg_fn_evento_fecha_coherente impide eventos con fecha sobre un activo creado el mismo dia). ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el lote de referencia existe, esta ACTIVO y responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Precondicion: el activo es POBLACIONAL y esta ACTIVO', function () {",
+              "    pm.expect(respuesta.tipo).to.equal('POBLACIONAL');",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "});",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.collectionVariables.set('cantidad_actual_lote', respuesta.detalle_poblacional.cantidad_actual);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/3 (TC-M02-259) - Registrar baja TOTAL de lote (BUG: extiende TC-M02-G58 a POBLACIONAL)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 2: baja TOTAL de lote (cantidad_afectada = cantidad_actual) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2 (BUG): la baja total de lote responde 500 en vez de 201 -- confirma que el bug de orden de operaciones de TC-M02-G58 tambien afecta la baja TOTAL de LOTE, no solo la individual', function () {",
+              "    pm.expect(pm.response.code).to.equal(500);",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: cuando una baja de lote deja cantidad_actual=0, el use case llama _procesar_baja_con_cierre ANTES de insertar el evento -- exactamente el mismo bug de TC-M02-G58, ahora confirmado tambien para POBLACIONAL.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-259 - venta total del lote (prueba QA)\",\n  \"cantidad_afectada\": {{cantidad_actual_lote}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 3/3 (TC-M02-259) - Verificar que el lote no quedo corrompido por la transaccion fallida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 3: confirmar que el rollback preservo la integridad del lote ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta del lote responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('cantidad_actual NO cambio (rollback correcto) y el lote sigue ACTIVO', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('cantidad_actual_lote'), 10);",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.equal(antes);",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "fecha_hoy", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo_g71", "value": "" },
+    { "key": "id_activo_lote", "value": "61" },
+    { "key": "cantidad_actual_lote", "value": "" }
+  ]
+}

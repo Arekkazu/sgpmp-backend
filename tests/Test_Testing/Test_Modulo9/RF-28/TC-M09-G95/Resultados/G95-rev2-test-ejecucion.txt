@@ -1,0 +1,315 @@
+TC-M09-G95 / TC-M09-180 — ejecución rev2 TEST
+Fecha: 2026-09-25T07:32:15.563Z
+Ambiente: TEST
+Frontend: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: contador@pecuaria.co
+Rol: Contador
+Resultado general: APROBADO
+
+Pasos:
+1. Abrir login TEST
+2. Dashboard accesible
+3. Ir a /configuracion (misma navegación que G90/G95 DEV, para observar refresh)
+4. Pestaña Personalización; desplazar hasta Dashboard Personalizable
+5. Guardar configuración → PATCH
+6. Login POST /sesiones status=200
+7. token de sesión presente=true (no se registra el valor)
+8. POST /sesiones/refresh n=2 [{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh","momento":"tras-navegacion-configuracion","requestBodyKeys":[]},{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh","momento":"tras-navegacion-configuracion","requestBodyKeys":[]}]
+9. GET /configuracion/personalizacion/dashboard status=200 (última de 1)
+10. GET widgets status=200 (última de 1)
+11. Grilla: vacías=8 ocupadas=2
+12. Catálogo ya está en la grilla; se reubica widget válido Historico Humedad (id=11) a celda vacía
+13. Liberar posición actual: Quitar Historico Humedad
+14. Seleccionar widget del catálogo: Historico Humedad
+15. Colocar en celda índice destino: Colocar hist_hum (evitar el hueco original de F1)
+16. La grilla muestra Quitar Historico Humedad sin recargar
+17. PATCH /configuracion/personalizacion/dashboard status=200
+18. Camino feliz + restauración snapshot
+19. PATCH restaurar snapshot HTTP 401
+
+Login HTTP: 200
+Refresh llamadas: [
+  {
+    "status": 200,
+    "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh",
+    "momento": "tras-navegacion-configuracion",
+    "requestBodyKeys": []
+  },
+  {
+    "status": 200,
+    "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh",
+    "momento": "tras-navegacion-configuracion",
+    "requestBodyKeys": []
+  }
+]
+GET contexto: {
+  "method": "GET",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/interfaz/contexto",
+  "status": 200,
+  "requestBody": null,
+  "responseBody": {
+    "id_usuario": 5,
+    "nombre_completo": "Miguel Vargas Ospina",
+    "id_rol": 5,
+    "nombre_rol": "Contador",
+    "id_finca": 83,
+    "finca_activa": "Finca Contable",
+    "departamento": "Cundinamarca",
+    "especies_configuradas": [
+      "Ave Qa Je",
+      "Bovino",
+      "Bovino Qa Je",
+      "Cachama Blanca",
+      "Camarón Blanco",
+      "Equino",
+      "Mojarra Plateada",
+      "Tilapia",
+      "Trucha Arcoíris"
+    ],
+    "modulos_autorizados": [
+      "bitacora_auditoria_iot",
+      "bitacora_auditoria_m02",
+      "bitacora_auditoria_suministros",
+      "calidad_telemetria",
+      "contexto_interfaz",
+      "costeo_directo_suministros",
+      "dashboard_layout",
+      "especies",
+      "exportacion_datos",
+      "generacion_reportes",
+      "historial_suministros",
+      "historial_telemetria",
+      "preferencia_idioma",
+      "provision_nic41",
+      "reporte_gastos_suministros",
+      "tema_visual"
+    ],
+    "identidad_visual": null,
+    "accesibilidad": null
+  }
+}
+GET layout: {
+  "method": "GET",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/dashboard",
+  "status": 200,
+  "requestBody": null,
+  "responseBody": {
+    "id_dashboard_layout": 6,
+    "id_usuario": 5,
+    "grid": [
+      {
+        "id_widget": 10,
+        "posicion_fila": 1,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 0
+      },
+      {
+        "id_widget": 11,
+        "posicion_fila": 1,
+        "posicion_columna": 3,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 1
+      }
+    ],
+    "active_widget": [
+      "hist_temp",
+      "hist_hum"
+    ],
+    "fecha_actualizacion": "2026-09-25T07:31:00.139903Z",
+    "version_perfil": 6
+  }
+}
+GET widgets: {
+  "method": "GET",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/dashboard/widgets",
+  "status": 200,
+  "requestBody": null,
+  "responseBody": [
+    {
+      "id_widget": 10,
+      "clave": "hist_temp",
+      "nombre": "Historico Temperatura",
+      "grupo": "Historico",
+      "span_predeterminado": 2
+    },
+    {
+      "id_widget": 11,
+      "clave": "hist_hum",
+      "nombre": "Historico Humedad",
+      "grupo": "Historico",
+      "span_predeterminado": 2
+    }
+  ]
+}
+PATCH guardar: {
+  "method": "PATCH",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/dashboard",
+  "status": 200,
+  "requestBody": {
+    "layout_config": [
+      {
+        "id_widget": 10,
+        "posicion_fila": 1,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 0
+      },
+      {
+        "id_widget": 11,
+        "posicion_fila": 2,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 1
+      }
+    ],
+    "active_widget": [
+      "hist_temp",
+      "hist_hum"
+    ],
+    "version_perfil": 6
+  },
+  "responseBody": {
+    "id_dashboard_layout": 6,
+    "id_usuario": 5,
+    "grid": [
+      {
+        "id_widget": 10,
+        "posicion_fila": 1,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 0
+      },
+      {
+        "id_widget": 11,
+        "posicion_fila": 2,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 1
+      }
+    ],
+    "active_widget": [
+      "hist_temp",
+      "hist_hum"
+    ],
+    "fecha_actualizacion": "2026-09-25T07:32:24.034002Z",
+    "version_perfil": 6
+  }
+}
+PATCH restaurar snapshot: {
+  "method": "PATCH",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/dashboard",
+  "status": 401,
+  "requestBody": {
+    "layout_config": [
+      {
+        "id_widget": 10,
+        "posicion_fila": 1,
+        "posicion_columna": 1,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 0
+      },
+      {
+        "id_widget": 11,
+        "posicion_fila": 1,
+        "posicion_columna": 3,
+        "span_columnas": 2,
+        "visible": true,
+        "orden": 1
+      }
+    ],
+    "active_widget": [
+      "hist_temp",
+      "hist_hum"
+    ],
+    "version_perfil": 6
+  },
+  "responseBody": {
+    "error_code": "TOKEN_REVOCADO",
+    "message": "El token de sesión ha sido revocado o es inválido.",
+    "fields": [],
+    "timestamp": "2026-09-25T07:32:24.672782+00:00"
+  }
+}
+POST restaurar: {
+  "presente": false
+}
+
+Distribución inicial: {
+  "id_dashboard_layout": 6,
+  "id_usuario": 5,
+  "grid": [
+    {
+      "id_widget": 10,
+      "posicion_fila": 1,
+      "posicion_columna": 1,
+      "span_columnas": 2,
+      "visible": true,
+      "orden": 0
+    },
+    {
+      "id_widget": 11,
+      "posicion_fila": 1,
+      "posicion_columna": 3,
+      "span_columnas": 2,
+      "visible": true,
+      "orden": 1
+    }
+  ],
+  "active_widget": [
+    "hist_temp",
+    "hist_hum"
+  ],
+  "fecha_actualizacion": "2026-09-25T07:31:00.139903Z",
+  "version_perfil": 6
+}
+Widget colocado: Historico Humedad id=11
+Celda usada: Colocar hist_hum
+Distribución tras colocar: {
+  "id_dashboard_layout": 6,
+  "id_usuario": 5,
+  "grid": [
+    {
+      "id_widget": 10,
+      "posicion_fila": 1,
+      "posicion_columna": 1,
+      "span_columnas": 2,
+      "visible": true,
+      "orden": 0
+    },
+    {
+      "id_widget": 11,
+      "posicion_fila": 2,
+      "posicion_columna": 1,
+      "span_columnas": 2,
+      "visible": true,
+      "orden": 1
+    }
+  ],
+  "active_widget": [
+    "hist_temp",
+    "hist_hum"
+  ],
+  "fecha_actualizacion": "2026-09-25T07:32:24.034002Z",
+  "version_perfil": 6
+}
+Distribución tras restaurar: null
+Restauración: FALLO HTTP 401
+URL antes de acción: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/configuracion
+URL después de acción: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/configuracion
+performance.navigation.type antes: navigate
+performance.navigation.type después: navigate
+Recarga completa detectada: false
+
+Error: ninguno
+
+Herramienta: Cypress 14 (no Playwright). Interacción: clic catálogo + clic celda.
+No se incluye password, JWT ni cookies.

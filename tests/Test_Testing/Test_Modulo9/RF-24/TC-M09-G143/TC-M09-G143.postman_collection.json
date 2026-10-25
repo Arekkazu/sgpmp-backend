@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "TC-M09-G143 — RF-24 v2.0 / CU05 Flujo F — compuerta VISION en TEST",
+    "description": "Compuerta de ejecutabilidad de TC-M09-290 y TC-M09-291 contra el contrato desplegado en TEST. Solo lectura: un unico GET publico a /openapi.json. No autentica, no envia POST y no usa credenciales, por lo que no puede filtrar password, JWT, cookie ni cabecera Authorization.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Contrato TEST — GET /openapi.json",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/openapi.json", "host": ["{{base_url}}"], "path": ["openapi.json"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const crudo = pm.response.text();",
+              "const api = pm.response.json();",
+              "const bajo = crudo.toLowerCase();",
+              "",
+              "// 'VISION' aparece dentro de 'provision' y 'revision'. Contar la subcadena daria un",
+              "// falso positivo de ejecutabilidad, asi que se cuenta como palabra suelta.",
+              "const comoPalabra = (texto, palabra) => {",
+              "  const re = new RegExp('(?<![A-Za-zÁÉÍÓÚáéíóúÑñ])' + palabra + '(?![A-Za-zÁÉÍÓÚáéíóúÑñ])', 'gi');",
+              "  return (texto.match(re) || []).length;",
+              "};",
+              "",
+              "pm.test('El contrato de TEST responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('El contrato es un OpenAPI con rutas y esquemas', () => {",
+              "  pm.expect(Object.keys(api.paths || {}).length).to.be.above(0);",
+              "  pm.expect(Object.keys((api.components || {}).schemas || {}).length).to.be.above(0);",
+              "});",
+              "",
+              "const ocurrencias = comoPalabra(crudo, 'VISION');",
+              "const subcadenas = Array.from(new Set((bajo.match(/[a-z0-9_]*vision[a-z0-9_]*/g) || [])));",
+              "pm.collectionVariables.set('vision_palabra', String(ocurrencias));",
+              "pm.collectionVariables.set('vision_subcadenas', JSON.stringify(subcadenas));",
+              "",
+              "// Operaciones de calibracion realmente publicadas.",
+              "const opsCalibracion = [];",
+              "Object.entries(api.paths || {}).forEach(([ruta, ops]) => {",
+              "  Object.entries(ops).forEach(([metodo, op]) => {",
+              "    if (op && typeof op === 'object' && /calibrac/i.test(ruta + JSON.stringify(op))) {",
+              "      opsCalibracion.push(metodo.toUpperCase() + ' ' + ruta);",
+              "    }",
+              "  });",
+              "});",
+              "pm.collectionVariables.set('ops_calibracion', JSON.stringify(opsCalibracion.sort()));",
+              "",
+              "const dto = ((api.components || {}).schemas || {}).RegistrarCalibracionDTO || {};",
+              "const props = Object.keys(dto.properties || {});",
+              "pm.collectionVariables.set('dto_calibracion_props', JSON.stringify(props));",
+              "",
+              "pm.test('La unica calibracion publicada es la de SENSOR y no admite modo_calibracion', () => {",
+              "  pm.expect(props, 'propiedades del DTO').to.not.include('modo_calibracion');",
+              "  pm.expect(opsCalibracion.join(' '), 'operaciones de calibracion').to.include('POST /configuracion/sensores/{id_sensor}/calibrar');",
+              "});",
+              "",
+              "// Fuente formal de observaciones VISION (camara, area, ventana, aptitud).",
+              "const terminos = ['vector_comportamiento', 'ventana_observacion', 'linea_base', 'baseline', 'epsilon', 'max_iter', 'winsoriz', 'percentil', 'p95', 'refinamiento', 'convergencia', 'camara'];",
+              "const conteo = {};",
+              "terminos.forEach((t) => { conteo[t] = (bajo.split(t).length - 1); });",
+              "pm.collectionVariables.set('terminos_algoritmo', JSON.stringify(conteo));",
+              "const hayFuenteVision = terminos.some((t) => conteo[t] > 0);",
+              "",
+              "// Las dos compuertas del grupo. Fallan a proposito mientras VISION no exista: ese fallo",
+              "// ES la constancia documental del bloqueo/rechazo, no un error de la automatizacion.",
+              "pm.test('COMPUERTA TC-M09-291 — TEST publica una operacion manual VISION', () => {",
+              "  pm.expect(ocurrencias, 'ocurrencias de VISION como palabra en todo el contrato').to.be.above(0);",
+              "});",
+              "pm.test('COMPUERTA TC-M09-290 — TEST publica una fuente formal de observaciones VISION', () => {",
+              "  pm.expect(hayFuenteVision, 'algun termino de vector/linea base/algoritmo VISION').to.eql(true);",
+              "});",
+              "",
+              "// Sin operacion VISION no se envia ningun POST: ni el lote M02 de TC-290 ni el manual de",
+              "// TC-291. El paquete lo prohibe expresamente (secciones 14 y 22).",
+              "if (ocurrencias === 0 || !hayFuenteVision) { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://api.inmero.co/back-sigab-test" },
+    { "key": "vision_palabra", "value": "" },
+    { "key": "vision_subcadenas", "value": "" },
+    { "key": "ops_calibracion", "value": "" },
+    { "key": "dto_calibracion_props", "value": "" },
+    { "key": "terminos_algoritmo", "value": "" }
+  ]
+}

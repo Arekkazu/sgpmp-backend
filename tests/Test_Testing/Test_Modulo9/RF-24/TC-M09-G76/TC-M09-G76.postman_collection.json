@@ -1,0 +1,178 @@
+{
+  "info": {
+    "name": "TC-M09-G76 - RF-24 precondiciones de integridad: dispositivo inactivo y sensor fuera de su area",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-146",
+      "item": [
+        {
+          "name": "TC-M09-146 POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('El dispositivo existe y esta INACTIVO',()=>{pm.expect(c.dispositivo.id).to.be.a('number');pm.expect(c.dispositivo.es_activo,'es_activo debe ser false').to.eql(false);});",
+                  "pm.test('El sensor existe y pertenece al dispositivo enviado',()=>{pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('El valor es numerico y esta dentro del rango tecnico',()=>{pm.expect(Number.isNaN(num(p.valor_referencia))).to.eql(false);pm.expect(num(p.valor_referencia)).to.be.at.least(num(c.rangoTecnico.min));pm.expect(num(p.valor_referencia)).to.be.at.most(num(c.rangoTecnico.max));pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');});",
+                  "pm.test('El area enviada es la CORRECTA del sensor: ninguna otra invalidez',()=>{pm.expect(c.areaEnviada.esLaCorrecta).to.eql(true);pm.expect(p.id_infraestructura).to.eql(c.areaCorrecta.id_infraestructura);pm.expect(c.areaCorrecta.fecha_finalizacion,'asociacion vigente').to.eql(null);});",
+                  "pm.test('HTTP 422 segun RF-24',()=>pm.response.to.have.status(422));",
+                  "pm.test('Rechazo especifico por dispositivo inactivo',()=>{pm.expect(b.error_code).to.eql('DISPOSITIVO_INACTIVO');pm.expect(b.message.toLowerCase()).to.include('activos');pm.expect(b.message.toLowerCase()).to.include('calibrar');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','SENSOR_AREA_INVALIDA','VALOR_CALIBRACION_INVALIDO','VALOR_FUERA_DE_RANGO','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,400,404,500]);});",
+                  "pm.test('Ninguna calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-146 GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);const previos=c.historialPrevio.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql(previos);});",
+                  "pm.test('Las calibraciones historicas siguen intactas',()=>{if(!c.historialPrevio.items.length){pm.expect(c.historialPrevio.total,'sin historico previo que conservar').to.eql(0);return;}c.historialPrevio.items.forEach(prev=>{const actual=b.items.find(x=>x.id_calibracion===prev.id_calibracion);pm.expect(actual,'la calibracion '+prev.id_calibracion+' debe seguir existiendo').to.not.be.undefined;pm.expect(num(actual.valor_referencia),'valor sin alterar').to.eql(num(prev.valor_referencia));pm.expect(String(actual.fecha_calibracion),'fecha sin alterar').to.eql(String(prev.fecha_calibracion));});});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-147",
+      "item": [
+        {
+          "name": "TC-M09-147 POST calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('cuerpoEnviado'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('El dispositivo existe y esta ACTIVO',()=>{pm.expect(c.dispositivo.id).to.be.a('number');pm.expect(c.dispositivo.es_activo,'es_activo debe ser true').to.eql(true);});",
+                  "pm.test('El sensor existe y pertenece al dispositivo enviado',()=>{pm.expect(c.sensor.es_activo).to.eql(true);pm.expect(c.sensor.id_dispositivo_iot).to.eql(c.dispositivo.id);pm.expect(p.id_dispositivo_iot).to.eql(c.dispositivo.id);});",
+                  "pm.test('El valor es numerico y esta dentro del rango tecnico',()=>{pm.expect(Number.isNaN(num(p.valor_referencia))).to.eql(false);pm.expect(num(p.valor_referencia)).to.be.at.least(num(c.rangoTecnico.min));pm.expect(num(p.valor_referencia)).to.be.at.most(num(c.rangoTecnico.max));pm.expect(c.rangoTecnico.fuente).to.include('rangos-calibracion');});",
+                  "pm.test('El area correcta del sensor es conocida y su asociacion esta vigente',()=>{pm.expect(c.areaCorrecta.id_infraestructura).to.be.a('number');pm.expect(c.areaCorrecta.fecha_finalizacion).to.eql(null);});",
+                  "pm.test('El area enviada EXISTE de verdad, demostrada por GET directo',()=>{pm.expect(c.areaEnviada.existe).to.eql(true);pm.expect(c.areaEnviada.evidenciaExistencia.status,'GET del area devolvio 200').to.eql(200);pm.expect(c.areaEnviada.evidenciaExistencia.endpoint).to.include('/configuracion/infraestructuras/');});",
+                  "pm.test('El area enviada es distinta de la correcta y el sensor no esta asociado a ella',()=>{pm.expect(p.id_infraestructura).to.eql(c.areaEnviada.id_infraestructura);pm.expect(c.areaEnviada.id_infraestructura).to.not.eql(c.areaCorrecta.id_infraestructura);pm.expect(c.areasHistoricasDelSensor,'el sensor nunca estuvo asociado al area enviada').to.not.include(c.areaEnviada.id_infraestructura);});",
+                  "pm.test('HTTP 400 segun RF-24',()=>pm.response.to.have.status(400));",
+                  "pm.test('Rechazo especifico por conflicto de ubicacion sensor-area',()=>{pm.expect(b.error_code).to.eql('SENSOR_AREA_INVALIDA');const m=b.message.toLowerCase();pm.expect(m).to.include('asociado al');pm.expect(m).to.include('ubicaci');pm.expect(m).to.include(String(c.sensor.id));pm.expect(m).to.include(String(c.areaEnviada.id_infraestructura));pm.expect(b.fields.map(f=>f.field)).to.include('id_infraestructura');});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-24',()=>{pm.expect(b.error_code).to.not.be.oneOf(['DISPOSITIVO_NO_ENCONTRADO','DISPOSITIVO_INACTIVO','SENSOR_NO_ENCONTRADO','SENSOR_DISPOSITIVO_INVALIDO','VALOR_CALIBRACION_INVALIDO','VALOR_FUERA_DE_RANGO','AUDITORIA_CALIBRACION_FALLIDA','ERROR_INTERNO','VAL_ENTRADA']);pm.expect(pm.response.code).to.not.be.oneOf([201,404,422,500]);});",
+                  "pm.test('Ninguna calibracion creada',()=>{pm.expect(b).not.to.have.property('id_calibracion');pm.expect(pm.response.code).to.not.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-147 GET historial de calibraciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibraciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "pm.test('GET historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('No se creo ninguna calibracion: el historial no crecio',()=>pm.expect(b.total).to.eql(c.historialPrevio.total));",
+                  "pm.test('No aparece ningun ID nuevo atribuible al request',()=>{const ids=b.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);const previos=c.historialPrevio.items.map(x=>x.id_calibracion).sort((a,z)=>a-z);pm.expect(ids).to.eql(previos);});",
+                  "pm.test('Las calibraciones historicas siguen intactas',()=>{if(!c.historialPrevio.items.length){pm.expect(c.historialPrevio.total,'sin historico previo que conservar').to.eql(0);return;}c.historialPrevio.items.forEach(prev=>{const actual=b.items.find(x=>x.id_calibracion===prev.id_calibracion);pm.expect(actual,'la calibracion '+prev.id_calibracion+' debe seguir existiendo').to.not.be.undefined;pm.expect(num(actual.valor_referencia),'valor sin alterar').to.eql(num(prev.valor_referencia));pm.expect(String(actual.fecha_calibracion),'fecha sin alterar').to.eql(String(prev.fecha_calibracion));});});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

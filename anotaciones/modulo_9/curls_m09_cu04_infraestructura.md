@@ -72,6 +72,21 @@ Errores posibles:
 - `412` — concurrencia: otro administrador modificó los parámetros antes (FA-14)
 - `400` — heartbeat menor que frecuencia de muestreo (FA-12)
 
+**Auditoría (TC-M09-79 — verificado en BD el 2026-09-06):** cada `CREATE`/`UPDATE` sobre este
+recurso registra un snapshot antes/después en `modulo9.auditorias_configuraciones_globales`
+(ver `actualizar_configuracion_use_case.py` / `SqlAlchemyAuditoriaConfigRepository`). No existe
+endpoint REST que exponga esa tabla — se verificó con `SELECT` directo contra la BD de test tras
+correr la colección `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G37/`:
+```sql
+SELECT * FROM modulo9.auditorias_configuraciones_globales
+WHERE id_configuracion_global = <id> ORDER BY fecha_gestion DESC LIMIT 1;
+```
+Resultado confirmado: fila `id_auditoria_config=4`, `tipo_operacion=UPDATE`, `id_usuario=1`,
+`valores_anteriores={frecuencia_muestreo:60, heartbeat:120}`,
+`valores_nuevos={frecuencia_muestreo:45, heartbeat:100}` — coincide exactamente con el `PATCH`
+de la colección. RF-18 queda cerrado al 100% en lo funcional; el gap de auditoría no
+consultable vía API sigue abierto como mejora pendiente (ver `estado_M09.md`).
+
 ---
 
 ## RF-19 — Fincas (`/configuracion/fincas`)

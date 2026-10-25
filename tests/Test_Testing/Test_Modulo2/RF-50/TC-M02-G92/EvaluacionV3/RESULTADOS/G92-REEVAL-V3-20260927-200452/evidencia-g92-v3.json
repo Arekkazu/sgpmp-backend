@@ -1,0 +1,588 @@
+{
+  "grupo": "TC-M02-G92",
+  "casos": [
+    "TC-M02-154",
+    "TC-M02-159"
+  ],
+  "rf": "RF-50 / RF-51",
+  "cu": "CU12",
+  "tipo": "REEVALUACION V3",
+  "runId": "G92-REEVAL-V3-20260927-200452",
+  "environment": "TEST",
+  "fecha": "2026-09-28T01:05:03.041Z",
+  "preflight": {
+    "health": 200,
+    "contrato": {
+      "openapi": 200,
+      "datos_consolidados": true,
+      "indicadores": true,
+      "respuestas_datos_consolidados": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "429",
+        "500"
+      ],
+      "respuestas_indicadores": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500"
+      ],
+      "parametros_indicadores": [
+        "id_activo",
+        "fecha_inicio",
+        "fecha_fin",
+        "tipo_indicador",
+        "authorization"
+      ],
+      "campos_datos_consolidados": [
+        "id_activo_biologico",
+        "identificador",
+        "tipo_activo",
+        "especie",
+        "estado_actual",
+        "infraestructura_asociada",
+        "fase_productiva_activa",
+        "historial_eventos",
+        "historial_fases",
+        "historico_estados",
+        "metricas_actuales",
+        "total_registros",
+        "pagina_actual",
+        "total_paginas",
+        "registros_por_pagina",
+        "fecha_generacion"
+      ],
+      "campos_indicadores": [
+        "id_activo_biologico",
+        "tipo_activo",
+        "indicadores",
+        "advertencias"
+      ],
+      "campos_indicador": [
+        "tipo",
+        "valor",
+        "unidad",
+        "periodo_inicio",
+        "periodo_fin",
+        "variables_usadas",
+        "fecha_calculo",
+        "disponible"
+      ],
+      "put_fincas": true
+    }
+  },
+  "identidad_tecnica": {
+    "id_usuario": 111,
+    "correo_electronico": "integracion.tes@gmail.com",
+    "nombre": "Integracion MO",
+    "nombre_rol": "Integración M04",
+    "estado_cuenta": "Activo",
+    "catalogo": {
+      "id_usuario": 111,
+      "correo_electronico": "integracion.tes@gmail.com",
+      "nombre_rol": "Integración M04",
+      "estado_cuenta": "Activo"
+    },
+    "permisos_del_rol": {
+      "total": 5,
+      "read_activos_biologicos": true,
+      "scopes": {
+        "eventos": true,
+        "fases": true,
+        "estado": true,
+        "metricas": false
+      },
+      "permisos": [
+        {
+          "nombre": "integracion_leer_fincas",
+          "id_recurso": 9,
+          "id_accion": 2
+        },
+        {
+          "nombre": "integracion_leer_activos_biologicos",
+          "id_recurso": 29,
+          "id_accion": 2
+        },
+        {
+          "nombre": "m04_leer_datos_analiticos_eventos",
+          "id_recurso": 60,
+          "id_accion": 2
+        },
+        {
+          "nombre": "m04_leer_datos_analiticos_fases",
+          "id_recurso": 61,
+          "id_accion": 2
+        },
+        {
+          "nombre": "m04_leer_datos_analiticos_estado",
+          "id_recurso": 62,
+          "id_accion": 2
+        }
+      ]
+    }
+  },
+  "alcance": {
+    "activos_visibles": 29,
+    "datos_consolidados_canonica": {
+      "status": 403,
+      "error_code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+      "ms": 128
+    },
+    "datos_consolidados_tipo_autorizado": {
+      "status": 200,
+      "error_code": null,
+      "ms": 149
+    },
+    "indicadores": {
+      "status": 200,
+      "error_code": null,
+      "ms": 132
+    },
+    "alcance_sobre_el_activo": true,
+    "ve_el_activo": false,
+    "fincas_asignadas": [
+      57
+    ]
+  },
+  "fixture": {
+    "id_activo_biologico": 295,
+    "existe": true,
+    "identificador": "QAJE-DAT-COMPL",
+    "tipo": "INDIVIDUAL",
+    "nombre_estado": "ACTIVO",
+    "fecha_inicio_ciclo": "2026-06-01",
+    "id_infraestructura": 48,
+    "infraestructura": {
+      "id_infraestructura": 48,
+      "id_finca": 57
+    },
+    "id_finca": 57,
+    "total_eventos": 2,
+    "mediciones_peso": [
+      {
+        "id_eventos": 224,
+        "fecha": "2026-07-15",
+        "valor": "200.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 225,
+        "fecha": "2026-08-15",
+        "valor": "230.00",
+        "unidad": "kg"
+      }
+    ],
+    "fechas_distintas": 2,
+    "apto_154": true,
+    "apto_159": true
+  },
+  "expected": {
+    "peso_inicial": "200.00",
+    "peso_final": "230.00",
+    "fecha_inicial": "2026-07-15",
+    "fecha_final": "2026-08-15",
+    "dias": 31,
+    "total_mediciones": 2,
+    "formula": "(230.00 - 200.00) / 31",
+    "por_decimales": {
+      "2": "0.97",
+      "3": "0.968",
+      "4": "0.9677",
+      "5": "0.96774",
+      "6": "0.967742"
+    }
+  },
+  "gate": {
+    "checklist": [
+      {
+        "condicion": "TEST disponible",
+        "cumple": true
+      },
+      {
+        "condicion": "OpenAPI define ambos endpoints",
+        "cumple": true
+      },
+      {
+        "condicion": "contrato de respuesta identificable",
+        "cumple": true
+      },
+      {
+        "condicion": "la identidad suministrada autentica",
+        "cumple": true
+      },
+      {
+        "condicion": "cuenta activa",
+        "cumple": true
+      },
+      {
+        "condicion": "identidad demostrablemente tecnica de integracion",
+        "cumple": true
+      },
+      {
+        "condicion": "permiso READ sobre activos_biologicos",
+        "cumple": true
+      },
+      {
+        "condicion": "activo del fixture existe",
+        "cumple": true
+      },
+      {
+        "condicion": "finca del fixture identificada",
+        "cumple": true
+      },
+      {
+        "condicion": "alcance sobre la finca del fixture confirmado",
+        "cumple": true
+      },
+      {
+        "condicion": "el activo del fixture es alcanzable para la identidad (no 404)",
+        "cumple": true
+      },
+      {
+        "condicion": "activo con al menos 2 mediciones de peso en fechas distintas",
+        "cumple": true
+      },
+      {
+        "condicion": "periodo valido",
+        "cumple": true
+      }
+    ],
+    "comun": true,
+    "aptitud": {
+      "TC-M02-154": {
+        "ejecutable": false,
+        "motivo": "la llamada canonica responde 403 SCOPE_TIPO_DATO_NO_AUTORIZADO"
+      },
+      "TC-M02-159": {
+        "ejecutable": true,
+        "motivo": null
+      }
+    },
+    "completo": false
+  },
+  "respuestas_observadas": {
+    "00 - Login de la identidad tecnica": {
+      "status": 200,
+      "ms": 646,
+      "error_code": null,
+      "campos": [
+        "token",
+        "tipo",
+        "expira_en",
+        "message",
+        "perfil_incompleto"
+      ]
+    },
+    "01 - Identidad y rol del consumidor": {
+      "status": 200,
+      "ms": 131,
+      "error_code": null,
+      "campos": [
+        "id_usuario",
+        "nombre",
+        "apellidos",
+        "correo_electronico",
+        "tipo_identificacion",
+        "numero_identificacion",
+        "fecha_nacimiento",
+        "fecha_registro",
+        "nombre_rol",
+        "estado_cuenta",
+        "version",
+        "fincas"
+      ]
+    },
+    "02 - TC-M02-154 - Consumir API interna con modulo autorizado": {
+      "status": 403,
+      "ms": 131,
+      "error_code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+      "campos": [
+        "error_code",
+        "message",
+        "fields",
+        "timestamp"
+      ]
+    },
+    "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes": {
+      "status": 200,
+      "ms": 142,
+      "error_code": null,
+      "indicador": {
+        "tipo": "ganancia_peso",
+        "valor": "0.9677",
+        "unidad": "kg/dia",
+        "periodo_inicio": "2026-07-15",
+        "periodo_fin": "2026-08-15",
+        "variables_usadas": {
+          "peso_inicial_kg": 200,
+          "peso_final_kg": 230,
+          "dias": 31,
+          "total_mediciones": 2
+        },
+        "fecha_calculo": "2026-09-28T01:04:59.682209Z",
+        "disponible": true
+      },
+      "advertencias": [],
+      "campos": [
+        "id_activo_biologico",
+        "tipo_activo",
+        "indicadores",
+        "advertencias"
+      ]
+    }
+  },
+  "veredicto": {
+    "TC-M02-154": "BLOQUEADO",
+    "TC-M02-159": "APROBADO",
+    "TC-M02-G92": "BLOQUEADO"
+  },
+  "incidencia": "INC-M02-90-G92 / #241: la identidad tecnica ya autentica y consume RF-51, de modo que el bloqueo historico de identidad quedo superado; queda pendiente un elemento de provision de scope para completar RF-50. No se reabre como defecto funcional.",
+  "test_vs_dev": {
+    "ejecutado": false,
+    "estado": "DEV_NO_VERIFICABLE_POR_CREDENCIAL",
+    "contrato": {
+      "openapi": 200,
+      "datos_consolidados": true,
+      "indicadores": true,
+      "respuestas_datos_consolidados": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "429",
+        "500"
+      ],
+      "respuestas_indicadores": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422",
+        "500"
+      ],
+      "parametros_indicadores": [
+        "id_activo",
+        "fecha_inicio",
+        "fecha_fin",
+        "tipo_indicador",
+        "authorization"
+      ],
+      "campos_datos_consolidados": [
+        "id_activo_biologico",
+        "identificador",
+        "tipo_activo",
+        "especie",
+        "estado_actual",
+        "infraestructura_asociada",
+        "fase_productiva_activa",
+        "historial_eventos",
+        "historial_fases",
+        "historico_estados",
+        "metricas_actuales",
+        "total_registros",
+        "pagina_actual",
+        "total_paginas",
+        "registros_por_pagina",
+        "fecha_generacion"
+      ],
+      "campos_indicadores": [
+        "id_activo_biologico",
+        "tipo_activo",
+        "indicadores",
+        "advertencias"
+      ],
+      "campos_indicador": [
+        "tipo",
+        "valor",
+        "unidad",
+        "periodo_inicio",
+        "periodo_fin",
+        "variables_usadas",
+        "fecha_calculo",
+        "disponible"
+      ],
+      "put_fincas": true
+    },
+    "nota": "No se dispone de una identidad tecnica DEV conocida y autorizada; no se ensayaron credenciales."
+  },
+  "newman": {
+    "html": "newman-g92-v3.html",
+    "json": "newman-g92-v3.json",
+    "stats": {
+      "total": 26,
+      "pending": 0,
+      "failed": 4
+    },
+    "aserciones": [
+      {
+        "request": "00 - Login de la identidad tecnica",
+        "test": "00: la identidad tecnica autentica",
+        "ok": true
+      },
+      {
+        "request": "01 - Identidad y rol del consumidor",
+        "test": "01: /usuarios/me 200",
+        "ok": true
+      },
+      {
+        "request": "01 - Identidad y rol del consumidor",
+        "test": "01: es exactamente la identidad tecnica suministrada",
+        "ok": true
+      },
+      {
+        "request": "01 - Identidad y rol del consumidor",
+        "test": "01: la cuenta esta activa",
+        "ok": true
+      },
+      {
+        "request": "01 - Identidad y rol del consumidor",
+        "test": "01: el rol es una identidad tecnica de integracion",
+        "ok": true
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: HTTP 200",
+        "ok": false,
+        "detalle": "expected 403 to deeply equal 200"
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: respuesta en JSON",
+        "ok": true
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: tiempo de respuesta dentro del RNF",
+        "ok": true
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: la respuesta cumple el contrato desplegado",
+        "ok": false,
+        "detalle": "campos ausentes: expected [ 'id_activo_biologico', …(15) ] to be empty"
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: los datos corresponden al activo solicitado",
+        "ok": false,
+        "detalle": "expected undefined to deeply equal 295"
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: no expone informacion de otros activos",
+        "ok": true
+      },
+      {
+        "request": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "test": "TC-M02-154: la paginacion es coherente",
+        "ok": false,
+        "detalle": "expected undefined to deeply equal 1"
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: HTTP 200",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: tiempo de respuesta dentro del RNF",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: la respuesta cumple el contrato desplegado",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el indicador de ganancia de peso esta presente",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el indicador esta disponible",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el indicador expone los campos del contrato",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: la unidad es kg/dia",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el valor coincide con el recalculo independiente",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el periodo corresponde al rango de las mediciones",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: declara las variables utilizadas en el calculo",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el peso inicial utilizado es el de la primera medicion",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el peso final utilizado es el de la ultima medicion",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: los dias transcurridos son los reales entre mediciones",
+        "ok": true
+      },
+      {
+        "request": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "test": "TC-M02-159: el total de mediciones utilizadas es el real",
+        "ok": true
+      }
+    ]
+  },
+  "git": {
+    "frontend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "ad2b1e59bb872491bae368ae812993a3ded08d63",
+      "status": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G22/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G28/EvaluacionV3/\n?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t2"
+    },
+    "backend": {
+      "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+      "head": "91f7738667a934a4eaf3db5519a57d7cf4803b0e",
+      "status": "?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G92/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G93/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G30/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G32/EvaluacionV3/",
+      "indice": "(vacio)",
+      "head_vs_origin_test": "0\t0"
+    }
+  },
+  "seguridad": {
+    "fecha": "2026-09-28T01:07:13.540Z",
+    "archivosEscaneados": 4,
+    "archivosComprometidos": 0,
+    "hallazgos": []
+  }
+}

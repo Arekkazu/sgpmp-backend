@@ -1,0 +1,864 @@
+{
+  "info": {
+    "name": "TC-M02-G81 FASE A (TEST) - RF-48 rechazo de transferencias invalidas",
+    "description": "RF-48 / TC-M02-G81, fase de TEST compartido. TC-M02-138 (activo no ACTIVO -> 409 E-03) y TC-M02-140 (fecha futura -> 422 E-10) se ejecutan con los dos actores de RF-48: Productor (m2m.nuevo@ejemplo.com) y Administrador (admin@pecuaria.co). TC-M02-139 no genera peticion: el contrato no expone ningun campo de cantidad, por lo que la transferencia parcial no es expresable por API y el sub-caso queda BLOQUEADO (el gate contractual se verifica en SETUP). TC-M02-141 se ejecuta aparte en LOCAL AISLADO: exige fault injection, prohibido en TEST. En TEST solo se emiten peticiones de rechazo: ninguna transferencia debe persistir.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Fechas calculadas en ejecucion: evita que un valor fijo caduque o quede en el pasado.",
+          "const hoy = new Date();",
+          "const iso = (d) => d.toISOString().slice(0, 10);",
+          "const futura = new Date(hoy.getTime() + 5 * 24 * 60 * 60 * 1000);",
+          "pm.collectionVariables.set('fecha_hoy', iso(hoy));",
+          "pm.collectionVariables.set('fecha_futura', iso(futura));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI - contrato de transferencia y GATE CONTRACTUAL de TC-M02-139",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/transferencias';",
+                  "pm.test('El contrato declara POST /transferencias', () => pm.expect(spec.paths[ruta]).to.have.property('post'));",
+                  "const dto = spec.components.schemas.RegistrarTransferenciaDTO;",
+                  "const campos = Object.keys(dto.properties).sort();",
+                  "pm.test('GATE TC-M02-139: el DTO declara exactamente 4 campos, ninguno de cantidad', () => {",
+                  "  pm.expect(campos).to.eql(['fecha_transferencia', 'infraestructura_destino_id', 'infraestructura_origen_id', 'motivo_transferencia']);",
+                  "});",
+                  "pm.test('GATE TC-M02-139: no existe ningun campo para expresar transferencia parcial', () => {",
+                  "  pm.expect(norm(JSON.stringify(dto))).to.not.match(/cantidad|parcial|unidades|subconjunto/);",
+                  "});",
+                  "pm.collectionVariables.set('campos_dto', campos.join(','));",
+                  "const resp = Object.keys(spec.paths[ruta].post.responses);",
+                  "pm.collectionVariables.set('respuestas_declaradas', resp.join(','));",
+                  "pm.test('El contrato declara 409, exigido por TC-M02-138', () => pm.expect(resp).to.include('409'));",
+                  "pm.test('El contrato declara 422, exigido por TC-M02-140', () => pm.expect(resp).to.include('422'));",
+                  "pm.test('El contrato declara 500, exigido por TC-M02-141', () => pm.expect(resp).to.include('500'));",
+                  "pm.test('DISCREPANCIA DOCUMENTADA: el contrato NO declara 400 para esta ruta', () => {",
+                  "  pm.expect(resp, 'respuestas: ' + resp.join(',')).to.not.include('400');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Productor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('Productor: autentica correctamente', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_productor', t);",
+                  "pm.test('Productor: la credencial corresponde al usuario 35', () => {",
+                  "  pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('35');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('Administrador: autentica correctamente', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_admin', t);",
+                  "pm.test('Administrador: la credencial corresponde al usuario 1', () => {",
+                  "  pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('1');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A5 - El destino 51 es valido y compatible (C1/C3)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/292/transferencias/disponibles"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El listado de destinos disponibles responde 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "const d = lista.find((x) => x.id_infraestructura === 51);",
+                  "pm.test('A5: el destino 51 figura como disponible para el activo', () => pm.expect(d, 'destino ausente del listado').to.not.eql(undefined));",
+                  "pm.test('A5: el destino es compatible con la especie del activo (C1)', () => pm.expect(d.id_especie).to.eql(40));",
+                  "pm.test('A5: el destino declara capacidad suficiente (C3)', () => pm.expect(d.capacidad_maxima).to.be.above(1));",
+                  "pm.collectionVariables.set('destino_ok', 'SI');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado ANTES - activo 284",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/284/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 284 existe y es accesible (A3)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('estado_antes_284', String(b.estado_actual));",
+                  "pm.collectionVariables.set('infra_antes_284', String(b.infraestructura_asociada || b.infraestructura || ''));",
+                  "pm.test('Registrado el estado previo del activo 284', () => pm.expect(b.estado_actual).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado ANTES - activo 288",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 288 existe y es accesible (A3)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('estado_antes_288', String(b.estado_actual));",
+                  "pm.collectionVariables.set('infra_antes_288', String(b.infraestructura_asociada || b.infraestructura || ''));",
+                  "pm.test('Registrado el estado previo del activo 288', () => pm.expect(b.estado_actual).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado ANTES - activo 292",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/292/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 292 existe y es accesible (A3)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('estado_antes_292', String(b.estado_actual));",
+                  "pm.collectionVariables.set('infra_antes_292', String(b.infraestructura_asociada || b.infraestructura || ''));",
+                  "pm.test('Registrado el estado previo del activo 292', () => pm.expect(b.estado_actual).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado ANTES - activo 295",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 295 existe y es accesible (A3)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('estado_antes_295', String(b.estado_actual));",
+                  "pm.collectionVariables.set('infra_antes_295', String(b.infraestructura_asociada || b.infraestructura || ''));",
+                  "pm.test('Registrado el estado previo del activo 295', () => pm.expect(b.estado_actual).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-TC-M02-138",
+      "item": [
+        {
+          "name": "TC-M02-138 Productor - activo 284 (INACTIVO) rechazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/284/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"infraestructura_origen_id\": {{origen}},\n  \"infraestructura_destino_id\": {{destino}},\n  \"fecha_transferencia\": \"{{fecha_hoy}}\",\n  \"motivo_transferencia\": \"QA G81 TC-138 Productor - verificacion de estado no ACTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "const b = cuerpo();",
+                  "pm.test('TC-138/Productor: el destino era valido (A5 descartado)', () => pm.expect(pm.collectionVariables.get('destino_ok')).to.eql('SI'));",
+                  "pm.test('TC-138/Productor: el activo no estaba ACTIVO antes de la peticion', () => {",
+                  "  pm.expect(pm.collectionVariables.get('estado_antes_284')).to.eql('INACTIVO');",
+                  "});",
+                  "pm.test('TC-138/Productor: HTTP 409 CONFLICT', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(409));",
+                  "pm.test('TC-138/Productor: el error_code corresponde a E-03 (estado no ACTIVO)', () => {",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ACTIVO');",
+                  "});",
+                  "pm.test('TC-138/Productor: el mensaje exige estado ACTIVO', () => {",
+                  "  pm.expect(norm(String(b.message))).to.include('solo se pueden transferir activos en estado activo');",
+                  "});",
+                  "pm.test('TC-138/Productor: el rechazo NO proviene de origen, destino ni fecha', () => {",
+                  "  pm.expect(b.error_code).to.not.be.oneOf(['SIN_INFRAESTRUCTURA_ORIGEN', 'INFRAESTRUCTURA_ORIGEN_INCORRECTA', 'INFRAESTRUCTURA_DESTINO_INVALIDA', 'DESTINO_IGUAL_ORIGEN', 'VAL_ENTRADA']);",
+                  "});",
+                  "sinTransferencia('TC-138/Productor');",
+                  "pm.collectionVariables.set('http_138_productor', code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-138 Administrador - activo 288 (CERRADO) rechazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"infraestructura_origen_id\": {{origen}},\n  \"infraestructura_destino_id\": {{destino}},\n  \"fecha_transferencia\": \"{{fecha_hoy}}\",\n  \"motivo_transferencia\": \"QA G81 TC-138 Administrador - verificacion de estado no ACTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "const b = cuerpo();",
+                  "pm.test('TC-138/Administrador: el destino era valido (A5 descartado)', () => pm.expect(pm.collectionVariables.get('destino_ok')).to.eql('SI'));",
+                  "pm.test('TC-138/Administrador: el activo no estaba ACTIVO antes de la peticion', () => {",
+                  "  pm.expect(pm.collectionVariables.get('estado_antes_288')).to.eql('CERRADO');",
+                  "});",
+                  "pm.test('TC-138/Administrador: HTTP 409 CONFLICT', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(409));",
+                  "pm.test('TC-138/Administrador: el error_code corresponde a E-03 (estado no ACTIVO)', () => {",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ACTIVO');",
+                  "});",
+                  "pm.test('TC-138/Administrador: el mensaje exige estado ACTIVO', () => {",
+                  "  pm.expect(norm(String(b.message))).to.include('solo se pueden transferir activos en estado activo');",
+                  "});",
+                  "pm.test('TC-138/Administrador: el rechazo NO proviene de origen, destino ni fecha', () => {",
+                  "  pm.expect(b.error_code).to.not.be.oneOf(['SIN_INFRAESTRUCTURA_ORIGEN', 'INFRAESTRUCTURA_ORIGEN_INCORRECTA', 'INFRAESTRUCTURA_DESTINO_INVALIDA', 'DESTINO_IGUAL_ORIGEN', 'VAL_ENTRADA']);",
+                  "});",
+                  "sinTransferencia('TC-138/Administrador');",
+                  "pm.collectionVariables.set('http_138_admin', code);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-M02-140",
+      "item": [
+        {
+          "name": "TC-M02-140 Productor - activo 292 con fecha futura rechazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/292/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"infraestructura_origen_id\": {{origen}},\n  \"infraestructura_destino_id\": {{destino}},\n  \"fecha_transferencia\": \"{{fecha_futura}}\",\n  \"motivo_transferencia\": \"QA G81 TC-140 Productor - verificacion de fecha futura\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "const b = cuerpo();",
+                  "pm.test('TC-140/Productor: el activo estaba ACTIVO (aislamiento)', () => {",
+                  "  pm.expect(pm.collectionVariables.get('estado_antes_292')).to.eql('ACTIVO');",
+                  "});",
+                  "pm.test('TC-140/Productor: el destino era valido y distinto del origen (A5 descartado)', () => {",
+                  "  pm.expect(pm.collectionVariables.get('destino_ok')).to.eql('SI');",
+                  "  pm.expect(pm.collectionVariables.get('destino')).to.not.eql(pm.collectionVariables.get('origen'));",
+                  "});",
+                  "pm.test('TC-140/Productor: la fecha enviada es posterior a hoy (A6)', () => {",
+                  "  const enviada = JSON.parse(pm.request.body.raw).fecha_transferencia;",
+                  "  pm.expect(enviada).to.eql(pm.collectionVariables.get('fecha_futura'));",
+                  "  pm.expect(new Date(enviada), 'fecha enviada: ' + enviada).to.be.above(new Date(pm.collectionVariables.get('fecha_hoy')));",
+                  "});",
+                  "pm.test('TC-140/Productor: HTTP 422 UNPROCESSABLE ENTITY (ficha E-10)', () => {",
+                  "  pm.expect(code, 'obtenido HTTP ' + code).to.eql(422);",
+                  "});",
+                  "pm.test('TC-140/Productor: el codigo declarado esta entre los del contrato', () => {",
+                  "  pm.expect(String(pm.collectionVariables.get('respuestas_declaradas')).split(','), 'HTTP ' + code + ' no esta declarado').to.include(String(code));",
+                  "});",
+                  "pm.test('TC-140/Productor: la causa identificada es la fecha futura', () => {",
+                  "  pm.expect(norm(texto())).to.match(/fecha.*(no puede ser posterior|futur)/);",
+                  "});",
+                  "sinTransferencia('TC-140/Productor');",
+                  "pm.collectionVariables.set('http_140_productor', code);",
+                  "pm.collectionVariables.set('code_140_productor', String(b.error_code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-140 Administrador - activo 295 con fecha futura rechazado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"infraestructura_origen_id\": {{origen}},\n  \"infraestructura_destino_id\": {{destino}},\n  \"fecha_transferencia\": \"{{fecha_futura}}\",\n  \"motivo_transferencia\": \"QA G81 TC-140 Administrador - verificacion de fecha futura\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "const b = cuerpo();",
+                  "pm.test('TC-140/Administrador: el activo estaba ACTIVO (aislamiento)', () => {",
+                  "  pm.expect(pm.collectionVariables.get('estado_antes_295')).to.eql('ACTIVO');",
+                  "});",
+                  "pm.test('TC-140/Administrador: el destino era valido y distinto del origen (A5 descartado)', () => {",
+                  "  pm.expect(pm.collectionVariables.get('destino_ok')).to.eql('SI');",
+                  "  pm.expect(pm.collectionVariables.get('destino')).to.not.eql(pm.collectionVariables.get('origen'));",
+                  "});",
+                  "pm.test('TC-140/Administrador: la fecha enviada es posterior a hoy (A6)', () => {",
+                  "  const enviada = JSON.parse(pm.request.body.raw).fecha_transferencia;",
+                  "  pm.expect(enviada).to.eql(pm.collectionVariables.get('fecha_futura'));",
+                  "  pm.expect(new Date(enviada), 'fecha enviada: ' + enviada).to.be.above(new Date(pm.collectionVariables.get('fecha_hoy')));",
+                  "});",
+                  "pm.test('TC-140/Administrador: HTTP 422 UNPROCESSABLE ENTITY (ficha E-10)', () => {",
+                  "  pm.expect(code, 'obtenido HTTP ' + code).to.eql(422);",
+                  "});",
+                  "pm.test('TC-140/Administrador: el codigo declarado esta entre los del contrato', () => {",
+                  "  pm.expect(String(pm.collectionVariables.get('respuestas_declaradas')).split(','), 'HTTP ' + code + ' no esta declarado').to.include(String(code));",
+                  "});",
+                  "pm.test('TC-140/Administrador: la causa identificada es la fecha futura', () => {",
+                  "  pm.expect(norm(texto())).to.match(/fecha.*(no puede ser posterior|futur)/);",
+                  "});",
+                  "sinTransferencia('TC-140/Administrador');",
+                  "pm.collectionVariables.set('http_140_admin', code);",
+                  "pm.collectionVariables.set('code_140_admin', String(b.error_code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-VERIFICACION-NO-PERSISTENCIA",
+      "item": [
+        {
+          "name": "Estado DESPUES - activo 284 sin cambios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/284/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 284 sigue siendo accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El estado del activo 284 no cambio', () => {",
+                  "  pm.expect(String(b.estado_actual)).to.eql(pm.collectionVariables.get('estado_antes_284'));",
+                  "});",
+                  "pm.test('La infraestructura del activo 284 no cambio', () => {",
+                  "  pm.expect(String(b.infraestructura_asociada || b.infraestructura || '')).to.eql(pm.collectionVariables.get('infra_antes_284'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado DESPUES - activo 288 sin cambios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 288 sigue siendo accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El estado del activo 288 no cambio', () => {",
+                  "  pm.expect(String(b.estado_actual)).to.eql(pm.collectionVariables.get('estado_antes_288'));",
+                  "});",
+                  "pm.test('La infraestructura del activo 288 no cambio', () => {",
+                  "  pm.expect(String(b.infraestructura_asociada || b.infraestructura || '')).to.eql(pm.collectionVariables.get('infra_antes_288'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado DESPUES - activo 292 sin cambios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/292/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 292 sigue siendo accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El estado del activo 292 no cambio', () => {",
+                  "  pm.expect(String(b.estado_actual)).to.eql(pm.collectionVariables.get('estado_antes_292'));",
+                  "});",
+                  "pm.test('La infraestructura del activo 292 no cambio', () => {",
+                  "  pm.expect(String(b.infraestructura_asociada || b.infraestructura || '')).to.eql(pm.collectionVariables.get('infra_antes_292'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado DESPUES - activo 295 sin cambios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+                  "const texto = () => pm.response.text();",
+                  "const sinTransferencia = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no confirma ninguna transferencia', () => {",
+                  "    const b = cuerpo();",
+                  "    pm.expect(b, 'se devolvio id_movimiento').to.not.have.property('id_movimiento');",
+                  "    pm.expect(norm(texto())).to.not.include('transferencia registrada exitosamente');",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 295 sigue siendo accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El estado del activo 295 no cambio', () => {",
+                  "  pm.expect(String(b.estado_actual)).to.eql(pm.collectionVariables.get('estado_antes_295'));",
+                  "});",
+                  "pm.test('La infraestructura del activo 295 no cambio', () => {",
+                  "  pm.expect(String(b.infraestructura_asociada || b.infraestructura || '')).to.eql(pm.collectionVariables.get('infra_antes_295'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "origen",
+      "value": "48"
+    },
+    {
+      "key": "destino",
+      "value": "51"
+    }
+  ]
+}

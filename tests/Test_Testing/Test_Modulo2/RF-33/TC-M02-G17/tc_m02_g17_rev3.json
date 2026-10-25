@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "TC-M02-G17 rev3",
+    "description": "Reevaluacion TEST. No sobrescribe rev1/rev2. Mutaciones en pytest. Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_admin", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 login admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var b = {}; try { b = pm.response.json(); } catch (e) {}",
+            "if (b.token) { pm.collectionVariables.set('token_admin', b.token); }",
+            "pm.test('login registrado', function () { pm.expect(pm.response.code).to.be.a('number'); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 GET metricas especie 4",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    },
+    {
+      "name": "03 GET metricas especie 40",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=40"
+      }
+    }
+  ]
+}

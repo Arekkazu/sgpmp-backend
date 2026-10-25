@@ -14,6 +14,7 @@ rendirse y traduce el fallo a `ServiceUnavailableError`.
 import logging
 import os
 import time
+import logging
 from contextlib import contextmanager
 from datetime import timezone
 from typing import Iterator, Optional
@@ -53,8 +54,6 @@ if not DATABASE_URL:
 # falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
 # siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
 # (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
-# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
-# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
     DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
     connect_args={"options": "-c timezone=UTC"},
@@ -228,64 +227,69 @@ _PAUSA_REINTENTO = 0.5
 
 
 def _conectar_con_reintentos(db: Session) -> None:
-    """Toma la conexión del pool reintentando ante fallos transitorios.
-
-    Adelanta al inicio del request el checkout que SQLAlchemy haría en el primer
-    query, para poder distinguir "la base de datos no responde" de cualquier
-    otro fallo y traducirlo a un error de dominio.
-
-    Args:
-        db: Sesión recién creada por `SessionLocal`.
-
-    Raises:
-        ServiceUnavailableError: Si la base de datos no responde después de
-            agotar los reintentos. Código ``BD_NO_DISPONIBLE``, HTTP 503.
-    """
+    """Toma la conexión del pool reintentando ante fallos transitorios (RF-02)."""
     for intento in range(1, _MAX_REINTENTOS_CONEXION + 1):
         try:
             db.connection()
             return
         except (OperationalError, InterfaceError) as exc:
-            # Devuelve la conexión inservible al pool para que el siguiente
-            # intento saque una nueva en vez de reusar la que acaba de fallar.
             db.rollback()
             if intento == _MAX_REINTENTOS_CONEXION:
                 logger.error(
-                    "Base de datos inalcanzable tras %d intentos: %r", intento, exc
+                    "No se pudo establecer conexión tras %s intentos: %s",
+                    _MAX_REINTENTOS_CONEXION, exc,
                 )
                 raise ServiceUnavailableError(
-                    code="BD_NO_DISPONIBLE",
-                    message=(
-                        "El servicio no está disponible temporalmente. "
-                        "Intenta de nuevo en unos momentos."
-                    ),
-                    original_error=exc,
+                    "BD_NO_DISPONIBLE",
+                    "No fue posible conectar con la base de datos. Intenta más tarde.",
                 ) from exc
-            logger.warning(
-                "Reintentando conexión a la base de datos (%d/%d).",
-                intento,
-                _MAX_REINTENTOS_CONEXION,
-            )
             time.sleep(_PAUSA_REINTENTO)
 
 
 def get_db():
-    """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
+    """Generador principal de sesiones inyectado en routers."""
+    if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
+        db = SessionLocal()
+        try:
+            _conectar_con_reintentos(db)
+            yield db
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+        return
 
-    Yields:
-        Session: Sesión de base de datos activa para el request actual.
+    from src.shared.tesing_context import test_run_id_context
+    from src.shared.rollback.infraestructure.testing_sandbox import (
+        get_or_create_test_session,
+        SandboxCapacityExceeded,
+    )
+    from fastapi import HTTPException, status
 
-    Raises:
-        ServiceUnavailableError: Si la base de datos no responde al inicio del
-            request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
-    """
+    run_id = test_run_id_context.get()
+
+    if run_id:
+        test_session = None
+        try:
+            test_session = get_or_create_test_session(run_id)
+            yield test_session
+        except SandboxCapacityExceeded as e:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+        except Exception:
+            if test_session is not None:
+                try:
+                    test_session.rollback()
+                except Exception:
+                    pass
+            raise
+        return
+
     db = SessionLocal()
     try:
         _conectar_con_reintentos(db)
         yield db
     except Exception:
-        # Sin esto, una excepción a mitad de request deja la transacción abierta
-        # hasta el close(), y la sesión puede volver al pool contaminada.
         db.rollback()
         raise
     finally:

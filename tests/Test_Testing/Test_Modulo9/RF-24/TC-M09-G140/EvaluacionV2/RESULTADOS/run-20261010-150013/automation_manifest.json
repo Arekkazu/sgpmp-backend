@@ -1,0 +1,75 @@
+{
+  "run_id": "run-20261010-150013",
+  "grupo": "TC-M09-G140",
+  "alcance": "reejecucion parcial autorizada por QA: TC-M09-284 y TC-M09-285",
+  "run_anterior": "run-20261010-141449 (no modificado; mantiene TC-M09-286)",
+  "newman": "NO APLICA",
+  "nota": "los scripts no se copian dentro del RUN (§84); aquí va su SHA-256",
+  "automatizacion": [
+    {
+      "path": "EvaluacionV2/automation/test_g140_test.py",
+      "funcion": "automatización de TC-M09-284 y TC-M09-285 contra TEST",
+      "bytes": 73419,
+      "sha256": "653fcb4de51d80c16753936c65a3be9a4fb5d6a868c515da9857542c7da002d3"
+    },
+    {
+      "path": "EvaluacionV2/automation/test_g140_local.py",
+      "funcion": "automatización de TC-M09-286 en laboratorio LOCAL AISLADO",
+      "bytes": 50170,
+      "sha256": "acf02d13e196985bec97671977ff36ce5d3fb274bcc06b3a746c8aefdb58cf5e"
+    },
+    {
+      "path": "EvaluacionV2/automation/oracle_g140.py",
+      "funcion": "oráculo independiente de las tres etapas (sin imports del producto)",
+      "bytes": 15043,
+      "sha256": "15dc7efcd843bfd3049e25a5b96404a88525c45c13de3fa75f14c3a298c52d25"
+    },
+    {
+      "path": "EvaluacionV2/automation/docker-compose.g140-local.yml",
+      "funcion": "definición del laboratorio LOCAL AISLADO",
+      "bytes": 5511,
+      "sha256": "f153c8e12addfda8e87bb0c7d2a1f90682daffa9d01d6b7cd0fef742440e360d"
+    },
+    {
+      "path": "EvaluacionV2/automation/init-roles.g140-local.sql",
+      "funcion": "roles que las migraciones esperan en el laboratorio",
+      "bytes": 838,
+      "sha256": "7223ebd352e53ed9752c4f836f518babf8fc285fbf939e227d96cac993a95122"
+    }
+  ],
+  "artefactos_resultados": [
+    {
+      "archivo": "backend-local.log",
+      "bytes": 2437,
+      "sha256": "a376b48a752f81b38f5164a841fc660ff090098191ed17b06cbaa45d7c7a3c0d"
+    },
+    {
+      "archivo": "evidencia-local.json",
+      "bytes": 26545,
+      "sha256": "94dfa08960d1faca7cb999a3ef95d58f81632ff166bc0d7675f9d5573798549b"
+    },
+    {
+      "archivo": "evidencia-test.json",
+      "bytes": 58079,
+      "sha256": "36f90de1f7bdcd287ef545a669f1ccaa6cb8c996399135058e7227c7bdef0ba1"
+    },
+    {
+      "archivo": "pytest-local.xml",
+      "bytes": 2425,
+      "sha256": "7c8c0f9df60e028e22ad33cb9717a21844784f88c2c6e87e4b6a1770a3480fd4"
+    },
+    {
+      "archivo": "pytest-test.xml",
+      "bytes": 2907,
+      "sha256": "718f3df3e2041825383a10a7a99afa8b232b0473f3e9ed533255858f69d418b8"
+    },
+    {
+      "archivo": "TC-M09-G140_reevaluacion_V2.md",
+      "bytes": 39256,
+      "sha256": "28cc266fa02e613adc9233f84d964169780aff08b27911be16707ba29921273c"
+    }
+  ],
+  "informe": "TC-M09-G140_reevaluacion_V2.md (informe unico del grupo)",
+  "execution_number_group": 3,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX"
+}

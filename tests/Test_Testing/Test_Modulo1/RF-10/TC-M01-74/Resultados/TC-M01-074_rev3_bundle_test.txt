@@ -1,0 +1,20 @@
+TC-M01-074 rev3 — fragmento del bundle TEST (sin secretos)
+Archivo: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/assets/index-Bt1RUmdB.js
+Fecha: 2026-10-04
+
+function T0e(){
+  r=Ht();  /* Ht() = useOnlineStatus */
+  ...
+  Q({
+    variant:"secondary",
+    onClick:O,
+    loading:g,
+    disabled:!r||o||g||a===0,
+    title:r?void 0:e("auditoriapage.exportar_requiere_conexion")
+  })
+  !r && Alert warning exportar_requiere_conexion
+}
+
+Ht(): useState(navigator.onLine) + addEventListener online/offline.
+
+No se extrae JWT ni contraseñas.

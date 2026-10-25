@@ -1,0 +1,591 @@
+{
+  "grupo": "TC-M09-G75-v2.0",
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo D",
+  "runId": "run-20261007-072226",
+  "commit": "ERROR: Command failed: git rev-parse HEAD\nfatal: not a git repository (or any of the parent directories): .git\n",
+  "ambiente": {
+    "decisorio": "TEST",
+    "base_url": "https://api.inmero.co/back-sigab-test"
+  },
+  "carpeta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/",
+  "actor": {
+    "id_usuario": 4,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "credencial": "[REDACTED]"
+  },
+  "administradorAuxiliar": {
+    "usado": "administador.dev@gmail.com",
+    "getsQueLoRequirieron": [
+      {
+        "endpoint": "/configuracion/dispositivos-iot/3",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      },
+      {
+        "endpoint": "/configuracion/sensores/6/asociaciones",
+        "statusConIngeniero": 404,
+        "motivo": "fuera del alcance del Ingeniero"
+      }
+    ],
+    "ejecutaPostFuncional": false
+  },
+  "fixture": {
+    "origenFixture": "oficial 3/6/3",
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true,
+      "id_infraestructura_propia": 1,
+      "fuenteLectura": "Administrador"
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3,
+      "fuenteLectura": "Ingeniero"
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+      "tiene_estado": true,
+      "fecha_finalizacion": null,
+      "fuenteLectura": "Administrador"
+    }
+  },
+  "rango": {
+    "categoria": "TEMPERATURA",
+    "min": "0.0000",
+    "max": "45.0000",
+    "fuente": "GET /configuracion/sensores/rangos-calibracion"
+  },
+  "valores": {
+    "paso": "0.0001",
+    "minExacto": "0.0000",
+    "maxExacto": "45.0000",
+    "bajoInvalido": "-0.0001",
+    "altoInvalido": "45.0001"
+  },
+  "presupuestoPost": 7,
+  "postsEjecutados": 7,
+  "stopAll": "NO",
+  "stopAllMotivo": null,
+  "resultadosPorVariante": {
+    "142": {
+      "caso": "TC-M09-142-v2.0",
+      "variante": "MIN",
+      "valido": true,
+      "ejecutado": true,
+      "http": 201,
+      "valorEnviado": "0.0000",
+      "tipoJsonDelValor": "number",
+      "observaciones": "QA TC-M09-142-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:35.282Z",
+      "historialPre": {
+        "total": 3,
+        "ids": [
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 4,
+        "ids": [
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [
+        13
+      ],
+      "id_calibracion": 13,
+      "registroPersistido": {
+        "id_calibracion": 13,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": "0.0000",
+        "ganancia": "1.0000",
+        "offset": "0.0000",
+        "fecha_calibracion": "2026-10-07T07:22:35.282000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142-v2.0"
+      },
+      "oraculo": {
+        "http_2xx": true,
+        "id_nuevo": true,
+        "valor_exacto": true,
+        "id_dispositivo_iot": true,
+        "id_sensor": true,
+        "id_usuario": true,
+        "observaciones": true,
+        "fecha_mismo_instante": true,
+        "persistido_en_historial": true
+      },
+      "inmutabilidadDeValidasPrevias": [],
+      "resultado": "PASS"
+    },
+    "143": {
+      "caso": "TC-M09-143-v2.0",
+      "variante": "MAX",
+      "valido": true,
+      "ejecutado": true,
+      "http": 201,
+      "valorEnviado": "45.0000",
+      "tipoJsonDelValor": "number",
+      "observaciones": "QA TC-M09-143-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:35.877Z",
+      "historialPre": {
+        "total": 4,
+        "ids": [
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [
+        14
+      ],
+      "id_calibracion": 14,
+      "registroPersistido": {
+        "id_calibracion": 14,
+        "id_dispositivo_iot": 3,
+        "id_sensor": 6,
+        "valor_referencia": "45.0000",
+        "ganancia": "1.0000",
+        "offset": "45.0000",
+        "fecha_calibracion": "2026-10-07T07:22:35.877000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143-v2.0"
+      },
+      "oraculo": {
+        "http_2xx": true,
+        "id_nuevo": true,
+        "valor_exacto": true,
+        "id_dispositivo_iot": true,
+        "id_sensor": true,
+        "id_usuario": true,
+        "observaciones": true,
+        "fecha_mismo_instante": true,
+        "persistido_en_historial": true
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "PASS"
+    },
+    "144_low": {
+      "caso": "TC-M09-144-v2.0",
+      "variante": "LOW",
+      "valido": false,
+      "ejecutado": true,
+      "http": 400,
+      "valorEnviado": "-0.0001",
+      "tipoJsonDelValor": "number",
+      "observaciones": "QA TC-M09-144-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:36.483Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "error_code": "VALOR_FUERA_DE_RANGO",
+      "mensajeEsperado": "Valor fuera de límites: El ajuste de -0.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+      "mensajeObtenido": "El ajuste de -0.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+      "mensajeCoincide": false,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true
+      },
+      "diferenciaDeMensaje": {
+        "esperado": "Valor fuera de límites: El ajuste de -0.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+        "obtenido": "El ajuste de -0.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+        "nota": "comparación exacta; no se acepta un mensaje aproximado"
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        },
+        {
+          "variante": "143",
+          "id_calibracion": 14,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "FAIL"
+    },
+    "144_high": {
+      "caso": "TC-M09-144-v2.0",
+      "variante": "HIGH",
+      "valido": false,
+      "ejecutado": true,
+      "http": 400,
+      "valorEnviado": "45.0001",
+      "tipoJsonDelValor": "number",
+      "observaciones": "QA TC-M09-144-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:37.108Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "error_code": "VALOR_FUERA_DE_RANGO",
+      "mensajeEsperado": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+      "mensajeObtenido": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+      "mensajeCoincide": false,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true
+      },
+      "diferenciaDeMensaje": {
+        "esperado": "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.",
+        "obtenido": "El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.",
+        "nota": "comparación exacta; no se acepta un mensaje aproximado"
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        },
+        {
+          "variante": "143",
+          "id_calibracion": 14,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "FAIL"
+    },
+    "145_empty": {
+      "caso": "TC-M09-145-v2.0",
+      "variante": "EMPTY",
+      "valido": false,
+      "ejecutado": true,
+      "http": 400,
+      "valorEnviado": "",
+      "tipoJsonDelValor": "string",
+      "observaciones": "QA TC-M09-145-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:37.689Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "error_code": "VALOR_CALIBRACION_INVALIDO",
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada ''.",
+      "mensajeObtenido": "El valor de referencia debe ser un número decimal válido.",
+      "mensajeCoincide": false,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true
+      },
+      "diferenciaDeMensaje": {
+        "esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada ''.",
+        "obtenido": "El valor de referencia debe ser un número decimal válido.",
+        "nota": "comparación exacta; no se acepta un mensaje aproximado"
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        },
+        {
+          "variante": "143",
+          "id_calibracion": 14,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "FAIL"
+    },
+    "145_null": {
+      "caso": "TC-M09-145-v2.0",
+      "variante": "NULL",
+      "valido": false,
+      "ejecutado": true,
+      "http": 400,
+      "valorEnviado": null,
+      "tipoJsonDelValor": "null",
+      "observaciones": "QA TC-M09-145-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:38.295Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "error_code": "VALOR_CALIBRACION_INVALIDO",
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'null'.",
+      "mensajeObtenido": "El valor de referencia debe ser un número decimal válido.",
+      "mensajeCoincide": false,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true
+      },
+      "diferenciaDeMensaje": {
+        "esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'null'.",
+        "obtenido": "El valor de referencia debe ser un número decimal válido.",
+        "nota": "comparación exacta; no se acepta un mensaje aproximado"
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        },
+        {
+          "variante": "143",
+          "id_calibracion": 14,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "FAIL"
+    },
+    "145_abc": {
+      "caso": "TC-M09-145-v2.0",
+      "variante": "ABC",
+      "valido": false,
+      "ejecutado": true,
+      "http": 400,
+      "valorEnviado": "abc",
+      "tipoJsonDelValor": "string",
+      "observaciones": "QA TC-M09-145-v2.0",
+      "fechaEnviada": "2026-10-07T07:22:38.903Z",
+      "historialPre": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "historialPost": {
+        "total": 5,
+        "ids": [
+          14,
+          13,
+          12,
+          11,
+          10
+        ]
+      },
+      "idsNuevos": [],
+      "error_code": "VALOR_CALIBRACION_INVALIDO",
+      "mensajeEsperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'abc'.",
+      "mensajeObtenido": "El valor de referencia debe ser un número decimal válido.",
+      "mensajeCoincide": false,
+      "oraculo": {
+        "http_400": true,
+        "mensaje_exacto": false,
+        "sin_persistencia": true,
+        "total_sin_cambios": true
+      },
+      "diferenciaDeMensaje": {
+        "esperado": "Error de formato: El valor de referencia debe ser un número decimal válido. Verifique la entrada 'abc'.",
+        "obtenido": "El valor de referencia debe ser un número decimal válido.",
+        "nota": "comparación exacta; no se acepta un mensaje aproximado"
+      },
+      "inmutabilidadDeValidasPrevias": [
+        {
+          "variante": "142",
+          "id_calibracion": 13,
+          "presente": true,
+          "intacta": true
+        },
+        {
+          "variante": "143",
+          "id_calibracion": 14,
+          "presente": true,
+          "intacta": true
+        }
+      ],
+      "resultado": "FAIL"
+    }
+  },
+  "resultadosPorCaso": {
+    "TC-M09-142-v2.0": {
+      "variantes": [
+        {
+          "etiqueta": "MIN",
+          "resultado": "PASS"
+        }
+      ],
+      "resultado": "APROBADO"
+    },
+    "TC-M09-143-v2.0": {
+      "variantes": [
+        {
+          "etiqueta": "MAX",
+          "resultado": "PASS"
+        }
+      ],
+      "resultado": "APROBADO"
+    },
+    "TC-M09-144-v2.0": {
+      "variantes": [
+        {
+          "etiqueta": "LOW",
+          "resultado": "FAIL"
+        },
+        {
+          "etiqueta": "HIGH",
+          "resultado": "FAIL"
+        }
+      ],
+      "resultado": "RECHAZADO"
+    },
+    "TC-M09-145-v2.0": {
+      "variantes": [
+        {
+          "etiqueta": "EMPTY",
+          "resultado": "FAIL"
+        },
+        {
+          "etiqueta": "NULL",
+          "resultado": "FAIL"
+        },
+        {
+          "etiqueta": "ABC",
+          "resultado": "FAIL"
+        }
+      ],
+      "resultado": "RECHAZADO"
+    }
+  },
+  "resultadoGrupo": "RECHAZADO",
+  "assertions": {
+    "total": 100,
+    "failed": 5,
+    "failures": [
+      {
+        "item": "144_low POST calibrar",
+        "assertion": "TC-M09-144-v2.0 LOW — message coincide exactamente con el esperado del RF",
+        "error": "expected 'El ajuste de -0.0001 excede los rango…' to deeply equal 'Valor fuera de límites: El ajuste de …'"
+      },
+      {
+        "item": "144_high POST calibrar",
+        "assertion": "TC-M09-144-v2.0 HIGH — message coincide exactamente con el esperado del RF",
+        "error": "expected 'El ajuste de 45.0001 excede los rango…' to deeply equal 'Valor fuera de límites: El ajuste de …'"
+      },
+      {
+        "item": "145_empty POST calibrar",
+        "assertion": "TC-M09-145-v2.0 EMPTY — message coincide exactamente con el esperado del RF",
+        "error": "expected 'El valor de referencia debe ser un nú…' to deeply equal 'Error de formato: El valor de referen…'"
+      },
+      {
+        "item": "145_null POST calibrar",
+        "assertion": "TC-M09-145-v2.0 NULL — message coincide exactamente con el esperado del RF",
+        "error": "expected 'El valor de referencia debe ser un nú…' to deeply equal 'Error de formato: El valor de referen…'"
+      },
+      {
+        "item": "145_abc POST calibrar",
+        "assertion": "TC-M09-145-v2.0 ABC — message coincide exactamente con el esperado del RF",
+        "error": "expected 'El valor de referencia debe ser un nú…' to deeply equal 'Error de formato: El valor de referen…'"
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+
+TC-M02-G08 rev2 RF-33 TEST
+Coleccion: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-33\TC-M02-G08\tc_m02_g08_rev2.json
+Fecha UTC: 2026-09-14T23:43:18.6737483Z
+Un login. Password via env.
+
+
+Newman exit code: 1
+HTML: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-33\TC-M02-G08\Resultados\TC-M02-G08-rev2-Newman.html
+JSON: C:\Users\ll529\OneDrive\Documentos\integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo2\RF-33\TC-M02-G08\Resultados\TC-M02-G08-rev2.json
+
+RESUMEN REAL (esta ejecucion):
+Requests ejecutados: 6 (login, fincas, especies, infra, POST individual, POST poblacional).
+GET activo/historial/restauracion: no ejecutados (skip: no hubo ID).
+Assertions: 10 ejecutadas, 2 fallidas (ambas: POST esperado 201, obtenido 500).
+
+Precheck:
+- Login Productor HTTP 200 (un intento).
+- Finca usada: id_finca=1 (Finca Acuicola El Remanso).
+- Especie usada: id_especie=4 (Cachama Blanca, activa).
+- Infraestructura: id_infraestructura=3 (Alevinera-01, activa).
+- Body conforme al DTO (origen compra/nacimiento en minusculas; campos soporte_documental / origen_financiero).
+
+TC-M02-004: POST /activos-biologicos HTTP 500 error_code=ERROR_INTERNO. No ID. No GET activo. No GET historial.
+TC-M02-005: POST /activos-biologicos HTTP 500 error_code=ERROR_INTERNO. No ID. No GET activo. No GET historial.
+
+INC-M02-44-G08: NO se pudo verificar en su forma original (201 + historial total_registros=0).
+El registro ni siquiera llega a 201; no hay snapshot que consultar.
+
+Datos creados: ninguno evidenciado (POST no 201).
+Restauracion: no aplica.
+
+Clasificacion funcional global: RECHAZADO
+Motivo: el contrato RF-33 exige HTTP 201 en el alta; TEST responde 500 en ambos tipos.
+No se rebajo el expected 201.
+
+Contrato historial (codigo actual, no observado en esta corrida):
+GET /activos-biologicos/{id}/historial expone categoria=CREACION y detalle_especifico=json_snapshot.
+No expone tipo_evento ni version en el JSON de registros.
+El use case de registro SI llama registrar_historial(version=1, tipo_evento=CREACION) en la misma transaccion que el alta.
+
+Hallazgo de codigo vs historico: el GET historial ahora consulta modulo2.historial_activos para CREACION (Evento 0). Eso no demuestra correccion en TEST porque el POST fallo antes.
+

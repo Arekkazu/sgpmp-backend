@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G15 Rechazar comunicación no cifrada",
+    "description": "Parte Postman de TC-M03-031 (ASVS V9): envía el datagrama de ingesta por HTTP plano sin seguir redirecciones. Pasa si la conexión se rechaza o se redirige a https://, y falla si la API procesa el datagrama (cualquier respuesta con error_code o id_telemetria). Si el puerto 80 no responde, Newman reporta error de conexión: eso también es un rechazo. Usa un dispositivo inexistente (999999), así que no crea datos. Las versiones de TLS obsoletas (1.0/1.1) y HSTS se verifican en test_tc_m03_g15_canal_cifrado.py (o con testssl.sh), porque Postman no permite elegir la versión de TLS.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M03-031 - POST /iot/telemetria por HTTP plano (sin TLS)",
+      "protocolProfileBehavior": {
+        "followRedirects": false
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const redirige = [301, 302, 307, 308].includes(pm.response.code);",
+              "const destino = pm.response.headers.get('Location') || '';",
+              "pm.test('TC-M03-031: HTTP plano se rechaza o redirige a HTTPS', function () {",
+              "  pm.expect(redirige ? destino.startsWith('https://') : pm.response.code >= 400, 'HTTP ' + pm.response.code + ' Location=' + destino).to.eql(true);",
+              "});",
+              "pm.test('TC-M03-031: el datagrama no se procesó por el canal plano', function () {",
+              "  const cuerpo = pm.response.text();",
+              "  pm.expect(cuerpo).to.not.include('error_code');",
+              "  pm.expect(cuerpo).to.not.include('id_telemetria');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": 999999,\n  \"sensor_id\": 999999,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"TC-M03-031-CANAL-PLANO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://{{host}}/api-sgpmp-test/iot/telemetria",
+          "protocol": "http",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "iot",
+            "telemetria"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "host",
+      "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io"
+    },
+    {
+      "key": "ts_captura",
+      "value": ""
+    }
+  ]
+}

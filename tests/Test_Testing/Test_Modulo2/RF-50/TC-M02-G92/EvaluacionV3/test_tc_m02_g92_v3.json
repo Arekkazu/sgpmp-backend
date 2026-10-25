@@ -1,0 +1,223 @@
+{
+  "info": {
+    "name": "TC-M02-G92 REEVALUACION V3 — TC-M02-154 (RF-50) y TC-M02-159 (RF-51) — CU12",
+    "description": "Consumo de los endpoints analiticos de M02 por una identidad tecnica de integracion autorizada. Precondiciones: identidad exacta suministrada, cuenta activa, rol tecnico, permiso READ sobre activos_biologicos y alcance sobre la finca del fixture. Oraculo: TC-M02-154 datos consolidados conforme al contrato en menos de 5 s; TC-M02-159 indicador de ganancia diaria de peso disponible, con el valor recalculado de forma independiente a partir de las mediciones reales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Login de la identidad tecnica",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"integracion.tes@gmail.com\",\n  \"contrasena\": \"{{clave_tecnica}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('00: la identidad tecnica autentica', () => pm.response.to.have.status(200));",
+              "const t = pm.response.json().token;",
+              "pm.expect(Boolean(t), 'token emitido').to.eql(true);",
+              "pm.collectionVariables.set('token_tecnico', t);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Identidad y rol del consumidor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tecnico}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('01: /usuarios/me 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('01: es exactamente la identidad tecnica suministrada', () => pm.expect(b.correo_electronico).to.eql(pm.collectionVariables.get('email_tecnico')));",
+              "pm.test('01: la cuenta esta activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+              "pm.test('01: el rol es una identidad tecnica de integracion', () => pm.expect(norm(b.nombre_rol), 'rol: ' + b.nombre_rol).to.include('integracion'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tecnico}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/datos-consolidados?tipo_dato=todos&pagina=1&page_size=20"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-154: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('TC-M02-154: respuesta en JSON', () => pm.expect(String(pm.response.headers.get('Content-Type') || '')).to.include('application/json'));",
+              "pm.test('TC-M02-154: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+              "const b = cuerpo();",
+              "const contrato = [\"id_activo_biologico\",\"identificador\",\"tipo_activo\",\"especie\",\"estado_actual\",\"infraestructura_asociada\",\"fase_productiva_activa\",\"historial_eventos\",\"historial_fases\",\"historico_estados\",\"metricas_actuales\",\"total_registros\",\"pagina_actual\",\"total_paginas\",\"registros_por_pagina\",\"fecha_generacion\"];",
+              "pm.test('TC-M02-154: la respuesta cumple el contrato desplegado', () => {",
+              "  const faltan = contrato.filter((c) => !(c in b));",
+              "  pm.expect(faltan, 'campos ausentes').to.be.an('array').that.is.empty;",
+              "});",
+              "pm.test('TC-M02-154: los datos corresponden al activo solicitado', () => {",
+              "  pm.expect(b.id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo')));",
+              "  pm.expect(b.identificador).to.eql(pm.collectionVariables.get('identificador'));",
+              "});",
+              "pm.test('TC-M02-154: no expone informacion de otros activos', () => {",
+              "  const ajenos = (b.historial_eventos || []).filter((e) => e.id_activo_biologico != null && e.id_activo_biologico !== Number(pm.collectionVariables.get('id_activo')));",
+              "  pm.expect(ajenos, 'eventos de otros activos').to.be.an('array').that.is.empty;",
+              "});",
+              "pm.test('TC-M02-154: la paginacion es coherente', () => {",
+              "  pm.expect(b.pagina_actual).to.eql(1);",
+              "  pm.expect(b.registros_por_pagina).to.eql(20);",
+              "  pm.expect(b.total_registros).to.be.at.least(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_tecnico}}"
+          }
+        ],
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-15&fecha_fin=2026-08-15"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('TC-M02-159: HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.test('TC-M02-159: tiempo de respuesta dentro del RNF', () => pm.expect(pm.response.responseTime).to.be.at.most(Number(pm.collectionVariables.get('rnf_ms'))));",
+              "const b = cuerpo();",
+              "pm.test('TC-M02-159: la respuesta cumple el contrato desplegado', () => {",
+              "  ['id_activo_biologico', 'tipo_activo', 'indicadores'].forEach((c) => pm.expect(b, 'campo ' + c).to.have.property(c));",
+              "  pm.expect(b.indicadores).to.be.an('array');",
+              "});",
+              "const g = (b.indicadores || []).find((i) => /ganancia[_ ]?peso/i.test(String(i.tipo)));",
+              "pm.test('TC-M02-159: el indicador de ganancia de peso esta presente', () => pm.expect(g, 'indicadores: ' + (b.indicadores || []).map((i) => i.tipo).join(',')).to.not.be.undefined);",
+              "pm.test('TC-M02-159: el indicador esta disponible', () => pm.expect(g.disponible).to.eql(true));",
+              "pm.test('TC-M02-159: el indicador expone los campos del contrato', () => ['tipo', 'valor', 'unidad', 'periodo_inicio', 'periodo_fin', 'variables_usadas', 'fecha_calculo', 'disponible'].forEach((c) => pm.expect(g, 'campo ' + c).to.have.property(c)));",
+              "pm.test('TC-M02-159: la unidad es kg/dia', () => pm.expect(String(g.unidad)).to.eql('kg/dia'));",
+              "pm.test('TC-M02-159: el valor coincide con el recalculo independiente', () => {",
+              "  const esperado = pm.collectionVariables.get('expected_gpd');",
+              "  pm.expect(Number(g.valor).toFixed(4), 'valor del indicador').to.eql(Number(esperado).toFixed(4));",
+              "});",
+              "pm.test('TC-M02-159: el periodo corresponde al rango de las mediciones', () => {",
+              "  pm.expect(String(g.periodo_inicio).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_inicio'));",
+              "  pm.expect(String(g.periodo_fin).slice(0, 10)).to.eql(pm.collectionVariables.get('fecha_fin'));",
+              "});",
+              "const plano = {}; const aplanar = (o, pre) => { if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (v && typeof v === 'object') aplanar(v, pre + k + '.'); else plano[(pre + k).toLowerCase()] = v; }); };",
+              "aplanar(g.variables_usadas, '');",
+              "const buscar = (re) => { const k = Object.keys(plano).find((x) => re.test(x)); return k ? plano[k] : undefined; };",
+              "pm.test('TC-M02-159: declara las variables utilizadas en el calculo', () => pm.expect(Object.keys(plano).length, 'variables_usadas: ' + JSON.stringify(g.variables_usadas)).to.be.above(0));",
+              "pm.test('TC-M02-159: el peso inicial utilizado es el de la primera medicion', () => { const v = buscar(/peso.*(inicial|ini)|inicial.*peso/); pm.expect(v, 'peso inicial en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_inicial'))); });",
+              "pm.test('TC-M02-159: el peso final utilizado es el de la ultima medicion', () => { const v = buscar(/peso.*(final|fin)|final.*peso/); pm.expect(v, 'peso final en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_peso_final'))); });",
+              "pm.test('TC-M02-159: los dias transcurridos son los reales entre mediciones', () => { const v = buscar(/dias/); pm.expect(v, 'dias en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_dias'))); });",
+              "pm.test('TC-M02-159: el total de mediciones utilizadas es el real', () => { const v = buscar(/total.*medicion|medicion.*total|n_?mediciones/); pm.expect(v, 'total de mediciones en ' + JSON.stringify(plano)).to.not.be.undefined; pm.expect(Number(v)).to.eql(Number(pm.collectionVariables.get('expected_total_mediciones'))); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "email_tecnico",
+      "value": "integracion.tes@gmail.com"
+    },
+    {
+      "key": "id_activo",
+      "value": "295"
+    },
+    {
+      "key": "identificador",
+      "value": "QAJE-DAT-COMPL"
+    },
+    {
+      "key": "fecha_inicio",
+      "value": "2026-07-15"
+    },
+    {
+      "key": "fecha_fin",
+      "value": "2026-08-15"
+    },
+    {
+      "key": "rnf_ms",
+      "value": "5000"
+    },
+    {
+      "key": "expected_gpd",
+      "value": "0.9677"
+    },
+    {
+      "key": "expected_peso_inicial",
+      "value": "200.00"
+    },
+    {
+      "key": "expected_peso_final",
+      "value": "230.00"
+    },
+    {
+      "key": "expected_dias",
+      "value": "31"
+    },
+    {
+      "key": "expected_total_mediciones",
+      "value": "2"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+TC-M01-074 rev3 TEST — exportar auditoría sin conexión
+Fecha UTC: 2026-10-04
+Front TEST: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io (login HTTP 200, formulario visible)
+API no usada en esta corrida (Cypress no arrancó).
+Usuario previsto: admin@pecuaria.co
+Cypress: NO EJECUTADO. Faltan SGPMP_TEST_PASSWORD / CONTRASENA en el proceso del agente.
+No se usó admin.dev. No CDP. Histórico rev1/rev2 intacto.
+
+---
+ANALISIS FRONT TEST DESPLEGADO (bundle /assets/index-Bt1RUmdB.js)
+AuditoriaPage minificado T0e():
+  r = Ht()  // same pattern as useOnlineStatus: navigator.onLine + listeners online/offline
+  Exportar CSV: disabled={!r || loading || exportando || total===0}
+  title si !r: "Exportar el historial requiere conexión..."
+  Alert warning si !r (sin conexión).
+Exportación: exportarTodos() genera Blob desde respuesta de API (ya no solo CSV local de la página).
+
+Codigo local SGPMP-FRONT-END-PWA/src/auditoria/pages/AuditoriaPage.tsx AUN tiene
+  disabled={eventos.length === 0} sin useOnlineStatus.
+El ambiente de evaluacion es TEST desplegado, no ese working copy.
+
+---
+PRECONDICIONES CYPRESS
+Login no realizado (secreto de entorno ausente).
+No se inspeccionó el botón en UI.
+No hay screenshots rev3 ni mochawesome rev3.
+
+---
+CLASIFICACION DE ESTA REVISION
+BLOQUEADO — no se alcanzó a comprobar el criterio funcional en el navegador.
+No RECHAZADO (no se vio el botón offline).
+No APROBADO (el bundle sugiere corrección, pero no sustituye la aserción de UI).
+
+Para completar rev3: definir SGPMP_TEST_PASSWORD o CONTRASENA y ejecutar
+  powershell -File tests/Test_Testing/Test_Modulo1/RF-10/TC-M01-74/ejecutar_tc_m01_074_rev3.ps1
+
+Password/JWT: no presentes en evidencias.

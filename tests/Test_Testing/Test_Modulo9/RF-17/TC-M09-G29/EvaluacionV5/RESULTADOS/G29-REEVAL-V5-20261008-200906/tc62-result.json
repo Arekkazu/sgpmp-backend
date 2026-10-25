@@ -1,0 +1,570 @@
+{
+  "runId": "G29-REEVAL-V5-20261008-200906",
+  "caso": "TC-M09-62",
+  "version": "V5-reejecucion",
+  "ambiente": "TEST",
+  "inicio": "2026-10-08T20:12:01.580304+00:00",
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "tokenPersistido": false
+  },
+  "fixture": {
+    "id_especie": 4,
+    "id_variable_ambiental": 10,
+    "gateway": "SERBY-TAX-FIRMWARE"
+  },
+  "escriturasOficiales": 2,
+  "verificacionFisicaEdge": {
+    "rutaEsperada": "/var/lib/sgpmp-edge/umbrales.json",
+    "accesibleDesdeQa": false,
+    "nota": "verificacion fisica Edge no accesible desde QA: no hay acceso al sistema de archivos del Raspberry ni endpoint del producto que devuelva la configuracion efectiva en campo. No se fabrica la evidencia."
+  },
+  "parte1": {
+    "preGateway": {
+      "id": 138,
+      "es_activo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T20:09:55.296863Z",
+        "id_ultimo_heartbeat": 296,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:09:55.296863Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:12:03.770923+00:00"
+    },
+    "destinosRf17": [
+      "SERBY-TAX-FIRMWARE"
+    ],
+    "request": {
+      "metodo": "POST",
+      "ruta": "/configuracion/umbrales",
+      "cuerpo": {
+        "id_especie": 4,
+        "id_variable_ambiental": 10,
+        "valor_min": 40,
+        "valor_max": 90,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": 40,
+            "limite_superior": 70
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 70,
+            "limite_superior": 80
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 80,
+            "limite_superior": 90
+          }
+        ]
+      },
+      "cabeceras": [
+        "Authorization: <omitido>",
+        "Content-Type: application/json"
+      ],
+      "timestamp": "2026-10-08T20:13:23.348939+00:00"
+    },
+    "response": {
+      "http": 201,
+      "cuerpo": {
+        "id_umbral_ambiental": 65,
+        "id_especie": 4,
+        "id_variable_ambiental": 10,
+        "unidad_medida": "%",
+        "valor_min": "40.00",
+        "valor_max": "90.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "40.00",
+            "limite_superior": "70.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "70.00",
+            "limite_superior": "80.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "80.00",
+            "limite_superior": "90.00"
+          }
+        ],
+        "estado_sincronizacion": "APLICADA",
+        "fecha_ultima_sincronizacion": "2026-10-08T20:13:24.445890Z",
+        "motivo_fallo_sincronizacion": null
+      },
+      "duracionSegundos": 1.278,
+      "recibido": "2026-10-08T20:13:24.630283+00:00"
+    },
+    "id_umbral_ambiental": 65,
+    "umbralTrasPost": {
+      "id_umbral_ambiental": 65,
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "unidad_medida": "%",
+      "valor_min": "40.00",
+      "valor_max": "90.00",
+      "es_activo": true,
+      "fecha_actualizacion": null,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "80.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "80.00",
+          "limite_superior": "90.00"
+        }
+      ],
+      "estado_sincronizacion": "APLICADA",
+      "fecha_ultima_sincronizacion": "2026-10-08T20:13:24.445890Z",
+      "motivo_fallo_sincronizacion": null
+    },
+    "auditoria": {
+      "total": 1,
+      "items": [
+        {
+          "id_auditoria_umbral": 59,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "CREATE",
+          "valores_anteriores": null,
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "80.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "80.00",
+                "limite_superior": "90.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "90.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:13:23.536000Z"
+        }
+      ]
+    },
+    "postGateway": {
+      "id": 138,
+      "es_activo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T20:09:55.296863Z",
+        "id_ultimo_heartbeat": 296,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:09:55.296863Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:13:27.739887+00:00"
+    },
+    "estado_sincronizacion": "APLICADA",
+    "fecha_ultima_sincronizacion": "2026-10-08T20:13:24.445890Z",
+    "motivo_fallo_sincronizacion": null,
+    "oraculo": {
+      "http201": true,
+      "menosDe1Segundo": false,
+      "umbralCreado": true,
+      "valoresPersistidos40a90": true,
+      "estadoAplicada": true,
+      "fechaSincronizacionNoNula": true,
+      "sinMotivoDeFallo": true,
+      "propagacionAlGatewayUnico": true
+    },
+    "verdict": "OK_CON_OBSERVACION",
+    "observacionTiempo": {
+      "esperado": "< 1 s",
+      "medido": "1.278 s",
+      "clasificacion": "OBSERVACION, no fallo",
+      "razon": "Las reglas de resultado definen TC-M09-62 por propagacion, ACK y APLICADA. El tiempo medido es el viaje completo backend -> broker -> publicacion al Edge -> ACK_UMBRAL -> persistencia, con el Raspberry real al otro extremo; una desviacion de 0,278 s sobre la expectativa no contradice ningun criterio de correccion del RF."
+    }
+  },
+  "verdict": "APROBADO_CON_OBSERVACION",
+  "motivo": "La parte 1 (POST con Edge ONLINE) no cumplio lo esperado: menosDe1Segundo. estado_sincronizacion=APLICADA, motivo=None",
+  "patchEjecutado": false,
+  "tc63": "PENDIENTE: no se ejecuta hasta comprobar por runtime que SERBY-TAX-FIRMWARE esta realmente OFFLINE",
+  "fin": "2026-10-08T20:18:35.964042+00:00",
+  "parte2": {
+    "getPrevio": {
+      "id_umbral_ambiental": 65,
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "unidad_medida": "%",
+      "valor_min": "40.00",
+      "valor_max": "90.00",
+      "es_activo": true,
+      "fecha_actualizacion": null,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "80.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "80.00",
+          "limite_superior": "90.00"
+        }
+      ],
+      "estado_sincronizacion": "APLICADA",
+      "fecha_ultima_sincronizacion": "2026-10-08T20:13:24.445890Z",
+      "motivo_fallo_sincronizacion": null
+    },
+    "fecha_actualizacion_capturada": null,
+    "preGateway": {
+      "id": 138,
+      "es_activo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T20:14:55.760622Z",
+        "id_ultimo_heartbeat": 298,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:14:55.760622Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:18:31.593035+00:00"
+    },
+    "request": {
+      "metodo": "PATCH",
+      "ruta": "/configuracion/umbrales/65",
+      "cuerpo": {
+        "valor_min": 40,
+        "valor_max": 95,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": 40,
+            "limite_superior": 70
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 70,
+            "limite_superior": 85
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 85,
+            "limite_superior": 95
+          }
+        ],
+        "fecha_actualizacion": null
+      },
+      "cabeceras": [
+        "Authorization: <omitido>",
+        "Content-Type: application/json"
+      ],
+      "timestamp": "2026-10-08T20:18:31.593093+00:00"
+    },
+    "response": {
+      "http": 200,
+      "cuerpo": {
+        "id_umbral_ambiental": 65,
+        "id_especie": 4,
+        "id_variable_ambiental": 10,
+        "unidad_medida": "%",
+        "valor_min": "40.00",
+        "valor_max": "95.00",
+        "es_activo": true,
+        "fecha_actualizacion": "2026-10-08T20:18:31.855303Z",
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "40.00",
+            "limite_superior": "70.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "70.00",
+            "limite_superior": "85.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "85.00",
+            "limite_superior": "95.00"
+          }
+        ],
+        "estado_sincronizacion": "APLICADA",
+        "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z",
+        "motivo_fallo_sincronizacion": null
+      },
+      "duracionSegundos": 1.321,
+      "recibido": "2026-10-08T20:18:32.915045+00:00"
+    },
+    "umbralTrasPatch": {
+      "id_umbral_ambiental": 65,
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "unidad_medida": "%",
+      "valor_min": "40.00",
+      "valor_max": "95.00",
+      "es_activo": true,
+      "fecha_actualizacion": "2026-10-08T20:18:31.855303Z",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "40.00",
+          "limite_superior": "70.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "70.00",
+          "limite_superior": "85.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "85.00",
+          "limite_superior": "95.00"
+        }
+      ],
+      "estado_sincronizacion": "APLICADA",
+      "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z",
+      "motivo_fallo_sincronizacion": null
+    },
+    "auditoria": {
+      "total": 2,
+      "items": [
+        {
+          "id_auditoria_umbral": 60,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "UPDATE",
+          "valores_anteriores": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "80.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "80.00",
+                "limite_superior": "90.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "90.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "85.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "85.00",
+                "limite_superior": "95.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "95.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": "2026-10-08T20:18:31.855303+00:00",
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:18:31.848604Z"
+        },
+        {
+          "id_auditoria_umbral": 59,
+          "id_umbral_ambiental": 65,
+          "id_usuario": 104,
+          "tipo_operacion": "CREATE",
+          "valores_anteriores": null,
+          "valores_nuevos": {
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "40.00",
+                "limite_superior": "70.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "70.00",
+                "limite_superior": "80.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "80.00",
+                "limite_superior": "90.00"
+              }
+            ],
+            "es_activo": true,
+            "valor_max": "90.00",
+            "valor_min": "40.00",
+            "id_especie": 4,
+            "unidad_medida": "%",
+            "fecha_actualizacion": null,
+            "id_umbral_ambiental": 65,
+            "id_variable_ambiental": 10
+          },
+          "fecha_gestion": "2026-10-08T20:13:23.536000Z"
+        }
+      ]
+    },
+    "postGateway": {
+      "id": 138,
+      "es_activo": true,
+      "credencialMqtt": {
+        "emitida": true,
+        "habilitada": true,
+        "conectada": true,
+        "usuario": "SERBY-TAX-FIRMWARE",
+        "seriales": [
+          "SERBY-TAX-FIRMWARE",
+          "TEST-AMBIENTAL"
+        ]
+      },
+      "heartbeat": {
+        "id_estado_dispositivo_iot": 5,
+        "id_dispositivo_iot": 138,
+        "estado_actual": "ACTIVO",
+        "fecha_ultimo_contacto": "2026-10-08T20:14:55.760622Z",
+        "id_ultimo_heartbeat": 298,
+        "tiempo_sin_contacto": 0,
+        "causa_primaria": null,
+        "causas_secundarias": null,
+        "fecha_ultima_actualizacion": "2026-10-08T20:14:55.760622Z"
+      },
+      "conectada": true,
+      "clasificacion": "EDGE_ONLINE",
+      "timestamp": "2026-10-08T20:18:35.963108+00:00"
+    },
+    "estado_sincronizacion": "APLICADA",
+    "fecha_ultima_sincronizacion": "2026-10-08T20:18:32.740677Z",
+    "motivo_fallo_sincronizacion": null,
+    "oraculo": {
+      "http200": true,
+      "valoresPersistidos40a95": true,
+      "estadoAplicada": true,
+      "fechaSincronizacionNoNula": true,
+      "sinMotivoDeFallo": true,
+      "fechaSincronizacionAvanzoRespectoAlPost": true
+    },
+    "verdict": "OK"
+  },
+  "observaciones": [
+    "Tiempo de respuesta del POST 1,278 s frente a la expectativa de < 1 s. No afecta a ningun criterio de corrección del RF."
+  ],
+  "configuracionA": {
+    "id_umbral_ambiental": 65,
+    "valor_min": 40,
+    "valor_max": 95,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 40,
+        "limite_superior": 70
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 70,
+        "limite_superior": 85
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 85,
+        "limite_superior": 95
+      }
+    ],
+    "nota": "baseline aplicada y confirmada para TC-M09-63"
+  }
+}

@@ -1,0 +1,660 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G002 Edición y baja de patologías no base (inmutabilidad del id y del borrado físico)",
+    "description": "Automatiza TC-M04-003/004 (RF-64, restricciones 13 y 11) sobre /prediccion/patologias con datos propios (especie bovina y una patología no base). 003: PATCH que cambia descripción y variables e inyecta en el payload el id_patologia de una patología base: debe ignorarse (el registro editado conserva su id y version_catalogo sube en 1) o rechazarse (400/422); la patología del id inyectado no debe cambiar; y, como condición, editar una patología base se rechaza con PATOLOGIA_BASE_INMUTABLE. 004: desactivación lógica (PATCH /desactivar -> INACTIVA), intento de DELETE físico (405/501) y verificación de que el registro persiste como INACTIVA y deja de figurar entre las activas. Notas: el estado es el booleano es_activo; el PATCH de edición exige nombre, descripción y variables. Credenciales del rol veterinario en correo_veterinario/contrasena_veterinario (por defecto, el Administrador).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie bovina propia (RF-15)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Edicion Patologia {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G002\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar patología no base a editar (versión 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología creada (201)', function () { pm.response.to.have.status(201); });",
+                  "const p = pm.response.json();",
+                  "pm.collectionVariables.set('id_patologia', p.id_patologia);",
+                  "pm.collectionVariables.set('version_inicial', String(p.version_catalogo));",
+                  "pm.test('Precondición: es_base=false', function () { pm.expect(p.es_base).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Indigestion Bovina {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 16],\n  \"descripcion_clinica\": \"Cuadro digestivo del bovino con descenso de actividad y variación de temperatura corporal sostenida en el tiempo.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tomar una patología base como 'id ajeno' para el intento de mass assignment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo base responde 200', function () { pm.response.to.have.status(200); });",
+                  "const base = (pm.response.json().items || [])[0];",
+                  "pm.test('Existe al menos una patología base', function () { pm.expect(base, 'patología base').to.exist; });",
+                  "pm.collectionVariables.set('id_ajeno', String(base.id_patologia));",
+                  "pm.collectionVariables.set('ajeno_version', String(base.version_catalogo));",
+                  "pm.collectionVariables.set('ajeno_descripcion', base.descripcion_clinica);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_base=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_base",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-003 Edición con intento de mass assignment del id",
+      "item": [
+        {
+          "name": "TC-M04-003 - Editar descripción y variables enviando un id_patologia distinto en el payload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "const rechazado = pm.response.code === 400 || pm.response.code === 422;",
+                  "pm.collectionVariables.set('edicion_rechazada', String(rechazado));",
+                  "pm.test('TC-M04-003: el id_patologia del payload se ignora (200) o se rechaza (400/422)', function () {",
+                  "  pm.expect(ok || rechazado, 'HTTP ' + pm.response.code).to.eql(true);",
+                  "});",
+                  "if (ok) {",
+                  "  const p = pm.response.json();",
+                  "  pm.test('TC-M04-003: el registro editado conserva su propio id (no el del payload)', function () {",
+                  "    pm.expect(p.id_patologia).to.eql(Number(pm.collectionVariables.get('id_patologia')));",
+                  "  });",
+                  "  pm.test('TC-M04-003: version_catalogo se incrementa en 1', function () {",
+                  "    pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('version_inicial')) + 1);",
+                  "  });",
+                  "  pm.test('TC-M04-003: descripción y variables actualizadas', function () {",
+                  "    pm.expect(p.descripcion_clinica).to.eql('Cuadro digestivo del bovino con descenso marcado de actividad, taquicardia y variación de temperatura corporal sostenida.');",
+                  "    pm.expect(p.variables_sensoricas_asociadas.map(v => v.id_variable_ambiental).sort((a, b) => a - b)).to.eql([13, 14, 16]);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_patologia\": {{id_ajeno}},\n  \"nombre_patologia\": \"Indigestion Bovina {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro digestivo del bovino con descenso marcado de actividad, taquicardia y variación de temperatura corporal sostenida.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 16]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-003 - La patología referida por el id del payload no fue modificada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle de la patología base responde 200', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "pm.test('TC-M04-003: la patología del id inyectado conserva su versión y descripción', function () {",
+                  "  pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('ajeno_version')));",
+                  "  pm.expect(p.descripcion_clinica).to.eql(pm.collectionVariables.get('ajeno_descripcion'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_ajeno}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_ajeno}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-003 - Persistencia de la edición (detalle)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "if (pm.collectionVariables.get('edicion_rechazada') === 'true') {",
+                  "  pm.test('TC-M04-003 (rechazada): la patología quedó sin cambios', function () {",
+                  "    pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('version_inicial')));",
+                  "  });",
+                  "} else {",
+                  "  pm.test('TC-M04-003: la versión persistida es la incrementada', function () {",
+                  "    pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('version_inicial')) + 1);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-003 - Condición: una patología base no se puede editar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-003: editar una patología base se rechaza', function () { pm.expect(pm.response.code).to.be.oneOf([403, 409, 422]); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-003: motivo PATOLOGIA_BASE_INMUTABLE', function () { pm.expect(j.error_code).to.eql('PATOLOGIA_BASE_INMUTABLE'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_ajeno}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_ajeno}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Intento Edicion Base {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro digestivo del bovino con descenso marcado de actividad, taquicardia y variación de temperatura corporal sostenida.\",\n  \"variables_sensoricas_asociadas\": [13, 14]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-004 Desactivación lógica e intento de DELETE físico",
+      "item": [
+        {
+          "name": "TC-M04-004 - Desactivar la patología (eliminación lógica)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-004: desactivación aceptada (200)', function () { pm.response.to.have.status(200); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-004: estado INACTIVA', function () { pm.expect(j.es_activo).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}/desactivar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}",
+                "desactivar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-004 - Intento de DELETE físico sobre el recurso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-004: el borrado físico se rechaza (405/501)', function () { pm.expect(pm.response.code).to.be.oneOf([405, 501]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-004 - El registro persiste físicamente como INACTIVA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-004: el registro sigue existiendo (200)', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "pm.test('TC-M04-004: mismo id, estado INACTIVA', function () {",
+                  "  pm.expect(p.id_patologia).to.eql(Number(pm.collectionVariables.get('id_patologia')));",
+                  "  pm.expect(p.es_activo).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_patologia}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_patologia}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-004 - Ya no aparece entre las activas, sí en el catálogo completo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activas responde 200', function () { pm.response.to.have.status(200); });",
+                  "const ids = (pm.response.json().items || []).map(p => p.id_patologia);",
+                  "pm.test('TC-M04-004: la patología desactivada no figura entre las activas', function () {",
+                  "  pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('id_patologia')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_activas=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_activas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_patologia",
+      "value": ""
+    },
+    {
+      "key": "version_inicial",
+      "value": ""
+    },
+    {
+      "key": "id_ajeno",
+      "value": ""
+    },
+    {
+      "key": "ajeno_version",
+      "value": ""
+    },
+    {
+      "key": "ajeno_descripcion",
+      "value": ""
+    },
+    {
+      "key": "edicion_rechazada",
+      "value": ""
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "tc": "TC-M02-G27",
+  "titulo": "Seguridad en Activos Biológicos: Mass Assignment y BOLA (RF-36)",
+  "rf": "RF-36",
+  "fecha": "2026-09-08",
+  "corrida": "V1",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-057: Mass Assignment sobre campo inmutable cantidad_inicial (POST /activos-biologicos/130/eventos/crecimiento)",
+      "esperado": "El backend ignora o rechaza la propiedad inyectada (cantidad_inicial=500). GET confirma cantidad_inicial=5 inalterada.",
+      "obtenido": "HTTP 400 Bad Request (VAL_ENTRADA) en registro de evento. GET confirma cantidad_inicial=5 intacta.",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-058: BOLA en consulta de lote de otra granja (GET /activos-biologicos/8)",
+      "esperado": "HTTP 403 Forbidden o 404 Not Found. Ningún dato del lote ajeno de Finca 2 es expuesto al Productor.",
+      "obtenido": "HTTP 200 OK. Vulnerabilidad OWASP API1 BOLA detectada: el endpoint expuso la información completa del lote ajeno (Lote 8, Finca 2) a un usuario Productor sin asignación.",
+      "estado": "FALLA"
+    }
+  ]
+}

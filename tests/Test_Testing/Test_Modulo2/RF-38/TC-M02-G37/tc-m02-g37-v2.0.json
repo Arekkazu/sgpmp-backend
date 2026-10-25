@@ -1,0 +1,703 @@
+{
+  "info": {
+    "_postman_id": "8a2c4e1b-5f3d-4a7e-9c1b-6d2f0e9a3c4b",
+    "name": "TC-M02-G37 v2.0 - Cambios de estado validos y trazabilidad del modulo de origen (RF-38/RF-44/RF-45)",
+    "description": "v2.0: agrega la mitad de TC-069 que antes era NO EJECUTABLE (RF-38 y RF-45), ahora que TC-M02-G35 (cierre de ciclo) y TC-M02-G36 (baja) fueron confirmados corregidos. Tambien corrige la asercion de modulo_origen en TC-065a: el codigo real (cambiar_estado_use_case.py linea 54) pasa modulo_origen='MANUAL' explicitamente para RF-44 (no 'modulo2', que era la expectativa original antes de revisar el codigo). cerrar_ciclo_use_case.py y registrar_evento_baja_use_case.py pasan 'RF-38' y 'RF-45' respectivamente, cada uno vía el mismo punto único aplicar_cambio_estado().",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var hoy = new Date().toISOString().slice(0,10);",
+              "pm.collectionVariables.set('fecha_hoy_g37', hoy);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "fincas" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g37}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g37', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_finca_creada_g37', pm.response.json().id_finca); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G37-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g37}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G37\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_infraestructura_creada_g37', pm.response.json().id_infraestructura); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra el activo A de prueba (INDIVIDUAL, Cachama Blanca) - para RF-44",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g37}}\",\n  \"identificador\": \"QA-G37-ActivoA-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - activo A creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_g37', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-065a. Cambiar estado del activo A de ACTIVO a EN_TRATAMIENTO (PATCH /estado, RF-44)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g37}}/estado",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_g37}}", "estado" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy_g37}}\",\n  \"motivo_cambio\": \"Ingreso a tratamiento veterinario - QA G37\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-065a cambio de estado: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-065a - el cambio de estado responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    pm.test('TC-065a - estado_anterior es ACTIVO (1)', function () { pm.expect(b.estado_anterior).to.eql(1); });",
+              "    pm.test('TC-065a - estado_nuevo es EN_TRATAMIENTO (3)', function () { pm.expect(b.estado_nuevo).to.eql(3); });",
+              "    pm.test(\"TC-065a v2.0 - el historial registra modulo_origen='MANUAL' (corregido: cambiar_estado_use_case.py L54 pasa 'MANUAL' explicitamente para RF-44; 'modulo2' era la expectativa original antes de revisar el codigo, ver nota tecnica de la ronda 1)\", function () {",
+              "        pm.expect(b.historial.modulo_origen).to.eql('MANUAL');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-065b. Confirmar por consulta directa que el activo A quedo en EN_TRATAMIENTO",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_g37}}" ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-065b estado activo A: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-065b - se puede consultar el activo A (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-065b - el activo A quedo en estado EN_TRATAMIENTO (sincronizado por el trigger)', function () {",
+              "        pm.expect(pm.response.json().nombre_estado).to.eql('EN_TRATAMIENTO');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-065c. Control: reintentar el mismo cambio de estado (EN_TRATAMIENTO -> EN_TRATAMIENTO) debe rechazarse por redundante",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g37}}/estado",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_g37}}", "estado" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy_g37}}\",\n  \"motivo_cambio\": \"Reintento redundante - QA G37\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-065c transicion redundante: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-065c - se rechaza la transicion redundante (409 o 422)', function () {",
+              "    pm.expect([409, 422]).to.include(pm.response.code);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4. Admin registra el activo B de prueba (INDIVIDUAL, nuevo) - para RF-38 (cierre de ciclo)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g37}}\",\n  \"identificador\": \"QA-G37-ActivoB-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-4 activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-4 - activo B creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_b_g37', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5. Asignar fase productiva al activo B (POST /{id}/fases, RF-37, precondicion de RF-38)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b_g37}}/fases",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_b_g37}}", "fases" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": 4\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-5 fase activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-5 - fase productiva asignada al activo B (201)', function () { pm.response.to.have.status(201); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF38a. Cerrar ciclo del activo B (POST /{id}/cierre, RF-38) - antes bloqueado por INC-M02-102-G35, ahora corregido",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b_g37}}/cierre",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_b_g37}}", "cierre" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy_g37}}\",\n  \"motivo_cierre\": \"VENTA\",\n  \"descripcion_cierre\": \"Cierre de ciclo de prueba QA G37 (RF-38)\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF38a cierre activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF38a - el cierre de ciclo responde 200 (precondicion antes bloqueada, ver TC-M02-G35)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-069-RF38a - la respuesta confirma estado CERRADO', function () { pm.expect(pm.response.json().estado).to.eql('CERRADO'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF38b. Confirmar por consulta directa que el activo B quedo CERRADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_b_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_b_g37}}" ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF38b estado activo B: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF38b - se puede consultar el activo B (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-069-RF38b - el activo B quedo en estado CERRADO', function () { pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF38c. Consultar la bitacora de auditoria filtrando por rf_origen=RF38 y el activo B",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF38&id_activo_biologico={{id_activo_b_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF38" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_b_g37}}" }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF38c bitacora RF38: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF38c - la consulta de bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    var registros = b.registros || b.items || b.resultados || [];",
+              "    pm.test('TC-069-RF38c - existe un registro CICLO_CERRADO/EXITOSO para el activo B (RF-38 usa el mismo punto de trazabilidad que RF-44, ver cerrar_ciclo_use_case.py)', function () {",
+              "        var encontrado = registros.some(function (r) {",
+              "            return r.tipo_evento === 'CICLO_CERRADO' && r.resultado === 'EXITOSO';",
+              "        });",
+              "        pm.expect(encontrado).to.eql(true);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6. Admin registra el activo C de prueba (INDIVIDUAL, nuevo) - para RF-45 (baja)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g37}}\",\n  \"identificador\": \"QA-G37-ActivoC-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-6 activo C: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-6 - activo C creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_c_g37', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF45a. Dar de baja al activo C (POST /eventos/baja, RF-45) - antes bloqueado por INC-M02-59-G36, ahora corregido",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_c_g37}}/eventos/baja",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_c_g37}}", "eventos", "baja" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy_g37}}\",\n  \"motivo_baja\": \"Baja de prueba QA G37 (RF-45)\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF45a baja activo C: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF45a - la baja responde 201 (precondicion antes bloqueada, ver TC-M02-G36)', function () { pm.response.to.have.status(201); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF45b. Confirmar por consulta directa que el activo C quedo en BAJA",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_c_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo_c_g37}}" ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF45b estado activo C: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF45b - se puede consultar el activo C (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-069-RF45b - el activo C quedo en estado BAJA', function () { pm.expect(pm.response.json().nombre_estado).to.eql('BAJA'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069-RF45c. Consultar la bitacora de auditoria filtrando por rf_origen=RF45 y el activo C",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF45&id_activo_biologico={{id_activo_c_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF45" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_c_g37}}" }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069-RF45c bitacora RF45: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069-RF45c - la consulta de bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    var registros = b.registros || b.items || b.resultados || [];",
+              "    pm.test('TC-069-RF45c - existe un registro BAJA_REGISTRADA/EXITOSO para el activo C (RF-45 usa el mismo punto de trazabilidad que RF-44, ver registrar_evento_baja_use_case.py)', function () {",
+              "        var encontrado = registros.some(function (r) {",
+              "            return r.tipo_evento === 'BAJA_REGISTRADA' && r.resultado === 'EXITOSO';",
+              "        });",
+              "        pm.expect(encontrado).to.eql(true);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069a. Consultar la bitacora de auditoria filtrando por rf_origen=RF44 y el activo A",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF44&id_activo_biologico={{id_activo_g37}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF44" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_g37}}" }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069a bitacora RF44: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-069a - la consulta de bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    var registros = b.registros || b.items || b.resultados || [];",
+              "    pm.test('TC-069a - existe al menos un registro RF44/ESTADO_CAMBIADO exitoso para este activo', function () {",
+              "        var encontrado = registros.some(function (r) {",
+              "            return r.tipo_evento === 'ESTADO_CAMBIADO' && r.resultado === 'EXITOSO';",
+              "        });",
+              "        pm.expect(encontrado).to.eql(true);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-069b. Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [ "{{base_url}}" ],
+          "path": [ "health" ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-069b health: ' + pm.response.code);",
+              "pm.test('TC-069b - el servicio responde 200 OK', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin_test", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin_test", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "sufijo_finca_g37", "value": "" },
+    { "key": "id_finca_creada_g37", "value": "" },
+    { "key": "id_infraestructura_creada_g37", "value": "" },
+    { "key": "id_activo_g37", "value": "" },
+    { "key": "id_activo_b_g37", "value": "" },
+    { "key": "id_activo_c_g37", "value": "" },
+    { "key": "fecha_hoy_g37", "value": "" }
+  ]
+}

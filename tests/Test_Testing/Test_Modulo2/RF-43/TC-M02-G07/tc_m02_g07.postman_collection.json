@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "TC-M02-G07 - Inmutabilidad, auditoria y RBAC en evento productivo (RF-43/RF-52/RF-04, CU09)",
+    "description": "TC-M02-G07 (RF-43/RF-52/RF-04, CU09), sub-casos TC-M02-248 y TC-M02-249.\n\nSub-caso 1 (TC-M02-248, auditoria en evento EXITOSO): NO se prueba en vivo -- registrar un evento productivo con exito requiere una fase productiva activa (E-02), y TC-M02-G61 confirmo que POST /activos-biologicos/{id}/fases (RF-37) responde 500 siempre, asi que ningun activo puede llegar a tener fase activa hoy en TEST. Ademas, revisando registrar_evento_productivo_use_case.py se confirma que bitacora_repo.registrar() SOLO se llama dentro del bloque try/except que envuelve la persistencia real (linea ~198 en adelante) -- un rechazo temprano por SIN_FASE_PRODUCTIVA_ACTIVA (o cualquier otra validacion anterior) NUNCA llega a auditarse, exitoso o no. Se verifica con Pytest y dobles de prueba (test_tc_m02_248_249_auditoria_y_rbac.py) que, una vez el evento se persiste con exito, la bitacora SI se registra con rf_origen=RF43, tipo_evento=EVENTO_PRODUCTIVO_REGISTRADO, resultado=EXITOSO, usuario responsable, y detalle con tipo_producto/cantidad -- tal como exige la ficha.\n\nSub-caso 2 (TC-M02-249, rechazo RBAC) SI se prueba en vivo -- la verificacion de permisos (require_permission, recurso 29 accion 1) es una dependencia de FastAPI que se ejecuta ANTES del endpoint/use case, asi que no depende de RF-37 en absoluto. Se usa la cuenta Contador (contador@pecuaria.co, id_rol=5), que segun anotaciones/modulo_2/cu02_gaps_bd_rf35_rf37.md NO tiene ningun permiso sobre el recurso 29 (activos_biologicos).\n\nHALLAZGO (discrepancia ficha vs implementacion): la ficha espera que 'el intento quede registrado en auditoria' tras el 403. Se confirma en vivo (leyendo src/shared/rbac.py:require_permission) que la funcion NO registra nada en ninguna tabla de auditoria al rechazar -- lanza AuthorizationError directamente, sin efectos secundarios. El unico rastro es un log de texto plano via AccessLogMiddleware (src/shared/middlewares.py), no consultable por API ni persistido en una tabla de auditoria de negocio. Esta coleccion lo confirma consultando GET /activos-biologicos/auditoria antes y despues del intento rechazado: el conteo de registros para el activo no cambia.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional / Seguridad. Herramienta: API - Postman (Newman) / Pytest [parte 1 de 2].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/4 - Baseline: consultar auditoria RF43 del activo ANTES del intento",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Baseline: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.collectionVariables.set('conteo_auditoria_antes', respuesta.registros.length);",
+              "    console.log('Conteo baseline de registros RF43 para el activo: ' + respuesta.registros.length);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_admin}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF43&id_activo_biologico={{id_activo_rbac}}&page_size=50",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF43" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_rbac}}" },
+            { "key": "page_size", "value": "50" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/4 - Iniciar sesion como Contador (sin permiso sobre activos_biologicos)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: inicio de sesion del Contador exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_contador', respuesta.token);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{contador_correo}}\",\n  \"contrasena\": \"{{contador_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 3/4 (TC-M02-249) - Rechazar evento productivo por RBAC (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 403', function () { pm.response.to.have.status(403); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio ACCESO_DENEGADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_contador}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_rbac}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_rbac}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 4/4 (BUG/HALLAZGO) - Confirmar que el intento rechazado NO quedo en auditoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Comparando conteo de auditoria RF43 antes vs despues del rechazo RBAC ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('HALLAZGO: el conteo de registros de auditoria NO cambio -- el intento rechazado por RBAC no quedo registrado, contrario a lo que espera la ficha', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('conteo_auditoria_antes'), 10);",
+              "    pm.expect(respuesta.registros.length).to.equal(antes);",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: require_permission() (src/shared/rbac.py) lanza AuthorizationError directamente sin ningun efecto secundario de auditoria -- confirmado en vivo. El unico rastro es un log de texto plano (AccessLogMiddleware), no consultable por API.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_admin}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF43&id_activo_biologico={{id_activo_rbac}}&page_size=50",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF43" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_rbac}}" },
+            { "key": "page_size", "value": "50" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "contador_correo", "value": "contador@pecuaria.co" },
+    { "key": "contador_contrasena", "value": "Test1234!" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_contador", "value": "" },
+    { "key": "id_activo_rbac", "value": "80" },
+    { "key": "conteo_auditoria_antes", "value": "" }
+  ]
+}

@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "TC-M04-G016 - Flujo funcional completo end-to-end y seleccion de modelo por categoria de especie (RF-66 CA-1 / CA-3)",
+    "description": "Subcasos: (1) TC-M04-01 paquete completo y valido a traves de las 8 fases: 10 campos, <=2000 ms, persistencia inmutable. (2) TC-M04-02 seleccion del modelo segun la categoria de tamano (Pequena/Mediana/Grande). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_inferencia",
+      "value": "/prediccion/inferencias"
+    },
+    {
+      "key": "id_lote",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_grande",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_mediana",
+      "value": "2"
+    },
+    {
+      "key": "id_activo_pequena",
+      "value": "3"
+    },
+    {
+      "key": "tipo_modelo_grande",
+      "value": "MODELO_ESPECIES_GRANDES"
+    },
+    {
+      "key": "tipo_modelo_mediana",
+      "value": "MODELO_ESPECIES_MEDIANAS"
+    },
+    {
+      "key": "tipo_modelo_pequena",
+      "value": "MODELO_AVES"
+    },
+    {
+      "key": "campos_resultado",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"modo_ejecucion\", \"latencia_ms\"]"
+    },
+    {
+      "key": "campos_persistidos",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"version_modelo\"]"
+    },
+    {
+      "key": "id_inferencia",
+      "value": ""
+    },
+    {
+      "key": "cfg_snapshot",
+      "value": "[]"
+    },
+    {
+      "key": "cfg_tocados",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. TC-M04-01 - Flujo completo con paquete valido (bovino, categoria Grande)",
+      "item": [
+        {
+          "name": "1.1 Ejecutar motor con paquete completo (bovino Grande)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Resultado con los 10 campos exigidos', function () { JSON.parse(pm.collectionVariables.get('campos_resultado')).forEach(function (k) { pm.expect(R, 'falta ' + k).to.have.property(k); }); });",
+                  "pm.test('Latencia <= 2000 ms (CA-1)', function () { pm.expect(pm.response.responseTime).to.be.at.most(2000); });",
+                  "pm.test('nivel_riesgo en 0..3 y confianza_global en [0,1]', function () { pm.expect(Number(R.nivel_riesgo)).to.be.within(0, 3); pm.expect(Number(R.confianza_global)).to.be.within(0, 1); });",
+                  "pm.test(\"contexto_incompleto = false con variables criticas completas\", function () { pm.expect(R.contexto_incompleto).to.eql(false); });",
+                  "const _id = R.id_inferencia || R.id_resultado_inferencia; if (_id) { pm.collectionVariables.set('id_inferencia', String(_id)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 El resultado queda persistido y consultable (RF-67 historial del activo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo_grande}}?fecha_inicio={{ayer}}&fecha_fin={{manana}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo_grande}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{manana}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('El historial contiene el resultado recien generado', function () { const ev = (J.eventos || []); pm.expect(ev.length).to.be.above(0); const id = pm.collectionVariables.get('id_inferencia'); if (id) { pm.expect(ev.map(function (e) { return String(e.id_resultado_inferencia); })).to.include(id); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Inmutabilidad: PUT sobre el resultado es rechazado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}/{{id_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nivel_riesgo\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 404/405', function () { pm.expect([404, 405]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('No existe via de edicion (404/405)', function () { pm.expect([404, 405]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Inmutabilidad: DELETE sobre el resultado es rechazado",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}/{{id_inferencia}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 404/405', function () { pm.expect([404, 405]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-02 - Seleccion del modelo correcto segun la categoria de tamano",
+      "item": [
+        {
+          "name": "2.1 Paquete identico, unicamente categoria Pequena",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_pequena}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Ave\",\n  \"categoria_tamano\": \"PEQUENA\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _esp = pm.collectionVariables.get('tipo_modelo_pequena');",
+                  "const _mod = R.tipo_modelo || R.modelo_efectivo || (R.modelo && R.modelo.tipo_modelo);",
+                  "pm.test('Modelo efectivo = modelo de la categoria Pequena', function () { pm.expect(_mod).to.eql(_esp); });",
+                  "pm.test('No se aplico el modelo de otra categoria', function () { ['tipo_modelo_pequena', 'tipo_modelo_mediana', 'tipo_modelo_grande'].filter(function (k) { return k !== 'tipo_modelo_pequena'; }).forEach(function (k) { pm.expect(_mod).to.not.eql(pm.collectionVariables.get(k)); }); });",
+                  "console.log('[TC-M04-G016][OBSERVADO] RFC-009 reemplazo la clasificacion por tamano por tipo_modelo (AVES/PORCINOS/ACUICULTURA/ESPECIES_MEDIANAS/ESPECIES_GRANDES): confirmar con el equipo que las categorias Pequena/Mediana/Grande de la ficha siguen vigentes.');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Paquete identico, unicamente categoria Mediana",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_mediana}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Ovino\",\n  \"categoria_tamano\": \"MEDIANA\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _esp = pm.collectionVariables.get('tipo_modelo_mediana');",
+                  "const _mod = R.tipo_modelo || R.modelo_efectivo || (R.modelo && R.modelo.tipo_modelo);",
+                  "pm.test('Modelo efectivo = modelo de la categoria Mediana', function () { pm.expect(_mod).to.eql(_esp); });",
+                  "pm.test('No se aplico el modelo de otra categoria', function () { ['tipo_modelo_pequena', 'tipo_modelo_mediana', 'tipo_modelo_grande'].filter(function (k) { return k !== 'tipo_modelo_mediana'; }).forEach(function (k) { pm.expect(_mod).to.not.eql(pm.collectionVariables.get(k)); }); });",
+                  "console.log('[TC-M04-G016][OBSERVADO] RFC-009 reemplazo la clasificacion por tamano por tipo_modelo (AVES/PORCINOS/ACUICULTURA/ESPECIES_MEDIANAS/ESPECIES_GRANDES): confirmar con el equipo que las categorias Pequena/Mediana/Grande de la ficha siguen vigentes.');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Paquete identico, unicamente categoria Grande",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G016 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _esp = pm.collectionVariables.get('tipo_modelo_grande');",
+                  "const _mod = R.tipo_modelo || R.modelo_efectivo || (R.modelo && R.modelo.tipo_modelo);",
+                  "pm.test('Modelo efectivo = modelo de la categoria Grande', function () { pm.expect(_mod).to.eql(_esp); });",
+                  "pm.test('No se aplico el modelo de otra categoria', function () { ['tipo_modelo_pequena', 'tipo_modelo_mediana', 'tipo_modelo_grande'].filter(function (k) { return k !== 'tipo_modelo_grande'; }).forEach(function (k) { pm.expect(_mod).to.not.eql(pm.collectionVariables.get(k)); }); });",
+                  "console.log('[TC-M04-G016][OBSERVADO] RFC-009 reemplazo la clasificacion por tamano por tipo_modelo (AVES/PORCINOS/ACUICULTURA/ESPECIES_MEDIANAS/ESPECIES_GRANDES): confirmar con el equipo que las categorias Pequena/Mediana/Grande de la ficha siguen vigentes.');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

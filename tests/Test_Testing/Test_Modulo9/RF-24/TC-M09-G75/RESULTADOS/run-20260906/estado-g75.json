@@ -1,0 +1,101 @@
+{
+  "grupo": "TC-M09-G75",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:24:22.586Z",
+  "plan": {
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+      "fecha_finalizacion": null
+    },
+    "rangoTecnico": {
+      "categoria": "TEMPERATURA",
+      "min": "0.0000",
+      "max": "45.0000",
+      "fuente": "GET /configuracion/sensores/rangos-calibracion"
+    },
+    "valores": {
+      "minExacto": "0.0000",
+      "maxExacto": "45.0000",
+      "bajoInvalido": "-0.0001",
+      "altoInvalido": "45.0001",
+      "paso": "0.0001"
+    },
+    "historial": {
+      "total": 0,
+      "ids": []
+    }
+  },
+  "historialInicial": {
+    "total": 0,
+    "ids": []
+  },
+  "ultimaValida": {
+    "id_calibracion": 11,
+    "valor_referencia": "45.0000",
+    "id_sensor": 6,
+    "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+    "caso": "TC-M09-143"
+  },
+  "ejecuciones": [
+    {
+      "caso": "TC-M09-142",
+      "original": "TC-M09-142",
+      "status": 201,
+      "idCreado": 10,
+      "fecha": "2026-09-06T04:22:51.011Z"
+    },
+    {
+      "caso": "TC-M09-143",
+      "original": "TC-M09-143",
+      "status": 201,
+      "idCreado": 11,
+      "fecha": "2026-09-06T04:23:02.818Z"
+    },
+    {
+      "caso": "TC-M09-144-LOW",
+      "original": "TC-M09-144",
+      "status": 400,
+      "idCreado": null,
+      "fecha": "2026-09-06T04:23:19.869Z"
+    },
+    {
+      "caso": "TC-M09-144-HIGH",
+      "original": "TC-M09-144",
+      "status": 400,
+      "idCreado": null,
+      "fecha": "2026-09-06T04:23:31.366Z"
+    },
+    {
+      "caso": "TC-M09-145-EMPTY",
+      "original": "TC-M09-145",
+      "status": 400,
+      "idCreado": null,
+      "fecha": "2026-09-06T04:23:44.014Z"
+    },
+    {
+      "caso": "TC-M09-145-NONNUMERIC",
+      "original": "TC-M09-145",
+      "status": 400,
+      "idCreado": null,
+      "fecha": "2026-09-06T04:24:22.586Z"
+    }
+  ]
+}

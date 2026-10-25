@@ -1,0 +1,617 @@
+{
+  "info": {
+    "name": "TC-M04-G021 - Sincronizacion en modo HIBRIDO: tiempos, desfase, limites exactos, discrepancia Edge-servidor y desconexion prolongada (RF-66 Fase 6.1, CA-12/CA-15, E7/RNF-05)",
+    "description": "Subcasos: (1) TC-M04-13 sincronizacion <=5 s y desfase <=10 s. (2) TC-M04-14 discrepancia Edge-servidor: prevalece Edge. (3) TC-M04-15 perdida total de conectividad hasta 24 h (script de red tc-m04-g021_red_netem.sh). (4) TC-M04-24 limites exactos: sync >5 s (encolar) y desfase >10 s (documentar). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_inferencia",
+      "value": "/prediccion/inferencias"
+    },
+    {
+      "key": "id_lote",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_grande",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_mediana",
+      "value": "2"
+    },
+    {
+      "key": "id_activo_pequena",
+      "value": "3"
+    },
+    {
+      "key": "tipo_modelo_grande",
+      "value": "MODELO_ESPECIES_GRANDES"
+    },
+    {
+      "key": "tipo_modelo_mediana",
+      "value": "MODELO_ESPECIES_MEDIANAS"
+    },
+    {
+      "key": "tipo_modelo_pequena",
+      "value": "MODELO_AVES"
+    },
+    {
+      "key": "campos_resultado",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"modo_ejecucion\", \"latencia_ms\"]"
+    },
+    {
+      "key": "campos_persistidos",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"version_modelo\"]"
+    },
+    {
+      "key": "id_inferencia",
+      "value": ""
+    },
+    {
+      "key": "cfg_snapshot",
+      "value": "[]"
+    },
+    {
+      "key": "cfg_tocados",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. TC-M04-13 - Sincronizacion <=5 s y desfase <=10 s",
+      "item": [
+        {
+          "name": "1.1 Resultado Edge en t=0, recalculo del servidor recibido en t=3.2 s",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"HIBRIDO\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.2, 0.8, 0.0]\n  },\n  \"qa_sync_ms\": 3200,\n  \"qa_desfase_ms\": 3200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"modo_ejecucion = HIBRIDO\", function () { pm.expect(R.modo_ejecucion).to.eql(\"HIBRIDO\"); });",
+                  "pm.test('Sincronizacion en <= 5000 ms (cumple)', function () { const s = R.sync_ms !== undefined ? R.sync_ms : R.tiempo_sincronizacion_ms; pm.expect(Number(s)).to.be.at.most(5000); });",
+                  "pm.test(\"Desfase aceptable: no se registra como discrepancia\", function () { pm.expect(R.discrepancia_registrada === true).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Desfase de 10000 ms exactos sigue siendo aceptable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"HIBRIDO\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.2, 0.8, 0.0]\n  },\n  \"qa_sync_ms\": 4000,\n  \"qa_desfase_ms\": 10000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"Desfase = 10000 ms no se registra como discrepancia\", function () { pm.expect(R.discrepancia_registrada === true).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-14 - Discrepancia Edge-servidor: prevalece siempre Edge",
+      "item": [
+        {
+          "name": "2.1 Edge nivel_riesgo=2 (Alto) vs servidor nivel_riesgo=1 (Medio)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"HIBRIDO\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_nivel_riesgo_edge\": 2,\n  \"qa_nivel_riesgo_servidor\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"El resultado oficial es el de Edge (nivel_riesgo = 2)\", function () { pm.expect(Number(R.nivel_riesgo)).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Evento de inconsistencia con ambos valores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?fecha_desde={{t0}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{t0}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 1500) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _inc = (J.items || []).filter(function (e) { return /INCONSISTENCIA|DISCREPANCIA/i.test(e.tipo_evento || ''); });",
+                  "pm.test('Se registro un evento de inconsistencia', function () { pm.expect(_inc.length).to.be.above(0); });",
+                  "pm.test('El evento conserva ambos valores (edge=2 y servidor=1)', function () { const p = JSON.stringify((_inc[0] || {}).payload_evento || (_inc[0] || {}).payload || {}); pm.expect(/2/.test(p) && /1/.test(p)).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-15 - Perdida total de conectividad (hasta 24 h)",
+      "item": [
+        {
+          "name": "3.1 Corte de conectividad programado (30-60 min rutinaria; 24 h como job nocturno)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere cortar la red del nodo Edge: usar tc-m04-g021_red_netem.sh (netem/tc) y luego ejecutar 3.2 para verificar la sincronizacion sin perdidas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE CON POSTMAN - requiere cortar la red del nodo Edge: usar tc-m04-g021_red_netem.sh (netem/tc) y luego ejecutar 3.2 para verificar la sincronizacion sin perdidas\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Tras reconectar: no hay perdida de resultados (historial del activo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo_grande}}?fecha_inicio={{ayer}}&fecha_fin={{manana}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo_grande}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{manana}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('El historial tiene los resultados generados durante la desconexion', function () { pm.expect((J.eventos || []).length).to.be.above(0); });",
+                  "console.log('[TC-M04-G021] Comparar el total de eventos con el contador de resultados generados por el Edge durante la desconexion (reportado por el script de red).');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-24 - Limites exactos: sync >5 s y desfase >10 s",
+      "item": [
+        {
+          "name": "4.1 Sincronizacion forzada a 7000 ms: se almacena para sincronizacion diferida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"HIBRIDO\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.2, 0.8, 0.0]\n  },\n  \"qa_sync_ms\": 7000,\n  \"qa_desfase_ms\": 7000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201/202', function () { pm.expect([200, 201, 202]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Sync > 5000 ms queda encolada para sincronizacion diferida (CA-15)', function () { pm.expect(/COLA|ENCOLAD|DIFERID|PENDIENTE/i.test(String(R.estado_sincronizacion || R.estado_sync || ''))).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Desfase forzado a 12000 ms: comportamiento a documentar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"HIBRIDO\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_modelo_simulado\": {\n    \"probabilidad_riesgo\": [0.0, 0.2, 0.8, 0.0]\n  },\n  \"qa_sync_ms\": 4000,\n  \"qa_desfase_ms\": 12000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G021 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201/202/409', function () { pm.expect([200, 201, 202, 409]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "console.log('[OBSERVADO] desfase > 10000 ms (no definido en el RF) = ' + JSON.stringify({status: pm.response.code, discrepancia: R.discrepancia_registrada, estado_sync: R.estado_sincronizacion, nivel_riesgo: R.nivel_riesgo}));",
+                  "pm.test('Comportamiento ante desfase > 10 s registrado para escalar a requerimientos si es necesario', function () { pm.expect(pm.response.code).to.be.below(500); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

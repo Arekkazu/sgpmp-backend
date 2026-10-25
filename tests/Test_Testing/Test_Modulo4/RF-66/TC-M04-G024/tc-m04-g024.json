@@ -1,0 +1,363 @@
+{
+  "info": {
+    "name": "TC-M04-G024 - Calidad y disponibilidad del modelo desplegado (RF-66 RNF-02/RNF-03, restriccion 2, FA-01, FA-08)",
+    "description": "Subcasos: (1) TC-M04-21 F1>=0.80 y recall clase Alto>=0.85 (script Python tc-m04-g024_calidad_modelo.py). (2) TC-M04-22 disponibilidad del nodo Edge >=99.0% (mismo script, modo disponibilidad). (3) TC-M04-23 ausencia de version de modelo validada/activa: bloqueo de la inferencia (Postman). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para invocar el motor de inferencia (ficha: 'No existe todavia'). La ruta se toma de la variable de coleccion ruta_inferencia y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_activo_grande / id_activo_mediana / id_activo_pequena (activos reales de las tres categorias), id_lote, correo_/contrasena_ de los roles usados, ruta_inferencia (provisional) y campos_resultado / campos_persistidos (nombres de campo del contrato real). Script sin ejecutar: el ambiente aun no esta listo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_inferencia",
+      "value": "/prediccion/inferencias"
+    },
+    {
+      "key": "id_lote",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_grande",
+      "value": "1"
+    },
+    {
+      "key": "id_activo_mediana",
+      "value": "2"
+    },
+    {
+      "key": "id_activo_pequena",
+      "value": "3"
+    },
+    {
+      "key": "tipo_modelo_grande",
+      "value": "MODELO_ESPECIES_GRANDES"
+    },
+    {
+      "key": "tipo_modelo_mediana",
+      "value": "MODELO_ESPECIES_MEDIANAS"
+    },
+    {
+      "key": "tipo_modelo_pequena",
+      "value": "MODELO_AVES"
+    },
+    {
+      "key": "campos_resultado",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"modo_ejecucion\", \"latencia_ms\"]"
+    },
+    {
+      "key": "campos_persistidos",
+      "value": "[\"id_inferencia\", \"id_activo_biologico\", \"fecha_inferencia\", \"nivel_riesgo\", \"probabilidad_riesgo\", \"enfermedad_estimada\", \"confianza_global\", \"contexto_incompleto\", \"version_modelo\"]"
+    },
+    {
+      "key": "id_inferencia",
+      "value": ""
+    },
+    {
+      "key": "cfg_snapshot",
+      "value": "[]"
+    },
+    {
+      "key": "cfg_tocados",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. TC-M04-21 - F1-score y recall de la clase Riesgo Alto",
+      "item": [
+        {
+          "name": "1.1 Evaluacion F1 / recall con dataset etiquetado de las 4 clases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: es una evaluacion offline con scikit-learn: ejecutar python tc-m04-g024_calidad_modelo.py f1 --dataset <csv> (marca la corrida fallida si F1<0.80 o recall Alto<0.85)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE CON POSTMAN - es una evaluacion offline con scikit-learn: ejecutar python tc-m04-g024_calidad_modelo.py f1 --dataset <csv> (marca la corrida fallida si F1<0.80 o recall Alto<0.85)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-22 - Disponibilidad del nodo Edge >= 99.0%",
+      "item": [
+        {
+          "name": "2.1 Monitoreo continuo con el nodo Edge aislado de la red",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere ventana de monitoreo continua con el nodo aislado: ejecutar python tc-m04-g024_calidad_modelo.py disponibilidad --url <nodo_edge> --minutos <N>"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE CON POSTMAN - requiere ventana de monitoreo continua con el nodo aislado: ejecutar python tc-m04-g024_calidad_modelo.py disponibilidad --url <nodo_edge> --minutos <N>\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-23 - Ausencia total de version de modelo validada y activa",
+      "item": [
+        {
+          "name": "3.0 Referencia: versiones ACTIVAS registradas (RF-69)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/modelos?estado=ACTIVO&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "modelos"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "ACTIVO"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G024 3.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "console.log('[TC-M04-G024][OBSERVADO] versiones ACTIVAS=' + (J.total !== undefined ? J.total : (J.items || []).length));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.1 Paquete completo y valido sin ninguna version validada/activa (estado simulado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_inferencia}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_paquete\": \"{{$guid}}\",\n  \"id_activo_biologico\": {{id_activo_grande}},\n  \"id_lote\": {{id_lote}},\n  \"especie\": \"Bovino\",\n  \"categoria_tamano\": \"GRANDE\",\n  \"timestamp_paquete\": \"{{ts_now}}\",\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"variables_telemetria\": [{\n      \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n      \"valor\": 38.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n      \"valor\": 62,\n      \"unidad\": \"lpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n      \"valor\": 24,\n      \"unidad\": \"rpm\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"ACTIVIDAD\",\n      \"valor\": 55,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }, {\n      \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n      \"valor\": 60,\n      \"unidad\": \"%\",\n      \"timestamp_captura\": \"{{ts_now}}\"\n    }],\n  \"qa_simular_fallo\": \"SIN_VERSION_MODELO_ACTIVA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G024 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 409/412/422/503', function () { pm.expect([409, 412, 422, 503]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('La inferencia se bloquea: sin resultado', function () { pm.expect(R.nivel_riesgo).to.be.undefined; });",
+                  "pm.test('El evento es distinto de INFERENCIA_NO_DISPONIBLE (E8)', function () { pm.expect(J.error_code).to.not.eql('INFERENCIA_NO_DISPONIBLE'); });",
+                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Evento critico registrado en la auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?fecha_desde={{t0}}&severidad_evento=CRITICAL",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{t0}}"
+                },
+                {
+                  "key": "severidad_evento",
+                  "value": "CRITICAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 1500) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G024 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Existe un evento CRITICAL posterior al bloqueo y distinto de INFERENCIA_NO_DISPONIBLE', function () { console.log('[TC-M04-G024][OBSERVADO] eventos=' + (J.items || []).map(function (e) { return e.tipo_evento; }).join(',')); pm.expect((J.items || []).filter(function (e) { return e.tipo_evento !== 'INFERENCIA_NO_DISPONIBLE'; }).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

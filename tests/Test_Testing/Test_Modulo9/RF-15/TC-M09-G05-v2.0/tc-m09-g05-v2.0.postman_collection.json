@@ -1,0 +1,516 @@
+{
+  "info": {
+    "_postman_id": "f5e921d7-2bf8-4682-8416-a36528d22dfb",
+    "name": "TC-M09-G05-v2.0 - Seguridad RBAC: Restricción y Permisos de Ingeniero de Campo en Especies",
+    "description": "TC-M09-G05-v2.0 (RF-15 v1.1, CU-01, OWASP A01). Verifica control de acceso basado en roles para Ingeniero de Campo: restricción de creación (POST -> 403), restricción de desactivación (PATCH /desactivar -> 403), autorización de edición legítima (PATCH -> 200) con auditoría UPDATE, y teardown administrativo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.inmero.co/back-sigab-test" },
+    { "key": "admin_email", "value": "administador.dev@gmail.com" },
+    { "key": "admin_password", "value": "" },
+    { "key": "ingeniero_email", "value": "ingeniero@pecuaria.co" },
+    { "key": "ingeniero_password", "value": "" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_ingeniero", "value": "" },
+    { "key": "admin_logged_in", "value": "false" },
+    { "key": "ingeniero_logged_in", "value": "false" },
+    { "key": "nombre_original", "value": "Cachama Blanca" },
+    { "key": "descripcion_original", "value": "" },
+    { "key": "fecha_actualizacion_original", "value": "" },
+    { "key": "fecha_actualizacion_fresca", "value": "" },
+    { "key": "nw07_executed", "value": "false" },
+    { "key": "run_start_time", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "NW-01-Login-Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Variables de entorno de Postman al INICIO antes de cualquier aserción",
+              "if (pm.environment.get('baseUrl')) { pm.collectionVariables.set('baseUrl', pm.environment.get('baseUrl')); }",
+              "if (pm.environment.get('admin_email')) { pm.collectionVariables.set('admin_email', pm.environment.get('admin_email')); }",
+              "if (pm.environment.get('admin_password')) { pm.collectionVariables.set('admin_password', pm.environment.get('admin_password')); }",
+              "if (pm.environment.get('ingeniero_email')) { pm.collectionVariables.set('ingeniero_email', pm.environment.get('ingeniero_email')); }",
+              "if (pm.environment.get('ingeniero_password')) { pm.collectionVariables.set('ingeniero_password', pm.environment.get('ingeniero_password')); }",
+              "",
+              "if (!pm.collectionVariables.get('run_start_time')) {",
+              "    pm.collectionVariables.set('run_start_time', new Date().toISOString());",
+              "}",
+              "",
+              "pm.test('NW-01: Autenticación exitosa del Administrador (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', data.token);",
+              "    pm.collectionVariables.set('admin_logged_in', 'true');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "NW-02-Preflight-Fixture",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-02: Preflight de solo lectura y verificación de fixture F-04', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "",
+              "    var f4 = items.find(function (i) { return i.id_especie === 4; });",
+              "    pm.expect(f4, 'Fixture F-04 (id_especie=4) debe existir en catálogo').to.not.be.undefined;",
+              "    pm.expect(f4.es_activo, 'Fixture F-04 debe estar activo').to.be.true;",
+              "",
+              "    pm.collectionVariables.set('nombre_original', f4.nombre);",
+              "    pm.collectionVariables.set('descripcion_original', f4.descripcion || '');",
+              "    pm.collectionVariables.set('fecha_actualizacion_original', f4.fecha_actualizacion || '');",
+              "",
+              "    var alpaca = items.find(function (i) {",
+              "        return i.nombre && i.nombre.toLowerCase() === 'alpaca qa2';",
+              "    });",
+              "    pm.expect(alpaca, 'Especie Alpaca QA2 no debe existir previamente').to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-03-Login-Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-03: Autenticación exitosa del Ingeniero de Campo (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_ingeniero', data.token);",
+              "    pm.collectionVariables.set('ingeniero_logged_in', 'true');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{ingeniero_email}}\",\n  \"contrasena\": \"{{ingeniero_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "NW-04-Verificar-Permisos-Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-04: Verificación de matriz de permisos RBAC del Ingeniero', function () {",
+              "    if (pm.collectionVariables.get('ingeniero_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-03: sin token ingeniero');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var permisos = data.permisos || [];",
+              "",
+              "    var permR8 = permisos.filter(function (p) { return p.id_recurso === 8; });",
+              "    var acciones = permR8.map(function (p) { return p.id_accion; });",
+              "",
+              "    pm.expect(acciones, 'Ingeniero debe tener permiso (8,2) - Leer').to.include(2);",
+              "    pm.expect(acciones, 'Ingeniero debe tener permiso (8,3) - Actualizar').to.include(3);",
+              "    pm.expect(acciones, 'Ingeniero NO debe tener permiso (8,1) - Crear').to.not.include(1);",
+              "    pm.expect(acciones, 'Ingeniero NO debe tener permiso (8,4) - Desactivar').to.not.include(4);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/me/permisos",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", "me", "permisos"]
+        }
+      }
+    },
+    {
+      "name": "NW-05-SC1-Crear-Especie-Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-05: SC-1 Rechazo de creación por Ingeniero con HTTP 403 y sin persistencia', function () {",
+              "    if (pm.collectionVariables.get('ingeniero_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-03: sin token ingeniero');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(403);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res).to.have.property('error_code', 'ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Alpaca QA2\",\n  \"grupo_manejo\": \"ESPECIES_MEDIANAS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-05b-SC1-Verificar-No-Persistencia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-05b: Confirmación de no persistencia tras intento de creación denegado', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "    var creado = items.find(function (i) {",
+              "        return i.nombre && i.nombre.toLowerCase() === 'alpaca qa2';",
+              "    });",
+              "    pm.expect(creado, 'Alpaca QA2 no debe existir en el catálogo').to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-06-SC2-Desactivar-Fixture-Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-06: SC-2 Rechazo de desactivación de F-04 con HTTP 403 e inmutabilidad', function () {",
+              "    if (pm.collectionVariables.get('ingeniero_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-03: sin token ingeniero');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(403);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res).to.have.property('error_code', 'ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/4/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "4", "desactivar"]
+        }
+      }
+    },
+    {
+      "name": "NW-06b-SC2-Verificar-Inmutabilidad",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-06b: Confirmación de inmutabilidad de estado es_activo en F-04', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "    var f4 = items.find(function (i) { return i.id_especie === 4; });",
+              "    pm.expect(f4, 'F-04 debe existir').to.not.be.undefined;",
+              "    pm.expect(f4.es_activo, 'F-04 debe permanecer activo (true)').to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-07-SC3-Editar-Descripcion-Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-07: SC-3 Edición autorizada de descripción de F-04 por Ingeniero con HTTP 200', function () {",
+              "    if (pm.collectionVariables.get('ingeniero_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-03: sin token ingeniero');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('descripcion', 'Edición por ingeniero QA2');",
+              "    pm.collectionVariables.set('nw07_executed', 'true');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_original}}\",\n  \"descripcion\": \"Edición por ingeniero QA2\",\n  \"fecha_actualizacion\": \"{{fecha_actualizacion_original}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/4",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "4"]
+        }
+      }
+    },
+    {
+      "name": "NW-07b-SC3-Verificar-Edicion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-07b: Confirmación de cambio de descripción en catálogo y captura de timestamp fresco', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "    var f4 = items.find(function (i) { return i.id_especie === 4; });",
+              "    pm.expect(f4, 'F-04 debe existir').to.not.be.undefined;",
+              "    pm.expect(f4.descripcion, 'Descripción de F-04 debe estar actualizada').to.equal('Edición por ingeniero QA2');",
+              "",
+              "    if (f4.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fecha_actualizacion_fresca', f4.fecha_actualizacion);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-09-Teardown-Restaurar-Fixture",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-09: Teardown administrativo y restauración de descripción original', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    if (pm.collectionVariables.get('nw07_executed') !== 'true') {",
+              "        // Si NW-07 no alteró el fixture, el teardown no tiene cambios que revertir",
+              "        pm.expect(true).to.be.true;",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.descripcion).to.equal(pm.collectionVariables.get('descripcion_original'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_original}}\",\n  \"descripcion\": \"{{descripcion_original}}\",\n  \"fecha_actualizacion\": \"{{fecha_actualizacion_fresca}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/4",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "4"]
+        }
+      }
+    },
+    {
+      "name": "NW-09b-Verificar-Teardown",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-09b: Confirmación de restauración final en catálogo (descripción y es_activo)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "    var f4 = items.find(function (i) { return i.id_especie === 4; });",
+              "    pm.expect(f4, 'F-04 debe existir').to.not.be.undefined;",
+              "    pm.expect(f4.descripcion).to.equal(pm.collectionVariables.get('descripcion_original'));",
+              "    pm.expect(f4.es_activo).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    }
+  ]
+}

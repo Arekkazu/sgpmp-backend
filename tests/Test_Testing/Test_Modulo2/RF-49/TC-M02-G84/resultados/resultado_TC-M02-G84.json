@@ -1,0 +1,39 @@
+{
+  "tc": "TC-M02-G84",
+  "ronda": "V1",
+  "reintento": 0,
+  "fecha": "2026-09-10",
+  "run_id": "G84-20260910-000000",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: DIRECTA",
+      "obtenido": "HTTP 201 Created, asociación DIRECTA registrada como ACTIVA sobre activo 108 con sensor 22",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-143.html"
+    },
+    {
+      "paso": "TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: AMBIENTAL",
+      "obtenido": "HTTP 201 Created, asociación AMBIENTAL registrada como ACTIVA sobre activo 109 con sensor 23 en infraestructura 3",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-144.html"
+    },
+    {
+      "paso": "TC-M02-145: Asociar sensor POBLACIONAL a lote",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: POBLACIONAL",
+      "obtenido": "HTTP 201 Created, asociación POBLACIONAL registrada como ACTIVA sobre lote 83 con sensor 24",
+      "estado": "OK",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-145.html"
+    },
+    {
+      "paso": "TC-M02-150: Advertencia por dispositivo IoT desconectado (>30 min sin heartbeat)",
+      "esperado": "HTTP 201 Created con campo advertencia no nulo informando desconexión",
+      "obtenido": "HTTP 201 Created pero campo advertencia es null (bloqueo por falta de integración con Módulo 3 Telemetría)",
+      "estado": "FALLA",
+      "fuente": "evidencias/v1-run-20260910/reporte_TC-M02-150.html",
+      "nota_qa": "V1 categorizada como fallo/bloqueo: el endpoint no emitió la advertencia requerida por FA-05 de RF-49."
+    }
+  ]
+}

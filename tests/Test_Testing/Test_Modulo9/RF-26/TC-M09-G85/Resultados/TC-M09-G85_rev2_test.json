@@ -1,0 +1,142 @@
+{
+  "caso": "TC-M09-G85",
+  "subcaso": "TC-M09-160",
+  "revision": 2,
+  "rf": "RF-26",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "frontend": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io",
+  "fecha_utc": "2026-10-05T21:02:52.363671+00:00",
+  "estado": "APROBADO",
+  "pasos": [
+    {
+      "paso": "login",
+      "http": 200,
+      "correo": "admin@pecuaria.co"
+    },
+    {
+      "paso": "GET_finca_preferida",
+      "http": 200,
+      "org": "QA G85 rev2 TEST"
+    },
+    {
+      "paso": "POST",
+      "http": 201,
+      "nota": "Registro ya creado en esta reevaluacion TEST (POST 201 finca 123, logo opcional null).",
+      "body": {
+        "id_identidad_visual": 10,
+        "id_finca": 123,
+        "id_usuario": 1,
+        "logo_path": null,
+        "primary_color": "#2E6B4A",
+        "secondary_color": "#E8F5E9",
+        "org_display_name": "QA G85 rev2 TEST",
+        "version": 1,
+        "fecha_creacion": "2026-10-05T21:00:32.997438Z",
+        "accesibilidad": {
+          "minimo_aa": 4.5,
+          "primary_color": {
+            "claro": {
+              "fondo": "#FFFFFF",
+              "ratio": 6.33,
+              "cumple_aa": true,
+              "color_ajustado": "#2E6B4A",
+              "aviso": null
+            },
+            "oscuro": {
+              "fondo": "#171A15",
+              "ratio": 2.78,
+              "cumple_aa": false,
+              "color_ajustado": "#3F9265",
+              "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo oscuro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."
+            }
+          },
+          "secondary_color": {
+            "claro": {
+              "fondo": "#FFFFFF",
+              "ratio": 1.12,
+              "cumple_aa": false,
+              "color_ajustado": "#3A8540",
+              "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo claro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."
+            },
+            "oscuro": {
+              "fondo": "#171A15",
+              "ratio": 15.62,
+              "cumple_aa": true,
+              "color_ajustado": "#E8F5E9",
+              "aviso": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "paso": "GET_persistencia",
+      "http": 200,
+      "body": {
+        "id_identidad_visual": 10,
+        "id_finca": 123,
+        "id_usuario": 1,
+        "logo_path": null,
+        "primary_color": "#2E6B4A",
+        "secondary_color": "#E8F5E9",
+        "org_display_name": "QA G85 rev2 TEST",
+        "version": 1,
+        "fecha_creacion": "2026-10-05T21:00:32.997438Z",
+        "accesibilidad": {
+          "minimo_aa": 4.5,
+          "primary_color": {
+            "claro": {
+              "fondo": "#FFFFFF",
+              "ratio": 6.33,
+              "cumple_aa": true,
+              "color_ajustado": "#2E6B4A",
+              "aviso": null
+            },
+            "oscuro": {
+              "fondo": "#171A15",
+              "ratio": 2.78,
+              "cumple_aa": false,
+              "color_ajustado": "#3F9265",
+              "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo oscuro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."
+            }
+          },
+          "secondary_color": {
+            "claro": {
+              "fondo": "#FFFFFF",
+              "ratio": 1.12,
+              "cumple_aa": false,
+              "color_ajustado": "#3A8540",
+              "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo claro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."
+            },
+            "oscuro": {
+              "fondo": "#171A15",
+              "ratio": 15.62,
+              "cumple_aa": true,
+              "color_ajustado": "#E8F5E9",
+              "aviso": null
+            }
+          }
+        }
+      }
+    }
+  ],
+  "dato_creado": {
+    "recurso": "identidad_visual",
+    "id_finca": 123,
+    "id_identidad_visual": 10,
+    "org_display_name": "QA G85 rev2 TEST",
+    "restauracion": "API no ofrece DELETE; queda identidad de prueba en finca QA."
+  },
+  "nota": "Rev1 historica no modificada. Sin secretos. Sin DML SQL. Si POST 201, la identidad queda en TEST (API no ofrece DELETE).",
+  "usuarios_me": {
+    "http": 200,
+    "nombre_rol": "Administrador",
+    "n_fincas": 0,
+    "fincas": []
+  },
+  "finca_usada": {
+    "id_finca": 123,
+    "origen": "post_201_esta_reevaluacion"
+  }
+}

@@ -1,0 +1,27 @@
+TC-M09-172 rev3 TEST — únicamente Automático (theme_mode=3)
+Fecha: 2026-09-25
+Ambiente TEST
+Frontend: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co
+Cypress 14.5.4 Chrome 153 — 1 passing, 0 failing
+No se ejecutaron TC-M09-170 ni TC-M09-171.
+No se interceptó POST /sesiones/refresh.
+No se escribió data-theme a mano.
+
+Implementación real (bundle TEST index-DxP-cOjm.js):
+Ao.SISTEMA=3. C7(mode): OSCURO o (SISTEMA && matchMedia('(prefers-color-scheme: dark)').matches) → 'dark' else 'light'.
+uv() hace document.documentElement.setAttribute('data-theme', ...).
+Con SISTEMA, addEventListener('change') en matchMedia re-aplica uv(SISTEMA).
+
+GET inicial: theme_mode=1 fuente=personal
+PATCH personal theme_mode=3 es_global=false (request y response)
+prefers-color-scheme=light → data-theme=light prefersDark=false sesión /configuracion
+prefers-color-scheme=dark → data-theme=dark prefersDark=true (reload con emulación persistente; catálogo oscuro)
+GET post-escenarios (intercept de la app, no JWT de login): theme_mode=3 fuente=personal
+Funcionalidad: configuración, tabs, tabla de especies, sidebar operativos en ambos modos.
+
+Restauración after(): theme_mode=1 fuente=personal
+
+Resultado: APROBADO
+Password/JWT/Bearer: [REDACTED]

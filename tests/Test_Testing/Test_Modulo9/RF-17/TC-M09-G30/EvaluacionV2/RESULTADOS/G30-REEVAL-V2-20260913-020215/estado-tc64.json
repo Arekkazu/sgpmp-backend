@@ -1,0 +1,2402 @@
+{
+  "grupo": "TC-M09-G30",
+  "caso": "TC-M09-64",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V2",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-re-evaluacion-M02",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G30-REEVAL-V2-20260913-020215",
+  "fecha": "2026-09-13T07:05:28.034Z",
+  "fases": {
+    "create": {
+      "intento": 1,
+      "t0": "2026-09-13T07:05:43.067Z",
+      "t1": "2026-09-13T07:06:02.030Z",
+      "status": 201,
+      "respuesta": {
+        "id_umbral_ambiental": 44,
+        "id_especie": 39,
+        "id_variable_ambiental": 13,
+        "unidad_medida": "°C",
+        "valor_min": "38.00",
+        "valor_max": "42.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "38.00",
+            "limite_superior": "39.33"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.33",
+            "limite_superior": "40.66"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "40.66",
+            "limite_superior": "42.0"
+          }
+        ]
+      },
+      "idCreado": 44,
+      "umbralesPreviosEspecie": [
+        36,
+        37,
+        40
+      ],
+      "persistido": {
+        "id_umbral_ambiental": 44,
+        "id_especie": 39,
+        "id_variable_ambiental": 13,
+        "unidad_medida": "°C",
+        "valor_min": "38.00",
+        "valor_max": "42.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "38.00",
+            "limite_superior": "39.33"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.33",
+            "limite_superior": "40.66"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "40.66",
+            "limite_superior": "42.00"
+          }
+        ]
+      },
+      "html": "newman/newman-TC-M09-64-create-v2.html",
+      "assertions": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "failures": [],
+      "resultado": "PASS"
+    },
+    "auditCreate": {
+      "status": 200,
+      "total": 1,
+      "eventoCreate": {
+        "id_auditoria_umbral": 7,
+        "id_umbral_ambiental": 44,
+        "id_usuario": 104,
+        "tipo_operacion": "CREATE",
+        "valores_anteriores": null,
+        "valores_nuevos": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "38.00",
+              "limite_superior": "39.33"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "39.33",
+              "limite_superior": "40.66"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "40.66",
+              "limite_superior": "42.0"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "42.00",
+          "valor_min": "38.00",
+          "id_especie": 39,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": null,
+          "id_umbral_ambiental": 44,
+          "id_variable_ambiental": 13
+        },
+        "fecha_gestion": "2026-09-13T07:06:01.126077Z"
+      },
+      "html": "newman/newman-TC-M09-64-audit-create-v2.html",
+      "assertions": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "failures": [],
+      "resultado": "PASS"
+    },
+    "update": {
+      "intento": 1,
+      "t0": "2026-09-13T07:06:22.919Z",
+      "t1": "2026-09-13T07:06:24.897Z",
+      "checklist": {
+        "mismoId": true,
+        "createPersistido": true,
+        "valoresDistintos": true,
+        "valoresValidos": true,
+        "sinDuplicado": true,
+        "auditCreateIdentificado": true,
+        "snapshotBeforeGuardado": true
+      },
+      "configBeforeUpdate": {
+        "id_umbral_ambiental": 44,
+        "id_especie": 39,
+        "id_variable_ambiental": 13,
+        "unidad_medida": "°C",
+        "valor_min": "38.00",
+        "valor_max": "42.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "38.00",
+            "limite_superior": "39.33"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.33",
+            "limite_superior": "40.66"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "40.66",
+            "limite_superior": "42.00"
+          }
+        ]
+      },
+      "payloadUpdate": {
+        "valor_min": "37.00",
+        "valor_max": "43.00",
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "37.00",
+            "limite_superior": "39.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.00",
+            "limite_superior": "41.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "41.00",
+            "limite_superior": "43.00"
+          }
+        ],
+        "fecha_actualizacion": null
+      },
+      "status": 200,
+      "respuesta": {
+        "id_umbral_ambiental": 44,
+        "id_especie": 39,
+        "id_variable_ambiental": 13,
+        "unidad_medida": "°C",
+        "valor_min": "37.00",
+        "valor_max": "43.00",
+        "es_activo": true,
+        "fecha_actualizacion": "2026-09-13T07:06:24.186751Z",
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "37.00",
+            "limite_superior": "39.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.00",
+            "limite_superior": "41.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "41.0",
+            "limite_superior": "43.0"
+          }
+        ]
+      },
+      "configAfterUpdate": {
+        "id_umbral_ambiental": 44,
+        "id_especie": 39,
+        "id_variable_ambiental": 13,
+        "unidad_medida": "°C",
+        "valor_min": "37.00",
+        "valor_max": "43.00",
+        "es_activo": true,
+        "fecha_actualizacion": "2026-09-13T07:06:24.186751Z",
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "37.00",
+            "limite_superior": "39.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "39.00",
+            "limite_superior": "41.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "41.00",
+            "limite_superior": "43.00"
+          }
+        ]
+      },
+      "persistido": true,
+      "html": "newman/newman-TC-M09-64-update-v2.html",
+      "assertions": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "failures": [],
+      "resultado": "PASS"
+    },
+    "audit": {
+      "status": 200,
+      "total": 2,
+      "eventoCreate": {
+        "id_auditoria_umbral": 7,
+        "id_umbral_ambiental": 44,
+        "id_usuario": 104,
+        "tipo_operacion": "CREATE",
+        "valores_anteriores": null,
+        "valores_nuevos": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "38.00",
+              "limite_superior": "39.33"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "39.33",
+              "limite_superior": "40.66"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "40.66",
+              "limite_superior": "42.0"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "42.00",
+          "valor_min": "38.00",
+          "id_especie": 39,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": null,
+          "id_umbral_ambiental": 44,
+          "id_variable_ambiental": 13
+        },
+        "fecha_gestion": "2026-09-13T07:06:01.126077Z"
+      },
+      "eventoUpdate": {
+        "id_auditoria_umbral": 8,
+        "id_umbral_ambiental": 44,
+        "id_usuario": 104,
+        "tipo_operacion": "UPDATE",
+        "valores_anteriores": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "38.00",
+              "limite_superior": "39.33"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "39.33",
+              "limite_superior": "40.66"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "40.66",
+              "limite_superior": "42.00"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "42.00",
+          "valor_min": "38.00",
+          "id_especie": 39,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": null,
+          "id_umbral_ambiental": 44,
+          "id_variable_ambiental": 13
+        },
+        "valores_nuevos": {
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "37.00",
+              "limite_superior": "39.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "39.00",
+              "limite_superior": "41.00"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "41.0",
+              "limite_superior": "43.0"
+            }
+          ],
+          "es_activo": true,
+          "valor_max": "43.00",
+          "valor_min": "37.00",
+          "id_especie": 39,
+          "unidad_medida": "°C",
+          "fecha_actualizacion": "2026-09-13T07:06:24.186751+00:00",
+          "id_umbral_ambiental": 44,
+          "id_variable_ambiental": 13
+        },
+        "fecha_gestion": "2026-09-13T07:06:24.181488Z"
+      },
+      "d09GlobalVentana": {
+        "endpoint": "GET /auditoria/",
+        "status": 200,
+        "total": 11,
+        "eventos": [
+          {
+            "id_evento": 10976,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:06:35.883841Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10975,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:06:35.508591Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10974,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:06:22.442863Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10973,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:06:22.077506Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10972,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:06:11.433502Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10971,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:06:11.089591Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10970,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:05:42.391205Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10969,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:05:41.806749Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10968,
+            "tipo_evento": 16,
+            "fecha_evento": "2026-09-13T07:05:27.699094Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_AUDITORIA"
+          },
+          {
+            "id_evento": 10967,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:05:25.820219Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10966,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:05:23.752378Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          }
+        ]
+      },
+      "html": "newman/newman-TC-M09-64-audit-v2.html",
+      "assertions": {
+        "total": 11,
+        "pending": 0,
+        "failed": 0
+      },
+      "failures": [],
+      "resultado": "PASS"
+    }
+  },
+  "plan": {
+    "preflight": [
+      {
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+        "status": 404,
+        "nota": "URL suministrada"
+      },
+      {
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+        "status": 200
+      },
+      {
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+        "status": 200
+      },
+      {
+        "contrato": {
+          "post": [
+            "201",
+            "401",
+            "403",
+            "404",
+            "409",
+            "422"
+          ],
+          "patch": [
+            "200",
+            "401",
+            "403",
+            "404",
+            "412",
+            "422"
+          ],
+          "auditoriaUmbral": [
+            "200",
+            "401",
+            "403",
+            "404",
+            "422"
+          ],
+          "auditoriaUmbralSchema": [
+            "id_auditoria_umbral",
+            "id_umbral_ambiental",
+            "id_usuario",
+            "tipo_operacion",
+            "valores_anteriores",
+            "valores_nuevos",
+            "fecha_gestion"
+          ],
+          "d09Global": [
+            "200",
+            "206",
+            "400",
+            "403",
+            "422",
+            "500"
+          ]
+        }
+      }
+    ],
+    "actor": {
+      "correo_electronico": "administador.dev@gmail.com",
+      "id_usuario": 104,
+      "nombre_rol": "Administrador",
+      "estado_cuenta": "Activo",
+      "permisosRecurso20": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "permisosRecurso6_D09": [
+        2
+      ]
+    },
+    "contrato": {
+      "post": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "patch": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "412",
+        "422"
+      ],
+      "auditoriaUmbral": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "auditoriaUmbralSchema": [
+        "id_auditoria_umbral",
+        "id_umbral_ambiental",
+        "id_usuario",
+        "tipo_operacion",
+        "valores_anteriores",
+        "valores_nuevos",
+        "fecha_gestion"
+      ],
+      "d09Global": [
+        "200",
+        "206",
+        "400",
+        "403",
+        "422",
+        "500"
+      ]
+    },
+    "mapa": {
+      "especiesActivas": 11,
+      "variables": 16,
+      "ocupadas": 17,
+      "libres": 159,
+      "filas": [
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            43
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 41,
+          "especie": "Ave Qa Je",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [
+            40
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            36,
+            37
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 39,
+          "especie": "Bovino",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 40,
+          "especie": "Bovino Qa Je",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [
+            11
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            10
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 4,
+          "especie": "Cachama Blanca",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [
+            9
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [
+            42
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [
+            41
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [
+            8
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            7
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 3,
+          "especie": "Camarón Blanco",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 43,
+          "especie": "Equina",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 42,
+          "especie": "Equino",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 44,
+          "especie": "Equino Test Qa",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [
+            38
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [
+            13
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            12
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 5,
+          "especie": "Mojarra Plateada",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            39
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 10,
+          "especie": "Tilapia",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 16,
+          "variable": "Actividad/Movimiento",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 11,
+          "variable": "Amoniaco (NH3)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 4,
+          "variable": "Amoniaco total",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 8,
+          "variable": "Conductividad eléctrica",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 12,
+          "variable": "Dióxido de Carbono (CO2)",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 14,
+          "variable": "Frecuencia Cardiaca",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 15,
+          "variable": "Frecuencia Respiratoria",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 10,
+          "variable": "Humedad Relativa",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 5,
+          "variable": "Nitrito",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 3,
+          "variable": "Oxígeno disuelto",
+          "configExistente": [
+            6
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 2,
+          "variable": "pH del agua",
+          "configExistente": [
+            5
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 6,
+          "variable": "Salinidad",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 9,
+          "variable": "Temperatura Ambiental",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 13,
+          "variable": "Temperatura Corporal",
+          "configExistente": [],
+          "libre": true
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 1,
+          "variable": "Temperatura del agua",
+          "configExistente": [
+            4
+          ],
+          "libre": false
+        },
+        {
+          "id_especie": 2,
+          "especie": "Trucha Arcoíris",
+          "id_variable_ambiental": 7,
+          "variable": "Turbidez",
+          "configExistente": [],
+          "libre": true
+        }
+      ]
+    },
+    "seleccion": {
+      "especie": "Bovino",
+      "id_especie": 39,
+      "variable": "Temperatura Corporal",
+      "id_variable_ambiental": 13,
+      "unidad": "°C",
+      "fisicoMin": "30",
+      "fisicoMax": "50"
+    },
+    "payloadCreate": {
+      "id_especie": 39,
+      "id_variable_ambiental": 13,
+      "valor_min": "38.00",
+      "valor_max": "42.00",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "38.00",
+          "limite_superior": "39.33"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "39.33",
+          "limite_superior": "40.66"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "40.66",
+          "limite_superior": "42.00"
+        }
+      ]
+    },
+    "valoresUpdate": {
+      "valor_min": "37.00",
+      "valor_max": "43.00",
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "37.00",
+          "limite_superior": "39.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "39.00",
+          "limite_superior": "41.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "41.00",
+          "limite_superior": "43.00"
+        }
+      ]
+    },
+    "auditBeforeCreate": {
+      "recursoRF17": "No aplica: el recurso aun no existe (GET /configuracion/umbrales/{id}/auditoria responde 404 para IDs inexistentes)",
+      "d09Global": {
+        "endpoint": "GET /auditoria/",
+        "status": 200,
+        "total": 36,
+        "eventos": [
+          {
+            "id_evento": 10967,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T07:05:25.820219Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10966,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T07:05:23.752378Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10965,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:43:47.216083Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10964,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:43:45.305308Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10963,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:43:45.281194Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10962,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:43:45.118543Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10961,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:43:42.280401Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10960,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:43:40.042352Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10959,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:43:39.890721Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10958,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:43:37.553467Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10957,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:41:56.526665Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10956,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:41:56.525956Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10955,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:41:56.366725Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10954,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:41:52.861655Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10953,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:41:51.087001Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10952,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:41:50.415992Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10951,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:41:50.253977Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10950,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:39:12.891814Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10949,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:39:09.126798Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10948,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:39:08.743441Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10947,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:38:15.403636Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10946,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:38:12.657182Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10945,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:38:12.266578Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10944,
+            "tipo_evento": 5,
+            "fecha_evento": "2026-09-13T06:37:41.539599Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CIERRE_SESION"
+          },
+          {
+            "id_evento": 10943,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:37:41.179159Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10942,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:37:39.631834Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10941,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:26:02.957544Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10940,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:26:02.581187Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10939,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:25:38.723897Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10938,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:25:38.593542Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10937,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:25:24.605497Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10936,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:25:24.465155Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10935,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:25:07.398657Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10934,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:25:07.266018Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          },
+          {
+            "id_evento": 10933,
+            "tipo_evento": 19,
+            "fecha_evento": "2026-09-13T06:23:56.482858Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "CONSULTA_PERFIL_PROPIO"
+          },
+          {
+            "id_evento": 10932,
+            "tipo_evento": 3,
+            "fecha_evento": "2026-09-13T06:23:54.401809Z",
+            "modulo": "MODULO1",
+            "resultado": "exitoso",
+            "descripcion": "LOGIN_EXITOSO"
+          }
+        ]
+      }
+    },
+    "checklist": {
+      "ramaCorrecta": true,
+      "v1Revisada": true,
+      "evaluacionV2Aislada": true,
+      "testAccesible": true,
+      "actorAdminVet": true,
+      "rolConfirmado": true,
+      "auditoriaIdentificada": true,
+      "actorConsultaAuditoriaIdentificado": true,
+      "especieActiva": true,
+      "variableReal": true,
+      "combinacionLibre": true,
+      "rangoValido": true,
+      "nivelesValidos": true,
+      "auditBeforeObtenido": true,
+      "filtrosPaginacionComprendidos": true
+    }
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "TC-M02-G61 - Re-verificacion 2026-09-15 - Fase (RF-37) y bajas (RF-45)",
+    "description": "Re-ejecucion de TC-M02-G61 (RF-43/RF-45) contra TEST el 2026-09-15. La coleccion original (tc_m02_g61.postman_collection.json) queda intacta como evidencia historica; esta version documenta el estado ACTUAL de los 3 sub-casos.\n\nRESULTADO MIXTO:\n\nSub-caso 1 (TC-M02-106, RF-37 asignar fase): SIGUE ROTO. `POST /activos-biologicos/{id}/fases` sigue devolviendo 500 ERROR_INTERNO -- el mismo TypeError de Python (falta id_usuario en cerrar_gestion_activa, cambiar_fase_use_case.py:72) confirmado el 2026-09-09. IMPORTANTE: este mismo bug SI esta corregido en el entorno DEV (confirmado 2026-09-14, ver TC-M02-G66) pero el fix aun no llego a TEST -- refuerza que DEV y TEST son despliegues independientes que no siempre se actualizan juntos. Como consecuencia, RF-43 (evento productivo camino feliz) sigue completamente bloqueado en TEST tambien.\n\nSub-caso 2 (TC-M02-112, RF-45 baja TOTAL de individual): CORREGIDO. Ya no da 500 -- 201, el activo pasa a BAJA correctamente. Mismo hallazgo que TC-M02-G66/G69.\n\nSub-caso 3 (TC-M02-113, RF-45 baja PARCIAL de lote): CORREGIDO. Ya no da 400 VALOR_FUERA_DE_RANGO -- 201, cantidad_actual baja exactamente en 50, el lote permanece ACTIVO.\n\nUsa activos ya existentes en TEST en vez de crear frescos (POST /activos-biologicos sigue en 500 incondicional, ver TC-M02-G66/G69): id=250 (INDIVIDUAL, sin fase) para sub-caso 1, id=251 (INDIVIDUAL, ACTIVO) para sub-caso 2, id=60 (POBLACIONAL, ACTIVO, cantidad_actual variable segun sesiones previas de QA) para sub-caso 3 -- este ultimo compara antes/despues por delta, no valor absoluto.\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () { pm.expect(respuesta).to.have.property('token'); });",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-106) - Asignar fase via RF-37 (SIGUE ROTO en TEST)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: RF-37 sigue en 500 en TEST (a diferencia de DEV, ya corregido) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 (BUG persiste en TEST): RF-37 responde 500 en vez de 201', function () { pm.expect(pm.response.code).to.equal(500); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio ERROR_INTERNO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ERROR_INTERNO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productivo_cachama}}\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g106}}/fases", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g106}}", "fases" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-112) - Baja TOTAL de activo individual (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: baja total individual, tipo_baja=muerte ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2 CORREGIDO: la baja total responde 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: el evento registra tipo=muerte y cantidad_afectada=1', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.baja.tipo).to.equal('muerte');",
+              "    pm.expect(respuesta.baja.cantidad_afectada).to.equal(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"2026-09-14\",\n  \"motivo_baja\": \"TC-M02-112 - re-verificacion 2026-09-15\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g112}}/eventos/baja", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g112}}", "eventos", "baja" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, paso 1/2 (TC-M02-113) - Capturar cantidad_actual base del lote",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: la consulta del lote responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Precondicion: el lote es POBLACIONAL, ACTIVO y tiene existencia suficiente', function () {",
+              "    pm.expect(respuesta.tipo).to.equal('POBLACIONAL');",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.be.above(50);",
+              "});",
+              "if (pm.response.code === 200 && respuesta) { pm.collectionVariables.set('cantidad_antes', respuesta.detalle_poblacional.cantidad_actual); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, paso 2/2 (TC-M02-113) - Baja PARCIAL de lote (cantidad_afectada=50) (CORREGIDO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3: baja parcial de lote, cantidad_afectada=50 ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 3 CORREGIDO: la baja parcial responde 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 3: el evento registra cantidad_afectada=50', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.baja.cantidad_afectada).to.equal(50);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-14\",\n  \"motivo_baja\": \"TC-M02-113 - re-verificacion 2026-09-15\",\n  \"cantidad_afectada\": 50\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}/eventos/baja", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}", "eventos", "baja" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, verificacion - cantidad_actual bajo exactamente 50 y el lote sigue ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Verificacion: la consulta del activo responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Verificacion: cantidad_actual bajo exactamente en 50 respecto al valor capturado antes', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('cantidad_antes'), 10);",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.equal(antes - 50);",
+              "});",
+              "pm.test('Verificacion: el lote sigue en estado ACTIVO (no se cerro)', function () {",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "    pm.expect(respuesta.nombre_estado).to.equal('ACTIVO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_ciclo_productivo_cachama", "value": "4" },
+    { "key": "id_activo_g106", "value": "250" },
+    { "key": "id_activo_g112", "value": "251" },
+    { "key": "id_activo_g113", "value": "60" },
+    { "key": "cantidad_antes", "value": "" }
+  ]
+}

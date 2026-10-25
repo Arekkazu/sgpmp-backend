@@ -1,0 +1,147 @@
+{
+  "caso": "TC-M02-G18",
+  "revision": 2,
+  "rf": "RF-34",
+  "cu": "CU01",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-15T05:27:22.782657+00:00",
+  "precondiciones": {
+    "con_activa": {
+      "id": 352,
+      "infra": 1
+    },
+    "con_multiple": {
+      "id": 130,
+      "n": 6,
+      "vigentes": 1,
+      "cerradas": 5
+    },
+    "sin_activa": null,
+    "muestra_historial": [
+      {
+        "id": 352,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 351,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 350,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 349,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 348,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 347,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 346,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      },
+      {
+        "id": 345,
+        "n": 1,
+        "vigentes": 1,
+        "cerradas": 0
+      }
+    ],
+    "activos_inspeccionados": 200,
+    "http_historial_500": 0,
+    "id_inexistente": 100352,
+    "get_inexistente_http": 404,
+    "total_activos_listados": 200
+  },
+  "subcasos": {
+    "TC-M02-022": {
+      "resultado": "APROBADO",
+      "endpoint": "GET .../infraestructura?tipo_consulta=ACTIVA",
+      "id_activo": 352,
+      "http": 200,
+      "respuesta": "{\"tipo_consulta\": \"ACTIVA\", \"id_activo_biologico\": 352, \"asociacion_activa\": {\"id_historial\": 308, \"id_activo_biologico\": 352, \"id_infraestructura\": 1, \"nombre_infraestructura\": \"Estanque-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-12T19:04:30.406435Z\", \"fecha_fin\": null}, \"historial\": null, \"sensores_en_infraestructura\": [{\"id_sensor\": 1, \"nombre\": \"Sensor temperatura estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Entrada de agua, profundidad 30 cm\", \"categoria\": \"TEMPERATURA\"}, {\"id_sensor\": 2, \"nombre\": \"Sensor pH estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Centro del estanque, profundidad 50 cm\", \"categoria\": \"PH\"}, {\"id_sensor\": 3, \"nombre\": \"Sensor oxígeno disuelto estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Salida de agua, profundidad 40 cm\", \"categoria\": \"OXIGENO\"}, {\"id_sensor\": 21, \"nombre\": \"Sensor Temperatura Test\", \"id_dispositivo_iot\": 13, \"punto_instalacion\": \"Esquina noroeste, metro 1.5\", \"categoria\": \"TEMPERATURA\"}], \"advertencia_integridad\": null}",
+      "fecha_fin": null,
+      "id_infraestructura": 1,
+      "sensores_campo": true,
+      "n_sensores": 4,
+      "advertencia_integridad": null,
+      "explicacion": "HTTP 200, vigente con fecha_fin null, campo sensores presente (n=4). advertencia_integridad=None."
+    },
+    "TC-M02-023": {
+      "resultado": "RECHAZADO",
+      "endpoint": "GET .../infraestructura?tipo_consulta=HISTORIAL",
+      "multiple_cerrada_y_vigente": true,
+      "id_activo": 130,
+      "precondicion_multiple": {
+        "id": 130,
+        "n": 6,
+        "vigentes": 1,
+        "cerradas": 5
+      },
+      "http": 200,
+      "n_registros": 6,
+      "respuesta": "{\"tipo_consulta\": \"HISTORIAL\", \"id_activo_biologico\": 130, \"asociacion_activa\": null, \"historial\": [{\"id_historial\": 92, \"id_activo_biologico\": 130, \"id_infraestructura\": 1, \"nombre_infraestructura\": \"Estanque-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T03:40:22.838424Z\", \"fecha_fin\": null}, {\"id_historial\": 89, \"id_activo_biologico\": 130, \"id_infraestructura\": 3, \"nombre_infraestructura\": \"Alevinera-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T03:40:06.800714Z\", \"fecha_fin\": \"2026-09-09T03:40:22.838424Z\"}, {\"id_historial\": 88, \"id_activo_biologico\": 130, \"id_infraestructura\": 4, \"nombre_infraestructura\": \"Canal-Trucha-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T03:39:39.015639Z\", \"fecha_fin\": \"2026-09-09T03:40:06.800714Z\"}, {\"id_historial\": 87, \"id_activo_biologico\": 130, \"id_infraestructura\": 3, \"nombre_infraestructura\": \"Alevinera-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T03:33:37.394308Z\", \"fecha_fin\": \"2026-09-09T03:39:39.015639Z\"}, {\"id_historial\": 86, \"id_activo_biologico\": 130, \"id_infraestructura\": 4, \"nombre_infraestructura\": \"Canal-Trucha-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T03:33:14.712053Z\", \"fecha_fin\": \"2026-09-09T03:33:37.394308Z\"}, {\"id_historial\": 76, \"id_activo_biologico\": 130, \"id_infraestructura\": 3, \"nombre_infraestructura\": \"Alevinera-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-09T01:49:25.978061Z\", \"fecha_fin\": \"2026-09-09T03:33:14.712053Z\"}], \"sensores_en_infraestructura\": [], \"advertencia_integridad\": null}",
+      "ordenado_fecha_inicio_asc": false,
+      "fechas_inicio": [
+        "2026-09-09T03:40:22.838424Z",
+        "2026-09-09T03:40:06.800714Z",
+        "2026-09-09T03:39:39.015639Z",
+        "2026-09-09T03:33:37.394308Z",
+        "2026-09-09T03:33:14.712053Z",
+        "2026-09-09T01:49:25.978061Z"
+      ],
+      "n_vigentes": 1,
+      "n_cerradas": 5,
+      "explicacion": "Historial no ordenado por fecha_inicio ASC."
+    },
+    "TC-M02-024": {
+      "resultado": "APROBADO",
+      "endpoint": "GET .../infraestructura?tipo_consulta=ACTIVA",
+      "id_activo": 100352,
+      "http": 404,
+      "respuesta": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"No existe un activo biológico con id 100352.\", \"fields\": [], \"timestamp\": \"2026-09-15T05:28:51.720714+00:00\"}",
+      "error_code": "ACTIVO_NO_ENCONTRADO",
+      "explicacion": "HTTP 404 error_code=ACTIVO_NO_ENCONTRADO."
+    },
+    "TC-M02-025": {
+      "resultado": "BLOQUEADO",
+      "endpoint": "GET .../infraestructura?tipo_consulta=ACTIVA",
+      "explicacion": "BLOQUEADO: no hay activo existente sin fecha_fin=null en HISTORIAL. No se inventa ni se cierra asociacion."
+    },
+    "TC-M02-026": {
+      "resultado": "APROBADO",
+      "endpoint": "PUT/PATCH .../infraestructura",
+      "id_activo": 352,
+      "http_put": 405,
+      "http_patch": 405,
+      "put_body": "{\"detail\": \"Method Not Allowed\"}",
+      "patch_body": "{\"detail\": \"Method Not Allowed\"}",
+      "menciona_rf48": false,
+      "explicacion": "PUT y PATCH HTTP 405. Mencion RF-48/transferencia: False."
+    }
+  },
+  "estado_global": "RECHAZADO",
+  "inc_m02_48_g18": "parcialmente superado",
+  "auditoria": "Historico RF-34 no modificado. Codigo productivo no modificado. Sin commit ni push."
+}

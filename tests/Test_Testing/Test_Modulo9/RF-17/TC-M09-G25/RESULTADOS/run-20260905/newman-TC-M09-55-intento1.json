@@ -1,0 +1,199 @@
+{
+  "grupo": "TC-M09-G25",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:04:51.793Z",
+  "caso": "TC-M09-55",
+  "intento": 1,
+  "resultado": "PASS",
+  "metodo": "POST",
+  "endpoint": "/configuracion/umbrales",
+  "especie": {
+    "id": 4,
+    "nombre": "Cachama Blanca",
+    "es_activo": true
+  },
+  "variable": {
+    "id": 10,
+    "nombre": "Humedad Relativa",
+    "unidad": "%",
+    "catalogoActivo": true,
+    "fisicoMin": 0,
+    "fisicoMax": 100
+  },
+  "reglaFisica": "Humedad <= 100 %",
+  "invalidezIntencional": "valor_max=120 supera el maximo fisico 100 %",
+  "rangoEnviado": {
+    "valor_min": 50,
+    "valor_max": 120,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 50,
+        "limite_superior": 70
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 70,
+        "limite_superior": 90
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 90,
+        "limite_superior": 120
+      }
+    ]
+  },
+  "combinacionLibrePrevia": true,
+  "umbralesPrevios": [
+    {
+      "id": 10,
+      "id_variable_ambiental": 1,
+      "es_activo": true
+    },
+    {
+      "id": 11,
+      "id_variable_ambiental": 3,
+      "es_activo": true
+    }
+  ],
+  "status": 400,
+  "errorCode": "RANGO_FISICO_INVALIDO",
+  "respuesta": {
+    "error_code": "RANGO_FISICO_INVALIDO",
+    "message": "Los valores deben estar dentro del rango físico permitido para 'Humedad Relativa': [0, 100] %.",
+    "fields": [],
+    "timestamp": "2026-09-06T00:04:50.662682+00:00"
+  },
+  "eventos": [
+    {
+      "caso": "TC-M09-55",
+      "metodo": "POST",
+      "endpoint": "/configuracion/umbrales",
+      "status": 400,
+      "payload": {
+        "id_especie": 4,
+        "id_variable_ambiental": 10,
+        "valor_min": 50,
+        "valor_max": 120,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": 50,
+            "limite_superior": 70
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 70,
+            "limite_superior": 90
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 90,
+            "limite_superior": 120
+          }
+        ]
+      },
+      "respuesta": {
+        "error_code": "RANGO_FISICO_INVALIDO",
+        "message": "Los valores deben estar dentro del rango físico permitido para 'Humedad Relativa': [0, 100] %.",
+        "fields": [],
+        "timestamp": "2026-09-06T00:04:50.662682+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-55",
+      "metodo": "GET",
+      "endpoint": "/configuracion/umbrales",
+      "status": 200,
+      "respuesta": {
+        "total": 2,
+        "items": [
+          {
+            "id_umbral_ambiental": 10,
+            "id_especie": 4,
+            "id_variable_ambiental": 1,
+            "unidad_medida": "°C",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "26.00",
+                "limite_superior": "32.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "22.00",
+                "limite_superior": "26.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "22.00"
+              }
+            ]
+          },
+          {
+            "id_umbral_ambiental": 11,
+            "id_especie": 4,
+            "id_variable_ambiental": 3,
+            "unidad_medida": "mg/L",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "4.00",
+                "limite_superior": "12.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "2.00",
+                "limite_superior": "4.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "2.00"
+              }
+            ]
+          }
+        ]
+      },
+      "transportError": false
+    }
+  ],
+  "getPosterior": {
+    "status": 200,
+    "total": 2,
+    "ids": [
+      10,
+      11
+    ]
+  },
+  "persistencia": {
+    "registrosDeLaVariable": 0,
+    "detalle": []
+  },
+  "STOP_ALL": false,
+  "assertions": {
+    "total": 15,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-55-intento1.html"
+}

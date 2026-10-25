@@ -1,0 +1,481 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g15-rf33-rf34",
+    "name": "TC-M02-G15 - Ataques de control de acceso y exposicion de datos en el registro de activos - RF-33/RF-34",
+    "description": "Pruebas TC-M02-027 (BOLA), TC-M02-028 (mass assignment) y TC-M02-031 (exposicion excesiva de datos financieros). Los IDs de activo 'propio' y 'ajeno' se descubren en vivo (GET /activos-biologicos) en vez de quedar fijos, porque en TEST los IDs se reciclan entre corridas de otros casos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_productor", "value": "" },
+    { "key": "ids_propios_productor", "value": "" },
+    { "key": "id_lote_propio", "value": "" },
+    { "key": "id_lote_ajeno", "value": "" },
+    { "key": "token_admin", "value": "" },
+    { "key": "especie_id", "value": "" },
+    { "key": "infraestructura_id", "value": "" },
+    { "key": "activo_mass_assignment_id", "value": "" },
+    { "key": "token_admin_2", "value": "" },
+    { "key": "activo_financiero_id", "value": "" },
+    { "key": "engineer_password", "value": "", "description": "Password real de ingeniero@pecuaria.co. QA debe fijarlo antes de correr (variable de entorno o --env-var), no queda commiteado en la coleccion." },
+    { "key": "token_ingeniero", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - TC-M02-027 - Login Productor (Finca 1)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Productor - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "pm.test('Login Productor - token generado', () => pm.expect(token, 'No se encontro token').to.exist);",
+              "if(token) pm.collectionVariables.set('token_productor', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Descubrir un activo propio del Productor (GET /activos-biologicos)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado propio - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const items=Array.isArray(d) ? d : (d.registros ?? d.items ?? d.data ?? []);",
+              "pm.test('El Productor tiene al menos un activo propio visible', () => pm.expect(items.length, 'GET /activos-biologicos devolvio 0 registros para este Productor').to.be.above(0));",
+              "const ids = items.map(x => String(x.id_activo_biologico ?? x.id));",
+              "pm.collectionVariables.set('ids_propios_productor', ids.join(','));",
+              "pm.collectionVariables.set('id_lote_propio', ids[0]);",
+              "console.log('Activos propios del Productor:', ids);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Login Admin TEST",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Admin - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "pm.test('Login Admin - token generado', () => pm.expect(token, 'No se encontro token').to.exist);",
+              "if(token) pm.collectionVariables.set('token_admin', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Descubrir un activo AJENO al Productor (GET /activos-biologicos como Admin)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos?pagina=1&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado global (Admin) - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const items=Array.isArray(d) ? d : (d.registros ?? d.items ?? d.data ?? []);",
+              "const propios = new Set((pm.collectionVariables.get('ids_propios_productor') || '').split(',').filter(Boolean));",
+              "const candidatos = items.filter(x => !propios.has(String(x.id_activo_biologico ?? x.id)));",
+              "pm.test('Se encontro un activo que NO pertenece al Productor de prueba', () => pm.expect(candidatos.length, 'No se pudo distinguir un activo ajeno entre los primeros 50 registros').to.be.above(0));",
+              "const ajeno = candidatos.find(x => x.tipo === 'INDIVIDUAL') ?? candidatos[0];",
+              "if(ajeno) {",
+              "  const id = String(ajeno.id_activo_biologico ?? ajeno.id);",
+              "  pm.collectionVariables.set('id_lote_ajeno', id);",
+              "  console.log('Activo ajeno elegido:', id, '(id_infraestructura=' + ajeno.id_infraestructura + ')');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - TC-M02-027 - BOLA: consultar activo ajeno (GET)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_ajeno}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-027 GET - Rechaza acceso a activo de otra finca (403 o 404)', () => pm.expect([403,404]).to.include(pm.response.code));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "if ([403,404].includes(pm.response.code)) {",
+              "  pm.test('TC-M02-027 GET - No expone datos del activo ajeno', () => {",
+              "    pm.expect(d).to.not.have.property('id_infraestructura');",
+              "    pm.expect(d).to.not.have.property('detalle_poblacional');",
+              "    pm.expect(d).to.not.have.property('costo_adquisicion');",
+              "  });",
+              "} else {",
+              "  pm.test('TC-M02-027 GET - VULNERABILIDAD BOLA: se expuso el activo ajeno con HTTP ' + pm.response.code, () => pm.expect.fail('El activo ajeno no debia ser legible por este Productor'));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-027 - BOLA: editar activo ajeno (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"raza\": \"TC-M02-G15-BOLA-{{$timestamp}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_ajeno}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-027 PATCH - Rechaza edicion de activo de otra finca (403, 404 o 405)', () => pm.expect([403,404,405], 'HTTP ' + pm.response.code + ' -- ' + pm.response.text().slice(0,200)).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - TC-M02-027 - Control positivo: consultar activo propio",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_propio}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-027 control positivo - Activo propio accesible (HTTP 200)', () => pm.expect(pm.response.code).to.eql(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Consultar especie activa",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especies - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const items=Array.isArray(d) ? d : (d.items ?? d.data ?? []);",
+              "const especie=items.find(x => x.es_activo === true || x.estado === 'ACTIVO') ?? items[0];",
+              "pm.test('Especie activa encontrada', () => pm.expect(especie, 'No se encontro especie activa').to.exist);",
+              "if(especie) pm.collectionVariables.set('especie_id', String(especie.id_especie ?? especie.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Consultar infraestructura activa",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id=3"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Infraestructuras - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const items=Array.isArray(d) ? d : (d.items ?? d.data ?? []);",
+              "const infra=items.find(x => x.es_activa === true || x.es_activo === true || String(x.estado ?? '').toUpperCase() === 'ACTIVO') ?? items[0];",
+              "pm.test('Infraestructura activa encontrada', () => pm.expect(infra, 'No se encontro infraestructura activa').to.exist);",
+              "if(infra) pm.collectionVariables.set('infraestructura_id', String(infra.id_infraestructura ?? infra.id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - TC-M02-028 - Crear lote inyectando estado y cantidad_actual forzados",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5,\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"estado\": \"CERRADO\",\n  \"cantidad_actual\": 9999\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M02-028 - Registro aceptado (HTTP 201)', () => pm.expect(pm.response.code).to.eql(201));",
+              "const id=d.id_activo_biologico ?? d.id_activo ?? d.id ?? (d.data && (d.data.id_activo_biologico ?? d.data.id_activo ?? d.data.id));",
+              "pm.test('TC-M02-028 - ID generado', () => pm.expect(id, 'No se encontro ID del activo').to.exist);",
+              "if(id !== undefined) pm.collectionVariables.set('activo_mass_assignment_id', String(id));",
+              "const estado=String(d.nombre_estado ?? d.estado ?? d.estado_activo ?? (d.data && (d.data.nombre_estado ?? d.data.estado)) ?? '').toUpperCase();",
+              "pm.test('TC-M02-028 - El estado inyectado (CERRADO) fue ignorado, activo queda ACTIVO', () => pm.expect(estado, 'El backend acepto el estado CERRADO inyectado por el usuario').to.eql('ACTIVO'));",
+              "const cantidadActual = (d.detalle_poblacional && d.detalle_poblacional.cantidad_actual) ?? d.cantidad_actual;",
+              "if (cantidadActual !== undefined && cantidadActual !== null) {",
+              "  pm.test('TC-M02-028 - cantidad_actual inyectada (9999) fue ignorada', () => pm.expect(Number(cantidadActual), 'El backend acepto cantidad_actual=9999 inyectada por el usuario').to.eql(10));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - TC-M02-028 - Verificar en servidor que el activo persistio sin los valores inyectados",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_mass_assignment_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-028 verificacion - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const estado=String(d.nombre_estado ?? d.estado ?? d.estado_activo ?? '').toUpperCase();",
+              "pm.test('TC-M02-028 verificacion - El activo persistido esta ACTIVO, no CERRADO', () => pm.expect(estado).to.eql('ACTIVO'));",
+              "const cantidadActual = (d.detalle_poblacional && d.detalle_poblacional.cantidad_actual) ?? d.cantidad_actual;",
+              "if (cantidadActual !== undefined && cantidadActual !== null) {",
+              "  pm.test('TC-M02-028 verificacion - cantidad_actual persistida es la inicial (10), no 9999', () => pm.expect(Number(cantidadActual)).to.eql(10));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Re-login Admin (token fresco antes del setup financiero)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Re-login Admin - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "if(token) pm.collectionVariables.set('token_admin_2', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12b - Descubrir una infraestructura accesible para el Ingeniero de Campo",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login previo Ingeniero (descubrimiento) - HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "if(!token) { return; }",
+              "pm.sendRequest({",
+              "  url: pm.collectionVariables.get('base_url') + '/activos-biologicos',",
+              "  method: 'GET',",
+              "  header: { Authorization: 'Bearer ' + token }",
+              "}, function (err, res) {",
+              "  if (err || !res) return;",
+              "  let dd = {}; try { dd = res.json(); } catch(e) {}",
+              "  const items = Array.isArray(dd) ? dd : (dd.registros ?? dd.items ?? dd.data ?? []);",
+              "  const propio = items.find(x => x.id_infraestructura);",
+              "  pm.test('El Ingeniero tiene al menos una infraestructura propia visible', () => pm.expect(propio, 'El Ingeniero no tiene ningun activo/infraestructura accesible en TEST').to.exist);",
+              "  if (propio) {",
+              "    pm.collectionVariables.set('infraestructura_id_ingeniero', String(propio.id_infraestructura));",
+              "    console.log('Infraestructura del Ingeniero:', propio.id_infraestructura);",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - TC-M02-031 - Crear activo individual con datos financieros reales",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin_2}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": {{infraestructura_id_ingeniero}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"TCM02-G15-031-{{$timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null,\n  \"costo_adquisicion\": 1500000,\n  \"soporte_documental\": \"soporte_TC-M02-031.pdf\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M02-031 setup - Registro aceptado (HTTP 201)', () => pm.expect(pm.response.code).to.eql(201));",
+              "const id=d.id_activo_biologico ?? d.id_activo ?? d.id;",
+              "pm.test('TC-M02-031 setup - ID generado', () => pm.expect(id, 'No se encontro ID del activo').to.exist);",
+              "if(id !== undefined) pm.collectionVariables.set('activo_financiero_id', String(id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - TC-M02-031 - Login Ingeniero de Campo (sin permisos financieros)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Ingeniero - HTTP 200 (requiere variable engineer_password valida)', () => pm.expect(pm.response.code).to.eql(200));",
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "const token=d.token ?? (d.data && d.data.token);",
+              "if(token) pm.collectionVariables.set('token_ingeniero', token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - TC-M02-031 - Ingeniero consulta la ficha del activo con datos financieros",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ingeniero}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_financiero_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let d={}; try { d=pm.response.json(); } catch(e) {}",
+              "if (pm.response.code === 200) {",
+              "  const costo = d.costo_adquisicion;",
+              "  const soporte = d.soporte_documental ?? d.soporte_documental_costo;",
+              "  const costoOculto = costo === undefined || costo === null;",
+              "  const soporteOculto = soporte === undefined || soporte === null;",
+              "  pm.test('TC-M02-031 - costo_adquisicion no visible para Ingeniero de Campo', () => pm.expect(costoOculto, 'costo_adquisicion=' + costo + ' fue expuesto a un rol sin permiso financiero').to.be.true);",
+              "  pm.test('TC-M02-031 - soporte_documental no visible para Ingeniero de Campo', () => pm.expect(soporteOculto, 'soporte_documental=' + soporte + ' fue expuesto a un rol sin permiso financiero').to.be.true);",
+              "} else if (pm.response.code === 403) {",
+              "  pm.test('TC-M02-031 - Acceso denegado por completo (403); tambien satisface el criterio de no exponer datos financieros', () => pm.expect(true).to.be.true);",
+              "} else {",
+              "  pm.test('TC-M02-031 - Codigo de respuesta inesperado: ' + pm.response.code, () => pm.expect.fail('Se esperaba 200 (con campos financieros ocultos/enmascarados) o 403'));",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

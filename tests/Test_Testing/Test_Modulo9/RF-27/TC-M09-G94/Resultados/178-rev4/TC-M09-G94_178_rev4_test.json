@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-10-10T17:25:39.321Z",
+    "end": "2026-10-10T17:25:49.674Z",
+    "duration": 10353,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "3941f570-85b2-4136-ad1e-7d248907729a",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_178_rev4_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_178_rev4_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "10f3da4e-6122-4d5f-90db-cff5db3f0d97",
+          "title": "TC-M09-178 rev4 TEST",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-178 verifica contraste minimo WCAG 4.5:1 en dashboard (tema activo)",
+              "fullTitle": "TC-M09-178 rev4 TEST TC-M09-178 verifica contraste minimo WCAG 4.5:1 en dashboard (tema activo)",
+              "timedOut": null,
+              "duration": 10287,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const contrasena = pass();\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('loginAdmin');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').clear().type(ADMIN);\ncy.get('input[type=\"password\"]').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@loginAdmin', {\n  log: false\n}).then(intc => {\n  const http = intc.response && intc.response.statusCode;\n  const tok = intc.response && intc.response.body && intc.response.body.token;\n  return cy.writeFile(`${EVIDENCIA}/G94-178-rev4-login.json`, {\n    http,\n    token_presente: typeof tok === 'string' && tok.length > 0,\n    nota: 'Sin cuerpo de sesión ni token. Solo lectura posterior.'\n  }).then(() => {\n    expect(http, `login admin UI HTTP (observado=${http == null ? 'null' : http})`).to.eq(200);\n    expect(tok, `token admin tras login HTTP ${http} (observado=${tok == null ? 'null' : typeof tok})`).to.be.a('string').and.not.empty;\n    tokenAdmin = tok;\n    lastStep = 'login_admin_ui';\n  });\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard').and('not.include', '/login').then(() => {\n  lastStep = 'dashboard';\n});\ncy.then(() => {\n  expect(tokenAdmin, `token antes de GET autenticados (last_step=${lastStep}, observado=${tokenAdmin == null ? 'null' : typeof tokenAdmin}). No se continúa sin token.`).to.be.a('string').and.not.empty;\n});\napiGetLectura('/configuracion/personalizacion/tema').then(temaRes => {\n  expect(temaRes.status, 'GET tema (solo lectura)').to.eq(200);\n  return apiGetLectura('/configuracion/interfaz/contexto').then(ctxRes => {\n    expect(ctxRes.status, 'GET contexto (solo lectura)').to.eq(200);\n    lastStep = 'api_lectura';\n    return cy.writeFile(`${EVIDENCIA}/G94-178-rev4-contexto.json`, {\n      tema: {\n        theme_mode: temaRes.body && temaRes.body.theme_mode,\n        fuente: temaRes.body && temaRes.body.fuente\n      },\n      id_finca: ctxRes.body && ctxRes.body.id_finca,\n      identidad_primary: ctxRes.body && ctxRes.body.identidad_visual && ctxRes.body.identidad_visual.primary_color,\n      accesibilidad_primary: ctxRes.body && ctxRes.body.accesibilidad && ctxRes.body.accesibilidad.primary_color,\n      nota: 'Solo lectura. No se PATCH tema ni identidad. No se exige body null.'\n    });\n  });\n});\ncy.document().then(doc => {\n  const html = doc.documentElement;\n  const brand = String(doc.defaultView.getComputedStyle(html).getPropertyValue('--brand-500') || '').trim().toUpperCase();\n  const sidebar = SIDEBAR_SELECTORES.map(selector => {\n    const el = doc.querySelector(selector);\n    if (!el) return {\n      selector,\n      presente: false\n    };\n    const cs = doc.defaultView.getComputedStyle(el);\n    const fg = hexRenderizado(cs.color);\n    const fondo = fondoEfectivo(el, doc);\n    return {\n      selector,\n      presente: true,\n      texto: String(el.textContent || '').trim().slice(0, 200),\n      fg_hex: fg,\n      bg_hex: fondo.hex,\n      bg_origen: fondo.origen,\n      ratio: fg && fondo.hex ? ratioWcagHex(fg, fondo.hex) : null,\n      fontSize: cs.fontSize\n    };\n  });\n  medicion = {\n    pathname: doc.location.pathname,\n    html_data_theme: html.getAttribute('data-theme'),\n    brand500_computed: brand || null,\n    sidebar,\n    axe_violations: null\n  };\n  lastStep = 'css_capturado';\n  return cy.writeFile(`${EVIDENCIA}/G94-178-rev4-diagnostico.json`, _objectSpread(_objectSpread({}, medicion), {}, {\n    ratio_minimo_aa: RATIO_MINIMO_AA,\n    nota: 'Tema activo del admin. No se fuerza data-theme ni --brand-500.'\n  })).then(() => cy.writeFile(`${EVIDENCIA}/G94-178-rev4-sidebar-nodos.json`, {\n    nodos: sidebar\n  }));\n});\ncy.screenshot('G94-178-rev4-dashboard');\ncy.task('getAxeSource').then(src => {\n  cy.window().then(win => {\n    if (!win.axe) {\n      const script = win.document.createElement('script');\n      script.text = src;\n      win.document.documentElement.appendChild(script);\n    }\n  });\n});\ncy.window().should('have.property', 'axe');\ncy.window().then(win => win.axe.run(win.document, {\n  runOnly: {\n    type: 'rule',\n    values: ['color-contrast']\n  }\n})).then(results => {\n  const viol = (results.violations || []).filter(v => v.id === 'color-contrast');\n  const cc = (results.passes || []).find(p => p.id === 'color-contrast');\n  if (medicion) medicion.axe_violations = viol.length;\n  lastStep = 'axe_persistido';\n  return cy.writeFile(`${EVIDENCIA}/G94-178-rev4-axe.json`, {\n    ejecutado: true,\n    violations: viol.length,\n    violation_ids: viol.map(v => v.id),\n    color_contrast_pass_nodes: cc ? (cc.nodes || []).length : 0,\n    violation_nodes: viol.length ? extraerNodosAxe(viol[0].nodes) : []\n  }).then(() => {\n    axeEjecutado = true;\n  });\n});\ncy.then(() => {\n  lastStep = 'aserciones';\n  expect(axeEjecutado, 'axe se ejecutó').to.eq(true);\n  expect(medicion, 'medición persistida').to.be.an('object');\n  expect(medicion.pathname, 'dashboard').to.eq('/dashboard');\n  expect(medicion.axe_violations, 'axe color-contrast violations').to.eq(0);\n  expect(medicion.sidebar, 'cuatro nodos sidebar').to.be.an('array').and.have.length(4);\n  medicion.sidebar.forEach(nodo => {\n    expect(nodo.presente, `sidebar presente ${nodo.selector}`).to.eq(true);\n    expect(nodo.ratio, `sidebar ratio ${nodo.selector}`).to.be.a('number');\n    expect(nodo.ratio, `sidebar AA ${nodo.selector}`).to.be.at.least(RATIO_MINIMO_AA);\n  });\n});",
+              "err": {},
+              "uuid": "0d1d17a8-a0b6-4a7b-9a06-763b05e9760c",
+              "parentUUID": "10f3da4e-6122-4d5f-90db-cff5db3f0d97",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "0d1d17a8-a0b6-4a7b-9a06-763b05e9760c"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 10287,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_178_rev4_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados\\178-rev4",
+        "reportFilename": "TC-M09-G94_178_rev4_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

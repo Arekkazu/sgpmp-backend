@@ -1,0 +1,42 @@
+{
+  "tc": "TC-M02-G89",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G89-REEVAL-V2-20260915-213200",
+  "veredicto": "Rechazado",
+  "nota_global": "El caso no es ejecutable limpiamente hasta que Desarrollo aplique migración que inserte: INSERT INTO modulo1.permisos (id_rol, id_recurso, id_accion, ...) VALUES (1, 30, 3, ...), (2, 30, 3, ...);",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-217: Superación automática (ACTIVA -> SUPERADA)",
+      "esperado": "HTTP 201 Created, estado_asociacion: SUPERADA en previa y ACTIVA en nueva",
+      "obtenido": "HTTP 201 Created, 7/7 aserciones exitosas, superación atómica en BD verificada",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G89-REEVAL-V2-20260915-213200/reporte_TC-M02-G89_v2.html"
+    },
+    {
+      "paso": "TC-M02-216: Desactivación manual (ACTIVA -> INACTIVA)",
+      "esperado": "HTTP 200 OK vía PATCH /activos-biologicos/{id}/sensores/{id_asoc}",
+      "obtenido": "HTTP 403 Forbidden ACCESO_DENEGADO (Admin sin permiso en recurso 30)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G89-REEVAL-V2-20260915-213200/TC-M02-G89_reevaluacion_V2.md",
+      "nota_qa": "Bloqueado por gap de RBAC. La migración 1d7d6069da52 (PR #286) insertó solo (rol 2, recurso 30, acción 1 = Crear), omitiendo la acción 3 (Actualizar) para Admin (rol 1) y Productor (rol 2). Sin esa tupla en modulo1.permisos, PATCH devuelve 403 ACCESO_DENEGADO."
+    },
+    {
+      "paso": "TC-M02-218: Reactivación manual (INACTIVA -> ACTIVA)",
+      "esperado": "HTTP 200 OK vía PATCH /activos-biologicos/{id}/sensores/{id_asoc}",
+      "obtenido": "HTTP 403 Forbidden ACCESO_DENEGADO (Admin sin permiso en recurso 30)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G89-REEVAL-V2-20260915-213200/TC-M02-G89_reevaluacion_V2.md",
+      "nota_qa": "Bloqueado por gap de RBAC. La migración 1d7d6069da52 (PR #286) insertó solo (rol 2, recurso 30, acción 1 = Crear), omitiendo la acción 3 (Actualizar) para Admin (rol 1) y Productor (rol 2). Sin esa tupla en modulo1.permisos, PATCH devuelve 403 ACCESO_DENEGADO."
+    },
+    {
+      "paso": "TC-M02-219: Transición inválida (INACTIVA -> SUPERADA)",
+      "esperado": "HTTP 422 Unprocessable Entity TRANSICION_INVALIDA vía PATCH",
+      "obtenido": "HTTP 403 Forbidden ACCESO_DENEGADO (Admin sin permiso en recurso 30)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G89-REEVAL-V2-20260915-213200/TC-M02-G89_reevaluacion_V2.md",
+      "nota_qa": "Bloqueado por gap de RBAC. La migración 1d7d6069da52 (PR #286) insertó solo (rol 2, recurso 30, acción 1 = Crear), omitiendo la acción 3 (Actualizar) para Admin (rol 1) y Productor (rol 2). Sin esa tupla en modulo1.permisos, PATCH devuelve 403 ACCESO_DENEGADO."
+    }
+  ]
+}

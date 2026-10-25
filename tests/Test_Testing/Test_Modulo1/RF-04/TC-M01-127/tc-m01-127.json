@@ -1,0 +1,1331 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-127-tiempo-respuesta-rbac",
+    "name": "TC-M01-127 - Validar el tiempo de respuesta de la autorización RBAC",
+    "description": "RF-04. Mide el tiempo de respuesta de GET /roles/ (endpoint protegido por require_permission, el mismo verificado y ya aprobado en TC-M01-116) con 2 peticiones de calentamiento descartadas y 30 repeticiones medidas, usando pm.response.responseTime de Newman (tiempo de UNA peticion, no carga concurrente). Criterio de aceptacion acordado con QA: promedio <= 200 ms (el percentil 95 se informa pero no se exige). Antes (v1) se exigia que cada una de 10 peticiones fuera <= 200 ms.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "tiempos",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Inicio de sesión exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "pm.test(\"El token existe\", function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.environment.set(\"token\", respuesta.token);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify([]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. GET /roles/ - calentamiento 1/2 (no cuenta)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Calentamiento 1/2: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "console.log(\"Calentamiento 1/2: \" + pm.response.responseTime + \" ms (descartado)\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. GET /roles/ - calentamiento 2/2 (no cuenta)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Calentamiento 2/2: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "console.log(\"Calentamiento 2/2: \" + pm.response.responseTime + \" ms (descartado)\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. GET /roles/ - repetición 1/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 1/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 1/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. GET /roles/ - repetición 2/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 2/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 2/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. GET /roles/ - repetición 3/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 3/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 3/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. GET /roles/ - repetición 4/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 4/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 4/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. GET /roles/ - repetición 5/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 5/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 5/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. GET /roles/ - repetición 6/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 6/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 6/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. GET /roles/ - repetición 7/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 7/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 7/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. GET /roles/ - repetición 8/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 8/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 8/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. GET /roles/ - repetición 9/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 9/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 9/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. GET /roles/ - repetición 10/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 10/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 10/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. GET /roles/ - repetición 11/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 11/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 11/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. GET /roles/ - repetición 12/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 12/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 12/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15. GET /roles/ - repetición 13/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 13/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 13/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16. GET /roles/ - repetición 14/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 14/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 14/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17. GET /roles/ - repetición 15/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 15/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 15/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. GET /roles/ - repetición 16/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 16/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 16/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19. GET /roles/ - repetición 17/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 17/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 17/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20. GET /roles/ - repetición 18/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 18/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 18/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21. GET /roles/ - repetición 19/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 19/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 19/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22. GET /roles/ - repetición 20/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 20/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 20/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "23. GET /roles/ - repetición 21/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 21/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 21/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "24. GET /roles/ - repetición 22/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 22/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 22/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25. GET /roles/ - repetición 23/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 23/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 23/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26. GET /roles/ - repetición 24/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 24/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 24/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27. GET /roles/ - repetición 25/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 25/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 25/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "28. GET /roles/ - repetición 26/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 26/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 26/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29. GET /roles/ - repetición 27/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 27/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 27/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "30. GET /roles/ - repetición 28/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 28/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 28/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "31. GET /roles/ - repetición 29/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 29/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 29/30: \" + pm.response.responseTime + \" ms\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "32. GET /roles/ - repetición 30/30",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Repetición 30/30: responde 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var tiempos = JSON.parse(pm.collectionVariables.get(\"tiempos\") || \"[]\");",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set(\"tiempos\", JSON.stringify(tiempos));",
+              "console.log(\"Repetición 30/30: \" + pm.response.responseTime + \" ms\");",
+              "// Criterio acordado (RF-04, RNF \"validacion de permisos en menos de 200 ms\"):",
+              "// promedio <= 200 ms sobre las repeticiones medidas (el p95 se informa por consola, no se exige),",
+              "// descartando las peticiones de calentamiento (arranque en frio / conexion TLS).",
+              "var orden = tiempos.slice().sort(function (a, b) { return a - b; });",
+              "var promedio = tiempos.reduce(function (a, b) { return a + b; }, 0) / tiempos.length;",
+              "var p95 = orden[Math.ceil(0.95 * orden.length) - 1];",
+              "var minimo = orden[0];",
+              "var maximo = orden[orden.length - 1];",
+              "var sobre = tiempos.filter(function (t) { return t > 200; }).length;",
+              "",
+              "console.log(\"=== TC-M01-127: resumen de \" + tiempos.length + \" repeticiones (sin calentamiento) ===\");",
+              "console.log(\"Tiempos (ms): \" + tiempos.join(\", \"));",
+              "console.log(\"Promedio: \" + promedio.toFixed(1) + \" ms | P95: \" + p95 + \" ms\");",
+              "console.log(\"Mínimo: \" + minimo + \" ms | Máximo: \" + maximo + \" ms | Peticiones > 200 ms: \" + sobre + \" de \" + tiempos.length);",
+              "",
+              "pm.test(\"TC-M01-127: las 30 repeticiones se completaron\", function () {",
+              "    pm.expect(tiempos.length).to.eql(30);",
+              "});",
+              "",
+              "pm.test(\"TC-M01-127: el promedio es <= 200 ms\", function () {",
+              "    pm.expect(promedio).to.be.at.most(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
