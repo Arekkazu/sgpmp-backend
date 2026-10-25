@@ -1,10 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-145-G012 RF-67: resultados de inferencia e historial diagnóstico inmutables en la BD |
+# | 2026-10-25 | Arekkazu | INC-M04-145-G012 RF-67: encadenada tras 8c4e2a6f1b93 (un solo head en la integración) |
 """RF-67: resultados de inferencia e historial diagnóstico de solo escritura en la base
 
 Revision ID: 4e7a1c9d2f60
-Revises: 517bee7b766c
+Revises: 8c4e2a6f1b93
 Create Date: 2026-10-25
 
 Por qué va por Alembic: es el patrón del repo y CI solo despliega lo que está
@@ -28,7 +29,7 @@ from alembic import op
 
 
 revision: str = '4e7a1c9d2f60'
-down_revision: Union[str, Sequence[str], None] = '517bee7b766c'
+down_revision: Union[str, Sequence[str], None] = '8c4e2a6f1b93'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
