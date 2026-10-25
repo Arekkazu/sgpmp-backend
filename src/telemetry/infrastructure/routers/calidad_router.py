@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -20,6 +21,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import NotFoundError
 from src.shared.rbac import require_permission
@@ -79,6 +81,9 @@ def listar_calidad(
         estado_evaluacion=estado_evaluacion,
         pagina=pagina,
         por_pagina=por_pagina,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return ListaCalidadSchema(
         total=total,

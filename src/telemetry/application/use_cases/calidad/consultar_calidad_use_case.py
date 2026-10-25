@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 from __future__ import annotations
 
 from datetime import datetime
@@ -31,6 +34,8 @@ class ConsultarCalidadUseCase:
         estado_evaluacion: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
         return self.calidad_repo.listar(
             id_sensor=id_sensor,
@@ -40,4 +45,5 @@ class ConsultarCalidadUseCase:
             estado_evaluacion=estado_evaluacion,
             pagina=pagina,
             por_pagina=por_pagina,
+            ids_fincas_permitidas=ids_fincas_permitidas,
         )
