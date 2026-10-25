@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M03-G177 - Consulta Básica y Detalle Auditoría IoT (RF-63)" tests="10" time="3.277">
+  <testsuite name="00-Setup-Autenticacion / 00-Login-ADMIN" id="a04c43d0-fca3-4eb9-b855-dd89dbe36d5b" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.899">
+    <testcase name="Status 200 - Login exitoso de ADMIN" time="0.899" classname="00SetupAutenticacion00LoginAdmin"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 08-TC-M03-336-Listar-Auditoria-Sin-Filtros" id="870dfe11-7d33-4c5e-8f72-8ad3ede07dfa" timestamp="2026-10-24T18:17:21.540Z" tests="4" failures="0" errors="0" time="0.604">
+    <testcase name="Status 200 - Listado de auditoría obtenido" time="0.604" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="Estructura de paginación conforme a contrato" time="0.604" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="Campos base RF-10 y extensión IoT presentes en todos los items" time="0.604" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+    <testcase name="08 - Orden DESC por fecha_hora (crítico)" time="0.604" classname="03TcM03336ListadoSinFiltros08TcM03336ListarAuditoriaSinFiltros"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 09-TC-M03-336-Paginacion-Personalizada" id="0cda07ef-0a5c-465e-96c7-99c111cdf730" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.247">
+    <testcase name="Status 200 - Paginación personalizada respetada" time="0.247" classname="03TcM03336ListadoSinFiltros09TcM03336PaginacionPersonalizada"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 10-TC-M03-336-Paginacion-Max-Permitida" id="c76a6253-9a67-41fa-a948-6768fa8d9ba8" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.642">
+    <testcase name="Status 200 - Paginación máxima por_pagina=200 aceptada" time="0.642" classname="03TcM03336ListadoSinFiltros10TcM03336PaginacionMaxPermitida"/>
+  </testsuite>
+  <testsuite name="03-TC-M03-336-Listado-Sin-Filtros / 11-TC-M03-336-Paginacion-Excedida-Rechazada" id="656f1fbe-da01-4c13-834e-4157ff83d7f1" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.128">
+    <testcase name="Status 400 o 422 - por_pagina > 200 rechazado con codigo de validacion" time="0.128" classname="03TcM03336ListadoSinFiltros11TcM03336PaginacionExcedidaRechazada"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 12-TC-M03-337-Detalle-Evento-Existente" id="54358a82-d080-4331-875a-bb497e6c0446" timestamp="2026-10-24T18:17:21.540Z" tests="7" failures="0" errors="0" time="0.189">
+    <testcase name="Status 200 - Detalle de evento obtenido" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="ID de evento coincide con el solicitado" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="Estructura completa de evento (base + extensión)" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="12 - Campos base faltantes en detalle" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="accion_detallada es objeto/dict JSON o null estructurado" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="Invariante de seguridad: componente_origen NO expuesto en detalle" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+    <testcase name="hash_integridad es SHA-256 hex de 64 caracteres" time="0.189" classname="04TcM03337DetallePorId12TcM03337DetalleEventoExistente"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 13-TC-M03-337-Verificar-Integridad-Bitacora-Backend" id="8a4ecb69-b671-4254-9237-d0cc92a47ce7" timestamp="2026-10-24T18:17:21.540Z" tests="2" failures="0" errors="0" time="0.139">
+    <testcase name="Pre-requisito: fechas calculadas no vacias" time="0.139" classname="04TcM03337DetallePorId13TcM03337VerificarIntegridadBitacoraBackend"/>
+    <testcase name="Status 200 - Verificación de integridad SHA-256 exitosa en backend" time="0.139" classname="04TcM03337DetallePorId13TcM03337VerificarIntegridadBitacoraBackend"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 14-TC-M03-337-UUID-Inexistente-Responde-404" id="bda0fce3-3473-46a4-bac7-40586a1340e1" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.141">
+    <testcase name="Status 404 - UUID inexistente responde Not Found" time="0.141" classname="04TcM03337DetallePorId14TcM03337UuidInexistenteResponde404"/>
+  </testsuite>
+  <testsuite name="04-TC-M03-337-Detalle-Por-Id / 15-TC-M03-337-UUID-Malformado-Rechazado-Con-Codigo-Validacion" id="70b5fe1d-78ce-4636-ad2d-35540e73b4d4" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.173">
+    <testcase name="Status 400 o 422 - UUID malformado rechazado con codigo de validacion" time="0.173" classname="04TcM03337DetallePorId15TcM03337UuidMalformadoRechazadoConCodigoValidacion"/>
+  </testsuite>
+  <testsuite name="99-Teardown-Rollback / 99-Teardown-Rollback-Sandbox" id="ec73da87-e229-4ddb-96d6-108139cc0a66" timestamp="2026-10-24T18:17:21.540Z" tests="1" failures="0" errors="0" time="0.115">
+    <testcase name="Status 200 - Rollback exitoso" time="0.115" classname="99TeardownRollback99TeardownRollbackSandbox"/>
+  </testsuite>
+</testsuites>

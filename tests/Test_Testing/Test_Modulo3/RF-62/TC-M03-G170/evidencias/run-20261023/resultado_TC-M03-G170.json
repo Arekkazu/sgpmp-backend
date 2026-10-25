@@ -1,0 +1,58 @@
+{
+  "tc": "TC-M03-G170",
+  "summary": {
+    "total": 24,
+    "ok": 14,
+    "falla": 10,
+    "veredicto": "RECHAZADO",
+    "bloqueo_externo": {
+      "camino_2_sensor_7": "NO VIABLE: sensor 7 no existe en modulo9.sensores, ingesta rechazada con 401 ERROR_AUTENTICACION y sus 5 evaluaciones historicas ya se encuentran en estado SUPERADA (0 VIGENTE)",
+      "camino_1_fallback": "RECHAZADO POR BLOQUEO EXTERNO: INC-M03-G167-SENSOR-500 en POST /configuracion/dispositivos-iot/{id}/sensores",
+      "subcasos_afectados": "TC-324 (TC-325 y TC-326 pasaron sus aserciones de validacion de request)"
+    }
+  },
+  "checkpoints": [
+    {
+      "paso": "00.01 al 00.06 (login, tipos, finca, area, dispositivo)",
+      "esperado": "200/201 OK",
+      "obtenido": "PASSED (200/201)",
+      "estado": "OK"
+    },
+    {
+      "paso": "00.07 Crear Sensor (Autosiembra)",
+      "esperado": "201 Created",
+      "obtenido": "400/500 Bad Request / Error Interno (INC-M03-G167-SENSOR-500)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "00.08 Asociar Sensor al Area",
+      "esperado": "201 Created",
+      "obtenido": "404 Not Found (bloqueado por 00.07)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "324.01 al 324.04 (Flujo nominal TC-324 reevaluacion exitosa)",
+      "esperado": "200/201 OK",
+      "obtenido": "BLOCKED por 00.07 (fallos 400, 405, 422, 404 en cascada)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-325 (Rechazos por causa documentada: omitida, vacia, corta)",
+      "esperado": "400/422 Bad Request",
+      "obtenido": "PASSED (400 Bad Request validado por RequestValidationError)",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-326 (Rechazos por rango temporal: fecha_desde > fecha_hasta)",
+      "esperado": "400/422 Bad Request",
+      "obtenido": "PASSED (400 Bad Request validado por RequestValidationError)",
+      "estado": "OK"
+    },
+    {
+      "paso": "99.01 Rollback Sandbox",
+      "esperado": "200 OK",
+      "obtenido": "200 OK (Sandbox cerrado y limpiado)",
+      "estado": "OK"
+    }
+  ]
+}

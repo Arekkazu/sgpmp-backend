@@ -99,176 +99,6 @@ folders.push({
     ]
 });
 
-// ── 01. SETUP SINTÉTICO (CATÁLOGO EN SANDBOX) ─────────────────────────────────
-folders.push({
-    name: "01-Setup-Sintetico-Catalogo",
-    item: [
-        makeItem(
-            "01-Crear-Finca-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/fincas",
-            makeAuthHeaders("token_admin"),
-            {
-                nombre: "Finca QA G178 Filtros",
-                ubicacion: "Vereda Las Palmas QA",
-                area_total: 120.0
-            },
-            [],
-            [
-                'pm.test("Status 201/200 - Finca creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;',
-                '    pm.collectionVariables.set("finca_id", String(idFinca));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "02-Crear-Infraestructura-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/infraestructuras",
-            makeAuthHeaders("token_admin"),
-            {
-                id_finca: "{{finca_id}}",
-                nombre: "Establo 178 Filtros",
-                id_tipo_area: 1,
-                capacidad_maxima: 300
-            },
-            [
-                'const fId = parseInt(pm.collectionVariables.get("finca_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_finca = fId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Infraestructura creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;',
-                '    pm.collectionVariables.set("infra_id", String(idInfra));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "03-Crear-Dispositivo-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/dispositivos-iot",
-            makeAuthHeaders("token_admin"),
-            {
-                id_infraestructura: "{{infra_id}}",
-                numero_serie: "DEV-G178-INIT",
-                id_tipo_dispositivo: 1,
-                modelo: "ESP32-G178-FILTERS",
-                firmware_version: "2.1.0"
-            },
-            [
-                'const infId = parseInt(pm.collectionVariables.get("infra_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_infraestructura = infId;',
-                'const serial = "DEV-G178-" + Math.floor(100000 + Math.random() * 900000);',
-                'body.numero_serie = serial;',
-                'pm.collectionVariables.set("device_serial", serial);',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Dispositivo creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;',
-                '    pm.collectionVariables.set("device_id", String(idDev));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "04-Crear-Sensor-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/sensores",
-            makeAuthHeaders("token_admin"),
-            {
-                id_dispositivo_iot: "{{device_id}}",
-                id_variable: 1,
-                pin_conexion: "A1",
-                resolucion: 0.1,
-                precision_lectura: 0.05,
-                rango_minimo: -10.0,
-                rango_maximo: 80.0
-            },
-            [
-                'const devId = parseInt(pm.collectionVariables.get("device_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_dispositivo_iot = devId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Sensor creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idSen = res.id_sensor || res.id;',
-                '    pm.collectionVariables.set("sensor_id", String(idSen));',
-                '});'
-            ]
-        )
-    ]
-});
-
-// ── 02. SETUP GENERACIÓN DE EVENTOS DIVERSOS ──────────────────────────────────
-folders.push({
-    name: "02-Setup-Generacion-Eventos",
-    item: [
-        makeItem(
-            "05-Ingesta-Batch-Telemetria",
-            "POST",
-            "{{baseUrl}}/iot/telemetria/batch",
-            makeAuthHeaders("token_admin"),
-            {
-                origen: "BUFFER_LOCAL",
-                lecturas: []
-            },
-            [
-                'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-                'const lecturas = [];',
-                '// 20 lecturas pasadas (13-oct-2026), espaciadas cada 10 min',
-                'const baseEpoch = 1791878400; // 2026-10-13T08:00:00Z',
-                'for (let i = 0; i < 20; i++) {',
-                '    const dt = new Date((baseEpoch + (i * 600)) * 1000).toISOString();',
-                '    lecturas.push({',
-                '        id_sensor: sensorId,',
-                '        valor: 25.0 + (i * 0.1),',
-                '        timestamp_captura: dt',
-                '    });',
-                '}',
-                'pm.request.body.raw = JSON.stringify({ origen: "BUFFER_LOCAL", lecturas: lecturas });'
-            ],
-            [
-                'pm.test("Status 200/201 - Ingesta batch completada", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    if (res.items && res.items.length > 0) {',
-                '        const idTel = res.items[0].id_telemetria || res.items[0].id;',
-                '        pm.collectionVariables.set("id_telemetria_eval", String(idTel));',
-                '    }',
-                '});'
-            ]
-        ),
-        makeItem(
-            "06-Transicion-Mantenimiento-Dispositivo",
-            "PATCH",
-            "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
-            makeAuthHeaders("token_admin"),
-            {
-                estado_nuevo: "MANTENIMIENTO",
-                motivo: "Prueba de filtros G178"
-            },
-            [],
-            [
-                'pm.test("Status 200 - Transición manual a mantenimiento aplicada", function () {',
-                '    pm.response.to.have.status(200);',
-                '});'
-            ]
-        )
-    ]
-});
-
 // ── 03. TC-M03-340: FILTRO POR TIPO_EVENTO ────────────────────────────────────
 folders.push({
     name: "03-TC-M03-340-Filtro-Tipo-Evento",
@@ -625,34 +455,28 @@ const collection = {
             script: {
                 type: "text/javascript",
                 exec: [
-                    'let currentRunId = pm.collectionVariables.get("run_id");',
-                    'if (!currentRunId || currentRunId.trim() === "") {',
-                    '    currentRunId = "test-" + pm.variables.replaceIn("{{$guid}}");',
-                    '    pm.collectionVariables.set("run_id", currentRunId);',
+                    'const secret = pm.environment.get("sandbox_secret") || pm.collectionVariables.get("sandbox_secret") || "";',
+                    'if (!secret) {',
+                    '    console.warn("[WARN] sandbox_secret no definido. Los requests fallaran con HTTP 403.");',
                     '}',
-                    'const secret = pm.collectionVariables.get("sandbox_secret");',
-                    'if (currentRunId) {',
-                    '    pm.request.headers.upsert({ key: "X-Test-Run-Id", value: currentRunId });',
+                    'pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
+                    '',
+                    '// Generar run_id si no existe',
+                    'if (!pm.collectionVariables.get("run_id")) {',
+                    '    pm.collectionVariables.set("run_id", "test-" + pm.variables.replaceIn(\'{{$guid}}\'));',
                     '}',
-                    'if (secret) {',
-                    '    pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
-                    '}'
+                    'pm.request.headers.upsert({ key: "X-Test-Run-Id", value: pm.collectionVariables.get("run_id") });'
                 ]
             }
         }
     ],
     variable: [
-        { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test" },
+        { key: "baseUrl", value: "https://api.inmero.co/api-sgpmp-test" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
         { key: "token_admin", value: "" },
-        { key: "finca_id", value: "" },
-        { key: "infra_id", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" },
-        { key: "id_telemetria_eval", value: "" }
+        { key: "test_id_evento", value: "" }
     ],
     item: folders
 };

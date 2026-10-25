@@ -111,16 +111,44 @@ class SandboxClient:
         return self.post("test-control/query", json={"query": sql_query})
 
 
+def extraer_filas(resp: Any) -> list[dict]:
+    """Extrae la lista de filas de una respuesta de consulta SQL (/test-control/query).
+
+    Tolera respuestas dict, requests.Response (o mocks con .json()) o list, buscando las claves 'rows', 'data' o 'result'.
+    """
+    if hasattr(resp, "json") and callable(resp.json):
+        try:
+            resp = resp.json()
+        except Exception:
+            raise AssertionError(f"Respuesta no es JSON válido")
+    if isinstance(resp, list):
+        return resp
+    if isinstance(resp, dict):
+        for k in ("rows", "data", "result"):
+            if k in resp and isinstance(resp[k], list):
+                return resp[k]
+        raise AssertionError(f"Respuesta sin filas reconocidas: {list(resp.keys())}")
+    raise AssertionError(f"Tipo de respuesta no soportado: {type(resp)}")
+
+
 def obtener_token_admin(base_url: str, email: str, password: str, run_id: str, secret: str) -> str:
     """Autentica contra /sesiones/ dentro del sandbox para obtener un Bearer token."""
     client = SandboxClient(base_url, run_id, secret)
-    resp = client.post("sesiones/", json={"correo": email, "contrasena": password})
+    resp = client.post(
+        "sesiones/",
+        json={"correo_electronico": email, "contrasena": password},
+    )
     if resp.status_code != 200:
         raise RuntimeError(f"Fallo de autenticación admin: HTTP {resp.status_code} - {resp.text}")
     data = resp.json()
-    token = data.get("access_token") or (data.get("data", {}) if isinstance(data.get("data"), dict) else {}).get("access_token")
+    token = (
+        data.get("token")
+        or data.get("access_token")
+        or (data.get("data", {}) if isinstance(data.get("data"), dict) else {}).get("access_token")
+        or (data.get("data", {}) if isinstance(data.get("data"), dict) else {}).get("token")
+    )
     if not token:
-        raise RuntimeError(f"Respuesta de login sin access_token: {data}")
+        raise RuntimeError(f"Respuesta de login sin access_token o token: {data}")
     return token
 
 

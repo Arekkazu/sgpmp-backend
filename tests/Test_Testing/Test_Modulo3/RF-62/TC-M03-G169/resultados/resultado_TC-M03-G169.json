@@ -1,0 +1,22 @@
+{
+  "tc": "TC-M03-G169",
+  "summary": {
+    "total": 23,
+    "ok": 10,
+    "falla": 13,
+    "veredicto": "RECHAZADO",
+    "bloqueo_externo": {
+      "inc_sensor_500": "POST /configuracion/dispositivos-iot/{id}/sensores → 500 por es_activo NOT NULL",
+      "inc_gap_not_implemented": "gap_temporal_anomalo comentado (afecta TC-322)",
+      "hallazgos_requerimiento": [
+        "H1: valor 150 físicamente imposible (max 100), adaptado a 50 con especie 2",
+        "H2: especie usada es 2 (Trucha), no 123"
+      ]
+    }
+  },
+  "checkpoints": [
+    {"paso": "Preflight", "esperado": "PASSED", "obtenido": "PASSED", "estado": "OK"},
+    {"paso": "Crear sensor", "esperado": "PASSED", "obtenido": "500 ERROR_INTERNO", "estado": "FALLA"},
+    {"paso": "TC-321 / TC-322", "esperado": "PASSED", "obtenido": "BLOCKED", "estado": "FALLA"}
+  ]
+}

@@ -8,10 +8,7 @@ const path = require('path');
 // - Resto (RF-17, RF-23, RF-54, RF-55, RF-57, RF-58, RF-59, RF-60) -> TECNICO (Retención 1 año).
 // - Evento ambiguo (sin componente_origen) -> NIC41 por defecto con registro_incompleto=true.
 //
-// Subcasos:
-// - TC-M03-342: Filtro por clasificacion_registro=NIC41 y TECNICO; inyección ambigua [BLOQUEADO].
-// - TC-M03-344: Positivo NIC41 (RF-62 EVALUACION_CALIDAD_COMPLETADA, REEVALUACION_CALIDAD_SOLICITADA; RF-56/RF-61 [BLOQUEADO]).
-// - TC-M03-345: Negativo TECNICO (RF-60 TRANSICION_MANTENIMIENTO_MANUAL; RF-54/55/57/58/59 [BLOQUEADO]).
+// Suite COMPLETA sin acondicionamiento (16 ítems).
 
 function makeHeader(key, value) {
     return { key, value };
@@ -100,215 +97,25 @@ folders.push({
     ]
 });
 
-// ── 01. SETUP SINTÉTICO (CATÁLOGO EN SANDBOX) ─────────────────────────────────
-folders.push({
-    name: "01-Setup-Sintetico-Catalogo",
-    item: [
-        makeItem(
-            "01-Crear-Finca-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/fincas",
-            makeAuthHeaders("token_admin"),
-            {
-                nombre: "Finca QA G179 Clasificacion",
-                ubicacion: "Vereda El Porvenir QA",
-                area_total: 140.0
-            },
-            [],
-            [
-                'pm.test("Status 201/200 - Finca creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;',
-                '    pm.collectionVariables.set("finca_id", String(idFinca));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "02-Crear-Infraestructura-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/infraestructuras",
-            makeAuthHeaders("token_admin"),
-            {
-                id_finca: "{{finca_id}}",
-                nombre: "Pabellon 179 NIC41",
-                id_tipo_area: 1,
-                capacidad_maxima: 400
-            },
-            [
-                'const fId = parseInt(pm.collectionVariables.get("finca_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_finca = fId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Infraestructura creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;',
-                '    pm.collectionVariables.set("infra_id", String(idInfra));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "03-Crear-Dispositivo-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/dispositivos-iot",
-            makeAuthHeaders("token_admin"),
-            {
-                id_infraestructura: "{{infra_id}}",
-                numero_serie: "DEV-G179-INIT",
-                id_tipo_dispositivo: 1,
-                modelo: "ESP32-G179-NIC41",
-                firmware_version: "2.1.0"
-            },
-            [
-                'const infId = parseInt(pm.collectionVariables.get("infra_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_infraestructura = infId;',
-                'const serial = "DEV-G179-" + Math.floor(100000 + Math.random() * 900000);',
-                'body.numero_serie = serial;',
-                'pm.collectionVariables.set("device_serial", serial);',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Dispositivo creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;',
-                '    pm.collectionVariables.set("device_id", String(idDev));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "04-Crear-Sensor-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/sensores",
-            makeAuthHeaders("token_admin"),
-            {
-                id_dispositivo_iot: "{{device_id}}",
-                id_variable: 1,
-                pin_conexion: "A2",
-                resolucion: 0.1,
-                precision_lectura: 0.05,
-                rango_minimo: -10.0,
-                rango_maximo: 80.0
-            },
-            [
-                'const devId = parseInt(pm.collectionVariables.get("device_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_dispositivo_iot = devId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Sensor creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idSen = res.id_sensor || res.id;',
-                '    pm.collectionVariables.set("sensor_id", String(idSen));',
-                '});'
-            ]
-        )
-    ]
-});
-
-// ── 02. SETUP GENERACIÓN DE EVENTOS NIC41 Y TECNICOS ──────────────────────────
-folders.push({
-    name: "02-Setup-Generacion-Eventos",
-    item: [
-        makeItem(
-            "05-Generar-Eventos-NIC41-Batch-Telemetria",
-            "POST",
-            "{{baseUrl}}/iot/telemetria/batch",
-            makeAuthHeaders("token_admin"),
-            {
-                origen: "BUFFER_LOCAL",
-                lecturas: []
-            },
-            [
-                'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-                'const lecturas = [];',
-                '// 20 lecturas pasadas (14-oct-2026), espaciadas cada 10 min (600s)',
-                'const baseEpoch = 1791964800; // 2026-10-14T08:00:00Z',
-                'for (let i = 0; i < 20; i++) {',
-                '    const dt = new Date((baseEpoch + (i * 600)) * 1000).toISOString();',
-                '    lecturas.push({',
-                '        id_sensor: sensorId,',
-                '        valor: 24.8 + (i * 0.1),',
-                '        timestamp_captura: dt',
-                '    });',
-                '}',
-                'pm.request.body.raw = JSON.stringify({ origen: "BUFFER_LOCAL", lecturas: lecturas });'
-            ],
-            [
-                'pm.test("Status 200/201 - Batch telemetría ingerido (Genera EVALUACION_CALIDAD_COMPLETADA)", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '});'
-            ]
-        ),
-        makeItem(
-            "06-Generar-Eventos-NIC41-Reevaluacion",
-            "POST",
-            "{{baseUrl}}/iot/calidad/reevaluar",
-            makeAuthHeaders("token_admin"),
-            {
-                id_sensor: "{{sensor_id}}",
-                fecha_inicio: "2026-10-14T00:00:00Z",
-                fecha_fin: "2026-10-14T23:59:59Z",
-                motivo: "Re-evaluación clasificación NIC41 QA G179"
-            },
-            [
-                'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_sensor = sensorId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 200 - Reevaluación solicitada (Genera REEVALUACION_CALIDAD_SOLICITADA)", function () {',
-                '    pm.response.to.have.status(200);',
-                '});'
-            ]
-        ),
-        makeItem(
-            "07-Generar-Evento-TECNICO-Mantenimiento",
-            "PATCH",
-            "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
-            makeAuthHeaders("token_admin"),
-            {
-                estado_nuevo: "MANTENIMIENTO",
-                motivo: "Evento técnico RF-60 QA G179"
-            },
-            [],
-            [
-                'pm.test("Status 200 - Transición manual aplicada (Genera TRANSICION_MANTENIMIENTO_MANUAL)", function () {',
-                '    pm.response.to.have.status(200);',
-                '});'
-            ]
-        )
-    ]
-});
-
-// ── 03. TC-M03-342: FILTRO POR CLASIFICACION_REGISTRO ─────────────────────────
+// ── 03. TC-M03-342: FILTRO POR CLASIFICACION_REGISTRO Y AMBIGÜEDAD E8 ─────────
 folders.push({
     name: "03-TC-M03-342-Filtro-Clasificacion",
     item: [
         makeItem(
             "08-TC-M03-342-Filtro-NIC41-Retencion-5",
             "GET",
-            "{{baseUrl}}/iot/auditoria?clasificacion_registro=NIC41",
+            "{{baseUrl}}/iot/auditoria?clasificacion_registro=NIC41&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'pm.test("Status 200 - Filtro clasificacion_registro=NIC41 exitoso", function () {',
+                'pm.test("Tipo clasificacion_registro=NIC41 es NIC41 con retencion 5", function () {',
                 '    pm.response.to.have.status(200);',
-                '});',
-                'const res = pm.response.json();',
-                'pm.test("Todos los eventos clasificados NIC41 tienen retencion_aplicable=5", function () {',
-                '    pm.expect(res.items.length).to.be.at.least(1);',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.clasificacion_registro).to.eql("NIC41");',
-                '        pm.expect(item.retencion_aplicable).to.eql(5);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos clasificados NIC41 en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
                 '    });',
                 '});'
             ]
@@ -316,34 +123,40 @@ folders.push({
         makeItem(
             "09-TC-M03-342-Filtro-TECNICO-Retencion-1",
             "GET",
-            "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO",
+            "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'pm.test("Status 200 - Filtro clasificacion_registro=TECNICO exitoso", function () {',
+                'pm.test("Tipo clasificacion_registro=TECNICO es TECNICO con retencion 1", function () {',
                 '    pm.response.to.have.status(200);',
-                '});',
-                'const res = pm.response.json();',
-                'pm.test("Todos los eventos clasificados TECNICO tienen retencion_aplicable=1", function () {',
-                '    pm.expect(res.items.length).to.be.at.least(1);',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.clasificacion_registro).to.eql("TECNICO");',
-                '        pm.expect(item.retencion_aplicable).to.eql(1);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos clasificados TECNICO en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
                 '    });',
                 '});'
             ]
         ),
         makeItem(
-            "10-TC-M03-342-Inyeccion-Evento-Ambiguo-Bloqueado",
+            "10-TC-M03-342-Evento-Ambiguo-E8-RESTAURAR",
             "GET",
-            "{{baseUrl}}/iot/auditoria?registro_incompleto=true",
+            "{{baseUrl}}/iot/auditoria?pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'console.log("[BLOQUEADO] Subcaso Inyección Evento Ambiguo: No existe endpoint público para registrar eventos de auditoría sin componente_origen. Los use cases internos siempre asignan un componente canónico.");',
-                'console.log("[INFO G179] Status consulta:", pm.response.code);'
+                'pm.test("E8 - Evento ambiguo (registro_incompleto=true) => NIC41", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    const ambiguos = (b.items || []).filter(it => it.registro_incompleto === true);',
+                '    pm.expect(ambiguos.length, "Sin eventos ambiguos en la muestra de 10. El endpoint no expone query param registro_incompleto. INC: no hay forma publica de verificar E8.").to.be.at.least(1);',
+                '    ambiguos.forEach((it, i) => {',
+                '        pm.expect(it.clasificacion_registro, `ambiguo[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `ambiguo[${i}] ret`).to.eql(5);',
+                '    });',
+                '});'
             ]
         )
     ]
@@ -354,69 +167,103 @@ folders.push({
     name: "04-TC-M03-344-Positivos-NIC41",
     item: [
         makeItem(
-            "11-TC-M03-344-Verificar-RF62-EVALUACION_CALIDAD_COMPLETADA",
+            "11-TC-M03-344-RF62-EVALUACION_CALIDAD_COMPLETADA",
             "GET",
-            "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'pm.test("Status 200 - Eventos EVALUACION_CALIDAD_COMPLETADA obtenidos", function () {',
+                'pm.test("Tipo EVALUACION_CALIDAD_COMPLETADA es NIC41 con retencion 5", function () {',
                 '    pm.response.to.have.status(200);',
-                '});',
-                'const res = pm.response.json();',
-                'pm.test("RF-62 (EVALUACION_CALIDAD_COMPLETADA) clasifica como NIC41 con retención 5 años", function () {',
-                '    pm.expect(res.items.length).to.be.at.least(1);',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.clasificacion_registro).to.eql("NIC41");',
-                '        pm.expect(item.retencion_aplicable).to.eql(5);',
-                '        pm.expect(item.registro_incompleto).to.be.false;',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de EVALUACION_CALIDAD_COMPLETADA en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("EVALUACION_CALIDAD_COMPLETADA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
                 '    });',
                 '});'
             ]
         ),
         makeItem(
-            "12-TC-M03-344-Verificar-RF62-REEVALUACION_CALIDAD_SOLICITADA",
+            "12-TC-M03-344-RF62-REEVALUACION_CALIDAD_SOLICITADA",
             "GET",
-            "{{baseUrl}}/iot/auditoria?tipo_evento=REEVALUACION_CALIDAD_SOLICITADA",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=REEVALUACION_CALIDAD_SOLICITADA&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'pm.test("Status 200 - Eventos REEVALUACION_CALIDAD_SOLICITADA obtenidos", function () {',
+                'pm.test("Tipo REEVALUACION_CALIDAD_SOLICITADA es NIC41 con retencion 5", function () {',
                 '    pm.response.to.have.status(200);',
-                '});',
-                'const res = pm.response.json();',
-                'pm.test("RF-62 (REEVALUACION_CALIDAD_SOLICITADA) clasifica como NIC41 con retención 5 años", function () {',
-                '    pm.expect(res.items.length).to.be.at.least(1);',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.clasificacion_registro).to.eql("NIC41");',
-                '        pm.expect(item.retencion_aplicable).to.eql(5);',
-                '        pm.expect(item.registro_incompleto).to.be.false;',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de REEVALUACION_CALIDAD_SOLICITADA en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("REEVALUACION_CALIDAD_SOLICITADA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
                 '    });',
                 '});'
             ]
         ),
         makeItem(
-            "13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-Bloqueado",
+            "13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-RESTAURAR",
             "GET",
-            "{{baseUrl}}/iot/auditoria?tipo_evento=PAQUETE_INFERENCIA_GENERADO",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=PAQUETE_INFERENCIA_GENERADO&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'console.log("[BLOQUEADO] Subcaso RF-56 PAQUETE_INFERENCIA_GENERADO: Emitido exclusivamente por motor de IA/M04 o worker de inferencia. No expone endpoint REST directo de generación síncrona en M03.");'
+                'pm.test("RF-56 PAQUETE_INFERENCIA_GENERADO existe y es NIC41 ret 5", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "0 eventos de PAQUETE_INFERENCIA_GENERADO en BD. Backend no emite este tipo de auditoria.").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("PAQUETE_INFERENCIA_GENERADO");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
+                '    });',
+                '});'
             ]
         ),
         makeItem(
-            "14-TC-M03-344-RF61-VINCULACION_AUTOMATICA-Bloqueado",
+            "14-TC-M03-344-RF61-VINCULACION_AUTOMATICA-CON-ASSERT",
             "GET",
-            "{{baseUrl}}/iot/auditoria?tipo_evento=VINCULACION_AUTOMATICA",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=VINCULACION_AUTOMATICA&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'console.log("[BLOQUEADO] Subcaso RF-61 VINCULACION_AUTOMATICA: Emitido por worker de vinculación edge/RFID en segundo plano. No emitible por endpoint síncrono API.");'
+                'pm.test("RF-61 VINCULACION_AUTOMATICA es NIC41 ret 5", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos VINCULACION_AUTOMATICA").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("VINCULACION_AUTOMATICA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
+                '    });',
+                '});'
+            ]
+        ),
+        makeItem(
+            "15-TC-M03-344-RF53-TELEMETRIA_VALIDADA-NUEVO",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=TELEMETRIA_VALIDADA&pagina=1&por_pagina=10",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Tipo TELEMETRIA_VALIDADA es NIC41 con retencion 5", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de TELEMETRIA_VALIDADA en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("TELEMETRIA_VALIDADA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("NIC41");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(5);',
+                '    });',
+                '});'
             ]
         )
     ]
@@ -427,43 +274,114 @@ folders.push({
     name: "05-TC-M03-345-Negativos-TECNICO",
     item: [
         makeItem(
-            "15-TC-M03-345-Verificar-RF60-TRANSICION_MANTENIMIENTO_MANUAL",
+            "16-TC-M03-345-RF60-TRANSICION_MANTENIMIENTO_MANUAL",
             "GET",
-            "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'pm.test("Status 200 - Eventos TRANSICION_MANTENIMIENTO_MANUAL obtenidos", function () {',
+                'pm.test("Tipo TRANSICION_MANTENIMIENTO_MANUAL es TECNICO con retencion 1", function () {',
                 '    pm.response.to.have.status(200);',
-                '});',
-                'const res = pm.response.json();',
-                'pm.test("RF-60 (TRANSICION_MANTENIMIENTO_MANUAL) clasifica como TECNICO con retención 1 año", function () {',
-                '    pm.expect(res.items.length).to.be.at.least(1);',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.clasificacion_registro).to.eql("TECNICO");',
-                '        pm.expect(item.retencion_aplicable).to.eql(1);',
-                '        pm.expect(item.registro_incompleto).to.be.false;',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de TRANSICION_MANTENIMIENTO_MANUAL en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("TRANSICION_MANTENIMIENTO_MANUAL");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
                 '    });',
                 '});'
             ]
         ),
         makeItem(
-            "16-TC-M03-345-Eventos-Broker-Worker-Bloqueados",
+            "17-TC-M03-345-RF54-BUFFER_ACTIVADO-NUEVO",
             "GET",
-            "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=BUFFER_ACTIVADO&pagina=1&por_pagina=10",
             makeAuthHeaders("token_admin"),
             null,
             [],
             [
-                'console.log("[BLOQUEADO] Subcasos RF-54 (BUFFER_ACTIVADO), RF-55 (DESVIACION_DETECTADA), RF-57 (ALERTA_GENERADA), RF-58, RF-59, RF-60 (DISPOSITIVO_SIN_SEÑAL):");',
-                'console.log("  Motivo: Eventos emitidos por brokers MQTT, workers periódicos o procesamiento asíncrono sin interfaz REST directa en el sandbox.");',
-                'pm.test("Verificación de que eventos técnicos en sandbox cumplen retención de 1 año", function () {',
-                '    const res = pm.response.json();',
-                '    res.items.forEach(item => {',
-                '        pm.expect(item.retencion_aplicable).to.eql(1);',
+                'pm.test("Tipo BUFFER_ACTIVADO es TECNICO con retencion 1", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de BUFFER_ACTIVADO en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("BUFFER_ACTIVADO");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
                 '    });',
                 '});'
+            ]
+        ),
+        makeItem(
+            "18-TC-M03-345-RF55-DESVIACION_DETECTADA-NUEVO",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=DESVIACION_DETECTADA&pagina=1&por_pagina=10",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Tipo DESVIACION_DETECTADA es TECNICO con retencion 1", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de DESVIACION_DETECTADA en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("DESVIACION_DETECTADA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
+                '    });',
+                '});'
+            ]
+        ),
+        makeItem(
+            "19-TC-M03-345-RF57-ALERTA_GENERADA-NUEVO",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=ALERTA_GENERADA&pagina=1&por_pagina=10",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Tipo ALERTA_GENERADA es TECNICO con retencion 1", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de ALERTA_GENERADA en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("ALERTA_GENERADA");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
+                '    });',
+                '});'
+            ]
+        ),
+        makeItem(
+            "20-TC-M03-345-RF60-DISPOSITIVO_SIN_SENAL-NUEVO",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?tipo_evento=DISPOSITIVO_SIN_SE%C3%91AL&pagina=1&por_pagina=10",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Tipo DISPOSITIVO_SIN_SEÑAL es TECNICO con retencion 1", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b.total, "Sin eventos de DISPOSITIVO_SIN_SEÑAL en BD").to.be.at.least(1);',
+                '    b.items.forEach((it, i) => {',
+                '        pm.expect(it.tipo_evento, `item[${i}] tipo`).to.eql("DISPOSITIVO_SIN_SEÑAL");',
+                '        pm.expect(it.clasificacion_registro, `item[${i}] clasif`).to.eql("TECNICO");',
+                '        pm.expect(it.retencion_aplicable, `item[${i}] ret`).to.eql(1);',
+                '    });',
+                '});'
+            ]
+        ),
+        makeItem(
+            "21-TC-M03-345-RF58-RF59-Sonda",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?pagina=1&por_pagina=1",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'console.log("[PENDIENTE] RF-58 y RF-59 sin tipo_evento definido en el spec.");'
             ]
         )
     ]
@@ -503,33 +421,29 @@ const collection = {
             script: {
                 type: "text/javascript",
                 exec: [
-                    'let currentRunId = pm.collectionVariables.get("run_id");',
-                    'if (!currentRunId || currentRunId.trim() === "") {',
-                    '    currentRunId = "test-" + pm.variables.replaceIn("{{$guid}}");',
-                    '    pm.collectionVariables.set("run_id", currentRunId);',
+                    'const secret = pm.environment.get("sandbox_secret")',
+                    '            || pm.collectionVariables.get("sandbox_secret")',
+                    '            || "";',
+                    'if (!secret) {',
+                    '    console.warn("[WARN] sandbox_secret no definido. Los requests fallaran con HTTP 403.");',
                     '}',
-                    'const secret = pm.collectionVariables.get("sandbox_secret");',
-                    'if (currentRunId) {',
-                    '    pm.request.headers.upsert({ key: "X-Test-Run-Id", value: currentRunId });',
+                    'pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
+                    '',
+                    'if (!pm.collectionVariables.get("run_id")) {',
+                    '    pm.collectionVariables.set("run_id", "test-" + pm.variables.replaceIn(\'{{$guid}}\'));',
                     '}',
-                    'if (secret) {',
-                    '    pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
-                    '}'
+                    'pm.request.headers.upsert({ key: "X-Test-Run-Id", value: pm.collectionVariables.get("run_id") });'
                 ]
             }
         }
     ],
     variable: [
-        { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test" },
+        { key: "baseUrl", value: "https://api.inmero.co/api-sgpmp-test" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
         { key: "token_admin", value: "" },
-        { key: "finca_id", value: "" },
-        { key: "infra_id", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" }
+        { key: "test_id_evento", value: "" }
     ],
     item: folders
 };

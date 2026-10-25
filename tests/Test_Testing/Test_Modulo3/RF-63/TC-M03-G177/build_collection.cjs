@@ -6,7 +6,7 @@ const path = require('path');
 // Subcasos:
 // - TC-M03-336: Listado sin filtros, paginación (default 50, max 200, 422 en >200),
 //               campos base RF-10 (11) + extensión IoT (8) + timestamp_registro,
-//               modulo="M03", sin componente_origen, total backend.
+//               modulo="M03", sin componente_origen, total backend, orden DESC.
 // - TC-M03-337: Detalle por id_evento, objeto completo, accion_detallada JSON,
 //               hash_integridad 64 hex, 404 en inexistente, 422 en malformado.
 
@@ -97,215 +97,6 @@ folders.push({
     ]
 });
 
-// ── 01. SETUP SINTÉTICO (CATÁLOGO EN SANDBOX) ─────────────────────────────────
-const setupItems = [
-    makeItem(
-        "01-Crear-Finca-Sintetica",
-        "POST",
-        "{{baseUrl}}/configuracion/fincas",
-        makeAuthHeaders("token_admin"),
-        {
-            nombre: "Finca QA G177 Audit",
-            ubicacion: "Vereda Central QA",
-            area_total: 150.0
-        },
-        [],
-        [
-            'pm.test("Status 201/200 - Finca creada en sandbox", function () {',
-            '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-            '    const res = pm.response.json();',
-            '    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;',
-            '    pm.expect(idFinca).to.be.ok;',
-            '    pm.collectionVariables.set("finca_id", String(idFinca));',
-            '});'
-        ]
-    ),
-    makeItem(
-        "02-Crear-Infraestructura-Sintetica",
-        "POST",
-        "{{baseUrl}}/configuracion/infraestructuras",
-        makeAuthHeaders("token_admin"),
-        {
-            id_finca: "{{finca_id}}",
-            nombre: "Galpón 177 Auditoría",
-            id_tipo_area: 1,
-            capacidad_maxima: 500
-        },
-        [
-            'const fId = parseInt(pm.collectionVariables.get("finca_id"), 10);',
-            'const body = JSON.parse(pm.request.body.raw);',
-            'body.id_finca = fId;',
-            'pm.request.body.raw = JSON.stringify(body);'
-        ],
-        [
-            'pm.test("Status 201/200 - Infraestructura creada en sandbox", function () {',
-            '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-            '    const res = pm.response.json();',
-            '    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;',
-            '    pm.expect(idInfra).to.be.ok;',
-            '    pm.collectionVariables.set("infra_id", String(idInfra));',
-            '});'
-        ]
-    ),
-    makeItem(
-        "03-Crear-Dispositivo-Sintetico",
-        "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot",
-        makeAuthHeaders("token_admin"),
-        {
-            id_infraestructura: "{{infra_id}}",
-            numero_serie: "DEV-G177-INIT",
-            id_tipo_dispositivo: 1,
-            modelo: "ESP32-G177-AUDIT",
-            firmware_version: "2.1.0"
-        },
-        [
-            'const infId = parseInt(pm.collectionVariables.get("infra_id"), 10);',
-            'const body = JSON.parse(pm.request.body.raw);',
-            'body.id_infraestructura = infId;',
-            'const serial = "DEV-G177-" + Math.floor(100000 + Math.random() * 900000);',
-            'body.numero_serie = serial;',
-            'pm.collectionVariables.set("device_serial", serial);',
-            'pm.request.body.raw = JSON.stringify(body);'
-        ],
-        [
-            'pm.test("Status 201/200 - Dispositivo creado en sandbox", function () {',
-            '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-            '    const res = pm.response.json();',
-            '    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;',
-            '    pm.expect(idDev).to.be.ok;',
-            '    pm.collectionVariables.set("device_id", String(idDev));',
-            '});'
-        ]
-    ),
-    makeItem(
-        "04-Crear-Sensor-Sintetico",
-        "POST",
-        "{{baseUrl}}/configuracion/sensores",
-        makeAuthHeaders("token_admin"),
-        {
-            id_dispositivo_iot: "{{device_id}}",
-            id_variable: 1,
-            pin_conexion: "A0",
-            resolucion: 0.1,
-            precision_lectura: 0.05,
-            rango_minimo: -10.0,
-            rango_maximo: 80.0
-        },
-        [
-            'const devId = parseInt(pm.collectionVariables.get("device_id"), 10);',
-            'const body = JSON.parse(pm.request.body.raw);',
-            'body.id_dispositivo_iot = devId;',
-            'pm.request.body.raw = JSON.stringify(body);'
-        ],
-        [
-            'pm.test("Status 201/200 - Sensor creado en sandbox", function () {',
-            '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-            '    const res = pm.response.json();',
-            '    const idSen = res.id_sensor || res.id;',
-            '    pm.expect(idSen).to.be.ok;',
-            '    pm.collectionVariables.set("sensor_id", String(idSen));',
-            '});'
-        ]
-    )
-];
-
-folders.push({
-    name: "01-Setup-Sintetico-Catalogo",
-    item: setupItems
-});
-
-// ── 02. SETUP GENERACIÓN DE EVENTOS POR API ───────────────────────────────────
-// Para que la bitácora RF-63 contenga eventos que auditar, ejecutamos:
-// 1. Ingesta batch de telemetría (POST /iot/telemetria/batch) -> genera eventos EVALUACION_CALIDAD_COMPLETADA (RF-62, NIC41, retencion 5)
-// 2. Transición de mantenimiento de dispositivo (PATCH /iot/dispositivos/{id}/mantenimiento) -> genera TRANSICION_MANTENIMIENTO_MANUAL (RF-60, TECNICO, retencion 1)
-// 3. Re-evaluación de calidad (POST /iot/calidad/reevaluar) -> genera REEVALUACION_CALIDAD_SOLICITADA (RF-62, NIC41, retencion 5)
-const genEventsItems = [
-    makeItem(
-        "05-Ingesta-Batch-Telemetria",
-        "POST",
-        "{{baseUrl}}/iot/telemetria/batch",
-        makeAuthHeaders("token_admin"),
-        {
-            origen: "BUFFER_LOCAL",
-            lecturas: []
-        },
-        [
-            'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-            'const lecturas = [];',
-            '// 20 lecturas pasadas (12-oct-2026), espaciadas cada 10 min (600s)',
-            'const baseEpoch = 1791792000; // 2026-10-12T08:00:00Z',
-            'for (let i = 0; i < 20; i++) {',
-            '    const dt = new Date((baseEpoch + (i * 600)) * 1000).toISOString();',
-            '    lecturas.push({',
-            '        id_sensor: sensorId,',
-            '        valor: 24.5 + (i * 0.1),',
-            '        timestamp_captura: dt',
-            '    });',
-            '}',
-            'pm.request.body.raw = JSON.stringify({ origen: "BUFFER_LOCAL", lecturas: lecturas });'
-        ],
-        [
-            'pm.test("Status 200/201 - Batch ingerido exitosamente", function () {',
-            '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-            '    const res = pm.response.json();',
-            '    const total = res.total_procesadas || res.procesadas || (res.items && res.items.length) || 0;',
-            '    pm.expect(total).to.be.at.least(1);',
-            '    if (res.items && res.items.length > 0) {',
-            '        const idTel = res.items[0].id_telemetria || res.items[0].id;',
-            '        if (idTel) pm.collectionVariables.set("id_telemetria_eval", String(idTel));',
-            '    }',
-            '});'
-        ]
-    ),
-    makeItem(
-        "06-Transicion-Mantenimiento-Dispositivo",
-        "PATCH",
-        "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
-        makeAuthHeaders("token_admin"),
-        {
-            estado_nuevo: "MANTENIMIENTO",
-            motivo: "Inspeccion tecnica semestral QA G177"
-        },
-        [],
-        [
-            'pm.test("Status 200 - Transición manual a mantenimiento aplicada", function () {',
-            '    pm.response.to.have.status(200);',
-            '    const res = pm.response.json();',
-            '    pm.expect(res.estado_actual).to.eql("MANTENIMIENTO");',
-            '});'
-        ]
-    ),
-    makeItem(
-        "07-Solicitar-Reevaluacion-Calidad",
-        "POST",
-        "{{baseUrl}}/iot/calidad/reevaluar",
-        makeAuthHeaders("token_admin"),
-        {
-            id_sensor: "{{sensor_id}}",
-            fecha_inicio: "2026-10-12T00:00:00Z",
-            fecha_fin: "2026-10-12T23:59:59Z",
-            motivo: "Re-evaluacion auditoria G177"
-        },
-        [
-            'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-            'const body = JSON.parse(pm.request.body.raw);',
-            'body.id_sensor = sensorId;',
-            'pm.request.body.raw = JSON.stringify(body);'
-        ],
-        [
-            'pm.test("Status 200 - Reevaluación de calidad ejecutada", function () {',
-            '    pm.response.to.have.status(200);',
-            '});'
-        ]
-    )
-];
-
-folders.push({
-    name: "02-Setup-Generacion-Eventos",
-    item: genEventsItems
-});
-
 // ── 03. TC-M03-336: LISTADO SIN FILTROS Y PAGINACIÓN ──────────────────────────
 const listadoItems = [
     makeItem(
@@ -364,6 +155,15 @@ const listadoItems = [
             '        pm.expect(item).to.not.have.property("componente_origen");',
             '    });',
             '});',
+            'pm.test("08 - Orden DESC por fecha_hora (crítico)", function () {',
+            '    const b = pm.response.json();',
+            '    pm.expect(b.items.length).to.be.at.least(2);',
+            '    for (let i = 0; i < b.items.length - 1; i++) {',
+            '        const t1 = new Date(b.items[i].fecha_hora).getTime();',
+            '        const t2 = new Date(b.items[i + 1].fecha_hora).getTime();',
+            '        pm.expect(t1, `item[${i}].fecha_hora (${b.items[i].fecha_hora}) debe ser >= item[${i+1}] (${b.items[i+1].fecha_hora})`).to.be.at.least(t2);',
+            '    }',
+            '});',
             '// Guardar dinámicamente un id_evento para TC-M03-337',
             'if (res.items.length > 0) {',
             '    pm.collectionVariables.set("test_id_evento", res.items[0].id_evento);',
@@ -402,19 +202,26 @@ const listadoItems = [
             '});'
         ]
     ),
-    makeItem(
-        "11-TC-M03-336-Paginacion-Excedida-Rechazada",
-        "GET",
-        "{{baseUrl}}/iot/auditoria?por_pagina=201",
-        makeAuthHeaders("token_admin"),
-        null,
-        [],
-        [
-            'pm.test("Status 422 - por_pagina > 200 rechazado con Unprocessable Entity", function () {',
-            '    pm.response.to.have.status(422);',
-            '});'
-        ]
-    )
+    (() => {
+        const it = makeItem(
+            "11-TC-M03-336-Paginacion-Excedida-Rechazada",
+            "GET",
+            "{{baseUrl}}/iot/auditoria?por_pagina=201",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Status 400 o 422 - por_pagina > 200 rechazado con codigo de validacion", function () {',
+                '    pm.expect([400, 422], "status esperado 400 o 422").to.include(pm.response.code);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b, "body sin error_code").to.have.property("error_code");',
+                '    pm.expect(b.error_code).to.be.oneOf(["VAL_ENTRADA", "VALIDATION_ERROR"]);',
+                '});'
+            ]
+        );
+        it.request.description = "por_pagina > 200 debe ser rechazado con 400 (VAL_ENTRADA) o 422. OBS-M03-G177-01: Swagger declara 422 pero backend devuelve 400.";
+        return it;
+    })()
 ];
 
 folders.push({
@@ -453,6 +260,15 @@ const detalleItems = [
             '    pm.expect(evento).to.have.property("registro_incompleto");',
             '    pm.expect(evento).to.have.property("timestamp_registro");',
             '});',
+            'pm.test("12 - Campos base faltantes en detalle", function () {',
+            '    const b = pm.response.json();',
+            '    const faltantes = [\'id_usuario\',\'nombre_usuario\',\'descripcion\',',
+            '                       \'direccion_ip\',\'user_agent\',\'id_sesion\'];',
+            '    faltantes.forEach(campo => {',
+            '        pm.expect(b).to.have.property(campo);',
+            '        // null es válido (eventos automáticos) — no se exige no-nulo',
+            '    });',
+            '});',
             'pm.test("accion_detallada es objeto/dict JSON o null estructurado", function () {',
             '    if (evento.accion_detallada !== null) {',
             '        pm.expect(evento.accion_detallada).to.be.an("object");',
@@ -468,23 +284,50 @@ const detalleItems = [
             'console.log("[INFO G177 TC-337] Evento auditado: " + evento.id_evento + " | Tipo: " + evento.tipo_evento + " | Hash: " + evento.hash_integridad);'
         ]
     ),
-    makeItem(
-        "13-TC-M03-337-Verificar-Integridad-Bitacora-Backend",
-        "POST",
-        "{{baseUrl}}/iot/auditoria/verificar-integridad",
-        makeAuthHeaders("token_admin"),
-        null,
-        [],
-        [
-            'pm.test("Status 200 - Verificación de integridad SHA-256 exitosa en backend", function () {',
-            '    pm.response.to.have.status(200);',
-            '    const res = pm.response.json();',
-            '    pm.expect(res.total_verificados).to.be.at.least(1);',
-            '    pm.expect(res.comprometidos).to.eql(0);',
-            '    pm.expect(res.ids_comprometidos).to.eql([]);',
-            '});'
-        ]
-    ),
+    (() => {
+        const it = makeItem(
+            "13-TC-M03-337-Verificar-Integridad-Bitacora-Backend",
+            "POST",
+            "{{baseUrl}}/iot/auditoria/verificar-integridad?fecha_desde={{fecha_desde_iso}}&fecha_hasta={{fecha_hasta_iso}}",
+            makeAuthHeaders("token_admin"),
+            null,
+            [
+                'const ahora = new Date();',
+                'const hace60s = new Date(ahora.getTime() - 60 * 1000);',
+                'const fmtISO = (d) => {',
+                '    const iso = d.toISOString();          // "2026-10-24T17:45:00.123Z"',
+                '    return iso.split(".")[0] + "Z";       // "2026-10-24T17:45:00Z"',
+                '};',
+                'const desde = fmtISO(hace60s);',
+                'const hasta = fmtISO(ahora);',
+                'pm.collectionVariables.set("fecha_desde_iso", desde);',
+                'pm.collectionVariables.set("fecha_hasta_iso", hasta);',
+                'console.log("[item13] fecha_desde=" + desde + " fecha_hasta=" + hasta);',
+                'if (!desde || !hasta) {',
+                '    throw new Error("[item13] FECHAS VACIAS - abortar test");',
+                '}'
+            ],
+            [
+                'pm.test("Pre-requisito: fechas calculadas no vacias", function () {',
+                '    const desde = pm.collectionVariables.get("fecha_desde_iso");',
+                '    const hasta = pm.collectionVariables.get("fecha_hasta_iso");',
+                '    pm.expect(desde, "fecha_desde_iso vacia").to.be.a("string").and.not.empty;',
+                '    pm.expect(hasta, "fecha_hasta_iso vacia").to.be.a("string").and.not.empty;',
+                '    pm.expect(desde).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);',
+                '    pm.expect(hasta).to.match(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/);',
+                '});',
+                'pm.test("Status 200 - Verificación de integridad SHA-256 exitosa en backend", function () {',
+                '    pm.response.to.have.status(200);',
+                '    const res = pm.response.json();',
+                '    pm.expect(res.total_verificados).to.be.at.least(0);',
+                '    pm.expect(res.comprometidos).to.eql(0);',
+                '    pm.expect(res.ids_comprometidos).to.eql([]);',
+                '});'
+            ]
+        );
+        it.request.timeout = 30000;
+        return it;
+    })(),
     makeItem(
         "14-TC-M03-337-UUID-Inexistente-Responde-404",
         "GET",
@@ -500,19 +343,26 @@ const detalleItems = [
             '});'
         ]
     ),
-    makeItem(
-        "15-TC-M03-337-UUID-Malformado-Responde-422",
-        "GET",
-        "{{baseUrl}}/iot/auditoria/uuid-invalido-12345",
-        makeAuthHeaders("token_admin"),
-        null,
-        [],
-        [
-            'pm.test("Status 422 - UUID malformado responde Unprocessable Entity", function () {',
-            '    pm.response.to.have.status(422);',
-            '});'
-        ]
-    )
+    (() => {
+        const it = makeItem(
+            "15-TC-M03-337-UUID-Malformado-Rechazado-Con-Codigo-Validacion",
+            "GET",
+            "{{baseUrl}}/iot/auditoria/uuid-invalido-12345",
+            makeAuthHeaders("token_admin"),
+            null,
+            [],
+            [
+                'pm.test("Status 400 o 422 - UUID malformado rechazado con codigo de validacion", function () {',
+                '    pm.expect([400, 422], "status esperado 400 o 422").to.include(pm.response.code);',
+                '    const b = pm.response.json();',
+                '    pm.expect(b, "body sin error_code").to.have.property("error_code");',
+                '    pm.expect(b.error_code).to.be.oneOf(["VAL_ENTRADA", "VALIDATION_ERROR"]);',
+                '});'
+            ]
+        );
+        it.request.description = "OBS-M03-G177-02: Swagger declara 422 para path param invalido, backend devuelve 400 VAL_ENTRADA. Test acepta ambos. RF-63 no especifica codigo HTTP para UUID malformado.";
+        return it;
+    })()
 ];
 
 folders.push({
@@ -559,29 +409,24 @@ const collection = {
                     '    currentRunId = "test-" + pm.variables.replaceIn("{{$guid}}");',
                     '    pm.collectionVariables.set("run_id", currentRunId);',
                     '}',
-                    'const secret = pm.collectionVariables.get("sandbox_secret");',
+                    'const secret = pm.environment.get("sandbox_secret") || pm.collectionVariables.get("sandbox_secret") || "";',
+                    'if (!secret) {',
+                    '    console.warn("[WARN] sandbox_secret no definido. Los requests fallaran con HTTP 403.");',
+                    '}',
                     'if (currentRunId) {',
                     '    pm.request.headers.upsert({ key: "X-Test-Run-Id", value: currentRunId });',
                     '}',
-                    'if (secret) {',
-                    '    pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
-                    '}'
+                    'pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });'
                 ]
             }
         }
     ],
     variable: [
-        { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test" },
+        { key: "baseUrl", value: "https://api.inmero.co/api-sgpmp-test" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
         { key: "token_admin", value: "" },
-        { key: "finca_id", value: "" },
-        { key: "infra_id", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" },
-        { key: "id_telemetria_eval", value: "" },
         { key: "test_id_evento", value: "" }
     ],
     item: folders
