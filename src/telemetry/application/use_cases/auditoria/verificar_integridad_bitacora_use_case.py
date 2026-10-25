@@ -1,19 +1,27 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: incidentes inmutables idempotentes y avisos recuperables |
+# | 2026-10-25 | Arekkazu | INC-M03-135-G177 RF-63: rango acotado; nunca recalcula la bitácora completa |
 """E6: el marcador de compromiso es externo al registro protegido por DB-11."""
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from dataclasses import replace
 import logging
+import os
 from typing import Optional
 
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import SeveridadLog, TipoResultado
+from src.shared.errors import BusinessRuleError, ValidationError
 from src.telemetry.domain.repositories.aviso_integridad_port import AvisoIntegridadPort
 
 logger = logging.getLogger(__name__)
+
+# INC-M03-135-G177: sin tope, una sola verificación de toda la bitácora (1,96 M
+# eventos en TEST) ocupaba el worker 5,5 min y tumbaba el proxy. Con 15 000
+# eventos tarda ~140 ms.
+MAX_EVENTOS_VERIFICACION = int(os.getenv('AUDITORIA_IOT_MAX_VERIFICACION', '50000'))
 
 
 @dataclass
@@ -41,7 +49,18 @@ class VerificarIntegridadBitacoraUseCase:
         self.db, self.auditoria_repo, self.avisos = db, auditoria_repo, avisos
 
     def execute(self, fecha_desde: Optional[datetime] = None, fecha_hasta: Optional[datetime] = None):
-        eventos = self.auditoria_repo.listar_todos_para_verificacion(fecha_desde, fecha_hasta)
+        if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
+            raise ValidationError(code='RANGO_FECHAS_INVALIDO', field='fecha_desde',
+                                  message='fecha_desde no puede ser posterior a fecha_hasta.')
+        eventos = self.auditoria_repo.listar_todos_para_verificacion(
+            fecha_desde, fecha_hasta, MAX_EVENTOS_VERIFICACION + 1)
+        if len(eventos) > MAX_EVENTOS_VERIFICACION:
+            raise BusinessRuleError(
+                code='RANGO_VERIFICACION_EXCEDIDO',
+                message=(f'El rango tiene más de {MAX_EVENTOS_VERIFICACION} eventos. '
+                         'Divídalo en ventanas más cortas y verifique cada una.'),
+                field='fecha_desde',
+            )
         resultado = ResultadoVerificacion(len(eventos), 0, [])
         for evento in sorted(eventos, key=lambda e: str(e.id_evento)):
             identificador = str(evento.id_evento)

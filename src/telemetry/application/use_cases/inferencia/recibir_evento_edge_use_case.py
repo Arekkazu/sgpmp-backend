@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: rechaza dispositivo o sensor inactivos (401)      |
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 rechazo temporal en bitácora, E6 límite por dispositivo, E7 intento no autorizado |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
 from __future__ import annotations
 
 import logging
@@ -15,6 +16,8 @@ from sqlalchemy.orm import Session
 from src.shared.errors import AuthenticationError, ValidationError
 from src.shared.rate_limit import registrar_llamada
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
     ConsolidarEnviarPaqueteUseCase,
 )
@@ -46,6 +49,12 @@ _MAX_VENTANA_BUFFER_HORAS = 72
 # ponytail: contador en memoria por proceso (src/shared/rate_limit.py); compartido si hay réplicas.
 LIMITE_EVENTOS_POR_MINUTO = 60
 logger = logging.getLogger(__name__)
+
+# RF-63: tipo de evento de la bitácora para cada desviación que reporta RF-55.
+_EVENTO_BITACORA_RF55 = {
+    TipoEventoEdge.DESVIACION_SIMPLE: "DESVIACION_DETECTADA",
+    TipoEventoEdge.DESVIACION_COMPUESTA: "EVENTO_COMPUESTO_GENERADO",
+}
 
 
 class RecibirEventoEdgeUseCase:
@@ -132,6 +141,24 @@ class RecibirEventoEdgeUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        tipo_bitacora = _EVENTO_BITACORA_RF55.get(dto.clasificacion_rf55)
+        if tipo_bitacora and self.auditoria_repo is not None:
+            RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                tipo_evento=tipo_bitacora,
+                resultado=TipoResultado.EXITOSO,
+                componente_origen=ComponenteOrigen.RF55,
+                severidad_log=SeveridadLog.WARNING,
+                descripcion=f"Desviación {dto.clasificacion_rf55} detectada en el Edge.",
+                accion_detallada={
+                    "id_evento_edge_computing": evento_guardado.id_evento_edge_computing,
+                    "id_dispositivo_iot": dispositivo.id_dispositivo_iot,
+                    "id_sensor": dispositivo.id_sensor,
+                    "severidad": dto.severidad,
+                    "variables": [v.tipo_variable for v in dto.variables_involucradas],
+                },
+                fecha_evento=ts_procesamiento,
+            )
 
         # Paso 5: Consolidar y enviar a M04 si hay desviación (fuera del bloque DB anterior)
         # ERROR_CONFIGURACION: evento guardado pero no se envía a M04 (FA-07)

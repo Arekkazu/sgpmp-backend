@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: GET de integridad protegido y POST compatible |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros de la ficha y verificación con rango obligatorio |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -34,6 +35,7 @@ from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.auditoria.consultar_bitacora_iot_use_case import ConsultarBitacoraIotUseCase
 from src.telemetry.application.use_cases.auditoria.verificar_integridad_bitacora_use_case import VerificarIntegridadBitacoraUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.bitacora_auditoria_iot_schema import (
     EventoAuditoriaIotSchema,
@@ -61,6 +63,10 @@ def listar_auditoria(
     clasificacion_registro: Optional[str] = Query(default=None),
     entidad_afectada_id: Optional[str] = Query(default=None),
     resultado: Optional[str] = Query(default=None),
+    id_usuario: Optional[int] = Query(default=None, description="Usuario que originó el evento."),
+    rf_origen: Optional[ComponenteOrigen] = Query(default=None, description="RF emisor (RF53–RF62...)."),
+    registro_incompleto: Optional[bool] = Query(
+        default=None, description="true: solo eventos registrados con campos faltantes (CA-13)."),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -79,6 +85,9 @@ def listar_auditoria(
         resultado=resultado,
         pagina=pagina,
         por_pagina=por_pagina,
+        id_usuario=id_usuario,
+        rf_origen=rf_origen.value if rf_origen else None,
+        registro_incompleto=registro_incompleto,
     )
     return ListaAuditoriaIotSchema(
         total=total,
@@ -143,16 +152,24 @@ def exportar_auditoria(
     methods=["GET", "POST"],
     response_model=VerificacionIntegridadSchema,
     status_code=200,
-    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse},
+               422: {"model": ErrorResponse}},
     dependencies=[Depends(require_permission(39, 5))],
     summary="Verificar integridad SHA-256 de la bitácora (RF-63 FA-11)",
 )
 def verificar_integridad(
-    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
-    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_desde: FechaHoraUtc = Query(..., description="Inicio de la ventana a verificar (obligatorio)."),
+    fecha_hasta: FechaHoraUtc = Query(..., description="Fin de la ventana a verificar (obligatorio)."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VerificacionIntegridadSchema:
+    """Recalcula el SHA-256 de los eventos de la ventana (RF-63 FA-11).
+
+    La ventana es obligatoria (sin ella, 400) y no puede superar ``AUDITORIA_IOT_MAX_VERIFICACION``
+    eventos (50 000 por defecto): sin límite, una sola llamada recalculaba toda la
+    bitácora y dejaba el servicio sin responder (INC-M03-135-G177). Rangos más
+    grandes se verifican por ventanas: 422 ``RANGO_VERIFICACION_EXCEDIDO``.
+    """
     use_case = VerificarIntegridadBitacoraUseCase(
         db=db, avisos=AvisoIntegridadM01Adapter(db),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
