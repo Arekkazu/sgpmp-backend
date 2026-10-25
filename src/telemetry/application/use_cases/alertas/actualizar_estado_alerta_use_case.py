@@ -3,7 +3,11 @@
 # | 2026-10-21 | Leandro | DEV-30 RF-57: impide vencimientos por el flujo manual   |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: elimina el historial redundante     |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: resuelve conectividad en transaccion externa |
+# | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcula el semáforo al resolver o descartar |
 from __future__ import annotations
+
+import logging
+from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
@@ -15,6 +19,11 @@ from src.telemetry.domain.entities.alerta import Alerta, AmbitoAlerta, EstadoAle
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
+
+
+logger = logging.getLogger(__name__)
+
+_TERMINALES = (EstadoAlerta.RESUELTA, EstadoAlerta.DESCARTADA)
 
 
 class ActualizarEstadoAlertaUseCase:
@@ -45,8 +54,12 @@ class ActualizarEstadoAlertaUseCase:
         historico_repo: HistoricoEstadoAlertaRepository,
         ambito: AmbitoAlerta,
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
+        recalcular_semaforo: Optional[Callable[[int], None]] = None,
     ) -> None:
         self.db = db
+        # RF-58: al cerrar la alerta el trigger quita id_alerta del sensor pero
+        # deja el color que ella impuso; esto lo recalcula con la última lectura.
+        self.recalcular_semaforo = recalcular_semaforo
         self.alerta_repo = alerta_repo
         # Se conserva la firma de ensamblado; la escritura pertenece al trigger.
         self.historico_repo = historico_repo
@@ -96,5 +109,16 @@ class ActualizarEstadoAlertaUseCase:
                     accion_detallada={"error_code": exc.code, "estado_solicitado": dto.nuevo_estado},
                 )
             raise
+
+        if (self.recalcular_semaforo is not None and alerta_actualizada.id_sensor is not None
+                and alerta_actualizada.estado_alerta in _TERMINALES):
+            try:
+                self.recalcular_semaforo(alerta_actualizada.id_sensor)
+                self.db.commit()
+            except Exception as exc:
+                # La transición ya quedó confirmada; la próxima lectura corrige el color.
+                self.db.rollback()
+                logger.warning('RF-58: no se recalculó el semáforo del sensor %s tras cerrar la alerta %s: %s',
+                               alerta_actualizada.id_sensor, id_alerta, getattr(exc, 'code', type(exc).__name__))
 
         return alerta_actualizada

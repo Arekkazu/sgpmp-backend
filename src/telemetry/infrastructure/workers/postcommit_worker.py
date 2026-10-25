@@ -10,6 +10,7 @@
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
 # | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
+# | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -79,6 +80,14 @@ def _lectura(db):
         ReclasificarSemaforoUseCase(db, lecturas, EspecieActivoM02Adapter(db),
                                   UmbralHistoricoM09Adapter(db), SqlAlchemyMonitoreoRepository(db)),
     )
+
+
+def recalcular_semaforo_sensor(db, id_sensor):
+    """RF-58: color del sensor con su última lectura válida y las alertas aún abiertas
+    (la misma etapa RF17 del worker). Sin lectura válida no hay nada que recalcular."""
+    lectura = SqlAlchemyLecturaPostcommitRepository(db).ultima_lectura_valida(id_sensor)
+    if lectura is not None:
+        _lectura(db).clasificar_lectura(lectura.id_telemetria)
 
 
 def _heartbeat(db, identificador, alertas, parametros):
