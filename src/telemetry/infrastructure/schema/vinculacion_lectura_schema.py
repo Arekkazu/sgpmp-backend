@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: expone causa y snapshot DB-13 |
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,6 +23,8 @@ class VinculacionLecturaSchema(BaseModel):
     motivo_correccion: Optional[str] = None
     id_vinculacion_reemplazada: Optional[int] = None
     fecha_creacion: datetime
+    causa: Optional[str] = None
+    contexto_activo: Optional[dict] = None
 
     model_config = {'from_attributes': True}
 

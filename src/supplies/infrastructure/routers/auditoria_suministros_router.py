@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI de la bitácora de auditoría de M05 (RF-80, CU-06).
 
   GET  /suministros/auditoria             — Listar bitácora con filtros
@@ -9,7 +12,6 @@ Contador, Revisor Fiscal), E=5 (mismos roles, exportar).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -29,6 +31,7 @@ from src.supplies.infrastructure.schema.auditoria_suministro_schema import (
     AuditoriaSuministrosListResponse,
     EventoAuditoriaSuministroResponse,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/suministros/auditoria", tags=["Suministros - Auditoría del Módulo (RF-80)"])
 
@@ -49,8 +52,8 @@ _RECURSO = 57
 def listar_auditoria(
     tipo_operacion: Optional[str] = Query(default=None, description="Ej: SUMINISTRO_REGISTRADO, CICLO_CONSOLIDADO..."),
     id_usuario: Optional[int] = Query(default=None, description="Filtrar por id de usuario actor"),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     entidad_afectada: Optional[str] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None, gt=0),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),
@@ -98,8 +101,8 @@ def listar_auditoria(
 def exportar_auditoria(
     tipo_operacion: Optional[str] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     entidad_afectada: Optional[str] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None, gt=0),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),

@@ -1,0 +1,365 @@
+{
+  "info": {
+    "name": "TC-M04-G031 - Ejecucion con cobertura insuficiente de RF-66 (<50% del lote): solo factores ambiental y de densidad, con supresion de alertas (RF-68 E1, CA-5)",
+    "description": "Caso unico (TC-M04-12): lote de 40 activos con 37.5% de cobertura RF-66 (15/40); Fa=0.90, Fd=0.95 -> pesos 0.60/0.40, P=0.92 (Alto), confianza_baja=true y NINGUNA alerta hacia RF-57. ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para calcular el riesgo de contagio (ficha: 'No existe ningun endpoint'). La ruta se toma de la variable de coleccion ruta_contagio y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_lote (lote con activos y sensores), ruta_contagio (provisional), contagio_banda_medio_min / contagio_banda_alto_min (limites de bandas de RF-65), correo_/contrasena_ de los roles usados. Script sin ejecutar: el ambiente aun no esta listo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_contagio",
+      "value": "/prediccion/riesgo-contagio"
+    },
+    {
+      "key": "id_lote",
+      "value": "210"
+    },
+    {
+      "key": "id_lote_finca_a",
+      "value": "210"
+    },
+    {
+      "key": "contagio_banda_medio_min",
+      "value": "0.40"
+    },
+    {
+      "key": "contagio_banda_alto_min",
+      "value": "0.60"
+    },
+    {
+      "key": "cfg_snapshot",
+      "value": "[]"
+    },
+    {
+      "key": "cfg_tocados",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0S. Snapshot de la configuracion vigente del motor (se restaura al final)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Snapshot de configuracion del motor leido (200)', function () { pm.response.to.have.status(200); });",
+              "try { const J = pm.response.json(); const keep = (J.items || []).map(function (c) { return {tipo_modelo: c.tipo_modelo, umbral_riesgo_alto: c.umbral_riesgo_alto, umbral_alerta_critica: c.umbral_alerta_critica, umbral_score_anomalia: c.umbral_score_anomalia, versiones_activas_por_componente: c.versiones_activas_por_componente, ventana_temporal_min: c.ventana_temporal_min, modo_ejecucion: c.modo_ejecucion, w_factor_sanitario: c.w_factor_sanitario, w_factor_ambiental: c.w_factor_ambiental, w_factor_densidad: c.w_factor_densidad, id_version_modelo_activa: c.id_version_modelo_activa, temp_min_config: c.temp_min_config, temp_max_config: c.temp_max_config, hr_min_config: c.hr_min_config, hr_max_config: c.hr_max_config, densidad_maxima_config: c.densidad_maxima_config}; }); pm.collectionVariables.set('cfg_snapshot', JSON.stringify(keep)); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/motor-ia"
+      }
+    },
+    {
+      "name": "0. Preparacion",
+      "item": [
+        {
+          "name": "0C. Configurar pesos por defecto W_fs=0.5, W_fa=0.3, W_fd=0.2 (RF-65)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_RIESGO_CONTAGIO\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.5,\n  \"umbral_alerta_critica\": 0.75,\n  \"w_factor_sanitario\": 0.5,\n  \"w_factor_ambiental\": 0.3,\n  \"w_factor_densidad\": 0.2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _t = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]'); if (_t.indexOf('MODELO_RIESGO_CONTAGIO') < 0) { _t.push('MODELO_RIESGO_CONTAGIO'); pm.collectionVariables.set('cfg_tocados', JSON.stringify(_t)); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G031 0C.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M04-12 - Cobertura RF-66 del 37.5%",
+      "item": [
+        {
+          "name": "1.1 Lote de 40 activos, 15 con inferencia RF-66 (37.5%), Fa=0.90, Fd=0.95",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"total_activos_lote\": 40,\n  \"qa_factores_simulados\": {\n    \"fa\": 0.9,\n    \"fd\": 0.95\n  },\n  \"qa_datos_lote\": {\n    \"cobertura_inferencia_pct\": 37.5,\n    \"activos_con_inferencia\": 15\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G031 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _w = R.pesos_aplicados || R.pesos || {};",
+                  "pm.test('Pesos recalculados proporcionalmente: nuevo_W_fa = 0.60', function () { pm.expect(Math.abs(Number(_w.w_fa !== undefined ? _w.w_fa : _w.w_factor_ambiental) - 0.60)).to.be.below(0.0005); });",
+                  "pm.test('Pesos recalculados proporcionalmente: nuevo_W_fd = 0.40', function () { pm.expect(Math.abs(Number(_w.w_fd !== undefined ? _w.w_fd : _w.w_factor_densidad) - 0.40)).to.be.below(0.0005); });",
+                  "pm.test(\"P_contagio = 0.60 x 0.90 + 0.40 x 0.95 = 0.92\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.92)).to.be.below(0.0005); });",
+                  "pm.test(\"nivel_riesgo_contagio = Alto\", function () { pm.expect(String(R.nivel_riesgo_contagio).toLowerCase()).to.eql(\"alto\"); });",
+                  "pm.test(\"confianza_baja = true\", function () { pm.expect(R.confianza_baja).to.eql(true); });",
+                  "pm.test(\"alerta_id vacio (no se dispara alerta hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) === null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Ninguna alerta RIESGO_CONTAGIO nueva en RF-57 para el lote",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?tipo_alerta=RIESGO_CONTAGIO&pagina=1&por_pagina=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "tipo_alerta",
+                  "value": "RIESGO_CONTAGIO"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G031 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "console.log('[TC-M04-G031][OBSERVADO] alertas RIESGO_CONTAGIO listadas=' + (J.total !== undefined ? J.total : (J.items || []).length) + ' (comparar con el conteo previo a la ejecucion 1.1)');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Restaurar configuracion del motor (valores previos al caso)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let snap = []; try { snap = JSON.parse(pm.collectionVariables.get('cfg_snapshot') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const tocar = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]');",
+              "  snap.filter(function (c) { return tocar.indexOf(c.tipo_modelo) >= 0; }).forEach(function (c) {",
+              "    Object.keys(c).forEach(function (k) { if (c[k] === null || c[k] === undefined) { delete c[k]; } });",
+              "    pm.sendRequest({url: base + '/prediccion/motor-ia', method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(c)}}, function (e, r) { console.log('[TC-M04-G031] restaurar config ' + c.tipo_modelo + ' -> ' + (r ? r.code : 'sin respuesta')); });",
+              "  });",
+              "  console.log('[TC-M04-G031] configuracion restaurada para: ' + tocar.join(', '));",
+              "  pm.collectionVariables.set('cfg_tocados', '[]');",
+              "})();",
+              "pm.test('Restauracion de configuracion ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/prediccion/motor-ia"
+      }
+    }
+  ]
+}

@@ -1,5 +1,10 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -11,12 +16,16 @@ from src.prediction.domain.repositories.patologia_m04_repository import Patologi
 from src.prediction.domain.repositories.resultado_inferencia_port import ResultadoInferenciaPort
 from src.prediction.domain.repositories.retroalimentacion_clinica_repository import RetroalimentacionClinicaRepository
 from src.prediction.infrastructure.dto.registrar_retroalimentacion_dto import RegistrarRetroalimentacionDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
-
-VENTANA_RETROALIMENTACION_DIAS = 90
+from src.configuration.domain.entities.parametro_mlops import RF72_VENTANA, numero_configurado
+from src.configuration.domain.repositories.parametros_mlops_port import ParametrosMLOpsPort
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
+from src.shared.fechas import en_zona_usuario
 
 _GRUPO_SIN_PROBLEMA = frozenset({"CORRECTO", "SIN_EVENTO"})
 _GRUPO_CON_PROBLEMA = frozenset({"PARCIAL", "INCORRECTO"})
+_CODIGO_ERROR_PERSISTENCIA = "ERROR_PERSISTENCIA_RETROALIMENTACION"
+
+logger = logging.getLogger(__name__)
 
 
 class RegistrarRetroalimentacionUseCase:
@@ -29,12 +38,14 @@ class RegistrarRetroalimentacionUseCase:
         resultado_port: ResultadoInferenciaPort,
         patologia_repo: PatologiaM04Repository,
         auditoria_repo: EventoAuditoriaM04Repository,
+        parametros_port: ParametrosMLOpsPort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._resultado_port = resultado_port
         self._patologia_repo = patologia_repo
         self._auditoria_repo = auditoria_repo
+        self._parametros_port = parametros_port
 
     def execute(
         self, dto: RegistrarRetroalimentacionDTO, id_usuario_veterinario: int
@@ -53,16 +64,18 @@ class RegistrarRetroalimentacionUseCase:
         # FA-09: ventana temporal
         if fecha_inferencia.tzinfo is None:
             fecha_inferencia = fecha_inferencia.replace(tzinfo=timezone.utc)
+        ventana_dias = numero_configurado(self._parametros_port.obtener([RF72_VENTANA]), RF72_VENTANA,
+                                         minimo=7, maximo=365, entero=True)
         dias_transcurridos = (ahora - fecha_inferencia).days
-        if dias_transcurridos > VENTANA_RETROALIMENTACION_DIAS:
-            fecha_limite = fecha_inferencia + timedelta(days=VENTANA_RETROALIMENTACION_DIAS)
+        if dias_transcurridos > ventana_dias:
+            fecha_limite = fecha_inferencia + timedelta(days=ventana_dias)
             raise BusinessRuleError(
                 code="FUERA_DE_VENTANA_TEMPORAL",
                 message=(
                     f"La retroalimentación no puede registrarse. Han transcurrido más de "
-                    f"{VENTANA_RETROALIMENTACION_DIAS} días desde el resultado de inferencia "
+                    f"{ventana_dias} días desde el resultado de inferencia "
                     f"{dto.id_resultado_inferencia}. La ventana válida para este resultado venció el "
-                    f"{fecha_limite.strftime('%Y-%m-%d')}. Contacte al administrador si requiere "
+                    f"{en_zona_usuario(fecha_limite).strftime('%Y-%m-%d')}. Contacte al administrador si requiere "
                     f"registrar retroalimentación fuera de este plazo."
                 ),
             )
@@ -130,9 +143,18 @@ class RegistrarRetroalimentacionUseCase:
         try:
             entidad_guardada = self._repo.guardar(entidad)
             self._db.commit()
-        except Exception:
+        except Exception as exc:
             self._db.rollback()
-            raise
+            # Un rechazo por el dato (409/400/422) no es un incidente de persistencia.
+            if isinstance(exc, AppError) and exc.status_code < 500:
+                raise
+            # RF-72 E8 (DEV-48): fallo de base de datos o almacenamiento.
+            self._registrar_incidente_persistencia(dto, estado, id_usuario_veterinario, correlacion, exc)
+            raise InfrastructureError(
+                code=_CODIGO_ERROR_PERSISTENCIA,
+                message="Error interno al registrar la retroalimentación.",
+                original_error=exc,
+            ) from exc
 
         self._auditoria_repo.registrar(
             tipo_evento="RETROALIMENTACION_REGISTRADA",
@@ -152,7 +174,7 @@ class RegistrarRetroalimentacionUseCase:
                 id_usuario=id_usuario_veterinario,
                 id_referencia=str(dto.id_resultado_inferencia),
                 entidad_referencia="resultado_inferencia",
-                resultado_operacion="DETECTADO",
+                resultado_operacion="EXITOSO",
                 severidad_evento="WARNING",
                 correlacion_id=correlacion,
                 payload_evento={
@@ -167,6 +189,45 @@ class RegistrarRetroalimentacionUseCase:
             self._db.rollback()
 
         return entidad_guardada
+
+    def _registrar_incidente_persistencia(
+        self,
+        dto: RegistrarRetroalimentacionDTO,
+        estado: str,
+        id_usuario_veterinario: int,
+        correlacion: uuid.UUID,
+        exc: Exception,
+    ) -> None:
+        """RF-72 E8: incidente en la auditoría técnica de RF-73.
+
+        Si la bitácora tampoco responde, el repositorio de auditoría escribe el
+        evento (severidad ERROR) en el fallback local de RF-73 E8.
+        """
+        try:
+            self._auditoria_repo.registrar(
+                tipo_evento="RETROALIMENTACION_REGISTRADA",
+                tipo_actor="USUARIO",
+                id_usuario=id_usuario_veterinario,
+                id_referencia=str(dto.id_resultado_inferencia),
+                entidad_referencia="resultado_inferencia",
+                resultado_operacion="FALLIDO",
+                severidad_evento="ERROR",
+                correlacion_id=correlacion,
+                codigo_error=_CODIGO_ERROR_PERSISTENCIA,
+                descripcion_error=f"{type(exc).__name__}: {exc}"[:1000],
+                payload_evento={
+                    "id_resultado_inferencia": str(dto.id_resultado_inferencia),
+                    "id_activo_biologico": dto.id_activo_biologico,
+                    "estado_retroalimentacion": estado,
+                    "id_usuario_veterinario": id_usuario_veterinario,
+                    "incidente": "ERROR_PERSISTENCIA",
+                    "tipo_error": type(exc).__name__,
+                },
+            )
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            logger.exception("No se pudo registrar el incidente de persistencia de RF-72 E8")
 
     @staticmethod
     def _calcular_conflicto(

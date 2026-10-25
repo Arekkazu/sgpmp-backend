@@ -16,9 +16,9 @@ class DispositivoM09Adapter(DispositivoPort):
         self,
         device_id: int,
         sensor_id: int,
-        access_key: str,
+        serial: str,
     ) -> Optional[DispositivoInfo]:
-        # El access_key se valida contra el serial del dispositivo (RF-02 / M09)
+        # El serial lo autenticó el broker por MQTT (D3): aquí solo ata device_id a ese nodo.
         row = self.db.execute(
             text(
                 'SELECT d.id_dispositivo_iot, d.es_activo AS activo_disp, '
@@ -28,9 +28,9 @@ class DispositivoM09Adapter(DispositivoPort):
                 'JOIN modulo9.sensores s ON s.id_dispositivo_iot = d.id_dispositivo_iot '
                 'WHERE d.id_dispositivo_iot = :device_id '
                 '  AND s.id_sensores = :sensor_id '
-                '  AND d.serial = :access_key'
+                '  AND d.serial = :serial'
             ),
-            {'device_id': device_id, 'sensor_id': sensor_id, 'access_key': access_key},
+            {'device_id': device_id, 'sensor_id': sensor_id, 'serial': serial},
         ).fetchone()
 
         if row is None:
@@ -47,15 +47,15 @@ class DispositivoM09Adapter(DispositivoPort):
     def validar_dispositivo_heartbeat(
         self,
         device_id: int,
-        access_key: str,
+        serial: str,
     ) -> Optional[DispositivoHeartbeatInfo]:
         row = self.db.execute(
             text(
                 'SELECT id_dispositivo_iot, es_activo, id_infraestructura '
                 'FROM modulo9.dispositivos_iot '
-                'WHERE id_dispositivo_iot = :device_id AND serial = :access_key'
+                'WHERE id_dispositivo_iot = :device_id AND serial = :serial'
             ),
-            {'device_id': device_id, 'access_key': access_key},
+            {'device_id': device_id, 'serial': serial},
         ).fetchone()
 
         if row is None:
@@ -67,15 +67,37 @@ class DispositivoM09Adapter(DispositivoPort):
             es_activo=row.es_activo,
         )
 
-    def obtener_camara(self, device_id: int, access_key: str) -> Optional[CamaraInfo]:
+    def obtener_por_serial(self, serial: str) -> Optional[DispositivoHeartbeatInfo]:
+        row = self.db.execute(
+            text(
+                'SELECT id_dispositivo_iot, es_activo, id_infraestructura '
+                'FROM modulo9.dispositivos_iot WHERE serial = :serial'
+            ),
+            {'serial': serial},
+        ).fetchone()
+        if row is None:
+            return None
+        return DispositivoHeartbeatInfo(
+            id_dispositivo_iot=row.id_dispositivo_iot,
+            id_infraestructura=row.id_infraestructura,
+            es_activo=row.es_activo,
+        )
+
+    def obtener_camara(self, device_id: int, serial: str) -> Optional[CamaraInfo]:
+        return self._camara(serial, device_id)
+
+    def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
+        return self._camara(serial)
+
+    def _camara(self, serial: str, device_id: Optional[int] = None) -> Optional[CamaraInfo]:
         row = self.db.execute(
             text(
                 'SELECT d.id_dispositivo_iot, d.id_infraestructura, d.es_activo, d.fps, t.categoria '
                 'FROM modulo9.dispositivos_iot d '
                 'JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo = d.id_tipo_dispositivo '
-                'WHERE d.id_dispositivo_iot = :device_id AND d.serial = :access_key'
+                'WHERE d.serial = :serial AND (:device_id IS NULL OR d.id_dispositivo_iot = :device_id)'
             ),
-            {'device_id': device_id, 'access_key': access_key},
+            {'device_id': device_id, 'serial': serial},
         ).fetchone()
         if row is None:
             return None

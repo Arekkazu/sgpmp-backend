@@ -1,24 +1,32 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/crecimiento``
 (RF-40).
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
-_TIPOS_MEDICION = {'PESO', 'TALLA', 'BIOMASA'}
+# LONGITUD es como M09 (RF-16) nombra la talla; sin ella una métrica de
+# longitud de la especie nunca se podía registrar.
+_TIPOS_MEDICION = {'PESO', 'TALLA', 'LONGITUD', 'BIOMASA'}
 
 _UNIDADES_VALIDAS = {'kg', 'gr', 'lb', 'cm', 'm', 'kg/m2'}
+
+_UNIDADES_EQUIVALENTES = {'g': 'gr'}
 
 _UNIDADES_POR_TIPO: dict[str, set[str]] = {
     'PESO':    {'kg', 'gr', 'lb'},
     'TALLA':   {'cm', 'm'},
+    'LONGITUD': {'cm', 'm'},
     'BIOMASA': {'kg/m2'},
 }
 
@@ -27,7 +35,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     """Medición de crecimiento.
 
     ``tipo_medicion`` y unidades válidas: ``PESO`` (``kg``, ``gr``, ``lb``), ``TALLA``
-    (``cm``, ``m``), ``BIOMASA`` (``kg/m2``). En lotes se envían además
+    o ``LONGITUD`` (``cm``, ``m``), ``BIOMASA`` (``kg/m2``). En lotes se envían además
     ``nuevo_peso_promedio``, ``cantidad_medida`` y ``tipo_agregacion``.
     """
     tipo_medicion: str
@@ -37,7 +45,7 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     frecuencia: Optional[str] = None
     nuevo_peso_promedio: Optional[Decimal] = None
     cantidad_medida: Optional[int] = None
-    fecha: Optional[datetime] = None
+    fecha: Optional[FechaHoraUtc] = None
     descripcion: Optional[str] = None
 
     @field_validator('tipo_medicion')
@@ -57,6 +65,10 @@ class RegistrarEventoCrecimientoDTO(BaseDTO):
     @field_validator('unidad_medida')
     @classmethod
     def unidad_valida(cls, v: str) -> str:
+        # M09 (RF-16) escribe los gramos como "g"; la tabla de crecimiento los
+        # guarda como "gr" (CHECK de eventos_crecimeinto). Sin esto una métrica
+        # de peso en gramos (p. ej. camarón) respondía 400.
+        v = _UNIDADES_EQUIVALENTES.get(v, v)
         if v not in _UNIDADES_VALIDAS:
             raise ValueError(f"La unidad de medida debe ser una de: {', '.join(sorted(_UNIDADES_VALIDAS))}.")
         return v

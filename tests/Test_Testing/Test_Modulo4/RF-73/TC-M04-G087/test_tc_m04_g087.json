@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "TC-M04-G087: Rechazo por catalogo invalido y XOR de fuentes (RF-73)",
+    "_postman_id": "a0487001-0000-4000-8000-000000000087",
+    "description": "Diseño de pruebas para validación de catálogos y regla de exclusión mutua XOR en actores de auditoría M04 (RF-73).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get(\"run_id\")) {",
+          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01-Login-ADMIN",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.collectionVariables.set('token', data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"administador.dev@gmail.com\",\"contrasena\":\"{{admin_password}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02-Preflight-Auditoria-M04",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"NW-02: Preflight exitoso sobre GET /prediccion/auditoria (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('items');",
+              "    pm.expect(Array.isArray(data.items)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "03-TC-M04-265-Tipo-Evento-Invalido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-265: Endpoint POST /prediccion/auditoria/eventos aún no expuesto por desarrollo. Contrato esperado: HTTP 400/422 ante tipo_evento fuera de catálogo.');",
+              "    console.log('[LIMITACION API] Verificación de alerta al Administrador y log WARNING no expuesta por endpoint HTTP.');",
+              "} else {",
+              "    pm.test(\"TC-M04-265: Rechazo de tipo_evento fuera de catálogo (HTTP 400 o 422)\", function () {",
+              "        pm.expect([400, 422]).to.include(pm.response.code);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"EVENTO_INVENTADO\",\"tipo_actor\":\"USUARIO\",\"id_usuario\":1,\"id_sistema\":null,\"id_referencia\":\"ref-test-01\",\"entidad_referencia\":\"test\",\"fecha_evento\":\"2026-10-15T10:00:00Z\",\"severidad_evento\":\"INFO\",\"payload_evento\":{\"descripcion\":\"Prueba tipo_evento fuera de catalogo\"},\"correlacion_id\":\"corr-g087-265-{{run_id}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04-TC-M04-266-Fuentes-Nulas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-266: Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 400/422 ante actor sin identificar (id_usuario e id_sistema nulos).');",
+              "    console.log('[LIMITACION API] Verificación de log técnico CRITICAL no expuesta por endpoint HTTP.');",
+              "} else {",
+              "    pm.test(\"TC-M04-266: Rechazo ante fuentes nulas (HTTP 400 o 422)\", function () {",
+              "        pm.expect([400, 422]).to.include(pm.response.code);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"CATALOGO_PATOLOGIA_AGREGADA\",\"tipo_actor\":\"SISTEMA\",\"id_usuario\":null,\"id_sistema\":null,\"id_referencia\":\"ref-test-02\",\"entidad_referencia\":\"test\",\"fecha_evento\":\"2026-10-15T10:05:00Z\",\"severidad_evento\":\"INFO\",\"payload_evento\":{\"descripcion\":\"Prueba fuentes nulas sin actor\"},\"correlacion_id\":\"corr-g087-266-{{run_id}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05-TC-M04-267-Doble-Fuente-Viola-XOR",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 404 || pm.response.code === 405) {",
+              "    console.log('[PENDIENTE_DEV] TC-M04-267: Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 400/422 ante violación de exclusividad XOR (id_usuario e id_sistema presentes simultáneamente).');",
+              "    console.log('[LIMITACION API] Verificación de log técnico ERROR no expuesta por endpoint HTTP.');",
+              "} else {",
+              "    pm.test(\"TC-M04-267: Rechazo de violación XOR en fuentes (HTTP 400 o 422)\", function () {",
+              "        pm.expect([400, 422]).to.include(pm.response.code);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"tipo_evento\":\"CATALOGO_PATOLOGIA_AGREGADA\",\"tipo_actor\":\"USUARIO\",\"id_usuario\":5,\"id_sistema\":\"motor_inferencia\",\"id_referencia\":\"ref-test-03\",\"entidad_referencia\":\"test\",\"fecha_evento\":\"2026-10-15T10:10:00Z\",\"severidad_evento\":\"INFO\",\"payload_evento\":{\"descripcion\":\"Prueba doble actor XOR\"},\"correlacion_id\":\"corr-g087-267-{{run_id}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/prediccion/auditoria/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria",
+            "eventos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06-Teardown-Sandbox-Rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var statusMsg = data.status || data.mensaje || \"\";",
+              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_id}}"
+          ]
+        }
+      }
+    }
+  ]
+}

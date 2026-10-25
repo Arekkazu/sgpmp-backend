@@ -3,12 +3,15 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+
+logger = logging.getLogger(__name__)
 
 _CAMPOS_CSV = [
     "id_evento", "tipo_evento", "modulo", "fecha_evento", "tipo_actor",
@@ -97,12 +100,16 @@ class ExportarAuditoriaM04UseCase:
     def _emitir_evento_exportacion(self, id_usuario: int, total: int, formato: str) -> None:
         try:
             self._repo.registrar(
-                tipo_evento="EXPORTACION_AUDITORIA_M04",
+                tipo_evento="EXPORTACION_GENERADA",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
                 severidad_evento="INFO",
-                payload_evento={"total_registros": total, "formato": formato},
+                resultado_operacion="EXITOSO",
+                payload_evento={"exportacion": "AUDITORIA_M04", "total_registros": total, "formato": formato},
             )
             self._db.commit()
         except Exception:
+            # La exportación ya se resolvió: no se le niega al usuario por la auditoría,
+            # pero la pérdida del evento tiene que quedar a la vista.
+            logger.exception("No se registró el evento de auditoría de la exportación M04")
             self._db.rollback()

@@ -1,0 +1,36 @@
+{
+  "tc": "TC-M04-G087",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G087: Rechazo por catálogo inválido y XOR de fuentes",
+  "estado_general": "Aprobado",
+  "stats": {
+    "tests": 3,
+    "passes": 3,
+    "failures": 0
+  },
+  "checkpoints": [
+    {
+      "paso": "NW-01: Autenticación Admin",
+      "esperado": "Status 200 con token JWT",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-02: Preflight Auditoría M04",
+      "esperado": "Status 200 con items de auditoría",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-Teardown: Rollback transaccional",
+      "esperado": "Status 200 con Rollback exitoso",
+      "obtenido": "OK",
+      "estado": "OK"
+    }
+  ],
+  "pendientes_dev": [
+    "TC-M04-265 (tipo_evento fuera de catálogo) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 400/422 ante valor no perteneciente a catálogo.",
+    "TC-M04-266 (fuentes nulas) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 400/422 ante actor sin identificar (id_usuario e id_sistema nulos).",
+    "TC-M04-267 (ambas fuentes presentes) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 400/422 ante violación de exclusividad XOR."
+  ]
+}

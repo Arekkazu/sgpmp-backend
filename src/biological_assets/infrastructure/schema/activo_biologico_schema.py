@@ -1,3 +1,8 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Schemas de respuesta de los endpoints de activos biológicos (M02)."""
 
 from __future__ import annotations
@@ -53,7 +58,7 @@ class DetalleIndividualResponse(BaseModel):
     id_detalle: Optional[int]
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    fecha_nacimiento: Optional[date]  # RFC-014: opcional; día calendario
     peso_inicial: Optional[Decimal]
     fecha_creacion: Optional[datetime]
 
@@ -70,6 +75,38 @@ class ParametroEspecieResponse(BaseModel):
     valor_max: Optional[Decimal] = None
 
     model_config = {'from_attributes': True}
+
+
+class MetricaActivoResponse(BaseModel):
+    """Métrica de la especie del activo para elegir en los eventos (RF-40, RF-43).
+
+    ``habilitada_en_fase`` indica si la fase activa la admite en un evento productivo.
+    """
+    id_metrica_produccion: int
+    nombre: str
+    tipo_medicion: str
+    unidad_medida: str
+    tipo_dato: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+    habilitada_en_fase: bool
+
+
+class PatologiaActivoResponse(BaseModel):
+    """Patología de la especie del activo para el diagnóstico sanitario (RF-41)."""
+    id_patologia: int
+    nombre: str
+
+
+class PatologiasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    items: list[PatologiaActivoResponse]
+
+
+class MetricasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    items: list[MetricaActivoResponse]
 
 
 class DetallePoblacionalResponse(BaseModel):
@@ -111,6 +148,8 @@ class ActivoBiologicoResponse(BaseModel):
     # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
     nombre_especie: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
+    # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
+    advertencia_edad: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
@@ -135,6 +174,10 @@ class AsociacionInfraestructuraResponse(BaseModel):
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+    # RFC-012 (RF-34 1.2): derivada = capacidad_efectiva del área (floor(MIN densidad ×
+    # superficie)), no configurable. Solo en la asociación vigente; null si alguna
+    # especie del área no tiene densidad.
+    capacidad_maxima: Optional[int] = None
 
     model_config = {'from_attributes': True}
 
@@ -422,6 +465,7 @@ class InfraestructuraDisponibleResponse(BaseModel):
     id_infraestructura: int
     nombre: str
     tipo: str
+    # RFC-012: derivada = capacidad_efectiva del destino (floor(MIN densidad × superficie)).
     capacidad_maxima: Optional[int] = None
     ocupacion_actual: Optional[int] = None
     id_especie: Optional[int] = None

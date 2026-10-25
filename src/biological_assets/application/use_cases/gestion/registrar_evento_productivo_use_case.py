@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registro de producción del activo (leche, huevos...) (RF-43)."""
 
 from __future__ import annotations
@@ -10,6 +13,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
+from src.biological_assets.application.use_cases.gestion._event_validations import no_anterior_a_creacion
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -20,6 +24,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 _NOMBRES_ESTADO = {1: 'ACTIVO', 2: 'INACTIVO', 3: 'EN_TRATAMIENTO', 4: 'AISLADO', 5: 'CERRADO', 6: 'BAJA'}
 
@@ -84,18 +89,18 @@ class RegistrarEventoProductivoUseCase:
                 ),
             )
 
-        # E-03: tipo_producto debe estar en el catálogo RF-16 para la especie
+        # E-03: la métrica debe estar en el catálogo RF-16 de la especie
         metrica = self.parametros_port.obtener_metrica_productiva(
-            activo.id_especie, dto.tipo_producto, activo.tipo
+            dto.id_metrica_produccion, activo.id_especie, activo.tipo
         )
         if metrica is None:
             raise BusinessRuleError(
                 code='TIPO_PRODUCTO_NO_CATALOGADO',
                 message=(
-                    f'El tipo de producto "{dto.tipo_producto}" no está definido en el catálogo '
+                    'El tipo de producto seleccionado no está definido en el catálogo '
                     'para la especie del activo. Seleccione un tipo de producto válido.'
                 ),
-                field='tipo_producto',
+                field='id_metrica_produccion',
             )
 
         # E-06: RF-43 la clasifica "Error de validación -- HTTP 422". Vive aquí y no
@@ -116,7 +121,7 @@ class RegistrarEventoProductivoUseCase:
                 code='UNIDAD_MEDIDA_INCOMPATIBLE',
                 message=(
                     f'La unidad de medida "{dto.unidad_medida}" no es válida para el tipo de producto '
-                    f'"{dto.tipo_producto}". La unidad válida es: {metrica.unidad_medida}.'
+                    f'"{metrica.tipo_producto}". La unidad válida es: {metrica.unidad_medida}.'
                 ),
                 field='unidad_medida',
             )
@@ -139,21 +144,21 @@ class RegistrarEventoProductivoUseCase:
             raise BusinessRuleError(
                 code='TIPO_PRODUCTO_NO_HABILITADO_FASE',
                 message=(
-                    f'El tipo de producto "{dto.tipo_producto}" no está habilitado para el ciclo '
+                    f'El tipo de producto "{metrica.tipo_producto}" no está habilitado para el ciclo '
                     f'productivo activo "{fase_activa.nombre_ciclo}". Verifique la configuración de fases.'
                 ),
-                field='tipo_producto',
+                field='id_metrica_produccion',
             )
 
         # E-05: validaciones de fecha. RF-43 pide 422 (a diferencia de RF-40/41/42,
         # que piden 400 para su fecha de evento).
-        ahora = datetime.now(timezone.utc)
-        fecha_dt = datetime(
-            dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day,
-            tzinfo=timezone.utc,
+        fecha_dt = no_anterior_a_creacion(
+            dto.fecha_evento,
+            datetime(dto.fecha_evento.year, dto.fecha_evento.month, dto.fecha_evento.day, tzinfo=timezone.utc),
+            activo,
         )
 
-        if fecha_dt > ahora:
+        if dto.fecha_evento > hoy_usuario():
             raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(
@@ -174,11 +179,7 @@ class RegistrarEventoProductivoUseCase:
             )
 
         if fase_activa.fecha_inicio:
-            fecha_inicio_fase = (
-                fase_activa.fecha_inicio.date()
-                if hasattr(fase_activa.fecha_inicio, 'date')
-                else fase_activa.fecha_inicio
-            )
+            fecha_inicio_fase = fecha_usuario(fase_activa.fecha_inicio)
             if dto.fecha_evento < fecha_inicio_fase:
                 raise BusinessRuleError(
                     code='FECHA_FUERA_DE_FASE',
@@ -190,11 +191,7 @@ class RegistrarEventoProductivoUseCase:
                 )
 
         if fase_activa.fecha_finalizacion:
-            fecha_fin_fase = (
-                fase_activa.fecha_finalizacion.date()
-                if hasattr(fase_activa.fecha_finalizacion, 'date')
-                else fase_activa.fecha_finalizacion
-            )
+            fecha_fin_fase = fecha_usuario(fase_activa.fecha_finalizacion)
             if dto.fecha_evento > fecha_fin_fase:
                 fecha_inicio_str = (
                     fecha_inicio_fase.isoformat()
@@ -210,12 +207,12 @@ class RegistrarEventoProductivoUseCase:
                     field='fecha_evento',
                 )
 
-        # E-08: verificar duplicidad (mismo tipo_producto + activo + fecha)
+        # E-08: verificar duplicidad (misma métrica + activo + fecha)
         if self.evento_repo.existe_productivo_duplicado(id_activo, metrica.id_metrica_produccion, dto.fecha_evento):
             raise ConflictError(
                 code='EVENTO_PRODUCTIVO_DUPLICADO',
                 message=(
-                    f'Ya existe un evento productivo de tipo "{dto.tipo_producto}" registrado para el '
+                    f'Ya existe un evento productivo de tipo "{metrica.tipo_producto}" registrado para el '
                     f'activo {id_activo} en la fecha {dto.fecha_evento.isoformat()}. '
                     'No se permiten registros duplicados.'
                 ),
@@ -249,7 +246,7 @@ class RegistrarEventoProductivoUseCase:
                 clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
                 severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
                 id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                detalle_tecnico={'error': str(exc), 'tipo_producto': dto.tipo_producto},
+                detalle_tecnico={'error': str(exc), 'id_metrica_produccion': dto.id_metrica_produccion},
                 id_usuario_responsable=usuario.id_usuario,
             ))
             raise
@@ -259,9 +256,10 @@ class RegistrarEventoProductivoUseCase:
             clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-            descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
+            descripcion=f'Evento productivo: {metrica.tipo_producto} = {dto.cantidad_producida}',
             detalle_tecnico={
-                'tipo_producto': dto.tipo_producto,
+                'tipo_producto': metrica.tipo_producto,
+                'id_metrica_produccion': metrica.id_metrica_produccion,
                 'cantidad': str(dto.cantidad_producida),
                 'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
             },

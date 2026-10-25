@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -42,94 +45,6 @@ class TipoDato(str, Enum):
     AGREGADO = "AGREGADO"
     EVENTO_EDGE = "EVENTO_EDGE"
 
-
-# Catálogo I3P-1: mapeo de tipo_variable → (id_variable en M09, categoria, unidades_aceptadas)
-CATALOGO_I3P1: dict[str, dict] = {
-    "TEMPERATURA_AMBIENTAL": {
-        "id_variable": 9,
-        "categoria": CategoriaTelemetria.AMBIENTAL,
-        "unidades": ["°C", "°F", "K"],
-        "unidad_estandar": "°C",
-    },
-    "HUMEDAD_RELATIVA": {
-        "id_variable": 10,
-        "categoria": CategoriaTelemetria.AMBIENTAL,
-        "unidades": ["%"],
-        "unidad_estandar": "%",
-    },
-    "NH3": {
-        "id_variable": 11,
-        "categoria": CategoriaTelemetria.AMBIENTAL,
-        "unidades": ["ppm", "mg/L"],
-        "unidad_estandar": "ppm",
-    },
-    "CO2": {
-        "id_variable": 12,
-        "categoria": CategoriaTelemetria.AMBIENTAL,
-        "unidades": ["ppm"],
-        "unidad_estandar": "ppm",
-    },
-    "TEMPERATURA_CORPORAL": {
-        "id_variable": 13,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["°C", "°F"],
-        "unidad_estandar": "°C",
-    },
-    "TEMP_CORPORAL": {
-        "id_variable": 13,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["°C", "°F"],
-        "unidad_estandar": "°C",
-    },
-    "FRECUENCIA_CARDIACA": {
-        "id_variable": 14,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["bpm"],
-        "unidad_estandar": "bpm",
-    },
-    "FRECUENCIA_RESPIRATORIA": {
-        "id_variable": 15,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["rpm"],
-        "unidad_estandar": "rpm",
-    },
-    "ACTIVIDAD_MOVIMIENTO": {
-        "id_variable": 16,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["m/s²", "g"],
-        "unidad_estandar": "m/s²",
-    },
-    "ACTIVIDAD": {
-        "id_variable": 16,
-        "categoria": CategoriaTelemetria.ANIMAL,
-        "unidades": ["m/s²", "g"],
-        "unidad_estandar": "m/s²",
-    },
-    "PH_AGUA": {
-        "id_variable": 2,
-        "categoria": CategoriaTelemetria.HIDRICA,
-        "unidades": ["pH"],
-        "unidad_estandar": "pH",
-    },
-    "OXIGENO_DISUELTO": {
-        "id_variable": 3,
-        "categoria": CategoriaTelemetria.HIDRICA,
-        "unidades": ["mg/L"],
-        "unidad_estandar": "mg/L",
-    },
-    "TDS": {
-        "id_variable": 8,
-        "categoria": CategoriaTelemetria.HIDRICA,
-        "unidades": ["µS/cm", "mS/cm"],
-        "unidad_estandar": "µS/cm",
-    },
-    "CONDUCTIVIDAD_ELECTRICA": {
-        "id_variable": 8,
-        "categoria": CategoriaTelemetria.HIDRICA,
-        "unidades": ["µS/cm", "mS/cm"],
-        "unidad_estandar": "µS/cm",
-    },
-}
 
 # Rangos físicos imposibles por variable (id_variable → (min_fisico, max_fisico))
 RANGOS_FISICOS: dict[int, tuple[Decimal, Decimal]] = {
@@ -186,7 +101,8 @@ class Telemetria:
     calidad_senal_snr: Optional[Decimal] = None
     frecuencia_muestreo_min: Optional[int] = None
     estado_conectividad: Optional[bool] = None
-    # RF-62: flags de aptitud (actualizados por el servicio de calidad)
+    # RF-62: proyección de aptitud desde la evaluación vigente de telemetria_calidad.
+    # Sin evaluación vigente, False. No representa las columnas legadas de RF-53.
     apto_para_ia: bool = False
     apto_para_nic41: bool = False
 

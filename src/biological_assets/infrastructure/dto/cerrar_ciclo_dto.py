@@ -1,13 +1,17 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/cierre`` (RF-38)."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Optional
 
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import hoy_usuario
 
 _MOTIVOS_VALIDOS = {'venta', 'sacrificio', 'muerte', 'finalizacion_lote', 'otro'}
 
@@ -25,13 +29,9 @@ class CerrarCicloDTO(BaseDTO):
     @field_validator('fecha_cierre')
     @classmethod
     def fecha_no_futura(cls, v: date) -> date:
-        # INC-M02-29-g36 / #411 (RF-38): date.today() es la fecha LOCAL del
-        # proceso, no la UTC -- en un servidor cuya zona horaria va detrás de
-        # UTC, cerca de medianoche UTC un fecha_cierre = "hoy" en UTC se
-        # rechazaba aquí como futura porque localmente todavía era "ayer".
-        # fecha_cierre_dt se construye y persiste en UTC más abajo en el use
-        # case, así que la validación debe comparar contra la misma referencia.
-        if v > datetime.now(timezone.utc).date():
+        # La referencia es el día en la zona del usuario, no el del proceso (#411);
+        # UTC si no la envía: ver src/shared/fechas.py.
+        if v > hoy_usuario():
             raise ValueError('La fecha de cierre no puede ser futura.')
         return v
 

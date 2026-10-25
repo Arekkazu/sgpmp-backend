@@ -1,7 +1,9 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para editar un umbral ambiental (Flujo B — RF-17)."""
 from __future__ import annotations
 
-import datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -9,6 +11,7 @@ from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
 from .nivel_dto import NivelDTO
+from src.shared.fechas import FechaHoraUtc
 
 _NIVELES_REQUERIDOS = {'normal', 'precaucion', 'critico'}
 
@@ -21,7 +24,7 @@ class EditarUmbralDTO(BaseDTO):
     valor_min: Decimal
     valor_max: Decimal
     niveles: List[NivelDTO]
-    fecha_actualizacion: Optional[datetime.datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
 
     @field_validator('valor_max')
     @classmethod

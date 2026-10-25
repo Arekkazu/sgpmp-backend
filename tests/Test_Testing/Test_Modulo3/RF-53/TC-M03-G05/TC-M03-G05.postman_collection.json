@@ -1,0 +1,1308 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G05 Validación del catálogo de variables y unidades",
+    "description": "Automatiza TC-M03-013/014/015 (RF-53, CU01, CA-1 y flujo alterno E11) contra POST /iot/telemetria: tipo_variable TEMPERATURA_SUELO fuera del catálogo I3P-1 (013); TEMPERATURA_AMBIENTAL con '%' y PH_AGUA con 'C' (014), todos esperados 400 ERROR_UNIDAD sin persistencia (verificado en el historial RF-59); y TEMPERATURA_AMBIENTAL 77 °F normalizada a 25 °C como LECTURA_VALIDA (015). La regla de conversión del sistema está definida para '°F' (no 'F'): se envía '°F' y una nota final comprueba que 'F' literal se rechaza. Notas: el catálogo de tipos de variable (CATALOGO_I3P1) y las reglas de conversión están fijos en el código; solo los rangos físicos vienen de modulo9.variables_ambientales, lo que no cumple el 'catálogo dinámico' de CA-1. La unidad original (°F) no queda en ningún campo consultable por API, así que la trazabilidad de la conversión y la bitácora (sin endpoint) quedan para la verificación en BD. Datos propios: finca, especies, galpón y estanque, y por área un dispositivo + sensor asociado (RF-22) y calibrado (RF-24).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar finca propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "const ymd = (x) => x.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Catalogo Telemetria {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"El Caguan\",\n    \"latitud\": \"2.93\",\n    \"longitud\": \"-75.28\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie porcina (galpón)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie porcina creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie_porcina', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Catalogo {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G05\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie acuícola (estanque)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie acuícola creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie_acuicola', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Tilapia Catalogo {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G05\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"ACUICULTURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Galpón (temperatura ambiental)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Galpón creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area_t', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Galpon Catalogo {{sufijo}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_porcina}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Estanque (pH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Estanque creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area_ph', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Estanque Catalogo {{sufijo}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_acuicola}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo de temperatura (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo de temperatura creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_t', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('key_t', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G05-T-{{sufijo}}\",\n  \"descripcion\": \"Nodo t TC-M03-G05\",\n  \"id_infraestructura\": {{id_area_t}},\n  \"id_tipo_dispositivo\": 3,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de temperatura",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor de temperatura creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_t', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_t}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_t}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor t {{sufijo}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor de temperatura a su área (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_t}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_t}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_t}},\n  \"id_infraestructura\": {{id_area_t}},\n  \"punto_instalacion\": \"Punto central\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor de temperatura (RF-24, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_t}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_t}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_t}},\n  \"id_infraestructura\": {{id_area_t}},\n  \"valor_referencia\": 25.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo de pH (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo de pH creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_ph', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('key_ph', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G05-PH-{{sufijo}}\",\n  \"descripcion\": \"Nodo ph TC-M03-G05\",\n  \"id_infraestructura\": {{id_area_ph}},\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de pH",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor de pH creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_ph', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_ph}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_ph}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor ph {{sufijo}}\",\n  \"categoria\": \"PH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor de pH a su área (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_ph}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_ph}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_ph}},\n  \"id_infraestructura\": {{id_area_ph}},\n  \"punto_instalacion\": \"Punto central\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor de pH (RF-24, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_ph}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_ph}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_ph}},\n  \"id_infraestructura\": {{id_area_ph}},\n  \"valor_referencia\": 7.0,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Catálogo de variables vigente (M09)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const nombres = (pm.response.json().items || []).map(v => v.nombre.toLowerCase());",
+                  "pm.test('Precondición: no existe una variable de temperatura del suelo en el catálogo', function () {",
+                  "  pm.expect(nombres.filter(n => n.includes('suelo'))).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M03-013 tipo_variable fuera de catálogo",
+      "item": [
+        {
+          "name": "TC-M03-013 - tipo_variable=TEMPERATURA_SUELO (fuera del catálogo I3P-1)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-013: rechazado con 400 (variable fuera de catálogo)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-013: código ERROR_UNIDAD', function () { pm.expect(j.error_code).to.eql('ERROR_UNIDAD'); });",
+                  "pm.test('TC-M03-013: el error señala el campo tipo_variable', function () { pm.expect(JSON.stringify(j)).to.include('tipo_variable'); });",
+                  "pm.test('TC-M03-013: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_SUELO\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M03-014 Unidad inconsistente",
+      "item": [
+        {
+          "name": "TC-M03-014a - TEMPERATURA_AMBIENTAL con unidad '%'",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-014a: rechazado con 400 (unidad % para temperatura)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-014a: código ERROR_UNIDAD', function () { pm.expect(j.error_code).to.eql('ERROR_UNIDAD'); });",
+                  "pm.test('TC-M03-014a: el error señala el campo unidad', function () { pm.expect(JSON.stringify(j)).to.include('unidad'); });",
+                  "pm.test('TC-M03-014a: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"%\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-014b - PH_AGUA con unidad 'C'",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-014b: rechazado con 400 (unidad C para pH)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-014b: código ERROR_UNIDAD', function () { pm.expect(j.error_code).to.eql('ERROR_UNIDAD'); });",
+                  "pm.test('TC-M03-014b: el error señala el campo unidad', function () { pm.expect(JSON.stringify(j)).to.include('unidad'); });",
+                  "pm.test('TC-M03-014b: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_ph}},\n  \"sensor_id\": {{sensor_ph}},\n  \"tipo_variable\": \"PH_AGUA\",\n  \"valor\": 7.2,\n  \"unidad\": \"C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_ph}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-013/014 - Ningún rechazo quedó persistido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('El galpón no tiene lecturas', function () { pm.expect(pm.response.json().total).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&id_infraestructura={{id_area_t}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "id_infraestructura",
+                  "value": "{{id_area_t}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-014b - El estanque no tiene lecturas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('El estanque no tiene lecturas', function () { pm.expect(pm.response.json().total).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&id_infraestructura={{id_area_ph}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "id_infraestructura",
+                  "value": "{{id_area_ph}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M03-015 Conversión de unidad",
+      "item": [
+        {
+          "name": "TC-M03-015 - TEMPERATURA_AMBIENTAL 77 °F (regla de conversión °F -> °C)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-015: unidad válida no estándar se acepta (201)', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.test('TC-M03-015: estado_calidad = LECTURA_VALIDA', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.collectionVariables.set('id_tel_conv', j.id_telemetria);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"°F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-015 - Verificar normalización a 25 °C en historial (RF-59)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const it = (pm.response.json().items || []).find(x => x.id_telemetria === Number(pm.collectionVariables.get('id_tel_conv')));",
+                  "pm.test('TC-M03-015: la lectura convertida está persistida', function () { pm.expect(it, 'lectura').to.exist; });",
+                  "if (it) {",
+                  "  pm.test('TC-M03-015: unidad_medida normalizada a °C', function () { pm.expect(it.unidad_medida).to.eql('°C'); });",
+                  "  pm.test('TC-M03-015: valor normalizado = 25 (77 °F)', function () { pm.expect(Number(it.valor)).to.be.closeTo(25, 0.01); });",
+                  "  pm.test('TC-M03-015: valor_ajustado = 25', function () { pm.expect(Number(it.valor_ajustado)).to.be.closeTo(25, 0.01); });",
+                  "  pm.test('TC-M03-015: estado_calidad = LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{sensor_t}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_t}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Nota ficha - unidad 'F' literal (como dice la ficha) no tiene regla de conversión",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Nota ficha: rechazado con 400 (unidad F sin grado)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('Nota ficha: código ERROR_UNIDAD', function () { pm.expect(j.error_code).to.eql('ERROR_UNIDAD'); });",
+                  "pm.test('Nota ficha: el error señala el campo unidad', function () { pm.expect(JSON.stringify(j)).to.include('unidad'); });",
+                  "pm.test('Nota ficha: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_t}},\n  \"sensor_id\": {{sensor_t}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 77,\n  \"unidad\": \"F\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_t}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": ""
+    },
+    {
+      "key": "fecha_hasta",
+      "value": ""
+    },
+    {
+      "key": "ahora",
+      "value": ""
+    },
+    {
+      "key": "ts_captura",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie_porcina",
+      "value": ""
+    },
+    {
+      "key": "id_especie_acuicola",
+      "value": ""
+    },
+    {
+      "key": "id_area_t",
+      "value": ""
+    },
+    {
+      "key": "id_area_ph",
+      "value": ""
+    },
+    {
+      "key": "id_tel_conv",
+      "value": ""
+    },
+    {
+      "key": "device_t",
+      "value": ""
+    },
+    {
+      "key": "sensor_t",
+      "value": ""
+    },
+    {
+      "key": "key_t",
+      "value": ""
+    },
+    {
+      "key": "device_ph",
+      "value": ""
+    },
+    {
+      "key": "sensor_ph",
+      "value": ""
+    },
+    {
+      "key": "key_ph",
+      "value": ""
+    }
+  ]
+}

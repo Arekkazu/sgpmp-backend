@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: aisla commits de pruebas concurrentes de vision |
 """Infraestructura compartida para pruebas de integración con PostgreSQL.
 
 Cada prueba usa una conexión propia con una transacción exterior. Los commits
@@ -10,6 +13,8 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+import sys
 import uuid
 from collections.abc import Callable, Generator
 from datetime import date, datetime, timedelta, timezone
@@ -106,6 +111,37 @@ def db_session(integration_engine: Engine) -> Generator[Session, None, None]:
         connection.close()
 
 
+@pytest.fixture
+def motor_vision_concurrente(integration_engine: Engine):
+    """BD local independiente: concurrencia real sin dejar ingestas al resto."""
+    origen = integration_engine.url
+    if origen.host not in ('localhost', '127.0.0.1', '::1'):
+        pytest.skip('La BD efimera de concurrencia requiere PostgreSQL local aislado.')
+    nombre = 'dev28_concurrency_test_' + uuid.uuid4().hex
+    admin = create_engine(origen.set(database='postgres'), isolation_level='AUTOCOMMIT')
+    motor = None
+    creado = False
+    try:
+        with admin.connect() as c:
+            c.execute(text(f'CREATE DATABASE "{nombre}"'))
+            creado = True
+        url = origen.set(database=nombre).render_as_string(hide_password=False)
+        entorno = os.environ | {'DATABASE_URL':url, 'ALEMBIC_DATABASE_URL':url, 'TEST_DATABASE_URL':url}
+        migracion = subprocess.run([sys.executable,'-m','alembic','upgrade','head'],
+            cwd=ROOT, env=entorno, capture_output=True, text=True, timeout=120)
+        if migracion.returncode:
+            pytest.fail('No se pudieron aplicar las migraciones en la BD efimera local.')
+        motor = create_engine(url, use_insertmanyvalues=False)
+        yield motor
+    finally:
+        if motor is not None:
+            motor.dispose()
+        if creado:
+            with admin.connect() as c:
+                c.execute(text(f'DROP DATABASE "{nombre}" WITH (FORCE)'))
+        admin.dispose()
+
+
 def _importar_modelos_identity_access() -> None:
     """Registra todas las relaciones ORM del módulo antes de atender requests."""
     from src.identity_access.infrastructure.models import acciones_model  # noqa: F401
@@ -162,6 +198,13 @@ def integration_app() -> FastAPI:
     app.include_router(notificaciones_router)
     app.include_router(roles_router)
     return app
+
+
+@pytest.fixture
+def headers_broker(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker."""
+    monkeypatch.setenv("BROKER_SERVICE_TOKEN", "token-servicio-pruebas-integracion")
+    return {"Authorization": "Bearer token-servicio-pruebas-integracion"}
 
 
 @pytest.fixture

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: la edición de perfil aplica el mismo rango [18, 100) |
 """Caso de uso: edición de perfil de usuario (propio o por administrador).
 
 La autorización se resuelve en dos endpoints del router: edición propia y
@@ -313,6 +316,32 @@ class EditarPerfilUseCase:
                     "nacimiento y el género mientras el perfil está pendiente de datos "
                     "(cuenta provista vía SSO sin sincronización previa)."
                 ),
+            )
+
+        # Mismo rango de edad que el registro (RF-01, RFC-013); el mínimo también
+        # cubre una fecha de nacimiento futura (edad negativa).
+        limite = (
+            Usuario.limite_edad_incumplido(dto.fecha_nacimiento)
+            if dto.fecha_nacimiento is not None
+            else None
+        )
+        if limite == "MINIMA":
+            raise ValidationError(
+                code="EDAD_MINIMA_REQUERIDA",
+                message=(
+                    f"La fecha de nacimiento no es válida: el usuario debe tener al "
+                    f"menos {Usuario.EDAD_MINIMA} años."
+                ),
+                field="fecha_nacimiento",
+            )
+        if limite == "MAXIMA":
+            raise ValidationError(
+                code="EDAD_FUERA_DE_RANGO",
+                message=(
+                    f"La fecha de nacimiento no es válida: la edad debe estar entre "
+                    f"{Usuario.EDAD_MINIMA} y {Usuario.EDAD_MAXIMA - 1} años."
+                ),
+                field="fecha_nacimiento",
             )
 
         # El correo únicamente puede cambiarse si la cuenta está activa.

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60/18: inyecta validacion de heartbeat    |
 """Router FastAPI para parámetros operativos del sistema (`/configuracion/parametros`).
 
 RF-18 — CU04:
@@ -22,13 +25,19 @@ from src.configuration.infrastructure.dto.actualizar_configuracion_dto import Ac
 from src.configuration.infrastructure.dto.crear_configuracion_dto import CrearConfiguracionDTO
 from src.configuration.infrastructure.repositories.auditoria_config_repository import SqlAlchemyAuditoriaConfigRepository
 from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
+from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
 from src.configuration.infrastructure.schema.configuracion_global_schema import ConfiguracionGlobalResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 
 router = APIRouter(prefix="/configuracion/parametros", tags=["Configuración - Parámetros Operativos"])
+
+
+def _respuesta(db: Session, config) -> ConfiguracionGlobalResponse:
+    return ConfiguracionGlobalResponse.from_entity(config, nombres_usuarios(db, [config.id_usuario]).get(config.id_usuario))
 
 _RECURSO = 21  # modulo1.recursos: 'configuraciones_globales'
 
@@ -61,9 +70,10 @@ def crear_configuracion(
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaConfigRepository(db),
         iot_port=IotStubAdapter(),
+        parametros_repo=SqlAlchemyParametrosMLOpsRepository(db),
     )
     config = use_case.execute(dto, usuario_actual)
-    return ConfiguracionGlobalResponse.from_entity(config)
+    return _respuesta(db, config)
 
 
 @router.get(
@@ -89,7 +99,7 @@ def consultar_configuracion(
     config = use_case.execute()
     if config is None:
         return None
-    return ConfiguracionGlobalResponse.from_entity(config)
+    return _respuesta(db, config)
 
 
 @router.patch(
@@ -122,6 +132,7 @@ def actualizar_configuracion(
         config_repo=SqlAlchemyConfiguracionGlobalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaConfigRepository(db),
         iot_port=IotStubAdapter(),
+        parametros_repo=SqlAlchemyParametrosMLOpsRepository(db),
     )
     config = use_case.execute(id_configuracion_global, dto, usuario_actual)
-    return ConfiguracionGlobalResponse.from_entity(config)
+    return _respuesta(db, config)

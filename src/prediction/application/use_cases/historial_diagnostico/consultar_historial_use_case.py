@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
 import base64
@@ -13,6 +16,7 @@ from src.prediction.domain.repositories.activo_biologico_port import ActivoBiolo
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.historial_diagnostico_repository import HistorialDiagnosticoRepository
 from src.shared.errors import AuthorizationError, NotFoundError, ValidationError
+from src.shared.fechas import fin_dia_usuario, hoy_usuario, inicio_dia_usuario
 
 _LIMITE = 50
 
@@ -47,7 +51,7 @@ class ConsultarHistorialUseCase:
         if not self._activo_port.activo_existe_y_accesible(id_activo_biologico, id_usuario, id_rol):
             raise NotFoundError(code="ACTIVO_NO_ENCONTRADO", message="El activo biológico no existe o no está disponible.")
 
-        hoy = datetime.now(tz=timezone.utc).date()
+        hoy = hoy_usuario()
         if fecha_inicio > fecha_fin:
             raise ValidationError(
                 code="RANGO_FECHAS_INVALIDO",
@@ -65,8 +69,8 @@ class ConsultarHistorialUseCase:
         if cursor_paginacion:
             cursor = _decodificar_cursor(cursor_paginacion)
 
-        dt_inicio = datetime.combine(fecha_inicio, datetime.min.time(), tzinfo=timezone.utc)
-        dt_fin = datetime.combine(fecha_fin, datetime.max.time().replace(microsecond=999999), tzinfo=timezone.utc)
+        dt_inicio = inicio_dia_usuario(fecha_inicio)
+        dt_fin = fin_dia_usuario(fecha_fin)
 
         filas = self._repo.consultar(
             id_activo_biologico=id_activo_biologico,
@@ -103,9 +107,10 @@ class ConsultarHistorialUseCase:
         try:
             self._repo.materializar_eventos(eventos)
             self._auditoria_repo.registrar(
-                tipo_evento="CONSULTA_HISTORIAL_DIAGNOSTICO",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 payload_evento={
+                    "consulta": "HISTORIAL_DIAGNOSTICO",
                     "id_activo_biologico": id_activo_biologico,
                     "fecha_inicio": fecha_inicio.isoformat(),
                     "fecha_fin": fecha_fin.isoformat(),
@@ -119,7 +124,7 @@ class ConsultarHistorialUseCase:
                 id_usuario=id_usuario,
                 id_referencia=str(id_activo_biologico),
                 entidad_referencia="activo_biologico",
-                resultado_operacion="OK",
+                resultado_operacion="EXITOSO",
             )
             self._db.commit()
         except Exception:

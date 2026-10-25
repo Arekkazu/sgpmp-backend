@@ -1,9 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
 gestión de estado de cuenta y registro de tokens FCM.
 """
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
@@ -54,6 +56,7 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -127,7 +130,7 @@ def listar_usuarios_admin(
     estado_cuenta: Optional[str] = Query(
         None, description="Nombre del estado de cuenta (ej: Activo, Bloqueado), case-insensitive."
     ),
-    actualizado_desde: Optional[datetime] = Query(
+    actualizado_desde: Optional[FechaHoraUtc] = Query(
         None, description="Solo usuarios modificados (datos o estado de cuenta) desde este instante."
     ),
     pagina: int = Query(1, ge=1),
@@ -516,6 +519,7 @@ def gestionar_cuenta(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
     },
     summary="Asignar o desasignar fincas a un usuario (RF-25)",
 )
@@ -530,7 +534,8 @@ def asignar_fincas(
     **Acceso:** permiso `usuarios` · Actualizar (1·U).
 
     La lista enviada es el estado final: las fincas que no aparecen dejan de estar
-    asignadas. Una finca puede estar asignada a varios usuarios.
+    asignadas. Una finca puede estar asignada a varios usuarios. Un usuario
+    ELIMINADO responde 410.
     """
     use_case = AsignarFincasUsuarioUseCase(db=db)
     resultado = use_case.execute(id_usuario, dto, usuario_actual)

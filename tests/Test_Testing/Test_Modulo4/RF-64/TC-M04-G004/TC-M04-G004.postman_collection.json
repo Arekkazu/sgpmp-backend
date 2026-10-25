@@ -1,0 +1,613 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G004 Valores límite de descripción clínica y cantidad de variables",
+    "description": "Automatiza TC-M04-010/011 (RF-64, flujo alterno E5) sobre POST /prediccion/patologias con una especie propia. 010: descripción clínica de 49 caracteres -> 422; 49 + espacio final -> 422 (el espacio no cuenta); 50 -> 201 (límite inclusivo). 011: 1 variable -> 422; 2 -> 201; 6 -> 201; 7 -> 422 (CANTIDAD_VARIABLES_INVALIDA); y el borde [13, 13] (dos ids repetidos = 1 variable) -> 422. Al final, en el catálogo de la especie solo existen las 3 aceptadas. Notas del código: la descripción se valida con len(strip()) >= 50; la cantidad con 2 <= n <= 6 (el tope de 6 está implementado, lo que responde la duda de la ficha), pero el conteo se hace antes de quitar ids repetidos, así que [13, 13] pasa el mínimo y se guarda con una sola variable. Credenciales del rol veterinario en correo_veterinario/contrasena_veterinario (por defecto, el Administrador).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Limites Patologia {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G004\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-010 Longitud mínima de la descripción clínica",
+      "item": [
+        {
+          "name": "TC-M04-010 - Descripción de 49 caracteres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-010 (49): se rechaza con HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-010 (49): código DESCRIPCION_CLINICA_INSUFICIENTE', function () { pm.expect(j.error_code).to.eql('DESCRIPCION_CLINICA_INSUFICIENTE'); });",
+                  "pm.test('TC-M04-010 (49): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Limite Cuarenta Nueve {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [15, 16],\n  \"descripcion_clinica\": \"Fiebre persistente con descenso de actividad diar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-010 - Descripción de 49 caracteres más un espacio final (no cuenta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-010 (49 + espacio): se rechaza con HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-010 (49 + espacio): código DESCRIPCION_CLINICA_INSUFICIENTE', function () { pm.expect(j.error_code).to.eql('DESCRIPCION_CLINICA_INSUFICIENTE'); });",
+                  "pm.test('TC-M04-010 (49 + espacio): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Limite Espacio Final {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [15, 16],\n  \"descripcion_clinica\": \"Fiebre persistente con descenso de actividad diar \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-010 - Descripción de 50 caracteres (límite inclusivo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-010 (50): se crea correctamente (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.collectionVariables.set('id_50', j.id_patologia || '');",
+                  "pm.test('TC-M04-010 (50): la descripción se guarda completa', function () { pm.expect((j.descripcion_clinica || '').length).to.eql(50); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Limite Cincuenta {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [15, 16],\n  \"descripcion_clinica\": \"Fiebre persistente con descenso de actividad diari\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-011 Límites de cantidad de variables",
+      "item": [
+        {
+          "name": "TC-M04-011 - 1 variable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-011 (1): se rechaza con HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-011 (1): código CANTIDAD_VARIABLES_INVALIDA', function () { pm.expect(j.error_code).to.eql('CANTIDAD_VARIABLES_INVALIDA'); });",
+                  "pm.test('TC-M04-011 (1): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Una Variable {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-011 - 2 variables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-011 (2): se crea correctamente (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.collectionVariables.set('id_2', j.id_patologia || '');",
+                  "pm.test('TC-M04-011 (2): quedan 2 variables asociadas', function () { pm.expect((j.variables_sensoricas_asociadas || []).length).to.eql(2); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Dos Variables {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-011 - 6 variables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-011 (6): se crea correctamente (201)', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.collectionVariables.set('id_6', j.id_patologia || '');",
+                  "pm.test('TC-M04-011 (6): quedan 6 variables asociadas', function () { pm.expect((j.variables_sensoricas_asociadas || []).length).to.eql(6); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Seis Variables {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 10, 11, 12, 13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-011 - 7 variables",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-011 (7): se rechaza con HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-011 (7): código CANTIDAD_VARIABLES_INVALIDA', function () { pm.expect(j.error_code).to.eql('CANTIDAD_VARIABLES_INVALIDA'); });",
+                  "pm.test('TC-M04-011 (7): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Siete Variables {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 10, 11, 12, 13, 14, 15],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-011 - Borde: 2 ids repetidos ([13, 13]) equivalen a 1 variable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-011 ([13, 13]): se rechaza con HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-011 ([13, 13]): código CANTIDAD_VARIABLES_INVALIDA', function () { pm.expect(j.error_code).to.eql('CANTIDAD_VARIABLES_INVALIDA'); });",
+                  "pm.test('TC-M04-011 ([13, 13]): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Variable Repetida {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 13],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Verificación de lo persistido",
+      "item": [
+        {
+          "name": "TC-M04-010/011 - En el catálogo de la especie solo quedan las 3 aceptadas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const ids = (pm.response.json().items || []).map(p => p.id_patologia).sort((a, b) => a - b);",
+                  "pm.test('Solo las patologías de 50 caracteres, 2 y 6 variables', function () {",
+                  "  pm.expect(ids).to.eql(['id_50', 'id_2', 'id_6'].map(k => Number(pm.collectionVariables.get(k))).sort((a, b) => a - b));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?especie_aplicable={{id_especie}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_50",
+      "value": ""
+    },
+    {
+      "key": "id_2",
+      "value": ""
+    },
+    {
+      "key": "id_6",
+      "value": ""
+    }
+  ]
+}

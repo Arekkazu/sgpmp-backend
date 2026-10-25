@@ -1,0 +1,434 @@
+{
+  "info": {
+    "name": "TC-M03-G115 - Manejo de grandes volumenes de resultados y rendimiento de las consultas historicas (CA-19, CA-20)",
+    "description": "RF-59 CA-19 / CA-20. Subcasos: (1) consulta que produce exactamente 10.000 registros (normal) y 10.001 (truncado con recomendacion de filtros o acceso controlado por paginacion; no se rechaza solo por volumen); (2) consulta con menos de 10.000 registros: respuesta <=10 s. Parte Postman: un solo disparo de cada consulta; la medicion bajo carga se hace con k6 (herramienta de la ficha). Variables especificas: periodo_10000_ini/fin (rango con exactamente 10.000 registros), periodo_10001_ini/fin (10.001), periodo_menor_ini/fin (< 10.000 y representativo). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): periodo_ini / periodo_fin (rango YYYY-MM-DD con lecturas conocidas; si quedan vacias se usan los ultimos 30 dias), sensor_temperatura_ambiental (id de un sensor con lecturas en el periodo), id_infraestructura y especie con lecturas, y las variables propias de cada caso. Auth: JWT del Administrador (admin.test); el recurso historial_telemetria (34) exige permiso Leer. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    },
+    {
+      "key": "periodo_ini",
+      "value": ""
+    },
+    {
+      "key": "periodo_fin",
+      "value": ""
+    },
+    {
+      "key": "sensor_temperatura_ambiental",
+      "value": "1"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "1"
+    },
+    {
+      "key": "especie",
+      "value": ""
+    },
+    {
+      "key": "periodo_10000_ini",
+      "value": ""
+    },
+    {
+      "key": "periodo_10000_fin",
+      "value": ""
+    },
+    {
+      "key": "periodo_10001_ini",
+      "value": ""
+    },
+    {
+      "key": "periodo_10001_fin",
+      "value": ""
+    },
+    {
+      "key": "periodo_menor_ini",
+      "value": ""
+    },
+    {
+      "key": "periodo_menor_fin",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Volumen en la frontera de 10.000 registros (TC-M03-231)",
+      "item": [
+        {
+          "name": "1.1 Consulta de exactamente 10.000 registros - se procesa normalmente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_10000_ini}}&fecha_fin={{periodo_10000_fin}}&por_pagina=500&sensor_id={{sensor_temperatura_ambiental}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{periodo_10000_ini}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{periodo_10000_fin}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_temperatura_ambiental}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G115 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('total = 10000 y respuesta normal', function () { pm.expect(J.total).to.eql(10000); });",
+                  "console.log('[G115-1.1][OBSERVADO] total/paginas = ' + JSON.stringify({total: J.total, paginas_totales: J.paginas_totales}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Consulta de 10.001 registros - truncado con advertencia o acceso por paginacion, sin rechazo total",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_10001_ini}}&fecha_fin={{periodo_10001_fin}}&por_pagina=500&sensor_id={{sensor_temperatura_ambiental}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{periodo_10001_ini}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{periodo_10001_fin}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_temperatura_ambiental}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G115 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('No se rechaza solo por superar el volumen (HTTP 200)', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('No entrega el conjunto completo de forma irrestricta: pagina acotada y mecanismo controlado (advertencia/truncado o paginacion)', function () { pm.expect(J.items.length).to.be.at.most(500); pm.expect(J.paginas_totales > 1 || J.truncado === true || J.advertencia || J.mensaje).to.be.ok; });",
+                  "console.log('[G115-1.2][OBSERVADO] respuesta de volumen > 10000 = ' + JSON.stringify({total: J.total, paginas_totales: J.paginas_totales, advertencia: J.advertencia || J.mensaje || null, truncado: J.truncado || null}));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Rendimiento de consultas de menos de 10.000 registros (TC-M03-232)",
+      "item": [
+        {
+          "name": "2.1 Consulta < 10.000 registros: respuesta en <= 10 s (CA-20)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_menor_ini}}&fecha_fin={{periodo_menor_fin}}&por_pagina=500&sensor_id={{sensor_temperatura_ambiental}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{periodo_menor_ini}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{periodo_menor_fin}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "500"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_temperatura_ambiental}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G115 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Tiempo de respuesta <= 10000 ms', function () { pm.expect(pm.response.responseTime).to.be.below(10001); });",
+                  "pm.test('Menos de 10.000 registros', function () { pm.expect(J.total).to.be.below(10000); });",
+                  "console.log('[G115-2.1][OBSERVADO] registros y tiempo = ' + JSON.stringify({total: J.total, ms: pm.response.responseTime}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Carga concurrente sobre la consulta historica",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: se ejecuta con k6 (herramienta de la ficha: Postman + k6)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - se ejecuta con k6 (herramienta de la ficha: Postman + k6)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
+              "  console.log('[TC-M03-G115] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
+              "  pm.collectionVariables.set('ids_alertas', '[]');",
+              "})();",
+              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "alertas"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

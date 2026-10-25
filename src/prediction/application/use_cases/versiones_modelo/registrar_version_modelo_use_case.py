@@ -1,14 +1,20 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.version_modelo import VersionModelo
+from src.prediction.domain.repositories.aviso_version_modelo_port import AvisoVersionModeloPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
@@ -33,6 +39,12 @@ _TASAS_POBLACIONALES = ("tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_
 # Magic bytes para identificar el formato del artefacto
 _ONNX_MAGIC = b"\x08"          # protobuf field tag 1 (model_ir_version)
 _TF_SAVEDMODEL_MAGIC = b"\x0a" # protobuf field tag 1 (saved_model_schema_version)
+# RF-69 E1b (DEV-48): un aviso al Administrador por ventana, aunque el intento se repita;
+# misma ventana anti-spam de RF-14. Todos los intentos quedan en la bitácora.
+_VENTANA_AVISO_CARGA_EXTERNA = timedelta(minutes=5)
+_MOTIVO_CARGA_EXTERNA = "X-RF71-Internal-Key ausente o incorrecta"
+
+logger = logging.getLogger(__name__)
 
 
 class RegistrarVersionModeloUseCase:
@@ -44,11 +56,13 @@ class RegistrarVersionModeloUseCase:
         repo: VersionModeloRepository,
         auditoria_repo: EventoAuditoriaM04Repository,
         variable_port: VariableI3P1Port,
+        aviso_port: AvisoVersionModeloPort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._auditoria_repo = auditoria_repo
         self._variable_port = variable_port
+        self._aviso_port = aviso_port
 
     def execute(self, dto: RegistrarVersionModeloDTO, internal_key: Optional[str]) -> VersionModelo:
         # FA-02: verificar clave interna
@@ -167,7 +181,29 @@ class RegistrarVersionModeloUseCase:
         except Exception:
             self._db.rollback()
 
+        # RF-69 E3 (DEV-48): el Veterinario revisa la versión rechazada; aviso después del commit.
+        if estado_final == "RECHAZADO":
+            try:
+                self._aviso_port.avisar_version_rechazada(entidad)
+            except Exception:  # la versión ya quedó registrada aunque el aviso falle
+                logger.exception("No se pudo avisar la versión rechazada %s", entidad.id_version_modelo)
+
         return entidad
+
+    def _avisar_carga_externa(self, id_proceso: uuid.UUID) -> None:
+        """RF-69 E1b (DEV-48): avisa al Administrador, como mucho una vez por ventana."""
+        try:
+            desde = datetime.now(timezone.utc) - _VENTANA_AVISO_CARGA_EXTERNA
+            _, intentos = self._auditoria_repo.consultar(
+                tipo_evento="INTENTO_CARGA_MODELO_EXTERNO", fecha_desde=desde, por_pagina=1
+            )
+            # El intento actual ya está registrado: más de uno significa que ya se avisó.
+            if intentos > 1:
+                return
+            self._aviso_port.avisar_carga_externa(id_proceso_rf71=str(id_proceso), motivo=_MOTIVO_CARGA_EXTERNA)
+        except Exception:  # el 403 sale igual aunque el aviso falle
+            self._db.rollback()
+            logger.exception("No se pudo avisar el intento de carga de modelo externo")
 
     # ------------------------------------------------------------------
     # Validaciones privadas
@@ -183,7 +219,7 @@ class RegistrarVersionModeloUseCase:
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={
-                    "motivo": "X-RF71-Internal-Key ausente o incorrecta",
+                    "motivo": _MOTIVO_CARGA_EXTERNA,
                     "id_proceso_rf71": str(id_proceso),
                 },
             )
@@ -191,6 +227,7 @@ class RegistrarVersionModeloUseCase:
                 self._db.commit()
             except Exception:
                 self._db.rollback()
+            self._avisar_carga_externa(id_proceso)
             raise AuthorizationError(
                 code="REGISTRO_INTERNO_REQUERIDO",
                 message=(

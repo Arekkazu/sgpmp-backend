@@ -1,0 +1,728 @@
+{
+  "info": {
+    "name": "RF-53 - TC-M03-G10 Manejo de datos agregados desde Edge (EDGE_AGREGADO)",
+    "description": "Automatiza TC-M03-024/059 (RF-53 fase 8, CA-13/CA-17, Flujo Principal B de CU-01). 024: valor_agregado=true sin ventana_agregacion -> 400 (estructura incompleta, sin persistencia); el mismo dato con ventana 5 -> 201. 059: EDGE_AGREGADO de FRECUENCIA_RESPIRATORIA 22 rpm con ventana 5 y frecuencia_muestreo 1 -> 201 LECTURA_VALIDA, verificado en el historial RF-59 (origen, estado, valor) y la trazabilidad de tipo_dato y ventana. Notas del código: el DTO no exige la ventana; el rechazo de 024a lo produce el CHECK chk_ventana_agregacion de modulo3.telemetrias (400 VALOR_NO_PERMITIDO). El historial no expone tipo_dato, dato_agregado ni ventana_agregacion (esas dos aserciones documentan esa falta; verificación en BD). No hay validación de coherencia entre ventana_agregacion y frecuencia_muestreo. Datos propios: finca, especie, corral, dispositivo y sensor biométrico asociado (RF-22) y calibrado (RF-24).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar finca propia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);",
+                  "const ymd = (x) => x.toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Agregados Telemetria {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"El Caguan\",\n    \"latitud\": \"2.93\",\n    \"longitud\": \"-75.28\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie porcina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Agregados {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M03-G10\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar área Corral",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Corral creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Corral Agregados {{sufijo}}\",\n  \"tipo_area\": \"Corral\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar dispositivo Edge biométrico ACTIVO (RF-21)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dispositivo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('device_id', pm.response.json().id_dispositivo_iot);",
+                  "pm.collectionVariables.set('access_key', pm.response.json().serial);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"M03-G10-{{sufijo}}\",\n  \"descripcion\": \"Nodo Edge biometrico TC-M03-G10\",\n  \"id_infraestructura\": {{id_area}},\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar sensor de frecuencia respiratoria",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('sensor_id', pm.response.json().id_sensores);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor respiratorio {{sufijo}}\",\n  \"categoria\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Asociar sensor al corral (RF-22)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sensor asociado (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_id}}/asociar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "asociar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"punto_instalacion\": \"Punto central\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Calibrar sensor (RF-24, ganancia 1, offset 0)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": {{device_id}},\n  \"id_infraestructura\": {{id_area}},\n  \"valor_referencia\": 22,\n  \"ganancia\": 1.0,\n  \"offset\": 0.0,\n  \"fecha_calibracion\": \"{{ahora}}\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M03-024 ventana_agregacion obligatoria con valor_agregado",
+      "item": [
+        {
+          "name": "TC-M03-024a - valor_agregado=true sin ventana_agregacion",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-024a: rechazado por estructura incompleta (400)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-024a: código de rechazo estructural', function () { pm.expect(j.error_code).to.be.oneOf(['ERROR_ESTRUCTURA', 'VAL_ENTRADA', 'VALOR_NO_PERMITIDO']); });",
+                  "pm.test('TC-M03-024a: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-024b - El mismo dato con ventana_agregacion=5",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-024b: HTTP 2xx (201)', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.test('TC-M03-024b: estado_calidad = LECTURA_VALIDA', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.collectionVariables.set('id_tel_024', j.id_telemetria);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M03-059 EDGE_AGREGADO de extremo a extremo",
+      "item": [
+        {
+          "name": "TC-M03-059 - Ingesta EDGE_AGREGADO de extremo a extremo (FRECUENCIA_RESPIRATORIA 22 rpm, ventana 5)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-059: HTTP 2xx (201)', function () { pm.response.to.have.status(201); });",
+                  "const j = pm.response.json();",
+                  "pm.test('TC-M03-059: estado_calidad = LECTURA_VALIDA', function () { pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "pm.collectionVariables.set('id_tel_059', j.id_telemetria);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-024/059 - Verificar persistencia y trazabilidad (RF-59)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.test('TC-M03-024: solo se persistieron los dos datos con ventana (024b y 059)', function () {",
+                  "  const esperados = ['id_tel_024', 'id_tel_059'].map(k => Number(pm.collectionVariables.get(k))).sort();",
+                  "  pm.expect(items.map(x => x.id_telemetria).sort()).to.eql(esperados);",
+                  "});",
+                  "const it = items.find(x => x.id_telemetria === Number(pm.collectionVariables.get('id_tel_059')));",
+                  "if (it) {",
+                  "  pm.test('TC-M03-059: origen EDGE_AGREGADO conservado', function () { pm.expect(it.origen_dato).to.eql('EDGE_AGREGADO'); });",
+                  "  pm.test('TC-M03-059: estado LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+                  "  pm.test('TC-M03-059: valor 22 rpm de FRECUENCIA_RESPIRATORIA', function () {",
+                  "    pm.expect(Number(it.valor)).to.eql(22); pm.expect(it.tipo_variable).to.eql('FRECUENCIA_RESPIRATORIA'); pm.expect(it.unidad_medida).to.eql('rpm');",
+                  "  });",
+                  "  pm.test('TC-M03-059: se expone tipo_dato=AGREGADO', function () { pm.expect(it.tipo_dato).to.eql('AGREGADO'); });",
+                  "  pm.test('TC-M03-059: se expone la ventana_agregacion (5)', function () { pm.expect(Number(it.ventana_agregacion_min ?? it.ventana_agregacion)).to.eql(5); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_desde}}&fecha_fin={{fecha_hasta}}&sensor_id={{sensor_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "monitoreo",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{fecha_desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{fecha_hasta}}"
+                },
+                {
+                  "key": "sensor_id",
+                  "value": "{{sensor_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": ""
+    },
+    {
+      "key": "fecha_hasta",
+      "value": ""
+    },
+    {
+      "key": "ahora",
+      "value": ""
+    },
+    {
+      "key": "ts_captura",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_tel_024",
+      "value": ""
+    },
+    {
+      "key": "id_tel_059",
+      "value": ""
+    }
+  ]
+}

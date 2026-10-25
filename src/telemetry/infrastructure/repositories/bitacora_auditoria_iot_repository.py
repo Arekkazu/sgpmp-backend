@@ -1,9 +1,13 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: serializa incidentes y consulta avisos persistidos |
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.evento_auditoria_iot import (
@@ -58,7 +62,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         orm = self.db.query(BitacoraAuditoriaIotModel).filter(
             BitacoraAuditoriaIotModel.id_evento == id_evento
         ).first()
-        return self._a_entidad(orm) if orm else None
+        return self._marcar([self._a_entidad(orm)])[0] if orm else None
 
     def listar(
         self,
@@ -89,7 +93,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
             q = q.filter(BitacoraAuditoriaIotModel.resultado == resultado)
         total = q.count()
         items = q.order_by(BitacoraAuditoriaIotModel.fecha_hora.desc()).offset((pagina - 1) * por_pagina).limit(por_pagina).all()
-        return [self._a_entidad(o) for o in items], total
+        return self._marcar([self._a_entidad(o) for o in items]), total
 
     def listar_todos_para_verificacion(
         self,
@@ -102,6 +106,36 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         if fecha_hasta:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora <= fecha_hasta)
         return [self._a_entidad(o) for o in q.order_by(BitacoraAuditoriaIotModel.fecha_hora).all()]
+
+    def _marcar(self, eventos):
+        if not eventos:
+            return eventos
+        tabla = BitacoraAuditoriaIotModel
+        ids = [str(e.id_evento) for e in eventos]
+        afectados = set(self.db.query(tabla.accion_detallada['compromiso']['id_evento'].astext).filter(
+            tabla.tipo_evento == 'INTEGRIDAD_COMPROMETIDA',
+            tabla.accion_detallada['compromiso']['id_evento'].astext.in_(ids),
+        ).all())
+        ids_comprometidos = {fila[0] for fila in afectados}
+        for evento in eventos:
+            evento.integridad_comprometida = str(evento.id_evento) in ids_comprometidos
+        return eventos
+
+    def bloquear_integridad(self, id_evento):
+        self.db.execute(text('SELECT pg_advisory_xact_lock(6363, hashtext(:id))'), {'id': str(id_evento)})
+
+    def buscar_incidente(self, clave):
+        orm = self.db.query(BitacoraAuditoriaIotModel).filter(
+            BitacoraAuditoriaIotModel.tipo_evento == 'INTEGRIDAD_COMPROMETIDA',
+            BitacoraAuditoriaIotModel.accion_detallada['compromiso'] == clave,
+        ).order_by(BitacoraAuditoriaIotModel.fecha_hora).first()
+        return self._a_entidad(orm) if orm else None
+
+    def aviso_confirmado(self, id_incidente):
+        return self.db.query(BitacoraAuditoriaIotModel.id_evento).filter(
+            BitacoraAuditoriaIotModel.tipo_evento == 'INTEGRIDAD_COMPROMETIDA',
+            BitacoraAuditoriaIotModel.accion_detallada['aviso_incidente'].astext == str(id_incidente),
+        ).first() is not None
 
     @staticmethod
     def _a_entidad(orm: BitacoraAuditoriaIotModel) -> EventoAuditoriaIot:

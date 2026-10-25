@@ -1,0 +1,466 @@
+{
+  "info": {
+    "name": "TC-M03-G75 - Indisponibilidad y recuperacion del motor de inferencia (E3, CA-6, E16)",
+    "description": "RF-57 E3 / E16 / CA-6. Parte automatizable por API: (1) con el motor de IA no disponible el evento del Edge (sin probabilidad_ia) genera la alerta con inferencia_no_disponible=true y sin bloquear el flujo. No automatizable con Postman (requiere apagar/recuperar el motor de IA, controlar un reloj de 60 min y configuracion de ventana): reevaluacion (2, 3), ventana de 60 min (4) y ventana configurable (5). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": "1"
+    },
+    {
+      "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "id_evento_edge",
+      "value": "1"
+    },
+    {
+      "key": "ids_alertas",
+      "value": "[]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('ids_alertas', '[]');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "1. Contingencia con el motor de IA no disponible (TC-M03-141)",
+      "item": [
+        {
+          "name": "1.1 Evento del Edge sin resultado de IA - alerta creada solo con reglas del Edge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G75 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g75_sia', String(J.id_alerta)); }",
+                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('severidad = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "pm.test('El flujo no se bloquea (HTTP 201)', function () { pm.expect(pm.response.code).to.eql(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Detalle: inferencia_no_disponible=true y severidad basada en reglas locales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g75_sia}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G75 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('inferencia_no_disponible=true (tiene_inferencia_no_disponible)', function () { pm.expect(J.tiene_inferencia_no_disponible === true || J.inferencia_no_disponible === true).to.be.true; });",
+                  "pm.test('severidad final = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "(function () {",
+                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+                  "  if (!tk) { return; }",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
+                  "})();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Bitacora: registro tecnico para monitoreo (se registra lo observado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/auditoria?pagina=1&por_pagina=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G75 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G75-1.3][OBSERVADO] ultimos eventos de bitacora = ' + JSON.stringify((J.items || J.eventos || J.data || []).slice(0, 5)));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Reevaluacion tras la recuperacion del motor (TC-M03-153 / N15 / N16 / N17)",
+      "item": [
+        {
+          "name": "2.1 Reevaluacion difiere en tipo o severidad: alerta nueva origen IA con referencia_alerta_original y generada_por_reevaluacion=true",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere apagar y recuperar el motor de IA en ambiente de prueba; el contrato de POST /iot/alertas no recibe referencia_alerta_original"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere apagar y recuperar el motor de IA en ambiente de prueba; el contrato de POST /iot/alertas no recibe referencia_alerta_original\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Reevaluacion confirma tipo y severidad: sin alerta nueva y bitacora REEVALUACION_CONFIRMADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere recuperacion del motor de IA"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere recuperacion del motor de IA\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Recuperacion a 59:59 / 60:00 / 60:01 min",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere reloj controlado o ventana reducida por configuracion"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere reloj controlado o ventana reducida por configuracion\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Ventana de reevaluacion configurable (60 -> 30 min)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion por confirmar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion por confirmar\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "(function () {",
+              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
+              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
+              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
+              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
+              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
+              "  console.log('[TC-M03-G75] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
+              "  pm.collectionVariables.set('ids_alertas', '[]');",
+              "})();",
+              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "alertas"
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "por_pagina",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

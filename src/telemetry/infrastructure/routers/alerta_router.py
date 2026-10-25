@@ -1,3 +1,10 @@
+# | Fecha      | Nombre  | Que se hizo                                             |
+# |------------|---------|---------------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: exige permiso especifico para descartar     |
+# | 2026-10-21 | Leandro | DEV-49 RF-57: conecta auditoria de calidad y 403   |
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30 RF-57: descartar sobre el recurso real alertas_operativas |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-08 RF-57: filtro fecha_resolucion_desde |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -6,30 +13,39 @@ RF-57 — CU03 Dev scope:
   GET   /iot/alertas/{id_alerta}       — Detalle de alerta con historial de estados
   PATCH /iot/alertas/{id_alerta}/estado — Transicionar estado de ciclo de vida
 
-Auth POST: dispositivo IoT — identidad verificada via access_key + device_id en body (sin JWT).
+Auth POST: token de servicio del broker (`Authorization: Bearer`); `serial` + device_id en el body.
 Auth REST: JWT Bearer + RBAC recurso 32 (alertas_operativas).
+
+RF-60 D-09: GET y PATCH solo atienden alertas operativas. Las técnicas
+(tipo_alerta = TECNICA) se consultan y gestionan por /iot/alertas-tecnicas
+(recurso 36); acá no aparecen en el listado y su detalle o PATCH da 404.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db, get_db_sistema
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.errors import AuthenticationError
-from src.shared.rbac import require_permission
+from src.shared.errors import AuthenticationError, AuthorizationError
+from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.domain.entities.alerta import AmbitoAlerta, EstadoAlerta
+from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
+from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
 from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 from src.telemetry.infrastructure.schema.alerta_schema import (
@@ -38,8 +54,9 @@ from src.telemetry.infrastructure.schema.alerta_schema import (
     ListaAlertasSchema,
     ResultadoGeneracionAlertaSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
-router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"])
+router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"], route_class=RutaAlertaAuditada)
 
 
 def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
@@ -48,6 +65,8 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
+        parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
 
 
@@ -60,7 +79,9 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         401: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Generar alerta desde evento de desviación (RF-57 FA-01–FA-08)",
 )
 def procesar_evento_alerta(
@@ -71,12 +92,12 @@ def procesar_evento_alerta(
     info = dispositivo_port.obtener_dispositivo_activo(
         device_id=dto.device_id,
         sensor_id=dto.sensor_id,
-        access_key=dto.access_key,
+        serial=dto.serial,
     )
     if info is None or not info.es_activo_dispositivo or not info.es_activo_sensor:
         raise AuthenticationError(
             code="DISPOSITIVO_NO_AUTORIZADO",
-            message="Credenciales de dispositivo inválidas o dispositivo inactivo.",
+            message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
         )
 
     resultado = _build_generar_use_case(db).execute(
@@ -102,7 +123,7 @@ def procesar_evento_alerta(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 2))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
     summary="Listar alertas con filtros (RF-57 FA-09)",
 )
 def listar_alertas(
@@ -112,8 +133,11 @@ def listar_alertas(
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
     origen_evento: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_resolucion_desde: Optional[FechaHoraUtc] = Query(
+        default=None, description="Solo alertas cerradas desde este instante (M3-08: resueltas hoy)."
+    ),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -134,9 +158,11 @@ def listar_alertas(
         fecha_hasta=fecha_hasta,
         pagina=pagina,
         por_pagina=por_pagina,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
+        fecha_resolucion_desde=fecha_resolucion_desde,
     )
     return ListaAlertasSchema(
         total=total,
@@ -155,7 +181,7 @@ def listar_alertas(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 2))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
     summary="Obtener detalle de alerta con historial de estados (RF-57 FA-09)",
 )
 def obtener_alerta(
@@ -169,6 +195,7 @@ def obtener_alerta(
     )
     alerta, historico = use_case.obtener_detalle(
         id_alerta,
+        ambito=AmbitoAlerta.OPERATIVA,
         ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
@@ -189,7 +216,7 @@ def obtener_alerta(
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(32, 3))],
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 3))],
     summary="Actualizar estado de alerta (RF-57 FA-10)",
 )
 def actualizar_estado_alerta(
@@ -198,10 +225,20 @@ def actualizar_estado_alerta(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AlertaSchema:
+    # DB-08: D sobre el recurso por nombre; U sigue siendo obligatorio.
+    if dto.nuevo_estado == EstadoAlerta.DESCARTADA and not tiene_permiso_sobre(
+        db, usuario_actual.id_rol, "alertas_operativas", 4,
+    ):
+        raise AuthorizationError(
+            code="ACCESO_DENEGADO",
+            message="Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        )
     use_case = ActualizarEstadoAlertaUseCase(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        ambito=AmbitoAlerta.OPERATIVA,
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,

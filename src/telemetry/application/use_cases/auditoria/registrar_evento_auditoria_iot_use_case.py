@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
@@ -18,6 +19,8 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
     clasificar_componente,
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
+
+logger = logging.getLogger(__name__)
 
 
 def _calcular_hash(evento: EventoAuditoriaIot) -> str:
@@ -90,7 +93,14 @@ class RegistrarEventoAuditoriaIotUseCase:
             )
             evento.hash_integridad = _calcular_hash(evento)
 
-            self.auditoria_repo.registrar(evento)
+            registrado = self.auditoria_repo.registrar(evento)
+            if registrado.id_evento is None:
+                # El adaptador best-effort devuelve el evento sin ID si falla.
+                # No confirmar una transacción fallida ni aparentar éxito.
+                self.db.rollback()
+                logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)
+                return
             self.db.commit()
         except Exception:
             self.db.rollback()
+            logger.warning('RF-63: no se pudo registrar el evento de auditoría (tipo=%s).', tipo_evento)

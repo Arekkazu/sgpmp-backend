@@ -1,0 +1,1288 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G003 Validaciones de unicidad y composición del catálogo",
+    "description": "Automatiza TC-M04-005..009 (RF-64, flujos alternos E4, E1, E2, E5 y E6) sobre /prediccion/patologias con datos propios (especies BOVINO y PORCINO y la patología de referencia 'Estres termico <sufijo>'). 005: nombre duplicado en mayúsculas, minúsculas, espacios al inicio/fin, espacio doble y tabulación internos, y el nombre de una base en mayúsculas -> 409. 006: variable inexistente (id 9999 y 'TEMPERATURA_SUELO') -> 422. 007: editar y DELETE sobre una patología base -> 405, valores originales conservados. 008: lista vacía y de 1 variable -> 422. 009: combinación 9,10,12 para BOVINO, repetida en otro orden -> 409, y para PORCINO -> 201. Al final, el catálogo solo crece en las 2 combinaciones válidas. Notas del código: el nombre se compara con lower(trim()) (no normaliza espacios internos); la combinación ignora el orden; editar una base responde 422 PATOLOGIA_BASE_INMUTABLE (no 405); las variables son ids enteros (un texto lo rechaza la validación de entrada con 400). NO se prueba 'eliminar' la base por PATCH /desactivar: ese caso de uso no bloquea las patologías base y no hay endpoint para reactivarlas, así que desactivaría una base del TEST compartido de forma permanente (hallazgo a confirmar con Desarrollo).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_vet', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie BOVINO propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie bovina creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_bovino', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Validacion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G003\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie PORCINO propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie porcina creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_porcino', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcino Validacion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G003\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patología de referencia 'Estres termico {{sufijo}}'",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología de referencia creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_referencia', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Estres termico {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tomar una patología base para TC-M04-007",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const base = (pm.response.json().items || [])[0];",
+                  "pm.test('Existe una patología base', function () { pm.expect(base, 'base').to.exist; });",
+                  "pm.collectionVariables.set('id_base', String(base.id_patologia));",
+                  "pm.collectionVariables.set('base_nombre', base.nombre_patologia);",
+                  "pm.collectionVariables.set('base_version', String(base.version_catalogo));",
+                  "pm.collectionVariables.set('base_activa', String(base.es_activo));",
+                  "pm.collectionVariables.set('base_descripcion', base.descripcion_clinica);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_base=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_base",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Total del catálogo antes de los rechazos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('total_antes', String((pm.response.json().items || []).length));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-005 Nombre duplicado (case-insensitive)",
+      "item": [
+        {
+          "name": "TC-M04-005 - Nombre duplicado: mayúsculas",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sufijo_mayus', pm.collectionVariables.get('sufijo').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (mayúsculas): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (mayúsculas): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (mayúsculas): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"ESTRES TERMICO {{sufijo_mayus}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13, 15],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-005 - Nombre duplicado: minúsculas",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sufijo_mayus', pm.collectionVariables.get('sufijo').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (minúsculas): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (minúsculas): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (minúsculas): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"estres termico {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [14, 15],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-005 - Nombre duplicado: espacios al inicio y al final",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sufijo_mayus', pm.collectionVariables.get('sufijo').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (espacios al inicio y al final): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (espacios al inicio y al final): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (espacios al inicio y al final): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"   Estres termico {{sufijo}}   \",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-005 - Nombre duplicado: espacio doble interno",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sufijo_mayus', pm.collectionVariables.get('sufijo').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (espacio doble interno): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (espacio doble interno): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (espacio doble interno): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Estres  termico {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [14, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-005 - Nombre duplicado: tabulación interna",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sufijo_mayus', pm.collectionVariables.get('sufijo').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (tabulación interna): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (tabulación interna): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (tabulación interna): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Estres\\ttermico {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [15, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-005 - Nombre duplicado de una patología base en mayúsculas",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('base_nombre_mayus', pm.collectionVariables.get('base_nombre').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-005 (base): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-005 (base): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-005 (base): código NOMBRE_PATOLOGIA_DUPLICADO', function () { pm.expect(j.error_code).to.eql('NOMBRE_PATOLOGIA_DUPLICADO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"{{base_nombre_mayus}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [9, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-006 Variables inexistentes en I3P-1",
+      "item": [
+        {
+          "name": "TC-M04-006 - Variable inexistente en I3P-1 (id 9999)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-006 (id): rechazado (422)', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-006 (id): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-006 (id): código VARIABLE_NO_EN_I3P1', function () { pm.expect(j.error_code).to.eql('VARIABLE_NO_EN_I3P1'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Variable Inexistente {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13, 9999],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-006 - Variable por nombre: TEMPERATURA_SUELO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-006 (TEMPERATURA_SUELO): rechazado (422)', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-006 (TEMPERATURA_SUELO): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Temperatura Suelo {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13, \"TEMPERATURA_SUELO\"],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-007 Modificar/eliminar patología base",
+      "item": [
+        {
+          "name": "TC-M04-007 - Editar la patología base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-007 (editar): la edición de una base se rechaza', function () { pm.expect(pm.response.code).to.be.within(400, 499); });",
+                  "pm.test('TC-M04-007 (editar): HTTP 405', function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_base}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_base}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"{{base_nombre}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\",\n  \"variables_sensoricas_asociadas\": [13, 14]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-007 - Eliminar la patología base (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-007 (eliminar): HTTP 405', function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_base}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_base}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-007 - La patología base conserva sus valores originales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle de la base responde 200', function () { pm.response.to.have.status(200); });",
+                  "const p = pm.response.json();",
+                  "pm.test('TC-M04-007: versión, descripción y estado sin cambios', function () {",
+                  "  pm.expect(p.version_catalogo).to.eql(Number(pm.collectionVariables.get('base_version')));",
+                  "  pm.expect(p.descripcion_clinica).to.eql(pm.collectionVariables.get('base_descripcion'));",
+                  "  pm.expect(String(p.es_activo)).to.eql(pm.collectionVariables.get('base_activa'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_base}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_base}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M04-008 Menos de 2 variables",
+      "item": [
+        {
+          "name": "TC-M04-008 - Lista de variables vacía",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-008 (vacía): rechazado (422)', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-008 (vacía): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-008 (vacía): código CANTIDAD_VARIABLES_INVALIDA', function () { pm.expect(j.error_code).to.eql('CANTIDAD_VARIABLES_INVALIDA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Sin Variables {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-008 - Una sola variable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-008 (1 variable): rechazado (422)', function () { pm.response.to.have.status(422); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-008 (1 variable): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-008 (1 variable): código CANTIDAD_VARIABLES_INVALIDA', function () { pm.expect(j.error_code).to.eql('CANTIDAD_VARIABLES_INVALIDA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Una Variable {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [13],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. TC-M04-009 Combinación de variables duplicada",
+      "item": [
+        {
+          "name": "TC-M04-009 - Combinación A,B,C para BOVINO (primera vez)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-009: primera combinación creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_combo_bovino', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Combinacion Bovino {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [9, 10, 12],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-009 - Misma combinación (en otro orden: C,A,B) para BOVINO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-009 (repetida): rechazado (409)', function () { pm.response.to.have.status(409); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M04-009 (repetida): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });",
+                  "pm.test('TC-M04-009 (repetida): código COMBINACION_VARIABLES_DUPLICADA', function () { pm.expect(j.error_code).to.eql('COMBINACION_VARIABLES_DUPLICADA'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Combinacion Bovino Repetida {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_bovino}}\",\n  \"variables_sensoricas_asociadas\": [12, 9, 10],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-009 - Misma combinación para PORCINO (otra especie)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-009: con otra especie se crea correctamente (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_combo_porcino', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Combinacion Porcino {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_porcino}}\",\n  \"variables_sensoricas_asociadas\": [9, 10, 12],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante varias horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Verificación de no persistencia",
+      "item": [
+        {
+          "name": "TC-M04-005..009 - Sin registros adicionales por los rechazos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json().items || [];",
+                  "pm.test('Solo se agregaron las 2 combinaciones válidas (bovino y porcino)', function () {",
+                  "  pm.expect(items.length).to.eql(Number(pm.collectionVariables.get('total_antes')) + 2);",
+                  "});",
+                  "const suf = pm.collectionVariables.get('sufijo').toLowerCase();",
+                  "const delCaso = items.filter(p => p.nombre_patologia.toLowerCase().replace(/\\s+/g, ' ').includes(suf));",
+                  "pm.test('Del caso solo existen la referencia y las 2 combinaciones', function () {",
+                  "  pm.expect(delCaso.map(p => p.id_patologia).sort((a, b) => a - b)).to.eql(",
+                  "    ['id_referencia', 'id_combo_bovino', 'id_combo_porcino'].map(k => Number(pm.collectionVariables.get(k))).sort((a, b) => a - b));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "sufijo_mayus",
+      "value": ""
+    },
+    {
+      "key": "id_bovino",
+      "value": ""
+    },
+    {
+      "key": "id_porcino",
+      "value": ""
+    },
+    {
+      "key": "id_referencia",
+      "value": ""
+    },
+    {
+      "key": "id_base",
+      "value": ""
+    },
+    {
+      "key": "base_nombre",
+      "value": ""
+    },
+    {
+      "key": "base_nombre_mayus",
+      "value": ""
+    },
+    {
+      "key": "base_version",
+      "value": ""
+    },
+    {
+      "key": "base_activa",
+      "value": ""
+    },
+    {
+      "key": "base_descripcion",
+      "value": ""
+    },
+    {
+      "key": "total_antes",
+      "value": ""
+    },
+    {
+      "key": "id_combo_bovino",
+      "value": ""
+    },
+    {
+      "key": "id_combo_porcino",
+      "value": ""
+    }
+  ]
+}

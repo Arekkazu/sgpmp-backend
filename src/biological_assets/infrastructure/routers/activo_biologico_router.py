@@ -1,3 +1,10 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-48/61: inyecta integracion transaccional de traslado |
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -41,6 +48,12 @@ from src.biological_assets.application.use_cases.gestion.consultar_historial_fas
 from src.biological_assets.application.use_cases.gestion.listar_ciclos_productivos_activo_use_case import (
     ListarCiclosProductivosActivoUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.listar_metricas_activo_use_case import (
+    ListarMetricasActivoUseCase,
+)
+from src.biological_assets.application.use_cases.gestion.listar_patologias_activo_use_case import (
+    ListarPatologiasActivoUseCase,
+)
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
 from src.biological_assets.domain.entities.activo_biologico import (
@@ -55,6 +68,9 @@ from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_ad
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
+from src.biological_assets.infrastructure.adapters.cierre_ciclo_suministros_m05_adapter import (
+    CierreCicloSuministrosM05Adapter,
+)
 from src.biological_assets.infrastructure.adapters.recalibracion_vision_m09_adapter import RecalibracionVisionM09Adapter
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
@@ -95,6 +111,7 @@ from src.biological_assets.infrastructure.repositories.evento_activo_repository 
 from src.biological_assets.application.use_cases.gestion.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_ficha_integral_use_case import ConsultarFichaIntegralUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import RegistrarTransferenciaUseCase
+from src.telemetry.infrastructure.adapters.vinculacion_traslado_m03_adapter import VinculacionTrasladoM03Adapter
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
@@ -164,6 +181,10 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     CiclosProductivosActivoResponse,
     CicloProductivoResponse,
+    MetricaActivoResponse,
+    MetricasActivoResponse,
+    PatologiaActivoResponse,
+    PatologiasActivoResponse,
     FaseCicloProductivoResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
@@ -190,6 +211,7 @@ from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
@@ -384,6 +406,7 @@ def _activo_to_response(
         fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
+        advertencia_edad=activo.advertencia_edad,
     )
 
 
@@ -441,6 +464,10 @@ def registrar_activo(
     identificador único (409), origen financiero y atributos dinámicos de la
     especie (ver `GET /activos-biologicos/parametros-especie`). En lotes valida la
     densidad contra el máximo de la especie.
+
+    `fecha_nacimiento` es opcional (RFC-014) y no puede ser futura. Si la edad del
+    activo alcanza o supera la esperanza de vida de la especie, responde 201 igual,
+    con `advertencia_edad` (nunca rechaza por la edad).
     """
     use_case = RegistrarActivoBiologicoUseCase(
         db=db,
@@ -949,7 +976,7 @@ def consultar_asociacion(
         'ACTIVA',
         description="'ACTIVA' devuelve la asociación vigente. 'HISTORIAL' devuelve todos los períodos.",
     ),
-    fecha_referencia: Optional[datetime] = Query(
+    fecha_referencia: Optional[FechaHoraUtc] = Query(
         default=None,
         description=(
             'Consulta cuál era la asociación vigente en una fecha pasada (CA-3, útil para RF-61). '
@@ -981,7 +1008,10 @@ def consultar_asociacion(
         tipo_consulta=resultado.tipo_consulta,
         id_activo_biologico=resultado.id_activo_biologico,
         asociacion_activa=(
-            _historial_to_response(resultado.asociacion_activa) if resultado.asociacion_activa else None
+            _historial_to_response(resultado.asociacion_activa).model_copy(
+                update={'capacidad_maxima': resultado.capacidad_maxima}
+            )
+            if resultado.asociacion_activa else None
         ),
         historial=(
             [_historial_to_response(h) for h in resultado.historial]
@@ -1397,6 +1427,7 @@ def cerrar_ciclo(
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
         recalibracion_vision=RecalibracionVisionM09Adapter(background_tasks),
+        suministros=CierreCicloSuministrosM05Adapter(db),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CierreActivoResponse(
@@ -1450,6 +1481,85 @@ def registrar_evento_reproductivo(
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
+@router.get(
+    '/{id_activo}/metricas',
+    response_model=MetricasActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF43'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Métricas de la especie del activo para los eventos de crecimiento y productivos (RF-40, RF-43)',
+)
+def metricas_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> MetricasActivoResponse:
+    """Métricas activas de la especie que aplican al tipo del activo, ordenadas por nombre.
+
+    **Acceso:** `activos_biologicos` · Leer (Productor incluido, que no lee la
+    configuración de M09).
+
+    `habilitada_en_fase` es `true` si el ciclo de la fase activa admite la
+    métrica; solo esas se aceptan en `POST /{id_activo}/eventos/productivo`. Sin
+    fase activa todas vienen en `false`.
+    """
+    use_case = ListarMetricasActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
+    )
+    metricas = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    items = [
+        MetricaActivoResponse(
+            id_metrica_produccion=m.id_metrica_produccion,
+            nombre=m.tipo_producto,
+            tipo_medicion=m.tipo_medicion,
+            unidad_medida=m.unidad_medida,
+            tipo_dato=m.tipo_dato,
+            valor_min=m.valor_min,
+            valor_max=m.valor_max,
+            habilitada_en_fase=habilitada,
+        )
+        for m, habilitada in metricas
+    ]
+    return MetricasActivoResponse(id_activo_biologico=id_activo, total=len(items), items=items)
+
+
+@router.get(
+    '/{id_activo}/patologias',
+    response_model=PatologiasActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF41'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Patologías de la especie del activo para el evento sanitario (RF-41)',
+)
+def patologias_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> PatologiasActivoResponse:
+    """Patologías activas de la especie del activo, ordenadas por nombre.
+
+    **Acceso:** `activos_biologicos` · Leer (Productor e Ingeniero de campo
+    incluidos, que no leen la configuración de M09).
+    """
+    use_case = ListarPatologiasActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+    )
+    patologias = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    return PatologiasActivoResponse(
+        id_activo_biologico=id_activo,
+        items=[PatologiaActivoResponse(id_patologia=p.id_patologia, nombre=p.nombre) for p in patologias],
+    )
+
+
 @router.post(
     '/{id_activo}/eventos/productivo',
     response_model=EventoActivoResponse,
@@ -1474,6 +1584,9 @@ def registrar_evento_productivo(
     """Registra producción (leche, huevos...) contra una métrica de la especie.
 
     **Acceso:** `activos_biologicos` · Crear.
+
+    `id_metrica_produccion` se elige de `GET /{id_activo}/metricas` (las que
+    traen `habilitada_en_fase`) y `unidad_medida` es la de esa métrica.
 
     La métrica debe estar habilitada en la fase activa y la fecha dentro de la
     fase. Un mismo producto no se registra dos veces el mismo día (409).
@@ -1797,6 +1910,7 @@ def registrar_transferencia(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        vinculacion_traslado_port=VinculacionTrasladoM03Adapter(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return TransferenciaResponse(

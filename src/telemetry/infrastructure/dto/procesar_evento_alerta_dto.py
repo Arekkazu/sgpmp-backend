@@ -1,23 +1,26 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
 from pydantic import Field, field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class ProcesarEventoAlertaDTO(BaseDTO):
     device_id: int = Field(..., gt=0)
     sensor_id: int = Field(..., gt=0)
-    access_key: str = Field(..., min_length=1, max_length=100)
+    serial: str = Field(..., min_length=1, max_length=100)
 
     tipo_variable: str = Field(..., min_length=2, max_length=50)
     valor: Decimal = Field(...)
     unidad: str = Field(..., min_length=1, max_length=20)
-    timestamp_evento: datetime
+    timestamp_evento: FechaHoraUtc
     estado_dato: str = Field(..., min_length=2, max_length=30)
     severidad_edge: str = Field(..., min_length=2, max_length=20)
     origen_evento: str = Field(..., min_length=2, max_length=20)

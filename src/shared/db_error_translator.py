@@ -9,17 +9,80 @@ Ningún nombre de constraint de PostgreSQL sale hacia el cliente: el ``field``
 que viaja en la respuesta es siempre un nombre de columna, derivado por
 ``_campo`` a partir del diagnóstico de psycopg2.
 """
+import re
+
 from psycopg2 import errors as pg_errors
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.errors import (
+    AppError,
     AuthorizationError,
     BusinessRuleError,
     ConflictError,
     InfrastructureError,
+    NotFoundError,
+    PreconditionFailedError,
     ServiceUnavailableError,
     ValidationError,
 )
+
+# RAISE EXCEPTION no rellena schema_name/table_name. El primer frame de
+# diag.context identifica la función que lanzó el error, sin leer SQL ni
+# parámetros del request. P0001/P0002/P0005 se reutilizan en otros módulos.
+_FUNCION_PLPGSQL = re.compile(r"^PL/pgSQL function (\w+(?:\.\w+)?)\(", re.MULTILINE)
+_RECHAZOS_TRIGGER = {
+    ("P0001", "modulo3.fn_validar_timestamp_telemetria"): (
+        ValidationError, "ERROR_TIEMPO",
+        "El timestamp_captura es posterior a la hora del servidor.", "timestamp_captura",
+    ),
+    ("P0002", "modulo3.fn_telemetrias_inmutable"): (
+        BusinessRuleError, "TELEMETRIA_INMUTABLE",
+        "Los registros de telemetría no pueden ser modificados ni eliminados.", None,
+    ),
+    ("P0005", "modulo3.fn_alerta_validar_transicion"): (
+        BusinessRuleError, "TRANSICION_INVALIDA",
+        "La transición de estado solicitada no está permitida para esta alerta.", "nuevo_estado",
+    ),
+}
+
+
+def traducir_rechazo_trigger(exc: Exception) -> AppError | None:
+    """Traduce exclusivamente triggers conocidos; no controla transacciones.
+
+    Admite el error del driver y la envoltura DBAPIError de SQLAlchemy.
+    Sin contexto verificable conserva el tratamiento de error desconocido.
+    Nunca devuelve el mensaje, la sentencia ni los parámetros de PostgreSQL.
+    """
+    original = getattr(exc, "orig", exc)
+    diag = getattr(original, "diag", None)
+    sqlstate = getattr(diag, "sqlstate", None) or getattr(original, "pgcode", None)
+    contexto = getattr(diag, "context", None) or ""
+    frame = _FUNCION_PLPGSQL.search(contexto)
+    if frame is None:
+        return None
+    funcion = frame.group(1)
+    regla = _RECHAZOS_TRIGGER.get((sqlstate, funcion))
+    if regla is not None:
+        clase, codigo, mensaje, campo = regla
+        return clase(code=codigo, message=mensaje, field=campo)
+    if (sqlstate, funcion) == ("P0413", "modulo4.trg_fn_predicciones_version_modelo_activo"):
+        # Una misma función/SQLSTATE tiene dos ramas. Las etiquetas son parte
+        # estable del trigger; solo discriminan la rama, no se exponen.
+        etiqueta = (getattr(diag, "message_primary", None) or "").partition(":")[0]
+        if etiqueta == "MODEL_NOT_ACTIVE":
+            return PreconditionFailedError(
+                code="MODELO_NO_ACTIVO",
+                message="Solo se pueden generar predicciones con modelos en producción.",
+                field="id_version_modelo",
+            )
+        if etiqueta == "MODEL_NOT_FOUND":
+            return NotFoundError(
+                code="VERSION_MODELO_NO_ENCONTRADA",
+                message="La versión de modelo especificada no existe.",
+                field="id_version_modelo",
+            )
+    return None
+
 
 _PREFIJOS_CONSTRAINT = ("uq_", "uk_", "fk_", "ck_", "chk_", "pk_", "idx_", "ix_")
 
@@ -98,6 +161,12 @@ _ERRCODE_ESTADO_HISTORIAL_INCONSISTENTE = "P0212"
 _ERRCODE_BAJA_CANTIDAD_INVALIDA = "P0224"
 _ERRCODE_BAJA_SUPERA_EXISTENCIA = "P0225"
 
+#: CU-M09-03: `trg_fn_niveles_alerta_solapamiento` rechaza un nivel de alerta
+#: que se solapa con otro del mismo umbral (P0113). La aplicación ya valida que
+#: los niveles sean contiguos; si aun así llega aquí, es una regla de negocio
+#: (422), no un 500.
+_ERRCODE_NIVELES_SOLAPADOS = "P0113"
+
 #: P0211 lo comparten dos triggers de `modulo2` con etiquetas distintas
 #: (prefijo del mensaje). Solo `INVALID_TRANSITION` y `REDUNDANT_TRANSITION`
 #: son reglas de negocio; `MISSING_FIELD` y `DIRECT_STATE_CHANGE` delatan un
@@ -134,6 +203,15 @@ _REGLAS_POR_ETIQUETA = {
 #: IntegrityError/DataError/OperationalError. `BaseDTO` ya lo rechaza en la
 #: frontera para todo DTO de entrada; esto es la red de seguridad para
 #: cualquier valor que llegue a la base de datos por otra vía.
+#: CU-M09-03: el 500 decía "Error inesperado en base de datos", que no le dice
+#: al usuario qué hacer y delata la capa que falló. El detalle técnico sigue en
+#: el log (`original_error`); al cliente le llega el mismo texto que da el
+#: manejador global para cualquier error no controlado.
+_MENSAJE_ERROR_INTERNO = (
+    "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, "
+    "contacta al equipo de soporte."
+)
+
 _MENSAJE_BYTE_NULO_PSYCOPG2 = "A string literal cannot contain NUL (0x00) characters."
 
 
@@ -223,8 +301,13 @@ def raise_from_db_error(
             message="El texto no puede contener caracteres nulos.",
         )
 
-    diag_generico = getattr(getattr(exc, "orig", None), "diag", None)
-    sqlstate = getattr(diag_generico, "sqlstate", None) if diag_generico is not None else None
+    rechazo = traducir_rechazo_trigger(exc)
+    if rechazo is not None:
+        raise rechazo from exc
+
+    original = getattr(exc, "orig", exc)
+    diag_generico = getattr(original, "diag", None)
+    sqlstate = getattr(diag_generico, "sqlstate", None) or getattr(original, "pgcode", None)
 
     if sqlstate in _ERRCODES_NOMBRE_DUPLICADO:
         mensaje = diag_generico.message_primary or "Ya existe un registro con ese nombre."
@@ -261,6 +344,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA:
         mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
         raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_NIVELES_SOLAPADOS:
+        mensaje = diag_generico.message_primary or "Los niveles de alerta del umbral se solapan."
+        raise BusinessRuleError(code="NIVELES_SOLAPADOS", message=mensaje.split(": ", 1)[-1], field="niveles")
 
     if sqlstate in _ERRCODES_FASE_CONFLICTO:
         mensaje = diag_generico.message_primary or "El cambio de fase entra en conflicto con el historial del activo."
@@ -321,7 +408,7 @@ def raise_from_db_error(
 
         raise InfrastructureError(
             code="ERROR_INTERNO",
-            message="Error de integridad en base de datos",
+            message=_MENSAJE_ERROR_INTERNO,
             original_error=exc,
         )
 
@@ -343,6 +430,6 @@ def raise_from_db_error(
 
     raise InfrastructureError(
         code="ERROR_INTERNO",
-        message="Error inesperado en base de datos",
+        message=_MENSAJE_ERROR_INTERNO,
         original_error=exc,
     )

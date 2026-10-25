@@ -5,6 +5,8 @@ Expone los cuatro flujos de RF-16 CU02 para métricas:
   J) PATCH  /configuracion/metricas/{id}         — Editar métrica
   K) PATCH  /configuracion/metricas/{id}/desactivar — Desactivar métrica
   L) GET    /configuracion/metricas              — Consultar métricas por especie
+     GET/PUT /configuracion/metricas/{id}/ciclos-productivos — Ciclos en que la
+             métrica es producto de un evento productivo (RF-43 E-04)
 
 Autorización RBAC:
   recurso metricas_produccion = id_recurso 19
@@ -16,17 +18,26 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.metricas.asignar_ciclos_metrica_use_case import AsignarCiclosMetricaUseCase
+from src.configuration.application.use_cases.metricas.consultar_ciclos_metrica_use_case import ConsultarCiclosMetricaUseCase
 from src.configuration.application.use_cases.metricas.consultar_metricas_use_case import ConsultarMetricasUseCase
 from src.configuration.application.use_cases.metricas.desactivar_metrica_use_case import DesactivarMetricaUseCase
 from src.configuration.application.use_cases.metricas.editar_metrica_use_case import EditarMetricaUseCase
 from src.configuration.application.use_cases.metricas.registrar_metrica_use_case import RegistrarMetricaUseCase
+from src.configuration.infrastructure.dto.asignar_ciclos_metrica_dto import AsignarCiclosMetricaDTO
 from src.configuration.infrastructure.dto.editar_metrica_dto import EditarMetricaDTO
 from src.configuration.infrastructure.dto.registrar_metrica_dto import RegistrarMetricaDTO
 from src.configuration.infrastructure.repositories.auditoria_metrica_repository import SqlAlchemyAuditoriaMetricaRepository
+from src.configuration.infrastructure.repositories.ciclo_metrica_repository import SqlAlchemyCicloMetricaRepository
 from src.configuration.infrastructure.repositories.dependencia_metrica_repository import SqlAlchemyDependenciaMetricaRepository
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.metrica_produccion_repository import SqlAlchemyMetricaProduccionRepository
-from src.configuration.infrastructure.schema.metrica_schema import MetricaProduccionResponse, MetricasPorEspecieResponse
+from src.configuration.infrastructure.schema.metrica_schema import (
+    CicloMetricaResponse,
+    CiclosMetricaResponse,
+    MetricaProduccionResponse,
+    MetricasPorEspecieResponse,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
@@ -165,3 +176,70 @@ def desactivar_metrica(
     )
     metrica = use_case.execute(id_metrica_produccion, usuario_actual)
     return MetricaProduccionResponse.model_validate(metrica)
+
+
+# ── RF-43 E-04 — Ciclos productivos en que la métrica es producto ──────────────
+
+def _ciclos_response(id_metrica_produccion: int, ciclos) -> CiclosMetricaResponse:
+    return CiclosMetricaResponse(
+        id_metrica_produccion=id_metrica_produccion,
+        items=[CicloMetricaResponse.model_validate(c) for c in ciclos],
+    )
+
+
+@router.get(
+    "/{id_metrica_produccion}/ciclos-productivos",
+    response_model=CiclosMetricaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Ciclos productivos en los que la métrica es producto (RF-43 E-04)",
+)
+def consultar_ciclos_metrica(
+    id_metrica_produccion: int,
+    db: Session = Depends(get_db),
+) -> CiclosMetricaResponse:
+    """Ciclos productivos de la especie de la métrica, con `habilitada`.
+
+    **Acceso:** `metricas_produccion` · Leer.
+
+    Un evento productivo (RF-43) solo acepta la métrica si el ciclo de la fase
+    activa del activo la tiene habilitada (E-04).
+    """
+    use_case = ConsultarCiclosMetricaUseCase(
+        metricas_repo=SqlAlchemyMetricaProduccionRepository(db),
+        ciclos_repo=SqlAlchemyCicloMetricaRepository(db),
+    )
+    return _ciclos_response(id_metrica_produccion, use_case.execute(id_metrica_produccion))
+
+
+@router.put(
+    "/{id_metrica_produccion}/ciclos-productivos",
+    response_model=CiclosMetricaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Habilitar la métrica como producto en ciclos productivos (RF-43 E-04)",
+)
+def asignar_ciclos_metrica(
+    id_metrica_produccion: int,
+    dto: AsignarCiclosMetricaDTO,
+    db: Session = Depends(get_db),
+) -> CiclosMetricaResponse:
+    """Deja la métrica habilitada exactamente en `ids_ciclos_productivos` (lista vacía = en ninguno).
+
+    **Acceso:** `metricas_produccion` · Actualizar.
+
+    Solo acepta ciclos de la especie de la métrica (422 `CICLO_DE_OTRA_ESPECIE`)
+    y métricas activas (422 `METRICA_INACTIVA`).
+    """
+    use_case = AsignarCiclosMetricaUseCase(
+        db=db,
+        metricas_repo=SqlAlchemyMetricaProduccionRepository(db),
+        ciclos_repo=SqlAlchemyCicloMetricaRepository(db),
+    )
+    return _ciclos_response(id_metrica_produccion, use_case.execute(id_metrica_produccion, dto.ids_ciclos_productivos))

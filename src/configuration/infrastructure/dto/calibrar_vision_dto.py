@@ -1,19 +1,22 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para la calibración por visión (POST /configuracion/calibraciones-vision, RF-24 v2.0)."""
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import model_validator
 
 from src.configuration.domain.value_objects.modo_calibracion import ModoCalibracion
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class VentanaObservacionDTO(BaseDTO):
     """Rango temporal de las observaciones de visión usadas para el cálculo."""
-    inicio: datetime
-    fin: datetime
+    inicio: FechaHoraUtc
+    fin: FechaHoraUtc
 
     @model_validator(mode="after")
     def validar_rango(self) -> "VentanaObservacionDTO":
@@ -31,5 +34,5 @@ class CalibrarVisionDTO(BaseDTO):
     area_id: int
     ventana_observacion: VentanaObservacionDTO
     # Por defecto, el momento en que se dispara el cálculo.
-    fecha_calibracion: Optional[datetime] = None
+    fecha_calibracion: Optional[FechaHoraUtc] = None
     observaciones: Optional[str] = None

@@ -64,9 +64,10 @@ class ListarDesplieguesUseCase:
 
         try:
             self._auditoria_repo.registrar(
-                tipo_evento="CONSULTA_DESPLIEGUES_OTA",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 payload_evento={
+                    "consulta": "DESPLIEGUES_OTA",
                     "id_version_modelo": id_version,
                     "id_dispositivo": id_dispositivo,
                     "estado_filtro": estado,
@@ -78,7 +79,7 @@ class ListarDesplieguesUseCase:
                 id_usuario=id_usuario,
                 id_referencia=str(id_version) if id_version else None,
                 entidad_referencia="version_modelo" if id_version else None,
-                resultado_operacion="OK",
+                resultado_operacion="EXITOSO",
             )
             self._db.commit()
         except Exception:

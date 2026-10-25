@@ -1,13 +1,14 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Aislamiento compartido por toda la suite."""
 from __future__ import annotations
-import os
-import uuid
-from typing import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from main import app
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
 
 
@@ -68,24 +69,5 @@ def sandbox_client(test_run_id, monkeypatch) -> Generator[TestClient, None, None
     Cliente HTTP que inyecta automáticamente los headers del sandbox, para
     que el middleware real controle la transacción vía HTTP.
     """
-    monkeypatch.setenv("ENABLE_TEST_SANDBOX", "true")
-
-    secret = os.getenv("TEST_SANDBOX_SECRET")
-    if not secret:
-        raise RuntimeError(
-            "Falta la variable de entorno TEST_SANDBOX_SECRET. Debe compartirse "
-            "con QA por un canal seguro antes de usar sandbox_client."
-        )
-
-    client = TestClient(app)
-    client.headers.update({
-        "X-Test-Run-Id": test_run_id,
-        "X-Sandbox-Secret": secret,
-    })
-
-    yield client
-
-    client.delete(
-        f"/test-control/runs/{test_run_id}",
-        headers={"X-Sandbox-Secret": secret},
-    )
+    monkeypatch.setattr(bitacora, '_DIR', tmp_path / 'logs')
+    monkeypatch.setattr(bitacora, '_control', bitacora.ControlCarga())

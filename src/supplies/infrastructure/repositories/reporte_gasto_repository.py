@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: guarda y relee los parámetros      |
 """Implementación SQLAlchemy de :class:`ReporteGastoRepository` (RF-77).
 
 Persiste únicamente el snapshot (encabezado + totales) en
@@ -35,6 +38,8 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
             gasto_total_acumulado=orm.total_costo_directo,
             id_usuario=orm.id_usuario,
             fecha_generacion=orm.fecha_generacion,
+            id_especie=(orm.json_parametros or {}).get("id_especie"),
+            parametros=orm.json_parametros,
         )
 
     def guardar(self, reporte: ReporteGasto) -> ReporteGasto:
@@ -55,6 +60,7 @@ class SqlAlchemyReporteGastoRepository(ReporteGastoRepository):
                 ),
                 total_costo_directo=reporte.gasto_total_acumulado,
                 id_usuario=reporte.id_usuario,
+                json_parametros=reporte.parametros,
             )
             self.db.add(orm)
             self.db.flush()

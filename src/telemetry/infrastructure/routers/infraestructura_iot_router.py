@@ -1,25 +1,35 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-22 | Leandro | DEV-42 RF-60: aplica alcance de finca al mantenimiento |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
   POST  /iot/heartbeat                        — Recibir heartbeat de dispositivo
+  POST  /iot/eventos-buffer                   — Aviso de buffer del Gateway Edge (RF-54 → RF-60, D10)
   GET   /iot/dispositivos/{id}/estado         — Estado actual + historial de transiciones
   GET   /iot/dispositivos/{id}/historial      — Solo historial de transiciones
   GET   /iot/alertas-tecnicas                 — Listar alertas técnicas (admin + ing ONLY)
   PATCH /iot/alertas-tecnicas/{id}/estado     — Actualizar estado de alerta técnica
 
-Auth POST heartbeat: dispositivo IoT — X-Device-API-Key + X-Device-Id en headers (sin JWT).
+Auth POST heartbeat: token de servicio del broker (`Authorization: Bearer`); device_id + serial en el body.
+Auth POST eventos-buffer: token de servicio del broker; serial en el body (interno, lo llama solo el broker).
 Auth REST: JWT Bearer + RBAC recurso 35 (infraestructura_iot) / recurso 36 (alertas_tecnicas_iot).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.shared.broker_auth import require_token_servicio_broker
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -27,10 +37,14 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
 from src.telemetry.application.use_cases.infraestructura.aplicar_mantenimiento_dispositivo_use_case import AplicarMantenimientoDispositivoUseCase
+from src.telemetry.application.use_cases.infraestructura.listar_dispositivos_use_case import ListarDispositivosUseCase
 from src.telemetry.application.use_cases.infraestructura.obtener_estado_dispositivo_use_case import ObtenerEstadoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
+from src.telemetry.application.use_cases.infraestructura.registrar_evento_buffer_use_case import RegistrarEventoBufferUseCase
+from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
+from src.telemetry.infrastructure.dto.evento_buffer_dto import RecibirEventoBufferDTO
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -41,8 +55,9 @@ from src.telemetry.infrastructure.repositories.historico_estado_alerta_repositor
 from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
 from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
 from src.telemetry.infrastructure.schema.alerta_schema import AlertaSchema, ListaAlertasSchema
-from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
-from src.telemetry.infrastructure.schema.heartbeat_schema import HeartbeatReciboSchema
+from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import DispositivoConEstadoSchema, EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
+from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
@@ -54,27 +69,73 @@ router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
     responses={
         401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Recibir heartbeat de dispositivo IoT (RF-60)",
 )
 def recibir_heartbeat(
     dto: HeartbeatDTO,
     db: Session = Depends(get_db_sistema),
-    x_device_api_key: str = Header(..., alias="X-Device-API-Key"),
-    x_device_id: int = Header(..., alias="X-Device-Id"),
 ) -> HeartbeatReciboSchema:
     use_case = RecibirHeartbeatUseCase(
         db=db,
         dispositivo_port=DispositivoM09Adapter(db),
         heartbeat_repo=SqlAlchemyHeartbeatRepository(db),
-        estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
-        transicion_repo=SqlAlchemyHistoricoTransicionDispositivoRepository(db),
-        periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
-        alerta_repo=SqlAlchemyAlertaRepository(db),
-        historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
     )
-    heartbeat = use_case.execute(dto=dto, device_id=x_device_id, access_key=x_device_api_key)
+    heartbeat = use_case.execute(dto=dto)
     return HeartbeatReciboSchema.model_validate(heartbeat)
+
+
+@router.post(
+    "/eventos-buffer",
+    response_model=EventoBufferReciboSchema,
+    status_code=201,
+    responses={
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Aviso de buffer del Gateway Edge → alerta técnica RF-60 + evento RF-63 (RF-54, D10)",
+)
+def recibir_evento_buffer(
+    dto: RecibirEventoBufferDTO,
+    db: Session = Depends(get_db_sistema),
+) -> EventoBufferReciboSchema:
+    resultado = RegistrarEventoBufferUseCase(
+        db=db,
+        dispositivo_port=DispositivoM09Adapter(db),
+        alerta_repo=SqlAlchemyAlertaRepository(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    ).execute(dto)
+    return EventoBufferReciboSchema.model_validate(resultado)
+
+
+@router.get(
+    "/dispositivos",
+    response_model=list[DispositivoConEstadoSchema],
+    status_code=200,
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    dependencies=[Depends(require_permission(35, 2))],
+    summary="Listar dispositivos IoT con su estado actual (RF-60)",
+)
+def listar_dispositivos(
+    estado: Optional[str] = Query(default=None, description="ACTIVO, SIN_SEÑAL, BUFFER_ACTIVO, INACTIVO, EN_MANTENIMIENTO o DESCONOCIDO"),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[DispositivoConEstadoSchema]:
+    """Dispositivos activos de las fincas del usuario con estado, batería, señal y último
+    contacto; primero los que fallan (M3-10). El Administrador ve todas las fincas.
+
+    **Acceso:** `infraestructura_iot` · Leer.
+    """
+    filas = ListarDispositivosUseCase(SqlAlchemyEstadoDispositivoIoTRepository(db)).execute(
+        AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol),
+        estado=estado,
+    )
+    return [DispositivoConEstadoSchema.model_validate(f) for f in filas]
 
 
 @router.get(
@@ -160,6 +221,8 @@ def aplicar_mantenimiento_dispositivo(
         dto=dto,
         id_usuario=usuario_actual.id_usuario,
         nombre_usuario=nombre_usuario,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol),
     )
     return EstadoDispositivoIoTSchema.model_validate(estado)
 
@@ -178,8 +241,8 @@ def aplicar_mantenimiento_dispositivo(
 def listar_alertas_tecnicas(
     estado: Optional[str] = Query(default=None),
     severidad: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -192,7 +255,9 @@ def listar_alertas_tecnicas(
     alertas, total = use_case.listar(
         estado=estado,
         severidad=severidad,
-        tipo_alerta='TECNICA',  # siempre filtrar por tipo TECNICA
+        ambito=AmbitoAlerta.TECNICA,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario,usuario_actual.id_rol),
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,
@@ -229,7 +294,12 @@ def actualizar_estado_alerta_tecnica(
         db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        ambito=AmbitoAlerta.TECNICA,
     )
+    permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario,usuario_actual.id_rol)
+    ConsultarAlertasUseCase(SqlAlchemyAlertaRepository(db),SqlAlchemyHistoricoEstadoAlertaRepository(db)).obtener_detalle(
+        id_alerta,ambito=AmbitoAlerta.TECNICA,ids_fincas_permitidas=permitidas)
     alerta = use_case.execute(
         id_alerta=id_alerta,
         dto=dto,

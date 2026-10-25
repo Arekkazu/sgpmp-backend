@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from datetime import datetime
@@ -66,3 +69,63 @@ class ConfiguracionMotorIAResponse(BaseModel):
 class ConfiguracionMotorIAListResponse(BaseModel):
     total: int
     items: list[ConfiguracionMotorIAResponse]
+
+
+class SincronizacionNodoSchema(BaseModel):
+    """Estado de la configuración en un nodo Edge (``modulo4.sincronizacion_nodos_edge``)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_dispositivo_iot: int
+    serial: str
+    config_version_servidor: int
+    config_version_nodo: Optional[int] = None
+    estado_sincronizacion: str  # APLICADA | PENDIENTE | FALLIDA | DESINCRONIZADO
+    intentos_sincronizacion: int
+    fecha_ultimo_intento: Optional[datetime] = None
+    fecha_aplicacion: Optional[datetime] = None
+    motivo_fallo: Optional[str] = None
+
+
+class SincronizacionMotorSchema(BaseModel):
+    """Estado consolidado de la configuración en los nodos Edge del tipo_modelo (DEV-09)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    estado: str
+    mensaje: str
+    nodos: list[SincronizacionNodoSchema]
+
+
+class VersionConfiguracionMotorSchema(BaseModel):
+    """Una versión de la configuración (RF-65 Restricción 5, DEV-36)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    config_version: int
+    vigente: bool
+    # UPDATE/DELETE que reemplazó esta versión (null en la vigente).
+    operacion: Optional[str] = None
+    id_usuario_responsable: int
+    vigente_desde: Optional[datetime] = None
+    vigente_hasta: Optional[datetime] = None
+    # Usuario que la reemplazó (null en la vigente y en DELETE).
+    id_usuario_cambio: Optional[int] = None
+    configuracion: dict
+
+
+class HistorialConfiguracionMotorSchema(BaseModel):
+    """Historial append-only de ``modulo4.configuracion_ia_log`` más la versión vigente."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    tipo_modelo: str
+    config_version_vigente: Optional[int] = None
+    total: int
+    versiones: list[VersionConfiguracionMotorSchema]
+
+
+class ConfiguracionMotorIAGuardadaResponse(ConfiguracionMotorIAResponse):
+    """Respuesta de POST /prediccion/motor-ia: la configuración guardada y su sincronización."""
+
+    sincronizacion: SincronizacionMotorSchema

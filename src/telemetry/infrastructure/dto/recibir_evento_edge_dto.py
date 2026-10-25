@@ -1,31 +1,34 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class VariableInvolucradaDTO(BaseDTO):
     tipo_variable: str
     valor: Decimal
     unidad: str
-    timestamp_captura: Optional[datetime] = None
+    timestamp_captura: Optional[FechaHoraUtc] = None
 
 
 class RecibirEventoEdgeDTO(BaseDTO):
     device_id: int
     sensor_id: int
-    access_key: str
+    serial: str = Field(..., min_length=1, max_length=100)
     # Clasificación producida por RF-55 en el dispositivo Edge
     clasificacion_rf55: str       # NORMAL | DESVIACION_SIMPLE | DESVIACION_COMPUESTA | ERROR_CONFIGURACION
     severidad: Optional[str] = None  # LEVE | MODERADO | CRITICO
     variables_involucradas: list[VariableInvolucradaDTO]
-    timestamp_captura: datetime
-    timestamp_procesamiento_edge: datetime
+    timestamp_captura: FechaHoraUtc
+    timestamp_procesamiento_edge: FechaHoraUtc
     origen: str = "TIEMPO_REAL"   # TIEMPO_REAL | BUFFER_LOCAL
     estado_conectividad: bool
     metadata_edge: Optional[dict[str, Any]] = None

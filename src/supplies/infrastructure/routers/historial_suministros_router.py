@@ -1,10 +1,13 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, PDF/Excel, 72 h    |
 """Router FastAPI de RF-81 — Historial/Trazabilidad de Suministros.
 
-  GET  /suministros/historial                       — Consulta paginada (nivel 1, síncrona)
-  GET  /suministros/historial/exportar               — Exportación CSV síncrona (<= 10.000)
-  POST /suministros/historial/trabajos                — Encolar CONSULTA_PESADA | EXPORTACION
-  GET  /suministros/historial/trabajos/{id_cola}      — Estado de un trabajo async
-  GET  /suministros/historial/trabajos/{id_cola}/descargar — Descargar resultado de exportación
+  GET  /suministros/historial                           — Consulta paginada (200, o 202 en niveles 3-4)
+  GET  /suministros/historial/exportar                  — PDF/Excel (≤ 10.000 → archivo; > 10.000 → 202)
+  POST /suministros/historial/trabajos                  — Encolar CONSULTA_PESADA | EXPORTACION
+  GET  /suministros/historial/trabajos/{id_cola}        — Estado y resultado de un trabajo async
+  GET  /suministros/historial/trabajos/{id_cola}/descargar — Descargar la exportación (72 h, luego 410)
 
 RBAC: recurso 52 (`historial_suministros`). R=2 (lecturas), E=5 (encolar trabajo pesado).
 """
@@ -12,7 +15,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import StreamingResponse
@@ -22,6 +25,13 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.supplies.application.use_cases.historial_suministros.consultar_historial_suministros_use_case import (
+    ConsultaHistorialAsincrona,
+)
+from src.supplies.application.use_cases.historial_suministros.exportar_historial_sincrono_use_case import (
+    ArchivoHistorial,
+)
+from src.supplies.domain.entities.archivo_exportacion import TIPOS_CONTENIDO
 from src.supplies.domain.entities.historial_suministro import FiltrosHistorialSuministro
 from src.supplies.domain.value_objects.historial_suministro_enums import (
     OrigenPrecioFiltro,
@@ -37,8 +47,10 @@ from src.supplies.infrastructure.factories.historial_suministros_factory import 
     build_solicitar_trabajo_historial_use_case,
 )
 from src.supplies.infrastructure.schema.historial_suministro_schema import (
+    ConsultaAsincronaResponse,
     EstadoTrabajoHistorialResponse,
     HistorialSuministroListResponse,
+    InfoNivelVolumenResponse,
     LineaHistorialResponse,
     ResumenHistorialResponse,
     TrabajoHistorialResponse,
@@ -80,14 +92,17 @@ def _filtros_desde_query(
     response_model=HistorialSuministroListResponse,
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={
+        202: {"model": ConsultaAsincronaResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
-    summary="Consultar el historial de suministros de un activo (RF-81, síncrono nivel 1)",
+    summary="Consultar el historial de suministros de un activo (RF-81) — 200, o 202 en niveles 3-4",
 )
 def consultar_historial(
+    response: Response,
     id_activo_biologico: int = Query(gt=0),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),
     fecha_inicio_filtro: Optional[date] = Query(default=None),
@@ -100,13 +115,26 @@ def consultar_historial(
     registros_por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> HistorialSuministroListResponse:
+):
     filtros = _filtros_desde_query(
         id_activo_biologico, id_ciclo_productivo, fecha_inicio_filtro, fecha_fin_filtro,
         tipo_suministro_filtro, origen_precio_filtro, costo_min, costo_max, pagina, registros_por_pagina,
     )
-    use_case = build_consultar_historial_use_case(db)
-    resultado = use_case.execute(filtros, id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol)
+    resultado = build_consultar_historial_use_case(db).execute(
+        filtros, id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol
+    )
+    if isinstance(resultado, ConsultaHistorialAsincrona):
+        response.status_code = 202
+        return ConsultaAsincronaResponse(
+            id_consulta_asincrona=resultado.trabajo.id_cola,
+            estado=resultado.trabajo.estado.value,
+            mensaje=resultado.mensaje,
+            info_nivel_volumen=InfoNivelVolumenResponse(
+                nivel=resultado.nivel.value,
+                tiempo_estimado_segundos=resultado.tiempo_estimado_segundos,
+                total_registros_activo=resultado.total_registros_activo,
+            ),
+        )
     return HistorialSuministroListResponse(
         items=[LineaHistorialResponse.desde_entidad(l) for l in resultado.lineas],
         resumen=ResumenHistorialResponse.desde_entidad(resultado.resumen),
@@ -117,14 +145,18 @@ def consultar_historial(
     "/exportar",
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={
+        202: {"model": ConsultaAsincronaResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
-    summary="Exportar el historial en CSV, vía síncrona (RF-81, <= 10.000 registros)",
+    summary="Exportar el historial a PDF o Excel (RF-81) — archivo, o 202 si supera 10.000 registros",
 )
 def exportar_historial(
+    response: Response,
+    formato_exportacion: Literal["PDF", "EXCEL"] = Query(...),
     id_activo_biologico: int = Query(gt=0),
     id_ciclo_productivo: Optional[int] = Query(default=None, gt=0),
     fecha_inicio_filtro: Optional[date] = Query(default=None),
@@ -135,19 +167,28 @@ def exportar_historial(
     costo_max: Optional[Decimal] = Query(default=None, ge=0),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> StreamingResponse:
+):
     filtros = _filtros_desde_query(
         id_activo_biologico, id_ciclo_productivo, fecha_inicio_filtro, fecha_fin_filtro,
         tipo_suministro_filtro, origen_precio_filtro, costo_min, costo_max, 1, 200,
     )
-    use_case = build_exportar_historial_use_case(db)
-    contenido, nombre_archivo, _total = use_case.execute(
-        filtros, id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol
+    resultado = build_exportar_historial_use_case(db).execute(
+        filtros, formato_exportacion, id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol
     )
+    if not isinstance(resultado, ArchivoHistorial):
+        response.status_code = 202
+        return ConsultaAsincronaResponse(
+            id_exportacion=resultado.id_cola,
+            estado=resultado.estado.value,
+            mensaje=(
+                "La exportación supera 10.000 registros y se procesará de forma asíncrona. Recibirá una "
+                f"notificación al finalizar; el archivo estará disponible 72 horas (id_exportacion={resultado.id_cola})."
+            ),
+        )
     return StreamingResponse(
-        iter([contenido]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'},
+        iter([resultado.contenido]),
+        media_type=TIPOS_CONTENIDO[resultado.formato],
+        headers={"Content-Disposition": f'attachment; filename="{resultado.nombre_archivo}"'},
     )
 
 
@@ -178,9 +219,9 @@ def solicitar_trabajo(
         costo_max=dto.costo_max,
         registros_por_pagina=dto.registros_por_pagina,
     )
-    use_case = build_solicitar_trabajo_historial_use_case(db)
-    trabajo = use_case.execute(
-        dto.tipo_trabajo.value, filtros, usuario_actual.id_usuario, usuario_actual.id_rol
+    trabajo = build_solicitar_trabajo_historial_use_case(db).execute(
+        dto.tipo_trabajo.value, filtros, usuario_actual.id_usuario, usuario_actual.id_rol,
+        formato_exportacion=dto.formato_exportacion if dto.tipo_trabajo == TipoTrabajoHistorial.EXPORTACION else None,
     )
     response.status_code = 202
     mensaje = (
@@ -195,11 +236,10 @@ def solicitar_trabajo(
     response_model=EstadoTrabajoHistorialResponse,
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
-    summary="Consultar el estado de un trabajo pesado de historial",
+    summary="Consultar el estado y el resultado de un trabajo pesado de historial",
 )
 def consultar_estado_trabajo(id_cola: int, db: Session = Depends(get_db)) -> EstadoTrabajoHistorialResponse:
-    use_case = build_consultar_estado_trabajo_historial_use_case(db)
-    estado = use_case.execute(id_cola)
+    estado = build_consultar_estado_trabajo_historial_use_case(db).execute(id_cola)
     return EstadoTrabajoHistorialResponse.desde_entidades(estado.trabajo, estado.ultima_ejecucion)
 
 
@@ -210,15 +250,19 @@ def consultar_estado_trabajo(id_cola: int, db: Session = Depends(get_db)) -> Est
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
-    summary="Descargar el resultado de una exportación async ya completada",
+    summary="Descargar el resultado de una exportación async (disponible 72 h)",
 )
-def descargar_resultado(id_cola: int, db: Session = Depends(get_db)) -> StreamingResponse:
-    use_case = build_descargar_resultado_trabajo_historial_use_case(db)
-    contenido, nombre_archivo = use_case.execute(id_cola)
+def descargar_resultado(
+    id_cola: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> StreamingResponse:
+    archivo = build_descargar_resultado_trabajo_historial_use_case(db).execute(id_cola, usuario_actual.id_usuario)
     return StreamingResponse(
-        iter([contenido]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'},
+        iter([archivo.contenido]),
+        media_type=archivo.tipo_contenido,
+        headers={"Content-Disposition": f'attachment; filename="{archivo.nombre_archivo}"'},
     )

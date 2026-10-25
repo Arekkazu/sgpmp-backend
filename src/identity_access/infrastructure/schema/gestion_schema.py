@@ -97,8 +97,11 @@ class UsuarioDetalleResponse(BaseModel):
     numero_identificacion: Optional[str] = None
     fecha_nacimiento: Optional[datetime.date] = None
     fecha_registro: datetime.datetime
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
     nombre_rol: str
     estado_cuenta: str
+    ultimo_acceso: Optional[datetime.datetime] = None
     version: int
     fincas: list[FincaAsignadaResponse] = []
 

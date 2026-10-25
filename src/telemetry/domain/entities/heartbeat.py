@@ -21,3 +21,5 @@ class Heartbeat:
     fecha_registro: datetime
     fecha_recepcion: datetime
     reloj_sincronizado: bool
+    sensores_operativos: Optional[list[dict[str, Any]]] = None
+    temperatura_dispositivo: Optional[Decimal] = None

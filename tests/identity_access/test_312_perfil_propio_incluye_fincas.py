@@ -17,7 +17,8 @@ class _UsuarioRepoFake:
             correo_electronico="contador@pecuaria.co", tipo_identificacion="CC",
             numero_identificacion="1075123456", fecha_nacimiento=date(1990, 1, 1),
             fecha_registro=datetime(2026, 1, 1), nombre_rol="Contador",
-            estado_cuenta="Activo", version=1,
+            estado_cuenta="Activo", version=1, telefono="3103617010",
+            direccion="Carrera 5 N 2-6", ultimo_acceso=datetime(2026, 10, 11, 23, 42),
         )
 
 
@@ -51,3 +52,15 @@ def test_perfil_propio_incluye_las_fincas_asignadas_del_usuario_autenticado():
 
     assert perfil["fincas"] == [{"id_finca": 15, "nombre": "Finca Contador"}]
     assert db.params == {"id_usuario": 5}
+
+
+def test_perfil_propio_incluye_telefono_direccion_y_ultimo_acceso():
+    # El PATCH /usuarios/me sí los guardaba, pero el GET no los devolvía: la
+    # tarjeta del perfil quedaba vacía justo después de «Cambios guardados».
+    use_case = ConsultarPerfilUseCase(usuarios_repo=_UsuarioRepoFake(), eventos_repo=_EventoRepoFake(), db=_DbFake())
+
+    perfil = use_case.execute(SimpleNamespace(id_usuario=5, id_rol=5))
+
+    assert perfil["telefono"] == "3103617010"
+    assert perfil["direccion"] == "Carrera 5 N 2-6"
+    assert perfil["ultimo_acceso"] == datetime(2026, 10, 11, 23, 42)

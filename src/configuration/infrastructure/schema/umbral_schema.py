@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: la variable ambiental devuelve es_critica (RFC-016) |
 """Schemas de respuesta para los endpoints de umbrales ambientales (RF-17)."""
 from __future__ import annotations
 
@@ -59,6 +62,8 @@ class VariableAmbientalResponse(BaseModel):
     unidad: str
     valor_fisico_min: Decimal
     valor_fisico_max: Decimal
+    # RFC-016 B.7: siempre crítica para la priorización bajo saturación (RF-53 E15).
+    es_critica: bool = False
 
     model_config = {'from_attributes': True}
 

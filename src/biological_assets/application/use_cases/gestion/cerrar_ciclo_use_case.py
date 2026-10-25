@@ -1,8 +1,12 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-38: dispara los efectos de suministros |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: cierre del ciclo productivo de un activo (RF-38)."""
 
 from __future__ import annotations
 
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +18,7 @@ from src.biological_assets.application.use_cases.gestion._cambio_estado import a
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
+from src.biological_assets.domain.repositories.cierre_ciclo_suministros_port import CierreCicloSuministrosPort
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.domain.repositories.recalibracion_vision_port import RecalibracionVisionPort
@@ -21,6 +26,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_usuario, fin_dia_usuario, hoy_usuario
 
 
 class CerrarCicloUseCase:
@@ -38,6 +44,7 @@ class CerrarCicloUseCase:
         historico_repo: HistoricoEstadoRepository,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
         recalibracion_vision: RecalibracionVisionPort | None = None,
+        suministros: CierreCicloSuministrosPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -45,6 +52,7 @@ class CerrarCicloUseCase:
         self.historico_repo = historico_repo
         self.bitacora_repo = bitacora_repo
         self.recalibracion_vision = recalibracion_vision
+        self.suministros = suministros
 
     def execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
         return ejecutar_con_auditoria_de_rechazo(
@@ -103,7 +111,7 @@ class CerrarCicloUseCase:
         # FA-04: validar fecha contra último evento registrado
         ultima_fecha_evento = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha_evento is not None:
-            ultimo_dia_evento = ultima_fecha_evento.date() if isinstance(ultima_fecha_evento, datetime) else ultima_fecha_evento
+            ultimo_dia_evento = fecha_usuario(ultima_fecha_evento)
             if dto.fecha_cierre < ultimo_dia_evento:
                 raise ValidationError(
                     code='FECHA_CIERRE_ANTERIOR_ULTIMO_EVENTO',
@@ -124,12 +132,16 @@ class CerrarCicloUseCase:
         # (FA-04 ya compara fecha_cierre contra el último evento). Hoy usa la
         # hora real; un día pasado usa el final de ese día.
         ahora = datetime.now(timezone.utc)
-        if dto.fecha_cierre == ahora.date():
+        if dto.fecha_cierre == hoy_usuario():
             fecha_cierre_dt = ahora
         else:
-            fecha_cierre_dt = datetime.combine(dto.fecha_cierre, time.max, tzinfo=timezone.utc)
+            fecha_cierre_dt = fin_dia_usuario(dto.fecha_cierre)
 
         try:
+            # M05 (RF-76/RF-74): sin tratamientos con retiro vigente y CA final del ciclo,
+            # con la fase todavía abierta y el activo ACTIVO.
+            if self.suministros is not None:
+                self.suministros.antes_de_cerrar(id_activo, usuario.id_usuario, dto.fecha_cierre)
             # Cerrar fase primero: el trigger trg_fn_fase_activo_estado_valido bloquea
             # cambios en gestiones_fases si el activo ya está en CERRADO.
             self.repo.cerrar_gestion_activa(id_activo, fecha_cierre_dt, motivo_completo, usuario.id_usuario)
@@ -144,6 +156,11 @@ class CerrarCicloUseCase:
                 historico_repo=self.historico_repo,
                 modulo_origen='RF-38',
             )
+            # M05 (RF-78 F9, RF-79, RF-77): consolidar la inversión del ciclo y su reporte final.
+            if self.suministros is not None:
+                self.suministros.despues_de_cerrar(
+                    id_activo, fase_activa.id_gestion_fases, usuario.id_usuario, dto.fecha_cierre
+                )
             self.db.commit()
         except AppError:
             self.db.rollback()
@@ -173,6 +190,9 @@ class CerrarCicloUseCase:
             },
             id_usuario_responsable=usuario.id_usuario,
         ))
+
+        if self.suministros is not None:
+            self.suministros.despues_del_commit()
 
         # RF-24 v2.0: el fin de ciclo de un lote recalibra la línea base por visión del área (#551).
         if self.recalibracion_vision is not None and activo.tipo == 'POBLACIONAL':

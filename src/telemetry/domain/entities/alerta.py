@@ -1,3 +1,7 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio (read-model) |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -42,6 +46,26 @@ class ConflictoResolucion(str, Enum):
     EDGE_PREVALECE = "EDGE_PREVALECE"
 
 
+#: RF-60: alertas técnicas de dispositivos IoT (batería, conectividad,
+#: sobrecalentamiento). Comparten ``modulo3.alertas`` con las operativas.
+TIPO_ALERTA_TECNICA = "TECNICA"
+
+
+class AmbitoAlerta(str, Enum):
+    """Qué alertas atiende cada endpoint (RF-60, Restricción 5 — D-09).
+
+    ``/iot/alertas`` (recurso 32, que el Productor tiene con R y U) solo ve y
+    gestiona las operativas; ``/iot/alertas-tecnicas`` (recurso 36, Admin e
+    Ingeniero) solo las técnicas. Una alerta fuera del ámbito del endpoint no
+    existe para él (404), igual que una alerta de otra finca.
+    """
+    OPERATIVA = "OPERATIVA"
+    TECNICA = "TECNICA"
+
+    def admite(self, tipo_alerta: str) -> bool:
+        return (tipo_alerta == TIPO_ALERTA_TECNICA) == (self is AmbitoAlerta.TECNICA)
+
+
 class SeveridadAlerta(str, Enum):
     LEVE = "LEVE"
     MODERADO = "MODERADO"
@@ -69,7 +93,7 @@ _TRANSICIONES_VALIDAS: dict[str, set[str]] = {
     EstadoAlerta.EN_ATENCION: {EstadoAlerta.RESUELTA, EstadoAlerta.VENCIDA},
     EstadoAlerta.RESUELTA: set(),
     EstadoAlerta.DESCARTADA: set(),
-    EstadoAlerta.VENCIDA: {EstadoAlerta.EN_ATENCION},
+    EstadoAlerta.VENCIDA: set(),
     EstadoAlerta.PENDIENTE_SINCRONIZACION: {EstadoAlerta.ACTIVA},
 }
 
@@ -123,6 +147,11 @@ class Alerta:
     fecha_resolucion: Optional[datetime] = None
     fecha_vencimiento: Optional[datetime] = None
 
+    # M3-06 (read-model): dónde ocurrió, para no mostrar solo IDs. Se llenan al leer.
+    nombre_sensor: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+    nombre_finca: Optional[str] = None
+
     def calcular_fecha_vencimiento(self) -> datetime:
         minutos = _SLA_MINUTOS.get(self.severidad, 120)
         base = self.fecha_generacion
@@ -161,6 +190,8 @@ class HistoricoEstadoAlerta:
     id_historico_estado_alerta: Optional[int] = None
     id_usuario: Optional[int] = None
     motivo: Optional[str] = None
+    # M3-05 (read-model): nombre de quien hizo el cambio.
+    nombre_usuario: Optional[str] = None
 
 
 @dataclass
