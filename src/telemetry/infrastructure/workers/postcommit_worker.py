@@ -8,6 +8,7 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-61: conecta evidencia y reintento de avisos |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conecta auditoria de HTTP y persistencia MQTT |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
+# | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -168,5 +169,5 @@ async def procesar_postcommit_periodicamente():
             await trabajo
             raise
         except Exception:
-            logger.error('No se pudo consultar el trabajo postcommit; se reintentará.')
+            logger.exception('No se pudo consultar el trabajo postcommit; se reintentará.')
         await asyncio.sleep(intervalo)

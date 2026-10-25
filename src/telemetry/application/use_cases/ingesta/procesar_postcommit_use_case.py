@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: confirma alerta y correlacion juntas |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: omite etapas sin adaptador en vez de fallar en cada reintento |
+# | 2026-10-25 | Arekkazu | RF-63: si falla la consulta de pendientes de una etapa, las demás siguen |
 """Cada etapa confirma sus efectos y su evidencia juntos; las demás pueden avanzar."""
 import logging
 
@@ -26,8 +27,16 @@ class ProcesarPostcommitUseCase:
             if etapa not in self.acciones:
                 # Etapa sin adaptador configurado: queda pendiente sin registrar fallos.
                 continue
-            with self.unidad_factory() as unidad:
-                ids = unidad.pendientes(etapa, self.limite, self.reintento_seg)
+            try:
+                with self.unidad_factory() as unidad:
+                    ids = unidad.pendientes(etapa, self.limite, self.reintento_seg)
+            except Exception as exc:
+                # Un timeout en una etapa no detiene a las siguientes. Solo el tipo:
+                # el mensaje del driver trae el SQL completo.
+                resultado['fallidos'] += 1
+                logger.error('Postcommit sin consultar: etapa=%s error=%s',
+                             etapa.value, type(getattr(exc, 'orig', None) or exc).__name__)
+                continue
             for identificador in ids:
                 try:
                     with self.unidad_factory() as unidad:
