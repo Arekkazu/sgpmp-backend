@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-143/144/146 RF-67: eventos ordenados, id estable y nombre histórico |
+# | 2026-10-25 | Arekkazu | INC-M04-146-G012 RF-67: MD5 del id de alerta marcado como no criptográfico (Bandit B324) |
 """Historial diagnóstico (RF-67) sobre resultados de inferencia, alertas y retroalimentación.
 
 - Orden y cursor por (fecha_evento, id_evento) DESC, sobre los tres tipos de
@@ -37,8 +38,11 @@ INFERENCIA, ALERTA, RETROALIMENTACION = "INFERENCIA", "ALERTA", "RETROALIMENTACI
 
 
 def id_evento_alerta(id_alerta_patologica: int) -> uuid.UUID:
-    """UUID estable de una alerta (su id es entero); igual al ``md5(...)::uuid`` del SQL."""
-    return uuid.UUID(hashlib.md5(f"ALERTA:{id_alerta_patologica}".encode()).hexdigest())
+    """UUID estable de una alerta (su id es entero); igual al ``md5(...)::uuid`` del SQL.
+
+    MD5 solo deriva un identificador determinista, no protege nada.
+    """
+    return uuid.UUID(hashlib.md5(f"ALERTA:{id_alerta_patologica}".encode(), usedforsecurity=False).hexdigest())
 
 
 # Nombre de la patología vigente en cada instante: el último cambio del catálogo
