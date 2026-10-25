@@ -1,3 +1,7 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: conserva pruebas explicitas del contrato legado |
+# | 2026-10-23 | Arekkazu | DEV-24 RF-24: el área del doble trae id_especies |
 """D4 con token de servicio → PostgreSQL DB-03 → consumidor RF-24 existente.
 
 Sin broker ni motor IA real. El cálculo RF-62 comprobado es el heredado; las
@@ -22,7 +26,7 @@ from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import telemetria_router
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import IngerirObservacionesVisionUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
-from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4LegadoDTO as ObservacionVisionD4DTO
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.configuration.infrastructure.adapters.observacion_vision_m03_adapter import ObservacionVisionM03Adapter
 
@@ -173,7 +177,8 @@ def test_error_tras_insert_revierte_todo_el_lote(client,db_session,equipo,monkey
     assert not filas(db_session,equipo)
 
 
-def test_concurrencia_no_crea_dos_observaciones(integration_engine):
+def test_concurrencia_no_crea_dos_observaciones(motor_vision_concurrente):
+    integration_engine=motor_vision_concurrente
     with Session(integration_engine) as db:equipo=hardware(db)
     datos=sobre(equipo)
     def procesar():
@@ -203,7 +208,7 @@ def test_rf24_consume_observaciones_d4_persistidas_para_linea_base(client,db_ses
     inicio=fin-timedelta(hours=2)
     assert len(adapter.listar([equipo['device']],inicio,fin))==40
     infra,camaras,cal,lb,eventos=Mock(),Mock(),Mock(),Mock(),Mock()
-    infra.obtener_por_id.return_value=SimpleNamespace(id_infraestructura=equipo['area'],id_especie=4,tipo_modelo_asignado='MODELO_AVES')
+    infra.obtener_por_id.return_value=SimpleNamespace(id_infraestructura=equipo['area'],id_especie=4,id_especies=[4],tipo_modelo_asignado='MODELO_AVES')
     camaras.listar_por_area.return_value=[SimpleNamespace(id_dispositivo_iot=equipo['device'],es_activo=True)]
     cal.guardar.side_effect=lambda c:c
     uc=CalibrarVisionUseCase(Mock(),infra,camaras,adapter,cal,lb,eventos)

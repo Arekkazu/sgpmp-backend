@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-29 RF-56: el doble del dispositivo trae es_activo |
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -229,7 +232,8 @@ def test_evento_edge_conserva_generacion_de_alerta_con_nueva_dependencia(monkeyp
     eventos.guardar.side_effect = guardar_evento
     dispositivos = Mock()
     dispositivos.obtener_dispositivo_activo.return_value = SimpleNamespace(
-        id_dispositivo_iot=3, id_sensor=7, id_infraestructura=9)
+        id_dispositivo_iot=3, id_sensor=7, id_infraestructura=9,
+        es_activo_dispositivo=True, es_activo_sensor=True)
     parametros = Mock()
     uc = modulo.RecibirEventoEdgeUseCase(Mock(), eventos, Mock(), dispositivos, Mock(), parametros)
     ahora = datetime.now(timezone.utc)

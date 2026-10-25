@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 from __future__ import annotations
 
 import uuid
@@ -31,7 +34,7 @@ class ActivarVersionModeloUseCase:
                 message=f"No existe la versión de modelo con id {id_version}.",
             )
 
-        # Llama a activar() — lanza BusinessRuleError si no es APROBADO o faltan notas
+        # Llama a activar() — ConflictError (409, RF-69 E4) si no es APROBADO; BusinessRuleError si faltan notas
         entidad.activar()
 
         # RF-69 R5 v2.0 (RFC-009): una versión ACTIVO por (tipo_modelo, componente).

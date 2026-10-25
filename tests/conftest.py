@@ -1,13 +1,21 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Aislamiento compartido por toda la suite."""
 from __future__ import annotations
+
 import os
 import uuid
 from typing import Generator
+from zoneinfo import ZoneInfo
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from main import app
+import src.shared.fechas as fechas
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
 
 
@@ -89,3 +97,11 @@ def sandbox_client(test_run_id, monkeypatch) -> Generator[TestClient, None, None
         f"/test-control/runs/{test_run_id}",
         headers={"X-Sandbox-Secret": secret},
     )
+
+
+@pytest.fixture
+def en_colombia():
+    """El request trae ``X-Zona-Horaria: America/Bogota`` (sin ella el día es el de UTC)."""
+    token = fechas.establecer_zona_usuario('America/Bogota')
+    yield ZoneInfo('America/Bogota')
+    fechas._zona.reset(token)

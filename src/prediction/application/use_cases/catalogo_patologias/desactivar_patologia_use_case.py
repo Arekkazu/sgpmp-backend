@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -6,7 +9,7 @@ from src.prediction.domain.repositories.evento_auditoria_m04_repository import E
 from src.prediction.domain.repositories.historial_catalogo_repository import HistorialCatalogoRepository
 from src.prediction.domain.repositories.modelo_activo_port import ModeloActivoPort
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
-from src.shared.errors import ConflictError, NotFoundError
+from src.shared.errors import ConflictError, MethodNotAllowedError, NotFoundError
 
 
 class DesactivarPatologiaUseCase:
@@ -29,6 +32,14 @@ class DesactivarPatologiaUseCase:
         entidad = self._repo.obtener_por_id(id_patologia)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")
+
+        # RF-64 CA-3 (DEV-35, propuesta de P-7): una patología base nunca se inactiva,
+        # tenga o no modelos que la usen.
+        if entidad.es_base:
+            raise MethodNotAllowedError(
+                code="PATOLOGIA_BASE_INMUTABLE",
+                message="Las patologías base del sistema no pueden ser inactivadas.",
+            )
 
         # FA-07 / FA-08: verificar modelos activos (cubre ambos flujos alternos)
         if self._modelo_activo_port.tiene_modelos_activos(id_patologia):

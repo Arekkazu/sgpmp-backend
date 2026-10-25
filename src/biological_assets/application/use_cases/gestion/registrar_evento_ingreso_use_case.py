@@ -1,12 +1,16 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: ingreso de individuos a un lote POBLACIONAL (RF-36)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._capacidad_area import validar_entrada_al_area
 from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
@@ -22,8 +26,8 @@ from src.biological_assets.domain.repositories.evento_activo_repository import E
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError, ValidationError
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 
 class RegistrarEventoIngresoUseCase:
@@ -93,7 +97,7 @@ class RegistrarEventoIngresoUseCase:
             datetime(dto.fecha_ingreso.year, dto.fecha_ingreso.month, dto.fecha_ingreso.day, tzinfo=timezone.utc),
             activo,
         )
-        if dto.fecha_ingreso > hoy_colombia():
+        if dto.fecha_ingreso > hoy_usuario():
             raise ValidationError(
                 code='FECHA_INGRESO_FUTURA',
                 message='La fecha de ingreso no puede ser posterior a la fecha actual del sistema.',
@@ -102,7 +106,7 @@ class RegistrarEventoIngresoUseCase:
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
-            ultimo_dia = fecha_colombia(ultima_fecha)
+            ultimo_dia = fecha_usuario(ultima_fecha)
             if dto.fecha_ingreso < ultimo_dia:
                 raise ValidationError(
                     code='FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA',
@@ -113,29 +117,18 @@ class RegistrarEventoIngresoUseCase:
                     field='fecha_ingreso',
                 )
 
-        # E-05: densidad máxima por especie (RF-36) -- mismo cálculo que
-        # INC-M02-38-G25 usa para eventos de crecimiento
-        # (capacidad_maxima / superficie de la infraestructura), pero
-        # evaluado ANTES de aplicar el ingreso: este es el flujo que
-        # realmente cambia cantidad_actual, así que es donde el límite
-        # importa de verdad -- crecimiento solo lo valida contra la
-        # cantidad ya existente, nunca la incrementa.
+        # E-05 / RFC-012 (RF-36 1.2, H-12.1, DEV-23): toda alta valida la capacidad
+        # efectiva del área ANTES del incremento: Σ individuos del área (todas las
+        # especies) + ingresados ≤ floor(MIN densidad × superficie); si no, 422 sin
+        # aplicar nada. Antes usaba capacidad_maxima/superficie, que era NULL en
+        # todas las áreas, y solo miraba el propio lote.
         infra = self.infra_port.obtener_activa(activo.id_infraestructura)
-        cantidad_actual = dp.cantidad_actual or 0
-        cantidad_resultante = cantidad_actual + dto.cantidad_ingresada
-        if infra and infra.capacidad_maxima and infra.superficie and infra.superficie > 0:
-            densidad_resultante = Decimal(cantidad_resultante) / infra.superficie
-            densidad_maxima = Decimal(infra.capacidad_maxima) / infra.superficie
-            if densidad_resultante > densidad_maxima:
-                raise ConflictError(
-                    code='DENSIDAD_MAXIMA_SUPERADA',
-                    message=(
-                        f'Ingresar {dto.cantidad_ingresada} individuos dejaría la densidad del lote '
-                        f'en {densidad_resultante.quantize(Decimal("0.0001"))} ind/m², por encima del '
-                        f'máximo permitido ({densidad_maxima.quantize(Decimal("0.0001"))} ind/m²) para '
-                        f'la infraestructura donde reside.'
-                    ),
-                )
+        asociar_especie = False
+        if infra is not None:
+            asociar_especie = validar_entrada_al_area(
+                self.infra_port, infra, id_especie=activo.id_especie,
+                entrantes=dto.cantidad_ingresada, field='cantidad_ingresada',
+            )
 
         activo.aplicar_evento_ingreso(dto.cantidad_ingresada)
         if infra and infra.superficie and infra.superficie > 0:
@@ -154,6 +147,8 @@ class RegistrarEventoIngresoUseCase:
         )
 
         try:
+            if asociar_especie:  # lote de un área anterior a DB-06 sin su especie en la puente
+                self.infra_port.asociar_especie(infra.id_infraestructura, activo.id_especie)
             resultado = self.evento_repo.guardar(evento)
             self.activo_repo.actualizar_detalle_poblacional(activo)
             self.db.commit()

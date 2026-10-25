@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,6 +37,11 @@ class EstadoSensorActual:
     nivel_bateria_pct: Optional[Decimal]
     calidad_senal_rssi: Optional[Decimal]
     calidad_senal_snr: Optional[Decimal]
+    # DEV-39 (RF-58 E7, R2, E2): los calcula el use case.
+    sin_umbral: bool = False            # GRIS porque la variable no tiene umbral en M09
+    indicador_anomalia: bool = False    # FUERA_DE_RANGO / ERROR_CALIBRACION
+    es_valor_operativo: bool = True     # False si la lectura no es LECTURA_VALIDA
+    etiqueta_estado: Optional[str] = None  # "Sin umbral configurado", "Requiere calibración"...
 
 
 @dataclass
@@ -95,6 +104,18 @@ class ResumenEstadistico:
     pct_dentro_rango: Optional[float]
     pct_fuera_rango: Optional[float]
     total_alertas_en_periodo: int = 0
+
+
+@dataclass
+class VacioTemporal:
+    """RF-59 E7 / CA-17: intervalo sin lecturas de un sensor y variable, mayor que
+    3 × su frecuencia de muestreo (minutos)."""
+    sensor_id: int
+    tipo_variable: str
+    desde: datetime
+    hasta: datetime
+    duracion_min: int
+    frecuencia_esperada_min: int
 
 
 @dataclass

@@ -1,10 +1,13 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import func, literal_column, select, text
 from sqlalchemy.orm import Session, aliased
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -88,6 +91,8 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         estado_evaluacion: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
         # La consulta ordinaria expone aptitud vigente. El histórico SUPERADA
         # sigue disponible cuando se solicita explícitamente ese estado.
@@ -103,6 +108,15 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
             q = q.filter(TelemetriaCalidadModel.timestamp_evaluacion <= fecha_hasta)
         if estado_evaluacion:
             q = q.filter(TelemetriaCalidadModel.estado_evaluacion == estado_evaluacion)
+        # M3-14: antes la lista era global para todo rol con permiso, incluso el Contador
+        # sin finca. Mismo alcance que Monitoreo, Alertas y Vinculaciones.
+        if ids_fincas_permitidas is not None:
+            q = q.filter(TelemetriaCalidadModel.id_sensor.in_(
+                select(literal_column('s.id_sensores')).select_from(text(
+                    'modulo9.sensores s JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot '
+                    'JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura'
+                )).where(literal_column('i.id_finca').in_(ids_fincas_permitidas))
+            ))
         total = q.count()
         items = q.order_by(
             TelemetriaCalidadModel.timestamp_evaluacion.desc(),

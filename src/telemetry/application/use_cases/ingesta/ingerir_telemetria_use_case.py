@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: resuelve variables desde el puerto M09 |
 """RF-53 B+: HTTP adapta el sobre; la función SQL valida y persiste la fila."""
 from typing import Any, Optional
 
@@ -5,10 +8,11 @@ from sqlalchemy.orm import Session
 
 from src.shared.errors import (
     AppError, AuthenticationError, BusinessRuleError, ConflictError,
-    ServiceUnavailableError, ValidationError,
+    NotFoundError, ServiceUnavailableError, ValidationError,
 )
-from src.telemetry.domain.entities.telemetria import CATALOGO_I3P1, ResultadoIngesta, ResultadoItemBatch
+from src.telemetry.domain.entities.telemetria import ResultadoIngesta, ResultadoItemBatch
 from src.telemetry.domain.repositories.ingesta_telemetria_port import IngestaTelemetriaPort
+from src.telemetry.domain.repositories.variable_catalogo_port import VariableCatalogoPort
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaDTO, IngerirTelemetriaBatchDTO
 
 # Compatibilidad del flujo de visión; la ingesta escalar usa la regla SQL.
@@ -26,11 +30,12 @@ _ESTADOS_PERSISTIDOS = {'LECTURA_VALIDA', 'FUERA_DE_RANGO', 'ERROR_CALIBRACION'}
 
 
 class IngerirTelemetriaUseCase:
-    def __init__(self, db, ingesta_port: IngestaTelemetriaPort, dispositivo_port, bitacora_repo):
+    def __init__(self, db, ingesta_port: IngestaTelemetriaPort, dispositivo_port, bitacora_repo, catalogo_port: VariableCatalogoPort):
         self.db = db
         self.ingesta_port = ingesta_port
         self.dispositivo_port = dispositivo_port
         self.bitacora_repo = bitacora_repo
+        self.catalogo_port = catalogo_port
 
     def execute(self, dto: IngerirTelemetriaDTO, gateway_id: Optional[str] = None) -> ResultadoIngesta:
         try:
@@ -47,13 +52,30 @@ class IngerirTelemetriaUseCase:
                 )
                 self.db.commit()
                 raise AuthenticationError('ERROR_AUTENTICACION', 'El dispositivo no existe o no corresponde al serial.')
-            entrada = CATALOGO_I3P1.get(dto.tipo_variable)
-            # El catálogo traduce el nombre público a su identificador SQL. Las reglas
-            # de unidad, rango, tiempo, duplicados y calibración quedan en la función.
+            entrada = self.catalogo_port.obtener_regla(dto.tipo_variable)
+            rechazo_catalogo = None
+            if entrada is None:
+                rechazo_catalogo = NotFoundError('VARIABLE_NO_ENCONTRADA', 'La variable no existe o está inactiva en el catálogo M09.', 'tipo_variable')
+            elif dto.id_variable is not None and dto.id_variable != entrada.id_variable:
+                rechazo_catalogo = ValidationError('VARIABLE_INCOMPATIBLE', 'El identificador no corresponde al tipo de variable indicado.', 'id_variable')
+            elif dto.categoria_variable is not None and dto.categoria_variable != entrada.categoria:
+                rechazo_catalogo = ValidationError('VARIABLE_INCOMPATIBLE', 'La categoría no corresponde a la variable del catálogo M09.', 'categoria_variable')
+            if rechazo_catalogo is not None:
+                # No confundir una referencia de catálogo inválida con estructura.
+                self.bitacora_repo.registrar_error(
+                    estado_calidad='ERROR_SENSOR', descripcion=rechazo_catalogo.message,
+                    payload={'codigo_rechazo': rechazo_catalogo.code},
+                    id_sensor=dto.sensor_id, id_dispositivo_iot=dto.device_id,
+                    timestamp_captura=dto.timestamp_captura, gateway_id=gateway_id,
+                )
+                self.db.commit()
+                raise rechazo_catalogo
+            # Unidad, rango, tiempo, duplicados y calibración conservan una sola
+            # regla de validación, en fn_ingesta_telemetria (ingesta B+).
             resultado = self.ingesta_port.ingerir({
                 'device_id': dto.device_id, 'sensor_id': dto.sensor_id,
-                'id_variable': entrada['id_variable'] if entrada else None,
-                'categoria': entrada['categoria'].value if entrada else None,
+                'id_variable': entrada.id_variable,
+                'categoria': entrada.categoria,
                 'valor': dto.valor, 'unidad': dto.unidad,
                 'timestamp_captura': dto.timestamp_captura,
                 'timestamp_envio': dto.timestamp_envio or dto.timestamp_captura,

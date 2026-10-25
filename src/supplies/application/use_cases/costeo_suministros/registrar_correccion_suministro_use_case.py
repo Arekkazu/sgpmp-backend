@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-78: corrección aditiva y códigos del RF |
 """Caso de uso: corregir un registro de suministro existente (RF-78, tipo_operacion=CORRECCION).
 
 A diferencia del registro directo (que delega la concurrencia al lock de fila
@@ -9,10 +12,12 @@ puede dejarlo negativo) — por eso usa ``SELECT ... FOR UPDATE`` con
 contención real se clasifica como ``CONFLICTO_CONCURRENCIA`` (FA-08); otro
 fallo técnico se trata como ``REGISTRO_FALLIDO`` genérico (E5).
 
-Acepta ``id_registro_original`` de cualquier tipo de suministro (ALIMENTO,
-MEDICAMENTO, SERVICIO_VETERINARIO, INSEMINACION) — es también la mitigación
-documentada (Gap 10) para reflejar manualmente una anulación de RF-75/76 que
-no dispara reversión automática.
+La corrección es un ajuste que SUMA al acumulado (R12, CA-8), negativo si
+compensa (RNF-09); el acumulado resultante no puede quedar negativo (422).
+Códigos: E7 original inexistente → 422; ciclo cerrado → 409 (R2, el monto
+consolidado es inmutable); E2 sin justificación de precio → 422; E8
+idempotencia → 200. Acepta ``id_registro_original`` de cualquier tipo de
+suministro (ALIMENTO, MEDICAMENTO, SERVICIO_VETERINARIO, INSEMINACION).
 """
 from __future__ import annotations
 
@@ -30,9 +35,10 @@ from src.shared.errors import (
     BusinessRuleError,
     ConflictError,
     InfrastructureError,
-    NotFoundError,
     ServiceUnavailableError,
 )
+from src.supplies.application.use_cases.costeo_suministros.movimiento_ledger import RegistradorMovimientoLedger
+from src.supplies.domain.repositories.ciclo_abierto_port import CicloAbiertoPort
 from src.supplies.domain.entities.registro_suministro_directo import RegistroSuministroDirecto
 from src.supplies.domain.repositories.acumulado_ciclo_repository import AcumuladoCicloRepository
 from src.supplies.domain.repositories.auditoria_suministro_port import (
@@ -73,11 +79,15 @@ class RegistrarCorreccionSuministroUseCase:
         registro_repo: RegistroSuministroRepository,
         acumulado_repo: AcumuladoCicloRepository,
         auditoria_port: AuditoriaSuministroPort,
+        ciclo_port: CicloAbiertoPort,
+        movimiento: RegistradorMovimientoLedger,
     ) -> None:
         self.db = db
         self.registro_repo = registro_repo
         self.acumulado_repo = acumulado_repo
         self.auditoria_port = auditoria_port
+        self.ciclo_port = ciclo_port
+        self.movimiento = movimiento
 
     def execute(
         self,
@@ -87,16 +97,15 @@ class RegistrarCorreccionSuministroUseCase:
     ) -> ResultadoRegistroDirecto:
         existente = self.registro_repo.existe_idempotente(dto.id_idempotencia)
         if existente is not None:
-            return ResultadoRegistroDirecto(registro=existente, ya_procesado=True)
+            return ResultadoRegistroDirecto(registro=existente, estado="YA_PROCESADO")
 
         original = self.registro_repo.obtener_por_id(id_registro_original)
         if original is None:
-            raise NotFoundError(
-                code="REGISTRO_ORIGINAL_NO_ENCONTRADO",
+            raise BusinessRuleError(
+                code="REGISTRO_ORIGINAL_INVALIDO",
                 message=(
-                    f"El registro de suministro {id_registro_original} no existe. Las "
-                    "correcciones requieren un id_registro_original válido que referencie el "
-                    "registro que se ajusta."
+                    "Las correcciones requieren id_registro_original válido que referencie el registro que se "
+                    f"ajusta. El registro {id_registro_original} no existe."
                 ),
                 field="id_registro_original",
             )
@@ -110,10 +119,28 @@ class RegistrarCorreccionSuministroUseCase:
                 field="id_registro_original",
             )
 
+        fase = self.ciclo_port.obtener_por_id(original.id_gestion_fases) if original.id_gestion_fases else None
+        if fase is None or not fase.es_activa:
+            raise ConflictError(
+                code="CICLO_NO_ACTIVO",
+                message=(
+                    f"No existe un ciclo productivo activo para el activo {original.id_activo_biologico}. "
+                    "Verifique el estado del ciclo en M02 antes de registrar suministros."
+                ),
+            )
+
+        cantidad = dto.cantidad.quantize(_ESCALA_CANTIDAD)
+        precio = dto.precio_unitario.quantize(_ESCALA_PRECIO)
+        if cantidad <= 0 or precio == 0:
+            raise BusinessRuleError(
+                code="CORRECCION_INVALIDA",
+                message=(
+                    "La corrección requiere cantidad mayor a cero y un precio unitario distinto de cero "
+                    "(negativo si el ajuste compensa costo)."
+                ),
+            )
         justificacion = JustificacionPrecio(dto.justificacion_precio)
         motivo = MotivoCorreccion(dto.motivo_correccion)
-        cantidad = dto.cantidad_corregida.quantize(_ESCALA_CANTIDAD)
-        precio = dto.precio_unitario_corregido.quantize(_ESCALA_PRECIO)
         costo_nuevo = cantidad * precio
 
         return self._persistir_con_reintentos(
@@ -140,8 +167,8 @@ class RegistrarCorreccionSuministroUseCase:
                         code="ACUMULADO_INEXISTENTE",
                         message="El acumulado del ciclo del registro original no existe.",
                     )
-                # FA-09 — determinístico, no se reintenta (propaga como BusinessRuleError).
-                acumulado.validar_correccion_no_negativa(original.costo_registro, costo_nuevo)
+                # R12 — determinístico, no se reintenta (propaga como BusinessRuleError).
+                acumulado.validar_correccion_no_negativa(costo_nuevo)
 
                 entidad = RegistroSuministroDirecto.crear_correccion(
                     original=original,
@@ -152,21 +179,9 @@ class RegistrarCorreccionSuministroUseCase:
                     justificacion_precio=justificacion_precio,
                 )
                 guardado = self.registro_repo.guardar(entidad)
-                self.auditoria_port.registrar(
-                    EventoAuditoriaSuministro(
-                        entidad_afectada="registro_suministro",
-                        tipo_operacion=TipoEventoAuditoriaSuministro.SUMINISTRO_CORREGIDO.value,
-                        id_usuario=usuario_actual.id_usuario,
-                        resultado=ResultadoAuditoriaSuministro.EXITOSO.value,
-                        id_activo_biologico=guardado.id_activo_biologico,
-                        id_ciclo_productivo=guardado.id_ciclo_productivo,
-                        id_gestion_fases=guardado.id_gestion_fases,
-                        costo_afectado=guardado.costo_registro,
-                        origen_precio=guardado.origen_precio,
-                    )
-                )
+                self.movimiento.registrar(guardado, id_usuario=usuario_actual.id_usuario, precio_manual=True)
                 self.db.commit()
-                return ResultadoRegistroDirecto(registro=guardado, ya_procesado=False)
+                return ResultadoRegistroDirecto(registro=guardado)
             except _ERRORES_REINTENTABLES as exc:
                 self.db.rollback()
                 ultimo_error = exc

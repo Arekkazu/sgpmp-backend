@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60: adapta regresion al contrato real   |
 """HTTP y escritura SQL del broker → mismo worker, PostgreSQL con DB-03.
 
 La política térmica/firmware se dobla donde se indica: no representa una
@@ -27,11 +30,12 @@ _spec.loader.exec_module(h)
 modelos=h.modelos
 equipo=h.equipo
 client=h.client
+parametros_rf60=h.parametros_rf60
 pytestmark=pytest.mark.integration
 
 
 @pytest.fixture(autouse=True)
-def esquema_db03(integration_engine):
+def esquema_db03(integration_engine,parametros_rf60):
     with integration_engine.connect() as c:
         columnas=set(c.execute(text("SELECT column_name FROM information_schema.columns WHERE table_schema='modulo3' AND table_name='heartbeats'")).scalars())
     if not {'json_sensores_operativos','temperatura_dispositivo'}<=columnas:
@@ -135,8 +139,8 @@ def test_fallo_configuracion_no_bloquea_sensor_ni_pierde_heartbeat(db_session,eq
     eventos=h.evidencias(db_session,identificador,'HEARTBEAT')
     por_tipo={e['tipo_evento']:e for e in eventos}
     assert 'POSTCOMMIT_HEARTBEAT_SENSORES_COMPLETADO' in por_tipo
-    assert por_tipo['POSTCOMMIT_HEARTBEAT_TEMPERATURA_FALLIDO']['accion_detallada']['error']=='UMBRAL_SOBRECALENTAMIENTO_NO_DISPONIBLE'
-    assert por_tipo['POSTCOMMIT_HEARTBEAT_FIRMWARE_FALLIDO']['accion_detallada']['error']=='POLITICA_FIRMWARE_NO_DISPONIBLE'
+    assert por_tipo['POSTCOMMIT_HEARTBEAT_TEMPERATURA_FALLIDO']['accion_detallada']['error']=='PARAMETRO_CONFIGURACION_AUSENTE'
+    assert por_tipo['POSTCOMMIT_HEARTBEAT_FIRMWARE_FALLIDO']['accion_detallada']['error']=='PARAMETRO_CONFIGURACION_AUSENTE'
     assert not any(e['tipo_evento'] in ('POSTCOMMIT_HEARTBEAT_TEMPERATURA_COMPLETADO','POSTCOMMIT_HEARTBEAT_FIRMWARE_COMPLETADO') for e in eventos)
     assert db_session.execute(text('SELECT temperatura_dispositivo FROM modulo3.heartbeats WHERE id_heartbeat=:id'),{'id':identificador}).scalar_one()==Decimal('45.50')
 

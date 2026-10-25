@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: 202 automático, archivos y purga   |
 """Fábricas de wiring de RF-81 (Historial/Trazabilidad de Suministros).
 
 Cablean puertos → repositorios/adapters concretos y devuelven use cases
@@ -7,7 +10,10 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.database import sesion_sistema
+from src.shared.database import id_usuario_servicio, sesion_sistema
+from src.supplies.application.use_cases.exportacion.purgar_archivos_vencidos_use_case import (
+    PurgarArchivosVencidosUseCase,
+)
 from src.supplies.application.use_cases.historial_suministros.consultar_estado_trabajo_historial_use_case import (
     ConsultarEstadoTrabajoHistorialUseCase,
 )
@@ -28,6 +34,12 @@ from src.supplies.application.use_cases.historial_suministros.solicitar_trabajo_
 )
 from src.supplies.infrastructure.adapters.activo_m02_adapter import ActivoM02Adapter
 from src.supplies.infrastructure.adapters.alcance_activo_m02_adapter import AlcanceActivoM02Adapter
+from src.supplies.infrastructure.adapters.notificacion_suministros_m01_adapter import (
+    NotificacionSuministrosM01Adapter,
+)
+from src.supplies.infrastructure.repositories.archivo_exportacion_repository import (
+    SqlAlchemyArchivoExportacionRepository,
+)
 from src.supplies.infrastructure.repositories.auditoria_suministro_repository import (
     SqlAlchemyAuditoriaSuministroRepository,
 )
@@ -53,6 +65,7 @@ def build_consultar_historial_use_case(db: Session) -> ConsultarHistorialSuminis
         config_repo=SqlAlchemyConfiguracionBatchHistorialRepository(db),
         db=db,
         auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
+        solicitar=build_solicitar_trabajo_historial_use_case(db),
     )
 
 
@@ -64,6 +77,7 @@ def build_exportar_historial_use_case(db: Session) -> ExportarHistorialSincronoU
         config_repo=SqlAlchemyConfiguracionBatchHistorialRepository(db),
         db=db,
         auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
+        solicitar=build_solicitar_trabajo_historial_use_case(db),
     )
 
 
@@ -83,7 +97,17 @@ def build_consultar_estado_trabajo_historial_use_case(db: Session) -> ConsultarE
 
 def build_descargar_resultado_trabajo_historial_use_case(db: Session) -> DescargarResultadoTrabajoHistorialUseCase:
     return DescargarResultadoTrabajoHistorialUseCase(
-        trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db)
+        trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db),
+        archivo_repo=SqlAlchemyArchivoExportacionRepository(db),
+    )
+
+
+def build_purgar_archivos_vencidos_use_case(db: Session) -> PurgarArchivosVencidosUseCase:
+    return PurgarArchivosVencidosUseCase(
+        db=db,
+        archivo_repo=SqlAlchemyArchivoExportacionRepository(db),
+        auditoria_port=SqlAlchemyAuditoriaSuministroRepository(db),
+        id_usuario_sistema=id_usuario_servicio(db),
     )
 
 
@@ -97,4 +121,6 @@ def build_procesar_cola_historial_suministros_use_case(db: Session) -> ProcesarC
         construir_fallo_repo=SqlAlchemyFalloHistorialSuministroRepository,
         construir_consultar=build_consultar_historial_use_case,
         construir_exportar=build_exportar_historial_use_case,
+        construir_archivo_repo=SqlAlchemyArchivoExportacionRepository,
+        construir_notificador=NotificacionSuministrosM01Adapter,
     )

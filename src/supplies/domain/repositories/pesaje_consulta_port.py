@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74 E6: pesajes fuera de rango          |
 """Puerto de consulta de pesaje del activo (RF-40) para el cálculo ICA (RF-74).
 
 El peso real vive en ``modulo2.eventos_crecimeinto`` enlazado al activo vía
@@ -20,5 +23,15 @@ class PesajeConsultaPort(ABC):
     def obtener_peso_en_o_antes(
         self, id_activo_biologico: int, fecha: date, es_poblacional: bool
     ) -> Optional[Decimal]:
-        """Peso (kg) del pesaje más reciente cuya fecha sea ``<= fecha``, o ``None``."""
+        """Peso (kg) válido (> 0) del pesaje más reciente con fecha ``<= fecha``, o ``None``.
+
+        Los pesajes con valor ≤ 0 se descartan y se busca el siguiente (RF-74 E6).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def obtener_peso_invalido_en_o_antes(
+        self, id_activo_biologico: int, fecha: date, es_poblacional: bool
+    ) -> Optional[tuple[date, Decimal]]:
+        """(fecha, valor) del pesaje fuera de rango más reciente ``<= fecha`` (RF-74 E6), o ``None``."""
         raise NotImplementedError

@@ -1,13 +1,16 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para actualizar la configuración operativa global (PATCH RF-18).
 
 Incluye ``fecha_actualizacion`` como token de concurrencia optimista.
 """
-from datetime import datetime
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 from .alias_umbral_sin_senal import validar_alias_umbral
+from src.shared.fechas import FechaHoraUtc
 
 
 class ActualizarConfiguracionDTO(BaseDTO):
@@ -19,7 +22,7 @@ class ActualizarConfiguracionDTO(BaseDTO):
 
     frecuencia_muestreo: int
     heartbeat: int = Field(validation_alias=AliasChoices('umbral_sin_senal', 'heartbeat'))
-    fecha_actualizacion: datetime
+    fecha_actualizacion: FechaHoraUtc
 
     @model_validator(mode='before')
     @classmethod

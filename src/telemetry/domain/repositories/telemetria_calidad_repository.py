@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -25,8 +28,13 @@ class TelemetriaCalidadRepository(ABC):
         estado_evaluacion: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
-        """Lista vigentes por defecto; SUPERADA permite consultar el histórico."""
+        """Lista vigentes por defecto; SUPERADA permite consultar el histórico.
+
+        ``ids_fincas_permitidas`` None = alcance global (Administrador).
+        """
 
     @abstractmethod
     def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None: ...

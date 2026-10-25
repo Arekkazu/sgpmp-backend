@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 from __future__ import annotations
 
 import uuid
@@ -24,6 +28,8 @@ class EventoAuditoriaM04Repository(ABC):
         entidad_referencia: Optional[str] = None,
         resultado_operacion: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
+        codigo_error: Optional[str] = None,
+        descripcion_error: Optional[str] = None,
     ) -> None: ...
 
     @abstractmethod
@@ -43,3 +49,8 @@ class EventoAuditoriaM04Repository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_evento: uuid.UUID) -> "EventoAuditoriaM04": ...
+
+    @abstractmethod
+    def insertar_desde_respaldo(self, evento: dict) -> bool:
+        """RF-73 E8: inserta un evento del respaldo local con su id y fecha originales
+        y ``origen_registro = FALLBACK``. False si ya estaba (idempotente por id_evento)."""

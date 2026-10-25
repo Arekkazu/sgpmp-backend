@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 """DEV-03 (RF-67/70/73): la auditoría M04 solo emite valores que existen en sus enums.
 
 Cinco use cases emitían ``tipo_evento`` fuera de ``enum_tipo_evento_auditoria_m04``
@@ -10,6 +13,8 @@ consultar o exportar la auditoría perdía su evento. Fakes en memoria, sin DB;
 estas mismas listas contra ``pg_enum``.
 """
 from __future__ import annotations
+
+import contextlib
 
 import re
 from datetime import date, timedelta
@@ -177,12 +182,22 @@ def test_exportar_auditoria_emite_exportacion_generada():
 # ── El repositorio ya no se traga el error del flush ───────────────────────
 
 class _SesionFlushFalla:
+    def begin_nested(self): return contextlib.nullcontext()
     def add(self, _orm): pass
     def flush(self): raise RuntimeError("invalid input value for enum")
 
 
+class _RespaldoFalla:
+    """DEV-37: el 500 solo queda cuando tampoco se puede respaldar el evento."""
+    def guardar(self, _evento): raise OSError("disco lleno")
+
+
+def _repo_sin_respaldo():
+    return SqlAlchemyEventoAuditoriaM04Repository(_SesionFlushFalla(), _RespaldoFalla(), pausa_reintento=0)
+
+
 def test_flush_fallido_se_propaga_como_500():
-    repo = SqlAlchemyEventoAuditoriaM04Repository(_SesionFlushFalla())
+    repo = _repo_sin_respaldo()
     with pytest.raises(InfrastructureError) as exc:
         repo.registrar(
             tipo_evento="HISTORIAL_CONSULTADO", tipo_actor="USUARIO", id_usuario=1,
@@ -195,6 +210,6 @@ def test_flush_fallido_se_propaga_como_500():
 def test_flush_fallido_del_evento_invalido_tambien_se_propaga():
     """Un payload sin sus campos mínimos se guarda como AUDITORIA_EVENTO_INVALIDO;
     si ese flush falla, tampoco puede quedar la sesión rota en silencio."""
-    repo = SqlAlchemyEventoAuditoriaM04Repository(_SesionFlushFalla())
+    repo = _repo_sin_respaldo()
     with pytest.raises(InfrastructureError):
         repo.registrar(tipo_evento="VERSION_ACTIVADA", tipo_actor="USUARIO", id_usuario=1, payload_evento={})

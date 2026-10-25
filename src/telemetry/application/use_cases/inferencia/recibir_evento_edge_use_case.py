@@ -1,4 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo                                                     |
+# |------------|----------|-----------------------------------------------------------------|
+# | 2026-10-20 | Arekkazu | DEV-29 RF-56: rechaza dispositivo o sensor inactivos (401)      |
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 rechazo temporal en bitácora, E6 límite por dispositivo, E7 intento no autorizado |
+# | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 from __future__ import annotations
+
+import logging
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -6,10 +13,16 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.shared.errors import AuthenticationError, ValidationError
+from src.shared.rate_limit import registrar_llamada
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
     ConsolidarEnviarPaqueteUseCase,
 )
+from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edge import (
+    registrar_evento_rechazado,
+    registrar_intento_no_autorizado,
+)
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.telemetria import (
     EventoEdgeComputing,
     ResultadoEventoEdge,
@@ -29,6 +42,10 @@ from src.telemetry.infrastructure.repositories.regla_alerta_repository import Sq
 
 _MAX_DRIFT_FUTURO_SEG = 30
 _MAX_VENTANA_BUFFER_HORAS = 72
+# RF-56 E6: eventos por minuto y por dispositivo; los CRITICO no cuentan (se priorizan).
+# ponytail: contador en memoria por proceso (src/shared/rate_limit.py); compartido si hay réplicas.
+LIMITE_EVENTOS_POR_MINUTO = 60
+logger = logging.getLogger(__name__)
 
 
 class RecibirEventoEdgeUseCase:
@@ -41,6 +58,7 @@ class RecibirEventoEdgeUseCase:
         dispositivo_port: DispositivoPort,
         motor_inferencia_port: MotorInferenciaPort,
         parametros_alertas_port: ParametrosAlertasPort,
+        auditoria_repo: Optional[BitacoraAuditoriaIotRepository] = None,
     ) -> None:
         self.db = db
         self.evento_edge_repo = evento_edge_repo
@@ -48,6 +66,7 @@ class RecibirEventoEdgeUseCase:
         self.dispositivo_port = dispositivo_port
         self.motor_inferencia_port = motor_inferencia_port
         self.parametros_alertas_port = parametros_alertas_port
+        self.auditoria_repo = auditoria_repo
 
     def execute(
         self,
@@ -59,17 +78,30 @@ class RecibirEventoEdgeUseCase:
         if ts_captura.tzinfo is None:
             ts_captura = ts_captura.replace(tzinfo=timezone.utc)
 
-        # Paso 1: Validar coherencia temporal
-        self._validar_temporal(ts_captura, ahora, dto.origen)
+        # E6: control de tasa por dispositivo; un evento CRITICO nunca se frena.
+        if dto.severidad != "CRITICO":
+            registrar_llamada(f"rf56_eventos_edge:{dto.serial}", LIMITE_EVENTOS_POR_MINUTO, 60)
+
+        # Paso 1: Validar coherencia temporal (E1: el rechazo queda en bitácora con el evento)
+        try:
+            self._validar_temporal(ts_captura, ahora, dto.origen)
+        except ValidationError as exc:
+            if self.auditoria_repo is not None:
+                registrar_evento_rechazado(self.db, self.auditoria_repo, motivo=exc.message, codigo=exc.code,
+                                           payload=dto.model_dump(mode="json"), serial=dto.serial)
+            raise
 
         # Paso 2: Validar identidad del dispositivo
         dispositivo = self.dispositivo_port.obtener_dispositivo_activo(
             dto.device_id, dto.sensor_id, dto.serial
         )
-        if dispositivo is None:
+        if dispositivo is None or not dispositivo.es_activo_dispositivo or not dispositivo.es_activo_sensor:
+            if self.auditoria_repo is not None:  # E7
+                registrar_intento_no_autorizado(self.db, self.auditoria_repo, codigo="DISPOSITIVO_NO_AUTORIZADO",
+                                                serial=dto.serial, device_id=dto.device_id)
             raise AuthenticationError(
                 code="DISPOSITIVO_NO_AUTORIZADO",
-                message="El dispositivo o el sensor no corresponden al serial, o el dispositivo está inactivo.",
+                message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
             )
 
         ts_procesamiento = dto.timestamp_procesamiento_edge
@@ -111,6 +143,7 @@ class RecibirEventoEdgeUseCase:
                 db=self.db,
                 paquete_repo=self.paquete_repo,
                 motor_inferencia_port=self.motor_inferencia_port,
+                auditoria_repo=self.auditoria_repo,
             )
             paquete = consolidar.execute(evento_guardado)
             if paquete:
@@ -171,13 +204,15 @@ class RecibirEventoEdgeUseCase:
                 historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
                 regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
                 parametros_port=self.parametros_alertas_port,
+                auditoria_repo=self.auditoria_repo,
             ).execute(
                 dto=alerta_dto,
                 id_dispositivo_ioit=dispositivo_id_iot,
                 id_infraestructura=id_infraestructura,
             )
         except Exception:
-            pass
+            self.db.rollback()
+            logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
     @staticmethod
     def _validar_temporal(ts_captura: datetime, ahora: datetime, origen: str) -> None:

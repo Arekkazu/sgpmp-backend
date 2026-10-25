@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO del aviso de buffer del Gateway Edge (POST /iot/eventos-buffer, RF-54 E1/E6).
 
 Sobre de D10 (AIOT-DEV-03): el nodo lo publica en ``sgpmp/<serial>/status`` con
@@ -6,7 +9,6 @@ Sobre de D10 (AIOT-DEV-03): el nodo lo publica en ``sgpmp/<serial>/status`` con
 """
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
@@ -14,6 +16,7 @@ from typing import Optional
 from pydantic import Field
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class EventoBuffer(str, Enum):
@@ -29,4 +32,4 @@ class RecibirEventoBufferDTO(BaseDTO):
     # corrupción no aplica política. Texto libre: lo define el firmware.
     politica_aplicada: Optional[str] = Field(default=None, max_length=50)
     cantidad_datos_afectados: int = Field(..., ge=0)
-    timestamp_evento: datetime
+    timestamp_evento: FechaHoraUtc

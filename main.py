@@ -1,10 +1,18 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
+# | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
+# | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -84,7 +92,7 @@ from src.shared import almacen_logos
 from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
-from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware, documentar_zona_horaria
 from src.shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
 from src.shared.rollback.presentation.test_control_router import router as test_control_router
 
@@ -98,6 +106,7 @@ async def _evaluar_dispositivos_periodicamente() -> None:
     from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
     from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
     from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
+    from src.telemetry.infrastructure.adapters.parametros_heartbeat_mlops_adapter import ParametrosHeartbeatMLOpsAdapter
 
     while True:
         await asyncio.sleep(60)
@@ -110,12 +119,70 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
                 alerta_repo=SqlAlchemyAlertaRepository(db),
                 historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+                parametros_port=ParametrosHeartbeatMLOpsAdapter(db),
             )
             n = use_case.execute()
             if n > 0:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vencer_alertas_sla_periodicamente() -> None:
+    """Tarea periódica RF-57 E10 (DEV-31): alertas ACTIVA con el SLA cumplido → VENCIDA, cada 60 s."""
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.vencer_alertas_sla_use_case import VencerAlertasSlaUseCase
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            use_case = VencerAlertasSlaUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('VencerAlertasSla: %d alertas pasaron a VENCIDA.', n)
+        except Exception:
+            logger.exception('VencerAlertasSla: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _notificar_alertas_periodicamente() -> None:
+    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 10 s."""
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.notificar_alertas_use_case import NotificarAlertasUseCase
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+    from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
+    while True:
+        await asyncio.sleep(10)
+        db = sesion_sistema()
+        try:
+            use_case = NotificarAlertasUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+                parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('NotificarAlertas: %d alertas notificadas.', n)
+        except Exception:
+            logger.exception('NotificarAlertas: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -345,6 +412,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.historial_suministros_factory import (
         build_procesar_cola_historial_suministros_use_case,
+        build_purgar_archivos_vencidos_use_case,
     )
     from src.supplies.infrastructure.repositories.configuracion_batch_historial_repository import (
         SqlAlchemyConfiguracionBatchHistorialRepository,
@@ -372,6 +440,40 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
             logger.exception("Error en el poller de trabajos de historial de suministros.")
         finally:
             db.close()
+
+        # RF-77 (24 h) / RF-81 (72 h): purga de archivos exportados vencidos.
+        db = sesion_sistema()
+        try:
+            purgados = build_purgar_archivos_vencidos_use_case(db).execute()
+            if purgados:
+                logger.info("Purga de exportaciones de M05: %d archivo(s) vencido(s).", purgados)
+        except Exception:
+            logger.exception("Error purgando los archivos exportados vencidos de M05.")
+        finally:
+            db.close()
+
+
+async def _despachar_provisiones_m06_periodicamente() -> None:
+    """RF-79: entrega a M06 los eventos del outbox de provisiones (CA-1: ≤ 5 s)."""
+    from src.shared.database import sesion_sistema
+    from src.supplies.infrastructure.factories.provision_nic41_factory import (
+        build_despachar_provisiones_m06_use_case,
+    )
+
+    while True:
+        await asyncio.sleep(2)
+
+        def despachar() -> int:
+            db = sesion_sistema()
+            try:
+                return build_despachar_provisiones_m06_use_case(db).ejecutar()
+            finally:
+                db.close()
+
+        try:
+            await asyncio.to_thread(despachar)
+        except Exception:
+            logger.exception("Error en el despachador de provisiones hacia M06.")
 
 
 async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
@@ -447,6 +549,40 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
             await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
         except Exception:
             logger.exception("Error vaciando el buffer de la bitácora de M02.")
+        finally:
+            db.close()
+
+
+async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
+    """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
+    respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
+    from src.prediction.application.use_cases.auditoria.sincronizar_respaldo_auditoria_m04_use_case import (
+        SincronizarRespaldoAuditoriaM04UseCase,
+    )
+    from src.prediction.infrastructure.adapters.aviso_auditoria_m04_email_adapter import AvisoAuditoriaM04EmailAdapter
+    from src.prediction.infrastructure.adapters.respaldo_auditoria_m04_archivo_adapter import (
+        RespaldoAuditoriaM04ArchivoAdapter,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
+        SqlAlchemyEventoAuditoriaM04Repository,
+    )
+    from src.shared.database import sesion_sistema
+
+    respaldo = RespaldoAuditoriaM04ArchivoAdapter()
+    while True:
+        await asyncio.sleep(30)
+        if not respaldo.hay_pendientes():
+            continue
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(SincronizarRespaldoAuditoriaM04UseCase(
+                db=db,
+                repo=SqlAlchemyEventoAuditoriaM04Repository(db, respaldo),
+                respaldo=respaldo,
+                aviso=AvisoAuditoriaM04EmailAdapter(db),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudo sincronizar el respaldo de auditoría de M04; se reintentará.")
         finally:
             db.close()
 
@@ -539,14 +675,18 @@ async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
+        asyncio.create_task(_vencer_alertas_sla_periodicamente()),
+        asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+        asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
+        asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -576,6 +716,13 @@ lo que el cliente debe interpretar (y traducir).
 
 **Concurrencia optimista.** Las ediciones piden el `fecha_actualizacion` o la
 `version` leídos; si el registro cambió entretanto responden 412.
+
+**Fechas y zona horaria.** Los instantes se guardan y se devuelven en UTC; se
+envían en ISO 8601 con zona (`2026-10-23T22:00:00-05:00` o `...Z`) y uno sin
+zona se toma como UTC. Los días calendario van como `YYYY-MM-DD`. "Hoy", las
+fechas futuras, los filtros por día y las horas de los mensajes se calculan en
+la zona de la cabecera `X-Zona-Horaria` (ej. `America/Bogota`), que cada
+endpoint documenta; sin ella, en UTC.
 """
 
 # Descripción de los tags de M01, M02 y M09; el orden aquí es el de Swagger.
@@ -618,6 +765,8 @@ app = FastAPI(
     description=DESCRIPCION_API,
     version="1.0.0",
     openapi_tags=TAGS_OPENAPI,
+    # Cabecera X-Zona-Horaria en cada endpoint de Swagger (ver src/shared/fechas.py).
+    dependencies=[Depends(documentar_zona_horaria)],
 )
 
 # Allowlist explícita, sin depender de que ENV valga literalmente "production"
