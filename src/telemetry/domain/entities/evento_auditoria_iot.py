@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: expone marca externa sin editar evidencia |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente identificable se clasifica NIC41 |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -64,8 +65,12 @@ _COMPONENTES_NIC41 = {ComponenteOrigen.RF53, ComponenteOrigen.RF56, ComponenteOr
 
 
 def clasificar_componente(componente: Optional[ComponenteOrigen]) -> tuple[ClasificacionRegistro, int]:
-    """Retorna (clasificacion, retencion_anios)."""
-    if componente in _COMPONENTES_NIC41:
+    """Retorna (clasificacion, retencion_anios).
+
+    RF-63 E8: si no se puede saber qué RF lo emitió la clasificación es ambigua, y
+    lo ambiguo va como NIC41 con la retención más larga.
+    """
+    if componente is None or componente in _COMPONENTES_NIC41:
         return ClasificacionRegistro.NIC41, 5
     return ClasificacionRegistro.TECNICO, 1
 

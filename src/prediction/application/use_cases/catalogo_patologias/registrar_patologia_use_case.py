@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M04-142-G004/139-G001 RF-64: variables repetidas no cuentan y versión del catálogo |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -41,8 +44,9 @@ class RegistrarPatologiaUseCase:
                 message=f"La especie '{dto.especie_aplicable}' no existe o no está activa.",
             )
 
-        # FA-02: mínimo 2, máximo 6 variables + descripción clínica ≥50 chars
-        if not (2 <= len(dto.variables_sensoricas_asociadas) <= 6):
+        # FA-02: mínimo 2, máximo 6 variables distintas (repetir un id no cuenta) + descripción ≥50
+        ids_solicitados = list(dict.fromkeys(dto.variables_sensoricas_asociadas))  # deduplica preservando orden
+        if not (2 <= len(ids_solicitados) <= 6):
             raise BusinessRuleError(
                 code="CANTIDAD_VARIABLES_INVALIDA",
                 message="La patología debe tener entre 2 y 6 variables sensóricas asociadas.",
@@ -55,7 +59,6 @@ class RegistrarPatologiaUseCase:
             )
 
         # FA-03: todas las variables existen en I3P-1
-        ids_solicitados = list(dict.fromkeys(dto.variables_sensoricas_asociadas))  # deduplica preservando orden
         ids_validos = self._variable_port.obtener_ids_activos(ids_solicitados)
         ids_invalidos = [i for i in ids_solicitados if i not in ids_validos]
         if ids_invalidos:
@@ -82,7 +85,9 @@ class RegistrarPatologiaUseCase:
             )
 
         variables = [PatologiaVariable(id_variable_ambiental=i) for i in ids_solicitados]
+        version = self._repo.siguiente_version_catalogo()
         entidad = PatologiaM04.crear(
+            version_catalogo=version,
             nombre=dto.nombre_patologia,
             especie_aplicable=dto.especie_aplicable,
             descripcion_clinica=dto.descripcion_clinica.strip(),

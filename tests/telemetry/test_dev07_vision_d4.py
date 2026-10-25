@@ -1,7 +1,9 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: conserva pruebas explicitas del contrato legado |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: el sobre se guarda sin evaluar |
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -10,6 +12,7 @@ from pydantic import ValidationError as ErrorDTO
 
 from src.shared.errors import AppError
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import IngerirObservacionesVisionUseCase
+from src.telemetry.domain.entities.calidad_vision import ParametrosCalidadVision
 from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4LegadoDTO as ObservacionVisionD4DTO
 
 
@@ -83,21 +86,24 @@ def test_aliases_contradictorios_se_rechazan():
     with pytest.raises(ErrorDTO):ObservacionVisionD4DTO(**sobre(dispositivo_serial='OTRA'))
 
 
-def test_d4_conserva_ventana_versiones_y_calculo_backend_heredado():
+def test_d4_conserva_ventana_versiones_y_deja_la_calidad_pendiente():
     dto=ObservacionVisionD4DTO(**sobre());uc=construir()
     r=uc.execute(dto);o=r.observaciones[0]
     assert r.total==1 and r.duplicados==0
     assert o.fecha_observacion==dto.ventana_fin and o.fecha_inicio_ventana==dto.ventana_inicio
     assert o.version_cascada==dto.version_cascada.model_dump()
     assert o.vector=={'densidad_actividad':.65,'dispersion_espacial':2.4,'tasa_movimiento':1.8}
-    assert o.indice_calidad==97 and o.es_apto_para_ia and not o.es_apto_para_nic41
+    assert not o.esta_evaluada and o.es_apto_para_ia is None and not o.es_apto_para_nic41
     uc.dispositivo_port.obtener_camara_por_serial.assert_called_once_with('CAM-D4')
 
 
 def test_baja_calidad_no_se_vuelve_apta_por_recibir_el_sobre():
     datos=sobre();datos['calidad'].update(cobertura_ventana=0,n_tracks=0,n_tracks_perdidos=5,fps_efectivo=0,estado_calibracion='SIN_DETECCION')
     o=construir().execute(ObservacionVisionD4DTO(**datos)).observaciones[0]
-    assert o.indice_calidad==0 and not o.es_apto_para_ia
+    p=ParametrosCalidadVision(Decimal('.4'),Decimal('.35'),Decimal('.25'),Decimal(25),5,Decimal('.7'),Decimal(80),Decimal(40),Decimal('.3'))
+    o.evaluar(p,duracion_seg=Decimal(60),ahora=datetime.now(timezone.utc))
+    # SIN_DETECCION es alias de SIN_LINEA_BASE: factor 0, nunca apta.
+    assert o.indice_calidad_vision==0 and o.clasificacion_calidad=='NO_APTA' and not o.es_apto_para_ia
 
 
 @pytest.mark.parametrize('camara,codigo',[(dict(es_activo=False),'ERROR_AUTENTICACION'),

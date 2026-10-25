@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
+# | 2026-10-25 | Arekkazu     | INC-M04-139-G001 RF-64: la versión viene del catálogo |
 """DEV-35 (RF-64 E2 y CA-3, G-04): una patología base no se edita (405) ni se inactiva.
 
 P-7: la Restricción 3 de la ficha se contradice con CA-3; se aplica la propuesta de
@@ -43,6 +44,7 @@ class _Repo:
     def obtener_por_nombre(self, nombre): return None
     def obtener_por_combinacion_variables(self, ids, especie, excluir_id=None): return None
     def actualizar(self, entidad): self.actualizadas.append(entidad); return entidad
+    def siguiente_version_catalogo(self): return 8  # el catálogo ya va en la versión 7
 
 
 class _Registro:
@@ -90,7 +92,7 @@ def test_e2_editar_patologia_base_es_405_sin_tocar_nada():
 def test_editar_patologia_no_base_sigue_igual():
     uc, repo, historial, _, dto = _editar(_patologia(es_base=False))
     entidad = uc.execute(15, dto, id_usuario=1)
-    assert entidad.nombre == "Neumonía aviar" and entidad.version_catalogo == 2
+    assert entidad.nombre == "Neumonía aviar" and entidad.version_catalogo == 8
     assert historial.llamadas[0]["accion"] == "MODIFICADA"
 
 

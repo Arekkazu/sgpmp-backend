@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: contrato de incidentes append-only |
+# | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -29,6 +30,9 @@ class BitacoraAuditoriaIotRepository(ABC):
         resultado: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        id_usuario: Optional[int] = None,
+        rf_origen: Optional[str] = None,
+        registro_incompleto: Optional[bool] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]: ...
 
     @abstractmethod
@@ -36,6 +40,7 @@ class BitacoraAuditoriaIotRepository(ABC):
         self,
         fecha_desde: Optional[datetime] = None,
         fecha_hasta: Optional[datetime] = None,
+        limite: Optional[int] = None,
     ) -> list[EventoAuditoriaIot]: ...
 
     def bloquear_integridad(self, id_evento: UUID) -> None:

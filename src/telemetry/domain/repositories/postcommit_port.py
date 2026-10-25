@@ -5,6 +5,7 @@
 # | 2026-10-22 | Leandro | DEV-28 RF-60: etapa de diagnostico de ventanas de vision |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: separa progreso de vinculo y avisos requeridos |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: agrega progreso independiente para auditoria de fuentes |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
 """Progreso durable por responsabilidad, independiente del canal de entrada."""
 from enum import Enum
 from typing import Protocol
@@ -21,6 +22,7 @@ class EtapaPostcommit(str, Enum):
     RF17 = 'RF17'
     RF57 = 'RF57'
     RF60 = 'RF60'
+    VISION_CALIDAD = 'VISION_CALIDAD'
     VISION_DETECCION = 'VISION_DETECCION'
     HEARTBEAT_ESTADO = 'HEARTBEAT_ESTADO'
     HEARTBEAT_ALERTAS = 'HEARTBEAT_ALERTAS'
@@ -34,7 +36,7 @@ class EtapaPostcommit(str, Enum):
 
     @property
     def es_vision(self):
-        return self is EtapaPostcommit.VISION_DETECCION
+        return self in (EtapaPostcommit.VISION_CALIDAD, EtapaPostcommit.VISION_DETECCION)
 
     @property
     def requisito(self):

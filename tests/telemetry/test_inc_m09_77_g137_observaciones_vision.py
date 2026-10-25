@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | DEV-24 RF-24: el área del doble trae id_especies |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta deja la calidad pendiente |
 """INC-M09-77-G137 (#513): ingesta de observaciones de visión (RF-53/56/62 v2.0) que
 alimenta la calibración VISION de RF-24 en vez del stub vacío."""
 from __future__ import annotations
@@ -22,17 +23,16 @@ from src.shared.errors import AuthenticationError, BusinessRuleError, Validation
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
     IngerirObservacionesVisionUseCase,
 )
-from src.telemetry.domain.entities.observacion_vision import (
-    EstadoCalibracionCamara,
-    calcular_indice_calidad_vision,
-)
-from src.telemetry.domain.entities.telemetria_calidad import ClasificacionCalidad
+from src.telemetry.domain.entities.calidad_vision import ParametrosCalidadVision
 from src.telemetry.domain.repositories.dispositivo_port import CamaraInfo
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
 from src.telemetry.infrastructure.routers import telemetria_router
 
 T0 = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
 CAMARA = CamaraInfo(id_dispositivo_iot=12, id_infraestructura=2, es_activo=True, es_camara=True, fps_nominal=25)
+# Defaults D de RF-62 (AIOT-SPEC-01) con el fps de la cámara.
+PARAMETROS = ParametrosCalidadVision(Decimal(".40"), Decimal(".35"), Decimal(".25"), Decimal(25), 5,
+                                     Decimal(".70"), Decimal(80), Decimal(40), Decimal(".30"))
 
 
 def _obs(i: int = 0, **extra) -> dict:
@@ -74,35 +74,20 @@ def _uc(camara=CAMARA, repo=None):
     return IngerirObservacionesVisionUseCase(db=db, repo=repo or _Repo(), dispositivo_port=puerto), db
 
 
-@pytest.mark.parametrize("dims, esperado, clasificacion", [
-    (dict(cobertura_ventana=Decimal("1"), cantidad_tracks=10, cantidad_tracks_perdidos=0,
-          fps_efectivo=Decimal("25"), fps_nominal=25, estado_calibracion=EstadoCalibracionCamara.CALIBRADA),
-     100, ClasificacionCalidad.APTO),
-    # cobertura 60, tracks 50, fps 50, estado 50 → 52.5 → 53 (mitad hacia arriba)
-    (dict(cobertura_ventana=Decimal("0.6"), cantidad_tracks=5, cantidad_tracks_perdidos=5,
-          fps_efectivo=Decimal("12.5"), fps_nominal=25, estado_calibracion=EstadoCalibracionCamara.DEGRADADA),
-     53, ClasificacionCalidad.APTO_CON_RESERVA),
-    # sin tracks y sin detección: solo cuentan cobertura y fps
-    (dict(cobertura_ventana=Decimal("0.2"), cantidad_tracks=0, cantidad_tracks_perdidos=0,
-          fps_efectivo=Decimal("5"), fps_nominal=None, estado_calibracion=EstadoCalibracionCamara.SIN_DETECCION),
-     30, ClasificacionCalidad.NO_APTO),
-])
-def test_indice_de_calidad_de_vision_y_tramos_80_40(dims, esperado, clasificacion):
-    from src.telemetry.domain.entities.telemetria_calidad import clasificar_desde_indice
-    indice = calcular_indice_calidad_vision(**dims)
-    assert indice == esperado
-    assert clasificar_desde_indice(indice) == clasificacion
-
-
-def test_ingesta_guarda_con_indice_apto_y_nic41_false():
+def test_ingesta_guarda_sin_evaluar_y_rf62_la_evalua_despues():
     uc, db = _uc()
     r = uc.execute(_dto(3))
     assert (r.total, r.duplicados, len(r.observaciones)) == (3, 0, 3)
     o = r.observaciones[0]
-    # (cobertura 95 + tracks 95 + fps 96 + estado 100) / 4 = 96.5 → 97
-    assert o.id_infraestructura == 2 and o.indice_calidad == 97 and o.es_apto_para_ia is True
+    # RF-62 es asíncrono: la ingesta no decide la calidad.
+    assert o.id_infraestructura == 2 and not o.esta_evaluada and o.es_apto_para_ia is None
     assert o.es_apto_para_nic41 is False
     db.commit.assert_called_once()
+
+    o.evaluar(PARAMETROS, duracion_seg=Decimal(60), ahora=T0)
+    # 100 × (0.40×0.95 + 0.35×24/25 + 0.25×(1 − 1/5)) = 38 + 33.6 + 20
+    assert o.indice_calidad_vision == Decimal("91.60") and o.clasificacion_calidad == "OPTIMA"
+    assert o.es_apto_para_ia is True and o.es_confianza_baja is False and o.esta_evaluada
 
 
 def test_reenvio_del_buffer_cuenta_como_duplicado():
@@ -143,6 +128,8 @@ def test_lo_ingerido_permite_publicar_la_linea_base_vision():
     """TC-M09-275/276: con observaciones aptas de M03 el cálculo VISION es EXITOSA (antes, stub vacío → 422)."""
     repo = _Repo()
     _uc(repo=repo)[0].execute(_dto(40))
+    for o in repo.filas:  # lo que hace la etapa post-commit VISION_CALIDAD
+        o.evaluar(PARAMETROS, duracion_seg=Decimal(60), ahora=T0)
 
     class _M03:  # lo que ObservacionVisionM03Adapter lee de modulo3.observaciones_vision
         def listar(self, ids, inicio, fin, *, id_infraestructura=None):  # DEV-24 filtra por área
@@ -183,14 +170,15 @@ def cliente(monkeypatch):
     app.dependency_overrides.pop(get_db_sistema, None)
 
 
-def test_http_201_publica_indice_y_aptitudes(cliente):
+def test_http_201_responde_la_calidad_pendiente(cliente):
     r = cliente.post("/iot/telemetria/vision", json={
         "device_id": 12, "serial": "CAM-001", "area_id": 2, "observaciones": [_obs(0)]})
     assert r.status_code == 201, r.text
     cuerpo = r.json()
     assert (cuerpo["aceptadas"], cuerpo["duplicadas"]) == (1, 0)
-    assert cuerpo["observaciones"][0]["apto_para_ia"] is True
-    assert cuerpo["observaciones"][0]["apto_para_nic41"] is False
+    obs = cuerpo["observaciones"][0]
+    assert obs["indice_calidad_vision"] is None and obs["apto_para_ia"] is None
+    assert obs["fecha_evaluacion_calidad"] is None and obs["apto_para_nic41"] is False
 
 
 @pytest.mark.parametrize("obs", [
