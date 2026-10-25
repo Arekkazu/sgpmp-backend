@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M04-152-G083 RF-70/73: emite HASH_INVALIDO_DETECTADO |
 """Reporte de un nodo durante la OTA (DEV-15, RF-70/RF-73, D6 paso 5).
 
 El broker reenvía cada ``ota/<evento>`` del nodo (BRK-08) con su token de servicio.
@@ -11,6 +14,9 @@ Cada evento actualiza el despliegue y, cuando corresponde, emite el evento RF-73
 | activated          | EXITOSO                                     | MODELO_ACTIVADO_EDGE      |
 | rollback           | FALLIDO, rollback ejecutado                 | DISTRIBUCION_FALLIDA      |
 | critical_failure   | FALLIDO                                     | DISTRIBUCION_FALLIDA      |
+
+Si la falla trae ``detalle.causa`` HASH_INVALIDO o FIRMA_INVALIDA se registra
+además HASH_INVALIDO_DETECTADO (RF-70 Fase 5 y E4), con su payload mínimo de RF-73.
 
 Rollout: cuando el último nodo de la fase activa, la distribución pasa a la
 siguiente fase y se avisa a sus nodos; sin más fases queda COMPLETADA. Un
@@ -44,6 +50,7 @@ EVENTO_DISTRIBUIDO = "MODELO_DISTRIBUIDO_EDGE"
 EVENTO_ACTIVADO = "MODELO_ACTIVADO_EDGE"
 EVENTO_FALLIDA = "DISTRIBUCION_FALLIDA"
 EVENTO_POSPUESTA = "DISTRIBUCION_POSPUESTA"
+EVENTO_HASH_INVALIDO = "HASH_INVALIDO_DETECTADO"
 
 
 @dataclass
@@ -52,6 +59,11 @@ class ResultadoReporteOta:
     evento_rf73: Optional[str]
     sin_cambios: bool = False
     fase_avanzada_a: Optional[str] = None
+
+
+def _hash_invalido(dto: ReporteOtaDTO) -> bool:
+    return dto.evento in ("rollback", "critical_failure") and str(
+        dto.detalle.get("causa", "")).upper() in ("HASH_INVALIDO", "FIRMA_INVALIDA")
 
 
 def _entero(valor: Any) -> Optional[int]:
@@ -142,6 +154,26 @@ class RegistrarReporteOtaUseCase:
                         "detalle": dto.detalle,
                     },
                 )
+            if _hash_invalido(dto):
+                self._auditoria_repo.registrar(
+                    tipo_evento=EVENTO_HASH_INVALIDO,
+                    tipo_actor="DISPOSITIVO_EDGE",
+                    id_sistema=dto.serial,
+                    id_referencia=str(despliegue.id_despliegue_ota),
+                    entidad_referencia="despliegue_ota",
+                    severidad_evento="CRITICAL",
+                    resultado_operacion="FALLIDO",
+                    codigo_error="HASH_MISMATCH",
+                    payload_evento={
+                        "device_id": despliegue.id_dispositivo_iot,
+                        "tipo_modelo": despliegue.tipo_modelo,
+                        "id_version": despliegue.id_version_modelo,
+                        "hash_esperado": despliegue.hash_modelo_sha256,
+                        "hash_recibido": dto.detalle.get("hash_recibido") or dto.detalle.get("hash_calculado"),
+                        "id_despliegue_ota": despliegue.id_despliegue_ota,
+                        "evento_nodo": dto.evento,
+                    },
+                )
             distribucion = None
             if despliegue.id_distribucion_ota is not None and despliegue.esta_terminado:
                 distribucion = self._distribucion_repo.obtener_por_id(despliegue.id_distribucion_ota, bloquear=True)
@@ -199,11 +231,12 @@ class RegistrarReporteOtaUseCase:
             despliegue.activar(ahora, _entero(d.get("duracion_proceso_ms")))
             return EVENTO_ACTIVADO, "INFO", "EXITOSO"
         if dto.evento == "rollback":
-            despliegue.fallar(ahora, motivo or "El nodo revirtió a la versión anterior.", rollback=True)
+            despliegue.fallar(ahora, motivo or "El nodo revirtió a la versión anterior.", rollback=True,
+                              hash_invalido=_hash_invalido(dto))
             return EVENTO_FALLIDA, "ERROR", "FALLIDO"
         # critical_failure
-        hash_invalido = str(d.get("causa", "")).upper() in ("HASH_INVALIDO", "FIRMA_INVALIDA")
-        despliegue.fallar(ahora, motivo or "Falla crítica del nodo durante la OTA.", rollback=False, hash_invalido=hash_invalido)
+        despliegue.fallar(ahora, motivo or "Falla crítica del nodo durante la OTA.", rollback=False,
+                          hash_invalido=_hash_invalido(dto))
         return EVENTO_FALLIDA, "CRITICAL", "FALLIDO"
 
     def _avanzar_si_fase_completa(self, distribucion, ahora):
