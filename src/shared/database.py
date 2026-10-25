@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | DanielRuiz | PR-706: restaura reintentos de dev y conserva get_db del sandbox de test |
+# | 2026-10-25 | SamuelPR21 |  reseteo de contexto RLS en Sandbox QA para evitar herencia de identidad entre peticiones
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -308,6 +309,31 @@ def get_db():
         test_session = None
         try:
             test_session = get_or_create_test_session(run_id)
+            
+            # --- INICIO PARCHE DBA-01: RESETEO DE IDENTIDAD EN SANDBOX ---
+            # Al reutilizar la sesión física para diferentes peticiones/usuarios 
+            # dentro del mismo run_id, debemos limpiar la identidad previa 
+            # almacenada en session.info. De lo contrario, funciones como 
+            # `declarar_identidad_si_anonima` no sobrescribirán la identidad 
+            # (porque ven que ya existe una) y la transacción heredará el 
+            # contexto RLS del usuario anterior, causando violaciones RLS.
+            test_session.info.pop(_CLAVE_IDENTIDAD, None)
+            
+            # Adicionalmente, limpiamos las variables de configuración de 
+            # PostgreSQL a nivel de transacción para asegurar un estado prístino
+            # antes de que el middleware/dependencias declaren la nueva identidad.
+            if test_session.in_transaction():
+                try:
+                    test_session.connection().execute(
+                        text(
+                            "SELECT set_config('app.current_user_id', '', true), "
+                            "set_config('app.current_role', '', true), "
+                            "set_config('app.usuario_id', '', true)"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"[Sandbox] No se pudo limpiar contexto RLS previo: {e}")
+
             yield test_session
         except SandboxCapacityExceeded as e:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
