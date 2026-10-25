@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
+# | 2026-10-25 | Arekkazu | INC-M04-138-G001 RF-64: filtro nombre en el listado del catálogo |
 """Router FastAPI para el catálogo de patologías M04 (`/prediccion/patologias`).
 
 RF-64 CU-01: gestión del catálogo de patologías por especie.
@@ -91,10 +92,13 @@ def listar_patologias(
     especie_aplicable: Optional[str] = Query(None, description="Filtrar por especie ('TODAS' o id_especie)."),
     solo_activas: Optional[bool] = Query(None, description="Si true, solo patologías activas."),
     solo_base: Optional[bool] = Query(None, description="Si true, solo patologías base."),
+    nombre: Optional[str] = Query(
+        None, max_length=60, description="Fragmento del nombre, sin distinguir mayúsculas."),
     db: Session = Depends(get_db),
 ) -> PatologiaM04ListResponse:
     use_case = ConsultarPatologiasUseCase(repo=SqlAlchemyPatologiaM04Repository(db))
-    items = use_case.execute(especie_aplicable=especie_aplicable, solo_activas=solo_activas, solo_base=solo_base)
+    items = use_case.execute(especie_aplicable=especie_aplicable, solo_activas=solo_activas,
+                             solo_base=solo_base, nombre=nombre)
     return PatologiaM04ListResponse(
         total=len(items),
         items=[PatologiaM04Response.from_entity(e) for e in items],

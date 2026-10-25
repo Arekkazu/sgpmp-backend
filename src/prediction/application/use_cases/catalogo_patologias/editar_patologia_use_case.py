@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
+# | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la edición toma la siguiente versión del catálogo |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -113,6 +114,7 @@ class EditarPatologiaUseCase:
             descripcion_clinica=dto.descripcion_clinica.strip(),
             variables=[PatologiaVariable(id_variable_ambiental=i) for i in ids_solicitados],
             fecha_actualizacion=datetime.now(timezone.utc),
+            version_catalogo=self._repo.siguiente_version_catalogo(),
         )
 
         try:
