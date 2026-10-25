@@ -1,3 +1,10 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: audita paquete pendiente y resultado real de envio |
+from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -58,23 +65,38 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             self.db.add(orm)
             self.db.flush()
             self.db.refresh(orm)
+            self._auditar(orm, 'PAQUETE_INFERENCIA_GENERADO')
+            if orm.contexto_incomplento:
+                self._auditar(orm, 'CONTEXTO_INCOMPLETO')
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
 
     def actualizar_estado(self, id_paquete: int, estado: str, intento: int) -> None:
         try:
-            self.db.execute(
-                text(
-                    'UPDATE modulo3.paquetes_inferencia '
-                    'SET estado_paquete = :estado, intento_envios = :intento '
-                    'WHERE id_paquetes_inferencia = :id'
-                ),
-                {'estado': estado, 'intento': intento, 'id': id_paquete},
-            )
+            orm = self.db.query(PaqueteInferenciaModel).filter(
+                PaqueteInferenciaModel.id_paquetes_inferencia == id_paquete).with_for_update().one()
+            anterior = (orm.estado_paquete, orm.intento_envios)
+            if anterior == (estado, intento):
+                return
+            orm.estado_paquete, orm.intento_envios = estado, intento
             self.db.flush()
+            if estado in ('ENVIADO', 'FALLIDO'):
+                self._auditar(orm, 'PAQUETE_ENVIADO_IA' if estado == 'ENVIADO' else 'FALLO_ENVIO_PAQUETE')
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def _auditar(self, orm, tipo):
+        from src.telemetry.domain.entities.evento_auditoria_iot import TipoResultado, SeveridadLog
+        fallo = tipo == 'FALLO_ENVIO_PAQUETE'
+        registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(self.db), tipo,
+            ComponenteOrigen.RF56, entidad=EntidadAfectadaTipo.PAQUETE_IA,
+            identificador=orm.id_paquetes_inferencia,
+            resultado=TipoResultado.FALLIDO if fallo else TipoResultado.EXITOSO,
+            severidad=SeveridadLog.WARNING if fallo else SeveridadLog.INFO,
+            detalle={'estado_paquete': orm.estado_paquete, 'intentos': orm.intento_envios,
+                     'id_evento_edge': orm.id_evento_edge_computing,
+                     'id_dispositivo_iot': orm.id_dispositivo_iot})
 
     @staticmethod
     def _a_entidad(orm: PaqueteInferenciaModel) -> PaqueteInferencia:

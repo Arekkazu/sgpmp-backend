@@ -1,12 +1,17 @@
-"""Sobre D4 v1 con rangos de RFC-011 y catálogo de calibración SQL vigente.
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: sobre normativo separado del contrato legado |
+"""Sobres D4 normativo y legado con rangos de RFC-011.
 
-Las diferencias con el sobre ampliado de AIOT-SPEC-01 están documentadas;
-no se inventan n_individuos, origen ni equivalencias entre estados.
+El contrato normativo exige los metadatos de la ficha. El legado conserva su
+catalogo historico; no se inventan equivalencias entre estados ni cantidades.
 """
 from decimal import Decimal
+from typing import Literal
 from pydantic import AliasChoices, AwareDatetime, ConfigDict, Field, StrictInt, StrictStr, model_validator
 from src.shared.base_dto import BaseDTO
 from src.telemetry.domain.entities.observacion_vision import EstadoCalibracionCamara
+from src.telemetry.domain.entities.calidad_vision import EstadoCalibracionVision
 
 
 class BloqueVisionDTO(BaseDTO):
@@ -34,7 +39,7 @@ class VersionCascadaDTO(BloqueVisionDTO):
     anomalias: StrictStr = Field(min_length=1)
 
 
-class ObservacionVisionD4DTO(BloqueVisionDTO):
+class ObservacionVisionD4LegadoDTO(BloqueVisionDTO):
     serial: StrictStr = Field(min_length=1, max_length=50, validation_alias=AliasChoices('serial', 'dispositivo_serial'))
     area_id: StrictInt = Field(gt=0)
     ventana_inicio: AwareDatetime
@@ -60,3 +65,16 @@ class ObservacionVisionD4DTO(BloqueVisionDTO):
         if self.ventana_inicio >= self.ventana_fin:
             raise ValueError('ventana_inicio debe ser anterior a ventana_fin.')
         return self
+
+
+class CalidadVisionFichaDTO(CalidadVisionD4DTO):
+    # P-5 no se resuelve derivando tracks a partir del numero de individuos.
+    n_tracks: StrictInt | None = Field(default=None, ge=0, le=2147483647)
+    estado_calibracion: EstadoCalibracionVision
+
+
+class ObservacionVisionD4DTO(ObservacionVisionD4LegadoDTO):
+    tipo_dato: Literal['VECTOR_COMPORTAMIENTO']
+    n_individuos_observados: StrictInt = Field(ge=0, le=2147483647)
+    origen: Literal['TIEMPO_REAL', 'BUFFER_LOCAL']
+    calidad: CalidadVisionFichaDTO = Field(validation_alias=AliasChoices('calidad', 'indicadores_calidad'))

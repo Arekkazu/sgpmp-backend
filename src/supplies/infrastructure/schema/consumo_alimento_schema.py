@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-23 | Arekkazu         | M05 RF-75: catálogo de tipos de alimento      |
 """Schemas de respuesta para los endpoints de consumo de alimento (RF-75)."""
 from __future__ import annotations
 
@@ -37,3 +40,18 @@ class ConsultaConsumosResponse(BaseModel):
 
     total: int
     items: list[ConsumoAlimentoResponse]
+
+
+class TipoAlimentoResponse(BaseModel):
+    """Entrada del catálogo ``modulo5.tipos_alimentos`` para elegir el alimento (RF-75)."""
+
+    id_tipo_alimento: int
+    nombre: str
+    unidad_medida: str
+    costo_unitario: Decimal
+    estado: Optional[str]
+
+
+class ListaTiposAlimentoResponse(BaseModel):
+    total: int
+    items: list[TipoAlimentoResponse]

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: E3 timestamps dispersos se procesan como evento individual, sin 422 |
+# | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 from __future__ import annotations
 
 import logging
@@ -6,6 +10,10 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from src.shared.errors import ServiceUnavailableError
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
+from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 
 from src.shared.errors import BusinessRuleError
 from src.telemetry.domain.entities.telemetria import (
@@ -22,6 +30,9 @@ from src.telemetry.domain.repositories.paquete_inferencia_repository import Paqu
 logger = logging.getLogger(__name__)
 
 # Variables mínimas por categoría para contexto completo
+# FA-03 / E3: dispersión máxima entre capturas del mismo contexto.
+_MAX_DISPERSION_SEG = 5
+
 _MINIMOS_AMBIENTAL = {"TEMPERATURA_AMBIENTAL", "HUMEDAD_RELATIVA"}
 _MINIMOS_ANIMAL = {"TEMPERATURA_CORPORAL", "TEMP_CORPORAL", "FRECUENCIA_CARDIACA"}
 _MINIMOS_HIDRICA = {"PH_AGUA", "OXIGENO_DISUELTO"}
@@ -81,10 +92,12 @@ class ConsolidarEnviarPaqueteUseCase:
         db: Session,
         paquete_repo: PaqueteInferenciaRepository,
         motor_inferencia_port: MotorInferenciaPort,
+        auditoria_repo: Optional[BitacoraAuditoriaIotRepository] = None,
     ) -> None:
         self.db = db
         self.paquete_repo = paquete_repo
         self.motor_inferencia_port = motor_inferencia_port
+        self.auditoria_repo = auditoria_repo
 
     def execute(self, evento: EventoEdgeComputing) -> Optional[PaqueteInferencia]:
         """
@@ -112,11 +125,16 @@ class ConsolidarEnviarPaqueteUseCase:
                 message="La variable principal del evento no tiene tipo_variable o valor.",
             )
 
+        # Paso 8 / E3: con timestamps dispersos no se agrupa; va la variable principal
+        # sola, como evento individual, y la anomalía queda en bitácora.
+        delta = self._dispersion_timestamps(variables)
+        agrupacion_descartada = delta is not None and delta > _MAX_DISPERSION_SEG
+        if agrupacion_descartada:
+            variables = [variable_principal]
+
         # Paso 7: Consolidar contexto multivariable
         contexto_ambiental, contexto_incompleto = _evaluar_contexto(variables)
-
-        # Paso 8: Validar consistencia (FA-03)
-        self._validar_timestamps(variables)
+        contexto_incompleto = contexto_incompleto or agrupacion_descartada
 
         valor_numerico = Decimal(str(valor_raw))
         unidad = variable_principal.get("unidad")
@@ -126,6 +144,8 @@ class ConsolidarEnviarPaqueteUseCase:
             "timestamp_procesamiento_edge": evento.fecha_procesamiento.isoformat(),
             "clasificacion_rf55": evento.clasificacion_rf55,
         }
+        if agrupacion_descartada:
+            metadatos["agrupacion_descartada"] = {"dispersion_seg": delta, "maximo_seg": _MAX_DISPERSION_SEG}
 
         paquete = PaqueteInferencia(
             id_sensor=evento.id_sensor,
@@ -160,7 +180,20 @@ class ConsolidarEnviarPaqueteUseCase:
             self.db.rollback()
             raise
 
+        if agrupacion_descartada and self.auditoria_repo is not None:
+            RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                tipo_evento="AGRUPACION_DESCARTADA",
+                resultado=TipoResultado.ADVERTENCIA,
+                componente_origen=ComponenteOrigen.RF56,
+                severidad_log=SeveridadLog.WARNING,
+                descripcion="Variables del evento con timestamps dispersos: se procesa la variable principal sola.",
+                entidad_afectada_tipo=EntidadAfectadaTipo.PAQUETE_IA,
+                entidad_afectada_id=str(paquete_guardado.id_paquetes_inferencia),
+                accion_detallada=metadatos["agrupacion_descartada"],
+            )
+
         # Paso 9: Intentar envío a M04 (un intento síncrono; backoff diferido fuera de alcance)
+        causa_fallo = "ENVIO_INFERENCIA_NO_CONFIRMADO"
         try:
             exito = self.motor_inferencia_port.enviar_paquete(paquete_guardado)
         except MotorInferenciaNoIntegradoError:
@@ -169,9 +202,14 @@ class ConsolidarEnviarPaqueteUseCase:
                 'RF-56: paquete %s pendiente; motor de inferencia no integrado.',
                 paquete_guardado.id_paquetes_inferencia,
             )
+            self._registrar_fallo_motor(paquete_guardado, "MOTOR_INFERENCIA_NO_INTEGRADO")
             return paquete_guardado
+        except (TimeoutError, ConnectionError, ServiceUnavailableError):
+            exito = False
+            causa_fallo = "MOTOR_INFERENCIA_NO_DISPONIBLE"
         except Exception:
             exito = False
+            causa_fallo = "ERROR_ENVIO_INFERENCIA"
 
         nuevo_estado = EstadoPaqueteInferencia.ENVIADO if exito else EstadoPaqueteInferencia.FALLIDO
         try:
@@ -187,28 +225,46 @@ class ConsolidarEnviarPaqueteUseCase:
 
         paquete_guardado.estado_paquete = nuevo_estado
         paquete_guardado.intento_envios = 1
+        if not exito:
+            self._registrar_fallo_motor(paquete_guardado, causa_fallo)
         return paquete_guardado
 
-    @staticmethod
-    def _validar_timestamps(variables: list[dict]) -> None:
-        """FA-03: diferencia máxima entre timestamps de variables del mismo contexto ≤ 5 s."""
-        timestamps = [
-            v["timestamp_captura"]
-            for v in variables
-            if v.get("timestamp_captura") is not None
-        ]
-        if len(timestamps) < 2:
+    def _registrar_fallo_motor(self, paquete: PaqueteInferencia, causa: str) -> None:
+        if self.auditoria_repo is None:
             return
-        ts_sorted = sorted(timestamps)
-        delta = (ts_sorted[-1] - ts_sorted[0]).total_seconds() if hasattr(ts_sorted[0], 'total_seconds') else 0
-        # timestamps son datetime objects
-        if isinstance(ts_sorted[0], str):
-            return  # no se pueden comparar strings aquí
-        from datetime import datetime as dt
-        if all(isinstance(t, dt) for t in ts_sorted):
-            delta = (ts_sorted[-1] - ts_sorted[0]).total_seconds()
-            if delta > 5:
-                raise BusinessRuleError(
-                    code="PAQUETE_INCONSISTENTE",
-                    message="La diferencia entre timestamps de variables supera los 5 segundos permitidos.",
-                )
+        # Después del commit del paquete; nunca confirmar negocio pendiente
+        # mediante el commit de la bitácora ni perderlo por un fallo del log.
+        RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+            tipo_evento=causa,
+            resultado=TipoResultado.ADVERTENCIA if causa == "MOTOR_INFERENCIA_NO_INTEGRADO" else TipoResultado.FALLIDO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.WARNING,
+            descripcion="Paquete sin entrega confirmada al motor de inferencia.",
+            entidad_afectada_tipo=EntidadAfectadaTipo.PAQUETE_IA,
+            entidad_afectada_id=str(paquete.id_paquetes_inferencia),
+            accion_detallada={
+                "causa": causa, "id_sensor": paquete.id_sensor,
+                "id_dispositivo_iot": paquete.id_dispositivo_iot,
+                "id_evento_edge_computing": paquete.id_evento_edge_computing,
+                "estado_paquete": paquete.estado_paquete,
+                "intento_envios": paquete.intento_envios,
+            },
+        )
+
+    @staticmethod
+    def _dispersion_timestamps(variables: list[dict]) -> Optional[float]:
+        """Segundos entre la primera y la última captura del contexto. Las variables llegan
+        serializadas (ISO 8601); antes se comparaban como texto y la validación nunca corría."""
+        marcas = []
+        for v in variables:
+            valor = v.get("timestamp_captura")
+            if isinstance(valor, str):
+                try:
+                    valor = datetime.fromisoformat(valor.replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+            if isinstance(valor, datetime):
+                marcas.append(valor if valor.tzinfo else valor.replace(tzinfo=timezone.utc))
+        if len(marcas) < 2:
+            return None
+        return (max(marcas) - min(marcas)).total_seconds()

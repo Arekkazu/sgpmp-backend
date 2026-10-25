@@ -1,14 +1,19 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``PATCH /activos-biologicos/{id_activo}`` (RF-35)."""
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date
 from decimal import Decimal
 from typing import Any, Optional
 
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc, hoy_usuario
 
 
 class ActualizarActivoIndividualDTO(BaseDTO):
@@ -25,11 +30,11 @@ class ActualizarActivoIndividualDTO(BaseDTO):
 
     raza: Optional[str] = None
     sexo: Optional[str] = None
-    fecha_nacimiento: Optional[datetime] = None
+    fecha_nacimiento: Optional[date] = None  # día calendario (YYYY-MM-DD), sin zona
     peso_inicial: Optional[Decimal] = None
     # Concurrencia optimista (RF-35). Optional: la columna nace NULL sin
     # backfill, se establece recién en la primera edición del activo.
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[FechaHoraUtc] = None
     # Declarado solo para rechazarlo con un mensaje que remita a RF-44, en vez
     # del genérico de extra='forbid'.
     estado_activo: Any = None
@@ -47,3 +52,11 @@ class ActualizarActivoIndividualDTO(BaseDTO):
         if all(v is None for v in [self.raza, self.sexo, self.fecha_nacimiento, self.peso_inicial]):
             raise ValueError('Al menos un campo debe estar presente para actualizar.')
         return self
+
+    @field_validator('fecha_nacimiento')
+    @classmethod
+    def fecha_nacimiento_no_futura(cls, valor: Optional[date]) -> Optional[date]:
+        # RFC-014 (DEV-20): misma regla que el registro. Omitida (None) no cambia la fecha.
+        if valor is not None and valor > hoy_usuario():
+            raise ValueError('fecha_nacimiento no puede ser futura.')
+        return valor

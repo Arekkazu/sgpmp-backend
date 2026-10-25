@@ -1,3 +1,10 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-42 RF-60: espera etapa RF60 y apagado inminente |
+# | 2026-10-21 | Leandro | DEV-27 RF-60: regresion con politica persistida   |
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: verifica etapa nueva sin duplicados |
+# | 2026-10-22 | Leandro | DEV-44 RF-61: explicita asociacion RF-22 en fixture de ingesta |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: exige eventos de ingesta y heartbeat sin duplicados |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -16,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from src.shared.database import get_db_sistema
 from src.shared.error_handlers import register_error_handlers
-from src.telemetry.domain.repositories.parametros_heartbeat_port import ParametrosHeartbeat
+from src.telemetry.domain.repositories.parametros_heartbeat_port import ParametrosHeartbeat, ParametrosComunicacionHeartbeat
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 from src.telemetry.infrastructure.repositories.ingesta_telemetria_repository import SqlAlchemyIngestaTelemetriaRepository
 from src.telemetry.infrastructure.repositories.lectura_postcommit_repository import SqlAlchemyLecturaPostcommitRepository
@@ -49,6 +56,10 @@ def hardware(db):
         VALUES (:serial,'DEV-05',true,now(),:area,3) RETURNING id_dispositivo_iot'''), {'serial':tag,'area':area}).scalar_one()
     sensor = db.execute(text('''INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
         VALUES (:device,true,'Sensor Bplus') RETURNING id_sensores'''), {'device':device}).scalar_one()
+    db.execute(text('''INSERT INTO modulo9.sensores_areas_asociadas(id_sensor,id_dispositivo_iot,id_infraestructura,
+        punto_instalacion,tiene_estado,fecha_asociacion,id_usuario)
+        SELECT :sensor,:device,:area,'DEV05',true,now()-interval '1 day',min(id_usuario)
+        FROM modulo1.usuarios'''),{'sensor':sensor,'device':device,'area':area})
     db.commit()
     return dict(device=device,sensor=sensor,area=area,serial=tag)
 
@@ -56,6 +67,25 @@ def hardware(db):
 @pytest.fixture
 def equipo(db_session):
     return hardware(db_session)
+
+
+@pytest.fixture
+def parametros_rf60(db_session):
+    """Valores explícitos de prueba; no son defaults operativos aprobados."""
+    from src.configuration.application.use_cases.configuracion_global.configurar_parametros_mlops_use_case import ConfigurarParametrosMLOpsUseCase
+    from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    usuario = db_session.execute(text('SELECT id_usuario FROM modulo1.usuarios ORDER BY id_usuario LIMIT 1')).scalar_one()
+    db_session.execute(text('UPDATE modulo9.configuraciones_globales SET es_activo=false WHERE es_activo'))
+    db_session.execute(text('''INSERT INTO modulo9.configuraciones_globales
+        (frecuencia_muestreo,heartbeat,fecha_actualizacion,id_usuario,es_activo)
+        VALUES (10,20,now(),:uid,true)'''), {'uid': usuario})
+    db_session.commit()
+    repo = SqlAlchemyParametrosMLOpsRepository(db_session)
+    writer = ConfigurarParametrosMLOpsUseCase(db_session, repo, SqlAlchemyConfiguracionGlobalRepository(db_session))
+    writer.execute({'intervalo_heartbeat_camara':120, 'intervalos_heartbeat_por_tipo':{'SENSOR':60},
+                    'margen_tolerancia':300, 'tiempo_inactividad_extendida':3600}, usuario)
+    return writer, usuario
 
 
 @pytest.fixture
@@ -172,7 +202,12 @@ def test_reinicio_completa_etapas_faltantes_aunque_ya_exista_calidad_y_no_muta_o
     procesador(db_session).execute()
     procesador(db_session).execute()
     tipos = [x['tipo_evento'] for x in evidencias(db_session,identificador)]
-    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO','POSTCOMMIT_RF17_COMPLETADO'}
+    assert set(tipos)=={'POSTCOMMIT_RF61_COMPLETADO','POSTCOMMIT_RF62_COMPLETADO',
+        'POSTCOMMIT_RF17_COMPLETADO','POSTCOMMIT_RF57_COMPLETADO',
+        'POSTCOMMIT_RF60_COMPLETADO','TELEMETRIA_VALIDADA','POSTCOMMIT_RF53_LECTURAS_COMPLETADO'}
+    assert all(tipos.count(tipo)==1 for tipo in tipos)
+    rf57=next(e for e in evidencias(db_session,identificador) if e['tipo_evento']=='POSTCOMMIT_RF57_COMPLETADO')
+    assert rf57['accion_detallada']['resultado_etapa']['decision']=='EXCLUIDA_POR_CALIDAD'
     assert all(len(x['hash_integridad'])==64 for x in evidencias(db_session,identificador))
     from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
     from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -248,31 +283,33 @@ def guardar_heartbeat(db,equipo,**cambios):
 
 
 @pytest.mark.parametrize('buffer',['A','L'])
-def test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica(db_session,equipo,buffer):
+def test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica(db_session,equipo,buffer,parametros_rf60):
     identificador=guardar_heartbeat(db_session,equipo,buffer=buffer)
     procesador(db_session).execute()
     procesador(db_session).execute()
-    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='BUFFER_ACTIVO'
-    assert len(evidencias(db_session,identificador,'HEARTBEAT'))==2
+    # RF-60 Restricción 12: el contacto reciente tiene prioridad sobre el buffer.
+    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
+    assert [e['tipo_evento'] for e in evidencias(db_session,identificador,'HEARTBEAT')].count('HEARTBEAT_RECIBIDO')==1
     assert db_session.execute(text('SELECT count(*) FROM modulo3.heartbeats WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()==1
 
 
-def test_umbrales_ausentes_quedan_pendientes_sin_perder_estado_buffer(db_session,equipo):
+def test_umbrales_ausentes_quedan_pendientes_sin_perder_estado_buffer(db_session,equipo,parametros_rf60):
     identificador=guardar_heartbeat(db_session,equipo,bateria=5,rssi=-110)
     resultado=procesador(db_session).execute()
     assert resultado['fallidos']>=1
     eventos=evidencias(db_session,identificador,'HEARTBEAT')
-    assert {x['tipo_evento'] for x in eventos}=={'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_FALLIDO'}
-    assert 'PARAMETROS_HEARTBEAT_NO_DISPONIBLES' in repr(eventos)
-    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='BUFFER_ACTIVO'
+    assert {x['tipo_evento'] for x in eventos}=={'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_FALLIDO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
+    assert 'PARAMETRO_CONFIGURACION_AUSENTE' in repr(eventos)
+    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
 
 
-def test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial_extra(db_session,equipo):
+def test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial_extra(db_session,equipo,parametros_rf60):
     for _ in range(2): guardar_heartbeat(db_session,equipo,bateria=5,rssi=-110)
-    parametros=SimpleNamespace(obtener=lambda: ParametrosHeartbeat(Decimal(10),Decimal(30),Decimal(-100)))
+    parametros=SimpleNamespace(obtener=lambda: ParametrosHeartbeat(Decimal(10),Decimal(30),Decimal(-100)),
+        obtener_comunicacion=lambda _id: ParametrosComunicacionHeartbeat(60,600,300,3600,'I'))
     procesador(db_session,parametros_heartbeat=parametros).execute()
     filas=db_session.execute(text('SELECT id_alerta,tipo_variable FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).all()
-    assert len(filas)==2 and {x[1] for x in filas}=={'BATERIA_CRITICA','SEÑAL_DEGRADADA'}
+    assert len(filas)==2 and {x[1] for x in filas}=={'APAGADO_INMINENTE','SEÑAL_DEGRADADA'}
     for fila in filas:
         assert db_session.execute(text('SELECT count(*) FROM modulo3.historico_estados_alertas WHERE id_alerta=:id'),{'id':fila[0]}).scalar_one()==1
 
@@ -306,12 +343,13 @@ def test_bloqueo_de_fila_evita_doble_ejecucion_concurrente(integration_engine):
     (30,-101,{'BATERIA_BAJA','SEÑAL_DEGRADADA'}),
     (31,-100,set()),
 ])
-def test_limites_de_alertas_son_los_parametros_del_puerto(db_session,equipo,bateria,rssi,esperadas):
+def test_limites_de_alertas_son_los_parametros_del_puerto(db_session,equipo,bateria,rssi,esperadas,parametros_rf60):
     identificador=guardar_heartbeat(db_session,equipo,bateria=bateria,rssi=rssi,buffer='I')
-    parametros=SimpleNamespace(obtener=lambda: ParametrosHeartbeat(Decimal(10),Decimal(30),Decimal(-100)))
+    parametros=SimpleNamespace(obtener=lambda: ParametrosHeartbeat(Decimal(10),Decimal(30),Decimal(-100)),
+        obtener_comunicacion=lambda _id: ParametrosComunicacionHeartbeat(60,600,300,3600,'I'))
     procesador(db_session,parametros_heartbeat=parametros).execute()
     assert {x['tipo_evento'] for x in evidencias(db_session,identificador,'HEARTBEAT')}=={
-        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO'}
+        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     filas=db_session.execute(text('SELECT tipo_variable FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).scalars().all()
     assert set(filas)==esperadas
 
@@ -353,7 +391,7 @@ def test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente(db_session,
     assert tipos.count('POSTCOMMIT_RF62_COMPLETADO')==1
 
 
-def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(client,db_session,equipo):
+def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(client,db_session,equipo,parametros_rf60):
     body={'device_id':equipo['device'],'serial':equipo['serial'],'tipo_mensaje':'HEARTBEAT','estado_local_buffer':'A',
           'fecha_registro':(datetime.now(timezone.utc)-timedelta(seconds=1)).isoformat()}
     denegado=client.post('/iot/heartbeat',json=dict(body,serial='incorrecto'))
@@ -363,7 +401,7 @@ def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(clien
     identificador=response.json()['id_heartbeat']
     procesador(db_session).execute()
     assert {x['tipo_evento'] for x in evidencias(db_session,identificador,'HEARTBEAT')}=={
-        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO'}
+        'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_COMPLETADO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     assert db_session.execute(text('SELECT count(*) FROM modulo3.heartbeats WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()==1
 
 
@@ -413,7 +451,7 @@ def test_prioridades_semaforo_respetan_estado_operativo_y_alertas(db_session,equ
     assert db_session.execute(text('SELECT estado_semaforo FROM modulo3.estados_actuales_sensores WHERE id_sensor=:id'),{'id':equipo['sensor']}).scalar_one()==esperado
 
 
-def test_heartbeat_no_saca_dispositivo_de_mantenimiento(db_session,equipo):
+def test_heartbeat_no_saca_dispositivo_de_mantenimiento(db_session,equipo,parametros_rf60):
     guardar_heartbeat(db_session,equipo,buffer='I')
     db_session.execute(text("UPDATE modulo3.estados_dispositivos_iot SET estado_actual='EN_MANTENIMIENTO' WHERE id_dispositivo_iot=:id"),{'id':equipo['device']})
     db_session.commit()

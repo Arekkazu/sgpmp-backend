@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: conteo de filtros (R11)            |
 """Entidades del historial/trazabilidad de suministros (RF-81 / CU-04).
 
 Python puro, sin SQLAlchemy ni FastAPI. Lee sobre ``registro_suministro``
@@ -31,6 +34,21 @@ class FiltrosHistorialSuministro:
     costo_max: Optional[Decimal] = None
     pagina: int = 1
     registros_por_pagina: int = 50
+
+    @property
+    def cantidad_filtros(self) -> int:
+        """Filtros aplicados además del activo (Restricción 11: más de 3 → asíncrono en nivel 3)."""
+        return sum(
+            (
+                self.id_ciclo_productivo is not None,
+                self.fecha_inicio_filtro is not None,
+                self.fecha_fin_filtro is not None,
+                self.tipo_suministro_filtro not in (None, TipoSuministroFiltro.TODOS.value),
+                self.origen_precio_filtro not in (None, OrigenPrecioFiltro.TODOS.value),
+                self.costo_min is not None,
+                self.costo_max is not None,
+            )
+        )
 
     def combinacion_valida(self) -> bool:
         """Restricción 7 de RF-81: fechas y rango de costo coherentes."""
@@ -93,3 +111,4 @@ class ResumenConsultaHistorial:
     datos_contexto_no_disponibles: bool
     datos_actualizados_hasta: datetime
     nivel_volumen: int
+    mensaje: Optional[str] = None  # E1: sin registros con los filtros aplicados

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: registro de producción del activo (leche, huevos...) (RF-43)."""
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ from src.biological_assets.domain.value_objects.estado_activo import EstadoActiv
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
-from src.shared.fechas import fecha_colombia, hoy_colombia
+from src.shared.fechas import fecha_usuario, hoy_usuario
 
 _NOMBRES_ESTADO = {1: 'ACTIVO', 2: 'INACTIVO', 3: 'EN_TRATAMIENTO', 4: 'AISLADO', 5: 'CERRADO', 6: 'BAJA'}
 
@@ -155,7 +158,7 @@ class RegistrarEventoProductivoUseCase:
             activo,
         )
 
-        if dto.fecha_evento > hoy_colombia():
+        if dto.fecha_evento > hoy_usuario():
             raise BusinessRuleError(
                 code='FECHA_FUTURA',
                 message=(
@@ -176,7 +179,7 @@ class RegistrarEventoProductivoUseCase:
             )
 
         if fase_activa.fecha_inicio:
-            fecha_inicio_fase = fecha_colombia(fase_activa.fecha_inicio)
+            fecha_inicio_fase = fecha_usuario(fase_activa.fecha_inicio)
             if dto.fecha_evento < fecha_inicio_fase:
                 raise BusinessRuleError(
                     code='FECHA_FUERA_DE_FASE',
@@ -188,7 +191,7 @@ class RegistrarEventoProductivoUseCase:
                 )
 
         if fase_activa.fecha_finalizacion:
-            fecha_fin_fase = fecha_colombia(fase_activa.fecha_finalizacion)
+            fecha_fin_fase = fecha_usuario(fase_activa.fecha_finalizacion)
             if dto.fecha_evento > fecha_fin_fase:
                 fecha_inicio_str = (
                     fecha_inicio_fase.isoformat()

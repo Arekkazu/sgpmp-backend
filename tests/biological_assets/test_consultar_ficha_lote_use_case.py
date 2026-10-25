@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima, ingreso de
 individuos"): no existía un endpoint/caso de uso propio de "gestión de lote"
 con la ficha operativa completa (cantidad_actual + peso_promedio +
@@ -23,6 +26,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
 )
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsulta
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError, ValidationError
@@ -42,15 +46,18 @@ class ActivoRepoFake:
 
 
 class InfraPortFake:
-    def __init__(self, superficie=None, capacidad_maxima=None, nombre='Corral-01') -> None:
+    """Área con sus especies y densidades (RFC-012, DEV-23)."""
+
+    def __init__(self, superficie=None, densidades=(), nombre='Corral-01') -> None:
         self.superficie = superficie
-        self.capacidad_maxima = capacidad_maxima
+        self.densidades = densidades
         self.nombre = nombre
 
     def obtener_activa(self, _id: int) -> InfraestructuraConsulta:
         return InfraestructuraConsulta(
             id_infraestructura=1, nombre=self.nombre, tipo='Corral', es_activo=True,
-            superficie=self.superficie, capacidad_maxima=self.capacidad_maxima,
+            superficie=self.superficie,
+            especies=[EspecieDelArea(i + 1, f'E{i}', 'G', d) for i, d in enumerate(self.densidades)],
         )
 
 
@@ -147,19 +154,20 @@ def test_ficha_lote_expone_metricas_completas() -> None:
     assert ficha.infraestructura_asociada == 'Corral-01'
 
 
-def test_ficha_lote_incluye_densidad_maxima_cuando_hay_capacidad_configurada() -> None:
+def test_ficha_lote_densidad_maxima_es_el_minimo_de_las_especies_del_area() -> None:
+    # DEV-23 (RFC-012): la densidad que limita el área es la menor de sus especies.
     activo = _activo_lote()
-    infra = InfraPortFake(superficie=Decimal('10'), capacidad_maxima=15)
+    infra = InfraPortFake(superficie=Decimal('10'), densidades=(Decimal('2.5'), Decimal('1.5')))
     uc = _uc(activo, infra=infra)
 
     ficha = uc.execute(10, _usuario())
 
-    assert ficha.densidad_maxima == Decimal('1.5')  # 15 / 10
+    assert ficha.densidad_maxima == Decimal('1.5')
 
 
-def test_ficha_lote_sin_capacidad_maxima_configurada_deja_densidad_maxima_en_none() -> None:
+def test_ficha_lote_con_especie_sin_densidad_deja_densidad_maxima_en_none() -> None:
     activo = _activo_lote()
-    uc = _uc(activo, infra=InfraPortFake(superficie=Decimal('10'), capacidad_maxima=None))
+    uc = _uc(activo, infra=InfraPortFake(superficie=Decimal('10'), densidades=(Decimal('2'), None)))
 
     ficha = uc.execute(10, _usuario())
 

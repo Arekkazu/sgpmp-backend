@@ -1,9 +1,27 @@
 {
-  "76eb1351ca8c11d44211f4247fe0fb81_0": {
+  "16f77730f5fde5646e8bdbb6698fbf01_0": {
     "author": "mortiz-indigo",
-    "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
-    "false_positive": false,
+    "comment": "Ruta controlada por variable de entorno de configuracion AGROFUSION_SSO_PUBLIC_KEY_PATH, sin entrada de usuario.",
+    "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "2bc81c055899bdc24f04248c07e794d0_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: nombre de candado es literal cerrado ('buffer'/'recuperacion') definido en use cases internos.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "391c1d9e933913cbf262feb778915637_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: el candado sale del diccionario cerrado _CANDADOS (escritura/sincronizacion); nombre es un literal de los metodos internos y una clave desconocida da KeyError. El directorio es logs/ o AUDITORIA_M04_DIR_RESPALDO (configuracion del despliegue), sin entrada de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-10-23T20:16:05Z"
+  },
+  "391c1d9e933913cbf262feb778915637_1": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: destino es audit_fallback_M04_procesando/ + el nombre de un archivo que glob encontro en el mismo directorio de respaldo con el patron fijo audit_fallback_M04_????????.log; sin entrada de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-10-23T20:16:06Z"
   },
   "52c242b28ae20fdce1bf1628c385d5ec_0": {
     "author": "mortiz-indigo",
@@ -17,22 +35,10 @@
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
-  "bf6a538d19d5c54d1ef152f031357e46_0": {
+  "76eb1351ca8c11d44211f4247fe0fb81_0": {
     "author": "mortiz-indigo",
-    "comment": "Falso positivo: ventana_min es entero tipado de ventana de deduplicacion; sin entrada arbitraria de usuario.",
-    "false_positive": true,
-    "ignored_at": "2026-09-24T15:30:00Z"
-  },
-  "2bc81c055899bdc24f04248c07e794d0_0": {
-    "author": "mortiz-indigo",
-    "comment": "Falso positivo: nombre de candado es literal cerrado ('buffer'/'recuperacion') definido en use cases internos.",
-    "false_positive": true,
-    "ignored_at": "2026-09-24T15:30:00Z"
-  },
-  "16f77730f5fde5646e8bdbb6698fbf01_0": {
-    "author": "mortiz-indigo",
-    "comment": "Ruta controlada por variable de entorno de configuracion AGROFUSION_SSO_PUBLIC_KEY_PATH, sin entrada de usuario.",
-    "false_positive": true,
+    "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
+    "false_positive": false,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
   "96e3596e94352129f969751f93f76d01_0": {
@@ -50,6 +56,12 @@
   "96e3596e94352129f969751f93f76d01_2": {
     "author": "mortiz-indigo",
     "comment": "Retorno de ruta interna de artefacto de modelo ML registrado.",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "bf6a538d19d5c54d1ef152f031357e46_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: ventana_min es entero tipado de ventana de deduplicacion; sin entrada arbitraria de usuario.",
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   }

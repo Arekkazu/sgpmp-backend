@@ -1,15 +1,18 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/sanitario`` (RF-41).
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 _TIPOS_SANITARIO = {'VACUNACION', 'TRATAMIENTO', 'DIAGNOSTICO', 'CONTROL_PREVENTIVO'}
 _TIPOS_PERMITEN_CAMBIO_ESTADO = {'TRATAMIENTO', 'CONTROL_PREVENTIVO'}
@@ -31,7 +34,7 @@ class RegistrarEventoSanitarioDTO(BaseDTO):
     frecuencia: Optional[int] = None
     duracion: Optional[int] = None
     observaciones: Optional[str] = None
-    fecha: Optional[datetime] = None
+    fecha: Optional[FechaHoraUtc] = None
     descripcion: Optional[str] = None
     solicitar_estado: Optional[Literal['EN_TRATAMIENTO', 'AISLADO']] = None
 

@@ -74,7 +74,7 @@ broker exige uno. Si el broker no publica, el despliegue queda `PENDIENTE` con e
 | 403 | `ACCESO_DENEGADO` | Sin permiso E sobre el recurso 44 |
 | 404 | `VERSION_MODELO_NO_ENCONTRADA` | La versión no existe |
 | 409 | `DESPLIEGUE_OTA_VIGENTE` | Un nodo ya tiene en curso un despliegue del mismo (tipo_modelo, componente) — DB-04 |
-| 422 | `VERSION_NO_DISTRIBUIBLE` | La versión no está ACTIVO |
+| 422 | `VERSION_NO_DISTRIBUIBLE` | La versión no está APROBADO ni ACTIVO (EN_VALIDACION, RECHAZADO, DEPRECADO) — DEV-26, RFC-015 C3 |
 | 422 | `ARTEFACTO_NO_DISPONIBLE` | Sin artefacto, SHA-256 o tipo_modelo |
 | 422 | `DISPOSITIVO_OTA_INVALIDO` | Algún dispositivo no existe o está inactivo |
 | 503 | `OTA_NO_CONFIGURADA` | Falta `OTA_URL_SECRET` u `OTA_URL_BASE` |

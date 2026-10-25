@@ -1,9 +1,14 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-26 RF-69/70: OTA distribuye versiones APROBADO    |
 """Crear una distribución OTA de un componente a varios nodos (DEV-15, RF-70, D6 de AIOT-DEV-03).
 
-1. Valida la versión: debe estar ACTIVO y tener artefacto con SHA-256.
-   AN-2 (¿ACTIVO o APROBADO?) no está definido; se distribuye solo ACTIVO porque
-   ``trg_predicciones_version_modelo_activo`` rechaza (P0413) las predicciones de
-   una versión que no lo está.
+1. Valida la versión: debe estar APROBADO (RFC-015 C3, R11 de RF-69 corregida:
+   "RF-70 distribuye versiones APROBADO") o ACTIVO (P-2: un nodo nuevo recibe la
+   versión que ya está en producción), y tener artefacto con SHA-256. La activación
+   APROBADO → ACTIVO sigue siendo manual por el Veterinario (RF-69) tras el
+   despliegue; hasta entonces ``trg_predicciones_version_modelo_activo`` rechaza
+   (P0413) las predicciones de esa versión.
 2. Valida los nodos: existen, están activos y no tienen otro despliegue vigente
    del mismo (tipo_modelo, componente) (regla de DB-04). Un nodo con DETECTOR v3 en
    curso sí puede recibir ANOMALIAS (D-05).
@@ -30,7 +35,7 @@ from src.prediction.domain.repositories.version_modelo_repository import Version
 from src.prediction.infrastructure.dto.ota_dto import CrearDistribucionOtaDTO
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ServiceUnavailableError
 
-ESTADO_VERSION_DISTRIBUIBLE = "ACTIVO"
+ESTADOS_VERSION_DISTRIBUIBLES = ("APROBADO", "ACTIVO")
 
 
 @dataclass
@@ -74,12 +79,14 @@ class CrearDistribucionOtaUseCase:
                 message=f"No existe la versión de modelo con id {dto.id_version_modelo}.",
                 field="id_version_modelo",
             )
-        if version.estado_version != ESTADO_VERSION_DISTRIBUIBLE:
+        if version.estado_version not in ESTADOS_VERSION_DISTRIBUIBLES:
             raise BusinessRuleError(
                 code="VERSION_NO_DISTRIBUIBLE",
                 message=(
                     f"La versión {dto.id_version_modelo} está en estado '{version.estado_version}'. "
-                    "Solo se distribuyen por OTA las versiones en estado ACTIVO."
+                    "Solo se distribuyen por OTA las versiones en estado APROBADO, o ACTIVO para "
+                    "nodos nuevos. La activación (APROBADO → ACTIVO) la hace el Veterinario después "
+                    "del despliegue."
                 ),
                 field="id_version_modelo",
             )

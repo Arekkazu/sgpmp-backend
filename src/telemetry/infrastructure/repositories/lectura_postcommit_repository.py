@@ -1,12 +1,26 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-41 RF-53/57: contexto de alerta desde M09     |
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-22 | Leandro | DEV-44 RF-61: excluye vinculaciones SUPERADA del consumo vigente |
 """Consultas derivadas: nunca se leen los flags obsoletos de telemetrias."""
 from sqlalchemy import select, text
 
 from src.telemetry.domain.entities.telemetria import Telemetria
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
 from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import variable_para_alerta
 
 
 class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
+    def contexto_alerta(self, lectura):
+        variable = variable_para_alerta(self.db, id_variable=lectura.id_variable)
+        dispositivo = self.db.execute(text('''SELECT d.serial,d.id_infraestructura,i.id_finca
+            FROM modulo9.dispositivos_iot d JOIN modulo9.infraestructuras i
+              ON i.id_infraestructura=d.id_infraestructura WHERE d.id_dispositivo_iot=:id'''),
+            {'id': lectura.id_dispositivo_iot}).mappings().one()
+        return {'variable': variable, **dict(dispositivo)}
+
     def obtener_por_id(self, id_telemetria):
         columnas = [c for c in TelemetriaModel.__table__.c
                     if c.name not in ('apto_para_ia', 'apto_para_nic41')]
@@ -22,8 +36,22 @@ class SqlAlchemyLecturaPostcommitRepository(SqlAlchemyTelemetriaRepository):
         return self.db.execute(text("""SELECT id_vinculacion_lectura, id_activo_biologico
             FROM modulo3.vinculaciones_lecturas WHERE id_telemetria=:id
               AND fecha_fin_vinculacion IS NULL
+              AND estado_vinculacion<>'SUPERADA'
             ORDER BY fecha_creacion DESC, id_vinculacion_lectura DESC LIMIT 1
         """), {'id': identificador}).mappings().first()
+
+    def vinculacion_historica(self, identificador):
+        """Contexto de una lectura ya capturada, sin declarar vigente un periodo cerrado."""
+        return self.db.execute(text("""SELECT id_vinculacion_lectura, id_activo_biologico
+            FROM modulo3.vinculaciones_lecturas WHERE id_telemetria=:id
+            ORDER BY fecha_creacion DESC, id_vinculacion_lectura DESC LIMIT 1
+        """), {'id': identificador}).mappings().first()
+
+    def evaluacion_omitida(self, identificador):
+        return self.db.execute(text("""SELECT EXISTS(SELECT 1 FROM modulo3.bitacora_auditoria_iot
+            WHERE componente_origen='RF62' AND entidad_afectada_tipo='CALIDAD_DATO'
+              AND entidad_afectada_id=:id AND tipo_evento='EVALUACION_OMITIDA_POR_INACTIVIDAD')"""),
+            {'id':str(identificador)}).scalar_one()
 
     def evaluacion_vigente(self, identificador):
         return self.db.execute(text("""SELECT q.id_evaluacion, q.apto_para_ia, q.apto_para_nic41

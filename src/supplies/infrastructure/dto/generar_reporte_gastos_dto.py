@@ -1,8 +1,11 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: formato_exportacion PDF/CSV        |
 """DTO de entrada para generar el reporte de gastos acumulados (RF-77)."""
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 
@@ -20,3 +23,10 @@ class GenerarReporteGastosDTO(BaseDTO):
     id_infraestructura: Optional[int] = Field(default=None, gt=0)
     id_especie: Optional[int] = Field(default=None, gt=0)
     categorias_incluidas: Optional[list[CategoriaGasto]] = None
+    formato_exportacion: Optional[Literal["PDF", "CSV"]] = None
+
+
+class ExportarReporteGastosDTO(BaseDTO):
+    """Exportación de un reporte ya generado (RF-77 paso 8)."""
+
+    formato_exportacion: Literal["PDF", "CSV"]

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: inicio de sesión de usuario.
 
 Valida credenciales, aplica política de bloqueo por intentos fallidos,
@@ -20,6 +23,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
 from src.identity_access.infrastructure.email_templates import cuenta_bloqueada_email
 from src.shared.errors import AuthenticationError, LockedError
+from src.shared.fechas import en_zona_usuario
 
 MAX_INTENTOS = 5
 TIPO_LOGIN_EXITOSO = 3
@@ -163,7 +167,7 @@ class LoginUseCase:
                     code="CUENTA_BLOQUEADA",
                     message=(
                         f"Cuenta bloqueada por seguridad debido a múltiples intentos fallidos. "
-                        f"Podrá intentar acceder nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')} "
+                        f"Podrá intentar acceder nuevamente a las {en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')} "
                         f"(dentro de 15 minutos exactos)."
                     ),
                 )

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: lectura vigente y configuracion temporal |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +11,14 @@ from src.telemetry.domain.entities.vinculacion_lectura import VinculacionLectura
 
 
 class VinculacionLecturaRepository(ABC):
+
+    def bloquear_lectura(self, identificador): raise NotImplementedError
+
+    def vigente(self, identificador): raise NotImplementedError
+
+    def ultima(self, identificador): raise NotImplementedError
+
+    def contexto_lectura(self, identificador, captura): raise NotImplementedError
 
     @abstractmethod
     def guardar(self, vinculacion: VinculacionLectura) -> VinculacionLectura: ...

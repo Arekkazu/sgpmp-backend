@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-53: catálogo de calibración de DB-09 con alias del sobre D4 |
 """Entidad ``ObservacionVision`` — vector de comportamiento de un área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
 La cámara (Edge de visión) envía por ventana un vector estructurado del área y
@@ -5,7 +8,7 @@ las dimensiones de calidad de la ventana. M03 calcula su índice de calidad
 propio y ``apto_para_ia`` con la misma regla de tres tramos (80/40) de RF-62.
 
 Compatibilidad INC-M09-77-G137 (#513): este cálculo heredado usa pesos iguales
-y el catálogo SQL CALIBRADA/DEGRADADA/SIN_DETECCION. Los RF actualizados ya
+y el catálogo de calibración (hoy CALIBRADO/EN_CALIBRACION/SIN_LINEA_BASE, DB-09). Los RF actualizados ya
 definen AIOT-SPEC-01 (fórmula ponderada y otros estados); su adopción requiere
 alinear catálogo, metadata y configuración M09. DEV-07 preserva este cálculo
 sin presentarlo como implementación de esa fórmula posterior.
@@ -29,9 +32,17 @@ from src.telemetry.domain.entities.telemetria_calidad import (
 class EstadoCalibracionCamara(str, Enum):
     # RF-60 v2.0: "cámara con señal pero sin detección válida" (turbidez,
     # oclusión, baja luz) no es fallo del dispositivo sino calidad.
-    CALIBRADA = 'CALIBRADA'
-    DEGRADADA = 'DEGRADADA'
-    SIN_DETECCION = 'SIN_DETECCION'
+    # DB-09 (be29f17bb7fc) cambió el catálogo SQL a CALIBRADO/EN_CALIBRACION/
+    # SIN_LINEA_BASE: los valores se persisten así y los nombres viejos del sobre
+    # D4 se siguen aceptando como alias, para no romper al broker ni al Edge.
+    CALIBRADA = 'CALIBRADO'
+    DEGRADADA = 'EN_CALIBRACION'
+    SIN_DETECCION = 'SIN_LINEA_BASE'
+
+    @classmethod
+    def _missing_(cls, valor):
+        return {'CALIBRADA': cls.CALIBRADA, 'DEGRADADA': cls.DEGRADADA,
+                'SIN_DETECCION': cls.SIN_DETECCION}.get(valor)
 
 
 _PUNTAJE_ESTADO = {
