@@ -1,7 +1,8 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: verifica PostgreSQL, recuperacion y concurrencia de vision |
-"""PostgreSQL real aislado con migraciones existentes; sin inventar DB-09."""
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: sobre normativo persistido y calidad evaluada aparte |
+"""PostgreSQL real aislado con las migraciones del repositorio (DB-09 y 8c4e2a6f1b93)."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -23,8 +24,9 @@ from src.configuration.infrastructure.repositories.configuracion_global_reposito
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.shared.errors import ValidationError
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
+from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
-from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.workers.postcommit_worker import construir_procesador
 
@@ -77,12 +79,14 @@ def eventos(db,equipo,tipo='SIN_DETECCION_VALIDA'):
         AND accion_detallada->>'id_dispositivo_iot'=:id'''),{'t':tipo,'id':str(equipo['device'])}).mappings().all()
 
 
-def test_contrato_normativo_visible_sin_simular_persistencia_db09(client,db_session,equipo):
+def test_contrato_normativo_se_persiste_y_queda_pendiente_de_rf62(client,db_session,equipo):
     datos=normativo(equipo)
     r=h.enviar(client,datos)
-    assert r.status_code==503,r.text
-    assert r.json()['error_code']=='CONTRATO_VISION_PENDIENTE'
-    assert not h.filas(db_session,equipo)
+    assert r.status_code==201,r.text
+    assert r.json()['observaciones'][0]['indice_calidad_vision'] is None
+    fila=h.filas(db_session,equipo)[0]
+    assert (fila['n_individuos_observados'],fila['origen'],fila['cantidad_tracks'])==(0,'TIEMPO_REAL',None)
+    assert fila['estado_calibracion']=='CALIBRADO' and fila['fecha_evaluacion_calidad'] is None
     schema=client.get('/openapi.json').json()['components']['schemas']['ObservacionVisionD4DTO']
     assert {'tipo_dato','n_individuos_observados','origen'}<=set(schema['required'])
     assert schema['additionalProperties'] is False
@@ -96,19 +100,28 @@ def test_normativo_incompleto_es_400_sin_persistencia(client,db_session,equipo,c
     assert not h.filas(db_session,equipo)
 
 
-def test_pesos_persistidos_cambian_oraculo_sin_reinicio(db_session,equipo,politica):
+def test_pesos_persistidos_aplican_sin_reinicio_y_lo_evaluado_no_cambia(client,db_session,equipo,politica):
     writer,usuario=politica
-    uc=EvaluarCalidadVisionUseCase(ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db_session)))
-    dto=ObservacionVisionD4DTO(**normativo(equipo))
-    fps=db_session.execute(text('SELECT fps FROM modulo9.dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()
-    primero=uc.execute(dto,fps)
-    assert primero.indice==Decimal('91.6') and primero.clase=='OPTIMA'
+    uc=EvaluarCalidadVisionUseCase(db_session,SqlAlchemyObservacionVisionRepository(db_session),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db_session)),DispositivoM09Adapter(db_session))
+    assert h.enviar(client,normativo(equipo)).status_code==201
+    primera=h.filas(db_session,equipo)[0]['id_observacion_vision']
+    # 100 × (0.40×0.95 + 0.35×min(1,24/fps) + 0.25×(1 − 1/5)) con fps=25
+    evaluada=uc.execute(primera)
+    assert evaluada.indice_calidad_vision==Decimal('91.60') and evaluada.clasificacion_calidad=='OPTIMA'
     writer.execute({'w1':1,'w2':0,'w3':0,'umbral_optima':96},usuario)
-    segundo=uc.execute(dto,fps)
-    assert segundo.indice==95 and segundo.clase=='DEGRADADA'
-    assert segundo.apto_para_ia and segundo.confianza_baja and not segundo.apto_para_nic41
-    assert segundo.parametros_aplicados['w1']=='1'
-    assert dto.componentes.densidad_actividad==Decimal('.65')
+    datos=normativo(equipo)
+    fin=datetime.fromisoformat(datos['ventana_fin'])+timedelta(minutes=1)
+    datos.update(ventana_inicio=(fin-timedelta(minutes=1)).isoformat(),ventana_fin=fin.isoformat())
+    assert h.enviar(client,datos).status_code==201
+    segunda=uc.execute(h.filas(db_session,equipo)[1]['id_observacion_vision'])
+    assert segunda.indice_calidad_vision==95 and segunda.clasificacion_calidad=='DEGRADADA'
+    assert segunda.es_apto_para_ia and segunda.es_confianza_baja and not segunda.es_apto_para_nic41
+    # Idempotente: la primera conserva el índice de los parámetros con que se evaluó.
+    assert uc.execute(primera).indice_calidad_vision==Decimal('91.60')
+    fila=h.filas(db_session,equipo)[0]
+    assert fila['indice_calidad_vision']==Decimal('91.60') and fila['clasificacion_calidad']=='OPTIMA'
+    assert set(fila['json_flags_detectados'])=={'cobertura_baja','tracking_inestable','fps_insuficiente','sin_linea_base'}
 
 
 def test_politica_invalida_no_persiste_pesos_parciales(db_session,politica):
@@ -132,13 +145,21 @@ def test_postcommit_persiste_diagnostico_sin_alerta_y_es_idempotente(client,db_s
     originales=[dict(f) for f in h.filas(db_session,equipo)]
     assert not eventos(db_session,equipo)
     worker=construir_procesador(db_session.get_bind(),identidad=False)
-    assert worker.execute()=={'completados':3,'fallidos':0}
+    # 3 de VISION_CALIDAD (RF-62) + 3 de VISION_DETECCION.
+    assert worker.execute()=={'completados':6,'fallidos':0}
     assert worker.execute()=={'completados':0,'fallidos':0}
     evidencia=eventos(db_session,equipo)
     assert len(evidencia)==1 and evidencia[0]['entidad_afectada_id']==str(ids[-1])
     assert evidencia[0]['accion_detallada']['ventanas']==ids
     assert evidencia[0]['hash_integridad']
-    assert [dict(f) for f in h.filas(db_session,equipo)]==originales
+    # RF-62 solo llena el bloque de calidad; el dato observado no cambia.
+    evaluacion={'indice_calidad_vision','clasificacion_calidad','es_apto_para_ia','es_confianza_baja',
+        'json_flags_detectados','fecha_evaluacion_calidad'}
+    despues=[dict(f) for f in h.filas(db_session,equipo)]
+    assert [{k:v for k,v in f.items() if k not in evaluacion} for f in despues]==\
+        [{k:v for k,v in f.items() if k not in evaluacion} for f in originales]
+    # 100 × (0.40×0.1 + 0.35×24/25 + 0.25×(1 − 1/5)) = 4 + 33.6 + 20
+    assert [(f['indice_calidad_vision'],f['clasificacion_calidad']) for f in despues]==[(Decimal('57.60'),'DEGRADADA')]*3
     assert db_session.execute(text('SELECT count(*) FROM modulo3.alertas WHERE id_dispositivo_ioit=:id'),{'id':equipo['device']}).scalar_one()==0
 
 
@@ -188,11 +209,13 @@ def test_parametros_de_ventanas_cambian_en_mismo_worker(db_session,equipo,politi
 def test_configuracion_ausente_preserva_dato_y_permite_reintento(db_session,equipo):
     ventanas(db_session,equipo)
     worker=construir_procesador(db_session.get_bind(),identidad=False,reintento_seg=1)
-    assert worker.execute()=={'completados':0,'fallidos':3}
+    # Sin política fallan las dos etapas de visión (RF-62 y detección) por cada ventana.
+    assert worker.execute()=={'completados':0,'fallidos':6}
     assert len(h.filas(db_session,equipo))==3 and not eventos(db_session,equipo)
+    assert all(f['fecha_evaluacion_calidad'] is None for f in h.filas(db_session,equipo))
     configurar(db_session)
     time.sleep(1.1)
-    assert worker.execute()=={'completados':3,'fallidos':0}
+    assert worker.execute()=={'completados':6,'fallidos':0}
     assert len(eventos(db_session,equipo))==1
 
 

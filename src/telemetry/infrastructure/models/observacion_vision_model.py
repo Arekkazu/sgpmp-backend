@@ -1,4 +1,7 @@
-"""Observaciones de visión: 88496bce07b6 y campos DB-03 de 65541db23c71."""
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: columnas DB-09 y evaluación de calidad pendiente |
+"""Observaciones de visión: 88496bce07b6, DB-03 (65541db23c71), DB-09 (be29f17bb7fc) y RF-62 (8c4e2a6f1b93)."""
 from __future__ import annotations
 
 import datetime
@@ -6,7 +9,7 @@ import decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, SmallInteger, String,
+    Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, String,
     UniqueConstraint, text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -41,14 +44,21 @@ class ObservacionVisionModel(Base):
     fecha_inicio_ventana: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
     version_cascada: Mapped[Optional[dict]] = mapped_column('json_version_cascada', JSONB(none_as_null=True))
     cobertura_ventana: Mapped[decimal.Decimal] = mapped_column(Numeric(5, 4), nullable=False)
-    cantidad_tracks: Mapped[int] = mapped_column(Integer, nullable=False)
+    cantidad_tracks: Mapped[Optional[int]] = mapped_column(Integer)
     cantidad_tracks_perdidos: Mapped[int] = mapped_column(Integer, nullable=False)
     fps_efectivo: Mapped[decimal.Decimal] = mapped_column(Numeric(6, 2), nullable=False)
     estado_calibracion: Mapped[str] = mapped_column(String(15), nullable=False)
     json_vector: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    indice_calidad: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    clasificacion_calidad: Mapped[str] = mapped_column(String(20), nullable=False)
-    es_apto_para_ia: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    n_individuos_observados: Mapped[Optional[int]] = mapped_column(Integer)
+    # enum PG modulo3.enum_telemetria_origen: String para no recrear el tipo.
+    origen: Mapped[Optional[str]] = mapped_column(String)
+    # RF-62: NULL hasta que la evaluación asíncrona llena todo el bloque.
+    indice_calidad_vision: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(5, 2))
+    clasificacion_calidad: Mapped[Optional[str]] = mapped_column(String(20))
+    es_apto_para_ia: Mapped[Optional[bool]] = mapped_column(Boolean)
+    es_confianza_baja: Mapped[Optional[bool]] = mapped_column(Boolean)
+    json_flags_detectados: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))
+    fecha_evaluacion_calidad: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(
         DateTime(True), nullable=False, server_default=text('now()')
     )

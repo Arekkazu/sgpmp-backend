@@ -9,6 +9,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conecta auditoria de HTTP y persistencia MQTT |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
 # | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -35,7 +36,10 @@ from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_cas
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_telemetria_use_case import GenerarAlertaTelemetriaUseCase
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_ventanas_vision_use_case import EvaluarVentanasVisionUseCase
+from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
 from src.telemetry.infrastructure.repositories.ventanas_vision_repository import SqlAlchemyVentanasVisionRepository
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
@@ -116,6 +120,12 @@ def _alerta_critica(db, identificador):
             SqlAlchemyHistoricoEstadoAlertaRepository(db), SqlAlchemyReglaAlertaRepository(db),
             ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db))),
     ).execute(identificador)
+def _calidad_vision(db, identificador):
+    EvaluarCalidadVisionUseCase(db, SqlAlchemyObservacionVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        DispositivoM09Adapter(db)).execute(identificador)
+
+
 def _vision(db,identificador):
     EvaluarVentanasVisionUseCase(SqlAlchemyVentanasVisionRepository(db),
         ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
@@ -134,6 +144,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.RF57: _alerta_critica,
             EtapaPostcommit.RF60: lambda db, i: _recuperar_comunicacion(db, i),
+            EtapaPostcommit.VISION_CALIDAD: _calidad_vision,
             EtapaPostcommit.VISION_DETECCION: _vision,
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),

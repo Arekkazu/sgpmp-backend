@@ -1,10 +1,12 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-62: indice ponderado y oraculo determinista de vision |
-"""AIOT-SPEC-01 integrada en RF-62. No redondea al SMALLINT heredado.
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: indice a 2 decimales (NUMERIC(5,2)) antes de clasificar |
+"""AIOT-SPEC-01 integrada en RF-62.
 
-La aritmetica fija su contexto decimal; la precision de persistencia depende de
-DB-09. No equipara estados ni clases historicas a los del contrato normativo.
+La aritmetica fija su contexto decimal. El indice se redondea a 2 decimales
+(``indice_calidad_vision NUMERIC(5,2)``) antes de clasificar, para que el valor
+guardado y su clase coincidan en los bordes (79.996 se guarda 80.00 y es OPTIMA).
 """
 from dataclasses import dataclass
 from decimal import Decimal, localcontext, ROUND_HALF_EVEN
@@ -81,7 +83,7 @@ def evaluar_calidad_vision(*, cobertura: Decimal, fps: Decimal, perdidos: int,
         modificador = {EstadoCalibracionVision.CALIBRADO: Decimal(1),
             EstadoCalibracionVision.EN_CALIBRACION:p.factor_en_calibracion,
             EstadoCalibracionVision.SIN_LINEA_BASE:Decimal(0)}[calibracion]
-        indice = 100*(p.w1*cobertura+p.w2*factor_fps+p.w3*factor_perdidas)*modificador
+        indice = (100*(p.w1*cobertura+p.w2*factor_fps+p.w3*factor_perdidas)*modificador).quantize(Decimal('0.01'))
         esperados = p.fps_configurado*duracion_seg
     if calibracion == EstadoCalibracionVision.SIN_LINEA_BASE or indice < p.umbral_degradada:
         clase = ClaseCalidadVision.NO_APTA

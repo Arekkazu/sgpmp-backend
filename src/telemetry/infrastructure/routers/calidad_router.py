@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evaluacion de calidad de vision bajo demanda |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -10,6 +11,7 @@ RF-62 — CU06 Dev scope:
   GET  /iot/calidad/{id_telemetria}         — Calidad de una lectura específica
   POST /iot/calidad/{id_telemetria}/evaluar — Disparar evaluación puntual
   POST /iot/calidad/reevaluar               — Re-evaluación explícita admin (FA-08)
+  POST /iot/calidad/vision/{id}/evaluar     — Calidad de una observación de visión (AIOT-SPEC-01)
 
 Auth: JWT Bearer + RBAC recurso 38 (calidad_telemetria).
 """
@@ -30,6 +32,11 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.telemetry.application.use_cases.calidad.consultar_calidad_use_case import ConsultarCalidadUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
+from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
+from src.telemetry.infrastructure.schema.telemetria_schema import ObservacionVisionResponse
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
 from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
@@ -114,6 +121,42 @@ def obtener_calidad(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
     )
     return TelemetriaCalidadSchema.model_validate(use_case.get(id_telemetria))
+
+
+@router.post(
+    "/vision/{id_observacion_vision}/evaluar",
+    response_model=ObservacionVisionResponse,
+    status_code=200,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_permission(38, 5))],
+    summary="Evaluar la calidad de una observación de visión (RF-62)",
+)
+def evaluar_calidad_vision(
+    id_observacion_vision: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ObservacionVisionResponse:
+    """Calcula el índice ponderado de RF-62 (AIOT-SPEC-01) de una observación ya ingerida.
+
+    **Acceso:** `calidad_telemetria` · Ejecutar.
+
+    El worker post-commit evalúa cada observación por su cuenta; este endpoint
+    lo adelanta. Es idempotente: si ya estaba evaluada devuelve esa evaluación
+    sin recalcular. 503 `PARAMETRO_CONFIGURACION_AUSENTE` si faltan los pesos en
+    M09 y 503 `PARAMETRO_CONFIGURACION_INVALIDO` si la cámara no tiene fps (RF-23).
+    """
+    observacion = EvaluarCalidadVisionUseCase(
+        db,
+        SqlAlchemyObservacionVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        DispositivoM09Adapter(db),
+    ).execute(id_observacion_vision)
+    return ObservacionVisionResponse.desde(observacion)
 
 
 @router.post(

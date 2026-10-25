@@ -4,6 +4,7 @@
 # | 2026-10-22 | Leandro | DEV-28 RF-60: reclama vision con evidencia y lock de DEV-05 |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: recupera avisos sin duplicar vinculacion |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: recupera resultados por lectura y transicion sin duplicarlos |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: pendientes de la etapa de calidad de vision |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -82,8 +83,11 @@ class SqlAlchemyPostcommitRepository:
             consulta = consulta.where(tabla.c[campo].is_not(None))
             if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
                 consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
-        if etapa.es_vision:
+        if etapa is EtapaPostcommit.VISION_DETECCION:
             consulta = consulta.where(tabla.c.fecha_inicio_ventana.is_not(None))
+        if etapa is EtapaPostcommit.VISION_CALIDAD:
+            # Las históricas ya traen su evaluación (8c4e2a6f1b93): no se reevalúan.
+            consulta = consulta.where(tabla.c.fecha_evaluacion_calidad.is_(None))
         if etapa is EtapaPostcommit.RF61_AVISOS:
             from src.telemetry.infrastructure.models.vinculacion_lectura_model import VinculacionLecturaModel
             v=VinculacionLecturaModel.__table__
@@ -115,6 +119,8 @@ class SqlAlchemyPostcommitRepository:
     def registrar(self, etapa, identificador, error=None, *, detalle=None):
         if etapa in (EtapaPostcommit.RF53_LECTURAS, EtapaPostcommit.RF53_AUDITORIA):
             componente = ComponenteOrigen.RF53
+        elif etapa is EtapaPostcommit.VISION_CALIDAD:
+            componente = ComponenteOrigen.RF62
         elif etapa.es_heartbeat or etapa.es_vision or etapa is EtapaPostcommit.RF60_TRANSICIONES:
             componente = ComponenteOrigen.RF60
         elif etapa is EtapaPostcommit.RF61_AVISOS:
