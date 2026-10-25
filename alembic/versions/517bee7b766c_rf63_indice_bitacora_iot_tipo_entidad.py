@@ -38,6 +38,14 @@ depends_on = None
 
 def upgrade() -> None:
     with op.get_context().autocommit_block():
+        # Un CONCURRENTLY interrumpido deja el índice INVALID; IF NOT EXISTS lo
+        # daría por bueno en el reintento, así que se retira antes de crearlo.
+        invalido = op.get_bind().exec_driver_sql('''SELECT 1 FROM pg_index i
+            JOIN pg_class c ON c.oid = i.indexrelid
+            WHERE c.oid = to_regclass('modulo3.idx_bitacora_iot_tipo_evento_entidad_afectada_id')
+              AND NOT i.indisvalid''').scalar()
+        if invalido:
+            op.execute('DROP INDEX CONCURRENTLY modulo3.idx_bitacora_iot_tipo_evento_entidad_afectada_id')
         op.execute('''CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bitacora_iot_tipo_evento_entidad_afectada_id
             ON modulo3.bitacora_auditoria_iot (tipo_evento, entidad_afectada_id)''')
         op.execute('DROP INDEX CONCURRENTLY IF EXISTS modulo3.idx_bitacora_iot_tipo')
