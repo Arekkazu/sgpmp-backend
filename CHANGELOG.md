@@ -1,3 +1,9 @@
+## [1.4.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.4...v1.4.0-rc.5) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** keepalives en la conexión de Alembic para CREATE INDEX CONCURRENTLY ([29c2942](https://github.com/Arekkazu/sgpmp-backend/commit/29c2942a40463367b6ddeebcf3d8c5f8bc6bc919))
+
 ## [1.4.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.3...v1.4.0-rc.4) (2026-10-25)
 
 ### Bug Fixes
