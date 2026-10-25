@@ -1,3 +1,10 @@
+## [1.4.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.5...v1.4.0-rc.6) (2026-10-25)
+
+### Bug Fixes
+
+* **rls:** alinea SELECT/UPDATE de sensores a criterio directo por dispositivo ([0808894](https://github.com/Arekkazu/sgpmp-backend/commit/08088948c6dfdf577559ba3182abfc69f50bbc6e))
+* **rls:** encadenar f62b120bb13f al head de dev (INC-M03-150-G92) ([9a7fcda](https://github.com/Arekkazu/sgpmp-backend/commit/9a7fcdac8a774336351fb72ae53dc9c6ec64d831))
+
 ## [1.4.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.4...v1.4.0-rc.5) (2026-10-25)
 
 ### Bug Fixes
