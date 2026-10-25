@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-64 - TC-M04-G001 Alta y consulta del catálogo de patologías",
-    "description": "Automatiza TC-M04-001/002 (RF-64, CU01, flujo feliz) contra el catálogo de patologías de M04 (/prediccion/patologias). 001: crea una patología para una especie bovina propia (grupo ESPECIES_GRANDES, RF-15) con 3 variables I3P-1 (13 temperatura corporal, 14 frecuencia cardíaca, 15 frecuencia respiratoria; RF-16) y descripción clínica de 120 caracteres; verifica id único, es_base=false, activa, variables asociadas, version_catalogo incrementada y que quede persistida (detalle). 002: consultas sin filtros, por especie, por estado ACTIVA (solo_activas) y por nombre parcial; las 8 patologías base se distinguen de las agregadas por es_base. Notas: especie_aplicable es el id de la especie (o 'TODAS'), el estado es el booleano es_activo, version_catalogo es por patología (empieza en 1 y sube al editar) y el GET no tiene parámetro de búsqueda por nombre (se prueba nombre_patologia). La creación es del rol veterinario: completar correo_veterinario/contrasena_veterinario (por defecto, el Administrador). La distinción visual de es_base en la UI (CA-4) va en un caso de Frontend aparte.",
+    "description": "Automatiza TC-M04-001/002 (RF-64, CU01, flujo feliz) contra el catálogo de patologías de M04 (/prediccion/patologias). 001: crea una patología para una especie bovina propia (grupo ESPECIES_GRANDES, RF-15) con 3 variables I3P-1 (13 temperatura corporal, 14 frecuencia cardíaca, 15 frecuencia respiratoria; RF-16) y descripción clínica de 120 caracteres; verifica id único, es_base=false, activa, variables asociadas, version_catalogo incrementada y que quede persistida (detalle). 002: consultas sin filtros, por especie, por estado ACTIVA (solo_activas) y por nombre parcial; las 8 patologías base se distinguen de las agregadas por es_base. Notas: especie_aplicable es el id de la especie (o 'TODAS'), el estado es el booleano es_activo. La ficha pide version_catalogo incrementada con el alta, pero el backend versiona por patología (empieza en 1 y sube al editar): la aserción compara contra la máxima versión previa. El GET no tiene parámetro de búsqueda por nombre (se prueba nombre_patologia, que se ignora). Las base se comparan por nombre entre las ACTIVAS porque en TEST hay base extra insertadas en BD por otros casos (id 28, inactiva). La creación es del rol veterinario: completar correo_veterinario/contrasena_veterinario (por defecto, el Administrador). La distinción visual de es_base en la UI (CA-4) va en un caso de Frontend aparte.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -215,7 +215,7 @@
                   "pm.test('TC-M04-001: estado ACTIVA', function () { pm.expect(p.es_activo).to.eql(true); });",
                   "pm.test('TC-M04-001: especie_aplicable = la especie bovina', function () { pm.expect(String(p.especie_aplicable)).to.eql(String(pm.collectionVariables.get('id_especie'))); });",
                   "pm.test('TC-M04-001: las 3 variables quedan asociadas', function () { pm.expect((p.variables_sensoricas_asociadas || []).map(v => v.id_variable_ambiental).sort()).to.eql([13, 14, 15]); });",
-                  "pm.test('TC-M04-001: version_catalogo incrementada respecto al catálogo previo', function () {",
+                  "pm.test('TC-M04-001: version_catalogo del catálogo incrementada con el alta (el backend versiona por patología)', function () {",
                   "  pm.expect(p.version_catalogo).to.be.above(Number(pm.collectionVariables.get('version_antes')));",
                   "});"
                 ]
@@ -321,7 +321,7 @@
                   "pm.test('TC-M04-002a: incluye la patología nueva', function () { pm.expect(nueva, 'patología nueva').to.exist; });",
                   "pm.test('TC-M04-002a: total = antes + 1', function () { pm.expect(items.length).to.eql(Number(pm.collectionVariables.get('total_antes')) + 1); });",
                   "pm.test('TC-M04-002a: las 8 patologías base se distinguen de las agregadas (es_base)', function () {",
-                  "  pm.expect(items.filter(p => p.es_base === true).length).to.eql(8);",
+                  "  pm.expect(items.filter(p => p.es_base === true && p.es_activo === true).map(p => p.nombre_patologia).sort()).to.eql([\"Deshidratación\", \"Estrés térmico\", \"Gastroenteritis infecciosa\", \"Hipotermia o estrés por frío\", \"Intoxicación hídrica\", \"Ninguna (estado normal)\", \"Septicemia o infección sistémica\", \"Síndrome respiratorio agudo\"]);",
                   "  pm.expect(nueva && nueva.es_base).to.eql(false);",
                   "});"
                 ]
@@ -462,8 +462,9 @@
                   "pm.test('Solo base responde 200', function () { pm.response.to.have.status(200); });",
                   "const items = pm.response.json().items || [];",
                   "const nueva = items.find(p => p.id_patologia === Number(pm.collectionVariables.get('id_patologia')));",
-                  "pm.test('TC-M04-002d: son exactamente las 8 patologías base', function () {",
-                  "  pm.expect(items.length).to.eql(8); pm.expect(items.every(p => p.es_base === true)).to.eql(true);",
+                  "pm.test('TC-M04-002d: todas son base y las 8 base activas del catálogo están', function () {",
+                  "  pm.expect(items.every(p => p.es_base === true)).to.eql(true);",
+                  "  pm.expect(items.filter(p => p.es_activo === true).map(p => p.nombre_patologia).sort()).to.eql([\"Deshidratación\", \"Estrés térmico\", \"Gastroenteritis infecciosa\", \"Hipotermia o estrés por frío\", \"Intoxicación hídrica\", \"Ninguna (estado normal)\", \"Septicemia o infección sistémica\", \"Síndrome respiratorio agudo\"]);",
                   "});",
                   "pm.test('TC-M04-002d: la agregada no aparece entre las base', function () { pm.expect(nueva).to.be.undefined; });"
                 ]

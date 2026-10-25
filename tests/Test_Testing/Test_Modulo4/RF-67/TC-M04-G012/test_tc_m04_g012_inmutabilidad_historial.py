@@ -73,6 +73,16 @@ def api() -> requests.Session:
     return s
 
 
+@pytest.fixture(scope="module")
+def api_vet() -> requests.Session:
+    # La retroalimentacion clinica (RF-72) es del rol Veterinario: el Administrador recibe 403.
+    s = requests.Session()
+    r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": "juan.carlos@email.com", "contrasena": "Test1234!"}, timeout=TIMEOUT)
+    assert r.status_code == 200, f"Login Veterinario: HTTP {r.status_code} {r.text}"
+    s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+    return s
+
+
 def _crear(s, ruta, cuerpo, campo):
     r = s.post(f"{BASE_URL}{ruta}", json=cuerpo, timeout=TIMEOUT)
     assert r.status_code == 201, f"Precondicion {ruta}: HTTP {r.status_code} {r.text}"
@@ -94,7 +104,7 @@ def datos(api):
         "finca_id": finca, "especie_id": especie}, "id_infraestructura")
     activos = {clave: _crear(api, "/activos-biologicos", {
         "tipo_activo": "INDIVIDUAL", "id_especie": especie, "fecha_inicio_ciclo": "2026-09-01",
-        "origen_financiero": "nacimiento", "id_infraestructura": area, "identificador": f"CERDO-{clave}-{suf}",
+        "origen_financiero": "nacimiento", "id_infraestructura": area, "identificador": f"CERDO-{clave[:4]}-{suf}",
         "raza": "Landrace", "sexo": "Macho", "fecha_nacimiento": "2026-05-01T00:00:00", "peso_inicial": "30.0",
         "detalles_procedencia": "Activo de prueba TC-M04-G012"}, "id_activo_biologico") for clave in ("historico", "concurrente")}
     nombre_original = f"Patologia Historica {suf}"
@@ -213,9 +223,9 @@ def test_tc_m04_023_modificar_o_eliminar_en_bd_no_se_completa(api, datos, tabla,
     assert afectadas == 0, f"{tabla}: la sentencia modifico {afectadas} fila(s) (revertidas por la prueba); no hay bloqueo append-only"
 
 
-def test_tc_m04_023_retroalimentacion_se_persiste_como_evento_independiente(api, datos):
+def test_tc_m04_023_retroalimentacion_se_persiste_como_evento_independiente(api, api_vet, datos):
     antes = _inferencia(_historial(api, datos, "historico"), datos["historica"])
-    r = api.post(f"{BASE_URL}/prediccion/retroalimentacion", json={
+    r = api_vet.post(f"{BASE_URL}/prediccion/retroalimentacion", json={
         "id_resultado_inferencia": datos["historica"], "id_activo_biologico": datos["activos"]["historico"],
         "estado_retroalimentacion": "CORRECTO", "observaciones_clinicas": "Retroalimentacion de prueba TC-M04-023"},
         timeout=TIMEOUT)
