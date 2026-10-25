@@ -66,6 +66,26 @@
     {
       "key": "ids_alertas",
       "value": "[]"
+    },
+    {
+      "key": "sensor_temperatura_ambiental",
+      "value": "525"
+    },
+    {
+      "key": "sensor_oxigeno_disuelto",
+      "value": "3"
+    },
+    {
+      "key": "device_id_oxigeno",
+      "value": "1"
+    },
+    {
+      "key": "serial_oxigeno",
+      "value": ""
+    },
+    {
+      "key": "alerta_aislar",
+      "value": "0"
     }
   ],
   "item": [
@@ -186,6 +206,1367 @@
       ]
     },
     {
+      "name": "1. Conflicto de severidad Edge vs IA (E12) (TC-M03-142)",
+      "item": [
+        {
+          "name": "1.1 (Edge=LEVE, IA=CRITICO, conf=0.84) excepcion de E12: IA=CRITICO con confianza 0.84 < 0.85 y Edge=LEVE -> MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.84,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.1] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = MODERADO\", function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "  pm.test(\"conflicto_resolucion = SEVERIDAD_COMPROMISO\", function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_COMPROMISO'); });",
+                  "  pm.test(\"severidad_edge_original = LEVE y severidad_ia = CRITICO quedan registradas\", function () { pm.expect(J.severidad_edge_original).to.eql('LEVE'); pm.expect(J.severidad_ia).to.eql('CRITICO'); });",
+                  "  pm.test(\"ambas severidades originales (Edge=LEVE, IA=CRITICO) quedan en metadato_evento\", function () { const _m = JSON.stringify(J.metadato_evento || {}); pm.expect(_m, 'metadato_evento=' + _m).to.include('LEVE').and.to.include('CRITICO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1z Aislamiento: descartar la alerta creada en 1.1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.1] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 (Edge=LEVE, IA=CRITICO, conf=0.85) confianza 0.85 exacto: NO aplica la excepcion -> severidad maxima CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.85,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.2] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = CRITICO\", function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "  pm.test(\"conflicto_resolucion = SEVERIDAD_MAXIMA\", function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "  pm.test(\"severidad_edge_original = LEVE y severidad_ia = CRITICO quedan registradas\", function () { pm.expect(J.severidad_edge_original).to.eql('LEVE'); pm.expect(J.severidad_ia).to.eql('CRITICO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2z Aislamiento: descartar la alerta creada en 1.2",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.2] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 (Edge=MODERADO, IA=CRITICO, conf=0.8) Edge=MODERADO, IA=CRITICO, 0.80: fuera de la excepcion -> severidad maxima CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.8,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.3] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = CRITICO\", function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "  pm.test(\"conflicto_resolucion = SEVERIDAD_MAXIMA\", function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "  pm.test(\"severidad_edge_original = MODERADO y severidad_ia = CRITICO quedan registradas\", function () { pm.expect(J.severidad_edge_original).to.eql('MODERADO'); pm.expect(J.severidad_ia).to.eql('CRITICO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3z Aislamiento: descartar la alerta creada en 1.3",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.3] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 (Edge=CRITICO, IA=LEVE, conf=0.5) Edge=CRITICO, IA=LEVE, 0.50 -> severidad maxima CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.5,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.4] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = CRITICO\", function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "  pm.test(\"conflicto_resolucion = SEVERIDAD_MAXIMA\", function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "  pm.test(\"severidad_edge_original = CRITICO y severidad_ia = LEVE quedan registradas\", function () { pm.expect(J.severidad_edge_original).to.eql('CRITICO'); pm.expect(J.severidad_ia).to.eql('LEVE'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4z Aislamiento: descartar la alerta creada en 1.4",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.4] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 (Edge=LEVE, IA=MODERADO, conf=0.9) Edge=LEVE, IA=MODERADO, 0.90 -> severidad maxima MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.5] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = MODERADO\", function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "  pm.test(\"conflicto_resolucion = SEVERIDAD_MAXIMA\", function () { pm.expect(J.conflicto_resolucion).to.eql('SEVERIDAD_MAXIMA'); });",
+                  "  pm.test(\"severidad_edge_original = LEVE y severidad_ia = MODERADO quedan registradas\", function () { pm.expect(J.severidad_edge_original).to.eql('LEVE'); pm.expect(J.severidad_ia).to.eql('MODERADO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5z Aislamiento: descartar la alerta creada en 1.5",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.5] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 (Edge=MODERADO, IA=MODERADO, conf=0.9) mismas severidades (MODERADO/MODERADO): sin conflicto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.6] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6g Verificar la alerta: severidad, flag y severidades originales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 1.6] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"severidad final = MODERADO\", function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "  pm.test(\"sin conflicto de severidad: conflicto_resolucion ausente (null)\", function () { pm.expect(J.conflicto_resolucion === null || J.conflicto_resolucion === undefined, 'conflicto_resolucion=' + J.conflicto_resolucion).to.eql(true); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6z Aislamiento: descartar la alerta creada en 1.6",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 1.6] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Conflicto de tipo Edge vs IA (E13) (TC-M03-143)",
+      "item": [
+        {
+          "name": "2.1 Edge=ESTRES_TERMICO (temp. 525), IA=SINDROME_RESPIRATORIO, conf=0.84: confianza 0.84 < 0.85 -> tipo del Edge (ESTRES_TERMICO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.84,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1g Verificar la alerta: tipo final y flag de tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.1] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tipo_alerta final = ESTRES_TERMICO\", function () { pm.expect(J.tipo_alerta).to.eql('ESTRES_TERMICO'); });",
+                  "  pm.test(\"conflicto_resolucion = EDGE_PREVALECE (flag de tipo)\", function () { pm.expect(J.conflicto_resolucion).to.eql('EDGE_PREVALECE'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1z Aislamiento: descartar la alerta creada en 2.1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 2.1] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Edge=ESTRES_TERMICO (temp. 525), IA=SINDROME_RESPIRATORIO, conf=0.85: confianza 0.85 exacto -> tipo de la IA (SINDROME_RESPIRATORIO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.85,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2g Verificar la alerta: tipo final y flag de tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.2] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tipo_alerta final = SINDROME_RESPIRATORIO\", function () { pm.expect(J.tipo_alerta).to.eql('SINDROME_RESPIRATORIO'); });",
+                  "  pm.test(\"conflicto_resolucion = IA_PREVALECE (flag de tipo)\", function () { pm.expect(J.conflicto_resolucion).to.eql('IA_PREVALECE'); });",
+                  "  pm.test(\"ambos tipos (Edge=ESTRES_TERMICO, IA=SINDROME_RESPIRATORIO) quedan en metadato_evento\", function () { const _m = JSON.stringify(J.metadato_evento || {}); pm.expect(_m, 'metadato_evento=' + _m).to.include('ESTRES_TERMICO').and.to.include('SINDROME_RESPIRATORIO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2z Aislamiento: descartar la alerta creada en 2.2",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 2.2] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Edge=ESTRES_TERMICO (temp. 525), IA=SINDROME_RESPIRATORIO, conf=0.86: confianza 0.86 -> tipo de la IA (SINDROME_RESPIRATORIO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.86,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3g Verificar la alerta: tipo final y flag de tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.3] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tipo_alerta final = SINDROME_RESPIRATORIO\", function () { pm.expect(J.tipo_alerta).to.eql('SINDROME_RESPIRATORIO'); });",
+                  "  pm.test(\"conflicto_resolucion = IA_PREVALECE (flag de tipo)\", function () { pm.expect(J.conflicto_resolucion).to.eql('IA_PREVALECE'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3z Aislamiento: descartar la alerta creada en 2.3",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 2.3] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Edge=RIESGO_HIDRICO (oxigeno disuelto, sensor 3), IA=ESTRES_TERMICO, conf=0.85 -> tipo de la IA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial_oxigeno}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 6.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"ESTRES_TERMICO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.85,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4g Verificar la alerta: tipo final y flag de tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.4] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tipo_alerta final = ESTRES_TERMICO\", function () { pm.expect(J.tipo_alerta).to.eql('ESTRES_TERMICO'); });",
+                  "  pm.test(\"conflicto_resolucion = IA_PREVALECE (flag de tipo)\", function () { pm.expect(J.conflicto_resolucion).to.eql('IA_PREVALECE'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4z Aislamiento: descartar la alerta creada en 2.4",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 2.4] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Conflicto simultaneo de tipo y severidad: Edge=LEVE/ESTRES_TERMICO, IA=CRITICO/SINDROME_RESPIRATORIO, conf=0.84",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.84,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('POST /iot/alertas responde 201 con id_alerta (creacion de la alerta del caso)', function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5g Verificar la alerta: tipo del Edge (conf < 0.85), severidad MODERADO y ambos flags (tipo y severidad)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 2.5] GET status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('alerta_aislar') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta (ver el error del POST); se omite la verificacion');",
+                  "} else {",
+                  "  pm.test('GET /iot/alertas/{id} responde 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tipo_alerta = ESTRES_TERMICO (confianza 0.84 < 0.85: prevalece el Edge)\", function () { pm.expect(J.tipo_alerta).to.eql('ESTRES_TERMICO'); });",
+                  "  pm.test(\"severidad = MODERADO (excepcion de E12)\", function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "  pm.test(\"quedan registrados los dos flags: EDGE_PREVALECE (tipo) y SEVERIDAD_COMPROMISO (severidad)\", function () { const _f = JSON.stringify(J).toUpperCase(); pm.expect(_f, 'conflicto_resolucion=' + J.conflicto_resolucion).to.include('EDGE_PREVALECE').and.to.include('SEVERIDAD_COMPROMISO'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5z Aislamiento: descartar la alerta creada en 2.5",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G76\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G76 aislamiento 2.5] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Regla compuesta vs regla simple sin IA (TC-M03-167)",
+      "item": [
+        {
+          "name": "3.1 E15: SINDROME_RESPIRATORIO compuesto vs NH3 CRITICO, y variable ajena PH_AGUA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+            "description": "Marcador de subcaso no ejecutado. Motivo: la ficha indica no ejecutar TC-M03-167 como caso de aceptacion hasta que Analisis resuelva la inconsistencia FA-04 de CU-03 vs E12/E15; ademas no existen sensores de NH3 ni PH_AGUA en TEST"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test.skip(\"NO EJECUTADO - la ficha indica no ejecutar TC-M03-167 como caso de aceptacion hasta que Analisis resuelva la inconsistencia FA-04 de CU-03 vs E12/E15; ademas no existen sensores de NH3 ni PH_AGUA en TEST\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "4. Umbral de confianza de E12 configurable 0.70 - 0.95 (TC-M03-N18)",
       "item": [
         {
@@ -194,31 +1575,16 @@
             "method": "GET",
             "header": [
               {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion del umbral de confianza por confirmar (M09 / DEV-14)"
+            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
+            "description": "Marcador de subcaso no ejecutado. Motivo: el umbral umbral_confianza_edge_ia (M09/DEV-14) solo se modifica con el script administrativo scripts/configurar_parametros_dev14.py contra la BD; no hay endpoint HTTP y el cambio es global (fuera del sandbox) y afectaria a otras pruebas en TEST"
           },
           "event": [
             {
@@ -226,8 +1592,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g76_automatizado.py - no va en Postman porque: endpoint de configuracion del umbral de confianza por confirmar (M09 / DEV-14)\");"
+                  "pm.test.skip(\"NO EJECUTADO - el umbral umbral_confianza_edge_ia (M09/DEV-14) solo se modifica con el script administrativo scripts/configurar_parametros_dev14.py contra la BD; no hay endpoint HTTP y el cambio es global (fuera del sandbox) y afectaria a otras pruebas en TEST\");"
                 ]
               }
             }

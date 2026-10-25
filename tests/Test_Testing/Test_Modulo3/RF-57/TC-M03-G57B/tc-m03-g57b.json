@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M03-G57B - SLA de atencion y escalamiento de alertas por severidad (Restriccion 12, E10, CA-12)",
-    "description": "RF-57 Restriccion 12 / E10 / CA-12. SLA: CRITICA 5 min, MODERADA 30 min, LEVE 120 min, contados desde timestamp_generacion. Parte automatizable: fecha_vencimiento = fecha_generacion + SLA por severidad (1, 3, 4, 5), reconocimiento a tiempo (2, estado EN_ATENCION). AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py; no va en Postman porque requiere reloj controlado o SLA reducido por configuracion: vencimiento real, escalamiento al veterinario/administrador, registro del incumplimiento en bitacora y alertas_vencidas_sin_atencion (1, 3, 4, 6, 7, 8). Segun el documento de desarrollo, el SLA de alertas se planifica aparte: la ficha puede salir \"no implementado\". VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g57b.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G57B.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. NOTA 2026-10-24: se retiraron 7 pasos que usan sensores no disponibles en TEST (pH, NH3, CO2, TDS, frecuencia respiratoria, frecuencia cardiaca, temperatura corporal) o dependen de ellos. Detalle en PENDIENTES_SENSORES_M3.md.",
+    "description": "RF-57 Restriccion 12 / E10 / CA-12 (SLA por severidad). TEST tiene un proceso automatico que pasa a VENCIDA las alertas no atendidas y notifica (observado en las alertas 438 a 441), pero dentro del sandbox no se puede esperar el vencimiento real (la corrida se cierra a los 180 s y el SLA es de 5 min, 30 min y 2 h) ni hay endpoint para reducir los plazos. La coleccion verifica: (1) el plazo que el backend asigna por severidad (fecha_vencimiento = fecha_generacion + 5/30/120 min); (2) el reconocimiento a tiempo (EN_ATENCION); (3) que el plazo parte de fecha_generacion y no de fecha_evento (evento 10 min anterior); (4) que no existe endpoint ni parametro de SLA configurable; (5) la alerta VENCIDA (llevada a ese estado por PATCH) sigue consultable, aparece en el listado y deja registro en la bitacora filtrada por la alerta; (6) lectura de lo que el proceso automatico ya hizo en TEST: alertas ACTIVAS que debieron vencer, retraso entre fecha_vencimiento y el cambio a VENCIDA, notificaciones de escalamiento al administrador y al veterinario y bitacora de la alerta vencida mas reciente; (7) el indicador alertas_vencidas_sin_atencion en el dashboard de monitoreo (se deja al final porque el dashboard puede tardar minutos). Los bordes 4:59, 5:00 y 5:01 (TC-M03-N43) y el SLA de MODERADA y LEVE en tiempo real solo se pueden probar con un reloj controlado, con SLA configurable o esperando fuera del sandbox: quedan documentados como no ejecutados. Todo se crea dentro del sandbox transaccional y se revierte con el rollback; todas las peticiones (menos los logins) llevan X-Test-Run-Id y X-Sandbox-Secret; el ultimo item (Z) hace DELETE /test-control/runs/{run_id}. Las claves, el secreto del sandbox y el token del broker no se guardan en este archivo: el script correr_newman.ps1 las pide en la terminal. Ejecucion: .\\correr_newman.ps1 -Caso G57B (desde tests\\Test_Testing). No usar --bail. Ambiente: solo TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -37,19 +37,31 @@
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": ""
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
       "value": ""
     },
     {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
       "key": "device_id",
-      "value": "1"
+      "value": "339"
     },
     {
       "key": "serial",
@@ -64,20 +76,85 @@
       "value": "1"
     },
     {
-      "key": "ids_alertas",
-      "value": "[]"
+      "key": "ts_run_inicio",
+      "value": ""
+    },
+    {
+      "key": "sensor_temperatura_ambiental",
+      "value": "525"
+    },
+    {
+      "key": "sensor_humedad_relativa",
+      "value": "526"
+    },
+    {
+      "key": "sensor_oxigeno_disuelto",
+      "value": "3"
+    },
+    {
+      "key": "device_id_oxigeno",
+      "value": "1"
+    },
+    {
+      "key": "serial_oxigeno",
+      "value": ""
+    },
+    {
+      "key": "device_id_nh3",
+      "value": "310"
+    },
+    {
+      "key": "serial_nh3",
+      "value": "QA58-DEV-A10-01"
+    },
+    {
+      "key": "sensor_nh3",
+      "value": "482"
+    },
+    {
+      "key": "sensor_temp_corporal",
+      "value": "471"
+    },
+    {
+      "key": "id_crit",
+      "value": "0"
+    },
+    {
+      "key": "id_mod",
+      "value": "0"
+    },
+    {
+      "key": "id_leve",
+      "value": "0"
+    },
+    {
+      "key": "id_crit_ok",
+      "value": "0"
+    },
+    {
+      "key": "id_ant",
+      "value": "0"
+    },
+    {
+      "key": "n_esc_admin",
+      "value": "0"
+    },
+    {
+      "key": "id_venc_reciente",
+      "value": "0"
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login Administrador",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.collectionVariables.set('ids_alertas', '[]');"
+              "pm.collectionVariables.set('ids_alertas', '[]');",
+              "pm.collectionVariables.set('ts_run_inicio', new Date(Date.now() - 60000).toISOString());"
             ]
           }
         },
@@ -86,7 +163,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -104,6 +181,40 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Login Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -186,10 +297,10 @@
       ]
     },
     {
-      "name": "1. Plazos de SLA por severidad (TC-M03-N39 / N41 / N42)",
+      "name": "1. Plazos de SLA por severidad: CRITICA 5 min, MODERADA 30 min, LEVE 120 min (TC-M03-N39 / N41 / N42, parte observable)",
       "item": [
         {
-          "name": "1.1 CRITICA - crear alerta CRITICO",
+          "name": "1.1 CRITICA (temperatura, CRITICO): crear sin tocarla",
           "request": {
             "method": "POST",
             "header": [
@@ -205,7 +316,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 37.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 38.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -220,14 +331,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -236,20 +340,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57b_c', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "pm.test('severidad = CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "console.log('[G57B-1.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_crit', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.1 CRITICA - fecha_vencimiento = fecha_generacion + 5 min",
+          "name": "1.1b CRITICA: plazo de 5 min desde fecha_generacion",
           "request": {
             "method": "GET",
             "header": [
@@ -258,7 +361,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57b_c}}"
+            "url": "{{base_url}}/iot/alertas/{{id_crit}}"
           },
           "event": [
             {
@@ -266,17 +369,21 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('SLA CRITICO: vencimiento a 5 min de la generacion', function () { const d = (new Date(J.fecha_vencimiento).getTime() - new Date(J.fecha_generacion).getTime()) / 60000; pm.expect(Math.round(d)).to.eql(5); });"
+                  "const _g = Date.parse(J.fecha_generacion), _v = Date.parse(J.fecha_vencimiento), _e = Date.parse(J.fecha_evento);",
+                  "const _dif = (_v - _g) / 60000;",
+                  "console.log('[G57B][OBSERVADO] CRITICA estado=' + J.estado_alerta + ' severidad=' + J.severidad + ' fecha_generacion=' + J.fecha_generacion + ' fecha_vencimiento=' + J.fecha_vencimiento + ' plazo(min)=' + _dif.toFixed(3));",
+                  "pm.test('CRITICA: nace ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });",
+                  "pm.test('CRITICA: fecha_vencimiento = fecha_generacion + 5 min', function () { pm.expect(_dif, 'minutos').to.be.within(5 - 0.02, 5 + 0.02); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2 MODERADA - crear alerta MODERADO",
+          "name": "1.2 MODERADA (amoniaco, MODERADO): crear sin tocarla",
           "request": {
             "method": "POST",
             "header": [
@@ -292,7 +399,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -307,14 +414,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -323,20 +423,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57b_m', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "console.log('[G57B-1.2][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_mod', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2 MODERADA - fecha_vencimiento = fecha_generacion + 30 min",
+          "name": "1.2b MODERADA: plazo de 30 min desde fecha_generacion",
           "request": {
             "method": "GET",
             "header": [
@@ -345,7 +444,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57b_m}}"
+            "url": "{{base_url}}/iot/alertas/{{id_mod}}"
           },
           "event": [
             {
@@ -353,17 +452,73 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 1.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('SLA MODERADO: vencimiento a 30 min de la generacion', function () { const d = (new Date(J.fecha_vencimiento).getTime() - new Date(J.fecha_generacion).getTime()) / 60000; pm.expect(Math.round(d)).to.eql(30); });"
+                  "const _g = Date.parse(J.fecha_generacion), _v = Date.parse(J.fecha_vencimiento), _e = Date.parse(J.fecha_evento);",
+                  "const _dif = (_v - _g) / 60000;",
+                  "console.log('[G57B][OBSERVADO] MODERADA estado=' + J.estado_alerta + ' severidad=' + J.severidad + ' fecha_generacion=' + J.fecha_generacion + ' fecha_vencimiento=' + J.fecha_vencimiento + ' plazo(min)=' + _dif.toFixed(3));",
+                  "pm.test('MODERADA: nace ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });",
+                  "pm.test('MODERADA: fecha_vencimiento = fecha_generacion + 30 min', function () { pm.expect(_dif, 'minutos').to.be.within(30 - 0.02, 30 + 0.02); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.4 CRITICA no reconocida en 5 min: pasa a VENCIDA, escala al veterinario o administrador y registra el incumplimiento",
+          "name": "1.3 LEVE (temperatura corporal, LEVE): crear sin tocarla",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 39.5,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "console.log('[G57B-1.3][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_leve', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3b LEVE: plazo de 120 min desde fecha_generacion",
           "request": {
             "method": "GET",
             "header": [
@@ -372,27 +527,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere esperar 5 min o SLA reducido por configuracion (endpoint por confirmar)"
+            "url": "{{base_url}}/iot/alertas/{{id_leve}}"
           },
           "event": [
             {
@@ -400,53 +535,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G57B 1.3b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py - no va en Postman porque: requiere esperar 5 min o SLA reducido por configuracion (endpoint por confirmar)\");"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.5 MODERADA no atendida en 30 min: notificacion de escalamiento e incumplimiento / LEVE en 2 h: solo incumplimiento",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere esperar 30 min / 2 h o SLA reducido por configuracion"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py - no va en Postman porque: requiere esperar 30 min / 2 h o SLA reducido por configuracion\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _g = Date.parse(J.fecha_generacion), _v = Date.parse(J.fecha_vencimiento), _e = Date.parse(J.fecha_evento);",
+                  "const _dif = (_v - _g) / 60000;",
+                  "console.log('[G57B][OBSERVADO] LEVE estado=' + J.estado_alerta + ' severidad=' + J.severidad + ' fecha_generacion=' + J.fecha_generacion + ' fecha_vencimiento=' + J.fecha_vencimiento + ' plazo(min)=' + _dif.toFixed(3));",
+                  "pm.test('LEVE: nace ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });",
+                  "pm.test('LEVE: fecha_vencimiento = fecha_generacion + 120 min', function () { pm.expect(_dif, 'minutos').to.be.within(120 - 0.02, 120 + 0.02); });"
                 ]
               }
             }
@@ -458,7 +554,99 @@
       "name": "2. CRITICA reconocida a tiempo (TC-M03-N40)",
       "item": [
         {
-          "name": "2.4 Verificar tras >5 min que no hay escalamiento",
+          "name": "2.1 CRITICA (humedad, CRITICO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 95.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "console.log('[G57B-2.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_crit_ok', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Administrador reconoce la alerta: EN_ATENCION antes de los 5 min",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_crit_ok}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('estado_alerta = EN_ATENCION', function () { pm.expect(J.estado_alerta).to.eql('EN_ATENCION'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 La alerta sigue EN_ATENCION, con fecha_atencion y sin pasar a VENCIDA",
           "request": {
             "method": "GET",
             "header": [
@@ -467,27 +655,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere espera real de 5 min"
+            "url": "{{base_url}}/iot/alertas/{{id_crit_ok}}"
           },
           "event": [
             {
@@ -495,8 +663,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G57B 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py - no va en Postman porque: requiere espera real de 5 min\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Sigue EN_ATENCION (no vence, no escala)', function () { pm.expect(J.estado_alerta).to.eql('EN_ATENCION'); });",
+                  "pm.test('Queda registrada fecha_atencion', function () { pm.expect(J.fecha_atencion, 'fecha_atencion').to.exist.and.not.be.null; });"
                 ]
               }
             }
@@ -505,10 +676,62 @@
       ]
     },
     {
-      "name": "3. El tiempo se cuenta desde timestamp_generacion (TC-M03-N43)",
+      "name": "3. El plazo se cuenta desde timestamp_generacion (TC-M03-N43)",
       "item": [
         {
-          "name": "3.3 Reconocimiento a 4:59, 5:00 y 5:01 de timestamp_generacion",
+          "name": "3.1 CRITICA (oxigeno) con timestamp_evento 10 min anterior a la generacion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial_oxigeno}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 2.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_ant}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); pm.variables.set('ts_now', new Date(_n).toISOString());",
+                  "pm.variables.set('ts_ant', new Date(_n - 600000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "console.log('[G57B-3.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, id_alerta: J.id_alerta}));",
+                  "pm.collectionVariables.set('id_ant', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 El plazo parte de fecha_generacion y no de fecha_evento (5 min tras la generacion, no 5 min tras el evento)",
           "request": {
             "method": "GET",
             "header": [
@@ -517,27 +740,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere reloj controlado o SLA reducido por configuracion"
+            "url": "{{base_url}}/iot/alertas/{{id_ant}}"
           },
           "event": [
             {
@@ -545,8 +748,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G57B 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py - no va en Postman porque: requiere reloj controlado o SLA reducido por configuracion\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _g = Date.parse(J.fecha_generacion), _v = Date.parse(J.fecha_vencimiento), _e = Date.parse(J.fecha_evento);",
+                  "const _dif = (_v - _g) / 60000;",
+                  "console.log('[G57B][OBSERVADO] CRITICA con evento anterior estado=' + J.estado_alerta + ' severidad=' + J.severidad + ' fecha_generacion=' + J.fecha_generacion + ' fecha_vencimiento=' + J.fecha_vencimiento + ' plazo(min)=' + _dif.toFixed(3));",
+                  "pm.test('CRITICA con evento anterior: nace ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });",
+                  "pm.test('CRITICA con evento anterior: fecha_vencimiento = fecha_generacion + 5 min', function () { pm.expect(_dif, 'minutos').to.be.within(5 - 0.02, 5 + 0.02); });",
+                  "const _dEv = (_v - _e) / 60000;",
+                  "console.log('[G57B-3.2][OBSERVADO] fecha_evento=' + J.fecha_evento + ' vencimiento - evento (min)=' + _dEv.toFixed(2));",
+                  "pm.test('La alerta no nace ya vencida por contar desde el evento (vencimiento - evento ~ 15 min)', function () { pm.expect(_dEv, 'minutos').to.be.within(14.5, 15.5); });"
                 ]
               }
             }
@@ -555,10 +767,10 @@
       ]
     },
     {
-      "name": "4. Configuracion de SLA, bitacora e indicador (TC-M03-N44 / N45 / N46)",
+      "name": "4. Tiempos y reglas de escalamiento configurables (TC-M03-N44)",
       "item": [
         {
-          "name": "4.1 Reducir los SLA a segundos como administrador y repetir",
+          "name": "4.1 N44: los parametros operativos (GET /configuracion/parametros) incluyen tiempos de SLA",
           "request": {
             "method": "GET",
             "header": [
@@ -567,43 +779,263 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
+            "url": "{{base_url}}/configuracion/parametros"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G57B-4.1][OBSERVADO] campos = ' + JSON.stringify(Object.keys(J || {})));",
+                  "pm.test('Algun campo de parametros es de SLA, plazo o escalamiento', function () { pm.expect(/sla|plazo|escalam|vencim/i.test(Object.keys(J || {}).join(' '))).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 N44: existe un endpoint para configurar tiempos y reglas de escalamiento (se excluye /iot/calidad)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _paths = Object.keys(J.paths || {});",
+                  "const _hit = _paths.filter(function (p) { return /sla|escalamiento|vencimiento|plazo/i.test(p) && !/calidad/i.test(p); });",
+                  "console.log('[G57B-4.2][OBSERVADO] rutas del contrato de SLA/escalamiento = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
+                  "pm.test('Hay una ruta para configurar los tiempos y reglas de escalamiento del SLA', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Alerta VENCIDA visible y bitacora (TC-M03-N45 / N46)",
+      "item": [
+        {
+          "name": "5.1 Listado de alertas VENCIDAS (las que paso el proceso automatico de SLA): se guarda la mas reciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=VENCIDA&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 5.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _l = (J.items || []);",
+                  "console.log('[G57B-5.1][OBSERVADO] total VENCIDA=' + J.total + ' ids=' + JSON.stringify(_l.map(function (a) { return a.id_alerta; })));",
+                  "pm.test('El listado con estado=VENCIDA solo trae alertas VENCIDA y hay al menos una', function () { pm.expect(_l.length).to.be.above(0); _l.forEach(function (a) { pm.expect(a.estado_alerta).to.eql('VENCIDA'); }); });",
+                  "const _rec = _l.filter(function (a) { return Date.parse(a.fecha_generacion) > Date.now() - 7 * 86400000; });",
+                  "pm.collectionVariables.set('id_venc_reciente', String(_rec.length ? _rec[0].id_alerta : (_l.length ? _l[0].id_alerta : 0)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 La alerta VENCIDA sigue consultable y su historial muestra el paso a VENCIDA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_venc_reciente}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 5.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Sigue consultable con estado VENCIDA', function () { pm.expect(J.estado_alerta).to.eql('VENCIDA'); });",
+                  "const _h = (J.historico_estados || []);",
+                  "console.log('[G57B-5.2][OBSERVADO] historial = ' + JSON.stringify(_h.map(function (h) { return [h.estado_anterior, h.estado_nuevo, h.fecha_cambio, h.id_usuario, h.motivo]; })));",
+                  "pm.test('El historial registra ACTIVA -> VENCIDA', function () { pm.expect(_h.filter(function (h) { return h.estado_nuevo === 'VENCIDA'; }).length).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 Intentar poner VENCIDA a mano (alerta del paso 3.1): debe rechazarse porque VENCIDA solo la fija el SLA",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_ant}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"VENCIDA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 5.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('VENCIDA manual rechazada (HTTP 422 TRANSICION_INVALIDA)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(422); pm.expect(J.error_code).to.eql('TRANSICION_INVALIDA'); });",
+                  "console.log('[G57B-5.3][OBSERVADO] ' + JSON.stringify({status: pm.response.code, error_code: J.error_code, message: J.message}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.4 La alerta sigue ACTIVA tras el intento manual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_ant}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 5.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Sigue ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.5 Bitacora (RF-63) de la alerta del intento manual: queda el rechazo con timestamp, entidad y resultado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{id_ant}}&tipo_evento=TRANSICION_ALERTA_RECHAZADA&por_pagina=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 5.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _rel = (J.items || []);",
+                  "console.log('[G57B-5.5][OBSERVADO] eventos (total ' + J.total + ') = ' + JSON.stringify(_rel.map(function (e) { return [e.tipo_evento, e.entidad_afectada_tipo, e.resultado, e.fecha_hora, e.accion_detallada]; })));",
+                  "pm.test('El rechazo queda en la bitacora (RECHAZADO, entidad ALERTA, con fecha)', function () { pm.expect(_rel.length, 'eventos').to.be.above(0); _rel.forEach(function (e) { pm.expect(e.resultado).to.eql('RECHAZADO'); pm.expect(e.entidad_afectada_tipo).to.eql('ALERTA'); pm.expect(e.fecha_hora).to.exist; }); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Proceso automatico de SLA ya observado en TEST: alertas vencidas, notificaciones y bitacora (lectura; TC-M03-N39 / N41 / N42 / N45)",
+      "item": [
+        {
+          "name": "6.1 CRITICAS ACTIVAS generadas hace mas de 10 min (plazo 5 min): no debe quedar ninguna sin vencer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=ACTIVA&severidad=CRITICO&fecha_hasta={{ts_limite_critico}}&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_limite_critico', new Date(Date.now() - 600000).toISOString());"
+                ]
+              }
             },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion de SLA por confirmar"
-          },
-          "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G57B 6.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g57b_automatizado.py - no va en Postman porque: endpoint de configuracion de SLA por confirmar\");"
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _l = (J.items || []);",
+                  "const _now = Date.now();",
+                  "const _venc = _l.filter(function (a) { return a.estado_alerta === 'ACTIVA' && Date.parse(a.fecha_vencimiento) < _now - 180000; });",
+                  "console.log('[G57B-6.1][OBSERVADO] ACTIVAS CRITICO generadas hace mas de 10 min: total=' + J.total + ' | con el plazo cumplido hace mas de 3 min y aun ACTIVAS (pagina 1)=' + _venc.length + ' | ' + JSON.stringify(_venc.slice(0, 15).map(function (a) { return [a.id_alerta, a.fecha_generacion, a.fecha_vencimiento]; })));",
+                  "pm.test('Ninguna alerta CRITICO sigue ACTIVA mas de 3 min despues de su plazo (deberia estar VENCIDA)', function () { pm.expect(_venc.length, 'alertas ACTIVAS vencidas').to.eql(0); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "4.2 Bitacora: eventos de SLA con timestamp, id_alerta y resultado (se registra lo observado)",
+          "name": "6.2 MODERADAS ACTIVAS generadas hace mas de 40 min (plazo 30 min)",
           "request": {
             "method": "GET",
             "header": [
@@ -612,44 +1044,38 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/auditoria?pagina=1&por_pagina=10",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "auditoria"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "10"
-                }
-              ]
-            }
+            "url": "{{base_url}}/iot/alertas?estado=ACTIVA&severidad=MODERADO&fecha_hasta={{ts_limite_moderado}}&por_pagina=50"
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_limite_moderado', new Date(Date.now() - 2400000).toISOString());"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 6.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G57B-4.2][OBSERVADO] bitacora reciente = ' + JSON.stringify((J.items || J.eventos || J.data || []).slice(0, 5)));"
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _l = (J.items || []);",
+                  "const _now = Date.now();",
+                  "const _venc = _l.filter(function (a) { return a.estado_alerta === 'ACTIVA' && Date.parse(a.fecha_vencimiento) < _now - 180000; });",
+                  "console.log('[G57B-6.2][OBSERVADO] ACTIVAS MODERADO generadas hace mas de 40 min: total=' + J.total + ' | con el plazo cumplido hace mas de 3 min y aun ACTIVAS (pagina 1)=' + _venc.length + ' | ' + JSON.stringify(_venc.slice(0, 15).map(function (a) { return [a.id_alerta, a.fecha_generacion, a.fecha_vencimiento]; })));",
+                  "pm.test('Ninguna alerta MODERADO sigue ACTIVA mas de 3 min despues de su plazo (deberia estar VENCIDA)', function () { pm.expect(_venc.length, 'alertas ACTIVAS vencidas').to.eql(0); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "4.3 Las alertas VENCIDAS siguen visibles y auditables en el listado",
+          "name": "6.3 LEVES ACTIVAS generadas hace mas de 130 min (plazo 120 min)",
           "request": {
             "method": "GET",
             "header": [
@@ -658,26 +1084,47 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?estado=VENCIDA&por_pagina=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "estado",
-                  "value": "VENCIDA"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "20"
-                }
-              ]
+            "url": "{{base_url}}/iot/alertas?estado=ACTIVA&severidad=LEVE&fecha_hasta={{ts_limite_leve}}&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_limite_leve', new Date(Date.now() - 7800000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 6.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _l = (J.items || []);",
+                  "const _now = Date.now();",
+                  "const _venc = _l.filter(function (a) { return a.estado_alerta === 'ACTIVA' && Date.parse(a.fecha_vencimiento) < _now - 180000; });",
+                  "console.log('[G57B-6.3][OBSERVADO] ACTIVAS LEVE generadas hace mas de 130 min: total=' + J.total + ' | con el plazo cumplido hace mas de 3 min y aun ACTIVAS (pagina 1)=' + _venc.length + ' | ' + JSON.stringify(_venc.slice(0, 15).map(function (a) { return [a.id_alerta, a.fecha_generacion, a.fecha_vencimiento]; })));",
+                  "pm.test('Ninguna alerta LEVE sigue ACTIVA mas de 3 min despues de su plazo (deberia estar VENCIDA)', function () { pm.expect(_venc.length, 'alertas ACTIVAS vencidas').to.eql(0); });"
+                ]
+              }
             }
+          ]
+        },
+        {
+          "name": "6.4 Alertas VENCIDAS en TEST: retraso entre fecha_vencimiento y el cambio a VENCIDA (se documenta)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=VENCIDA&por_pagina=50"
           },
           "event": [
             {
@@ -685,11 +1132,145 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 4.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57B 6.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El filtro VENCIDA es valido y todas las filas son VENCIDA', function () { (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('VENCIDA'); }); });",
-                  "console.log('[G57B-4.3][OBSERVADO] total VENCIDAS = ' + JSON.stringify(J.total));"
+                  "const _l = (J.items || []);",
+                  "const _datos = _l.slice(0, 15).map(function (a) { return {id: a.id_alerta, sev: a.severidad, estado: a.estado_alerta, origen: a.origen_evento, generada: a.fecha_generacion, vencimiento: a.fecha_vencimiento, fecha_resolucion: a.fecha_resolucion, atencion: a.fecha_atencion, retraso_s: (a.fecha_resolucion ? Math.round((Date.parse(a.fecha_resolucion) - Date.parse(a.fecha_vencimiento)) / 1000) : null)}; });",
+                  "console.log('[G57B-6.4][OBSERVADO] VENCIDAS=' + J.total + ' ' + JSON.stringify(_datos));",
+                  "const _rec = _l.filter(function (a) { return Date.parse(a.fecha_generacion) > Date.now() - 7 * 86400000; });",
+                  "pm.collectionVariables.set('id_venc_reciente', String(_rec.length ? _rec[0].id_alerta : 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.5 Notificaciones del Administrador: mensajes de SLA vencido (N39)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 6.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _l = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
+                  "const _esc = _l.filter(function (n) { return /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i.test(n.mensaje || JSON.stringify(n)); });",
+                  "console.log('[G57B-6.5][OBSERVADO] notificaciones=' + (J.total !== undefined ? J.total : _l.length) + ' (pagina 1: ' + _l.length + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
+                  "pm.collectionVariables.set('n_esc_admin', String(_esc.length));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.6 Notificaciones del Veterinario: mensajes de SLA vencido (N39)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 6.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "const _l = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
+                  "const _esc = _l.filter(function (n) { return /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i.test(n.mensaje || JSON.stringify(n)); });",
+                  "console.log('[G57B-6.6][OBSERVADO] notificaciones=' + (J.total !== undefined ? J.total : _l.length) + ' (pagina 1: ' + _l.length + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
+                  "pm.test('El veterinario o el administrador recibieron notificaciones de escalamiento por SLA vencido', function () { pm.expect(_esc.length + Number(pm.collectionVariables.get('n_esc_admin') || 0), 'notificaciones de SLA (administrador + veterinario)').to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.7 Bitacora (RF-63) de la alerta VENCIDA mas reciente (vencida por el proceso automatico): evento de SLA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{id_venc_reciente}}&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 6.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _rel = (J.items || []);",
+                  "console.log('[G57B-6.7][OBSERVADO] alerta ' + pm.collectionVariables.get('id_venc_reciente') + ': eventos (total ' + J.total + ') = ' + JSON.stringify(_rel.map(function (e) { return [e.tipo_evento, e.entidad_afectada_tipo, e.resultado, e.fecha_hora]; })));",
+                  "const _inc = _rel.filter(function (e) { return e.tipo_evento === 'SLA_ALERTA_INCUMPLIDO'; });",
+                  "const _esc = _rel.filter(function (e) { return e.tipo_evento === 'ESCALAMIENTO_ALERTA_SLA'; });",
+                  "pm.test('La bitacora registra el incumplimiento del SLA (SLA_ALERTA_INCUMPLIDO) con fecha, entidad ALERTA y resultado', function () { pm.expect(_inc.length, 'eventos').to.be.above(0); const e = _inc[0]; pm.expect(e.entidad_afectada_tipo).to.eql('ALERTA'); pm.expect(e.fecha_hora, 'fecha_hora').to.be.a('string'); pm.expect(e.resultado, 'resultado').to.be.a('string'); });",
+                  "pm.test('La bitacora registra el escalamiento por SLA (ESCALAMIENTO_ALERTA_SLA) con fecha, entidad ALERTA y resultado', function () { pm.expect(_esc.length, 'eventos').to.be.above(0); const e = _esc[0]; pm.expect(e.entidad_afectada_tipo).to.eql('ALERTA'); pm.expect(e.fecha_hora, 'fecha_hora').to.be.a('string'); pm.expect(e.resultado, 'resultado').to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Indicador alertas_vencidas_sin_atencion en el dashboard de monitoreo (lectura, al final porque el dashboard es lento; TC-M03-N46)",
+      "item": [
+        {
+          "name": "7.1 Indicador alertas_vencidas_sin_atencion en el dashboard de monitoreo (GET /iot/monitoreo/dashboard(lectura)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/dashboard?por_pagina=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57B 7.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "function _buscar(o, ruta, out) { if (o && typeof o === 'object') { Object.keys(o).forEach(function (k) { const r = ruta + '/' + k; if (/vencid/i.test(k)) { out.push({ruta: r, valor: (typeof o[k] === 'object' ? JSON.stringify(o[k]).slice(0, 80) : o[k])}); } _buscar(o[k], r, out); }); } return out; }",
+                  "const _ind = _buscar(J, '', []);",
+                  "console.log('[G57B-7.1][OBSERVADO] tiempo=' + pm.response.responseTime + ' ms | claves con vencid* = ' + JSON.stringify(_ind) + ' | claves de primer nivel = ' + JSON.stringify(Object.keys(J || {})));",
+                  "pm.test('El dashboard expone alertas_vencidas_sin_atencion', function () { pm.expect(_ind.filter(function (x) { return /alertas_vencidas_sin_atencion/i.test(x.ruta); }).length, 'claves encontradas').to.be.above(0); });"
                 ]
               }
             }

@@ -68,5 +68,11 @@ Push-Location $Ruta
 newman run $col -r "cli,htmlextra" --reporter-htmlextra-export $html @args2
 $rc = $LASTEXITCODE
 Pop-Location
+# Redacta secretos (JWT, Bearer, X-Sandbox-Secret, contrasena del login) del reporte para poder subirlo a Git
+if (Test-Path $html) {
+  $limpiador = Join-Path $PSScriptRoot 'limpiar_reporte.py'
+  python $limpiador $html
+  if ($LASTEXITCODE -ne 0) { Write-Host 'ATENCION: no se pudo limpiar el reporte; NO lo subas a Git.' -ForegroundColor Red }
+}
 Write-Host "Reporte: $html" -ForegroundColor Cyan
 exit $rc

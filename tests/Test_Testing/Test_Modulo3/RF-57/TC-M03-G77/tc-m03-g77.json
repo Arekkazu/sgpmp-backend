@@ -69,15 +69,71 @@
     },
     {
       "key": "sensor_con_contexto",
-      "value": "1"
+      "value": "3"
     },
     {
       "key": "sensor_solo_unidad",
-      "value": "1"
+      "value": "525"
     },
     {
       "key": "sensor_sin_asociacion",
+      "value": "547"
+    },
+    {
+      "key": "device_id_oxigeno",
       "value": "1"
+    },
+    {
+      "key": "serial_oxigeno",
+      "value": ""
+    },
+    {
+      "key": "device_id_sin_contexto",
+      "value": "354"
+    },
+    {
+      "key": "serial_sin_contexto",
+      "value": "SERIAL-EDGE-QA-02"
+    },
+    {
+      "key": "activo_con_contexto",
+      "value": "768"
+    },
+    {
+      "key": "id_infra_con_contexto",
+      "value": "1"
+    },
+    {
+      "key": "correo_productor",
+      "value": ""
+    },
+    {
+      "key": "contrasena_productor",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "notif_admin_antes",
+      "value": "0"
+    },
+    {
+      "key": "notif_prod_antes",
+      "value": "0"
+    },
+    {
+      "key": "alerta_g77_1",
+      "value": "0"
+    },
+    {
+      "key": "alerta_g77_2",
+      "value": "0"
+    },
+    {
+      "key": "alerta_g77_3",
+      "value": "0"
     }
   ],
   "item": [
@@ -198,10 +254,151 @@
       ]
     },
     {
+      "name": "0Y. Linea base de notificaciones (administrador y productor)",
+      "item": [
+        {
+          "name": "0Y1. Login productor (para comparar sus notificaciones)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login productor exitoso (200)\", function () { pm.response.to.have.status(200); });",
+                  "try { pm.collectionVariables.set('token_productor', pm.response.json().token); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0Y2. Linea base: notificaciones del administrador (total antes)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G77 0Y2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"GET /notificaciones responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('notif_admin_antes', String(J.total === undefined ? -1 : J.total));",
+                  "console.log('[TC-M03-G77 0Y2] total=' + J.total + ' no_leidas=' + J.no_leidas);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0Y3. Linea base: notificaciones del productor (total antes)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G77 0Y3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"GET /notificaciones responde 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('notif_prod_antes', String(J.total === undefined ? -1 : J.total));",
+                  "console.log('[TC-M03-G77 0Y3] total=' + J.total + ' no_leidas=' + J.no_leidas);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "1. Contexto completo (TC-M03-144)",
       "item": [
         {
-          "name": "1.1 Evento de sensor asociado a activo y unidad",
+          "name": "1.0 Preparacion (sandbox): asociar el sensor 3 al lote 768 (RF-49, POBLACIONAL) para tener sensor con activo y unidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/{{activo_con_contexto}}/sensores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"LOTE\",\n  \"tipo_asociacion\": \"POBLACIONAL\",\n  \"dispositivo_iot_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_con_contexto}},\n  \"id_infraestructura\": {{id_infra_con_contexto}},\n  \"motivo\": \"QA TC-M03-G77\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G77 1.0] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "pm.test(\"Asociacion sensor-lote creada (201); si falla, el sensor igual conserva su asociacion ambiental con los activos de la unidad\", function () { pm.expect(pm.response.code, pm.response.text().slice(0,300)).to.eql(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1 Evento de un sensor asociado a un activo y a una unidad (sensor 3, oxigeno disuelto)",
           "request": {
             "method": "POST",
             "header": [
@@ -217,7 +414,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_con_contexto}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_con_contexto}},\n  \"serial\": \"{{serial_oxigeno}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 6.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -232,14 +429,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -248,21 +438,24 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 1.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g77_1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test(\"POST /iot/alertas responde 201 con id_alerta (evento aceptado)\", function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('alerta_g77_1', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2 Detalle: contexto completo y contexto_incompleto=false",
+          "name": "1.2 Detalle: contexto completo y tiene_contexto_incompleto=false",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
@@ -276,12 +469,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 1.2 GET] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('contexto_incompleto=false', function () { pm.expect(J.tiene_contexto_incompleto === false || J.contexto_incompleto === false).to.be.true; });",
-                  "pm.test('Contexto del activo presente (id_activo_biologico y contexto_activo_biologico)', function () { pm.expect(J.id_activo_biologico).to.exist; pm.expect(J.contexto_activo_biologico).to.exist; });",
-                  "pm.test('Unidad productiva asociada (id_infraestructura)', function () { pm.expect(J.id_infraestructura).to.exist; });"
+                  "if (pm.collectionVariables.get('alerta_g77_1') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta');",
+                  "} else {",
+                  "  pm.test(\"GET /iot/alertas/{id} responde 200\", function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tiene_contexto_incompleto = false\", function () { pm.expect(J.tiene_contexto_incompleto, 'tiene_contexto_incompleto=' + J.tiene_contexto_incompleto).to.eql(false); });",
+                  "  pm.test(\"id_activo_biologico = el activo/lote asociado (768)\", function () { pm.expect(String(J.id_activo_biologico), 'id_activo_biologico=' + J.id_activo_biologico).to.eql(pm.collectionVariables.get('activo_con_contexto')); });",
+                  "  pm.test(\"contexto_activo_biologico presente (activo, especie, unidad, ubicacion)\", function () { pm.expect(J.contexto_activo_biologico, 'contexto_activo_biologico=' + JSON.stringify(J.contexto_activo_biologico)).to.be.an('object'); });",
+                  "  pm.test(\"unidad productiva asociada: id_infraestructura = 1\", function () { pm.expect(String(J.id_infraestructura)).to.eql(pm.collectionVariables.get('id_infra_con_contexto')); });",
+                  "}"
                 ]
               }
             }
@@ -293,7 +491,7 @@
       "name": "2. Contexto parcial: solo unidad productiva (TC-M03-N19)",
       "item": [
         {
-          "name": "2.1 Evento de sensor asociado solo a una unidad",
+          "name": "2.1 Evento de un sensor asociado solo a una unidad (sensor 525, temperatura; la unidad 347 tiene un lote sin sensor asociado)",
           "request": {
             "method": "POST",
             "header": [
@@ -324,14 +522,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -340,21 +531,24 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 2.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g77_2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test(\"POST /iot/alertas responde 201 con id_alerta (evento aceptado)\", function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('alerta_g77_2', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.2 Detalle: contexto_incompleto=true y unidad productiva",
+          "name": "2.2 Detalle: tiene_contexto_incompleto=true, unidad productiva y sin activo",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
@@ -368,11 +562,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 2.2 GET] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('contexto_incompleto=true', function () { pm.expect(J.tiene_contexto_incompleto === true || J.contexto_incompleto === true).to.be.true; });",
-                  "pm.test('Asociada a la unidad productiva (id_infraestructura)', function () { pm.expect(J.id_infraestructura).to.exist; });"
+                  "if (pm.collectionVariables.get('alerta_g77_2') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta');",
+                  "} else {",
+                  "  pm.test(\"GET /iot/alertas/{id} responde 200\", function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tiene_contexto_incompleto = true\", function () { pm.expect(J.tiene_contexto_incompleto, 'tiene_contexto_incompleto=' + J.tiene_contexto_incompleto).to.eql(true); });",
+                  "  pm.test(\"asociada a la unidad productiva: id_infraestructura = 347\", function () { pm.expect(J.id_infraestructura, 'id_infraestructura=' + J.id_infraestructura).to.eql(347); });",
+                  "  pm.test(\"sin activo biologico (id_activo_biologico nulo)\", function () { pm.expect(J.id_activo_biologico === null || J.id_activo_biologico === undefined).to.eql(true); });",
+                  "  pm.test(\"id_sensor = sensor del evento\", function () { pm.expect(String(J.id_sensor)).to.eql(pm.collectionVariables.get('sensor_solo_unidad')); });",
+                  "}"
                 ]
               }
             }
@@ -384,7 +584,7 @@
       "name": "3. Sin ningun contexto (TC-M03-N20)",
       "item": [
         {
-          "name": "3.1 Evento de sensor sin ninguna asociacion",
+          "name": "3.1 Evento de un sensor sin ninguna asociacion sensor-area (sensor 547, amoniaco, dispositivo 354)",
           "request": {
             "method": "POST",
             "header": [
@@ -400,7 +600,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_sin_asociacion}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id_sin_contexto}},\n  \"sensor_id\": {{sensor_sin_asociacion}},\n  \"serial\": \"{{serial_sin_contexto}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -415,14 +615,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -431,21 +624,24 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 3.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g77_3', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test(\"POST /iot/alertas responde 201 con id_alerta (evento aceptado)\", function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('alerta_g77_3', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "3.2 Detalle: contexto_incompleto=true asociada solo al sensor",
+          "name": "3.2 Detalle: tiene_contexto_incompleto=true asociada solo al sensor",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
@@ -459,12 +655,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 3.2 GET] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('contexto_incompleto=true', function () { pm.expect(J.tiene_contexto_incompleto === true || J.contexto_incompleto === true).to.be.true; });",
-                  "pm.test('Asociada al sensor (id_sensor)', function () { pm.expect(J.id_sensor).to.exist; });",
-                  "pm.test('Sin activo biologico', function () { pm.expect(J.id_activo_biologico === null || J.id_activo_biologico === undefined).to.be.true; });"
+                  "if (pm.collectionVariables.get('alerta_g77_3') === '0') {",
+                  "  pm.test.skip('BLOQUEADO: el paso anterior no creo la alerta');",
+                  "} else {",
+                  "  pm.test(\"GET /iot/alertas/{id} responde 200\", function () { pm.response.to.have.status(200); });",
+                  "  pm.test(\"tiene_contexto_incompleto = true\", function () { pm.expect(J.tiene_contexto_incompleto, 'tiene_contexto_incompleto=' + J.tiene_contexto_incompleto).to.eql(true); });",
+                  "  pm.test(\"asociada al sensor (id_sensor = 547)\", function () { pm.expect(String(J.id_sensor)).to.eql(pm.collectionVariables.get('sensor_sin_asociacion')); });",
+                  "  pm.test(\"sin activo biologico\", function () { pm.expect(J.id_activo_biologico === null || J.id_activo_biologico === undefined).to.eql(true); });",
+                  "  console.log('[TC-M03-G77 3.2][OBSERVADO] id_infraestructura=' + J.id_infraestructura + ' (el sensor no tiene asociacion sensor-area; el dispositivo 354 tiene unidad 390)');",
+                  "}"
                 ]
               }
             }
@@ -476,34 +677,20 @@
       "name": "4. Notificacion al administrador para completar la asociacion (TC-M03-N21 / RF-22)",
       "item": [
         {
-          "name": "4.1 Notificaciones del administrador tras los subcasos 2 y 3",
+          "name": "4.1 Notificaciones del administrador tras los subcasos 2 y 3 (debe pedir completar la asociacion del sensor)",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/notificaciones?pagina=1&tamano=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "notificaciones"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "tamano",
-                  "value": "20"
-                }
-              ]
-            }
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
           },
           "event": [
             {
@@ -511,11 +698,50 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G77 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G77 4.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El administrador recibe notificacion de contexto incompleto (completar asociacion del sensor)', function () { const items = J.items || J.notificaciones || J.data || []; pm.expect(JSON.stringify(items).toLowerCase()).to.include('asociaci'); });",
-                  "console.log('[G77-4.1][OBSERVADO] notificaciones = ' + JSON.stringify((J.items || J.notificaciones || J.data || []).slice(0, 5)));"
+                  "pm.test(\"GET /notificaciones responde 200\", function () { pm.response.to.have.status(200); });",
+                  "const _antes = parseInt(pm.collectionVariables.get('notif_admin_antes'), 10);",
+                  "const _items = J.items || [];",
+                  "console.log('[TC-M03-G77 4.1] total antes=' + _antes + ' despues=' + J.total + ' ultimas=' + JSON.stringify(_items.slice(0, 5).map(function (x) { return x.mensaje; })));",
+                  "pm.test(\"el administrador recibe una notificacion nueva tras los subcasos 2 y 3 (total aumenta)\", function () { pm.expect(J.total, 'total antes=' + _antes + ' despues=' + J.total).to.be.above(_antes); });",
+                  "pm.test(\"la notificacion pide completar la asociacion del sensor (RF-22)\", function () { const _txt = JSON.stringify(_items.slice(0, 10)).toLowerCase(); pm.expect(_txt, 'ultimas notificaciones=' + _txt.slice(0,400)).to.include('asocia'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Notificaciones del productor: sin notificar de mas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G77 4.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 900));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('notif_prod_antes') === '-1' || pm.response.code === 401) {",
+                  "  pm.test.skip('BLOQUEADO: no hubo sesion del productor (login 401 en 0Y1); revisar correo y clave del productor');",
+                  "} else {",
+                  "  pm.test(\"GET /notificaciones (productor) responde 200\", function () { pm.response.to.have.status(200); });",
+                  "  const _a = parseInt(pm.collectionVariables.get('notif_prod_antes'), 10);",
+                  "  pm.test(\"el productor no recibe notificaciones de mas (total sin cambio)\", function () { pm.expect(J.total, 'total antes=' + _a + ' despues=' + J.total).to.eql(_a); });",
+                  "}"
                 ]
               }
             }

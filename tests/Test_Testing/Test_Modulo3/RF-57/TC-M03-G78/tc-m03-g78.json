@@ -109,7 +109,51 @@
     },
     {
       "key": "id_activo_biologico",
-      "value": "1"
+      "value": "768"
+    },
+    {
+      "key": "id_vet",
+      "value": "157"
+    },
+    {
+      "key": "id_ing",
+      "value": "158"
+    },
+    {
+      "key": "id_finca_otra",
+      "value": "3"
+    },
+    {
+      "key": "finca_cambiada",
+      "value": "0"
+    },
+    {
+      "key": "rol_cambiado",
+      "value": "0"
+    },
+    {
+      "key": "alerta_g78",
+      "value": "0"
+    },
+    {
+      "key": "alerta_g78_b",
+      "value": "0"
+    },
+    {
+      "key": "version_vet",
+      "value": "0"
+    },
+    {
+      "key": "version_ing",
+      "value": "0"
+    },
+    {
+      "key": "id_pag1",
+      "value": "0"
+    },
+    {
+      "key": "total_pag1",
+      "value": "0"
     }
   ],
   "item": [
@@ -157,6 +201,40 @@
       }
     },
     {
+      "name": "0B0. Login productor previo (su token quedara reemplazado por el login siguiente: sirve de token no vigente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login productor previo exitoso (200)\", function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_expirado', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
       "name": "0B. Login Productor",
       "event": [
         {
@@ -191,14 +269,14 @@
       }
     },
     {
-      "name": "0C. Login Usuario de otra finca (Productor)",
+      "name": "0C. Login veterinario (dentro del sandbox se le cambia la finca: hace de \"usuario de otra finca\")",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login Usuario de otra finca (Productor) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login veterinario (usuario de otra finca) exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_otrafinca', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -215,7 +293,7 @@
         "url": "{{base_url}}/sesiones/",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"{{correo_otrafinca}}\",\n  \"contrasena\": \"{{contrasena_otrafinca}}\"\n}",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -225,14 +303,14 @@
       }
     },
     {
-      "name": "0D. Login Usuario sin permiso sobre alertas",
+      "name": "0D. Login ingeniero de campo (dentro del sandbox se le cambia el rol a Contador: hace de \"sin permiso sobre alertas\")",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login Usuario sin permiso sobre alertas exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login ingeniero (usuario sin permiso sobre alertas) exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_sinpermiso', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -249,7 +327,7 @@
         "url": "{{base_url}}/sesiones/",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"{{correo_sinpermiso}}\",\n  \"contrasena\": \"{{contrasena_sinpermiso}}\"\n}",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_ingeniero}}\",\n  \"contrasena\": \"{{contrasena_ingeniero}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -389,6 +467,237 @@
                   "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
                   "pm.test('severidad = MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
                   "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.2 Alerta semilla 2 (sensor de temperatura 525, para probar el historial con DESCARTADA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"POST /iot/alertas responde 201 con id_alerta\", function () { pm.expect(pm.response.code, pm.response.text().slice(0,300)).to.eql(201); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('alerta_g78_b', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.3 Descartar la alerta semilla 2 (queda DESCARTADA para el historial)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g78_b}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA G78 historial\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"Alerta descartada (200)\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.4 (sandbox) Version del veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_vet}}/detalle"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"GET detalle del veterinario (200) con version\", function () { pm.response.to.have.status(200); pm.expect(J.version).to.exist; });",
+                  "try { pm.collectionVariables.set('version_vet', String(J.version)); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.5 (sandbox) Cambiar la finca del veterinario a la finca 3: hace de usuario de otra finca",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_vet}}/fincas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids_fincas\": [{{id_finca_otra}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"Finca del veterinario cambiada (200)\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('finca_cambiada', '1'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.6 (sandbox) Version del ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_ing}}/detalle"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.6] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"GET detalle del ingeniero (200) con version\", function () { pm.response.to.have.status(200); pm.expect(J.version).to.exist; });",
+                  "try { pm.collectionVariables.set('version_ing', String(J.version)); pm.collectionVariables.set('nombre_ing', String(J.nombre)); pm.collectionVariables.set('apellidos_ing', String(J.apellidos)); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.7 (sandbox) Cambiar el rol del ingeniero a Contador (rol 5, sin permisos sobre alertas)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/usuarios/{{id_ing}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{nombre_ing}}\",\n  \"apellidos\": \"{{apellidos_ing}}\",\n  \"version\": {{version_ing}},\n  \"id_rol\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 0.7] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"Rol del ingeniero cambiado (200)\", function () { pm.expect(pm.response.code, pm.response.text().slice(0,300)).to.eql(200); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('rol_cambiado', '1'); }"
                 ]
               }
             }
@@ -652,7 +961,8 @@
                   "console.log('[TC-M03-G78 1.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas del sensor', function () { (J.items || []).forEach(function (a) { pm.expect(String(a.id_sensor)).to.eql(pm.collectionVariables.get('sensor_humedad_relativa')); }); });"
+                  "pm.test('El filtro devuelve alertas y todas son de HUMEDAD_RELATIVA (el sensor 526 es de humedad; el listado no expone id_sensor)', function () { pm.expect((J.items || []).length).to.be.above(0); (J.items || []).forEach(function (a) { pm.expect(a.tipo_variable).to.eql('HUMEDAD_RELATIVA'); }); });",
+                  "pm.test('La alerta semilla del sensor 526 aparece y la del sensor 525 no', function () { const ids = (J.items || []).map(function (a) { return a.id_alerta; }); pm.expect(ids).to.include(Number(pm.collectionVariables.get('alerta_g78'))); pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('alerta_g78_b'))); });"
                 ]
               }
             }
@@ -877,7 +1187,7 @@
           ]
         },
         {
-          "name": "1.12 por_pagina=201 (superior al limite) - 422",
+          "name": "1.12 por_pagina=201 (superior al limite) - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -911,7 +1221,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.12] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
                 ]
               }
@@ -919,7 +1229,7 @@
           ]
         },
         {
-          "name": "1.13 por_pagina=0 - 422",
+          "name": "1.13 por_pagina=0 - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -953,7 +1263,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.13] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
                 ]
               }
@@ -961,7 +1271,7 @@
           ]
         },
         {
-          "name": "1.14 por_pagina=-1 - 422",
+          "name": "1.14 por_pagina=-1 - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -995,7 +1305,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.14] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
                 ]
               }
@@ -1003,7 +1313,7 @@
           ]
         },
         {
-          "name": "1.15 pagina=0 - 422",
+          "name": "1.15 pagina=0 - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -1037,7 +1347,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.15] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
                 ]
               }
@@ -1045,7 +1355,7 @@
           ]
         },
         {
-          "name": "1.16 por_pagina=abc (valor invalido) - 422",
+          "name": "1.16 por_pagina=abc (valor invalido) - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -1079,7 +1389,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.16] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
                 ]
               }
@@ -1164,8 +1474,12 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.18] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('La alerta de la otra finca no aparece', function () { const id = Number(pm.collectionVariables.get('alerta_g78')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.false; });"
+                  "if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
+                  "  pm.test.skip(\"BLOQUEADO: no se pudo iniciar sesion o cambiar la finca del usuario dentro del sandbox (pasos 0C / 0.5)\");",
+                  "} else {",
+                  "  pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test('La alerta de la otra finca no aparece', function () { const id = Number(pm.collectionVariables.get('alerta_g78')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.false; });",
+                  "}"
                 ]
               }
             }
@@ -1194,7 +1508,7 @@
           ]
         },
         {
-          "name": "1.20 Token expirado - 401",
+          "name": "1.20 Token no vigente (sesion reemplazada por un nuevo login) - 401",
           "request": {
             "method": "GET",
             "header": [
@@ -1240,8 +1554,402 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.21] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 403', function () { pm.response.to.have.status(403); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                  "if (pm.collectionVariables.get('rol_cambiado') !== '1' || !pm.collectionVariables.get('token_sinpermiso')) {",
+                  "  pm.test.skip(\"BLOQUEADO: no se pudo cambiar el rol del usuario dentro del sandbox (paso 0.7)\");",
+                  "} else {",
+                  "  pm.test('HTTP 403', function () { pm.response.to.have.status(403); });",
+                  "  pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.22 Control positivo: el productor de la finca (163) SI ve la alerta semilla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.22] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"La alerta semilla aparece para el productor de su finca\", function () { const id = Number(pm.collectionVariables.get('alerta_g78')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; }), 'total=' + J.total).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.23 Historial: el listado por defecto incluye alertas DESCARTADAS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.23] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Incluye la alerta DESCARTADA (semilla 2)\", function () { const id = Number(pm.collectionVariables.get('alerta_g78_b')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; }), 'total=' + J.total).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.24 Historial: filtro estado=DESCARTADA devuelve la alerta descartada y solo descartadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?estado=DESCARTADA&por_pagina=200"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.24] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Todas las filas DESCARTADA y aparece la semilla 2\", function () { const id = Number(pm.collectionVariables.get('alerta_g78_b')); (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('DESCARTADA'); }); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.25 severidad fuera de catalogo (INEXISTENTE) - rechazado o lista vacia, sin resultados incorrectos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?severidad=INEXISTENTE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.25] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP en 200/400/422\", function () { pm.expect([200, 400, 422]).to.include(pm.response.code); });",
+                  "pm.test(\"Sin resultados silenciosamente incorrectos\", function () { if (pm.response.code === 200) { pm.expect(J.total, 'total=' + J.total).to.eql(0); } });",
+                  "console.log('[G78-1.25][OBSERVADO] respuesta = ' + JSON.stringify({status: pm.response.code, total: J.total}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.26 tipo_alerta fuera de catalogo (INEXISTENTE) - rechazado o lista vacia, sin resultados incorrectos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?tipo_alerta=INEXISTENTE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.26] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP en 200/400/422\", function () { pm.expect([200, 400, 422]).to.include(pm.response.code); });",
+                  "pm.test(\"Sin resultados silenciosamente incorrectos\", function () { if (pm.response.code === 200) { pm.expect(J.total, 'total=' + J.total).to.eql(0); } });",
+                  "console.log('[G78-1.26][OBSERVADO] respuesta = ' + JSON.stringify({status: pm.response.code, total: J.total}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.27 origen_evento fuera de catalogo (INEXISTENTE) - rechazado o lista vacia, sin resultados incorrectos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?origen_evento=INEXISTENTE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.27] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP en 200/400/422\", function () { pm.expect([200, 400, 422]).to.include(pm.response.code); });",
+                  "pm.test(\"Sin resultados silenciosamente incorrectos\", function () { if (pm.response.code === 200) { pm.expect(J.total, 'total=' + J.total).to.eql(0); } });",
+                  "console.log('[G78-1.27][OBSERVADO] respuesta = ' + JSON.stringify({status: pm.response.code, total: J.total}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.28 fecha_desde con formato invalido (abc) - 400 VAL_ENTRADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?fecha_desde=abc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.28] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400 (VAL_ENTRADA)\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error_code = VAL_ENTRADA\", function () { pm.expect(J.error_code).to.eql(\"VAL_ENTRADA\"); });",
+                  "pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.29 id_sensor no numerico (abc) - 400 VAL_ENTRADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_sensor=abc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.29] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400 (VAL_ENTRADA)\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error_code = VAL_ENTRADA\", function () { pm.expect(J.error_code).to.eql(\"VAL_ENTRADA\"); });",
+                  "pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.30 id_activo_biologico no numerico (abc) - 400 VAL_ENTRADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_activo_biologico=abc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.30] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400 (VAL_ENTRADA)\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error_code = VAL_ENTRADA\", function () { pm.expect(J.error_code).to.eql(\"VAL_ENTRADA\"); });",
+                  "pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.31 Rango de fechas invertido (fecha_desde > fecha_hasta) - rechazado o lista vacia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?fecha_desde={{ts_p1d}}&fecha_hasta={{ts_m1d}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_m1d', new Date(Date.now() - 86400000).toISOString());",
+                  "pm.variables.set('ts_p1d', new Date(Date.now() + 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.31] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP en 200/400/422\", function () { pm.expect([200, 400, 422]).to.include(pm.response.code); });",
+                  "pm.test(\"Sin resultados silenciosamente incorrectos\", function () { if (pm.response.code === 200) { pm.expect(J.total, 'total=' + J.total).to.eql(0); } });",
+                  "console.log('[G78-1.31][OBSERVADO] respuesta = ' + JSON.stringify({status: pm.response.code, total: J.total}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.32a Paginacion: pagina=1&por_pagina=1 (guarda el id de la primera alerta)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.32a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200 y un item\", function () { pm.response.to.have.status(200); pm.expect(J.items.length).to.eql(1); });",
+                  "try { pm.collectionVariables.set('id_pag1', String(J.items[0].id_alerta)); pm.collectionVariables.set('total_pag1', String(J.total)); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.32b Paginacion: pagina=2&por_pagina=1 devuelve otra alerta y el mismo total",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?pagina=2&por_pagina=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 1.32b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200 y un item\", function () { pm.response.to.have.status(200); pm.expect(J.items.length).to.eql(1); });",
+                  "pm.test(\"La pagina 2 trae una alerta distinta de la pagina 1\", function () { pm.expect(String(J.items[0].id_alerta)).to.not.eql(pm.collectionVariables.get('id_pag1')); });",
+                  "pm.test(\"El total es el mismo en ambas paginas\", function () { pm.expect(String(J.total)).to.eql(pm.collectionVariables.get('total_pag1')); });"
                 ]
               }
             }
@@ -1327,15 +2035,19 @@
                 "exec": [
                   "console.log('[TC-M03-G78 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 403/404', function () { pm.expect([403, 404]).to.include(pm.response.code); });",
-                  "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                  "if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
+                  "  pm.test.skip(\"BLOQUEADO: no se pudo iniciar sesion o cambiar la finca del usuario dentro del sandbox (pasos 0C / 0.5)\");",
+                  "} else {",
+                  "  pm.test('HTTP en 403/404', function () { pm.expect([403, 404]).to.include(pm.response.code); });",
+                  "  pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });",
+                  "}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.4 id_alerta con formato invalido (abc) - 422",
+          "name": "2.4 id_alerta con formato invalido (abc) - 400 VAL_ENTRADA",
           "request": {
             "method": "GET",
             "header": [
@@ -1354,8 +2066,223 @@
                 "exec": [
                   "console.log('[TC-M03-G78 2.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 422', function () { pm.response.to.have.status(422); });",
+                  "pm.test('HTTP 400 con error_code VAL_ENTRADA (convencion de la API)', function () { pm.response.to.have.status(400); pm.expect(J.error_code).to.eql('VAL_ENTRADA'); });",
                   "pm.test('Respuesta de error con formato estándar (error_code / message)', function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Control positivo: el productor de la finca ve el detalle de la alerta semilla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g78}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"id_alerta correcto\", function () { pm.expect(String(J.id_alerta)).to.eql(pm.collectionVariables.get('alerta_g78')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6 Usuario sin permiso sobre alertas (Contador) - 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_sinpermiso}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g78}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.6] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('rol_cambiado') !== '1' || !pm.collectionVariables.get('token_sinpermiso')) {",
+                  "  pm.test.skip(\"BLOQUEADO: no se pudo cambiar el rol del usuario dentro del sandbox (paso 0.7)\");",
+                  "} else {",
+                  "  pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "  pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.7 Sin autenticacion - 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_g78}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.7] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8 id_alerta = 0 - rechazado (404 o 422), sin 5xx",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.8] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400, 404 o 422\", function () { pm.expect([400, 404, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.9 id_alerta = -1 - rechazado (404 o 422), sin 5xx",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/-1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.9] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400, 404 o 422\", function () { pm.expect([400, 404, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.10 id_alerta decimal (1.5) - 400 VAL_ENTRADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/1.5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.10] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400 (VAL_ENTRADA)\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error_code = VAL_ENTRADA\", function () { pm.expect(J.error_code).to.eql(\"VAL_ENTRADA\"); });",
+                  "pm.test(\"Respuesta de error con formato estandar (error_code / message)\", function () { pm.expect(J).to.have.property('error_code'); pm.expect(J).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.11 id_alerta fuera del rango de enteros (99999999999999999999) - rechazado, sin 5xx",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/99999999999999999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G78 2.11] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 700));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test(\"HTTP 400, 404 o 422 (no 5xx)\", function () { pm.expect(pm.response.code, 'status=' + pm.response.code + ' body=' + pm.response.text().slice(0,200)).to.be.oneOf([400, 404, 422]); });"
                 ]
               }
             }

@@ -243,6 +243,37 @@ def fijar_parametro(ruta: str, valor: Any, campo: str = "valor") -> requests.Res
 
 # ---------------------------------------------------------------- casos de prueba
 
+def _alerta_conflicto(alertas, **kw) -> dict:
+    """Crea una alerta con conflicto Edge=LEVE vs IA=CRITICO (tipos iguales) y devuelve su detalle."""
+    j = alertas.crear(var="TEMPERATURA_AMBIENTAL", valor=25.0, sev="LEVE", origen="EDGE",
+                      tipo_alerta_ia="ESTRES_TERMICO", severidad_ia="CRITICO", **kw)
+    assert j.get("id_alerta"), f"no se creo la alerta: {j}"
+    d = api("GET", f"/iot/alertas/{j['id_alerta']}")
+    assert d.status_code == 200, f"GET alerta {j['id_alerta']}: {d.status_code} {d.text[:200]}"
+    cambiar_estado(j["id_alerta"], "DESCARTADA", "QA aislamiento G76 pytest")   # evita la deduplicacion de 30 min entre pasos
+    return d.json()
+
+
+def test_4_1_umbral_confianza_limites_y_efecto(alertas):
+    """TC-M03-N18 (subcaso 4): el umbral de confianza de E12 (umbral_confianza_edge_ia) acepta 0.70 y 0.95, rechaza 0.69 y 0.96,
+    y al cambiarlo el borde de la excepcion se mueve (par LEVE/CRITICO con confianza 0.80: umbral 0.70 -> CRITICO; umbral 0.95 -> MODERADO).
+    Sensor de temperatura ambiental como sustituto de NH3 (pendiente de aprobacion de la lider).
+    Si el backend no publica un endpoint de configuracion del umbral (hoy solo existe scripts/configurar_parametros_dev14.py contra la BD),
+    el test queda XFAIL: no se modifica nada. Todo ocurre dentro del sandbox, con rollback."""
+    ruta = ruta_config("RUTA_CONFIG_UMBRAL_CONFIANZA", "umbral_confianza")
+    for ok in (0.70, 0.95):
+        r = fijar_parametro(ruta, ok)
+        assert r.status_code in (200, 204), f"umbral {ok} debe aceptarse: {r.status_code} {r.text[:200]}"
+    for mal in (0.69, 0.96):
+        r = fijar_parametro(ruta, mal)
+        assert r.status_code in (400, 422), f"umbral {mal} debe rechazarse (400/422): {r.status_code} {r.text[:200]}"
+    assert fijar_parametro(ruta, 0.70).status_code in (200, 204)
+    d70 = _alerta_conflicto(alertas, probabilidad_ia=0.80)
+    assert d70["severidad"] == "CRITICO", f"con umbral 0.70 y confianza 0.80 no aplica la excepcion: esperado CRITICO, llego {d70['severidad']}"
+    assert fijar_parametro(ruta, 0.95).status_code in (200, 204)
+    d95 = _alerta_conflicto(alertas, probabilidad_ia=0.80)
+    assert d95["severidad"] == "MODERADO", f"con umbral 0.95 y confianza 0.80 aplica la excepcion: esperado MODERADO, llego {d95['severidad']}"
+    assert d95.get("conflicto_resolucion") == "SEVERIDAD_COMPROMISO"
 
 
 if __name__ == "__main__":

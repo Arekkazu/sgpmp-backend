@@ -66,6 +66,10 @@
     {
       "key": "ids_alertas",
       "value": "[]"
+    },
+    {
+      "key": "alerta_aislar",
+      "value": "0"
     }
   ],
   "item": [
@@ -186,6 +190,844 @@
       ]
     },
     {
+      "name": "1. Fronteras de probabilidad_ia (TC-M03-139)",
+      "item": [
+        {
+          "name": "1.074 probabilidad_ia=0.74 - por debajo del minimo 0.75: NO genera PREDICCION_PATOLOGIA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.74,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.074] prob=0.74 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('probabilidad_ia=0.74 < umbral_confianza_minimo (0.75): NO se genera PREDICCION_PATOLOGIA', function () { pm.expect(_gen, 'se genero alerta ' + J.id_alerta + ' tipo=' + J.tipo_alerta + ' severidad=' + J.severidad).to.eql(false); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.074z Aislamiento: descartar la alerta creada en 1.074",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.075 probabilidad_ia=0.75 (borde inferior) -> LEVE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.75,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.075] prob=0.75 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=0.75 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=0.75 -> severidad LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.075z Aislamiento: descartar la alerta creada en 1.075",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.084 probabilidad_ia=0.84 -> LEVE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.84,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.084] prob=0.84 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=0.84 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=0.84 -> severidad LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.084z Aislamiento: descartar la alerta creada en 1.084",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.0845 probabilidad_ia=0.845 (hueco decimal entre 0.84 y 0.85) - observacion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.845,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.0845] prob=0.845 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('Observacion (hueco decimal del RF): el evento es aceptado y se documenta el resultado observado', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 400, 422]); });",
+                  "console.log('[TC-M03-G73 OBSERVACION] prob=0.845 -> generada=' + _gen + ' tipo=' + J.tipo_alerta + ' severidad=' + J.severidad);",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.0845z Aislamiento: descartar la alerta creada en 1.0845",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.085 probabilidad_ia=0.85 (borde LEVE/MODERADO) -> MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.85,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.085] prob=0.85 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=0.85 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=0.85 -> severidad MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.085z Aislamiento: descartar la alerta creada en 1.085",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.094 probabilidad_ia=0.94 -> MODERADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.94,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.094] prob=0.94 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=0.94 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=0.94 -> severidad MODERADO', function () { pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.094z Aislamiento: descartar la alerta creada en 1.094",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.0945 probabilidad_ia=0.945 (hueco decimal entre 0.94 y 0.95) - observacion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.945,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.0945] prob=0.945 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('Observacion (hueco decimal del RF): el evento es aceptado y se documenta el resultado observado', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 400, 422]); });",
+                  "console.log('[TC-M03-G73 OBSERVACION] prob=0.945 -> generada=' + _gen + ' tipo=' + J.tipo_alerta + ' severidad=' + J.severidad);",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.0945z Aislamiento: descartar la alerta creada en 1.0945",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.095 probabilidad_ia=0.95 (borde MODERADO/CRITICO) -> CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.95,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.095] prob=0.95 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=0.95 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=0.95 -> severidad CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.095z Aislamiento: descartar la alerta creada en 1.095",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "1.10 probabilidad_ia=1.0 (limite superior) -> CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 1.0,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 1.10] prob=1.0 status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('HTTP 201 y alerta generada (probabilidad_ia=1.0 >= 0.75)', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "pm.test('probabilidad_ia=1.0 -> severidad CRITICO', function () { pm.expect(J.severidad).to.eql('CRITICO'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.10z Aislamiento: descartar la alerta creada en 1.10",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "2. Cambio de umbral_confianza_minimo a 0.80 (sin despliegue)",
       "item": [
         {
@@ -218,7 +1060,7 @@
                 }
               ]
             },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: el endpoint de configuracion de este parametro no esta en el Swagger revisado (posible M09, DEV-14); se completa cuando se confirme"
+            "description": "Marcador de subcaso no automatizable: el parametro umbral_confianza_minimo (0.75, PREDICCION_PATOLOGIA) no existe en el backend de TEST (solo existe umbral_confianza_edge_ia de E12/E13) ni hay endpoint para modificarlo; se documenta como hallazgo"
           },
           "event": [
             {
@@ -226,8 +1068,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"AUTOMATIZADO FUERA DE POSTMAN en test_tc_m03_g73_automatizado.py - no va en Postman porque: el endpoint de configuracion de este parametro no esta en el Swagger revisado (posible M09, DEV-14); se completa cuando se confirme\");"
+                  "pm.test.skip(\"NO EJECUTABLE: el parametro umbral_confianza_minimo (0.75, PREDICCION_PATOLOGIA) no existe en el backend de TEST (solo existe umbral_confianza_edge_ia de E12/E13) ni hay endpoint para modificarlo; se documenta como hallazgo\");"
                 ]
               }
             }
