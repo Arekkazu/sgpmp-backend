@@ -7,6 +7,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: consolida diagnosticos tecnicos por sensor |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: serializa bateria y busca alertas recuperables |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita alertas y consolidacion atomicamente |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -272,7 +273,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             return None
         if ids_fincas_permitidas is not None and not self._pertenece_a_fincas(orm, ids_fincas_permitidas):
             return None
-        return self._a_entidad(orm)
+        return self._con_ubicacion([self._a_entidad(orm)])[0]
 
     def _pertenece_a_fincas(self, orm: AlertaModel, ids_fincas_permitidas: list[int]) -> bool:
         if orm.id_infraestructura is not None:
@@ -315,8 +316,12 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
+        fecha_resolucion_desde: Optional[datetime] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
+        # M3-08: "resueltas hoy" cuenta por cuándo se cerró, no por cuándo se generó.
+        if fecha_resolucion_desde:
+            q = q.filter(AlertaModel.fecha_resolucion >= fecha_resolucion_desde)
         if excluir_tipo_alerta:
             q = q.filter(AlertaModel.tipo_alerta != excluir_tipo_alerta)
         if estado:
@@ -358,7 +363,28 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         total = q.count()
         offset = (pagina - 1) * por_pagina
         orms = q.order_by(AlertaModel.fecha_generacion.desc()).offset(offset).limit(por_pagina).all()
-        return [self._a_entidad(o) for o in orms], total
+        return self._con_ubicacion([self._a_entidad(o) for o in orms]), total
+
+    def _con_ubicacion(self, alertas: list[Alerta]) -> list[Alerta]:
+        """M3-06: nombres de finca, área y sensor en una consulta por página, no por fila."""
+        ids_infra = list({a.id_infraestructura for a in alertas if a.id_infraestructura is not None})
+        ids_sensor = list({a.id_sensor for a in alertas if a.id_sensor is not None})
+        infra: dict[int, tuple[str, str]] = {}
+        sensores: dict[int, str] = {}
+        if ids_infra:
+            infra = {r[0]: (r[1], r[2]) for r in self.db.execute(text(
+                'SELECT i.id_infraestructura, i.nombre, f.nombre FROM modulo9.infraestructuras i '
+                'JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = ANY(:ids)'
+            ), {'ids': ids_infra})}
+        if ids_sensor:
+            sensores = dict(self.db.execute(text(
+                'SELECT id_sensores, nombre FROM modulo9.sensores WHERE id_sensores = ANY(:ids)'
+            ), {'ids': ids_sensor}).all())
+        for a in alertas:
+            if a.id_infraestructura in infra:
+                a.nombre_infraestructura, a.nombre_finca = infra[a.id_infraestructura]
+            a.nombre_sensor = sensores.get(a.id_sensor)
+        return alertas
 
     @staticmethod
     def _a_entidad(orm: AlertaModel) -> Alerta:

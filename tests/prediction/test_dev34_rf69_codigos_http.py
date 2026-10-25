@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: notas registradas no se sobrescriben |
 """DEV-34 (RF-69 E2/E3/E4, G-03): códigos HTTP del ciclo de vida de versiones de modelo.
 
 E2: metricas_validacion o compatibilidad_variables que no son JSON válido → 422 (antes 500).
@@ -134,3 +135,15 @@ def test_activar_aprobada_con_notas_pasa_a_activo():
     version = _version("APROBADO")
     version.activar()
     assert version.estado_version == "ACTIVO" and version.esta_produccion
+
+
+def test_m406_las_notas_registradas_no_se_sobrescriben():
+    """M4-06 / CA-13: una segunda nota no reemplaza la de otro veterinario."""
+    version = _version("APROBADO", notas="Nota original del veterinario")
+    with pytest.raises(ConflictError) as exc:
+        version.registrar_notas("Otra nota")
+    assert exc.value.code == "NOTAS_INMUTABLES"
+    assert version.notas_validacion == "Nota original del veterinario"
+    sin_notas = _version("APROBADO", notas=None)
+    sin_notas.registrar_notas("  Primera nota  ")
+    assert sin_notas.notas_validacion == "Primera nota"

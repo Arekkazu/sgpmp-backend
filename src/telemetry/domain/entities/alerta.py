@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio (read-model) |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -146,6 +147,11 @@ class Alerta:
     fecha_resolucion: Optional[datetime] = None
     fecha_vencimiento: Optional[datetime] = None
 
+    # M3-06 (read-model): dónde ocurrió, para no mostrar solo IDs. Se llenan al leer.
+    nombre_sensor: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+    nombre_finca: Optional[str] = None
+
     def calcular_fecha_vencimiento(self) -> datetime:
         minutos = _SLA_MINUTOS.get(self.severidad, 120)
         base = self.fecha_generacion
@@ -184,6 +190,8 @@ class HistoricoEstadoAlerta:
     id_historico_estado_alerta: Optional[int] = None
     id_usuario: Optional[int] = None
     motivo: Optional[str] = None
+    # M3-05 (read-model): nombre de quien hizo el cambio.
+    nombre_usuario: Optional[str] = None
 
 
 @dataclass

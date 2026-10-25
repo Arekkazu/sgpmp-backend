@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
 from __future__ import annotations
 
 import uuid
@@ -197,6 +198,14 @@ class VersionModelo:
             raise BusinessRuleError(
                 code="NOTAS_VACIAS",
                 message="Las notas de validación no pueden estar vacías.",
+                field="notas_validacion",
+            )
+        # M4-06 / CA-13: la nota clínica no se sobrescribe. Antes el PATCH reemplazaba el
+        # texto y una nota nueva quedó insertada en medio de la de otro veterinario.
+        if self.notas_validacion and self.notas_validacion.strip():
+            raise ConflictError(
+                code="NOTAS_INMUTABLES",
+                message="Esta versión ya tiene notas de validación clínica registradas y no se pueden modificar.",
                 field="notas_validacion",
             )
         self.notas_validacion = notas.strip()

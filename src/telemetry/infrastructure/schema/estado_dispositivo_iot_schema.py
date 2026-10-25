@@ -1,6 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: schema del listado de dispositivos con estado |
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field, model_validator
@@ -52,3 +56,19 @@ class EstadoDispositivoIoTSchema(BaseModel):
 class EstadoDispositivoDetalleSchema(BaseModel):
     estado: EstadoDispositivoIoTSchema
     historial: List[HistoricoTransicionSchema]
+
+
+class DispositivoConEstadoSchema(BaseModel):
+    """Fila del listado de dispositivos (M3-10): dónde está, cómo está y cuándo habló."""
+    id_dispositivo_iot: int
+    serial: str
+    descripcion: Optional[str] = None
+    id_infraestructura: int
+    nombre_infraestructura: str
+    nombre_finca: str
+    estado_actual: str
+    fecha_ultimo_contacto: Optional[datetime] = None
+    nivel_bateria_pct: Optional[Decimal] = None
+    calidad_senal_rssi: Optional[Decimal] = None
+
+    model_config = {'from_attributes': True}
