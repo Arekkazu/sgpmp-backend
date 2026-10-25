@@ -1,0 +1,398 @@
+{
+  "info": {
+    "name": "TC-M03-G87 — RF-58 (evaluación API)",
+    "description": "TC-M03-168, 177 y 178. Lo ejecuta g87.mjs: todas las peticiones van dentro del RUN del sandbox. Sin qa_autorizado=SI se omiten todas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.environment.get('qa_autorizado') !== 'SI' || !pm.environment.get('run_id')) { pm.execution.skipRequest(); return; }",
+          "if (pm.request.method === 'POST' && pm.request.url.toString().endsWith('/iot/telemetria')) { const broker = pm.environment.get('broker_service_token'); if (!broker) { console.error('BLOQUEO_DATOS: falta BROKER_SERVICE_TOKEN para la ingesta.'); pm.execution.skipRequest(); return; } pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + broker }); }",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.environment.get('run_id') });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.environment.get('sandbox_secret') });"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('[SETUP] Respuesta atendida dentro del RUN (eco X-Test-Run-Id)', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "SETUP Reasignar S1 al área del escenario",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.environment.get('s1_ejecutar') !== 'SI') { pm.execution.skipRequest(); return; }",
+              "if (pm.environment.get('s1_reasociar') !== 'SI') pm.execution.skipRequest();"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('[SETUP] S1 asociado al área del escenario (RF-22)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_eng}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_dispositivo_iot\": {{s1_dev}}, \"id_infraestructura\": {{area_id}}, \"punto_instalacion\": \"QA G87 S1\", \"confirmar\": true}"
+        },
+        "url": "{{base_url}}/configuracion/sensores/{{s1_id}}/asociar"
+      }
+    },
+    {
+      "name": "SETUP Reasignar S2 al área del escenario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_eng}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_dispositivo_iot\": {{s2_dev}}, \"id_infraestructura\": {{area_id}}, \"punto_instalacion\": \"QA G87 S2\", \"confirmar\": true}"
+        },
+        "url": "{{base_url}}/configuracion/sensores/{{s2_id}}/asociar"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('[SETUP] S2 asociado al área del escenario (RF-22)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "168 Lectura válida 1 de S1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s1_dev}}, \"sensor_id\": {{s1_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_a1}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_a1}}\", \"serial\": \"{{s1_serial}}\", \"nivel_bateria\": 81, \"calidad_senal_rssi\": -71, \"calidad_senal_snr\": 7.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.environment.get('s1_ejecutar') !== 'SI') { pm.execution.skipRequest(); return; }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-168][PRE][PRE-168-01] Lectura válida 1 aceptada como LECTURA_VALIDA', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "168 Lectura válida 2 de S1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s1_dev}}, \"sensor_id\": {{s1_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_a2}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_a2}}\", \"serial\": \"{{s1_serial}}\", \"nivel_bateria\": 81, \"calidad_senal_rssi\": -71, \"calidad_senal_snr\": 7.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.environment.get('s1_ejecutar') !== 'SI') { pm.execution.skipRequest(); return; }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-168][PRE][PRE-168-01] Lectura válida 2 aceptada como LECTURA_VALIDA', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "168/177 Lectura válida 3 de S1 (valor 25)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s1_dev}}, \"sensor_id\": {{s1_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_a3}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_a3}}\", \"serial\": \"{{s1_serial}}\", \"nivel_bateria\": 81, \"calidad_senal_rssi\": -71, \"calidad_senal_snr\": 7.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.environment.get('s1_ejecutar') !== 'SI') { pm.execution.skipRequest(); return; }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-168][PRE][PRE-168-01] Lectura válida 3 aceptada como LECTURA_VALIDA', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });",
+              "pm.test('[TC-M03-177][PRE][PRE-177-01] Lectura 25 aceptada como LECTURA_VALIDA', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('LECTURA_VALIDA'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "168/177 Lectura posterior fuera del rango operativo de S1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s1_dev}}, \"sensor_id\": {{s1_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_fuera}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_fuera}}\", \"serial\": \"{{s1_serial}}\", \"nivel_bateria\": 81, \"calidad_senal_rssi\": -71, \"calidad_senal_snr\": 7.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.environment.get('s1_ejecutar') !== 'SI') { pm.execution.skipRequest(); return; }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-168][PRE][PRE-168-02] Lectura posterior clasificada FUERA_DE_RANGO (RF-53)', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('FUERA_DE_RANGO'); });",
+              "pm.test('[TC-M03-177][PRE][PRE-177-02] Lectura posterior clasificada FUERA_DE_RANGO (RF-53)', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('FUERA_DE_RANGO'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "178 Lectura 1 de S2 (sin calibración)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s2_dev}}, \"sensor_id\": {{s2_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_c1}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_c1}}\", \"serial\": \"{{s2_serial}}\", \"nivel_bateria\": 77, \"calidad_senal_rssi\": -83, \"calidad_senal_snr\": 4.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-178][PRE][PRE-178-01] Lectura 1 de S2 clasificada ERROR_CALIBRACION', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('ERROR_CALIBRACION'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "178 Lectura 2 de S2 (sin calibración)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": {{s2_dev}}, \"sensor_id\": {{s2_id}}, \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\", \"valor\": {{v_c2}}, \"unidad\": \"°C\", \"timestamp_captura\": \"{{ts_c2}}\", \"serial\": \"{{s2_serial}}\", \"nivel_bateria\": 77, \"calidad_senal_rssi\": -83, \"calidad_senal_snr\": 4.5}"
+        },
+        "url": "{{base_url}}/iot/telemetria"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "pm.test('[TC-M03-178][PRE][PRE-178-01] Lectura 2 de S2 clasificada ERROR_CALIBRACION', () => { pm.expect(pm.response.code).to.eql(201); pm.expect(j.estado_calidad).to.eql('ERROR_CALIBRACION'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard del Productor",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_prod}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{area_id}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "const lista = Array.isArray(j.sensores) ? j.sensores : [];",
+              "const s1 = lista.find((x) => String(x.id_sensor) === String(pm.environment.get('s1_id')));",
+              "const s2 = lista.find((x) => String(x.id_sensor) === String(pm.environment.get('s2_id')));",
+              "const num = (v) => (v === null || v === undefined ? null : Number(v));",
+              "const v = (k) => Number(pm.environment.get(k));",
+              "const errores = [v('v_c1'), v('v_c2')];",
+              "const desc = (s) => (s ? JSON.stringify({ ultimo_valor: s.ultimo_valor, ultima_unidad: s.ultima_unidad, ultimo_timestamp_captura: s.ultimo_timestamp_captura, estado_calidad: s.estado_calidad, estado_semaforo: s.estado_semaforo, id_alerta: s.id_alerta, nivel_bateria_pct: s.nivel_bateria_pct, calidad_senal_rssi: s.calidad_senal_rssi, calidad_senal_snr: s.calidad_senal_snr }) : 'sensor ausente');",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][PRE][PRE-168-03] Sesión del Productor vigente (no 401)', () => pm.expect(pm.response.code).to.not.eql(401));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][ASSERT][API-168-01] Dashboard del Productor responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][ASSERT][API-168-02] El sensor S1 aparece en el dashboard', () => pm.expect(s1, 'S1 en dashboard').to.be.an('object'));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][ASSERT][API-168-03] ultimo_valor = valor de la última LECTURA_VALIDA', () => pm.expect(num(s1 && s1.ultimo_valor), desc(s1)).to.eql(v('v_a3')));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][ASSERT][API-168-04] ultima_unidad = unidad de la última LECTURA_VALIDA', () => pm.expect(s1 && s1.ultima_unidad, desc(s1)).to.eql('°C'));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-168][ASSERT][API-168-05] ultimo_timestamp_captura = timestamp de la última LECTURA_VALIDA', () => pm.expect(s1 ? Date.parse(s1.ultimo_timestamp_captura) : null, desc(s1)).to.eql(Date.parse(pm.environment.get('ts_a3'))));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-177][PRE][PRE-177-03] Sesión del Productor vigente (no 401)', () => pm.expect(pm.response.code).to.not.eql(401));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-177][ASSERT][API-177-01] Dashboard HTTP 200 y el sensor S1 no se oculta', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(s1, 'S1 en dashboard').to.be.an('object'); });",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-177][ASSERT][API-177-02] La lectura FUERA_DE_RANGO no reemplaza el valor operativo 25', () => pm.expect(num(s1 && s1.ultimo_valor), desc(s1)).to.eql(v('v_a3')));",
+              "if (pm.environment.get('s1_ejecutar') === 'SI') pm.test('[TC-M03-177][ASSERT][API-177-03] La anomalía permanece visible (estado_calidad FUERA_DE_RANGO o semáforo ROJO)', () => pm.expect(!!s1 && (s1.estado_calidad === 'FUERA_DE_RANGO' || s1.estado_semaforo === 'ROJO'), desc(s1)).to.eql(true));",
+              "pm.test('[TC-M03-178][PRE][PRE-178-02] Sesión del Productor vigente (no 401)', () => pm.expect(pm.response.code).to.not.eql(401));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-01] Productor: HTTP 200 y el sensor S2 permanece visible', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(s2, 'S2 en dashboard').to.be.an('object'); });",
+              "pm.test('[TC-M03-178][ASSERT][API-178-02] Productor: ERROR_CALIBRACION no se presenta como lectura operativa', () => pm.expect(!!s2 && !errores.includes(num(s2.ultimo_valor)), desc(s2)).to.eql(true));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-03] Productor: S2 no genera alerta operativa', () => pm.expect(!!s2 && s2.id_alerta == null, desc(s2)).to.eql(true));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-04] Productor: no recibe información técnica (batería, RSSI, SNR)', () => pm.expect(!!s2 && s2.nivel_bateria_pct == null && s2.calidad_senal_rssi == null && s2.calidad_senal_snr == null, desc(s2)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard del Ingeniero de Campo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_eng}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{area_id}}&por_pagina=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+              "const lista = Array.isArray(j.sensores) ? j.sensores : [];",
+              "const s2 = lista.find((x) => String(x.id_sensor) === String(pm.environment.get('s2_id')));",
+              "const num = (v) => (v === null || v === undefined ? null : Number(v));",
+              "const errores = [Number(pm.environment.get('v_c1')), Number(pm.environment.get('v_c2'))];",
+              "const desc = (s) => (s ? JSON.stringify({ ultimo_valor: s.ultimo_valor, estado_calidad: s.estado_calidad, estado_semaforo: s.estado_semaforo, id_alerta: s.id_alerta, nivel_bateria_pct: s.nivel_bateria_pct, calidad_senal_rssi: s.calidad_senal_rssi }) : 'sensor ausente');",
+              "pm.test('[TC-M03-178][PRE][PRE-178-03] Sesión del Ingeniero vigente (no 401)', () => pm.expect(pm.response.code).to.not.eql(401));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-05] Ingeniero: HTTP 200 y el sensor S2 permanece visible', () => { pm.expect(pm.response.code).to.eql(200); pm.expect(s2, 'S2 en dashboard').to.be.an('object'); });",
+              "const indicaCalibracion = (obj) => !!obj && Object.entries(obj).some(([campo, valor]) => (typeof valor === 'string' && /estado|error|calibra|diagn[oó]stico|mensaje|detalle|condici[oó]n/i.test(campo) && /ERROR_CALIBRACION|requiere calibraci[oó]n|error de calibraci[oó]n/i.test(valor)) || (valor && typeof valor === 'object' && indicaCalibracion(valor)));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-06] Ingeniero: identifica condición técnica o necesidad de calibración en el dashboard', () => pm.expect(indicaCalibracion(s2), desc(s2)).to.eql(true));",
+              "pm.test('[TC-M03-178][ASSERT][API-178-07] Ingeniero: la lectura inválida no se trata como operacional normal', () => pm.expect(!!s2 && !errores.includes(num(s2.ultimo_valor)), desc(s2)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

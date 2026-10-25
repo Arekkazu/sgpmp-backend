@@ -1,0 +1,2283 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "2be68b77-a265-403f-a811-76b111b9581a",
+        "name": "Ingesta de lectura del subcaso",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "telemetria"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{{cuerpo_ingesta}}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "14561f94-29b8-494b-9499-b43236931829",
+              "type": "text/javascript",
+              "exec": [
+                "const id=pm.environment.get('caso'); const code=pm.response.code; const b=code===201?pm.response.json():{};",
+                "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-INGESTA] Respuesta de ingesta registrada',()=>{pm.expect(code).to.eql(201);pm.expect(b.id_telemetria).to.be.a('number');});",
+                "if(code===201 && Number.isInteger(b.id_telemetria)){pm.environment.set('id_telemetria_run',String(b.id_telemetria));pm.environment.set('timestamp_captura_run',JSON.parse(pm.environment.get('cuerpo_ingesta')).timestamp_captura);};"
+              ],
+              "_lastExecutionId": "4007a5a2-ada7-47c4-8792-50a7f86bd695"
+            }
+          }
+        ]
+      },
+      {
+        "id": "5b692fb7-3a5e-4108-8ebe-f09f9931e15e",
+        "name": "Dashboard del subcaso",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_infraestructura",
+                "value": "{{id_infraestructura}}"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "2aaa521f-9d26-4109-bd3a-b24320c6ae4d",
+              "type": "text/javascript",
+              "exec": [
+                "const id=pm.environment.get('caso'); const check=pm.environment.get('check_id'); const code=pm.response.code; const b=code===200?pm.response.json():{}; const s=(b.sensores||[]).find(x=>String(x.id_sensor)===String(pm.environment.get('sensor_id')));",
+                "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-DASHBOARD] Productor y sensor accesibles',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');});",
+                "pm.test('['+id+'][ASSERT]['+check+'] Valor y semáforo observados',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');if(pm.environment.get('esperado_valor')!=='')pm.expect(Number(s.ultimo_valor)).to.be.closeTo(Number(pm.environment.get('esperado_valor')),0.0001);if(pm.environment.get('esperado_estado'))pm.expect(s.estado_semaforo).to.be.oneOf(pm.environment.get('esperado_estado').split('/'));if(pm.environment.get('esperado_unidad'))pm.expect(s.ultima_unidad).to.eql(pm.environment.get('esperado_unidad'));});"
+              ],
+              "_lastExecutionId": "4fe26feb-69b2-431e-97b6-126f1d592c91"
+            }
+          }
+        ]
+      },
+      {
+        "id": "0a69ecef-384a-43b6-8cc6-ac77e1756d13",
+        "name": "API-172-A umbrales de la especie (solo GET)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "umbrales"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_especie",
+                "value": "{{especie_id}}"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "08caca74-c466-45b5-8243-881cfd52ea47",
+              "type": "text/javascript",
+              "exec": [
+                "const b=pm.response.code===200?pm.response.json():{}; const xs=b.items||[]; const keys=xs.map(x=>({campos:Object.keys(x).sort(),niveles:(x.niveles||[]).map(n=>Object.keys(n).sort())}));",
+                "const esT=k=>/toleran|tolerance|^t$|^t_|_t$/i.test(k); const ausente=xs.length>0 && keys.every(x=>!x.campos.some(esT) && x.niveles.every(n=>!n.some(esT)));",
+                "pm.test('[TC-M03-172][ASSERT][API-172-A] T configurable disponible en respuesta M09',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(ausente,'ausencia de T en umbral y niveles').to.eql(false);});"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "id": "4c0412c2-bb83-4c44-8367-228562b568ec",
+          "type": "text/javascript",
+          "exec": [
+            "if (pm.environment.get('qa_autorizado') !== 'SI' || !pm.environment.get('run_id') || !pm.environment.get('sandbox_secret')) { pm.execution.skipRequest(); return; }",
+            "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+            "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});",
+            "if (pm.environment.get('solo_umbrales') === 'SI' && !pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+            "if (pm.environment.get('solo_umbrales') !== 'SI' && pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+            "if (pm.request.method === 'POST') { if (pm.environment.get('skip_ingesta') === 'SI') { pm.execution.skipRequest(); return; } const t=pm.environment.get('broker_service_token'); if (!t) { pm.execution.skipRequest(); return; } pm.request.headers.upsert({key:'Authorization',value:'Bearer '+t}); pm.request.body.update(pm.environment.get('cuerpo_ingesta')); }"
+          ],
+          "_lastExecutionId": "be02bb04-b8ba-4c8e-a7e9-ab45c5b2ce73"
+        }
+      },
+      {
+        "listen": "test",
+        "script": {
+          "id": "137a2fb8-4f2f-4bac-a21b-f57e9eb8a643",
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('[SETUP] Eco del RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+          ],
+          "_lastExecutionId": "2f29f608-9652-4310-83ff-94a892d8164c"
+        }
+      }
+    ],
+    "variable": [],
+    "info": {
+      "_postman_id": "466f2af0-5aa7-41c9-b7f1-b25601004382",
+      "name": "G88 RF-58 por subcaso",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "182ee628-fa4d-48fd-b572-4086ef4a71a2",
+    "values": [
+      {
+        "type": "any",
+        "value": "SI",
+        "key": "qa_autorizado"
+      },
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "G88-V1-20261025-020636",
+        "key": "run_id"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "sandbox_secret"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "broker_service_token"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "tok_prod"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "tok_admin"
+      },
+      {
+        "type": "any",
+        "value": "126",
+        "key": "especie_id"
+      },
+      {
+        "type": "any",
+        "value": "NO",
+        "key": "solo_umbrales"
+      },
+      {
+        "type": "any",
+        "value": "TC-M03-171",
+        "key": "caso"
+      },
+      {
+        "type": "any",
+        "value": "API-171-03",
+        "key": "check_id"
+      },
+      {
+        "type": "any",
+        "value": "NO",
+        "key": "skip_ingesta"
+      },
+      {
+        "type": "any",
+        "value": "357",
+        "key": "device_id"
+      },
+      {
+        "type": "any",
+        "value": "552",
+        "key": "sensor_id"
+      },
+      {
+        "type": "any",
+        "value": "349",
+        "key": "id_infraestructura"
+      },
+      {
+        "type": "any",
+        "value": "TEMPERATURA_AMBIENTAL",
+        "key": "tipo_variable"
+      },
+      {
+        "type": "any",
+        "value": "31.65",
+        "key": "valor"
+      },
+      {
+        "type": "any",
+        "value": "31.65",
+        "key": "esperado_valor"
+      },
+      {
+        "type": "any",
+        "value": "ROJO",
+        "key": "esperado_estado"
+      },
+      {
+        "type": "any",
+        "value": "°C",
+        "key": "esperado_unidad"
+      },
+      {
+        "type": "any",
+        "value": "°C",
+        "key": "unidad"
+      },
+      {
+        "type": "any",
+        "value": "2026-10-25T02:04:27.677Z",
+        "key": "timestamp_captura_ingesta"
+      },
+      {
+        "type": "any",
+        "value": "{\"device_id\":357,\"sensor_id\":552,\"tipo_variable\":\"TEMPERATURA_AMBIENTAL\",\"valor\":31.65,\"unidad\":\"°C\",\"timestamp_captura\":\"2026-10-25T02:04:27.677Z\",\"serial\":\"[REDACTADO]\",\"nivel_bateria\":81,\"calidad_senal_rssi\":-71,\"calidad_senal_snr\":7.5}",
+        "key": "cuerpo_ingesta"
+      },
+      {
+        "type": "any",
+        "value": "117072",
+        "key": "id_telemetria_run"
+      },
+      {
+        "type": "any",
+        "value": "2026-10-25T02:04:27.677Z",
+        "key": "timestamp_captura_run"
+      }
+    ]
+  },
+  "globals": {
+    "id": "93c0dbae-a166-4820-a17c-0cdf9c8b8e68",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 7,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 5,
+        "pending": 0,
+        "failed": 1
+      },
+      "testScripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 379.5,
+      "responseMin": 250,
+      "responseMax": 509,
+      "responseSd": 129.5,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1792894057688,
+      "completed": 1792894058678
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "00a33394-f310-4537-84b1-0d3bbe036632",
+          "httpRequestId": "02007c98-fe49-463c-ba9e-23cb1a28a101"
+        },
+        "item": {
+          "id": "2be68b77-a265-403f-a811-76b111b9581a",
+          "name": "Ingesta de lectura del subcaso",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{{cuerpo_ingesta}}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "14561f94-29b8-494b-9499-b43236931829",
+                "type": "text/javascript",
+                "exec": [
+                  "const id=pm.environment.get('caso'); const code=pm.response.code; const b=code===201?pm.response.json():{};",
+                  "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-INGESTA] Respuesta de ingesta registrada',()=>{pm.expect(code).to.eql(201);pm.expect(b.id_telemetria).to.be.a('number');});",
+                  "if(code===201 && Number.isInteger(b.id_telemetria)){pm.environment.set('id_telemetria_run',String(b.id_telemetria));pm.environment.set('timestamp_captura_run',JSON.parse(pm.environment.get('cuerpo_ingesta')).timestamp_captura);};"
+                ],
+                "_lastExecutionId": "4007a5a2-ada7-47c4-8792-50a7f86bd695"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "telemetria"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "G88-V1-20261025-020636"
+            },
+            {
+              "key": "X-Sandbox-Secret",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6351ed31-4728-4461-9abf-e35ba49b794c",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "260",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"device_id\":357,\"sensor_id\":552,\"tipo_variable\":\"TEMPERATURA_AMBIENTAL\",\"valor\":31.65,\"unidad\":\"°C\",\"timestamp_captura\":\"2026-10-25T02:04:27.677Z\",\"serial\":\"[REDACTADO]\",\"nivel_bateria\":81,\"calidad_senal_rssi\":-71,\"calidad_senal_snr\":7.5}"
+          }
+        },
+        "response": {
+          "id": "931e280a-f362-45a7-8b67-65b068d7b3ce",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "149"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 25 Oct 2026 02:07:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "8e421a20-5cb7-4ddf-919a-345fb03e2247"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "G88-V1-20261025-020636"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              116,
+              101,
+              108,
+              101,
+              109,
+              101,
+              116,
+              114,
+              105,
+              97,
+              34,
+              58,
+              49,
+              49,
+              55,
+              48,
+              55,
+              50,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              99,
+              97,
+              108,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              70,
+              85,
+              69,
+              82,
+              65,
+              95,
+              68,
+              69,
+              95,
+              82,
+              65,
+              78,
+              71,
+              79,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              112,
+              114,
+              111,
+              99,
+              101,
+              115,
+              97,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              50,
+              53,
+              84,
+              48,
+              50,
+              58,
+              48,
+              54,
+              58,
+              52,
+              50,
+              46,
+              55,
+              56,
+              51,
+              55,
+              54,
+              49,
+              90,
+              34,
+              44,
+              34,
+              108,
+              97,
+              116,
+              101,
+              110,
+              99,
+              105,
+              97,
+              95,
+              112,
+              114,
+              111,
+              99,
+              101,
+              115,
+              97,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              95,
+              109,
+              115,
+              34,
+              58,
+              49,
+              51,
+              53,
+              48,
+              48,
+              48,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 509,
+          "responseSize": 149
+        },
+        "id": "2be68b77-a265-403f-a811-76b111b9581a",
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-INGESTA] Respuesta de ingesta registrada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9d89cdfd-ebb3-4d77-9c0d-426bf0e97e94",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "ddf726f2-d315-4d14-9616-8801f61d4002"
+        },
+        "item": {
+          "id": "5b692fb7-3a5e-4108-8ebe-f09f9931e15e",
+          "name": "Dashboard del subcaso",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_infraestructura",
+                  "value": "{{id_infraestructura}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "[REDACTADO]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2aaa521f-9d26-4109-bd3a-b24320c6ae4d",
+                "type": "text/javascript",
+                "exec": [
+                  "const id=pm.environment.get('caso'); const check=pm.environment.get('check_id'); const code=pm.response.code; const b=code===200?pm.response.json():{}; const s=(b.sensores||[]).find(x=>String(x.id_sensor)===String(pm.environment.get('sensor_id')));",
+                  "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-DASHBOARD] Productor y sensor accesibles',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');});",
+                  "pm.test('['+id+'][ASSERT]['+check+'] Valor y semáforo observados',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');if(pm.environment.get('esperado_valor')!=='')pm.expect(Number(s.ultimo_valor)).to.be.closeTo(Number(pm.environment.get('esperado_valor')),0.0001);if(pm.environment.get('esperado_estado'))pm.expect(s.estado_semaforo).to.be.oneOf(pm.environment.get('esperado_estado').split('/'));if(pm.environment.get('esperado_unidad'))pm.expect(s.ultima_unidad).to.eql(pm.environment.get('esperado_unidad'));});"
+                ],
+                "_lastExecutionId": "4fe26feb-69b2-431e-97b6-126f1d592c91"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "id_infraestructura",
+                "value": "349"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "G88-V1-20261025-020636"
+            },
+            {
+              "key": "X-Sandbox-Secret",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6f8facc8-cb81-4c68-bbbc-56c8759f97a1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "de2fbe2c-27de-429a-bab1-f08d66eb08a0",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "1079"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sun, 25 Oct 2026 02:07:37 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d1992d91-7ddf-478d-9ee5-24acae7f7916"
+            },
+            {
+              "key": "X-Test-Run-Id",
+              "value": "G88-V1-20261025-020636"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              44,
+              34,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              53,
+              48,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              109,
+              101,
+              110,
+              95,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              101,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              51,
+              52,
+              57,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              34,
+              195,
+              129,
+              114,
+              101,
+              97,
+              32,
+              81,
+              65,
+              32,
+              77,
+              48,
+              51,
+              32,
+              71,
+              56,
+              55,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              102,
+              105,
+              110,
+              99,
+              97,
+              34,
+              58,
+              49,
+              56,
+              52,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              102,
+              105,
+              110,
+              99,
+              97,
+              34,
+              58,
+              34,
+              70,
+              105,
+              110,
+              99,
+              97,
+              32,
+              80,
+              114,
+              117,
+              101,
+              98,
+              97,
+              32,
+              65,
+              108,
+              102,
+              97,
+              34,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              95,
+              111,
+              110,
+              108,
+              105,
+              110,
+              101,
+              34,
+              58,
+              49,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              95,
+              115,
+              105,
+              110,
+              95,
+              115,
+              101,
+              110,
+              97,
+              108,
+              34,
+              58,
+              48,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              95,
+              99,
+              111,
+              110,
+              95,
+              101,
+              114,
+              114,
+              111,
+              114,
+              34,
+              58,
+              48,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              103,
+              101,
+              110,
+              101,
+              114,
+              97,
+              108,
+              34,
+              58,
+              34,
+              86,
+              69,
+              82,
+              68,
+              69,
+              34,
+              44,
+              34,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              115,
+              95,
+              99,
+              111,
+              117,
+              110,
+              116,
+              34,
+              58,
+              48,
+              44,
+              34,
+              117,
+              108,
+              116,
+              105,
+              109,
+              111,
+              95,
+              100,
+              97,
+              116,
+              111,
+              95,
+              114,
+              101,
+              99,
+              105,
+              98,
+              105,
+              100,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              50,
+              53,
+              84,
+              48,
+              50,
+              58,
+              48,
+              51,
+              58,
+              53,
+              55,
+              46,
+              54,
+              55,
+              55,
+              48,
+              48,
+              48,
+              90,
+              34,
+              125,
+              93,
+              44,
+              34,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              101,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              95,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              34,
+              58,
+              53,
+              53,
+              50,
+              44,
+              34,
+              105,
+              100,
+              95,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              95,
+              105,
+              111,
+              116,
+              34,
+              58,
+              51,
+              53,
+              55,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              115,
+              101,
+              110,
+              115,
+              111,
+              114,
+              34,
+              58,
+              34,
+              81,
+              65,
+              32,
+              71,
+              56,
+              55,
+              32,
+              83,
+              49,
+              32,
+              91,
+              82,
+              69,
+              68,
+              65,
+              67,
+              84,
+              65,
+              68,
+              79,
+              93,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              118,
+              97,
+              114,
+              105,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              34,
+              91,
+              82,
+              69,
+              68,
+              65,
+              67,
+              84,
+              65,
+              68,
+              79,
+              93,
+              34,
+              44,
+              34,
+              99,
+              97,
+              116,
+              101,
+              103,
+              111,
+              114,
+              105,
+              97,
+              95,
+              118,
+              97,
+              114,
+              105,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              34,
+              65,
+              77,
+              66,
+              73,
+              69,
+              78,
+              84,
+              65,
+              76,
+              34,
+              44,
+              34,
+              117,
+              108,
+              116,
+              105,
+              109,
+              111,
+              95,
+              118,
+              97,
+              108,
+              111,
+              114,
+              34,
+              58,
+              34,
+              51,
+              48,
+              46,
+              48,
+              48,
+              48,
+              48,
+              34,
+              44,
+              34,
+              117,
+              108,
+              116,
+              105,
+              109,
+              97,
+              95,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              194,
+              176,
+              67,
+              34,
+              44,
+              34,
+              117,
+              108,
+              116,
+              105,
+              109,
+              111,
+              95,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              99,
+              97,
+              112,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              50,
+              53,
+              84,
+              48,
+              50,
+              58,
+              48,
+              51,
+              58,
+              53,
+              55,
+              46,
+              54,
+              55,
+              55,
+              48,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              115,
+              101,
+              109,
+              97,
+              102,
+              111,
+              114,
+              111,
+              34,
+              58,
+              34,
+              86,
+              69,
+              82,
+              68,
+              69,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              99,
+              97,
+              108,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              76,
+              69,
+              67,
+              84,
+              85,
+              82,
+              65,
+              95,
+              86,
+              65,
+              76,
+              73,
+              68,
+              65,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              100,
+              101,
+              115,
+              118,
+              105,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              99,
+              111,
+              110,
+              101,
+              99,
+              116,
+              105,
+              118,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              34,
+              44,
+              34,
+              116,
+              105,
+              101,
+              109,
+              112,
+              111,
+              95,
+              115,
+              105,
+              110,
+              95,
+              114,
+              101,
+              112,
+              111,
+              114,
+              116,
+              101,
+              95,
+              109,
+              105,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              97,
+              116,
+              111,
+              95,
+              100,
+              101,
+              115,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              105,
+              122,
+              97,
+              100,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              44,
+              34,
+              105,
+              100,
+              95,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              115,
+              101,
+              118,
+              101,
+              114,
+              105,
+              100,
+              97,
+              100,
+              95,
+              97,
+              108,
+              101,
+              114,
+              116,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              116,
+              101,
+              110,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              51,
+              52,
+              57,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              34,
+              195,
+              129,
+              114,
+              101,
+              97,
+              32,
+              81,
+              65,
+              32,
+              77,
+              48,
+              51,
+              32,
+              71,
+              56,
+              55,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              102,
+              105,
+              110,
+              99,
+              97,
+              34,
+              58,
+              49,
+              56,
+              52,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              102,
+              105,
+              110,
+              99,
+              97,
+              34,
+              58,
+              34,
+              70,
+              105,
+              110,
+              99,
+              97,
+              32,
+              80,
+              114,
+              117,
+              101,
+              98,
+              97,
+              32,
+              65,
+              108,
+              102,
+              97,
+              34,
+              44,
+              34,
+              110,
+              105,
+              118,
+              101,
+              108,
+              95,
+              98,
+              97,
+              116,
+              101,
+              114,
+              105,
+              97,
+              95,
+              112,
+              99,
+              116,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              99,
+              97,
+              108,
+              105,
+              100,
+              97,
+              100,
+              95,
+              115,
+              101,
+              110,
+              97,
+              108,
+              95,
+              114,
+              115,
+              115,
+              105,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              99,
+              97,
+              108,
+              105,
+              100,
+              97,
+              100,
+              95,
+              115,
+              101,
+              110,
+              97,
+              108,
+              95,
+              115,
+              110,
+              114,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 250,
+          "responseSize": 1079
+        },
+        "id": "5b692fb7-3a5e-4108-8ebe-f09f9931e15e",
+        "assertions": [
+          {
+            "assertion": "[SETUP] Eco del RUN",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-171][PRE][PRE-171-DASHBOARD] Productor y sensor accesibles",
+            "skipped": false
+          },
+          {
+            "assertion": "[TC-M03-171][ASSERT][API-171-03] Valor y semáforo observados",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 1,
+              "test": "[TC-M03-171][ASSERT][API-171-03] Valor y semáforo observados",
+              "message": "expected 30 to be close to 31.65 +/- 0.0001",
+              "stack": "AssertionError: expected 30 to be close to 31.65 +/- 0.0001\n   at Object.eval sandbox-script.js:2:2)"
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1228
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 1,
+          "test": "[TC-M03-171][ASSERT][API-171-03] Valor y semáforo observados",
+          "message": "expected 30 to be close to 31.65 +/- 0.0001",
+          "stack": "AssertionError: expected 30 to be close to 31.65 +/- 0.0001\n   at Object.eval sandbox-script.js:2:2)",
+          "checksum": "599e77c0cb3eb742b6acde2f1be58442",
+          "id": "ad75e9b9-63d7-407b-b550-11f32d0fbbba",
+          "timestamp": 1792894058619,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 2,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 2,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:1 in test-script",
+        "source": {
+          "id": "5b692fb7-3a5e-4108-8ebe-f09f9931e15e",
+          "name": "Dashboard del subcaso",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_infraestructura",
+                  "value": "{{id_infraestructura}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "[REDACTADO]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2aaa521f-9d26-4109-bd3a-b24320c6ae4d",
+                "type": "text/javascript",
+                "exec": [
+                  "const id=pm.environment.get('caso'); const check=pm.environment.get('check_id'); const code=pm.response.code; const b=code===200?pm.response.json():{}; const s=(b.sensores||[]).find(x=>String(x.id_sensor)===String(pm.environment.get('sensor_id')));",
+                  "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-DASHBOARD] Productor y sensor accesibles',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');});",
+                  "pm.test('['+id+'][ASSERT]['+check+'] Valor y semáforo observados',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');if(pm.environment.get('esperado_valor')!=='')pm.expect(Number(s.ultimo_valor)).to.be.closeTo(Number(pm.environment.get('esperado_valor')),0.0001);if(pm.environment.get('esperado_estado'))pm.expect(s.estado_semaforo).to.be.oneOf(pm.environment.get('esperado_estado').split('/'));if(pm.environment.get('esperado_unidad'))pm.expect(s.ultima_unidad).to.eql(pm.environment.get('esperado_unidad'));});"
+                ],
+                "_lastExecutionId": "4fe26feb-69b2-431e-97b6-126f1d592c91"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "2be68b77-a265-403f-a811-76b111b9581a",
+              "name": "Ingesta de lectura del subcaso",
+              "request": {
+                "url": {
+                  "path": [
+                    "iot",
+                    "telemetria"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{cuerpo_ingesta}}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "14561f94-29b8-494b-9499-b43236931829",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id=pm.environment.get('caso'); const code=pm.response.code; const b=code===201?pm.response.json():{};",
+                      "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-INGESTA] Respuesta de ingesta registrada',()=>{pm.expect(code).to.eql(201);pm.expect(b.id_telemetria).to.be.a('number');});",
+                      "if(code===201 && Number.isInteger(b.id_telemetria)){pm.environment.set('id_telemetria_run',String(b.id_telemetria));pm.environment.set('timestamp_captura_run',JSON.parse(pm.environment.get('cuerpo_ingesta')).timestamp_captura);};"
+                    ],
+                    "_lastExecutionId": "4007a5a2-ada7-47c4-8792-50a7f86bd695"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5b692fb7-3a5e-4108-8ebe-f09f9931e15e",
+              "name": "Dashboard del subcaso",
+              "request": {
+                "url": {
+                  "path": [
+                    "iot",
+                    "monitoreo",
+                    "dashboard"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_infraestructura",
+                      "value": "{{id_infraestructura}}"
+                    },
+                    {
+                      "key": "por_pagina",
+                      "value": "50"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "[REDACTADO]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "2aaa521f-9d26-4109-bd3a-b24320c6ae4d",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const id=pm.environment.get('caso'); const check=pm.environment.get('check_id'); const code=pm.response.code; const b=code===200?pm.response.json():{}; const s=(b.sensores||[]).find(x=>String(x.id_sensor)===String(pm.environment.get('sensor_id')));",
+                      "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-DASHBOARD] Productor y sensor accesibles',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');});",
+                      "pm.test('['+id+'][ASSERT]['+check+'] Valor y semáforo observados',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');if(pm.environment.get('esperado_valor')!=='')pm.expect(Number(s.ultimo_valor)).to.be.closeTo(Number(pm.environment.get('esperado_valor')),0.0001);if(pm.environment.get('esperado_estado'))pm.expect(s.estado_semaforo).to.be.oneOf(pm.environment.get('esperado_estado').split('/'));if(pm.environment.get('esperado_unidad'))pm.expect(s.ultima_unidad).to.eql(pm.environment.get('esperado_unidad'));});"
+                    ],
+                    "_lastExecutionId": "4fe26feb-69b2-431e-97b6-126f1d592c91"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0a69ecef-384a-43b6-8cc6-ac77e1756d13",
+              "name": "API-172-A umbrales de la especie (solo GET)",
+              "request": {
+                "url": {
+                  "path": [
+                    "configuracion",
+                    "umbrales"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_especie",
+                      "value": "{{especie_id}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "[REDACTADO]"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "08caca74-c466-45b5-8243-881cfd52ea47",
+                    "type": "text/javascript",
+                    "exec": [
+                      "const b=pm.response.code===200?pm.response.json():{}; const xs=b.items||[]; const keys=xs.map(x=>({campos:Object.keys(x).sort(),niveles:(x.niveles||[]).map(n=>Object.keys(n).sort())}));",
+                      "const esT=k=>/toleran|tolerance|^t$|^t_|_t$/i.test(k); const ausente=xs.length>0 && keys.every(x=>!x.campos.some(esT) && x.niveles.every(n=>!n.some(esT)));",
+                      "pm.test('[TC-M03-172][ASSERT][API-172-A] T configurable disponible en respuesta M09',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(ausente,'ausencia de T en umbral y niveles').to.eql(false);});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "4c0412c2-bb83-4c44-8367-228562b568ec",
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('qa_autorizado') !== 'SI' || !pm.environment.get('run_id') || !pm.environment.get('sandbox_secret')) { pm.execution.skipRequest(); return; }",
+                  "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+                  "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});",
+                  "if (pm.environment.get('solo_umbrales') === 'SI' && !pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+                  "if (pm.environment.get('solo_umbrales') !== 'SI' && pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+                  "if (pm.request.method === 'POST') { if (pm.environment.get('skip_ingesta') === 'SI') { pm.execution.skipRequest(); return; } const t=pm.environment.get('broker_service_token'); if (!t) { pm.execution.skipRequest(); return; } pm.request.headers.upsert({key:'Authorization',value:'Bearer '+t}); pm.request.body.update(pm.environment.get('cuerpo_ingesta')); }"
+                ],
+                "_lastExecutionId": "be02bb04-b8ba-4c8e-a7e9-ab45c5b2ce73"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "137a2fb8-4f2f-4bac-a21b-f57e9eb8a643",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[SETUP] Eco del RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+                ],
+                "_lastExecutionId": "2f29f608-9652-4310-83ff-94a892d8164c"
+              }
+            }
+          ],
+          "variable": [],
+          "info": {
+            "_postman_id": "466f2af0-5aa7-41c9-b7f1-b25601004382",
+            "name": "G88 RF-58 por subcaso",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "9d89cdfd-ebb3-4d77-9c0d-426bf0e97e94",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "ddf726f2-d315-4d14-9616-8801f61d4002",
+          "scriptId": "2aaa521f-9d26-4109-bd3a-b24320c6ae4d",
+          "execution": "4fe26feb-69b2-431e-97b6-126f1d592c91"
+        }
+      }
+    ],
+    "error": null
+  }
+}

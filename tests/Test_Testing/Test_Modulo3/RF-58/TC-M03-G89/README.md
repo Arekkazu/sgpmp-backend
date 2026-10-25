@@ -1,61 +1,30 @@
-# TC-M03-G89 — Automatización QA reutilizable
+# TC-M03-G89 — RF-58
 
-RF-58 Monitoreo Ambiental en Tiempo Real · CU04 · Responsable QA: Juan Esteban · Prioridad Alta.
-Fuente: `Casos_Prueba(Modulo3 Agrupado).csv`, fila TC-M03-G89. Endpoint: `GET /iot/monitoreo/dashboard`.
-Herramienta de la matriz: Postman/Newman (sin escenarios UI).
+**Estado:** intento 2 `RUN-G89-V1-20261025-045219` OFICIAL; limpieza local ORD-G89-008 sin acceso a TEST. Casos TC-M03-173 y TC-M03-174. Fuente: `Casos_Prueba(Modulo3 Agrupado).csv`, fila G89 (Windows-1252). Solo API Postman/Newman; la matriz no exige UI.
 
-Sin ejecuciones oficiales todavía: Desarrollo no ha autorizado la evaluación del Módulo 03.
+## Corrección ORD-G89-005
 
-## Casos
+Historial: intento 1 `RUN-G89-V1-20261025-042944` (`AUT-G89-V1-20261025`), técnico, eliminado del espacio local con autorización QA; registro conservado en registro-qa; intento 2 `RUN-G89-V1-20261025-045219` OFICIAL.
 
-| Caso | Qué se comprueba |
-| --- | --- |
-| TC-M03-173 | Lectura 25 en el rango óptimo (VERDE) + alerta CRITICO activa → ROJO y se devuelve el `id_alerta` |
-| TC-M03-174 | Base VERDE + alerta activa LEVE o MODERADO → AMARILLO; con la alerta RESUELTA o DESCARTADA → VERDE |
+El rollback no se confirmó por un falso negativo del verificador: exigía que el sensor figurara en el dashboard previo, aunque estuvo ausente antes y después del cierre. Ahora se comparan las respuestas completas del mismo GET como Productor, incluida la ausencia/presencia del sensor, y se exigen alertas y telemetrías revertidas. El ejecutor escribe `preflight.json` en el RUN antes de cualquier petición, con diagnóstico local sin valores de credenciales. El informe único consolida la incidencia funcional de TC-M03-174 y separa las incidencias técnicas QA, incluida la ausencia de preflight del intento 1. El intento 2 registra la acreditación de preflight y rollback en su RUN oficial.
 
-Las aserciones (PRE/ASSERT) están en `g89_casos.mjs`. El estado base VERDE se comprueba
-**antes** de crear las alertas (PRE-173-04, PRE-174-04).
+## Oráculo
 
-## Archivos
+Resultado esperado de la matriz, sin adaptar al código: “1. HTTP 200. estado_semaforo="ROJO" pese a que el valor está en rango VERDE, y se devuelve el id_alerta asociado. 2. Con alerta activa: estado_semaforo="AMARILLO". Con alerta resuelta o descartada: estado_semaforo="VERDE", sin elevación indebida.”
 
-| Archivo | Función |
-| --- | --- |
-| `ejecutar_tc_m03_g89.mjs` | Único ejecutor: validación local y ejecución oficial. |
-| `g89_casos.mjs` | Catálogo de casos y aserciones, plan de datos y efectos persistentes conocidos. |
-| `g89_lib.mjs` | Funciones comunes del ejecutor (copia idéntica a la de G87 y G88). |
-| `TC-M03-G89.postman_collection.json` | Escenarios API (20 peticiones). Sin autorización omite todas las peticiones. |
-| `validar_local_g89.mjs` | Pruebas unitarias locales (`node --test`). |
+- **173:** valor en rango VERDE y alerta CRITICO ACTIVA asociada → `GET /iot/monitoreo/dashboard` HTTP 200, `estado_semaforo=ROJO` e `id_alerta` asociado.
+- **174:** base VERDE y alerta no crítica ACTIVA → AMARILLO; con alerta RESUELTA o DESCARTADA → VERDE. Importa el estado de la alerta, no la mera existencia del identificador.
 
-## Uso
+## Escenario y ejecución
 
-```powershell
-node ejecutar_tc_m03_g89.mjs --validar-local
-# Solo con autorización expresa de Desarrollo y QA_AUTORIZADO=SI:
-node ejecutar_tc_m03_g89.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo evaluacion --aceptar-efectos notificacion-login
-```
+Se reutiliza **como candidata** la semilla G88: finca 184, área 349, especie 126, dispositivo 357 y sensor 552, temperatura ambiental 25 °C, umbral 70. El futuro RUN debe acreditar por GET las relaciones, calibración, niveles y ausencia de alerta activa antes de escribir. La deduplicación local filtra mismo sensor y variable, estados ACTIVA/EN_ATENCION y `fecha_generacion` de los últimos 30 minutos; no filtra severidad (`src/telemetry/infrastructure/repositories/alerta_repository.py:69-85`). El caso de uso devuelve HTTP 201, `es_duplicado=true` e ID existente cuando deduplica (`src/telemetry/application/use_cases/alertas/generar_alerta_use_case.py:79-105`; router:54-57). La CRITICA de 173 sigue ACTIVA durante su comprobación; después pasa por EN_ATENCION a RESUELTA antes de 174. La LEVE se crea entonces sin deduplicarse y, tras RESUELTA, la MODERADA se crea por separado. Un duplicado inesperado detiene el caso como error técnico, sin aprobarlo. No se requiere otro sensor según este código local; la conducta de TEST sigue pendiente de comprobación. Tres ingestas de valor VERDE restablecen una base comprobable entre fases; se observan CRITICO, LEVE RESUELTA y MODERADO DESCARTADA. La vinculación RF-61-A se registra como hallazgo, sin condicionar el oráculo G89.
 
-Resultados:
+Contrato acreditado por responsable QA para POST `/iot/alertas`: Bearer `BROKER_SERVICE_TOKEN`, cuerpo `device_id`, `sensor_id`, `serial`, `tipo_variable`, `valor`, `unidad`, `timestamp_evento` (ancla previa al RUN), `estado_dato=LECTURA_VALIDA`, `severidad_edge` (`CRITICO`/`LEVE`/`MODERADO`), `origen_evento=EDGE`, `id_telemetria` y `reglas_activadas=[]`; HTTP 201. No se envía `access_key` ni JWT de usuario. La lista blanca exige el cuerpo exacto, la semilla y telemetría creadas en el RUN. El DTO local aún pide `access_key` (`src/telemetry/infrastructure/dto/procesar_evento_alerta_dto.py:13-30`), por lo que el contrato TEST acreditado prevalece para esa diferencia; cualquier otra diferencia del despliegue se registra como riesgo de contrato. GET de alertas requiere permiso `(32,2)` y PATCH `(32,3)` con JWT (`src/telemetry/infrastructure/routers/alerta_router.py:105,158,192-199`; `src/shared/rbac.py:66-76,120-131`). El ejecutor obtiene JWT Administrador antes del RUN y envía `nuevo_estado` y `motivo` en cada PATCH. El DTO admite motivo opcional de hasta 500 caracteres (`actualizar_estado_alerta_dto.py:10-20`); el dominio permite ACTIVA→EN_ATENCION→RESUELTA y ACTIVA→DESCARTADA (`src/telemetry/domain/entities/alerta.py:66-73`).
 
-- V1: `RESULTADOS/<RUN_ID>/TC-M03-G89_resultado.md`
-- V2 y siguientes: `EvaluacionVN/RESULTADOS/<RUN_ID>/TC-M03-G89_reevaluacion_VN.md`
+El lanzador externo autorizado invoca `node g89.mjs --operacion evaluar --version 1 --intento N --run-id RUN-G89-V1-<timestamp> --autorizacion <referencia> --contexto <ruta absoluta al contexto_operacion.json>`. Para preparación local: `node g89.mjs --capacidades`, `node g89.mjs --comprobar` y `node pruebas/g89.test.mjs`. Las dos opciones de consulta no leen `.env.qa` ni hacen red. `--capacidades` declara las cinco comprobaciones API ASSERT obligatorias para 173/174; los PRE no son obligatorios. El ejecutor lee variables privadas solo cuando recibe el contrato válido y `QA_AUTORIZADO=SI` del proceso; no registrarlas en artefactos. El contrato V2 requiere una decisión explícita del lanzador.
 
-Cada RUN contiene el informe y `evidencia.json`; si aplica, también `newman/` con el HTML.
+## Efectos previstos para futura autorización
 
-## Datos que prepara el ejecutor y la colección (sandbox, API oficial)
+Dos logins previos al RUN y dos posteriores al DELETE pueden actualizar acceso y generar notificaciones persistentes de sesión. Los logins previos confirman sus cambios fuera de la transacción del sandbox; se eliminó la espera fija de 31 s al no tener función necesaria demostrada. Dentro del sandbox: hasta 3 POST `/iot/telemetria`, 3 POST `/iot/alertas`, 5 PATCH `/iot/alertas/{id}/estado`, 8 consultas Newman del dashboard y GET de acreditación/cierre. Todas las peticiones del RUN, incluidas las de broker, llevan `X-Test-Run-Id` y `X-Sandbox-Secret`. Límite total del ejecutor: 70 solicitudes directas; Newman agrega 8. DELETE `/test-control/runs/{id}` seguido de re-login y GET del dashboard, alertas e historial comprueba la reversión; el código no da por confirmada ninguna persistencia o reversión sin esas lecturas. No se invoca MQTT, Edge, SQL ni una escritura M09. El código local de ingesta aún declara `access_key`, mientras el contrato TEST observado por G88 usa `serial` más Bearer `BROKER_SERVICE_TOKEN`; el futuro RUN debe registrar una discrepancia como problema de contrato si se repite, sin cambiar el oráculo.
 
-- **Especie:** sin Gateway Edge (comprobado por SQL), sin umbral para TEMPERATURA_AMBIENTAL y sin métricas obligatorias.
-- **Área y activo:** área nueva de esa especie con un único activo INDIVIDUAL. RF-61 lo exige para VINCULAR la lectura y clasificarla con el umbral.
-- **Sensores:** dispositivo sin gateway con 5 sensores calibrados, uno por situación de alerta (RF-57 deduplica por sensor y variable).
-- **Umbral:** 20–30 °C (`precaucion [19,20] · normal [20,30] · critico [30,31]`), registrado por la colección.
-- **Alertas:** creadas por `POST /iot/alertas` con la credencial del dispositivo, en dos variantes:
-  - una resuelta por el ciclo oficial ACTIVA → EN_ATENCION → RESUELTA;
-  - una DESCARTADA.
-
-## Riesgos y efectos conocidos
-
-- **Notificación de login:** cada login genera una notificación persistente fuera del sandbox. Exige `--aceptar-efectos notificacion-login` (2 logins por RUN).
-- **Cuentas QA bloqueadas:** quedan bloqueadas para uso externo mientras el RUN está abierto.
-- **Timeout del sandbox:** 180 s de inactividad.
-- **Aislamiento:** se verifica con testigos sin RLS.
-- **Alertas sin efectos externos:** solo escriben en `modulo3`, mediante triggers internos.
-- **Hipótesis estática** (no confirmada): al resolver o descartar una alerta se limpia `id_alerta`, pero no se restaura `estado_semaforo`. API-174-04 y API-174-05 lo contrastan.
+Los resultados reales V1 corresponden a `Resultados/RUN-G89-V1-<timestamp>/` con un único `TC-M03-G89_resultado.md`, `resultado.json` y `newman/`. El JSON conserva los detalles originales y expone en raíz `run_id`, `version`, `casos` con `estado`, `comprobaciones` planas, `datos.ids_telemetria`, `consume_version`, `cierre.run.cierre_http`, `cierre.rollback.verificado`, `oficial` y evidencias relativas existentes para el registro QA. La colección vigente es `G89.postman_collection.json`; G89 no tiene Cypress porque no hay UI exigida.

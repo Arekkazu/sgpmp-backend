@@ -1,0 +1,32 @@
+{
+  "info": {"name": "G92 RF-58 dashboard", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": [
+    "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+    "pm.request.headers.upsert({key:'Authorization', value:'Bearer ' + pm.environment.get('token_productor')});",
+    "pm.request.headers.upsert({key:'X-Test-Run-Id', value:pm.environment.get('run_id')});",
+    "pm.request.headers.upsert({key:'X-Sandbox-Secret', value:pm.environment.get('sandbox_secret')});"
+  ]}}],
+  "item": [{"name": "Dashboard G92", "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": "{{base_url}}/iot/monitoreo/dashboard{{consulta}}"},
+    "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+      "const fase = pm.environment.get('fase'); const A = Number(pm.environment.get('area_a')); const B = Number(pm.environment.get('area_b'));",
+      "const id = (c,n) => '['+c+'][ASSERT]['+n+']'; const pre = (c,n) => '['+c+'][PRE]['+n+']';",
+      "const j = pm.response.code === 200 ? pm.response.json() : {}; const s = j.sensores || []; const r = j.resumen_unidades || [];",
+      "pm.test(pre('TC-M03-181','PRE-RUN-ECO'), () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+      "if (fase === 'inicial') {",
+      "  const u = r.find(x => Number(x.id_infraestructura) === B); const colores = s.map(x => x.estado_semaforo);",
+      "  pm.test(pre('TC-M03-181','PRE-181-01'), () => { pm.expect(pm.response.code).to.eql(200); pm.expect(j.total).to.eql(3); pm.expect(s.length).to.eql(3); pm.expect(s.every(x => Number(x.id_infraestructura) === B)).to.eql(true); ['VERDE','AMARILLO','ROJO'].forEach(x => pm.expect(colores).to.include(x)); });",
+      "  pm.test(id('TC-M03-181','API-181-01'), () => pm.expect(u && u.estado_general).to.eql('ROJO'));",
+      "  pm.test(id('TC-M03-181','API-181-02'), () => { pm.expect(u && u.alertas_activas_count).to.eql(2); pm.expect(u && u.ultimo_dato_recibido).to.be.ok; });",
+      "  pm.test(id('TC-M03-181','API-181-03'), () => pm.expect(Object.entries(u || {}).some(([k,v]) => /variable/i.test(k) && v != null && (/(atenci[oó]n|cr[ií]tic)/i.test(k) || (typeof v === 'object' && Object.keys(v).some(x => /(atenci[oó]n|cr[ií]tic)/i.test(x)))))).to.eql(true));",
+      "}",
+      "if (fase === 'a1') {",
+      "  pm.test(id('TC-M03-183','API-183-01'), () => { pm.expect(pm.response.code).to.eql(200); pm.expect(j.total).to.eql(60); pm.expect(s.length).to.eql(50); pm.expect(s.every(x => Number(x.id_infraestructura) === A && x.estado_semaforo === 'VERDE')).to.eql(true); });",
+      "  pm.test(id('TC-M03-183','API-183-02'), () => pm.expect(r.find(x => Number(x.id_infraestructura) === A)?.estado_general).to.eql('ROJO'));",
+      "  pm.test(id('TC-M03-182','API-182-01'), () => pm.expect(s.every(x => Number(x.id_infraestructura) === A)).to.eql(true));",
+      "  pm.test(id('TC-M03-182','API-182-02'), () => { pm.expect(r.length).to.eql(1); pm.expect(Number(r[0].id_infraestructura)).to.eql(A); });",
+      "}",
+      "if (fase === 'a2') pm.test(pre('TC-M03-183','PRE-183-01'), () => { pm.expect(j.total).to.eql(60); pm.expect(s.length).to.eql(10); pm.expect(s[4].estado_semaforo).to.eql('ROJO'); pm.expect(s.filter(x => x.estado_semaforo === 'ROJO').length).to.eql(1); pm.expect(s.every((x,i) => Number(x.id_infraestructura) === A && (i === 4 || x.estado_semaforo === 'VERDE'))).to.eql(true); });",
+      "if (fase === 'b1') { pm.test(id('TC-M03-182','API-182-01'), () => { pm.expect(j.total).to.eql(3); pm.expect(s.length).to.eql(3); pm.expect(s.every(x => Number(x.id_infraestructura) === B)).to.eql(true); }); pm.test(id('TC-M03-182','API-182-02'), () => { pm.expect(r.length).to.eql(1); pm.expect(Number(r[0].id_infraestructura)).to.eql(B); }); }",
+      "if (fase === 'libre') pm.test(pre('TC-M03-182','PRE-182-01'), () => { pm.expect(r.some(x => Number(x.id_infraestructura) === A)).to.eql(true); pm.expect(r.some(x => Number(x.id_infraestructura) === B)).to.eql(true); });"
+    ]}}] }]
+}

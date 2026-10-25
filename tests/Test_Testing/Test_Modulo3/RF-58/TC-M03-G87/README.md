@@ -1,96 +1,55 @@
-# TC-M03-G87 — Automatización QA reutilizable
+﻿# TC-M03-G87 — RF-58 Monitoreo Ambiental en Tiempo Real
 
-RF-58 Monitoreo Ambiental en Tiempo Real · CU04 · Responsable QA: Juan Esteban · Prioridad Alta.
-Fuente: `Casos_Prueba(Modulo3 Agrupado).csv`, fila TC-M03-G87. Endpoint: `GET /iot/monitoreo/dashboard`.
+La fuente de los criterios es la fila `TC-M03-G87` de `Casos_Prueba(Modulo3 Agrupado).csv`. El flujo comprueba:
 
-Sin ejecuciones oficiales todavía. G87-V1 queda pendiente del preflight autenticado y de la habilitación QA; `QA_AUTORIZADO=NO` permanece sin cambios.
+| Caso | Oráculo de la matriz | Cobertura |
+| --- | --- | --- |
+| TC-M03-168 | Tras tres lecturas `LECTURA_VALIDA` y una posterior `FUERA_DE_RANGO`, HTTP 200 y `ultimo_valor`, `ultima_unidad` y `ultimo_timestamp_captura` de la última válida. | API (Newman) |
+| TC-M03-177 | El Productor conserva la última lectura válida (25) como referencia operativa; la anomalía `FUERA_DE_RANGO` permanece visible mediante ROJO/ícono. | API + UI (Newman y Cypress) |
+| TC-M03-178 | `ERROR_CALIBRACION` no es valor ni alerta operativa del Productor y no expone sus datos técnicos; el Ingeniero identifica el error y el detalle para reconocer que requiere calibración. El sensor sigue visible. | API + UI (Newman y Cypress) |
 
-## Casos
+## Estructura vigente
 
-| Caso | Qué se comprueba | Actor | Herramienta |
-| --- | --- | --- | --- |
-| TC-M03-168 | Tras tres LECTURA_VALIDA y una FUERA_DE_RANGO, el dashboard devuelve valor, unidad y timestamp de la última válida | Productor | Newman |
-| TC-M03-177 | La FUERA_DE_RANGO no reemplaza el valor operativo 25 y la anomalía sigue visible (ROJO/ícono) | Productor | Newman + Cypress |
-| TC-M03-178 | ERROR_CALIBRACION: el Productor no ve valor operativo, alerta ni datos técnicos; el Ingeniero identifica el error y ve el detalle; el sensor sigue visible | Productor + Ingeniero | Newman + Cypress |
-
-Las aserciones están en `g87_casos.mjs` con un id estable. Newman y Cypress nombran cada prueba
-`[CASO][PRE|ASSERT|INFO][ID]`.
-
-## Archivos
-
-| Archivo | Función |
-| --- | --- |
-| `ejecutar_tc_m03_g87.mjs` | Único ejecutor: validación local y ejecución oficial (preflight, sandbox, datos, Newman, Cypress, cierre, evidencia e informe). Incluye la configuración de Cypress. |
-| `g87_casos.mjs` | Catálogo de casos y aserciones, plan de datos y efectos persistentes conocidos. |
-| `g87_lib.mjs` | Funciones del grupo: configuración, barreras, sandbox, sanitización, versiones, veredictos, consolidación de evidencias e informe. |
-| `TC-M03-G87.postman_collection.json` | Escenarios API. No inicia sesión: usa las sesiones del ejecutor. Sin autorización omite todas las peticiones. |
-| `tc_m03_g87.cy.js` | Escenarios UI de 177 y 178. Sin mocks: solo añade las cabeceras del sandbox y serializa las peticiones. |
-| `validar_local_g87.mjs` | Pruebas unitarias locales (`node --test`). |
+- `g87.mjs`: único ejecutor canónico.
+- `G87.postman_collection.json`: única colección Newman vigente.
+- `g87.cy.js` y `g87.cypress.config.cjs`: spec y configuración Cypress vigentes.
+- `lib/g87_preparacion.mjs`, `lib/g87_seguridad.mjs`, `lib/g87_cierre.mjs`, `lib/g87_cypress_runner.mjs`, `lib/g87_cypress_worker.mjs` y `lib/g87_informe.mjs`: auxiliares del ejecutor.
+- `pruebas/`: cuatro suites locales; `Resultados/`: destino de V1, inicialmente vacío.
 
 ## Uso
 
+Desde esta carpeta, `node g87.mjs --comprobar` hace comprobaciones locales sin red ni RUN. La ejecución en TEST corresponde exclusivamente al lanzador externo con autorización particular. La invocación heredada `node g87.mjs --autorizacion <ref> [--tipo reintento]` permanece para compatibilidad del ejecutor, con V1 fija. La recuperación directa con `--recuperar` está bloqueada; requiere el contrato del lanzador y permiso propio. Ningún comando de TEST se ejecuta durante la preparación local.
+
+Para preparar una corrección documental sin consultar TEST: `node g87.mjs --regenerar-informe RUN-G87-V1-20261023-145303 --salida _paquete_responsables/TC-M03-G87_resultado.md`. La salida debe ser un Markdown nuevo en la raíz de G87 o en `_paquete_responsables/`; el comando lee las evidencias del RUN, conserva el informe oficial y no escribe en `Resultados/` ni `EvaluacionVn/`. El borrador registra el hash del informe vigente, conserva la trazabilidad de la primera regeneración y toma los metadatos locales del informe histórico, sin consultar Git. Los enlaces relativos de evidencia están preparados para la instalación dentro del RUN.
+
+## Contrato propuesto sigab-qa-ejecutor/1
+
+node g87.mjs --capacidades imprime JSON local, sin red ni autorización: operaciones evaluar, reintentar, reevaluar, recuperar, versiones 1..n. El paquete _paquete_orquestacion/ propone la extensión del lanzador protegido; no está instalada.
+
+Tras instalarse, el lanzador reserva y registra el RUN y escribe contexto_operacion.json antes de invocar:
+
+node g87.mjs --autorizacion <ref> --operacion <evaluar|reintentar|reevaluar|recuperar> --version <n> --intento <k> --run-id <RUN> --contexto <ruta-absoluta> [--run-objetivo <RUN>].
+
+El ejecutor valida argumentos, contexto, grupo, casos y ruta antes de leer credenciales o acceder a TEST. V1 usa Resultados/; V2+ usa EvaluacionV<n>/Resultados/. Recuperación escribe una evidencia aparte dentro del RUN objetivo y no reemplaza resultado.json ni el informe. La utilidad neutra lib/contrato_ejecutor.mjs implementa la validación local para poder copiarla a otro grupo en una orden futura.
+
+Las invocaciones heredadas siguen disponibles para compatibilidad local del ejecutor. Toda operación remota requiere lanzador y autorización específica. El registro persistente, las referencias consumidas y las versiones los administra únicamente el lanzador.
+
+Dependencias de datos a verificar antes de cualquier escritura autorizada: S1, sensor 552, dispositivo 357 en infraestructura 349, especie 126, umbral 70 de 15–30 °C y calibración 68; S2, sensor 77, dispositivo 266, con asociación original al área 328 y sin calibración. El ejecutor comprueba por API las relaciones, el umbral activo, el rango físico, las asociaciones y el cupo; estos IDs son referencias de preparación, no resultados confirmados en esta fase. Si S1 no cumple sus precondiciones, 168 y 177 se bloquean sin impedir la comprobación independiente de 178 cuando S2 sí cumple las suyas.
+
+Suites locales, sin TEST ni red, ejecutadas individualmente desde esta carpeta:
+
 ```powershell
-node ejecutar_tc_m03_g87.mjs --validar-local
-
-# Solo tras el preflight autenticado y con QA_AUTORIZADO=SI (lo habilita el responsable QA):
-node ejecutar_tc_m03_g87.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo evaluacion --aceptar-efectos notificacion-login,sesion-observador
-# Reintento técnico dentro de la misma evaluación:
-node ejecutar_tc_m03_g87.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo reintento --aceptar-efectos notificacion-login,sesion-observador
+node pruebas/validar_flujo_g87.mjs
+node pruebas/g87_orden013.test.mjs
+node pruebas/validar_orden_g87_005.mjs
+node pruebas/validar_orden_g87_007.mjs
+node pruebas/contrato_g87.test.mjs
 ```
 
-`--version N` solo se usa para confirmar la versión cuando el historial es ambiguo.
+## Evidencia de una evaluación autorizada
 
-## Resultados por evaluación
+- V1 por defecto o reintento V1: `Resultados/RUN-G87-V1-<timestamp>/TC-M03-G87_resultado.md`.
+- V2 únicamente por decisión expresa de reevaluación: `EvaluacionV2/Resultados/RUN-G87-V2-<timestamp>/TC-M03-G87_reevaluacion_V2.md`.
+- Cada RUN guarda `resultado.json`, los reportes Newman JSON/HTML realmente generados en `newman/` y las capturas Cypress reales, si existen, en `cypress/`. Hay un solo Markdown oficial dentro del RUN, sin copia en la raíz de `Resultados/` ni `informe.md`.
 
-| Evaluación | Carpeta | Informe |
-| --- | --- | --- |
-| V1 | `RESULTADOS/G87-EVAL-V1-AAAAMMDD-HHMMSS/` | `TC-M03-G87_resultado.md` |
-| V2 y siguientes | `EvaluacionVN/RESULTADOS/G87-REEVAL-VN-…/` | `TC-M03-G87_reevaluacion_VN.md` |
-
-Cada RUN contiene:
-
-- **Siempre:** el informe y un único `evidencia.json`.
-- **Si aplica:** `newman/newman-TC-M03-G87.html` y `capturas/` con las tarjetas de los sensores, el detalle del Ingeniero y, si una tarjeta no aparece, una captura de la vista.
-- **No se conservan:** el JSON bruto de Newman, el entorno temporal ni las descargas. Se eliminan siempre, también ante errores o interrupciones.
-
-Reglas de versión:
-
-- Un reintento técnico conserva la versión de la evaluación.
-- Un RUN abortado en el preflight no consume versión.
-- Si el historial es ambiguo, el ejecutor se detiene.
-- Nada se sobrescribe.
-
-## Datos que prepara el ejecutor (APIs oficiales)
-
-- **Finca y testigo:** usa una finca persistente compartida por Preparacion, Productor e Ingeniero. Un Administrador QA distinto, autenticado fuera del RUN, debe poder leer un dispositivo SENSOR persistente de esa finca. Si falta cualquiera de estas condiciones, no prepara el fixture.
-- **Area y dispositivo:** crea en el sandbox un area y un dispositivo sin gateway, con serial `QA_DEVICE_PREFIX-G87-<sello>`. El dispositivo debe ser visible dentro del RUN y ausente fuera, mientras el observador sigue viendo el control comparable. Repite el testigo antes y despues de los escenarios, cierra el RUN mediante `DELETE /test-control/runs/{run_id}` y vuelve a comprobarlo por API.
-- **Sensores:** A y B calibrados; C sin calibracion, para que sus lecturas sean ERROR_CALIBRACION.
-- **Rango operativo:** exige un umbral RF-17 activo y apto, descubierto por API. No crea umbrales, ya que no hay contrato API para descartar de forma segura una publicacion MQTT hacia Gateway Edge.
-- **Hosts:** Newman usa `www.api.inmero.co/api-sgpmp-test`. Antes de Cypress, el host del frontend `api.inmero.co/api-sgpmp-test` debe leer el mismo dispositivo dentro del RUN. Si no, los criterios UI quedan bloqueados y Cypress no inicia.
-
-## Veredicto propuesto (QA lo confirma revisando la evidencia)
-
-- **BLOQUEADO:**
-  - Hay una dependencia del entorno o de la preparación.
-  - Falla una precondición (PRE). Si el sistema respondió en contra, también queda como hallazgo de la funcionalidad de la que depende.
-  - Hay un error de automatización o de infraestructura.
-- **RECHAZADO:** un criterio falla con evidencia de una respuesta real del producto.
-- **APROBADO:** todo se verificó.
-
-## Riesgos y efectos conocidos
-
-- Los hasta seis logins pueden generar notificaciones persistentes fuera del sandbox. El login y cierre de sesion del observador ocurren fuera del RUN. Ambos efectos requieren aceptacion expresa mediante `--aceptar-efectos`.
-- El sandbox vence tras 180 s de inactividad. Un testigo API fallido interrumpe los escenarios dependientes y fuerza el cierre.
-- Un 404 del fixture no demuestra aislamiento por si solo: el observador debe leer correctamente un control comparable de la misma finca.
-- No se usa SQL ni `/test-control/query`. Si falta el control, el umbral existente o la equivalencia de RUN entre hosts, se registra una dependencia, sin alterar las aserciones originales.
-
-## Ejecución de Cypress
-
-- **Proyecto:** la carpeta del grupo. **Configuración:** su archivo propio, `cypress.g87.config.cjs`, que no contiene ningún destino. Nunca se carga el `cypress.config.cjs` raíz, cuyo `baseUrl` es el API remoto. Sustituye a `configFile: false`, que Cypress 14 rechaza («`--config-file` cannot be false»): con esa opción las pruebas de interfaz nunca llegaban a ejecutarse.
-- **Destinos:** las anulaciones van dentro de `e2e`. `baseUrl` es el frontend de TEST, que debe ser HTTPS y distinto del API (`env.API_BASE`); si no lo es, la ejecución se rechaza.
-- **Artefactos y arranque:** el reporter es de consola, las capturas y descargas van a la carpeta del RUN y el proceso de Cypress no hereda `ELECTRON_RUN_AS_NODE`. La lógica está en `cypress_seguro.mjs`.
-- **`--verificar-spec`:** comprueba destinos y barrera del spec con un proxy local. Ejecuta un proceso Cypress; úsese solo cuando exista además un bloqueo efectivo de salida externa. En esta preparación se verificaron estáticamente configuración y sintaxis sin iniciar Cypress.
-
-```
-node ejecutar_tc_m03_g87.mjs --verificar-spec
-```
+El historial de intentos descartados se conserva en la carpeta de coordinación QA.
