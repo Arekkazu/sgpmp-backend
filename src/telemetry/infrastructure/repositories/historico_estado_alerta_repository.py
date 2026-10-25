@@ -1,8 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-05 RF-57: nombre de quien hizo cada cambio de estado |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -45,7 +49,16 @@ class SqlAlchemyHistoricoEstadoAlertaRepository(HistoricoEstadoAlertaRepository)
             .order_by(HistoricoEstadoAlertaModel.fecha_cambio.asc())
             .all()
         )
-        return [self._a_entidad(o) for o in orms]
+        historico = [self._a_entidad(o) for o in orms]
+        # M3-05: el historial no decía quién hizo el cambio.
+        ids = list({h.id_usuario for h in historico if h.id_usuario is not None})
+        if ids:
+            nombres = dict(self.db.execute(text(
+                "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios WHERE id_usuario = ANY(:ids)"
+            ), {'ids': ids}).all())
+            for h in historico:
+                h.nombre_usuario = nombres.get(h.id_usuario)
+        return historico
 
     @staticmethod
     def _a_entidad(orm: HistoricoEstadoAlertaModel) -> HistoricoEstadoAlerta:
