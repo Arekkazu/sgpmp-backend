@@ -1,3 +1,9 @@
+## [1.4.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.3...v1.4.0-rc.4) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** el worker postcommit deja de pasar el statement_timeout en la bitacora IoT ([484ae6a](https://github.com/Arekkazu/sgpmp-backend/commit/484ae6ad6ff43bbde211495bb4434122f4dfa4c2))
+
 ## [1.4.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.2...v1.4.0-rc.3) (2026-10-25)
 
 ### Features
