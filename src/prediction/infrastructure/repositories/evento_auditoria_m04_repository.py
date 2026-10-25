@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: persiste origen_dato (EDGE/BACKEND/HIBRIDO) |
 from __future__ import annotations
 
 import hashlib
@@ -78,11 +79,18 @@ _REINTENTOS = int(os.getenv("AUDITORIA_M04_REINTENTOS", "3"))
 _PAUSA_REINTENTO = 0.2  # segundos; crece con cada intento (0.2, 0.4): cabe en los 2 s de RNF-01
 _ID_SISTEMA = "DESARROLLO_M04"
 
+
+def _origen_por_actor(tipo_actor: str) -> str:
+    """RF-73: ``origen_dato`` dice dónde ocurrió el evento. Lo que reporta un nodo
+    Edge ocurrió en el Edge; lo demás lo emite este backend."""
+    return "EDGE" if tipo_actor == "DISPOSITIVO_EDGE" else "BACKEND"
+
 # Columnas del evento que van al respaldo y vuelven en la sincronización.
 _CAMPOS_RESPALDO = (
     "id_evento", "tipo_evento", "fecha_evento", "tipo_actor", "correlacion_id", "payload_evento",
     "es_payload_truncado", "severidad_evento", "id_usuario", "id_sistema", "id_referencia",
     "entidad_referencia", "resultado_operacion", "codigo_error", "descripcion_error", "hash_evento",
+    "origen_dato",
 )
 
 
@@ -146,6 +154,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         correlacion_id: Optional[uuid.UUID] = None,
         codigo_error: Optional[str] = None,
         descripcion_error: Optional[str] = None,
+        origen_dato: Optional[str] = None,
     ) -> None:
         campos_faltantes = _validar_payload(tipo_evento, payload_evento)
         if campos_faltantes:
@@ -174,6 +183,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             hash_evento=_calcular_hash(tipo_evento, payload_final, ahora.isoformat()),
             codigo_error=codigo_error,
             descripcion_error=descripcion_error,
+            origen_dato=origen_dato or _origen_por_actor(tipo_actor),
         ))
 
     def _persistir(self, campos: dict) -> None:
@@ -206,6 +216,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             "tipo_evento": "AUDITORIA_FALLA_PERSISTENCIA",
             "tipo_actor": "SISTEMA",
             "id_sistema": _ID_SISTEMA,
+            "origen_dato": "BACKEND",
             "severidad_evento": "CRITICAL",
             "resultado_operacion": "FALLIDO",
             "correlacion_id": campos["correlacion_id"],
@@ -278,6 +289,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
             # este evento nunca llegaba a guardarse.
             id_sistema=_ID_SISTEMA,
+            origen_dato="BACKEND",
             payload_evento=payload,
             severidad_evento="ERROR",
             correlacion_id=correlacion_id or uuid.uuid4(),
