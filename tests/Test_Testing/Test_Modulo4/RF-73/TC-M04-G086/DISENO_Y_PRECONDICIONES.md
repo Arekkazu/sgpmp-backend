@@ -41,3 +41,31 @@
 - Pre-request genera `run_id = "test-" + {{$guid}}`.
 - Último request: `DELETE /test-control/runs/{{run_id}}` (200 OK "Rollback exitoso").
 - Duración total estimada: ~6 segundos.
+
+---
+
+## 5. Diagnóstico 2026-10-25 (verdad técnica del backend)
+- `INFERENCIA_EJECUTADA` NO existe en `_PAYLOAD_REQUERIDO`.
+- Para tipos sin esquema, `_validar_payload` retorna `[]` y el evento se persiste sin validación.
+- `id_referencia` es nullable en modelo y DDL; `registrar()` no lo valida.
+- `AUDITORIA_EVENTO_INVALIDO` se persiste en `modulo4.eventos_auditoria_m04` con `severidad=ERROR`, `tipo_actor=SISTEMA`, `id_sistema=DESARROLLO_M04`.
+- 28 filas `AUDITORIA_EVENTO_INVALIDO` ya existen en TEST (por `CATALOGO_PATOLOGIA_*`), lo que confirma que la rama de rechazo SÍ funciona cuando el tipo tiene esquema.
+
+## 6. Diseño del test (D1/D2/D3 aplicadas)
+- **D1:** se usa `INFERENCIA_EJECUTADA` fiel al caso.
+- **D2:** verificación por persistencia en bitácora (`SELECT COUNT`).
+- **D3:** subcaso 2 se marca FALLIDO/RECHAZADO (gap de Desarrollo).
+
+## 7. Resultado esperado de la primera corrida
+- 3 tests ejecutados, 3 FALLA.
+- Veredicto global: RECHAZADO.
+- INC a Desarrollo (a abrir tras la corrida, con evidencia).
+- OBS a Análisis por "log técnico" no definido operativamente.
+
+---
+
+## Cierre JSON (2026-10-25)
+resultado_TC-M04-G086.json regenerado desde _raw_pytest.xml
+con consolidator corregido (OBS-M04-G086-03).
+Veredicto: RECHAZADO. 3/3 FALLA.
+Causa raiz: INC-M04-152-G086.
