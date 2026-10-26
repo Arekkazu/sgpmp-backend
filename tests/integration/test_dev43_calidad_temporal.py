@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: PostgreSQL temporal, alertas y permisos |
+# | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: conservar calidad y evidencia del drift con severidad pendiente. |
 """PostgreSQL aislado, triggers activos y JWT/RBAC reales; sin broker MQTT."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -211,12 +212,17 @@ def test_fallo_despues_de_insertar_alerta_revierte_todo(db_session,equipo):
     assert len(alertas(db_session,equipo))==1
 
 
-def test_drift_significativo_sin_severidad_queda_recuperable(db_session,equipo):
+def test_drift_significativo_sin_severidad_conserva_calidad_y_pendiente(db_session,equipo):
     ids,ts=serie(db_session,equipo)
-    with pytest.raises(ServiceUnavailableError,match='severidad'):
-        evaluar(caso(db_session),equipo,ids,ts,calibracion={'ganancia':2,'offset':0})
-    assert SqlAlchemyTelemetriaCalidadRepository(db_session).obtener_por_lectura(ids[-1]) is None
+    ev=evaluar(caso(db_session),equipo,ids,ts,calibracion={'ganancia':2,'offset':0})
+    assert ev.flags_detectados['posible_drift']['activo'] is True
+    assert SqlAlchemyTelemetriaCalidadRepository(db_session).obtener_por_lectura(ids[-1]).id_evaluacion==ev.id_evaluacion
     assert alertas(db_session,equipo)==[]
+    evento=db_session.execute(text("""SELECT resultado,accion_detallada FROM modulo3.bitacora_auditoria_iot
+        WHERE entidad_afectada_id=:id AND tipo_evento='EVALUACION_CALIDAD_COMPLETADA'"""),
+        {'id':str(ids[-1])}).one()
+    assert evento[0]=='PARCIAL'
+    assert evento[1]['notificaciones_pendientes'][0]['motivo']=='SEVERIDAD_DRIFT_NO_CONFIGURADA'
 
 
 @pytest.fixture

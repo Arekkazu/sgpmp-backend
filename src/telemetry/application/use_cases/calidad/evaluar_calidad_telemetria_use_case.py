@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: gaps, omisiones y evidencia de limites |
+# | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: detectar outlier con sigma cero y auditar notificaciones de drift pendientes sin perder calidad. |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -214,15 +215,22 @@ class EvaluarCalidadTelemetriaUseCase:
         if len(serie) >= 2:
             mu = statistics.mean(float(v) for v in serie)
             sigma = statistics.stdev(float(v) for v in serie)
-            if sigma > 0 and abs(float(valor) - mu) > params.k * sigma:
+            desviacion = abs(float(valor) - mu)
+            if desviacion > params.k * sigma:
                 flags['outlier_estadistico'] = {
                     'activo': True,
                     'media_serie': round(mu, 4),
                     'desviacion_estandar': round(sigma, 4),
                     'k_utilizado': params.k,
-                    'magnitud_desviacion': round(abs(float(valor) - mu) / sigma, 4),
+                    # Con sigma cero, la desigualdad sigue siendo válida,
+                    # pero el z-score no está definido. Nunca serializar infinito.
+                    'magnitud_desviacion': round(desviacion / sigma, 4) if sigma > 0 else None,
                     'causa': 'ESTADISTICO',
                 }
+                if sigma == 0:
+                    flags['outlier_estadistico'].update(
+                        sigma_cero=True, desviacion_absoluta=round(desviacion, 4),
+                    )
             elif self._version_limites is not None:
                 if valor < contexto.limites.minimo or valor > contexto.limites.maximo:
                     flags['outlier_estadistico'] = {
@@ -315,13 +323,19 @@ class EvaluarCalidadTelemetriaUseCase:
                     anterior.id_evaluacion,
                     motivo=motivo_reevaluacion or 'Superada por una evaluación posterior de RF-62.',
                 )
+            pendientes = []
             if self.alertas_calidad is not None:
-                self.alertas_calidad.execute(guardada)
+                pendientes = self.alertas_calidad.execute(guardada) or []
             if self.contexto_port is not None:
+                detalle = {
+                    'id_evaluacion': str(guardada.id_evaluacion),
+                    'version_limites_fisicos_aplicada': self._version_limites,
+                    'parametros_aplicados': guardada.parametros_aplicados,
+                }
+                if pendientes:
+                    detalle['notificaciones_pendientes'] = pendientes
                 self._registrar_evidencia(id_telemetria,flags,'EVALUACION_CALIDAD_COMPLETADA',
-                    {'id_evaluacion':str(guardada.id_evaluacion),
-                     'version_limites_fisicos_aplicada':self._version_limites,
-                     'parametros_aplicados':guardada.parametros_aplicados})
+                    detalle)
             self.db.commit()
             return guardada
         except Exception:
@@ -364,7 +378,8 @@ class EvaluarCalidadTelemetriaUseCase:
         limites_pendientes = detalle.get('parametros_aplicados',{}).get('limites_fisicos',{}).get('estado')
         evento = EventoAuditoriaIot(
             id_evento=None, tipo_evento=tipo, fecha_hora=datetime.now(timezone.utc),
-            resultado=TipoResultado.PARCIAL if limites_pendientes else TipoResultado.EXITOSO, modulo='M03',
+            resultado=(TipoResultado.PARCIAL if limites_pendientes or detalle.get('notificaciones_pendientes')
+                       else TipoResultado.EXITOSO), modulo='M03',
             descripcion='RF-62: evaluación omitida por inactividad.' if 'OMITIDA' in tipo else 'RF-62: evaluación de calidad completada.',
             entidad_afectada_tipo=EntidadAfectadaTipo.CALIDAD_DATO, entidad_afectada_id=str(id_telemetria),
             severidad_log=SeveridadLog.WARNING if flags else SeveridadLog.INFO,
