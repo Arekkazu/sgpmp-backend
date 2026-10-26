@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio (read-model) |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -151,6 +152,8 @@ class Alerta:
     nombre_sensor: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
     nombre_finca: Optional[str] = None
+    # T-18: el detalle decía "Activo biológico #829".
+    nombre_activo: Optional[str] = None
 
     def calcular_fecha_vencimiento(self) -> datetime:
         minutos = _SLA_MINUTOS.get(self.severidad, 120)
