@@ -1,3 +1,9 @@
+## [1.4.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.7...v1.4.0-rc.8) (2026-10-26)
+
+### Bug Fixes
+
+* **alembic:** une los heads 4e7a1c9d2f60 y f62b120bb13f que dejo el merge de [#733](https://github.com/Arekkazu/sgpmp-backend/issues/733) (INC-M03-150-G92) ([6b116a2](https://github.com/Arekkazu/sgpmp-backend/commit/6b116a2a4b473a935ddbbe6033c212335749f1e7))
+
 ## [1.4.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.6...v1.4.0-rc.7) (2026-10-25)
 
 ### Bug Fixes
