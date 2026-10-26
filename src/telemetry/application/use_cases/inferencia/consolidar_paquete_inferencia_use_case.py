@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E3 timestamps dispersos se procesan como evento individual, sin 422 |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite PAQUETE_INFERENCIA_GENERADO |
 from __future__ import annotations
 
 import logging
@@ -179,6 +180,24 @@ class ConsolidarEnviarPaqueteUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        if self.auditoria_repo is not None:
+            # RF-63 Fase 0: RF-56 deja evidencia de cada paquete que genera.
+            RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                tipo_evento="PAQUETE_INFERENCIA_GENERADO",
+                resultado=TipoResultado.EXITOSO,
+                componente_origen=ComponenteOrigen.RF56,
+                descripcion="Paquete de inferencia consolidado para M04.",
+                entidad_afectada_tipo=EntidadAfectadaTipo.PAQUETE_IA,
+                entidad_afectada_id=str(paquete_guardado.id_paquetes_inferencia),
+                accion_detallada={
+                    "id_evento_edge_computing": evento.id_evento_edge_computing,
+                    "id_dispositivo_iot": evento.id_dispositivo_iot,
+                    "id_sensor": evento.id_sensor,
+                    "clasificacion_rf55": evento.clasificacion_rf55,
+                    "contexto_incompleto": contexto_incompleto,
+                },
+            )
 
         if agrupacion_descartada and self.auditoria_repo is not None:
             RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(

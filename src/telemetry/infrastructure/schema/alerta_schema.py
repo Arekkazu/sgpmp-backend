@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación |
 from __future__ import annotations
 
 from datetime import datetime
@@ -54,6 +55,7 @@ class AlertaSchema(BaseModel):
     nombre_sensor: Optional[str] = None
     nombre_infraestructura: Optional[str] = None
     nombre_finca: Optional[str] = None
+    nombre_activo: Optional[str] = None  # T-18: identificador o especie
 
     model_config = {"from_attributes": True}
 

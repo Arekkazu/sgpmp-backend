@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 from __future__ import annotations
 
 from datetime import datetime
@@ -71,6 +72,8 @@ class DashboardResponseSchema(BaseModel):
     por_pagina: int
     resumen_unidades: list[ResumenUnidadSchema]
     sensores: list[EstadoSensorSchema]
+    # M3-08: sensores por color de todo el alcance (VERDE/AMARILLO/ROJO/GRIS), no de la página.
+    conteo_semaforo: dict[str, int] = {}
 
 
 class LecturaHistoricaSchema(BaseModel):

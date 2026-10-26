@@ -2,10 +2,11 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: conserva pruebas explicitas del contrato legado |
 # | 2026-10-23 | Arekkazu | DEV-24 RF-24: el área del doble trae id_especies |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta no evalua; la evaluacion asincrona si |
 """D4 con token de servicio → PostgreSQL DB-03 → consumidor RF-24 existente.
 
-Sin broker ni motor IA real. El cálculo RF-62 comprobado es el heredado; las
-diferencias con AIOT-SPEC-01 se documentan, no se simulan como resueltas.
+Sin broker ni motor IA real. La ingesta guarda sin evaluar; RF-62 (AIOT-SPEC-01)
+evalúa después con ``EvaluarCalidadVisionUseCase`` (INC-M03-134-G192).
 """
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timedelta,timezone
@@ -28,6 +29,13 @@ from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_us
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4LegadoDTO as ObservacionVisionD4DTO
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
+from src.configuration.application.use_cases.configuracion_global.configurar_parametros_mlops_use_case import ConfigurarParametrosMLOpsUseCase
+from src.configuration.domain.entities.parametros_heartbeat import COBERTURA, DURACION, VENTANAS
+from src.configuration.domain.entities.parametros_vision import PREDETERMINADOS_VISION
+from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
+from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
 from src.configuration.infrastructure.adapters.observacion_vision_m03_adapter import ObservacionVisionM03Adapter
 
 pytestmark=pytest.mark.integration
@@ -90,6 +98,17 @@ def filas(db,equipo):
     return db.execute(text('SELECT * FROM modulo3.observaciones_vision WHERE id_dispositivo_iot=:id ORDER BY id_observacion_vision'),{'id':equipo['device']}).mappings().all()
 
 
+def evaluar(db,equipo):
+    """Siembra la política D de RF-62 y evalúa lo ingerido, como la etapa VISION_CALIDAD."""
+    usuario=db.execute(text('SELECT min(id_usuario) FROM modulo1.usuarios')).scalar_one()
+    writer=ConfigurarParametrosMLOpsUseCase(db,SqlAlchemyParametrosMLOpsRepository(db),SqlAlchemyConfiguracionGlobalRepository(db))
+    writer.execute(PREDETERMINADOS_VISION,usuario)
+    writer.execute({VENTANAS:3,COBERTURA:.30,DURACION:60},usuario)
+    uc=EvaluarCalidadVisionUseCase(db,SqlAlchemyObservacionVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),DispositivoM09Adapter(db))
+    return [uc.execute(f['id_observacion_vision']) for f in filas(db,equipo)]
+
+
 def test_http_persiste_sobre_d4_con_ventana_y_versiones(client,db_session,equipo):
     datos=sobre(equipo)
     r=enviar(client,datos)
@@ -99,7 +118,10 @@ def test_http_persiste_sobre_d4_con_ventana_y_versiones(client,db_session,equipo
     assert fila['fecha_observacion']==datetime.fromisoformat(datos['ventana_fin'])
     assert fila['json_version_cascada']==datos['version_cascada']
     assert fila['json_vector']==datos['componentes']
-    assert fila['indice_calidad']==97 and fila['es_apto_para_ia']
+    # RF-62 es asíncrono: la ingesta no decide la calidad.
+    assert fila['fecha_evaluacion_calidad'] is None and fila['es_apto_para_ia'] is None
+    assert fila['origen']=='TIEMPO_REAL'
+    assert r.json()['observaciones'][0]['apto_para_ia'] is None
     assert r.json()['observaciones'][0]['apto_para_nic41'] is False
     assert r.json()['observaciones'][0]['version_cascada']==datos['version_cascada']
 
@@ -139,8 +161,11 @@ def test_calidad_baja_calculada_no_es_apta(client,db_session,equipo):
     datos['calidad'].update(cobertura_ventana=0,n_tracks=0,n_tracks_perdidos=5,fps_efectivo=0,estado_calibracion='SIN_DETECCION')
     r=enviar(client,datos)
     assert r.status_code==201,r.text
-    assert r.json()['observaciones'][0]['apto_para_ia'] is False
-    assert filas(db_session,equipo)[0]['es_apto_para_ia'] is False
+    assert r.json()['observaciones'][0]['apto_para_ia'] is None
+    evaluada=evaluar(db_session,equipo)[0]
+    assert evaluada.clasificacion_calidad=='NO_APTA' and evaluada.indice_calidad_vision==0
+    fila=filas(db_session,equipo)[0]
+    assert fila['es_apto_para_ia'] is False and fila['json_flags_detectados']['sin_linea_base']['activo']
 
 
 def test_reenvio_preserva_fila_original_y_deduplica_por_instante(client,db_session,equipo):
@@ -163,7 +188,7 @@ def test_lote_heredado_con_token_se_conserva(client,db_session,equipo):
     assert r.status_code==201,r.text
     fila=filas(db_session,equipo)[0]
     assert fila['fecha_inicio_ventana'] is None and fila['json_version_cascada'] is None
-    assert fila['indice_calidad']==97
+    assert fila['fecha_evaluacion_calidad'] is None and fila['origen']=='TIEMPO_REAL'
 
 
 def test_error_tras_insert_revierte_todo_el_lote(client,db_session,equipo,monkeypatch):
@@ -204,6 +229,7 @@ def test_rf24_consume_observaciones_d4_persistidas_para_linea_base(client,db_ses
         datos=sobre(equipo,ventana_inicio=(fin-timedelta(minutes=60-i)).isoformat(),ventana_fin=(fin-timedelta(minutes=59-i)).isoformat())
         datos['componentes']['densidad_actividad']=.6+(i%3)*.01
         r=enviar(client,datos);assert r.status_code==201,r.text
+    evaluar(db_session,equipo)  # RF-24 solo consume lo que RF-62 ya declaró apto
     adapter=ObservacionVisionM03Adapter(db_session)
     inicio=fin-timedelta(hours=2)
     assert len(adapter.listar([equipo['device']],inicio,fin))==40

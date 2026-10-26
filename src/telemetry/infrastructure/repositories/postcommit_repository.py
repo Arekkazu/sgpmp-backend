@@ -4,6 +4,8 @@
 # | 2026-10-22 | Leandro | DEV-28 RF-60: reclama vision con evidencia y lock de DEV-05 |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: recupera avisos sin duplicar vinculacion |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: recupera resultados por lectura y transicion sin duplicarlos |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: pendientes de la etapa de calidad de vision |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: reintentos con espera creciente, no un FALLIDO por minuto |
 """RF-63 es el registro durable de etapas; no se agrega una tabla de transporte.
 
 La conexión queda fijada a una transacción externa. Los commits de los casos de
@@ -48,17 +50,39 @@ def _tipo(etapa, fallo=False):
     return 'POSTCOMMIT_' + etapa.value + ('_FALLIDO' if fallo else '_COMPLETADO')
 
 
-def _registro(etapa, identificador, fallo=False, espera=None):
+def _de_la_etapa(etapa, identificador, fallo=False):
     auditoria = BitacoraAuditoriaIotModel.__table__
-    consulta = select(1).where(
+    return (
         auditoria.c.entidad_afectada_tipo == _fuente(etapa)[2],
         auditoria.c.entidad_afectada_id == identificador,
         auditoria.c.tipo_evento == _tipo(etapa, fallo),
     )
-    if espera is not None:
-        consulta = consulta.where(auditoria.c.fecha_hora >
-            func.clock_timestamp() - espera * literal_column("interval '1 second'"))
-    return consulta.exists()
+
+
+def _registro(etapa, identificador, fallo=False):
+    return select(1).where(*_de_la_etapa(etapa, identificador, fallo)).exists()
+
+
+def _listo_para_reintento(etapa, identificador, base_seg, tope_seg):
+    """M3-12: la espera se duplica con cada fallo (base, 2·base, 4·base…) hasta `tope_seg`.
+
+    Antes era fija (60 s): un error que no se arregla solo (parámetro sin
+    configurar, firmware "pi-test") dejaba un FALLIDO por minuto y por fila en la
+    bitácora inmutable, más de 1,39 M eventos. La fila se sigue reintentando —se
+    recupera sola cuando se corrige la configuración—, pero a lo sumo una vez por
+    `tope_seg`.
+    """
+    auditoria = BitacoraAuditoriaIotModel.__table__
+    # count y max en la misma agregación: con un max() solo, Postgres lo resuelve
+    # recorriendo idx_bitacora_iot_fecha hacia atrás (130 s con 2 M de eventos) en
+    # vez de usar idx_bitacora_iot_tipo_evento_entidad_afectada_id. El exponente se
+    # acota porque con miles de fallos previos 2^n desborda el double de Postgres.
+    espera = func.least(base_seg * func.power(2, func.least(func.count() - 1, 30)), tope_seg)
+    en_espera = select(
+        func.max(auditoria.c.fecha_hora) > func.clock_timestamp() - espera * literal_column("interval '1 second'")
+    ).where(*_de_la_etapa(etapa, identificador, fallo=True)).scalar_subquery()
+    # Sin fallos previos max() es NULL: la fila está lista.
+    return ~func.coalesce(en_espera, False)
 
 
 class SqlAlchemyPostcommitRepository:
@@ -66,12 +90,12 @@ class SqlAlchemyPostcommitRepository:
         self.db = db
         self.transaccion = transaccion
 
-    def pendientes(self, etapa, limite, reintento_seg):
+    def pendientes(self, etapa, limite, reintento_seg, reintento_max_seg=None):
         tabla, columna, _ = _fuente(etapa)
         identificador = cast(tabla.c[columna], String)
         consulta = select(tabla.c[columna]).where(
             ~_registro(etapa, identificador),
-            ~_registro(etapa, identificador, fallo=True, espera=reintento_seg),
+            _listo_para_reintento(etapa, identificador, reintento_seg, reintento_max_seg or reintento_seg),
         )
         campo = {
             EtapaPostcommit.HEARTBEAT_SENSORES: 'json_sensores_operativos',
@@ -82,8 +106,11 @@ class SqlAlchemyPostcommitRepository:
             consulta = consulta.where(tabla.c[campo].is_not(None))
             if etapa is EtapaPostcommit.HEARTBEAT_SENSORES:
                 consulta = consulta.where(func.jsonb_typeof(tabla.c[campo]) != 'null')
-        if etapa.es_vision:
+        if etapa is EtapaPostcommit.VISION_DETECCION:
             consulta = consulta.where(tabla.c.fecha_inicio_ventana.is_not(None))
+        if etapa is EtapaPostcommit.VISION_CALIDAD:
+            # Las históricas ya traen su evaluación (8c4e2a6f1b93): no se reevalúan.
+            consulta = consulta.where(tabla.c.fecha_evaluacion_calidad.is_(None))
         if etapa is EtapaPostcommit.RF61_AVISOS:
             from src.telemetry.infrastructure.models.vinculacion_lectura_model import VinculacionLecturaModel
             v=VinculacionLecturaModel.__table__
@@ -115,6 +142,8 @@ class SqlAlchemyPostcommitRepository:
     def registrar(self, etapa, identificador, error=None, *, detalle=None):
         if etapa in (EtapaPostcommit.RF53_LECTURAS, EtapaPostcommit.RF53_AUDITORIA):
             componente = ComponenteOrigen.RF53
+        elif etapa is EtapaPostcommit.VISION_CALIDAD:
+            componente = ComponenteOrigen.RF62
         elif etapa.es_heartbeat or etapa.es_vision or etapa is EtapaPostcommit.RF60_TRANSICIONES:
             componente = ComponenteOrigen.RF60
         elif etapa is EtapaPostcommit.RF61_AVISOS:

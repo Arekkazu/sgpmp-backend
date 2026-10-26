@@ -8,6 +8,8 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: serializa bateria y busca alertas recuperables |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita alertas y consolidacion atomicamente |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -317,8 +319,12 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
         fecha_resolucion_desde: Optional[datetime] = None,
+        id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
+        # T-18: el filtro de la vista es el área por nombre, no el ID del sensor.
+        if id_infraestructura:
+            q = q.filter(AlertaModel.id_infraestructura == id_infraestructura)
         # M3-08: "resueltas hoy" cuenta por cuándo se cerró, no por cuándo se generó.
         if fecha_resolucion_desde:
             q = q.filter(AlertaModel.fecha_resolucion >= fecha_resolucion_desde)
@@ -369,8 +375,10 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         """M3-06: nombres de finca, área y sensor en una consulta por página, no por fila."""
         ids_infra = list({a.id_infraestructura for a in alertas if a.id_infraestructura is not None})
         ids_sensor = list({a.id_sensor for a in alertas if a.id_sensor is not None})
+        ids_activo = list({a.id_activo_biologico for a in alertas if a.id_activo_biologico is not None})
         infra: dict[int, tuple[str, str]] = {}
         sensores: dict[int, str] = {}
+        activos: dict[int, str] = {}
         if ids_infra:
             infra = {r[0]: (r[1], r[2]) for r in self.db.execute(text(
                 'SELECT i.id_infraestructura, i.nombre, f.nombre FROM modulo9.infraestructuras i '
@@ -380,7 +388,15 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             sensores = dict(self.db.execute(text(
                 'SELECT id_sensores, nombre FROM modulo9.sensores WHERE id_sensores = ANY(:ids)'
             ), {'ids': ids_sensor}).all())
+        if ids_activo:
+            # T-18: identificador del activo o, sin él, su especie.
+            activos = dict(self.db.execute(text(
+                'SELECT a.id_activo_biologico, coalesce(nullif(trim(a.identificador), \'\'), e.nombre) '
+                'FROM modulo2.activos_biologicos a LEFT JOIN modulo9.especies e ON e.id_especie = a.id_especie '
+                'WHERE a.id_activo_biologico = ANY(:ids)'
+            ), {'ids': ids_activo}).all())
         for a in alertas:
+            a.nombre_activo = activos.get(a.id_activo_biologico)
             if a.id_infraestructura in infra:
                 a.nombre_infraestructura, a.nombre_finca = infra[a.id_infraestructura]
             a.nombre_sensor = sensores.get(a.id_sensor)

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: cámara por id para su fps configurado |
 from typing import Optional
 
 from sqlalchemy import text
@@ -89,13 +92,17 @@ class DispositivoM09Adapter(DispositivoPort):
     def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
         return self._camara(serial)
 
-    def _camara(self, serial: str, device_id: Optional[int] = None) -> Optional[CamaraInfo]:
+    def obtener_camara_por_id(self, id_dispositivo_iot: int) -> Optional[CamaraInfo]:
+        return self._camara(None, id_dispositivo_iot)
+
+    def _camara(self, serial: Optional[str], device_id: Optional[int] = None) -> Optional[CamaraInfo]:
         row = self.db.execute(
             text(
                 'SELECT d.id_dispositivo_iot, d.id_infraestructura, d.es_activo, d.fps, t.categoria '
                 'FROM modulo9.dispositivos_iot d '
                 'JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo = d.id_tipo_dispositivo '
-                'WHERE d.serial = :serial AND (:device_id IS NULL OR d.id_dispositivo_iot = :device_id)'
+                'WHERE (:serial IS NULL OR d.serial = :serial) '
+                'AND (:device_id IS NULL OR d.id_dispositivo_iot = :device_id)'
             ),
             {'device_id': device_id, 'serial': serial},
         ).fetchone()

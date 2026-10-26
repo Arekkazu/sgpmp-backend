@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: estados DB-13 y contexto historico |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-61: nombres de activo, área, finca, variable y usuario (read-model) |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,6 +32,18 @@ class VinculacionLectura:
     fecha_creacion: datetime
     causa: Optional[str] = None
     contexto_activo: Optional[dict] = None
+    # T-18 (read-model): la tabla de vinculaciones mostraba solo IDs (#115703, #854,
+    # #391). Se llenan al leer; no se persisten.
+    nombre_activo: Optional[str] = None
+    especie_activo: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+    nombre_finca: Optional[str] = None
+    nombre_variable: Optional[str] = None
+    nombre_sensor: Optional[str] = None
+    valor_lectura: Optional[float] = None
+    unidad_lectura: Optional[str] = None
+    fecha_lectura: Optional[datetime] = None
+    nombre_usuario: Optional[str] = None
 
     def resolver(self, id_activo_biologico: int, id_usuario: int) -> None:
         if self.fecha_fin_vinculacion is not None or self.estado_vinculacion not in _ESTADOS_RESOLUBLES:

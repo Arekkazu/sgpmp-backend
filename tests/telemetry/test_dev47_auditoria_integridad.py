@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: verifica hash incidentes y contrato HTTP |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente la retención es la de NIC41 |
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timezone, timedelta
@@ -79,7 +80,8 @@ def test_alteracion_de_campos_cubiertos_crea_un_incidente(campo, valor):
     assert original == copia
     incidente = repo.eventos[-1]
     assert incidente.severidad_log == 'CRITICAL' and hash_coincide(incidente)
-    assert incidente.componente_origen is None and incidente.retencion_aplicable == 1
+    # E8: sin RF emisor identificable la clasificación es ambigua → NIC41, 5 años.
+    assert incidente.componente_origen is None and incidente.retencion_aplicable == 5
 
 
 def test_offset_equivalente_no_es_alteracion():
