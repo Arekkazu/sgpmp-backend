@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio (read-model) |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
+# | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: regla de umbral M09 con forma {id, nombre} |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -50,6 +51,18 @@ class ConflictoResolucion(str, Enum):
 #: RF-60: alertas técnicas de dispositivos IoT (batería, conectividad,
 #: sobrecalentamiento). Comparten ``modulo3.alertas`` con las operativas.
 TIPO_ALERTA_TECNICA = "TECNICA"
+
+
+def regla_umbral(id_umbral, tipo_variable, estado_semaforo, version_umbral) -> dict:
+    """RF-57 Restricción 4 / CA-15: la regla que disparó la alerta, con la forma {id, nombre}
+    de las reglas de M03, para el umbral de M09 (RF-17) que evaluó la lectura."""
+    return {
+        'id': id_umbral,
+        'nombre': f'UMBRAL_{tipo_variable}_{estado_semaforo}',
+        'tipo': 'UMBRAL_AMBIENTAL',
+        'id_umbral_ambiental': id_umbral,
+        'version_umbral': version_umbral,
+    }
 
 
 class AmbitoAlerta(str, Enum):
