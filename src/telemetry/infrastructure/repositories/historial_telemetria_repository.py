@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -29,7 +30,8 @@ SELECT
     t.categoria_variable::text                      AS categoria_variable,
     COALESCE(t.valor_ajustado, t.valor_crudo)       AS valor,
     t.valor_ajustado,
-    t.unidad_medida,
+    -- M3-09: la lectura traía "%" para el pH; manda la unidad del catálogo I3P-1.
+    COALESCE(va.unidad, t.unidad_medida)            AS unidad_medida,
     t.timestamp_captura,
     t.estado_calidad::text                          AS estado_calidad,
     t.origen::text                                  AS origen_dato,
