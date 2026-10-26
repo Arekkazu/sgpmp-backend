@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: el conteo del semáforo pide todos los sensores |
 """DEV-39 (RF-58, C-05): vista por permiso, GRIS sin umbral y anomalías visibles.
 
 CA-8: los datos técnicos dependen del permiso de DB-08, no de id_rol == 2.
@@ -171,3 +172,24 @@ def test_no_se_repite_el_aviso_de_un_sensor_ya_avisado_en_24h(adaptador):
     enviados, eventos = adaptador
     assert aviso_mod.AvisoSinUmbralEmailAdapter(_Db(ya_avisados=['4'])).avisar([_sensor(id_sensor=4)]) == 0
     assert enviados == [] and eventos == []
+
+
+# --- M3-08: el conteo no es el de la página ----------------------------------------------
+
+def test_m3_08_conteo_del_semaforo_sobre_todos_los_sensores():
+    """Antes el front contaba la página: "50 sensores" en un área de 200."""
+    pedidos = []
+
+    class _RepoTodos(_Repo):
+        def obtener_estados_sensores(self, **kw):
+            pedidos.append(kw['por_pagina'])
+            return self.sensores, len(self.sensores)
+
+    sensores = [_sensor(i) for i in range(60)] + [
+        _sensor(61, id_alerta=9, severidad_alerta='CRITICO'),  # CA-4: alerta crítica activa → ROJO
+        _sensor(62, desactualizado=True),                       # CA-5: sin datos recientes → GRIS
+    ]
+    conteo = ObtenerDashboardUseCase(_RepoTodos(sensores)).contar_semaforos(None)
+
+    assert pedidos == [None]  # sin límite de página
+    assert conteo == {'VERDE': 60, 'ROJO': 1, 'GRIS': 1}
