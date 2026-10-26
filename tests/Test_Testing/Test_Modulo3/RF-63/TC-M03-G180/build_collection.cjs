@@ -5,9 +5,9 @@ const path = require('path');
 // RF-63 (Bitácora de Auditoría IoT) — Exportación en Formatos JSON y CSV
 // Subcasos:
 // - TC-M03-338: Exportación JSON (Content-Type application/json, Content-Disposition, estructura sin componente_origen,
-//               respeto de filtros, SLA 10,000 registros <= 10s [BLOQUEADO por timeout sandbox]).
+//               respeto de filtros, SLA 10,000 registros <= 10s).
 // - TC-M03-339: Exportación CSV (Content-Type text/csv, cabecera sin componente_origen, parseo de filas,
-//               SLA 10,000 registros <= 10s [BLOQUEADO]).
+//               SLA 10,000 registros <= 10s).
 // - Verificación de aislamiento Sandbox (X-Test-Run-Id) en streaming.
 
 function makeHeader(key, value) {
@@ -97,171 +97,6 @@ folders.push({
     ]
 });
 
-// ── 01. SETUP SINTÉTICO (CATÁLOGO EN SANDBOX) ─────────────────────────────────
-folders.push({
-    name: "01-Setup-Sintetico-Catalogo",
-    item: [
-        makeItem(
-            "01-Crear-Finca-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/fincas",
-            makeAuthHeaders("token_admin"),
-            {
-                nombre: "Finca QA G180 Exportar",
-                ubicacion: "Vereda La Vega QA",
-                area_total: 160.0
-            },
-            [],
-            [
-                'pm.test("Status 201/200 - Finca creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;',
-                '    pm.collectionVariables.set("finca_id", String(idFinca));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "02-Crear-Infraestructura-Sintetica",
-            "POST",
-            "{{baseUrl}}/configuracion/infraestructuras",
-            makeAuthHeaders("token_admin"),
-            {
-                id_finca: "{{finca_id}}",
-                nombre: "Area 180 Exportacion",
-                id_tipo_area: 1,
-                capacidad_maxima: 600
-            },
-            [
-                'const fId = parseInt(pm.collectionVariables.get("finca_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_finca = fId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Infraestructura creada en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;',
-                '    pm.collectionVariables.set("infra_id", String(idInfra));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "03-Crear-Dispositivo-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/dispositivos-iot",
-            makeAuthHeaders("token_admin"),
-            {
-                id_infraestructura: "{{infra_id}}",
-                numero_serie: "DEV-G180-INIT",
-                id_tipo_dispositivo: 1,
-                modelo: "ESP32-G180-EXPORT",
-                firmware_version: "2.1.0"
-            },
-            [
-                'const infId = parseInt(pm.collectionVariables.get("infra_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_infraestructura = infId;',
-                'const serial = "DEV-G180-" + Math.floor(100000 + Math.random() * 900000);',
-                'body.numero_serie = serial;',
-                'pm.collectionVariables.set("device_serial", serial);',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Dispositivo creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;',
-                '    pm.collectionVariables.set("device_id", String(idDev));',
-                '});'
-            ]
-        ),
-        makeItem(
-            "04-Crear-Sensor-Sintetico",
-            "POST",
-            "{{baseUrl}}/configuracion/sensores",
-            makeAuthHeaders("token_admin"),
-            {
-                id_dispositivo_iot: "{{device_id}}",
-                id_variable: 1,
-                pin_conexion: "A3",
-                resolucion: 0.1,
-                precision_lectura: 0.05,
-                rango_minimo: -10.0,
-                rango_maximo: 80.0
-            },
-            [
-                'const devId = parseInt(pm.collectionVariables.get("device_id"), 10);',
-                'const body = JSON.parse(pm.request.body.raw);',
-                'body.id_dispositivo_iot = devId;',
-                'pm.request.body.raw = JSON.stringify(body);'
-            ],
-            [
-                'pm.test("Status 201/200 - Sensor creado en sandbox", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '    const res = pm.response.json();',
-                '    const idSen = res.id_sensor || res.id;',
-                '    pm.collectionVariables.set("sensor_id", String(idSen));',
-                '});'
-            ]
-        )
-    ]
-});
-
-// ── 02. SETUP GENERACIÓN DE EVENTOS PARA EXPORTACIÓN ──────────────────────────
-folders.push({
-    name: "02-Setup-Generacion-Eventos",
-    item: [
-        makeItem(
-            "05-Generar-Eventos-Batch-Telemetria",
-            "POST",
-            "{{baseUrl}}/iot/telemetria/batch",
-            makeAuthHeaders("token_admin"),
-            {
-                origen: "BUFFER_LOCAL",
-                lecturas: []
-            },
-            [
-                'const sensorId = parseInt(pm.collectionVariables.get("sensor_id"), 10);',
-                'const lecturas = [];',
-                '// 20 lecturas pasadas (15-oct-2026), espaciadas cada 10 min (600s)',
-                'const baseEpoch = 1792051200; // 2026-10-15T08:00:00Z',
-                'for (let i = 0; i < 20; i++) {',
-                '    const dt = new Date((baseEpoch + (i * 600)) * 1000).toISOString();',
-                '    lecturas.push({',
-                '        id_sensor: sensorId,',
-                '        valor: 24.0 + (i * 0.1),',
-                '        timestamp_captura: dt',
-                '    });',
-                '}',
-                'pm.request.body.raw = JSON.stringify({ origen: "BUFFER_LOCAL", lecturas: lecturas });'
-            ],
-            [
-                'pm.test("Status 200/201 - Ingesta batch completada para exportación", function () {',
-                '    pm.expect(pm.response.code).to.be.oneOf([200, 201]);',
-                '});'
-            ]
-        ),
-        makeItem(
-            "06-Generar-Evento-Mantenimiento-Dispositivo",
-            "PATCH",
-            "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
-            makeAuthHeaders("token_admin"),
-            {
-                estado_nuevo: "MANTENIMIENTO",
-                motivo: "Preparación datos exportación QA G180"
-            },
-            [],
-            [
-                'pm.test("Status 200 - Transición a mantenimiento registrada", function () {',
-                '    pm.response.to.have.status(200);',
-                '});'
-            ]
-        )
-    ]
-});
-
 // ── 03. TC-M03-338: EXPORTACIÓN JSON ──────────────────────────────────────────
 folders.push({
     name: "03-TC-M03-338-Exportacion-JSON",
@@ -283,13 +118,13 @@ folders.push({
                 '    const cd = pm.response.headers.get("Content-Disposition");',
                 '    pm.expect(cd).to.include("attachment; filename=\\"auditoria_iot.json\\"");',
                 '});',
-                'const data = pm.response.json();',
+                'const bodyData = pm.response.json();',
                 'pm.test("Cuerpo es array JSON no truncado con eventos generados", function () {',
-                '    pm.expect(data).to.be.an("array");',
-                '    pm.expect(data.length).to.be.at.least(1);',
+                '    pm.expect(bodyData).to.be.an("array");',
+                '    pm.expect(bodyData.length).to.be.at.least(1);',
                 '});',
                 'pm.test("Estructura de cada evento exportado cumple esquema sin componente_origen", function () {',
-                '    data.forEach(ev => {',
+                '    bodyData.forEach(ev => {',
                 '        pm.expect(ev).to.have.property("id_evento");',
                 '        pm.expect(ev).to.have.property("tipo_evento");',
                 '        pm.expect(ev).to.have.property("fecha_hora");',
@@ -300,7 +135,7 @@ folders.push({
                 '        pm.expect(ev).to.not.have.property("componente_origen");',
                 '    });',
                 '});',
-                'console.log("[INFO G180 TC-338] Registros JSON exportados: " + data.length + " | Tiempo respuesta: " + pm.response.responseTime + " ms");'
+                'console.log("[INFO G180 TC-338] Registros JSON exportados: " + bodyData.length + " | Tiempo respuesta: " + pm.response.responseTime + " ms");'
             ]
         ),
         makeItem(
@@ -314,10 +149,10 @@ folders.push({
                 'pm.test("Status 200 - Exportación JSON filtrada por NIC41 exitosa", function () {',
                 '    pm.response.to.have.status(200);',
                 '});',
-                'const data = pm.response.json();',
+                'const bodyData = pm.response.json();',
                 'pm.test("Todos los eventos exportados respetan el filtro clasificacion_registro=NIC41", function () {',
-                '    pm.expect(data.length).to.be.at.least(1);',
-                '    data.forEach(ev => {',
+                '    pm.expect(bodyData.length).to.be.at.least(1);',
+                '    bodyData.forEach(ev => {',
                 '        pm.expect(ev.clasificacion_registro).to.eql("NIC41");',
                 '        pm.expect(ev.retencion_aplicable).to.eql(5);',
                 '    });',
@@ -325,17 +160,32 @@ folders.push({
             ]
         ),
         makeItem(
-            "09-TC-M03-338-SLA-10000-Registros-Bloqueado",
+            "09-TC-M03-338-SLA-10000-Registros",
             "GET",
-            "{{baseUrl}}/iot/auditoria/exportar?formato=json",
+            "{{baseUrl}}/iot/auditoria/exportar?formato=json&fecha_desde={{sla_desde}}&fecha_hasta={{sla_hasta}}",
             makeAuthHeaders("token_admin"),
             null,
-            [],
             [
-                'console.log("[BLOQUEADO] Subcaso CA-10: Validación de exportación de 10,000 eventos en <= 10 s.");',
-                'console.log("  Motivo: En el sandbox de pruebas (timeout total 180 s), generar 10,000 registros por API consumiría > 300 s.");',
-                'console.log("  Medición observada con volumen actual (" + pm.response.json().length + " eventos): " + pm.response.responseTime + " ms.");',
-                'console.log("  No demuestra el SLA de escala de 10,000 registros; se registra como limitación de prueba sandbox.");'
+                'const hasta = new Date();',
+                'const desde = new Date(hasta.getTime() - 2 * 60 * 60 * 1000); // 2h',
+                'const fmt = d => d.toISOString().split(".")[0] + "Z";',
+                'pm.collectionVariables.set("sla_desde", fmt(desde));',
+                'pm.collectionVariables.set("sla_hasta", fmt(hasta));',
+                'console.log("[SLA] rango 2h: " + fmt(desde) + " -> " + fmt(hasta));'
+            ],
+            [
+                'pm.test("09 - SLA JSON: 200, application/json, <=10000ms", function() {',
+                '    pm.response.to.have.status(200);',
+                '    pm.expect(pm.response.headers.get("Content-Type")).to.include("application/json");',
+                '    const tiempo = pm.response.responseTime;',
+                '    console.log("[SLA] JSON 2h exportado en " + tiempo + "ms");',
+                '    pm.expect(tiempo, "SLA excedido: " + tiempo + "ms > 10000ms").to.be.below(10001);',
+                '});',
+                'pm.test("09 - SLA JSON: respuesta con eventos", function() {',
+                '    const b = pm.response.json();',
+                '    pm.expect(Array.isArray(b)).to.be.true;',
+                '    pm.expect(b.length).to.be.at.least(10000, "El rango no tiene >=10000 eventos: solo " + b.length);',
+                '});'
             ]
         )
     ]
@@ -381,7 +231,6 @@ folders.push({
                 'pm.test("Validación de parseo de filas CSV (filas de datos = total líneas - 1)", function () {',
                 '    const dataRows = lines.slice(1);',
                 '    pm.expect(dataRows.length).to.be.at.least(1);',
-                '    // Cada fila tiene contenido no vacío',
                 '    dataRows.forEach((row, i) => {',
                 '        pm.expect(row).to.be.a("string").that.is.not.empty;',
                 '    });',
@@ -409,15 +258,31 @@ folders.push({
             ]
         ),
         makeItem(
-            "12-TC-M03-339-SLA-10000-Registros-CSV-Bloqueado",
+            "12-TC-M03-339-SLA-10000-Registros-CSV",
             "GET",
-            "{{baseUrl}}/iot/auditoria/exportar?formato=csv",
+            "{{baseUrl}}/iot/auditoria/exportar?formato=csv&fecha_desde={{sla_desde}}&fecha_hasta={{sla_hasta}}",
             makeAuthHeaders("token_admin"),
             null,
-            [],
             [
-                'console.log("[BLOQUEADO] Subcaso CA-10 CSV: Medición de 10,000 registros en <= 10 s bloqueada por timeout sandbox.");',
-                'console.log("  No se valida con pandas/excel en el runner, se valida estructura CSV y parseo de líneas en Newman.");'
+                'const hasta = new Date();',
+                'const desde = new Date(hasta.getTime() - 2 * 60 * 60 * 1000); // 2h',
+                'const fmt = d => d.toISOString().split(".")[0] + "Z";',
+                'pm.collectionVariables.set("sla_desde", fmt(desde));',
+                'pm.collectionVariables.set("sla_hasta", fmt(hasta));',
+                'console.log("[SLA] rango 2h: " + fmt(desde) + " -> " + fmt(hasta));'
+            ],
+            [
+                'pm.test("12 - SLA CSV: 200, text/csv, <=10000ms", function() {',
+                '    pm.response.to.have.status(200);',
+                '    pm.expect(pm.response.headers.get("Content-Type")).to.include("text/csv");',
+                '    const tiempo = pm.response.responseTime;',
+                '    console.log("[SLA] CSV 2h exportado en " + tiempo + "ms");',
+                '    pm.expect(tiempo, "SLA excedido: " + tiempo + "ms > 10000ms").to.be.below(10001);',
+                '});',
+                'pm.test("12 - SLA CSV: al menos 10001 lineas (header + 10000 eventos)", function() {',
+                '    const lineas = pm.response.text().split("\\n").filter(l => l.trim().length > 0);',
+                '    pm.expect(lineas.length).to.be.at.least(10001, "El CSV tiene " + lineas.length + " lineas, se esperaban >=10001");',
+                '});'
             ]
         )
     ]
@@ -457,33 +322,31 @@ const collection = {
             script: {
                 type: "text/javascript",
                 exec: [
-                    'let currentRunId = pm.collectionVariables.get("run_id");',
-                    'if (!currentRunId || currentRunId.trim() === "") {',
-                    '    currentRunId = "test-" + pm.variables.replaceIn("{{$guid}}");',
-                    '    pm.collectionVariables.set("run_id", currentRunId);',
+                    'const secret = pm.environment.get("sandbox_secret")',
+                    '            || pm.collectionVariables.get("sandbox_secret")',
+                    '            || "";',
+                    'if (!secret) {',
+                    '    console.warn("[WARN] sandbox_secret no definido. Los requests fallaran con HTTP 403.");',
                     '}',
-                    'const secret = pm.collectionVariables.get("sandbox_secret");',
-                    'if (currentRunId) {',
-                    '    pm.request.headers.upsert({ key: "X-Test-Run-Id", value: currentRunId });',
+                    'pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
+                    '',
+                    'if (!pm.collectionVariables.get("run_id")) {',
+                    '    pm.collectionVariables.set("run_id", "test-" + pm.variables.replaceIn(\'{{$guid}}\'));',
                     '}',
-                    'if (secret) {',
-                    '    pm.request.headers.upsert({ key: "X-Sandbox-Secret", value: secret });',
-                    '}'
+                    'pm.request.headers.upsert({ key: "X-Test-Run-Id", value: pm.collectionVariables.get("run_id") });'
                 ]
             }
         }
     ],
     variable: [
-        { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test" },
+        { key: "baseUrl", value: "https://api.inmero.co/api-sgpmp-test" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
         { key: "token_admin", value: "" },
-        { key: "finca_id", value: "" },
-        { key: "infra_id", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" }
+        { key: "test_id_evento", value: "" },
+        { key: "sla_desde", value: "" },
+        { key: "sla_hasta", value: "" }
     ],
     item: folders
 };

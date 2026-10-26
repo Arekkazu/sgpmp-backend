@@ -1,0 +1,142 @@
+{
+  "tc": "TC-M03-G177",
+  "summary": {
+    "total": 20,
+    "ok": 19,
+    "falla": 1,
+    "veredicto": "RECHAZADO"
+  },
+  "metadata_reclasificacion": {
+    "veredicto_ejecucion_original": "APROBADO",
+    "total_ejecucion_original": 19,
+    "ok_ejecucion_original": 19,
+    "falla_ejecucion_original": 0,
+    "justificacion": "El test original no valido el caso de input invalido en POST /iot/auditoria/verificar-integridad (sin fecha_desde/fecha_hasta). Se agrega el checkpoint faltante con evidencia empirica del 2026-10-24 (502 Bad Gateway en 5m33s por saturacion de worker). Bug documentado en INC-M03-137-G177-A.",
+    "inc_referencias": [
+      "INC-M03-137-G177-A"
+    ],
+    "fecha_reclasificacion": "2026-10-24T21:32:41.022Z"
+  },
+  "checkpoints": [
+    {
+      "paso": "Status 200 - Login exitoso de ADMIN",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Listado de auditoría obtenido",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Estructura de paginación conforme a contrato",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Campos base RF-10 y extensión IoT presentes en todos los items",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08 - Orden DESC por fecha_hora (crítico)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Paginación personalizada respetada",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Paginación máxima por_pagina=200 aceptada",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Detalle de evento obtenido",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "ID de evento coincide con el solicitado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Estructura completa de evento (base + extensión)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "12 - Campos base faltantes en detalle",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "accion_detallada es objeto/dict JSON o null estructurado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Invariante de seguridad: componente_origen NO expuesto en detalle",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "hash_integridad es SHA-256 hex de 64 caracteres",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Pre-requisito: fechas calculadas no vacias",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Verificación de integridad SHA-256 exitosa en backend",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 404 - UUID inexistente responde Not Found",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 400 o 422 - UUID malformado rechazado con codigo de validacion",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Rollback exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Item 13 sin fechas - rechazo 400/422 (checkpoint que faltaba en ejecucion original)",
+      "esperado": "PASSED (endpoint debe rechazar input sin fechas con 400 o 422)",
+      "obtenido": "FAILED (502 Bad Gateway en 5m33s - evidencia empirica 2026-10-24)",
+      "estado": "FALLA"
+    }
+  ]
+}
