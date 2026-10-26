@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11 tratamientos   |
 """Implementación SQLAlchemy del puerto :class:`MedicamentoRepository` (RF-76).
 
 Usa ``flush()``/``refresh()`` (nunca ``commit()``) y traduce errores de BD con
@@ -51,6 +54,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             via_aplicacion=orm.via_aplicacion,
             motivo_aplicacion=orm.motivo_aplicacion,
             nombre_veterinario=orm.nombre_veterinario,
+            observaciones=orm.observaciones,
             id_usuario=orm.id_usuario,
             id_usuario_veterinario=orm.id_usuario_veterinario,
             estado_registro=orm.estado_registro,
@@ -113,6 +117,7 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             motivo_aplicacion=medicamento.motivo_aplicacion,
             id_evento_sanitario=medicamento.id_evento_sanitario,
             nombre_veterinario=medicamento.nombre_veterinario,
+            observaciones=medicamento.observaciones,
         )
         try:
             self.db.add(orm)
@@ -150,6 +155,17 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
             .scalar()
         )
 
+    def contar_tratamientos_activos(self, id_activo: int, hoy: date) -> int:
+        return (
+            self.db.query(RegistroMedicamentoModel.id_registro_medicamento)
+            .filter(
+                RegistroMedicamentoModel.id_activo_biologico == id_activo,
+                RegistroMedicamentoModel.estado_registro == EstadoRegistro.VALIDADO.value,
+                RegistroMedicamentoModel.fecha_fin_retiro >= hoy,
+            )
+            .count()
+        )
+
     def obtener_tratamiento_vigente(self, id_activo: int) -> Optional[Medicamento]:
         orm = (
             self.db.query(RegistroMedicamentoModel)
@@ -170,8 +186,11 @@ class SqlAlchemyMedicamentoRepository(MedicamentoRepository):
         fecha_desde: Optional[date] = None,
         fecha_hasta: Optional[date] = None,
         estado_registro: Optional[str] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[Medicamento]:
         query = self.db.query(RegistroMedicamentoModel)
+        if ids_permitidos is not None:
+            query = query.filter(RegistroMedicamentoModel.id_activo_biologico.in_(ids_permitidos))
         if id_activo_biologico is not None:
             query = query.filter(RegistroMedicamentoModel.id_activo_biologico == id_activo_biologico)
         if fecha_desde is not None:

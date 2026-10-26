@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: reenvío del token de activación de cuenta.
 
 Genera un nuevo token, lo guarda en la cuenta PENDIENTE y envía el correo.
@@ -19,6 +22,7 @@ from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
 from src.shared.errors import BusinessRuleError
+from src.shared.fechas import en_zona_usuario
 
 MAX_REENVIOS_POR_HORA = 3
 
@@ -90,7 +94,7 @@ class ReenviarTokenUseCase:
                 message=(
                     f"Límite de solicitudes excedido para su conexión. Por seguridad, solo se "
                     f"permiten {MAX_REENVIOS_POR_HORA} envíos de correo por hora. "
-                    f"Podrá intentarlo de nuevo a las {proxima_vez.strftime('%H:%M:%S')}."
+                    f"Podrá intentarlo de nuevo a las {en_zona_usuario(proxima_vez).strftime('%H:%M:%S')}."
                 ),
             )
 

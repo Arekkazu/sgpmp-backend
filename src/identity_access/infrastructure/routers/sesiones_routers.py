@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | DEV-25 RF-17: /me/permisos devuelve nombre_recurso para recursos sin id fijo |
 """Router FastAPI para el módulo de sesiones (`/sesiones`).
 
 Expone los endpoints de inicio y cierre de sesión con JWT.
@@ -19,6 +22,7 @@ from src.identity_access.infrastructure.adapters.notificacion_sesion_background_
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
+from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
@@ -228,9 +232,13 @@ def obtener_mis_permisos(
     real la sigue haciendo cada endpoint con `require_permission`.
     """
     permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(usuario_actual.id_rol)
+    # El id de los recursos sembrados por migraciones recientes sale de la secuencia
+    # y cambia entre ambientes: el nombre (UNIQUE) le permite al frontend ubicarlos.
+    nombres = dict(db.query(Recursos.id_recurso, Recursos.nombre_recurso).all())
     return PermisosUsuarioResponse(
         permisos=[
-            PermisoResumen(id_recurso=p.id_recurso, id_accion=p.id_accion)
+            PermisoResumen(id_recurso=p.id_recurso, id_accion=p.id_accion,
+                           nombre_recurso=nombres.get(p.id_recurso))
             for p in permisos
             if p.es_activo
         ]

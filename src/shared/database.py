@@ -1,9 +1,26 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura reintentos de dev y conserva get_db del sandbox de test |
+# | 2026-10-25 | SamuelPR21 |  reseteo de contexto RLS en Sandbox QA para evitar herencia de identidad entre peticiones
+"""Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
+
+Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
+y la cierra al finalizar, y `SessionLocal` para usos fuera del contexto web.
+
+INC-M01-06-024 / RF-02: una caída de PostgreSQL debe salir como `503` con un
+mensaje claro, no como el `OperationalError` crudo que Starlette convierte en
+`500 Internal Server Error`. `get_db` reintenta la toma de conexión antes de
+rendirse y traduce el fallo a `ServiceUnavailableError`.
+"""
+import logging
 import os
 import time
-import logging
 from contextlib import contextmanager
+from datetime import timezone
 from typing import Iterator, Optional
 
+import psycopg2.extensions as pg_ext
 from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy import create_engine, event, text
@@ -11,6 +28,7 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.shared.errors import ServiceUnavailableError
+from src.shared.fechas import nombre_zona_usuario
 
 load_dotenv()
 
@@ -23,9 +41,40 @@ if not DATABASE_URL:
         "(o la configuración del despliegue) antes de arrancar la API."
     )
 
+# Mismo criterio que tests/integration/conftest.py: `pool_pre_ping` descarta la
+# conexión muerta antes de entregarla, y `pool_recycle` la renueva antes de que
+# el proxy o el servidor la corten por inactividad. Esta es la reconexión
+# automática — no hace falta un bucle de reintentos propio a nivel de engine.
+#
+# `use_insertmanyvalues=False` (#144): el modo "insertmanyvalues" de
+# SQLAlchemy 2.0 agrupa varios INSERT del mismo modelo en una sola sentencia y
+# castea cada parámetro a `::VARCHAR` explícito. Cualquier columna ORM
+# `String` que mapea a un ENUM nativo de Postgres (patrón que este proyecto
+# usa a propósito, ver CLAUDE.md) rompe con `DatatypeMismatch` en cuanto se
+# insertan 2+ filas del mismo modelo en el mismo flush — con una sola fila no
+# falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
+# siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
+# (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
+# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
-    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
+    connect_args={"options": "-c timezone=UTC"},
 )
+
+# Las pocas columnas `timestamp` sin zona (`modulo1.usuarios.fecha_registro`,
+# `auditoria.logs_*`, varias vistas) guardan hora UTC porque la sesión es UTC,
+# pero llegaban a Python sin zona y la API las serializaba sin offset: el
+# navegador las leía como hora local. Se marcan UTC al leerlas.
+_TIMESTAMP_SIN_ZONA = pg_ext.string_types[1114]
+
+
+def _timestamp_utc(valor, cursor):
+    fecha = _TIMESTAMP_SIN_ZONA(valor, cursor)
+    return fecha.replace(tzinfo=timezone.utc) if fecha is not None else None
+
+
+pg_ext.register_type(pg_ext.new_type((1114,), "TIMESTAMP_UTC", _timestamp_utc))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).
@@ -91,6 +140,17 @@ def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
     identidad = session.info.get(_CLAVE_IDENTIDAD)
     if identidad is not None:
         _aplicar_identidad(conexion, identidad)
+
+
+@event.listens_for(Session, "after_begin")
+def _declarar_zona_usuario(_session: Session, _transaccion, conexion) -> None:
+    """`modulo1.fn_hoy_usuario()` lee `app.zona_horaria` para que los triggers
+    usen el mismo "hoy" que la API. Sin zona (UTC) no hace falta el viaje: la
+    función ya cae a UTC. `true` la limita a la transacción, como la identidad.
+    """
+    zona = nombre_zona_usuario()
+    if zona != "UTC":
+        conexion.execute(text("SELECT set_config('app.zona_horaria', :zona, true)"), {"zona": zona})
 
 
 def _declarar(db: Session, identidad) -> None:
@@ -170,27 +230,60 @@ _PAUSA_REINTENTO = 0.5
 
 
 def _conectar_con_reintentos(db: Session) -> None:
-    """Toma la conexión del pool reintentando ante fallos transitorios (RF-02)."""
+    """Toma la conexión del pool reintentando ante fallos transitorios.
+
+    Adelanta al inicio del request el checkout que SQLAlchemy haría en el primer
+    query, para poder distinguir "la base de datos no responde" de cualquier
+    otro fallo y traducirlo a un error de dominio.
+
+    Args:
+        db: Sesión recién creada por `SessionLocal`.
+
+    Raises:
+        ServiceUnavailableError: Si la base de datos no responde después de
+            agotar los reintentos. Código ``BD_NO_DISPONIBLE``, HTTP 503.
+    """
     for intento in range(1, _MAX_REINTENTOS_CONEXION + 1):
         try:
             db.connection()
             return
         except (OperationalError, InterfaceError) as exc:
+            # Devuelve la conexión inservible al pool para que el siguiente
+            # intento saque una nueva en vez de reusar la que acaba de fallar.
             db.rollback()
             if intento == _MAX_REINTENTOS_CONEXION:
                 logger.error(
-                    "No se pudo establecer conexión tras %s intentos: %s",
-                    _MAX_REINTENTOS_CONEXION, exc,
+                    "Base de datos inalcanzable tras %d intentos: %r", intento, exc
                 )
                 raise ServiceUnavailableError(
-                    "BD_NO_DISPONIBLE",
-                    "No fue posible conectar con la base de datos. Intenta más tarde.",
+                    code="BD_NO_DISPONIBLE",
+                    message=(
+                        "El servicio no está disponible temporalmente. "
+                        "Intenta de nuevo en unos momentos."
+                    ),
+                    original_error=exc,
                 ) from exc
+            logger.warning(
+                "Reintentando conexión a la base de datos (%d/%d).",
+                intento,
+                _MAX_REINTENTOS_CONEXION,
+            )
             time.sleep(_PAUSA_REINTENTO)
 
 
 def get_db():
-    """Generador principal de sesiones inyectado en routers."""
+    """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
+
+    Con ``ENABLE_TEST_SANDBOX=true`` y un ``X-Test-Run-Id`` en el request,
+    entrega la sesión aislada del sandbox de pruebas en vez de una del pool.
+
+    Yields:
+        Session: Sesión de base de datos activa para el request actual.
+
+    Raises:
+        ServiceUnavailableError: Si la base de datos no responde al inicio del
+            request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
+    """
     if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
         db = SessionLocal()
         try:
@@ -216,6 +309,31 @@ def get_db():
         test_session = None
         try:
             test_session = get_or_create_test_session(run_id)
+            
+            # --- INICIO PARCHE DBA-01: RESETEO DE IDENTIDAD EN SANDBOX ---
+            # Al reutilizar la sesión física para diferentes peticiones/usuarios 
+            # dentro del mismo run_id, debemos limpiar la identidad previa 
+            # almacenada en session.info. De lo contrario, funciones como 
+            # `declarar_identidad_si_anonima` no sobrescribirán la identidad 
+            # (porque ven que ya existe una) y la transacción heredará el 
+            # contexto RLS del usuario anterior, causando violaciones RLS.
+            test_session.info.pop(_CLAVE_IDENTIDAD, None)
+            
+            # Adicionalmente, limpiamos las variables de configuración de 
+            # PostgreSQL a nivel de transacción para asegurar un estado prístino
+            # antes de que el middleware/dependencias declaren la nueva identidad.
+            if test_session.in_transaction():
+                try:
+                    test_session.connection().execute(
+                        text(
+                            "SELECT set_config('app.current_user_id', '', true), "
+                            "set_config('app.current_role', '', true), "
+                            "set_config('app.usuario_id', '', true)"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"[Sandbox] No se pudo limpiar contexto RLS previo: {e}")
+
             yield test_session
         except SandboxCapacityExceeded as e:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))

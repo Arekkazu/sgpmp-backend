@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: cambio de contraseña por el propio usuario.
 
 Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
@@ -16,6 +19,7 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.contrasena_dto import CambiarContrasenaDTO
 from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, ConflictError, InfrastructureError, LockedError
+from src.shared.fechas import en_zona_usuario
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +112,7 @@ class CambiarContrasenaUseCase:
                     message=(
                         f"Funcionalidad bloqueada temporalmente por múltiples intentos fallidos. "
                         f"Podrá intentar cambiar su contraseña nuevamente a las "
-                        f"{bloqueado_hasta.strftime('%H:%M:%S')} (dentro de {MINUTOS_BLOQUEO} minutos)."
+                        f"{en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')} (dentro de {MINUTOS_BLOQUEO} minutos)."
                     ),
                 )
 
@@ -144,7 +148,7 @@ class CambiarContrasenaUseCase:
                     message=(
                         f"Funcionalidad bloqueada temporalmente por múltiples intentos fallidos. "
                         f"Podrá intentar cambiar su contraseña nuevamente a las "
-                        f"{bloqueado_hasta.strftime('%H:%M:%S')} (dentro de {MINUTOS_BLOQUEO} minutos)."
+                        f"{en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')} (dentro de {MINUTOS_BLOQUEO} minutos)."
                     ),
                 )
 

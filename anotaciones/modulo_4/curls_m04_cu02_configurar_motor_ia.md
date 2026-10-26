@@ -60,7 +60,15 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
 
 ### Flujo 2 — Actualizar configuración existente (200)
 
-Mismo endpoint y payload, config_version pasa a 2.
+Mismo endpoint y payload más la `config_version` que se leyó (DEV-36, CA-9);
+la respuesta trae `config_version` 2.
+
+```bash
+curl -s -X POST http://localhost:8000/prediccion/motor-ia \r
+  -H "Authorization: Bearer $TOKEN" \r
+  -H "Content-Type: application/json" \r
+  -d '{ ...mismo payload..., "ventana_temporal_min": 12, "config_version": 1 }'
+```
 
 **Respuesta esperada (200)**:
 ```json
@@ -154,7 +162,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
 
 ---
 
-## FA-03 — Modelo no activo (412)
+## FA-03 / E2 — Modelo no activo (409)
 
 ```bash
 # Asumiendo que la versión 5 existe pero está en estado APROBADO (no ACTIVO)
@@ -174,7 +182,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   }' | python3 -m json.tool
 ```
 
-**Respuesta esperada (412)**:
+**Respuesta esperada (409)** — DEV-33: RF-65 E2 fija 409 (antes 412):
 ```json
 {
   "code": "MODELO_NO_ACTIVO",
@@ -413,3 +421,108 @@ nodo. Si un nodo confirmó una versión anterior a la vigente, el `estado` conso
 es `PENDIENTE`.
 
 Errores: 401, 403, 404 `CONFIGURACION_MOTOR_NO_ENCONTRADA`.
+
+---
+
+## DEV-36 — Concurrencia optimista (RF-65 CA-9, 412)
+
+Al editar, el POST lleva la `config_version` que el cliente leyó (GET por tipo o
+historial). La lectura para editar bloquea la fila (`SELECT ... FOR UPDATE`): dos
+ediciones simultáneas se atienden una tras otra y la segunda ve la versión nueva.
+Al crear (no hay configuración para el tipo) se omite.
+
+### Dos ediciones con la misma versión — la segunda 412
+
+```bash
+# Usuario A (leyó config_version 1) → 200, config_version 2
+curl -s -o /dev/null -w "%{http_code}
+" -X POST http://localhost:8000/prediccion/motor-ia \r
+  -H "Authorization: Bearer $TOKEN_ADMIN" -H "Content-Type: application/json" \r
+  -d '{"tipo_modelo": "MODELO_ESPECIES_MEDIANAS", "umbral_riesgo_alto": 0.70, "umbral_alerta_critica": 0.85,
+       "ventana_temporal_min": 12, "config_version": 1}'
+
+# Usuario B (también leyó la 1) → 412
+curl -s -X POST http://localhost:8000/prediccion/motor-ia \r
+  -H "Authorization: Bearer $TOKEN_VET" -H "Content-Type: application/json" \r
+  -d '{"tipo_modelo": "MODELO_ESPECIES_MEDIANAS", "umbral_riesgo_alto": 0.75, "umbral_alerta_critica": 0.85,
+       "ventana_temporal_min": 7, "config_version": 1}'
+```
+
+**Respuesta esperada (412)**:
+```json
+{
+  "error_code": "CONFLICTO_CONCURRENCIA",
+  "message": "La configuración fue modificada por otro usuario (config_version vigente 2, enviada 1). Recarga y reintenta.",
+  "fields": [{ "field": "config_version", "message": "..." }],
+  "timestamp": "..."
+}
+```
+
+### Sin `config_version` cuando la configuración ya existe (412)
+
+El cliente afirma que no había configuración, pero otro usuario ya la creó:
+
+```json
+{
+  "error_code": "CONFLICTO_CONCURRENCIA",
+  "message": "Ya existe una configuración para MODELO_ESPECIES_MEDIANAS (config_version 2). Recarga y reintenta enviando la config_version que leíste.",
+  "fields": [{ "field": "config_version", "message": "..." }],
+  "timestamp": "..."
+}
+```
+
+Ninguno de los dos 412 guarda nada, ni registra auditoría, ni envía a los nodos.
+
+---
+
+## GET /prediccion/motor-ia/{tipo_modelo}/historial — Historial append-only (RF-65 Restricción 5)
+
+**RBAC**: R sobre recurso 41 (Administrador, Veterinario, Ingeniero)
+
+Versión vigente (`configuraciones_motor_ia`) seguida de las anteriores del log
+append-only `modulo4.configuracion_ia_log` (DB-14), de la más reciente a la más
+antigua. `configuracion` tiene el mismo formato en todas las versiones.
+
+```bash
+curl -s http://localhost:8000/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS/historial \r
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+```
+
+**Respuesta esperada (200)** tras las dos ediciones de arriba:
+```json
+{
+  "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+  "config_version_vigente": 2,
+  "total": 2,
+  "versiones": [
+    {
+      "config_version": 2,
+      "vigente": true,
+      "operacion": null,
+      "id_usuario_responsable": 1,
+      "vigente_desde": "2026-10-23T15:05:00Z",
+      "vigente_hasta": null,
+      "id_usuario_cambio": null,
+      "configuracion": { "ventana_temporal_min": 12, "config_version": 2, "...": "..." }
+    },
+    {
+      "config_version": 1,
+      "vigente": false,
+      "operacion": "UPDATE",
+      "id_usuario_responsable": 1,
+      "vigente_desde": "2026-10-01T10:00:00Z",
+      "vigente_hasta": "2026-10-23T15:05:00Z",
+      "id_usuario_cambio": 1,
+      "configuracion": { "ventana_temporal_min": 10, "config_version": 1, "...": "..." }
+    }
+  ]
+}
+```
+
+- `vigente_hasta` / `id_usuario_cambio`: cuándo y quién reemplazó esa versión.
+- `vigente_desde`: desde que reemplazó a la anterior; la v1, desde su creación. Las
+  versiones anteriores a DB-14 no están en el log, así que la más antigua registrada
+  (si no es la v1) trae `vigente_desde: null`.
+
+Errores: 401, 403, 404 `CONFIGURACION_MOTOR_NO_ENCONTRADA` (tipo sin configuración
+ni historial, o tipo desconocido).

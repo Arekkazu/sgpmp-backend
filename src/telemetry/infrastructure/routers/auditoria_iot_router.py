@@ -1,20 +1,26 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: GET de integridad protegido y POST compatible |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
   GET  /iot/auditoria                       — Listar bitácora con filtros
   GET  /iot/auditoria/{id_evento}           — Detalle de evento
   GET  /iot/auditoria/exportar              — Exportar JSON/CSV
-  POST /iot/auditoria/verificar-integridad  — Verificar hashes SHA-256
+  GET/POST /iot/auditoria/verificar-integridad — Verificar hashes SHA-256
 
 Auth: JWT Bearer + RBAC recurso 39 (bitacora_auditoria_iot).
 componente_origen no se expone en respuestas (campo interno).
 """
 from __future__ import annotations
 
+from dataclasses import asdict
+from src.telemetry.infrastructure.adapters.aviso_integridad_m01_adapter import AvisoIntegridadM01Adapter
+
 import csv
 import io
 import json
-from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -34,6 +40,7 @@ from src.telemetry.infrastructure.schema.bitacora_auditoria_iot_schema import (
     ListaAuditoriaIotSchema,
     VerificacionIntegridadSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/auditoria", tags=["Telemetría IoT - Auditoría RF-63"])
 
@@ -47,8 +54,8 @@ router = APIRouter(prefix="/iot/auditoria", tags=["Telemetría IoT - Auditoría 
     summary="Listar bitácora de auditoría IoT (RF-63)",
 )
 def listar_auditoria(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     tipo_evento: Optional[str] = Query(default=None),
     severidad_log: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
@@ -89,8 +96,8 @@ def listar_auditoria(
     summary="Exportar bitácora de auditoría IoT (RF-63)",
 )
 def exportar_auditoria(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     tipo_evento: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
     formato: str = Query(default='json', pattern='^(json|csv)$'),
@@ -131,6 +138,29 @@ def exportar_auditoria(
     )
 
 
+@router.api_route(
+    "/verificar-integridad",
+    methods=["GET", "POST"],
+    response_model=VerificacionIntegridadSchema,
+    status_code=200,
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    dependencies=[Depends(require_permission(39, 5))],
+    summary="Verificar integridad SHA-256 de la bitácora (RF-63 FA-11)",
+)
+def verificar_integridad(
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> VerificacionIntegridadSchema:
+    use_case = VerificarIntegridadBitacoraUseCase(
+        db=db, avisos=AvisoIntegridadM01Adapter(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    )
+    resultado = use_case.execute(fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
+    return VerificacionIntegridadSchema(**asdict(resultado))
+
+
 @router.get(
     "/{id_evento}",
     response_model=EventoAuditoriaIotSchema,
@@ -152,29 +182,3 @@ def obtener_evento(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     return EventoAuditoriaIotSchema.model_validate(use_case.get(id_evento))
-
-
-@router.post(
-    "/verificar-integridad",
-    response_model=VerificacionIntegridadSchema,
-    status_code=200,
-    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
-    dependencies=[Depends(require_permission(39, 5))],
-    summary="Verificar integridad SHA-256 de la bitácora (RF-63 FA-11)",
-)
-def verificar_integridad(
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
-    db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> VerificacionIntegridadSchema:
-    use_case = VerificarIntegridadBitacoraUseCase(
-        db=db,
-        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
-    )
-    resultado = use_case.execute(fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
-    return VerificacionIntegridadSchema(
-        total_verificados=resultado.total_verificados,
-        comprometidos=resultado.comprometidos,
-        ids_comprometidos=resultado.ids_comprometidos,
-    )

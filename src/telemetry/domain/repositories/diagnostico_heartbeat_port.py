@@ -1,8 +1,11 @@
-"""Frontera pendiente M09/FW-06, sin asumir valores ni convención de versiones.
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60: documenta politica real y limites FW |
+"""Frontera de diagnóstico con configuración persistida en DEV-14.
 
-La implementación persistente se debe incorporar al disponer del contrato de
-configuración autorizado. El worker deja pendiente una etapa que la necesite
-si no hay implementación inyectada; no hay adaptador que simule éxito.
+El adaptador real no completa umbrales ausentes ni presupone SemVer para FW-06.
+Una configuración ausente o una versión no comparable deja evidencia de fallo
+y permite reintentar la etapa; no se simula éxito.
 """
 from dataclasses import dataclass
 from decimal import Decimal

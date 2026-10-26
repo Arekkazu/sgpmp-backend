@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 from __future__ import annotations
 
 from datetime import datetime
@@ -30,10 +34,15 @@ class EstadoSensorSchema(BaseModel):
     nombre_infraestructura: Optional[str] = None
     id_finca: Optional[int] = None
     nombre_finca: Optional[str] = None
-    # técnicos — solo Ingeniero de Campo (Productor recibe None)
+    # técnicos — solo con R sobre datos_tecnicos_dashboard (DB-08); si no, None
     nivel_bateria_pct: Optional[Decimal] = None
     calidad_senal_rssi: Optional[Decimal] = None
     calidad_senal_snr: Optional[Decimal] = None
+    # DEV-39: E7 (GRIS sin umbral), R2/E2 (anomalía visible) y su etiqueta para la UI
+    sin_umbral: bool = False
+    indicador_anomalia: bool = False
+    es_valor_operativo: bool = True
+    etiqueta_estado: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -112,9 +121,26 @@ class ResumenEstadisticoSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VacioTemporalSchema(BaseModel):
+    """RF-59 E7 / CA-17 — intervalo sin lecturas mayor que 3 × la frecuencia de muestreo."""
+    sensor_id: int
+    tipo_variable: str
+    desde: datetime
+    hasta: datetime
+    duracion_min: int
+    frecuencia_esperada_min: int
+
+
 class HistorialPageSchema(BaseModel):
-    """RF-59 — respuesta paginada del historial."""
+    """RF-59 — respuesta paginada del historial.
+
+    ``total`` son los registros navegables (como mucho 10 000, CA-19); ``total_encontrado``
+    los que cumplen los filtros. Si los supera, ``truncado`` y ``aviso`` lo explican (E6).
+    """
     total: int
+    total_encontrado: int
+    truncado: bool = False
+    aviso: Optional[str] = None
     pagina: int
     por_pagina: int
     paginas_totales: int
@@ -122,3 +148,4 @@ class HistorialPageSchema(BaseModel):
     rango_real_datos: dict[str, Any]
     items: list[LecturaHistoricaSchema]
     estadisticas: list[ResumenEstadisticoSchema]
+    vacios_temporales: list[VacioTemporalSchema] = []

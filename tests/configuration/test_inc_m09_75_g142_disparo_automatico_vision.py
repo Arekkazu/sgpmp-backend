@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: conservar la regresion del disparo automatico con filtro de area. |
 """INC-M09-75-G142 (#551): el alta de un lote y el cierre de ciclo de M02 disparan la
 calibración por visión automática de M09 (RF-24 v2.0, TC-M09-288/289).
 
@@ -30,7 +33,7 @@ def _automatico(uc):
 # ── M09: execute_automatico ──────────────────────────────────────────────────
 
 class _ObservacionesVentana(_Observaciones):
-    def listar(self, ids, inicio, fin):
+    def listar(self, ids, inicio, fin, *, id_infraestructura=None):
         self.ventana = (inicio, fin)
         return self.obs
 

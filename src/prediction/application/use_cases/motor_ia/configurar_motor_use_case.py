@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,7 +26,7 @@ from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort
 from src.prediction.domain.repositories.sincronizacion_nodo_edge_repository import SincronizacionNodoEdgeRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
 from src.shared.tipo_modelo import TIPOS_MODELO, es_poblacional
 
 _MODOS_VALIDOS = {"EDGE", "SERVIDOR", "HIBRIDO"}
@@ -71,7 +75,12 @@ class ConfigurarMotorUseCase:
         nodos = self._nodo_edge_port.listar_nodos_activos(dto.tipo_modelo) if dto.tipo_modelo in TIPOS_MODELO else []
         por_paradigma = self._validar(dto, nodos)
 
-        existente = self._repo.obtener_por_tipo(dto.tipo_modelo)
+        existente = self._repo.obtener_por_tipo(dto.tipo_modelo, bloquear=True)
+        try:
+            self._verificar_version_leida(existente, dto.config_version)
+        except PreconditionFailedError:
+            self._db.rollback()  # libera el bloqueo de la fila
+            raise
         snapshot_anterior = existente._snapshot() if existente else None
 
         if existente is None:
@@ -140,6 +149,27 @@ class ConfigurarMotorUseCase:
         return ResultadoConfiguracionMotor(
             entidad=entidad, es_nueva=es_nueva, sincronizacion=self._sincronizar(entidad, nodos)
         )
+
+    @staticmethod
+    def _verificar_version_leida(existente: Optional[ConfiguracionMotorIA], leida: Optional[int]) -> None:
+        """RF-65 CA-9: la edición solo procede sobre la config_version que el cliente leyó.
+
+        Sin config_version el cliente afirma que no existía configuración; si ya
+        existe, otro usuario la creó primero y también es un conflicto.
+        """
+        if existente is None or leida == existente.config_version:
+            return
+        if leida is None:
+            mensaje = (
+                f"Ya existe una configuración para {existente.tipo_modelo} (config_version "
+                f"{existente.config_version}). Recarga y reintenta enviando la config_version que leíste."
+            )
+        else:
+            mensaje = (
+                f"La configuración fue modificada por otro usuario (config_version vigente "
+                f"{existente.config_version}, enviada {leida}). Recarga y reintenta."
+            )
+        raise PreconditionFailedError(code="CONFLICTO_CONCURRENCIA", message=mensaje, field="config_version")
 
     def _sincronizar(self, entidad: ConfiguracionMotorIA, nodos: list[NodoEdge]) -> ResultadoSincronizacionMotor:
         """DEV-09: envía la configuración ya guardada a sus nodos y registra el veredicto de cada uno.
@@ -269,7 +299,10 @@ class ConfigurarMotorUseCase:
         }
 
     def _validar_version(self, id_version: int, tipo_modelo: str, componente: Optional[str], campo: str) -> None:
-        """RF-65 4.e: la versión vinculada existe, está ACTIVO y su llave (tipo_modelo, componente) coincide."""
+        """RF-65 4.e: la versión vinculada existe, está ACTIVO y su llave (tipo_modelo, componente) coincide.
+
+        E2 (versión no validada) y E5 (configuración incompatible con la versión) responden 409 (RF-65, DEV-33).
+        """
         llave = self._version_port.obtener_llave(id_version)
         if llave is None:
             raise NotFoundError(
@@ -279,7 +312,7 @@ class ConfigurarMotorUseCase:
             )
         estado, tipo_version, componente_version = llave
         if estado != _ESTADO_ACTIVO:
-            raise PreconditionFailedError(
+            raise ConflictError(
                 code="MODELO_NO_ACTIVO",
                 message=(
                     f"La versión {id_version} está en estado '{estado}'. "
@@ -288,7 +321,7 @@ class ConfigurarMotorUseCase:
                 field=campo,
             )
         if (tipo_version, componente_version) != (tipo_modelo, componente):
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="VERSION_MODELO_INCOMPATIBLE",
                 message=(
                     f"La versión {id_version} es de ({tipo_version}, {componente_version}) y no corresponde "

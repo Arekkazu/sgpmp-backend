@@ -1,8 +1,13 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """RF-48 (INC-M02-72-G80): no existia ningun modelo de compatibilidad entre
 tipo de infraestructura y especie del activo (C2) -- un bovino se aceptaba en
 un Estanque. Cubre execute() (E-07b) y el filtro del listado.
 """
 from __future__ import annotations
+
+from decimal import Decimal
 
 import pytest
 
@@ -14,6 +19,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.shared.errors import BusinessRuleError
 
 ID_ESPECIE_BOVINO = 11  # 'Miguel' en el seed local: "Ganado vacuno para produccion de leche y carne"
@@ -58,11 +64,20 @@ class InfraPortFake:
             return True  # sin regla configurada -> sin restriccion, igual que en produccion
         return id_especie in self.especies_compatibles_estanque
 
+    def obtener_especie(self, id_especie: int):
+        return EspecieDelArea(id_especie, 'Especie', 'G', Decimal('10'))
+
+    def bloquear_capacidad(self, _id: int) -> None:
+        pass
+
+    def asociar_especie(self, _id_infraestructura: int, _id_especie: int) -> None:
+        pass
+
 
 def _infra(id_infraestructura, tipo, id_finca=10):
     return InfraestructuraConsulta(
         id_infraestructura=id_infraestructura, nombre=f'Infra {id_infraestructura}',
-        tipo=tipo, es_activo=True, id_finca=id_finca,
+        tipo=tipo, es_activo=True, id_finca=id_finca, superficie=Decimal('100'),
     )
 
 

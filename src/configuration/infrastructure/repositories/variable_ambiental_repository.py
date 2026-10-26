@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: persiste es_critica (RFC-016) |
 """Implementación SQLAlchemy del puerto VariableAmbientalRepository."""
 from __future__ import annotations
 
@@ -8,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.variable_ambiental import VariableAmbiental
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.infrastructure.models.variable_ambiental_model import VariableAmbientalModel
+from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
@@ -29,6 +33,16 @@ class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
         )
         return [self._a_entidad(orm) for orm in orms]
 
+    def actualizar(self, variable: VariableAmbiental) -> VariableAmbiental:
+        orm = self._db.get(VariableAmbientalModel, variable.id_variable_ambiental)
+        orm.es_critica = variable.es_critica
+        try:
+            self._db.flush()
+            self._db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return self._a_entidad(orm)
+
     @staticmethod
     def _a_entidad(orm: VariableAmbientalModel) -> VariableAmbiental:
         return VariableAmbiental(
@@ -38,4 +52,5 @@ class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
             valor_fisico_min=orm.valor_fisico_min,
             valor_fisico_max=orm.valor_fisico_max,
             es_activo=orm.es_activo,
+            es_critica=orm.es_critica,
         )

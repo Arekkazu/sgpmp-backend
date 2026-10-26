@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: parámetros completos del reporte   |
 """Modelo ORM para ``modulo5.reporte_gastos_acumulados`` (RF-77 / CU-04).
 
 Generado con sqlacodegen (reflexión de la BD) y adaptado a las convenciones del
@@ -25,6 +28,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from sqlalchemy.dialects.postgresql import JSONB
+
 from .base_model import Base
 
 
@@ -49,3 +54,4 @@ class ReporteGastoAcumuladoModel(Base):
     id_activo_biologico: Mapped[Optional[int]] = mapped_column(Integer)
     id_infraestructura: Mapped[Optional[int]] = mapped_column(Integer)
     categoria: Mapped[Optional[str]] = mapped_column(String(60))
+    json_parametros: Mapped[Optional[dict]] = mapped_column(JSONB)

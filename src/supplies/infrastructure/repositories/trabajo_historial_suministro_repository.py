@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81 R8: límite por usuario              |
 """Implementación SQLAlchemy de :class:`TrabajoHistorialSuministroRepository` (RF-81)."""
 from __future__ import annotations
 
@@ -71,15 +74,14 @@ class SqlAlchemyTrabajoHistorialSuministroRepository(TrabajoHistorialSuministroR
             raise_from_db_error(exc, {})
         return self._trabajo_a_entidad(orm)
 
-    def contar_activos(self, tipo_trabajo: str) -> int:
-        return (
-            self.db.query(ColaTrabajoHistorialSuministroModel)
-            .filter(
-                ColaTrabajoHistorialSuministroModel.tipo_trabajo == tipo_trabajo,
-                ColaTrabajoHistorialSuministroModel.estado.in_(_ACTIVOS),
-            )
-            .count()
+    def contar_activos(self, tipo_trabajo: str, id_usuario: Optional[int] = None) -> int:
+        query = self.db.query(ColaTrabajoHistorialSuministroModel).filter(
+            ColaTrabajoHistorialSuministroModel.tipo_trabajo == tipo_trabajo,
+            ColaTrabajoHistorialSuministroModel.estado.in_(_ACTIVOS),
         )
+        if id_usuario is not None:
+            query = query.filter(ColaTrabajoHistorialSuministroModel.id_usuario_solicitante == id_usuario)
+        return query.count()
 
     def obtener(self, id_cola: int) -> Optional[TrabajoHistorialSuministro]:
         orm = self.db.get(ColaTrabajoHistorialSuministroModel, id_cola)

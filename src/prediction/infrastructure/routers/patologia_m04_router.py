@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 """Router FastAPI para el catálogo de patologías M04 (`/prediccion/patologias`).
 
 RF-64 CU-01: gestión del catálogo de patologías por especie.
@@ -126,6 +129,7 @@ def obtener_patologia(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        405: {"model": ErrorResponse, "description": "La patología es base (RF-64 E2)"},
         409: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
@@ -158,6 +162,7 @@ def editar_patologia(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        405: {"model": ErrorResponse, "description": "La patología es base (RF-64 CA-3)"},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
