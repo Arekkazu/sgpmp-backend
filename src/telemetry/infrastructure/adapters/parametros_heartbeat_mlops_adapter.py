@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: adaptadores reales de politica M09  |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: consulta actividad valida y heartbeat real |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-60: firmware con prefijo v (v2.0.1) se compara como 2.0.1 |
 """P-1 provisional: lectura dinámica DEV-14; ningún umbral se inventa al leer."""
 import re
 
@@ -81,6 +82,10 @@ class ParametrosHeartbeatMLOpsAdapter:
         )
 
 
+def _sin_prefijo_v(version):
+    return version[1:] if isinstance(version, str) and version[:1] in ('v', 'V') else version
+
+
 class DiagnosticoHeartbeatMLOpsAdapter:
     def __init__(self, db):
         self.parametros_repo = SqlAlchemyParametrosMLOpsRepository(db)
@@ -103,11 +108,12 @@ class DiagnosticoHeartbeatMLOpsAdapter:
             return ComparacionFirmware(minima, False)
         # Orden numérico solo cuando ambas cadenas realmente tienen ese formato.
         # No se afirma soporte SemVer, prereleases ni identificadores de FW-06.
+        # M3-12: el prefijo "v" de los tags (v2.0.1) es convención, no parte de la versión.
+        numericas = [_sin_prefijo_v(version) for version in (minima, version_instalada)]
         if not all(isinstance(version, str) and re.fullmatch(r'[0-9]+(?:\.[0-9]+)*', version)
-                   for version in (minima, version_instalada)):
+                   for version in numericas):
             raise BusinessRuleError('VERSION_FIRMWARE_NO_COMPARABLE',
                                     'La versión de firmware requiere una convención de comparación compatible.')
-        instalada = tuple(int(parte) for parte in version_instalada.split('.'))
-        requerida = tuple(int(parte) for parte in minima.split('.'))
+        requerida, instalada = (tuple(int(parte) for parte in version.split('.')) for version in numericas)
         ancho = max(len(instalada), len(requerida))
         return ComparacionFirmware(minima, instalada + (0,) * (ancho-len(instalada)) < requerida + (0,) * (ancho-len(requerida)))
