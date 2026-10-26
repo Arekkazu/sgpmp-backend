@@ -6,6 +6,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
 import asyncio
 import logging
 import os
@@ -64,6 +65,7 @@ from src.telemetry.infrastructure.routers.auditoria_iot_router import router as 
 from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
+from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
@@ -858,6 +860,7 @@ app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
+app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)

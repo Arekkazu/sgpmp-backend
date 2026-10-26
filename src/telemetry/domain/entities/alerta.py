@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-30 RF-57: trata VENCIDA como estado terminal  |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio (read-model) |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
+# | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: tipo de alerta RIESGO_CONTAGIO |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,6 +24,8 @@ class TipoAlerta(str, Enum):
     FALLO_AMBIENTAL = "FALLO_AMBIENTAL"
     PREDICCION_PATOLOGIA = "PREDICCION_PATOLOGIA"
     TORMENTA_DE_ALERTAS = "TORMENTA_DE_ALERTAS"
+    # RF-68 paso 8: riesgo de contagio Alto del lote (Modelo 4 de M04).
+    RIESGO_CONTAGIO = "RIESGO_CONTAGIO"
 
 
 class EstadoAlerta(str, Enum):
