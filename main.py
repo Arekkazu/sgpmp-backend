@@ -6,6 +6,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
 import asyncio
 import logging
 import os
@@ -551,6 +552,42 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
             db.close()
 
 
+async def _liberar_ota_programadas_periodicamente() -> None:
+    """RF-70 E1: avisa ota/notify a los despliegues PROGRAMADO pospuestos cuando abre su ventana."""
+    from src.prediction.application.use_cases.ota.liberar_despliegues_programados_use_case import (
+        LiberarDesplieguesProgramadosUseCase,
+    )
+    from src.prediction.infrastructure.adapters.ota_edge_adapters import (
+        AvisoOtaBrokerAdapter,
+        NodoOtaM09Adapter,
+        UrlDescargaHmacAdapter,
+    )
+    from src.prediction.infrastructure.repositories.despliegue_ota_repository import SqlAlchemyDespliegueOtaRepository
+    from src.prediction.infrastructure.repositories.distribucion_ota_repository import (
+        SqlAlchemyDistribucionOtaRepository,
+    )
+    from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+    from src.shared.database import sesion_sistema
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(LiberarDesplieguesProgramadosUseCase(
+                db=db,
+                version_repo=SqlAlchemyVersionModeloRepository(db),
+                distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
+                despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),
+                nodo_port=NodoOtaM09Adapter(db),
+                aviso_port=AvisoOtaBrokerAdapter(),
+                url_port=UrlDescargaHmacAdapter(),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudieron liberar las distribuciones OTA programadas; se reintentará.")
+        finally:
+            db.close()
+
+
 async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
     """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
     respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
@@ -685,6 +722,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
+        asyncio.create_task(_liberar_ota_programadas_periodicamente()),
     ]
     yield
     for task in tasks:
