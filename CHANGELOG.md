@@ -1,3 +1,23 @@
+## [1.4.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.8...v1.4.0-rc.9) (2026-10-26)
+
+### Features
+
+* **rf57-telemetry:** filtro de alertas por area (T-18) ([5487e5c](https://github.com/Arekkazu/sgpmp-backend/commit/5487e5c0370dd3252a2d401881f44393a234398b))
+
+### Bug Fixes
+
+* **rf57-telemetry:** la alerta trae el nombre del activo ademas de la ubicacion (T-18) ([baf594f](https://github.com/Arekkazu/sgpmp-backend/commit/baf594ffdad449cca508fd299d5d19fcc25f80c2))
+* **rf58-telemetry:** dashboard e historial con la unidad del catalogo I3P-1 antes que la de la lectura (M3-09) ([332b5d1](https://github.com/Arekkazu/sgpmp-backend/commit/332b5d14ad11d1911058e7ed236eff4b5be1cf45))
+* **rf58-telemetry:** el dashboard trae el conteo del semaforo de todos los sensores, no de la pagina (M3-08) ([1db6ddd](https://github.com/Arekkazu/sgpmp-backend/commit/1db6dddc5c9d3860d3987fb9de198490be443356))
+* **rf60-telemetry:** firmware con prefijo v se compara por segmentos (M3-12) ([717bb80](https://github.com/Arekkazu/sgpmp-backend/commit/717bb80ca59759a9d3dd60e6011697f32fc128a5))
+* **rf61-telemetry:** vinculaciones con nombres de activo, area, finca, variable y usuario (T-18) ([dd4bb41](https://github.com/Arekkazu/sgpmp-backend/commit/dd4bb417ae977bcd4ecfa8b3eae6748e168e6a1e)), closes [#115703](https://github.com/Arekkazu/sgpmp-backend/issues/115703) [#854](https://github.com/Arekkazu/sgpmp-backend/issues/854) [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391)
+* **rf63-telemetry:** la bitacora IoT se limita a los equipos de las fincas del usuario salvo para el auditor (M3-14) ([bb36a38](https://github.com/Arekkazu/sgpmp-backend/commit/bb36a383d5232eeaf7456dd793c795fb1deba421))
+* **rf63-telemetry:** reintentos postcommit con espera creciente en vez de un fallo por minuto (M3-12) ([1a24381](https://github.com/Arekkazu/sgpmp-backend/commit/1a243816eedde752f1e2dda8b24926da897c0cf0))
+* **rf64-prediction:** patologias con nombre y unidad de cada variable y nombre de la especie (M4-02) ([481bce8](https://github.com/Arekkazu/sgpmp-backend/commit/481bce8a0317590e037e98445221bc6c554a4a69))
+* **rf73-prediction:** la auditoria M04 trae el nombre del usuario actor (T-18) ([4e456a1](https://github.com/Arekkazu/sgpmp-backend/commit/4e456a1759adaad7ae32c790ed4ae578777884de))
+* **rf74-supplies:** recalcular el ICA consolida la alerta critica abierta en vez de duplicarla (M3-07) ([25c1364](https://github.com/Arekkazu/sgpmp-backend/commit/25c1364acf1191f2e26ce47a2ab1c8dec71b16e2))
+* **telemetry:** SQL literal en text() en nombres de vinculaciones para el SAST CWE-89 (RF-61) ([cb54cda](https://github.com/Arekkazu/sgpmp-backend/commit/cb54cda835979f74e37da586335588b64cc53da0))
+
 ## [1.4.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.7...v1.4.0-rc.8) (2026-10-26)
 
 ### Bug Fixes
