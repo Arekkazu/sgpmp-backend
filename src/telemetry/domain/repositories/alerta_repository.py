@@ -6,6 +6,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: puerto de alerta tecnica idempotente |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de bateria unica y recuperacion |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -105,6 +106,7 @@ class AlertaRepository(ABC):
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
         fecha_resolucion_desde: Optional[datetime] = None,
+        id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]: ...
 
     @abstractmethod

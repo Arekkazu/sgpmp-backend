@@ -9,6 +9,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita alertas y consolidacion atomicamente |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -318,8 +319,12 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         ids_fincas_permitidas: Optional[list[int]] = None,
         excluir_tipo_alerta: Optional[str] = None,
         fecha_resolucion_desde: Optional[datetime] = None,
+        id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
+        # T-18: el filtro de la vista es el área por nombre, no el ID del sensor.
+        if id_infraestructura:
+            q = q.filter(AlertaModel.id_infraestructura == id_infraestructura)
         # M3-08: "resueltas hoy" cuenta por cuándo se cerró, no por cuándo se generó.
         if fecha_resolucion_desde:
             q = q.filter(AlertaModel.fecha_resolucion >= fecha_resolucion_desde)
