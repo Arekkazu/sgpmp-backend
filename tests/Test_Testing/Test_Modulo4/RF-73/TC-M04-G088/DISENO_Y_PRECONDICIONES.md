@@ -64,3 +64,27 @@ En el repositorio de infraestructura `src/prediction/infrastructure/repositories
 - Inyección de cabeceras de aislamiento `X-Test-Run-Id` y `X-Sandbox-Secret`.
 - Teardown garantizado vía `DELETE /test-control/runs/{{run_id}}` (200 OK con `Rollback exitoso`).
 - Cero escrituras directas SQL en base de datos.
+
+---
+
+## 6. Diagnóstico 2026-10-25
+- Límite: `_PAYLOAD_MAX_BYTES = 65536` bytes; compara `len(raw.encode())` donde `raw = json.dumps(payload, default=str)`.
+- Truncamiento: corta bytes; si `json.loads` falla, fallback `{"payload_truncado_raw": <500 chars>, "payload_truncado": True}`.
+- `payload_truncado` en columna (`es_payload_truncado`) Y dentro del JSON.
+- Severidad override: incondicional a WARNING al truncar (`sev_final = "WARNING" if truncado else severidad_evento`).
+- Hash: sobre payload post-truncamiento (`_calcular_hash(tipo_evento, payload_final, ahora)`).
+- `_PAYLOAD_REQUERIDO[VERSION_REGISTRADA] = ["tipo_modelo", "id_version"]`.
+
+## 7. Diseño (P1/P2/P3-A del QA Lead)
+- **P1:** `tipo_evento = VERSION_REGISTRADA` (payload mínimos: `tipo_modelo`, `id_version`).
+- **P2:** `severidad_evento = ERROR` en los 3 (passthrough en 270, override a WARNING en 271/272).
+- **P3 (Opción A estricta):** verificar 4 cosas en payload persistido (`es_payload_truncado`, severidad, JSON válido, campos mínimos presentes).
+- **A7:** no relajar. Si el truncamiento pierde los mínimos → FALLA honesta + `INC-M04-159-G088`.
+
+## 8. Resultado esperado de la primera corrida
+- Subcaso 270: OK (no trunca, JSON completo, mínimos presentes).
+- Subcaso 271: FALLA (fallback descarta `tipo_modelo` e `id_version`).
+- Subcaso 272: FALLA (ídem).
+- Veredicto global: RECHAZADO (1/3).
+- `INC-M04-159-G088` a abrir tras la corrida.
+

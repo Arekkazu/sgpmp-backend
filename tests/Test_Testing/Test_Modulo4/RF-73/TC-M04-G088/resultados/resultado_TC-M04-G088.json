@@ -1,36 +1,29 @@
 {
   "tc": "TC-M04-G088",
-  "rf": "RF-73",
-  "titulo": "TC-M04-G088: Límites de tamaño de payload",
-  "estado_general": "Aprobado",
-  "stats": {
-    "tests": 3,
-    "passes": 3,
-    "failures": 0
+  "summary": {
+    "total": 3,
+    "ok": 1,
+    "falla": 2,
+    "veredicto": "RECHAZADO"
   },
   "checkpoints": [
     {
-      "paso": "NW-01: Autenticación Admin",
-      "esperado": "Status 200 con token JWT",
-      "obtenido": "OK",
+      "paso": "test_tc_m04_270_payload_64kb_exacto",
+      "esperado": "RF-73: payload 65536 bytes NO debe truncarse",
+      "obtenido": "todos los asserts pasaron",
       "estado": "OK"
     },
     {
-      "paso": "NW-02: Preflight Auditoría M04",
-      "esperado": "Status 200 con items de auditoría",
-      "obtenido": "OK",
-      "estado": "OK"
+      "paso": "test_tc_m04_271_payload_1_byte_sobre",
+      "esperado": "RF-73: payload 65537 bytes DEBE truncarse y preservar mínimos",
+      "obtenido": "AssertionError: GAP A7 (INC-M04-159-G088): campo 'tipo_modelo' ausente en payload truncado. Keys persistidas: ['payload_truncado', 'payload_truncado_raw']. assert 'tipo_modelo' in {'payload_truncado': True, 'payload_truncado_raw': '{\"tipo_modelo\": \"MODELO_ESPECIES_MEDIANAS\", \"id_version\": \"00000000-0000-0000-0000-000000000000\", \"blob\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "estado": "FALLA"
     },
     {
-      "paso": "NW-Teardown: Rollback transaccional",
-      "esperado": "Status 200 con Rollback exitoso",
-      "obtenido": "OK",
-      "estado": "OK"
+      "paso": "test_tc_m04_272_payload_mucho_sobre",
+      "esperado": "RF-73: payload 204800 bytes DEBE truncarse y preservar mínimos",
+      "obtenido": "AssertionError: GAP A7 (INC-M04-159-G088): campo 'tipo_modelo' ausente en payload truncado. Keys persistidas: ['payload_truncado', 'payload_truncado_raw']. assert 'tipo_modelo' in {'payload_truncado': True, 'payload_truncado_raw': '{\"tipo_modelo\": \"MODELO_ESPECIES_MEDIANAS\", \"id_version\": \"00000000-0000-0000-0000-000000000000\", \"blob\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "estado": "FALLA"
     }
-  ],
-  "pendientes_dev": [
-    "TC-M04-270 (64 KB exacto) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con es_payload_truncado=false y hash SHA-256 de 64 caracteres hex.",
-    "TC-M04-271 (65,537 bytes) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con truncamiento a 64 KB, es_payload_truncado=true y hash sobre payload truncado.",
-    "TC-M04-272 (204,800 bytes) - Endpoint POST /prediccion/auditoria/eventos en desarrollo. Contrato esperado: HTTP 201/200 con truncamiento a 64 KB, es_payload_truncado=true y hash sobre payload truncado."
   ]
 }

@@ -38,3 +38,12 @@
 |---|---|---|---|
 | TC-M04-305 | Endpoint de ingesta de auditoría | POST /prediccion/auditoria/eventos aceptando timestamp_evento opcional | Backend Lead (M04) |
 | TC-M04-305 | Enum TIMESTAMP_CORREGIDO | Extensión del enum de tipo_evento y severidad WARNING | Backend Lead / DBA |
+
+## Bloqueo por diseño (2026-10-25)
+- Feature RF-73 E7 no implementado en M04.
+- registrar() no acepta timestamp_evento ni origen_dato.
+- TIMESTAMP_CORREGIDO no existe en código ni BD (0 eventos).
+- Evidencia: diagnóstico read-only 2026-10-25.
+- Veredicto: BLOQUEADO_POR_DISENO.
+- El test es negativo honesto (documenta el bloqueo).
+

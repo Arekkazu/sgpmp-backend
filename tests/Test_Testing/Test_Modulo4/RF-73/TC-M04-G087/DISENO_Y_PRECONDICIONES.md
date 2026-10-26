@@ -62,3 +62,22 @@
 - Toda la ejecución se realiza bajo Sandbox transaccional inyectando `X-Test-Run-Id` y `X-Sandbox-Secret`.
 - El paso final invoca `DELETE /test-control/runs/{{run_id}}` garantizando reversión total (`Rollback exitoso`).
 - Cumplimiento estricto de la regla CERO DML: ninguna sentencia SQL directa es ejecutada.
+
+---
+
+## 6. Diagnóstico 2026-10-25 (verdad técnica del backend)
+- `EVENTO_INVENTADO` no está en `_PAYLOAD_REQUERIDO`: `_validar_payload` retorna `[]` y el evento SE PERSISTE (brecha a de INC-M04-152).
+- Exclusividad USUARIO/SISTEMA delegada a constraint BD `chk_eam_actor_exclusivo` (brecha c de INC-M04-152). En Python no hay validación previa: un fallo del constraint se propaga como `InfrastructureError` sin generar `AUDITORIA_EVENTO_INVALIDO`.
+- `VERSION_REGISTRADA` sí está en `_PAYLOAD_REQUERIDO` (payload simple: `["tipo_modelo", "id_version"]`).
+
+## 7. Diseño del test (aplicando P1/P2/P3)
+- **P1:** Consolidar evidencia en `INC-M04-152-G086`. Solo INC nuevo si G087 revela comportamiento cualitativamente distinto.
+- **P2 (B):** Exigir rechazo limpio con `AUDITORIA_EVENTO_INVALIDO`. Si el backend solo lanza `InfrastructureError` del constraint, ambos asserts fallan.
+- **P3 (B):** `VERSION_REGISTRADA` como `tipo_evento` en subcasos 2 y 3 para aislar la exclusividad de actor como causa.
+
+## 8. Resultado esperado de la primera corrida
+- 3 tests ejecutados, 3 FALLA.
+- Veredicto global: RECHAZADO.
+- Evidencia consolida `INC-M04-152-G086`.
+- `OBS-M04-G087-01` (severidad no definida en RF-73 para tipo fuera de catálogo): registrar si se confirma durante la corrida.
+
