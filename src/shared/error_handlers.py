@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: un evento Edge con estructura inválida queda en la bitácora (E1) |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: respetar el HTTP 422 declarado por ruta y conservar el 400 predeterminado. |
 """Handlers globales de error de la aplicación FastAPI.
 
 Se registran en main.py con register_error_handlers(app). Cubren tres capas:
@@ -258,7 +259,8 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
         exc: Excepción `RequestValidationError` de FastAPI.
 
     Returns:
-        JSONResponse 400 con los campos que fallaron la validación.
+        JSONResponse con los campos inválidos; 400 por defecto o 422 si la
+        operación declara ese contrato en x-validation-status-code.
     """
     fields = []
     for error in exc.errors():
@@ -271,7 +273,9 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     _auditar_validacion_rechazada_m02(request, fields)
     _auditar_evento_edge_rechazado(request, exc, fields)
 
-    return _respuesta_error(400, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
+    contrato = getattr(request.scope.get("route"), "openapi_extra", None) or {}
+    status_code = 422 if contrato.get("x-validation-status-code") == 422 else 400
+    return _respuesta_error(status_code, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
 
 
 async def db_no_disponible_handler(request: Request, exc: Exception) -> JSONResponse:
