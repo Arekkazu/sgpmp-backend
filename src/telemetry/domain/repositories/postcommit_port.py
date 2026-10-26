@@ -6,6 +6,7 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-61: separa progreso de vinculo y avisos requeridos |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: agrega progreso independiente para auditoria de fuentes |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope de la espera creciente entre reintentos |
 """Progreso durable por responsabilidad, independiente del canal de entrada."""
 from enum import Enum
 from typing import Protocol
@@ -60,7 +61,8 @@ class EtapaPostcommit(str, Enum):
 class UnidadPostcommit(Protocol):
     db: object
 
-    def pendientes(self, etapa: EtapaPostcommit, limite: int, reintento_seg: int) -> list[int]: ...
+    def pendientes(self, etapa: EtapaPostcommit, limite: int, reintento_seg: int,
+                   reintento_max_seg: int | None = None) -> list[int]: ...
     def reclamar(self, etapa: EtapaPostcommit, identificador: int) -> bool: ...
     def registrar(self, etapa: EtapaPostcommit, identificador: int, error: str | None = None, *, detalle: dict | None = None) -> None: ...
     def confirmar(self) -> None: ...

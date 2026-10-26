@@ -1,9 +1,11 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import Optional
 
 from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva, SemaforoCalculator
@@ -93,6 +95,25 @@ class ObtenerDashboardUseCase:
                 unidad.estado_general = SemaforoCalculator.peor_semaforo(estados)
 
         return sensores, resumen, total
+
+    def contar_semaforos(
+        self,
+        id_infraestructura: Optional[int],
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> dict[str, int]:
+        """M3-08: sensores por color (VERDE/AMARILLO/ROJO/GRIS) de todo el alcance.
+
+        La vista trae a lo sumo 50 sensores (FA-07) y el front contaba esa página:
+        "50 sensores" en un área de 200. Mismo semáforo efectivo que la vista.
+        """
+        todos, _ = self.monitoreo_repo.obtener_estados_sensores(
+            id_infraestructura=id_infraestructura,
+            pagina=1,
+            por_pagina=None,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
+        return dict(Counter(self._calcular_semaforo_efectivo(s) for s in todos))
 
     @staticmethod
     def _calcular_semaforo_efectivo(sensor: EstadoSensorActual) -> str:

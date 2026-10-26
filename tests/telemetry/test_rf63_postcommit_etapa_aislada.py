@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | RF-63: un timeout en pendientes de una etapa no detiene a las demás |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: el fake acepta el tope de reintento |
 """RF-63: la consulta de pendientes de una etapa que falla no bloquea al resto."""
 from contextlib import contextmanager
 
@@ -14,7 +15,7 @@ class _Unidad:
     def __init__(self, registro):
         self.registro = registro
 
-    def pendientes(self, etapa, limite, reintento_seg):
+    def pendientes(self, etapa, limite, reintento_seg, reintento_max_seg=None):
         if etapa is EtapaPostcommit.RF53_AUDITORIA:
             raise TimeoutError('canceling statement due to statement timeout')
         return [1]

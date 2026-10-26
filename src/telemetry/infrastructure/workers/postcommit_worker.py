@@ -11,6 +11,7 @@
 # | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -141,7 +142,7 @@ def _vision(db,identificador):
         SqlAlchemyBitacoraAuditoriaIotRepository(db)).execute(identificador)
 
 
-def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60):
+def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60, reintento_max_seg=None):
     parametros = parametros_heartbeat
     acciones = {
             EtapaPostcommit.RF53_LECTURAS: auditar_lectura,
@@ -169,7 +170,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             SqlAlchemyVinculacionLecturaRepository(db), avisos_vinculacion, DestinatariosVinculacionM01Adapter(db)).execute(i)
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
-        acciones, limite=limite, reintento_seg=reintento_seg,
+        acciones, limite=limite, reintento_seg=reintento_seg, reintento_max_seg=reintento_max_seg,
     )
 
 
@@ -177,6 +178,8 @@ async def procesar_postcommit_periodicamente():
     procesador = construir_procesador(
         limite=int(os.getenv('IOT_POSTCOMMIT_LOTE', '50')),
         reintento_seg=int(os.getenv('IOT_POSTCOMMIT_REINTENTO_SEG', '60')),
+        # M3-12: 60 s, 2 min, 4 min… hasta un intento al día por fila que sigue fallando.
+        reintento_max_seg=int(os.getenv('IOT_POSTCOMMIT_REINTENTO_MAX_SEG', '86400')),
     )
     intervalo = max(1, int(os.getenv('IOT_POSTCOMMIT_INTERVALO_SEG', '5')))
     while True:

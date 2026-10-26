@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,7 +26,8 @@ SELECT
     eas.id_sensor,
     eas.id_dispositivo_iot,
     eas.ultimo_valor,
-    eas.ultima_unidad,
+    -- M3-09: el pH se mostraba en "%" porque la unidad venía de la lectura; manda I3P-1.
+    COALESCE(va.unidad, eas.ultima_unidad) AS ultima_unidad,
     eas.ultimo_timestamp_captura,
     eas.estado_semaforo,
     eas.estado_calidad::text        AS estado_calidad,
@@ -155,11 +160,12 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         self,
         id_infraestructura: Optional[int],
         pagina: int,
-        por_pagina: int,
+        por_pagina: Optional[int],
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
-        offset = (pagina - 1) * por_pagina
+        # por_pagina None → LIMIT NULL: todos los sensores (conteo del semáforo, M3-08).
+        offset = (pagina - 1) * (por_pagina or 0)
         params = {
             'id_infraestructura': id_infraestructura,
             'por_pagina': por_pagina,

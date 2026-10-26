@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: version_catalogo es la del catálogo, no por patología |
+# | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ class PatologiaM04:
     id_usuario_creador: Optional[int] = None
     fecha_creacion_m04: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
+    # M4-02 (read-model): "221" no le dice nada al usuario. None con TODAS.
+    nombre_especie: Optional[str] = None
 
     @classmethod
     def crear(

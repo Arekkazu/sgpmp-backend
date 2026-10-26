@@ -3,6 +3,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: GET de integridad protegido y POST compatible |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros de la ficha y verificación con rango obligatorio |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -30,7 +31,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
-from src.shared.rbac import require_permission
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
+from src.shared.rbac import require_permission, tiene_permiso
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.auditoria.consultar_bitacora_iot_use_case import ConsultarBitacoraIotUseCase
@@ -45,6 +47,18 @@ from src.telemetry.infrastructure.schema.bitacora_auditoria_iot_schema import (
 from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/auditoria", tags=["Telemetría IoT - Auditoría RF-63"])
+
+
+def _fincas_de_la_bitacora(db: Session, usuario_actual: UsuarioActual) -> Optional[list[int]]:
+    """M3-14: quien puede verificar la integridad (39, E) audita toda la bitácora.
+
+    Hoy son el Administrador y el Contador, que no tiene finca. El resto (el
+    Ingeniero de campo) veía 2,2 M eventos de todas las fincas; ahora solo los de
+    los equipos de sus fincas. Se decide por permiso, no por id_rol.
+    """
+    if tiene_permiso(db, usuario_actual.id_rol, 39, 5):
+        return None
+    return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
 
 
 @router.get(
@@ -88,6 +102,7 @@ def listar_auditoria(
         id_usuario=id_usuario,
         rf_origen=rf_origen.value if rf_origen else None,
         registro_incompleto=registro_incompleto,
+        ids_fincas_permitidas=_fincas_de_la_bitacora(db, usuario_actual),
     )
     return ListaAuditoriaIotSchema(
         total=total,
@@ -198,4 +213,5 @@ def obtener_evento(
     use_case = ConsultarBitacoraIotUseCase(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
-    return EventoAuditoriaIotSchema.model_validate(use_case.get(id_evento))
+    return EventoAuditoriaIotSchema.model_validate(
+        use_case.get(id_evento, ids_fincas_permitidas=_fincas_de_la_bitacora(db, usuario_actual)))

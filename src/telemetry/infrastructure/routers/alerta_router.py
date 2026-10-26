@@ -6,6 +6,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-08 RF-57: filtro fecha_resolucion_desde |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -134,6 +135,7 @@ def listar_alertas(
     tipo_alerta: Optional[str] = Query(default=None),
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
+    id_infraestructura: Optional[int] = Query(default=None, description="Área de la alerta (T-18)."),
     origen_evento: Optional[str] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
@@ -165,6 +167,7 @@ def listar_alertas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
         fecha_resolucion_desde=fecha_resolucion_desde,
+        id_infraestructura=id_infraestructura,
     )
     return ListaAlertasSchema(
         total=total,

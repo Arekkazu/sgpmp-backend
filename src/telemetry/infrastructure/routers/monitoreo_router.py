@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -88,15 +89,14 @@ def obtener_dashboard(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
     )
+    ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
         # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
         ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
-        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
-            usuario_actual.id_usuario, usuario_actual.id_rol
-        ),
+        ids_fincas_permitidas=ids_fincas,
     )
     return DashboardResponseSchema(
         total=total,
@@ -104,6 +104,7 @@ def obtener_dashboard(
         por_pagina=por_pagina,
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
+        conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 
@@ -129,15 +130,14 @@ def obtener_dashboard_por_unidad(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
     )
+    ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
         # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
         ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
-        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
-            usuario_actual.id_usuario, usuario_actual.id_rol
-        ),
+        ids_fincas_permitidas=ids_fincas,
     )
     return DashboardResponseSchema(
         total=total,
@@ -145,6 +145,7 @@ def obtener_dashboard_por_unidad(
         por_pagina=por_pagina,
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
+        conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 

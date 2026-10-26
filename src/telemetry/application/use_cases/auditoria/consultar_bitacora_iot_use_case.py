@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-136/137 RF-63: filtros id_usuario, rf_origen y registro_incompleto |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
 from __future__ import annotations
 
 from datetime import datetime
@@ -17,8 +18,9 @@ class ConsultarBitacoraIotUseCase:
     def __init__(self, auditoria_repo: BitacoraAuditoriaIotRepository) -> None:
         self.auditoria_repo = auditoria_repo
 
-    def get(self, id_evento: UUID) -> EventoAuditoriaIot:
-        evento = self.auditoria_repo.obtener(id_evento)
+    def get(self, id_evento: UUID, *, ids_fincas_permitidas: Optional[list[int]] = None) -> EventoAuditoriaIot:
+        # Fuera de las fincas del usuario el evento "no existe" (404), igual que en Alertas.
+        evento = self.auditoria_repo.obtener(id_evento, ids_fincas_permitidas=ids_fincas_permitidas)
         if evento is None:
             raise NotFoundError(code='EVENTO_NO_ENCONTRADO', message='Evento de auditoría no encontrado.')
         return evento
@@ -37,8 +39,11 @@ class ConsultarBitacoraIotUseCase:
         id_usuario: Optional[int] = None,
         rf_origen: Optional[str] = None,
         registro_incompleto: Optional[bool] = None,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
         return self.auditoria_repo.listar(
+            ids_fincas_permitidas=ids_fincas_permitidas,
             id_usuario=id_usuario,
             rf_origen=rf_origen,
             registro_incompleto=registro_incompleto,
