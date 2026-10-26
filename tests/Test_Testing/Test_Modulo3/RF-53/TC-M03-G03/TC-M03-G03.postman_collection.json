@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G03 Autenticación del dispositivo emisor",
-    "description": "Automatiza TC-M03-008/009/010 (RF-53, CU01, flujos alternos E1/E2, OWASP API2). Contra POST /iot/telemetria (sin JWT; la identidad es device_id + sensor_id + access_key, que el backend compara con el serial del dispositivo en M09): dispositivo y sensor inexistentes y sensor ajeno (008); dispositivo desactivado por RF-21 y dispositivo EN_MANTENIMIENTO por RF-60 (009); sin access_key, access_key alterada, credencial MQTT revocada (RF-23) y access_key de otro dispositivo (010). Se espera 401 ERROR_AUTENTICACION y ninguna persistencia (verificado en el historial RF-59 del área, donde solo debe quedar la lectura de control). Sin access_key se acepta 400 VAL_ENTRADA porque la validación de contrato ocurre antes de la autenticación. La bitácora de ingesta y el 'contador de eventos de seguridad' no tienen endpoint de consulta, así que no se verifican desde Newman. La colección crea sus propios datos: finca, especie, galpón y cuatro dispositivos con su sensor.",
+    "description": "Automatiza TC-M03-008/009/010 (RF-53, CU01, flujos alternos E1/E2, OWASP API2). Contrato DEV-06: POST /iot/telemetria lo llama el broker con su token de servicio (Authorization: Bearer, se pasa con newman --env-var broker_token=..., nunca versionado) y el serial del cuerpo es la identidad del nodo, que debe corresponder al device_id (lo que la ficha llama access_key). Pasos: dispositivo y sensor inexistentes y sensor ajeno (008); dispositivo desactivado por RF-21 y EN_MANTENIMIENTO por RF-60 (009); sin token, token alterado, sin serial, serial alterado, serial de otro dispositivo y credencial MQTT revocada (RF-23) (010). Se espera 401 (TOKEN_SERVICIO_INVALIDO para el token, ERROR_AUTENTICACION para la identidad; 400 VAL_ENTRADA sin serial) y ninguna persistencia (historial RF-59 del área: solo la lectura de control). La bitácora de ingesta y el 'contador de eventos de seguridad' no tienen endpoint de consulta, así que no se verifican desde Newman. La colección crea sus propios datos: finca, especie, galpón y cuatro dispositivos con su sensor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -66,7 +66,7 @@
                   "pm.collectionVariables.set('sufijo', sufijo);",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // el historial rechaza fecha_fin futura (FECHA_FIN_FUTURA)"
                 ]
               }
             },
@@ -221,7 +221,7 @@
                 "exec": [
                   "pm.test('Dispositivo A creado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_a', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('key_a', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_a', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -270,7 +270,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Sensor A creado (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set('sensor_a', pm.response.json().id_sensores);"
+                  "pm.collectionVariables.set('sensor_a', pm.response.json().id_sensores);",
+                  "if (!pm.collectionVariables.get('sensor_a')) pm.collectionVariables.set('sensor_a', 999990);"
                 ]
               }
             }
@@ -321,7 +322,7 @@
                 "exec": [
                   "pm.test('Dispositivo B creado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_b', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('key_b', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_b', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -370,7 +371,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Sensor B creado (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set('sensor_b', pm.response.json().id_sensores);"
+                  "pm.collectionVariables.set('sensor_b', pm.response.json().id_sensores);",
+                  "if (!pm.collectionVariables.get('sensor_b')) pm.collectionVariables.set('sensor_b', 999991);"
                 ]
               }
             }
@@ -421,7 +423,7 @@
                 "exec": [
                   "pm.test('Dispositivo C creado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_c', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('key_c', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_c', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -470,7 +472,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Sensor C creado (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set('sensor_c', pm.response.json().id_sensores);"
+                  "pm.collectionVariables.set('sensor_c', pm.response.json().id_sensores);",
+                  "if (!pm.collectionVariables.get('sensor_c')) pm.collectionVariables.set('sensor_c', 999992);"
                 ]
               }
             }
@@ -521,7 +524,7 @@
                 "exec": [
                   "pm.test('Dispositivo G creado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_g', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('key_g', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_g', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -570,7 +573,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Sensor G creado (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set('sensor_g', pm.response.json().id_sensores);"
+                  "pm.collectionVariables.set('sensor_g', pm.response.json().id_sensores);",
+                  "if (!pm.collectionVariables.get('sensor_g')) pm.collectionVariables.set('sensor_g', 999993);"
                 ]
               }
             }
@@ -633,7 +637,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Control: dispositivo ACTIVO con access_key correcta -> 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Control: dispositivo ACTIVO con su serial y token del broker -> 201', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('id_tel_control', pm.response.json().id_telemetria);"
                 ]
               }
@@ -645,6 +649,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -659,7 +667,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_a}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -705,6 +713,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -719,7 +731,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": 999999,\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"CUALQUIER-CLAVE-{{sufijo}}\"\n}",
+              "raw": "{\n  \"device_id\": 999999,\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"CUALQUIER-SERIAL-{{sufijo}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -760,6 +772,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -774,7 +790,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": 999999,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_a}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": 999999,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -785,7 +801,7 @@
           "response": []
         },
         {
-          "name": "TC-M03-008c - sensor de otro dispositivo (sensor C) con device y key de A",
+          "name": "TC-M03-008c - sensor de otro dispositivo (sensor C) con device y serial de A",
           "event": [
             {
               "listen": "prerequest",
@@ -815,6 +831,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -829,7 +849,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_a}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -916,6 +936,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -930,7 +954,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_b}},\n  \"sensor_id\": {{sensor_b}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_b}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_b}},\n  \"sensor_id\": {{sensor_b}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_b}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -970,12 +994,8 @@
                 "value": "application/json"
               },
               {
-                "key": "X-Device-Id",
-                "value": "{{device_c}}"
-              },
-              {
-                "key": "X-Device-API-Key",
-                "value": "{{key_c}}"
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -990,7 +1010,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"nivel_bateria_pct\": 90,\n  \"fecha_registro\": \"{{ts_captura}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_c}},\n  \"serial\": \"{{serial_c}}\",\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"nivel_bateria_pct\": 90,\n  \"fecha_registro\": \"{{ts_captura}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1081,6 +1101,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1095,7 +1119,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_c}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_c}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_c}},\n  \"sensor_id\": {{sensor_c}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_c}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1108,10 +1132,10 @@
       ]
     },
     {
-      "name": "5. TC-M03-010 access_key ausente, alterada, revocada o ajena",
+      "name": "5. TC-M03-010 Credencial ausente, alterada, revocada o ajena",
       "item": [
         {
-          "name": "TC-M03-010a - Payload válido de A sin access_key",
+          "name": "TC-M03-010a - Payload válido de A sin token del broker",
           "event": [
             {
               "listen": "prerequest",
@@ -1127,9 +1151,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M03-010a: rechazado (sin access_key) - 401, o 400 si lo detiene la validación de contrato', function () { pm.expect(pm.response.code).to.be.oneOf([400, 401]); });",
+                  "pm.test('TC-M03-010a: rechazado con 401 (sin credencial)', function () { pm.response.to.have.status(401); });",
                   "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-010a: código de rechazo ERROR_AUTENTICACION o VAL_ENTRADA', function () { pm.expect(j.error_code).to.be.oneOf(['ERROR_AUTENTICACION', 'VAL_ENTRADA']); });",
+                  "pm.test('TC-M03-010a: código TOKEN_SERVICIO_INVALIDO', function () { pm.expect(j.error_code).to.eql('TOKEN_SERVICIO_INVALIDO'); });",
                   "pm.test('TC-M03-010a: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
                 ]
               }
@@ -1155,7 +1179,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\"\n}",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1166,7 +1190,7 @@
           "response": []
         },
         {
-          "name": "TC-M03-010b - Payload válido de A con access_key alterada",
+          "name": "TC-M03-010b - Payload válido de A con token del broker alterado",
           "event": [
             {
               "listen": "prerequest",
@@ -1182,9 +1206,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M03-010b: rechazado con 401 (access_key alterada)', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M03-010b: rechazado con 401 (credencial alterada)', function () { pm.response.to.have.status(401); });",
                   "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-010b: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
+                  "pm.test('TC-M03-010b: código TOKEN_SERVICIO_INVALIDO', function () { pm.expect(j.error_code).to.eql('TOKEN_SERVICIO_INVALIDO'); });",
                   "pm.test('TC-M03-010b: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
                 ]
               }
@@ -1196,6 +1220,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}X"
               }
             ],
             "url": {
@@ -1210,7 +1238,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_a}}X\"\n}",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1221,15 +1249,191 @@
           "response": []
         },
         {
-          "name": "TC-M03-010c prep - Emitir credencial MQTT del Gateway G (RF-23)",
+          "name": "TC-M03-010c - Payload válido de A sin serial (identidad ausente)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-010c: rechazado con 400 (sin serial)', function () { pm.response.to.have.status(400); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-010c: código VAL_ENTRADA señalando serial', function () { pm.expect(j.error_code).to.eql('VAL_ENTRADA'); pm.expect((j.fields || []).map(f => f.field)).to.include('serial'); });",
+                  "pm.test('TC-M03-010c: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-010d - Payload válido de A con serial alterado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-010d: rechazado con 401 (serial alterado)', function () { pm.response.to.have.status(401); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-010d: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
+                  "pm.test('TC-M03-010d: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_a}}X\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-010e - Inyectar datos en A usando el serial de otro dispositivo (C)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M03-010e: rechazado con 401 (identidad ajena)', function () { pm.response.to.have.status(401); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "pm.test('TC-M03-010e: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
+                  "pm.test('TC-M03-010e: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/telemetria",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_c}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-010f prep - Emitir credencial MQTT del Gateway G (RF-23)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Credencial MQTT emitida (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set('mqtt_password_g', pm.response.json().password);"
+                  "pm.test('Credencial MQTT emitida (201)', function () { pm.response.to.have.status(201); });"
                 ]
               }
             }
@@ -1262,7 +1466,7 @@
           "response": []
         },
         {
-          "name": "TC-M03-010c prep - Revocar credencial MQTT del Gateway G (RF-23)",
+          "name": "TC-M03-010f prep - Revocar credencial MQTT del Gateway G (RF-23)",
           "event": [
             {
               "listen": "test",
@@ -1302,7 +1506,7 @@
           "response": []
         },
         {
-          "name": "TC-M03-010c - Lectura de G con su access_key tras revocar la credencial",
+          "name": "TC-M03-010f - Lectura de G tras revocar su credencial (credencial revocada)",
           "event": [
             {
               "listen": "prerequest",
@@ -1318,10 +1522,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M03-010c: rechazado con 401 (credencial revocada)', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M03-010f: rechazado con 401 (credencial revocada)', function () { pm.response.to.have.status(401); });",
                   "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-010c: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
-                  "pm.test('TC-M03-010c: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
+                  "pm.test('TC-M03-010f: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
+                  "pm.test('TC-M03-010f: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
                 ]
               }
             }
@@ -1332,6 +1536,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1346,117 +1554,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_g}},\n  \"sensor_id\": {{sensor_g}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_g}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "TC-M03-010c bis - Lectura de G usando la clave MQTT revocada como access_key",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('TC-M03-010c bis: rechazado con 401 (clave revocada)', function () { pm.response.to.have.status(401); });",
-                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-010c bis: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
-                  "pm.test('TC-M03-010c bis: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/telemetria",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "telemetria"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_g}},\n  \"sensor_id\": {{sensor_g}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{mqtt_password_g}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "TC-M03-010d - Inyectar datos en A usando la access_key de otro dispositivo (C)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 2000).toISOString());"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('TC-M03-010d: rechazado con 401 (credencial ajena)', function () { pm.response.to.have.status(401); });",
-                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-010d: código ERROR_AUTENTICACION', function () { pm.expect(j.error_code).to.eql('ERROR_AUTENTICACION'); });",
-                  "pm.test('TC-M03-010d: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/telemetria",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "telemetria"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_a}},\n  \"sensor_id\": {{sensor_a}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{key_c}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_g}},\n  \"sensor_id\": {{sensor_g}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_g}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1577,7 +1675,7 @@
       "value": ""
     },
     {
-      "key": "mqtt_password_g",
+      "key": "broker_token",
       "value": ""
     },
     {
@@ -1589,7 +1687,7 @@
       "value": ""
     },
     {
-      "key": "key_a",
+      "key": "serial_a",
       "value": ""
     },
     {
@@ -1601,7 +1699,7 @@
       "value": ""
     },
     {
-      "key": "key_b",
+      "key": "serial_b",
       "value": ""
     },
     {
@@ -1613,7 +1711,7 @@
       "value": ""
     },
     {
-      "key": "key_c",
+      "key": "serial_c",
       "value": ""
     },
     {
@@ -1625,7 +1723,7 @@
       "value": ""
     },
     {
-      "key": "key_g",
+      "key": "serial_g",
       "value": ""
     }
   ]

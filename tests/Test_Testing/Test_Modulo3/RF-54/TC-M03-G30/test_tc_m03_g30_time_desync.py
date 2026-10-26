@@ -22,7 +22,8 @@ Interno del nodo (SKIP): la deteccion del salto/desfase y la resincronizacion au
 Nota del codigo: la ingesta nunca asigna reloj_desincronizado (queda en false) y el contrato no tiene un campo
 para que el nodo lo informe; el heartbeat guarda reloj_sincronizado sin generar alerta.
 
-Requisitos: acceso de red a TEST (API y Postgres 5448).
+Requisitos: acceso de red a TEST (API y Postgres 5448) y BROKER_TOKEN (token de servicio del broker de TEST,
+DEV-06; sin el /iot/* responde 401).
 Variables opcionales: BASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
 
 Como correrlo (desde la raiz del repo):
@@ -43,6 +44,11 @@ import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 DB = dict(
     host=os.getenv("DB_HOST", "158.69.200.27"), port=os.getenv("DB_PORT", "5448"),
     user=os.getenv("DB_USER", "member_qa"), password=os.getenv("DB_PASSWORD", "qaSGP2026"),
@@ -64,21 +70,22 @@ class _NodoEdgeSimulado:
         self.buffer.append({
             "device_id": self.device_id, "sensor_id": self.sensor_id, "tipo_variable": "TEMPERATURA_AMBIENTAL",
             "valor": valor, "unidad": "°C", "timestamp_captura": (self.ahora() - hace).isoformat(),
-            "origen": "BUFFER_LOCAL", "access_key": self.access_key,
+            "origen": "BUFFER_LOCAL", "serial": self.access_key,
             "reloj_desincronizado": self.desfase != timedelta(0),
         })
 
     def heartbeat(self) -> requests.Response:
         return requests.post(
             f"{BASE_URL}/iot/heartbeat",
-            json={"tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if self.buffer else "I",
+            json={
+                "device_id": self.device_id, "serial": self.access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A" if self.buffer else "I",
                   "datos_pendientes_buffer": len(self.buffer), "fecha_registro": self.ahora().isoformat(),
                   "reloj_sincronizado": self.desfase == timedelta(0)},
-            headers={"X-Device-Id": str(self.device_id), "X-Device-API-Key": self.access_key}, timeout=TIMEOUT,
+            headers=_HEADERS_BROKER, timeout=TIMEOUT,
         )
 
     def sincronizar(self) -> requests.Response:
-        return requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": self.buffer}, timeout=TIMEOUT)
+        return requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": self.buffer}, headers=_HEADERS_BROKER, timeout=TIMEOUT)
 
 
 # --------------------------------------------------------------------------- datos propios en TEST

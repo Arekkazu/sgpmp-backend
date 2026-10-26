@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-54 - TC-M03-G27 Estado del buffer expuesto por API (TC-M03-054)",
-    "description": "Parte Postman de TC-M03-G27: TC-M03-054. Un dispositivo propio informa por heartbeat 37 datos pendientes y se consulta el estado de su buffer. Se prueban la ruta de la ficha (GET /dispositivos/{id}/buffer) y la del módulo de telemetría (GET /iot/dispositivos/{id}/buffer); la respuesta debe incluir capacidad_total, capacidad_utilizada, porcentaje_ocupacion, datos_pendientes, ultimo_timestamp_pendiente, estado_buffer (NORMAL/WARNING/CRITICO) y politica_buffer_activa. Como referencia se consulta GET /iot/dispositivos/{id}/estado (RF-60). Nota: el OpenAPI de TEST no tiene ningún endpoint de estado del buffer y el heartbeat solo informa datos_pendientes_buffer (sin capacidad). Los umbrales de ocupación (TC-M03-045) están en test_tc_m03_045_umbrales_buffer.py.",
+    "description": "Parte Postman de TC-M03-G27: TC-M03-054. Un dispositivo propio informa por heartbeat 37 datos pendientes y se consulta el estado de su buffer. Se prueban la ruta de la ficha (GET /dispositivos/{id}/buffer) y la del módulo de telemetría (GET /iot/dispositivos/{id}/buffer); la respuesta debe incluir capacidad_total, capacidad_utilizada, porcentaje_ocupacion, datos_pendientes, ultimo_timestamp_pendiente, estado_buffer (NORMAL/WARNING/CRITICO) y politica_buffer_activa. Como referencia se consulta GET /iot/dispositivos/{id}/estado (RF-60). Nota: el OpenAPI de TEST no tiene ningún endpoint de estado del buffer y el heartbeat solo informa datos_pendientes_buffer (sin capacidad). Los umbrales de ocupación (TC-M03-045) están en test_tc_m03_045_umbrales_buffer.py. Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -287,12 +287,8 @@
                 "value": "application/json"
               },
               {
-                "key": "X-Device-Id",
-                "value": "{{device_id}}"
-              },
-              {
-                "key": "X-Device-API-Key",
-                "value": "{{access_key}}"
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -307,7 +303,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"estado_local_buffer\": \"A\",\n  \"datos_pendientes_buffer\": 37,\n  \"fecha_registro\": \"{{ahora}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"serial\": \"{{access_key}}\",\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"estado_local_buffer\": \"A\",\n  \"datos_pendientes_buffer\": 37,\n  \"fecha_registro\": \"{{ahora}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -502,6 +498,10 @@
     },
     {
       "key": "access_key",
+      "value": ""
+    },
+    {
+      "key": "broker_token",
       "value": ""
     }
   ]

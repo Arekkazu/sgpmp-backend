@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G01 Ingesta válida de variables por categoría (ambiental, biométrica, hídrica)",
-    "description": "Automatiza TC-M03-001/002/003 (RF-53, CU01, camino feliz): POST /iot/telemetria con una lectura válida de cada categoría (TEMPERATURA_AMBIENTAL 25.0 °C, FRECUENCIA_CARDIACA 80 bpm, PH_AGUA 7.2) y verificación de la persistencia en el historial (RF-59) y de la vinculación al activo biológico (RF-61). La colección crea sus propios datos: finca, especies, tres áreas (Galpón, Corral, Estanque), un activo individual en el corral y, por categoría, dispositivo + sensor ACTIVOS asociados al área (RF-21/22) y calibrados (RF-24); el sensor biométrico además se vincula al activo (RF-49).",
+    "description": "Automatiza TC-M03-001/002/003 (RF-53, CU01, camino feliz): POST /iot/telemetria con una lectura válida de cada categoría (TEMPERATURA_AMBIENTAL 25.0 °C, FRECUENCIA_CARDIACA 80 bpm, PH_AGUA 7.2) y verificación de la persistencia en el historial (RF-59) y de la vinculación al activo biológico (RF-61). La colección crea sus propios datos: finca, especies, tres áreas (Galpón, Corral, Estanque), un activo individual en el corral y, por categoría, dispositivo + sensor ACTIVOS asociados al área (RF-21/22) y calibrados (RF-24); el sensor biométrico además se vincula al activo (RF-49). Desde DEV-06 /iot/telemetria exige el token de servicio del broker (Authorization: Bearer) y el serial del nodo viaja en el cuerpo como identidad: el token NO se versiona, se pasa al ejecutar con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -68,7 +68,7 @@
                   "const d = new Date();",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(d.getTime() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(d.getTime() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // el historial rechaza fecha_fin futura (FECHA_FIN_FUTURA)"
                 ]
               }
             },
@@ -414,7 +414,7 @@
                 "exec": [
                   "pm.test('Dispositivo ambiental creado (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_ambiental', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('access_key_ambiental', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_ambiental', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -622,7 +622,7 @@
                 "exec": [
                   "pm.test('Dispositivo biométrico creado (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_biometrica', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('access_key_biometrica', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_biometrica', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -830,7 +830,7 @@
                 "exec": [
                   "pm.test('Dispositivo hídrico creado (201)', function () { pm.response.to.have.status(201); });",
                   "pm.collectionVariables.set('device_hidrica', pm.response.json().id_dispositivo_iot);",
-                  "pm.collectionVariables.set('access_key_hidrica', pm.response.json().serial);",
+                  "pm.collectionVariables.set('serial_hidrica', pm.response.json().serial);",
                   "pm.test('Dispositivo ACTIVO', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
                 ]
               }
@@ -1123,6 +1123,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1137,7 +1141,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_ambiental}},\n  \"sensor_id\": {{sensor_ambiental}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"unidad\": \"°C\",\n  \"valor\": 25.0,\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key_ambiental}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_ambiental}},\n  \"sensor_id\": {{sensor_ambiental}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"unidad\": \"°C\",\n  \"valor\": 25.0,\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_ambiental}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1186,6 +1190,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1200,7 +1208,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_biometrica}},\n  \"sensor_id\": {{sensor_biometrica}},\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"unidad\": \"bpm\",\n  \"valor\": 80,\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key_biometrica}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_biometrica}},\n  \"sensor_id\": {{sensor_biometrica}},\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"unidad\": \"bpm\",\n  \"valor\": 80,\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_biometrica}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1249,6 +1257,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1263,7 +1275,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_hidrica}},\n  \"sensor_id\": {{sensor_hidrica}},\n  \"tipo_variable\": \"PH_AGUA\",\n  \"categoria_variable\": \"HIDRICA\",\n  \"unidad\": \"pH\",\n  \"valor\": 7.2,\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key_hidrica}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_hidrica}},\n  \"sensor_id\": {{sensor_hidrica}},\n  \"tipo_variable\": \"PH_AGUA\",\n  \"categoria_variable\": \"HIDRICA\",\n  \"unidad\": \"pH\",\n  \"valor\": 7.2,\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_hidrica}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"timestamp_envio\": \"{{ts_envio}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1610,6 +1622,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1624,7 +1640,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_ambiental}},\n  \"sensor_id\": {{sensor_ambiental}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"unidad\": \"C\",\n  \"valor\": 25.0,\n  \"origen\": \"TIEMPO_REAL\",\n  \"access_key\": \"{{access_key_ambiental}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_ambiental}},\n  \"sensor_id\": {{sensor_ambiental}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"unidad\": \"C\",\n  \"valor\": 25.0,\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{serial_ambiental}}\",\n  \"timestamp_captura\": \"{{ts_captura}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1707,7 +1723,7 @@
       "value": ""
     },
     {
-      "key": "access_key_ambiental",
+      "key": "serial_ambiental",
       "value": ""
     },
     {
@@ -1727,7 +1743,7 @@
       "value": ""
     },
     {
-      "key": "access_key_biometrica",
+      "key": "serial_biometrica",
       "value": ""
     },
     {
@@ -1747,7 +1763,7 @@
       "value": ""
     },
     {
-      "key": "access_key_hidrica",
+      "key": "serial_hidrica",
       "value": ""
     },
     {
@@ -1756,6 +1772,10 @@
     },
     {
       "key": "ts_hidrica",
+      "value": ""
+    },
+    {
+      "key": "broker_token",
       "value": ""
     }
   ]

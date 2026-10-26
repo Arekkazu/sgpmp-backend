@@ -18,7 +18,8 @@ Nota: el heartbeat (POST /iot/heartbeat) solo informa datos_pendientes_buffer, s
 y el OpenAPI de TEST no tiene endpoint de estado del buffer; con eso el backend no puede calcular el
 porcentaje. Si el contrato del heartbeat agrega la capacidad, ajustar _heartbeat().
 
-Requisitos: acceso de red a TEST. Variables opcionales: BASE_URL, RUTA_ESTADO_BUFFER.
+Requisitos: acceso de red a TEST y BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el
+/iot/* responde 401). Variables opcionales: BASE_URL, RUTA_ESTADO_BUFFER.
 
 Como correrlo (desde la raiz del repo):
 
@@ -38,6 +39,11 @@ import requests
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 RUTA_ESTADO_BUFFER = os.getenv("RUTA_ESTADO_BUFFER", "/dispositivos/{id}/buffer")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 CAPACIDAD = 100
 ESCALONES = [(79, "NORMAL", False), (80, "WARNING", True), (95, "CRITICO", True)]
 
@@ -64,9 +70,10 @@ def _crear(s, ruta, cuerpo, campo):
 def _heartbeat(device_id: int, access_key: str, pendientes: int) -> requests.Response:
     return requests.post(
         f"{BASE_URL}/iot/heartbeat",
-        json={"tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A", "datos_pendientes_buffer": pendientes,
+        json={
+                "device_id": device_id, "serial": access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A", "datos_pendientes_buffer": pendientes,
               "capacidad_buffer": CAPACIDAD, "fecha_registro": datetime.now(timezone.utc).isoformat()},
-        headers={"X-Device-Id": str(device_id), "X-Device-API-Key": access_key}, timeout=TIMEOUT,
+        headers=_HEADERS_BROKER, timeout=TIMEOUT,
     )
 
 

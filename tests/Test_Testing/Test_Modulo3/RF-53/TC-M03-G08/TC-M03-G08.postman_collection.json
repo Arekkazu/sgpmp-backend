@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G08 Sincronización diferida de datos vía BUFFER_LOCAL (RF-54)",
-    "description": "Automatiza TC-M03-021/032/033 (RF-53 fase 3.1, interfaz con RF-54). 021: el mismo datagrama BUFFER_LOCAL reenviado 10 veces a POST /iot/telemetria (bucle con setNextRequest): solo el primero crea registro, los demás se aceptan como idempotentes (200 con el mismo id) o se rechazan como ERROR_DUPLICADO (409); un único registro en el historial RF-59 y ninguna alerta RF-57. 032: POST /iot/telemetria/batch con 10 lecturas en desorden, una de ellas con la clave de una lectura ya existente: se verifica el reordenamiento cronológico (id_telemetria crece con timestamp_captura), 9 aceptados + 1 duplicado y que el existente no se sobrescribe. 033: BUFFER_LOCAL con 71h59m (201), 72h00m (límite: se registra el resultado y se acepta 201 o 400 ERROR_TIEMPO hasta que Desarrollo lo defina) y 72h01m (400 ERROR_TIEMPO). Las antigüedades se calculan contra la hora del servidor (header Date). Nota: el código usa 'ts < ahora - 72h' (límite inclusivo), pero la latencia de red hace que un dato de 72h exactas llegue ya vencido. La bitácora de reintentos no tiene endpoint (verificación en BD). Datos propios: finca, especie, galpón, dispositivo y un sensor por sub-caso.",
+    "description": "Automatiza TC-M03-021/032/033 (RF-53 fase 3.1, interfaz con RF-54). 021: el mismo datagrama BUFFER_LOCAL reenviado 10 veces a POST /iot/telemetria (bucle con setNextRequest): solo el primero crea registro, los demás se aceptan como idempotentes (200 con el mismo id) o se rechazan como ERROR_DUPLICADO (409); un único registro en el historial RF-59 y ninguna alerta RF-57. 032: POST /iot/telemetria/batch con 10 lecturas en desorden, una de ellas con la clave de una lectura ya existente: se verifica el reordenamiento cronológico (id_telemetria crece con timestamp_captura), 9 aceptados + 1 duplicado y que el existente no se sobrescribe. 033: BUFFER_LOCAL con 71h59m (201), 72h00m (límite: se registra el resultado y se acepta 201 o 400 ERROR_TIEMPO hasta que Desarrollo lo defina) y 72h01m (400 ERROR_TIEMPO). Las antigüedades se calculan contra la hora del servidor (header Date). Nota: el código usa 'ts < ahora - 72h' (límite inclusivo), pero la latencia de red hace que un dato de 72h exactas llegue ya vencido. La bitácora de reintentos no tiene endpoint (verificación en BD). Datos propios: finca, especie, galpón, dispositivo y un sensor por sub-caso. Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -67,7 +67,7 @@
                   "pm.collectionVariables.set('reenvio_n', '0');  // reinicia el bucle de TC-M03-021 en cada corrida",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 4 * 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // fecha_fin futura -> 400 FECHA_FIN_FUTURA"
                 ]
               }
             },
@@ -501,6 +501,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -515,7 +519,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s021}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_021}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s021}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_021}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -670,7 +674,7 @@
                   "  unidad: '°C',",
                   "  timestamp_captura: ts(m),",
                   "  origen: 'BUFFER_LOCAL',",
-                  "  access_key: pm.collectionVariables.get('access_key')",
+                  "  serial: pm.collectionVariables.get('access_key')",
                   "}));",
                   "pm.collectionVariables.set('lote_032', JSON.stringify({ registros: registros }));"
                 ]
@@ -693,6 +697,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -707,7 +715,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s032}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 99.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_032_existente}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s032}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 99.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_032_existente}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -747,6 +755,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -878,6 +890,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -892,7 +908,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033a}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033a}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -938,6 +954,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -952,7 +972,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033b}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033b}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -994,6 +1014,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -1008,7 +1032,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033c}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{s033}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_033c}}\",\n  \"origen\": \"BUFFER_LOCAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
