@@ -1,16 +1,21 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
-# | 2026-10-26 | Leandro | INC-M03-123-G167 RF-62/RF-22: verificar alta de sensores, rollback y continuidad del flujo con PostgreSQL real. |
+# | 2026-10-26 | Leandro | INC-M03-123-G167 RF-22/RF-53/RF-62: verificar alta, rollback, snapshot historico, drift y migracion con PostgreSQL real. |
 """Reproducción de #626 con JWT/RBAC y las protecciones de TEST_DATABASE_URL.
 
 Los padres se preparan como datos del fixture; el sensor se registra por HTTP.
 No se reemplazan entidades, repositorios ni casos de uso del alta.
 """
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+import importlib.util
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 from sqlalchemy import event, text
 
 from src.configuration.application.use_cases.configuracion_global.configurar_parametros_mlops_use_case import ConfigurarParametrosMLOpsUseCase
@@ -155,10 +160,12 @@ def test_ingeniero_asignado_crea_y_ajeno_no_accede(
     assert asignado.json()['es_activo'] is True
 
 
-@pytest.mark.parametrize('offset,hay_drift', [(0, False), (2, True)])
+@pytest.mark.parametrize('ganancia,offset,hay_drift', [
+    (1, 0, False), (1, 2, True), (1.1, 0.125, True), (None, None, False),
+])
 def test_sensor_nuevo_continua_por_asociacion_calibracion_ingesta_y_calidad(
     client, db_session, escenario_sensor, crear_usuario_db, crear_auth_headers,
-    headers_broker, offset, hay_drift, monkeypatch,
+    headers_broker, ganancia, offset, hay_drift, monkeypatch,
 ):
     e = escenario_sensor
     admin = crear_usuario_db(id_rol=1)
@@ -196,13 +203,15 @@ def test_sensor_nuevo_continua_por_asociacion_calibracion_ingesta_y_calidad(
             'punto_instalacion': 'Punto Sensor',
         }, headers=headers)
     assert asociacion.status_code == 201, asociacion.text
-    calibracion = client.post(ruta_sensor + '/calibrar', json={
-        'id_dispositivo_iot': e['dispositivo'], 'id_infraestructura': e['area'],
-        'valor_referencia': 22, 'ganancia': 1, 'offset': offset,
-        'fecha_calibracion': (captura - timedelta(hours=2)).isoformat(),
-        'modo_calibracion': 'SENSOR',
-    }, headers=headers)
-    assert calibracion.status_code == 201, calibracion.text
+    snapshot = None if ganancia is None else {'ganancia': ganancia, 'offset': offset}
+    if snapshot is not None:
+        calibracion = client.post(ruta_sensor + '/calibrar', json={
+            'id_dispositivo_iot': e['dispositivo'], 'id_infraestructura': e['area'],
+            'valor_referencia': 22, **snapshot,
+            'fecha_calibracion': (captura - timedelta(hours=2)).isoformat(),
+            'modo_calibracion': 'SENSOR',
+        }, headers=headers)
+        assert calibracion.status_code == 201, calibracion.text
 
     # La ingesta usa la identidad de servicio existente y el mismo rol de API.
     # Comprobar sus precondiciones sin conceder acceso global ni usar BYPASSRLS.
@@ -228,30 +237,97 @@ def test_sensor_nuevo_continua_por_asociacion_calibracion_ingesta_y_calidad(
             'unidad': '°C', 'timestamp_captura': (captura - timedelta(minutes=20-indice)).isoformat(),
         }, headers=headers_broker)
         assert ingesta.status_code == 201, ingesta.text
-        assert ingesta.json()['estado_calidad'] == 'LECTURA_VALIDA'
+        assert ingesta.json()['estado_calidad'] == (
+            'LECTURA_VALIDA' if snapshot else 'ERROR_CALIBRACION'
+        )
     id_lectura = ingesta.json()['id_telemetria']
     antes = db_session.execute(text(
         'SELECT to_jsonb(t) FROM modulo3.telemetrias t WHERE id_telemetria=:id'
     ), {'id': id_lectura}).scalar_one()
-    assert antes['calibrado'] is True
-    assert antes['valor_ajustado'] == 22 + offset
+    assert antes['calibrado'] is (snapshot is not None)
+    ajustado = None if snapshot is None else Decimal(22) * Decimal(str(ganancia)) + Decimal(str(offset))
+    assert (None if antes['valor_ajustado'] is None else Decimal(str(antes['valor_ajustado']))) == ajustado
+    assert antes['parametros_calibracion'] == snapshot, (
+        'RF-53 debe conservar los parametros realmente aplicados en el INSERT.'
+    )
+
+    # Cambiar la calibración ANTES de evaluar no puede reconstruir ni reemplazar
+    # el snapshot de una lectura previa, tampoco si originalmente no la tenía.
+    nueva_calibracion = client.post(ruta_sensor + '/calibrar', json={
+        'id_dispositivo_iot': e['dispositivo'], 'id_infraestructura': e['area'],
+        'valor_referencia': 22, 'ganancia': 1.25, 'offset': 0.5,
+        'fecha_calibracion': (captura - timedelta(hours=1)).isoformat(),
+        'modo_calibracion': 'SENSOR',
+    }, headers=headers)
+    assert nueva_calibracion.status_code == 201, nueva_calibracion.text
     respuesta = client.post(f'/iot/calidad/{id_lectura}/evaluar', headers=headers)
     assert respuesta.status_code == 201, respuesta.text
     resultado = respuesta.json()
     assert resultado['id_sensor'] == sensor
     assert resultado['parametros_aplicados']['N'] == 20
-    assert resultado['parametros_calibracion_aplicados'] is not None, (
-        'RF-53 ajusto la lectura pero no conservo el snapshot de calibracion que necesita RF-62.'
-    )
-    assert resultado['parametros_calibracion_aplicados']['offset'] == offset
+    assert resultado['parametros_calibracion_aplicados'] == snapshot
+    assert bool(resultado['flags_detectados'].get('calibracion_no_disponible', {}).get('activo')) is (snapshot is None)
     assert bool(resultado['flags_detectados'].get('posible_drift', {}).get('activo')) is hay_drift
-    assert resultado['indice_calidad'] == (70 if hay_drift else 100)
+    if snapshot is None:
+        # RF-62 excluye las ERROR_CALIBRACION de la serie válida; una
+        # calibración posterior no convierte esas lecturas en una serie apta.
+        assert resultado['flags_detectados']['serie_insuficiente']['activo'] is True
+        assert resultado['clasificacion_calidad'] == 'INDETERMINADA'
+        assert resultado['indice_calidad'] is None
+    else:
+        # Las magnitudes de drift de estos escenarios son menores al 10 %:
+        # la tabla existente de RF-62 descuenta 10 puntos, no 30.
+        assert resultado['indice_calidad'] == (90 if hay_drift else 100)
     detalle = client.get(f'/iot/calidad/{id_lectura}', headers=headers)
     assert detalle.status_code == 200, detalle.text
     assert detalle.json()['id_evaluacion'] == resultado['id_evaluacion']
+    assert detalle.json()['parametros_calibracion_aplicados'] == snapshot
     assert db_session.execute(text(
         'SELECT to_jsonb(t) FROM modulo3.telemetrias t WHERE id_telemetria=:id'
     ), {'id': id_lectura}).scalar_one() == antes
+
+    # Las lecturas posteriores sí deben capturar la nueva calibración. La
+    # función SQL compartida es la misma en HTTP individual y batch.
+    posterior = client.post('/iot/telemetria/batch', json={'registros': [{
+        'device_id': e['dispositivo'], 'sensor_id': sensor, 'serial': e['serial'],
+        'tipo_variable': 'TEMPERATURA_AMBIENTAL', 'valor': 22, 'unidad': '°C',
+        'timestamp_captura': (captura + timedelta(seconds=30)).isoformat(),
+    }]}, headers=headers_broker)
+    assert posterior.status_code == 200, posterior.text
+    assert posterior.json()['aceptados'] == 1
+    ultima = db_session.execute(text('''
+        SELECT valor_ajustado,parametros_calibracion,calibrado FROM modulo3.telemetrias
+        WHERE id_sensor=:sensor ORDER BY timestamp_captura DESC LIMIT 1
+    '''), {'sensor': sensor}).one()
+    assert tuple(ultima) == (Decimal('28'), {'ganancia': 1.25, 'offset': 0.5}, True)
+    assert db_session.execute(text(
+        'SELECT to_jsonb(t) FROM modulo3.telemetrias t WHERE id_telemetria=:id'
+    ), {'id': id_lectura}).scalar_one() == antes
+
+
+def test_migracion_snapshot_es_reversible_y_conserva_funcion_y_privilegios(db_session):
+    ruta = Path(__file__).parents[2] / 'alembic/versions/8d13c7e9a624_conservar_snapshot_calibracion_ingesta.py'
+    spec = importlib.util.spec_from_file_location('migracion_snapshot_g167', ruta)
+    migracion = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migracion)
+    definicion = text('SELECT pg_get_functiondef(CAST(:firma AS regprocedure))')
+    propiedades = text('''
+        SELECT proowner,proacl,prosecdef,proconfig,provolatile,proparallel
+        FROM pg_proc WHERE oid=CAST(:firma AS regprocedure)
+    ''')
+    params = {'firma': migracion.FN}
+    actual = db_session.execute(definicion, params).scalar_one()
+    atributos = db_session.execute(propiedades, params).one()
+    with Operations.context(MigrationContext.configure(db_session.connection())):
+        migracion.downgrade()
+        anterior = db_session.execute(definicion, params).scalar_one()
+        assert 'G167_SNAPSHOT_' not in anterior
+        assert db_session.execute(propiedades, params).one() == atributos
+        migracion.upgrade()
+        assert db_session.execute(definicion, params).scalar_one() == actual
+        assert db_session.execute(propiedades, params).one() == atributos
+        # El único cambio de la función debe ser la columna y su valor.
+        assert '\n'.join(linea for linea in actual.splitlines() if 'G167_SNAPSHOT_' not in linea) == anterior.rstrip('\n')
 
 
 def test_alta_sigue_exigiendo_jwt_y_permiso(

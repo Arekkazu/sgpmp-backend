@@ -1,95 +1,121 @@
-# RF-62 / RF-22 — Revisión del alta de sensores · INC-M03-123-G167
+# RF-62 / RF-53 — Snapshot de calibración y revisión del alta · INC-M03-123-G167
 
-Fecha: 2026-10-26. Referencia: [issue #626](https://github.com/Arekkazu/sgpmp-backend/issues/626), TC-M03-G167 y precondición de sensores de RF-22.
+Fecha: 2026-10-26. Referencias: [issue #626](https://github.com/Arekkazu/sgpmp-backend/issues/626), TC-M03-G167, RF-22, RF-24, RF-53 y RF-62.
 
-## Resultado de la revisión
+## Resultado final
 
-El alta de sensor con el payload reportado **no reproduce el 500 en dev actualizado**. Devuelve 201, conserva la categoría, asigna un identificador y persiste `es_activo=True`. También funciona sin categoría, que continúa siendo opcional.
+El alta con el payload reportado no reproduce el 500 en dev actualizado: responde 201, asigna identificador y persiste es_activo=True. También funciona sin categoría. La causa propuesta en #626 no describe el flujo actual: Sensor.crear() ya asigna True y el repositorio lo transfiere explícitamente al ORM.
 
-La causa propuesta por la issue no describe el flujo completo: `Sensor.crear()` ya asigna `es_activo=True`, y `SqlAlchemySensorRepository.guardar()` lo transfiere explícitamente a `SensorModel`. No hace falta que el cliente envíe ese estado ni que el DTO lo exponga.
+La revisión encontró un fallo distinto en la continuidad del flujo: la ingesta aplicaba la calibración, pero omitía su snapshot en telemetrias.parametros_calibracion. El usuario autorizó incluir esta corrección en la misma rama. Se incorpora una migración que guarda ganancia y offset realmente utilizados, en el mismo INSERT de la lectura.
 
-La revisión del flujo posterior sí detectó **un problema distinto de RF-53/RF-62**: la ingesta aplica la calibración, pero no conserva su snapshot en `telemetrias.parametros_calibracion`. La evaluación puntual recibe `None` y no dispone de los parámetros que requiere su fase de drift. Las pruebas mantienen ese fallo visible; no se rellenó el JSON desde la configuración actual para hacerlas pasar.
+**Validación final: 32 pruebas distintas aprobadas, 0 fallidas y 0 omitidas.** Son 29 casos con PostgreSQL real y 3 pruebas de comprobación de migraciones. El alta no requirió un cambio de producción; la corrección funcional afecta a la persistencia del snapshot de ingesta.
 
 ## Base de trabajo
 
-- Se actualizaron `dev` y `origin/dev` antes de reconstruir esta rama.
-- Base: `18b4ce67e8d23ed57fdfd108d44e0c2601e66604`.
-- Rama: `fix/inc-m03-123-g167-alta-sensor-rf62`.
-- La corrección anterior #625 se trasladó por separado a esa misma base y se publicó como `c1401d5a`. No es un commit propio ni una dependencia añadida a esta rama.
+- dev y origin/dev se actualizaron antes de crear la rama.
+- Base: 18b4ce67e8d23ed57fdfd108d44e0c2601e66604.
+- Rama: fix/inc-m03-123-g167-alta-sensor-rf62.
+- El primer commit, 85ed5ce3, contiene la investigación inicial y las pruebas que mostraban dos fallos pendientes de snapshot. Este informe se actualiza con la corrección y su validación final; aquel resultado de 10 aprobadas y 2 fallidas es histórico.
+- La corrección de #625 se entregó en otra rama; no es un commit propio ni una dependencia nueva de esta entrega.
 
-## Flujo comprobado
+## Causa raíz y cambio mínimo
+
+1. RF-24 persiste ganancia y offset_calibracion.
+2. modulo3.fn_obtener_calibracion devuelve esos valores reales (DB-02, revisión e5a3c9b17d42).
+3. fn_ingesta_telemetria calcula valor_ajustado con v_ganancia y v_offset y marca v_calibrado=True.
+4. Su INSERT omitía parametros_calibracion; PostgreSQL guardaba NULL.
+5. El endpoint de calidad y el procesamiento posterior transportan esa columna a RF-62, cuya fase de drift necesita los parámetros.
+
+La migración añade la columna al INSERT y el valor:
+
+~~~sql
+CASE WHEN v_calibrado
+     THEN jsonb_build_object('ganancia', v_ganancia, 'offset', v_offset)
+     ELSE NULL
+END
+~~~
+
+No se consulta de nuevo la calibración durante la escritura del snapshot: se reutilizan las mismas variables que intervinieron en el cálculo. Las lecturas sin calibración conservan snapshot NULL, valor ajustado NULL y ERROR_CALIBRACION. No se reconstruyen snapshots históricos desde la calibración actual.
+
+La evaluación y la consulta de detalle utilizan el snapshot almacenado en la lectura aunque el sensor haya sido recalibrado posteriormente. Las nuevas lecturas sí capturan la nueva calibración. No se cambian fórmulas de drift, descuentos del índice, routers, DTO, permisos ni contratos HTTP.
+
+## Flujo del alta comprobado
 
 | Capa | Comportamiento existente |
 |---|---|
-| Router | POST `/configuracion/dispositivos-iot/{id}/sensores`, respuesta 201 y RBAC sobre `dispositivos_iot`, acción Crear |
-| DTO | Valida nombre y categoría; no requiere `es_activo` |
-| Caso de uso | Comprueba dispositivo y tipo, llama a `Sensor.crear()`, guarda y controla commit/rollback |
-| Dominio | La fábrica crea un sensor activo |
-| Puerto/repositorio | Recibe una entidad y mapea `es_activo=sensor.es_activo`; utiliza flush/refresh |
-| ORM/BD | Boolean obligatorio; el valor explícito satisface NOT NULL sin necesitar un default |
+| Router | POST /configuracion/dispositivos-iot/{id}/sensores; 201 y RBAC sobre dispositivos_iot, acción Crear |
+| DTO | Valida nombre y categoría; no exige es_activo |
+| Caso de uso | Comprueba dispositivo y tipo, crea la entidad y controla commit/rollback |
+| Dominio | Sensor.crear() produce un sensor activo |
+| Repositorio | Mapea es_activo=sensor.es_activo y utiliza flush/refresh |
+| ORM/BD | El boolean obligatorio recibe el valor explícito, sin necesitar default |
 
-Archivos de producción revisados: entidad `sensor.py`, DTO `registrar_sensor_dto.py`, caso de uso `dispositivos_iot/registrar_sensor_use_case.py`, puerto y repositorio `sensor_repository.py`, modelo `sensor_model.py`, schema y router de dispositivos. No se modificaron.
+No se modifican esas capas para solucionar un fallo que no se reproduce en dev actual.
 
-## BD y RBAC
+## Migración y BD
 
-La base oficial `sgpmp_dev` se consultó en una transacción con `transaction_read_only=on`. No se ejecutaron DDL/DML ni se reprodujo el POST contra ella.
+Archivo: alembic/versions/8d13c7e9a624_conservar_snapshot_calibracion_ingesta.py.
 
-Se verificaron la secuencia, PK, FK, columnas, índices, triggers y políticas de `modulo9.sensores`. `es_activo` es boolean NOT NULL sin default; esto es compatible con el valor explícito enviado por el repositorio. La columna real `nombre` es varchar(60), mientras el ORM/DTO admite hasta 100; el nombre de 17 caracteres del escenario no alcanza ese límite y no se cambió ese contrato en esta revisión.
+- Revisión: 8d13c7e9a624; padre: 30168ab97bd4; una sola head en el código.
+- Comprueba que la columna existente sea JSONB y modifica la definición vigente obtenida con pg_get_functiondef.
+- Solo añade una columna y un valor al INSERT final; si la forma esperada no coincide o ya hay otra implementación del snapshot, falla de forma explícita para revisión.
+- CREATE OR REPLACE conserva firma, propietario y privilegios. No crea tablas, columnas alternativas, roles ni permisos.
+- Downgrade retira únicamente esas dos líneas, conservando el resto de la función y los datos ya almacenados.
+- No se editan migraciones históricas ni se hace backfill de telemetrías inmutables.
 
-RLS y FORCE ROW LEVEL SECURITY están activos. Las políticas SELECT/UPDATE observadas derivan el alcance del dispositivo, criterio compatible con la corrección existente `f62b120bb13f_fix_rls_sensores.py`. Esa migración ya está en dev y corrige un 500 anterior al insertar sensores por visibilidad circular de RLS. No se duplica ni se atribuye como una corrección nueva de #626.
+Se aplicó mediante Alembic únicamente en la base local exclusiva sgpmp_g167_test, construida previamente desde cero hasta la head de dev. Se verificó la nueva revisión y la igualdad exacta del resto de la función. Las pruebas ejecutan downgrade/upgrade real de la función y comprueban definición, propietario, ACL, SECURITY DEFINER, configuración, volatilidad y paralelismo.
 
-La lectura de `alembic_version` y de permisos oficiales fue rechazada por privilegios. Por tanto, la observación del esquema efectivo no se presenta como certificación de una revisión desplegada ni como ausencia de registros RBAC.
+## Inspección de sgpmp_dev
 
-## Pruebas de PostgreSQL real
+La base oficial se inspeccionó en una transacción de solo lectura. No se ejecutaron DDL/DML ni solicitudes POST contra ella.
 
-Se utilizó PostgreSQL 18.4 local, base exclusiva `sgpmp_g167_test`, construida desde cero con las migraciones de dev hasta la head `30168ab97bd4`. Se conservaron las protecciones de `TEST_DATABASE_URL`, la transacción exterior y los savepoints del fixture común.
+En sensores se comprobaron secuencia, PK, FK, columnas, índices, triggers y políticas. es_activo es boolean NOT NULL sin default, compatible con el valor explícito de la entidad. RLS y FORCE ROW LEVEL SECURITY están activos en sensores; las políticas observadas derivan el alcance del dispositivo, como la migración existente f62b120bb13f_fix_rls_sensores.py. No se duplica esa corrección.
 
-Los HTTP se ejecutaron con JWT y `TEST_ROL_APP=sgpmp_app`, sin superusuario ni BYPASSRLS. La preparación y las aserciones administrativas usaron la conexión del fixture. La ingesta utilizó el token de broker de pruebas y la identidad de servicio existente.
+La lectura de alembic_version y de permisos oficiales fue rechazada por privilegios; no se certifica la revisión desplegada ni la equivalencia con QA. También se observó nombre varchar(60) en sensores frente al máximo 100 del ORM/DTO; el payload reportado no alcanza ese límite y no se amplió esta corrección a ese contrato.
+
+La inspección local del nuevo cambio confirmó que parametros_calibracion ya existe como JSONB nullable. Las políticas y triggers existentes se mantienen; no se añade RLS a tablas que actualmente no lo tienen ni se atribuye esa garantía a telemetrias.
+
+## Pruebas realizadas
+
+Entorno: PostgreSQL 18.4 local, 127.0.0.1:55427, base sgpmp_g167_test. Se mantienen las protecciones de TEST_DATABASE_URL, la transacción exterior y los savepoints del fixture. La API del grupo principal utiliza JWT y TEST_ROL_APP=sgpmp_app, sin superusuario ni BYPASSRLS. La preparación y las aserciones administrativas emplean la conexión del fixture.
 
 | Grupo | Aprobadas | Fallidas | Omitidas |
 |---|---:|---:|---:|
-| Nuevas: alta con/sin categoría, rollback de flush/commit, Ingeniero por finca, JWT/RBAC, dispositivo inexistente y categoría inválida | 8 | 0 | 0 |
-| Existentes: repositorio de sensor bajo RLS, Administrador y Productor asignado | 2 | 0 | 0 |
-| Nuevas: continuidad hasta calidad, escenarios con offset 0 y offset 2 | 0 | 2 | 0 |
-| **Total distinto** | **10** | **2** | **0** |
+| Nuevas: alta con/sin categoría, rollback flush/commit, Ingeniero por finca, JWT/RBAC y validaciones | 8 | 0 | 0 |
+| Flujo HTTP: sin drift, drift con offset, ganancia/offset decimales y sin calibración | 4 | 0 | 0 |
+| Reversibilidad y preservación de la función/privilegios | 1 | 0 | 0 |
+| Existentes: repositorio de sensores bajo RLS, Administrador y Productor asignado | 2 | 0 | 0 |
+| Regresión: ingesta HTTP/SQL, calibración DB-02, rechazos, batch, inmutabilidad, postcommit RF-62 y multiespecie | 14 | 0 | 0 |
+| Comprobación de migraciones (sin PostgreSQL real) | 3 | 0 | 0 |
+| **Total distinto** | **32** | **0** | **0** |
 
-Las pruebas del repositorio no otorgan al Productor permiso HTTP de creación: el caso HTTP sin permiso conserva 403. Se verificó además que el Ingeniero sin acceso a la finca recibe 404 y que, una vez asignado, puede crear el sensor.
+Las pruebas de repositorio no conceden permiso HTTP de alta al Productor: la solicitud sin permiso sigue devolviendo 403. El Ingeniero ajeno a la finca recibe 404 y, asignado a ella, puede registrar el sensor.
 
-Las pruebas de rollback observan un INSERT real antes de inducir el fallo de flush o commit, comprueban que no queda una fila parcial y que el reintento puede crear el sensor. No sustituyen entidades, casos de uso ni repositorios del alta por fakes.
+Las pruebas de rollback observan un INSERT real antes de inducir el fallo de flush o commit. Verifican ausencia de filas parciales y reintento exitoso; no sustituyen la persistencia por fakes.
 
-Los padres (finca, área y dispositivo) se preparan mediante SQL del fixture. Desde el alta de sensor, asociación, calibración, ingesta y evaluación se invocan por HTTP. Se simula el paso del tiempo únicamente en el reloj de creación de la asociación para que las 21 capturas históricas queden dentro de su vigencia: `now()` de PostgreSQL permanece fijo por la transacción exterior de pruebas. No se desactivan validaciones temporales ni se reescriben auditorías después de la operación.
+Los padres (finca, área y dispositivo) se preparan mediante SQL. Desde el alta del sensor, asociación, calibración, 21 ingestas y evaluación se usan endpoints HTTP reales. Se controla únicamente el reloj del dominio de asociación para situar esa asociación antes de las capturas históricas: now() de PostgreSQL queda fijo por la transacción exterior. No se desactivan restricciones temporales ni se reescriben auditorías.
 
-## Preparación local y repeticiones
+En cada escenario se registra otra calibración antes de evaluar la última lectura. Se comprueba que evaluación y detalle devuelven el snapshot original, que ninguna operación cambia la telemetría previa y que una ingesta batch posterior guarda los nuevos parámetros. Sin calibración original, RF-62 mantiene el snapshot NULL y clasifica INDETERMINADA por serie válida insuficiente, incluso si luego existe una calibración.
 
-Las primeras corridas detectaron privilegios de infraestructura pendientes en el rol del clúster recién creado: lectura de `configuraciones_remotas`, dependencias de ingesta, actualización de contacto de RF-60 y escritura de la caché de estados de sensores. Se provisionaron exclusivamente los privilegios necesarios en la base desechable, manteniendo las políticas y triggers reales. No son permisos RBAC nuevos ni cambios aplicados a la base oficial.
+Los escenarios con drift verifican la bandera y el índice 90: su magnitud es menor al 10 %, para la cual el dominio existente descuenta 10 puntos. La expectativa inicial de 70 se corrigió en la prueba, sin alterar la fórmula de producción.
 
-Otro intento rechazó correctamente lecturas anteriores a la asociación (`SENSOR_SIN_ASOCIACION`). Se corrigió la cronología del fixture, no la regla de RF-53. Los intentos interrumpidos anteriores a actualizar dev no se consideran pruebas aprobadas.
+Las regresiones existentes de la función compartida usan sus fixtures administrativos; no se presentan como pruebas adicionales de RBAC bajo el rol de API. El canal MQTT se representa mediante la función SQL común, sin broker real.
 
-Cada ID se cuenta una vez, con su último resultado. Las repeticiones no se suman al total. Las evidencias temporales permanecen en `.pytest_cache/g167_*.xml`, los scripts de preparación/lanzamiento y el log del clúster. El shim de `fcntl` de Windows se limita al lanzador de pruebas. No se incorpora a producción.
+## Evidencias y repeticiones
 
-El consolidado verificable está en `.pytest_cache/g167_resultados_consolidados.json`: 12 IDs distintos, 10 aprobados, 2 fallidos y ninguno omitido. La ejecución final de los dos escenarios está en `.pytest_cache/g167_hallazgo_drift.xml`. `git diff --no-index --check` sobre el archivo de pruebas y `git diff --check` terminaron sin errores de whitespace.
+- .pytest_cache/g167_snapshot_principal.xml: 14 aprobadas y una expectativa inicial fallida del nuevo caso sin calibración.
+- .pytest_cache/g167_snapshot_regresion.xml: 18 aprobadas, incluida la repetición corregida de ese caso.
+- .pytest_cache/g167_snapshot_resultados_consolidados.json: 32 IDs distintos, tomando el último resultado de cada ID; 29 con PostgreSQL y 3 de comprobación de migraciones.
+- .pytest_cache/g167_snapshot_funcion_antes.sql y g167_snapshot_funcion_despues.sql: comparación del cambio aplicado.
 
-## Hallazgo distinto: snapshot de calibración perdido
+Las corridas previas reprodujeron los dos snapshots nulos y detectaron datos de prueba con offsets fuera del rango permitido; se corrigieron los datos del fixture, conservando la validación. La preparación de privilegios mínimos de infraestructura de la base desechable corresponde a la investigación inicial; no se modifica la base oficial. El shim fcntl de Windows permanece limitado al lanzador de pruebas.
 
-1. RF-24 guarda la ganancia y el offset mediante el endpoint de calibración.
-2. La función existente `modulo3.fn_obtener_calibracion` recupera ambos valores reales (DB-02, revisión `e5a3c9b17d42`).
-3. `fn_ingesta_telemetria` los utiliza para calcular `valor_ajustado` y marca la lectura como calibrada.
-4. Su INSERT final no incluye `parametros_calibracion`, por lo que la columna queda NULL.
-5. El endpoint de evaluación selecciona esa columna y la pasa a `EvaluarCalidadTelemetriaUseCase`.
-6. La fase de drift requiere `parametros_calibracion`; con `None` carece de esa entrada.
+Los logs, XML, consolidado y scripts temporales están ignorados en .pytest_cache y no forman parte del commit. Los resultados se cuentan una vez por ID; no se suman corridas históricas ni repeticiones.
 
-En ambos escenarios los 21 POST de ingesta y el POST de evaluación respondieron 201. La última lectura tiene valor crudo 22, valor ajustado 22 u 24 según el offset, y `calibrado=True`. La aserción que falla exige un snapshot de calibración no nulo en la evaluación; no es un fallo de creación del sensor ni de autenticación.
+## Alcance y pendientes
 
-La columna y su mapeo ORM ya existen. El defecto no se resuelve añadiendo un default a `SensorModel`, exponiendo `es_activo` al cliente o convirtiendo una violación de un estado interno en un 4xx.
+La entrega acumulada contiene tres archivos: migración, pruebas de integración e informe. Se preservan AGENTS.md, pendientes_integracion_aiot_por_tarea_y_pr.md y pendientes_por_area/ como archivos locales ajenos.
 
-Se consultó al usuario si desea incorporar esta corrección distinta en la entrega o documentarla por separado. Mientras se define ese alcance, no se modifica el cálculo, la función de ingesta ni su migración. Una eventual corrección debe conservar los valores realmente utilizados durante el INSERT; leer la calibración actual al consultar una evaluación no reconstruye de forma fiable un snapshot histórico.
+La migración no se ha aplicado a sgpmp_dev ni a TEST desplegado. Su despliegue requiere el procedimiento autorizado habitual de Alembic. Las lecturas históricas con snapshot NULL siguen sin parámetros verificables; no se rellenan con información actual.
 
-## Límites de la evidencia
-
-Los adjuntos de TC-M03-G167 documentan el 500 observado en QA y 44 comprobaciones (8 aprobadas, 36 fallidas en cascada), pero no aportan el error SQL del servidor que pruebe un NOT NULL sobre `es_activo`. Esta revisión no demuestra que aquel despliegue ejecutara el mismo código y esquema que dev actual.
-
-No se ejecutó la colección original de sus siete escenarios ni se certificó TEST desplegado. Los dos escenarios añadidos comprueban el flujo real disponible y mantienen visible la pérdida del snapshot. No se declara validado el drift ni se presenta la revisión como una reparación funcional del alta.
-
-## Alcance de los archivos
-
-Se añaden únicamente `tests/integration/test_inc_m03_123_g167_registro_sensor.py` y este informe. El usuario autorizó el commit y el push de las pruebas y este diagnóstico para #626, sin crear PR. No se modificaron archivos de producción ni migraciones, ni los archivos locales ajenos `AGENTS.md`, `pendientes_integracion_aiot_por_tarea_y_pr.md` y `pendientes_por_area/`.
+Los adjuntos originales documentan 44 comprobaciones (8 aprobadas, 36 fallidas en cascada), pero no prueban el error SQL del servidor que causó el 500 del alta. No se ejecutó la colección original completa de siete escenarios ni se certificó el despliegue de QA. El snapshot queda corregido y validado localmente; la atribución del 500 original requiere comprobar la versión y los logs de ese entorno.
