@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M04-209-G092 RF-73: filtro por correlacion_id |
 from __future__ import annotations
 
 import logging
@@ -31,6 +34,7 @@ class ConsultarAuditoriaM04UseCase:
         pagina: int,
         por_pagina: int,
         id_usuario_consultor: int,
+        correlacion_id: Optional[uuid.UUID] = None,
     ) -> tuple[list[EventoAuditoriaM04], int]:
         items, total = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -40,6 +44,7 @@ class ConsultarAuditoriaM04UseCase:
             id_sistema=id_sistema,
             id_referencia=id_referencia,
             severidad_evento=severidad_evento,
+            correlacion_id=correlacion_id,
             pagina=pagina,
             por_pagina=por_pagina,
         )
