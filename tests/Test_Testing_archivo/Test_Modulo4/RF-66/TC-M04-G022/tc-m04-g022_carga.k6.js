@@ -1,15 +1,20 @@
 // TC-M04-G022 - Subcaso 2 (TC-M04-18): estabilidad bajo estres prolongado del motor de inferencia (RF-66 CA-14/CA-16, RNF-07/RNF-08).
 // Carga sostenida >10 concurrentes durante >=15 min; criterio: >=80% de las inferencias con latencia <=3000 ms y sin perdida de resultados.
 // Los cortes intermitentes de red se simulan en paralelo con tc-m04-g021_red_netem.sh (corte/retardo) sobre el nodo bajo prueba.
+// AMBIENTE: backend TEST (DEV: https://api.inmero.co/api-sgpmp-dev). MAIN (https://api.inmero.co/sigab) NO se prueba: el script se niega a correr contra el.
+// SANDBOX: esta prueba de carga NO usa el sandbox transaccional a proposito. El sandbox es una sola transaccion por run_id
+// (maximo 5 corridas simultaneas) y serializaria las 15 VUs, asi que no mediria la concurrencia real. Se ejecuta directo contra TEST
+// y deja inferencias persistidas: coordinar con el DBA la limpieza de la BD de TEST despues de correrla (o correrla en una BD desechable).
 // SCRIPT SIN EJECUTAR: el endpoint de inferencia aun no existe (ruta provisional) y el ambiente no esta listo.
 //
-// Uso: k6 run -e BASE_URL=https://api.inmero.co/back-sigab-test -e CORREO=... -e CONTRASENA=... \
+// Uso: k6 run -e BASE_URL=https://api.inmero.co/api-sgpmp-test -e CORREO=... -e CONTRASENA=... \
 //        -e RUTA=/prediccion/inferencias -e ID_ACTIVO=1 -e ID_LOTE=1 [-e VUS=15 -e DURACION=16m] tc-m04-g022_carga.k6.js
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'https://api.inmero.co/back-sigab-test';
+const BASE_URL = __ENV.BASE_URL || 'https://api.inmero.co/api-sgpmp-test';
+if (/\/sigab\/?$/.test(BASE_URL)) { throw new Error('MAIN no se prueba: usa /api-sgpmp-test o /api-sgpmp-dev'); }
 const RUTA = __ENV.RUTA || '/prediccion/inferencias';
 const VUS = parseInt(__ENV.VUS || '15');          // >10 concurrentes (se prueba con 15)
 const DURACION = __ENV.DURACION || '16m';          // >=15 min

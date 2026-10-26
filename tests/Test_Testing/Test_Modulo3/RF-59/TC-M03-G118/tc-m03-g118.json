@@ -1,70 +1,65 @@
 {
   "info": {
-    "name": "TC-M03-G118 - Multiples variables en la serie temporal: independencia de series, ausencia de correlacion analitica y grafica solo numerica (CA-9, Restriccion 5)",
-    "description": "RF-59 CA-9. Subcasos: (1) una serie independiente por variable seleccionada (el contrato solo admite un tipo_variable por consulta: CA-9 no satisfacible, hallazgo de diseno de API); (2) la comparacion es solo visual: la respuesta no devuelve correlacion ni regresion; (3) la grafica de linea solo representa variables numericas (la parte grafica se valida con Cypress).  VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): periodo_ini / periodo_fin (rango YYYY-MM-DD con lecturas conocidas; si quedan vacias se usan los ultimos 30 dias), sensor_temperatura_ambiental (id de un sensor con lecturas en el periodo), id_infraestructura y especie con lecturas, y las variables propias de cada caso. Auth: JWT del Administrador (admin.test); el recurso historial_telemetria (34) exige permiso Leer. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "name": "TC-M03-G118 - Multiples variables en el historial de telemetria: series independientes, sin correlacion y datos numericos",
+    "description": "RF-59 CU04 sobre GET /iot/monitoreo/historial. (1) TC-M03-236: pide Temperatura Ambiental y la variable de humedad a la vez (separadas por coma y con el parametro repetido) y espera una serie por variable; comprueba ademas en /openapi.json si el contrato admite varios valores y trae cada serie por separado como control. (2) TC-M03-237: busca en la respuesta cualquier campo de correlacion o regresion entre variables. (3) TC-M03-238: en lecturas con estados categoricos verifica que valor sea numerico y que estado_calidad y estado_semaforo_historico lleguen como campos aparte; la grafica de la interfaz queda para Cypress. Solo GET. Las claves no se guardan en este archivo: correr_newman.ps1 pide correo y contrasena del Administrador. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G118 -Rf RF-59. Ambiente: solo TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": ""
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
       "value": ""
     },
     {
-      "key": "ids_alertas",
-      "value": "[]"
-    },
-    {
-      "key": "periodo_ini",
+      "key": "tipo_temp",
       "value": ""
     },
     {
-      "key": "periodo_fin",
+      "key": "tipo_temp_q",
       "value": ""
     },
     {
-      "key": "sensor_temperatura_ambiental",
-      "value": "1"
+      "key": "n_temp",
+      "value": ""
     },
     {
-      "key": "id_infraestructura",
-      "value": "1"
+      "key": "tipo_hum",
+      "value": ""
     },
     {
-      "key": "especie",
+      "key": "tipo_hum_q",
+      "value": ""
+    },
+    {
+      "key": "n_hum",
+      "value": ""
+    },
+    {
+      "key": "base_stats",
       "value": ""
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login Administrador",
       "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.collectionVariables.set('ids_alertas', '[]');"
-            ]
-          }
-        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -91,10 +86,10 @@
       }
     },
     {
-      "name": "1. Serie independiente por variable (TC-M03-236)",
+      "name": "0. Linea base",
       "item": [
         {
-          "name": "1.1 tipo_variable=TEMPERATURA_AMBIENTAL,HUMEDAD_RELATIVA en una sola consulta - una serie por variable (hallazgo: el contrato admite un unico valor)",
+          "name": "0.1 Linea base del periodo: variables disponibles y conteos",
           "request": {
             "method": "GET",
             "header": [
@@ -103,184 +98,29 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&tipo_variable=TEMPERATURA_AMBIENTAL,HUMEDAD_RELATIVA",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "tipo_variable",
-                  "value": "TEMPERATURA_AMBIENTAL,HUMEDAD_RELATIVA"
-                }
-              ]
-            }
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&por_pagina=1"
           },
           "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G118 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G118 0.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('La respuesta contiene ambas series (items de TEMPERATURA_AMBIENTAL y HUMEDAD_RELATIVA)', function () { const t = (J.items || []).map(function (i) { return i.tipo_variable; }); pm.expect(t).to.include('TEMPERATURA_AMBIENTAL'); pm.expect(t).to.include('HUMEDAD_RELATIVA'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.2 Alternativa: serie TEMPERATURA_AMBIENTAL (consulta independiente)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&tipo_variable=TEMPERATURA_AMBIENTAL",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "tipo_variable",
-                  "value": "TEMPERATURA_AMBIENTAL"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G118 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Serie solo de TEMPERATURA_AMBIENTAL', function () { (J.items || []).forEach(function (i) { pm.expect(String(i.tipo_variable)).to.eql(String('TEMPERATURA_AMBIENTAL')); }); });",
-                  "pm.test('Pares timestamp/valor y umbrales de referencia', function () { (J.items || []).slice(0, 5).forEach(function (i) { pm.expect(i.timestamp_captura).to.exist; pm.expect(i).to.have.property('valor'); pm.expect(i).to.have.property('valor_min_umbral'); }); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.3 Alternativa: serie HUMEDAD_RELATIVA (consulta independiente)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&tipo_variable=HUMEDAD_RELATIVA",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "tipo_variable",
-                  "value": "HUMEDAD_RELATIVA"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G118 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Serie solo de HUMEDAD_RELATIVA', function () { (J.items || []).forEach(function (i) { pm.expect(String(i.tipo_variable)).to.eql(String('HUMEDAD_RELATIVA')); }); });"
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const est = J.estadisticas || [];",
+                  "const conteos = {}; est.forEach(function (s) { conteos[s.tipo_variable] = s.total_lecturas; });",
+                  "const temp = est.find(function (s) { return norm(s.tipo_variable) === 'temperaturaambiental'; });",
+                  "const hum = est.find(function (s) { return /humedad/i.test(s.tipo_variable); });",
+                  "pm.test('El periodo tiene Temperatura Ambiental y Humedad para comparar', function () { pm.expect(temp, 'sin Temperatura Ambiental').to.be.ok; pm.expect(hum, 'sin variable de humedad: ' + JSON.stringify(Object.keys(conteos))).to.be.ok; });",
+                  "if (temp && hum) { pm.collectionVariables.set('tipo_temp', temp.tipo_variable); pm.collectionVariables.set('tipo_temp_q', encodeURIComponent(temp.tipo_variable)); pm.collectionVariables.set('n_temp', String(temp.total_lecturas));",
+                  "  pm.collectionVariables.set('tipo_hum', hum.tipo_variable); pm.collectionVariables.set('tipo_hum_q', encodeURIComponent(hum.tipo_variable)); pm.collectionVariables.set('n_hum', String(hum.total_lecturas)); }",
+                  "console.log('[G118-0.1][OBSERVADO] variables y conteos: ' + JSON.stringify(conteos));",
+                  ""
                 ]
               }
             }
@@ -289,10 +129,10 @@
       ]
     },
     {
-      "name": "2. Comparacion exclusivamente visual (TC-M03-237)",
+      "name": "1. Una serie independiente por variable (TC-M03-236)",
       "item": [
         {
-          "name": "2.1 La respuesta no incluye coeficiente de correlacion ni regresion",
+          "name": "1.1 Dos variables separadas por coma en tipo_variable (TC-M03-236)",
           "request": {
             "method": "GET",
             "header": [
@@ -301,131 +141,34 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&tipo_variable=TEMPERATURA_AMBIENTAL",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "tipo_variable",
-                  "value": "TEMPERATURA_AMBIENTAL"
-                }
-              ]
-            }
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&tipo_variable={{tipo_temp_q}},{{tipo_hum_q}}&por_pagina=500"
           },
           "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G118 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G118 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Sin correlacion, regresion ni metricas entre variables', function () { const x = pm.response.text().toLowerCase(); pm.expect(x).to.not.match(/correlaci|regresi|pearson|r_cuadrado/); });"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "3. Grafica de linea solo para variables numericas (TC-M03-238)",
-      "item": [
-        {
-          "name": "3.1 [API] valor numerico y estados categoricos separados",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&tipo_variable=TEMPERATURA_AMBIENTAL",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "tipo_variable",
-                  "value": "TEMPERATURA_AMBIENTAL"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G118 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('valor es numerico y estado_calidad / estado_semaforo_historico son categoricos (texto)', function () { (J.items || []).slice(0, 10).forEach(function (i) { pm.expect(isNaN(Number(i.valor))).to.be.false; pm.expect(isNaN(Number(i.estado_calidad))).to.be.true; pm.expect(isNaN(Number(i.estado_semaforo_historico))).to.be.true; }); });"
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const nT = Number(pm.collectionVariables.get('n_temp')), nH = Number(pm.collectionVariables.get('n_hum'));",
+                  "const tipos = {}; items.forEach(function (i) { tipos[i.tipo_variable] = (tipos[i.tipo_variable] || 0) + 1; });",
+                  "pm.test('Se devuelven lecturas de las dos variables solicitadas (obtenido: ' + JSON.stringify(tipos) + ')', function () { pm.expect(Object.keys(tipos).some(function (t) { return norm(t) === 'temperaturaambiental'; }), 'sin Temperatura Ambiental').to.be.true; pm.expect(Object.keys(tipos).some(function (t) { return /humedad/i.test(t); }), 'sin Humedad').to.be.true; });",
+                  "pm.test('El total corresponde a la suma de las dos series (' + (nT + nH) + ') y se recibio ' + J.total_encontrado, function () { pm.expect(J.total_encontrado).to.eql(nT + nH); });",
+                  "pm.test('La respuesta separa una serie por variable (campo de series o agrupacion por tipo_variable)', function () { const claves = Object.keys(J).filter(function (k) { return /serie/i.test(k); }); pm.expect(claves.length, 'sin campo de series; campos: ' + Object.keys(J).join(', ')).to.be.above(0); });",
+                  "console.log('[G118-1.1][OBSERVADO] status=' + pm.response.code + ' total_encontrado=' + J.total_encontrado + ' tipos=' + JSON.stringify(tipos) + ' filtros_aplicados.tipo_variable=' + JSON.stringify((J.filtros_aplicados || {}).tipo_variable));",
+                  ""
                 ]
               }
             }
           ]
         },
         {
-          "name": "3.2 La grafica de tendencia representa solo variables numericas; los estados categoricos solo en tabla",
+          "name": "1.2 Dos variables con el parametro tipo_variable repetido (TC-M03-236)",
           "request": {
             "method": "GET",
             "header": [
@@ -434,27 +177,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: validacion de representacion grafica con Cypress (Frontend)"
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&tipo_variable={{tipo_temp_q}}&tipo_variable={{tipo_hum_q}}&por_pagina=500"
           },
           "event": [
             {
@@ -462,8 +185,116 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G118 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - validacion de representacion grafica con Cypress (Frontend)\");"
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const nT = Number(pm.collectionVariables.get('n_temp')), nH = Number(pm.collectionVariables.get('n_hum'));",
+                  "const tipos = {}; items.forEach(function (i) { tipos[i.tipo_variable] = (tipos[i.tipo_variable] || 0) + 1; });",
+                  "pm.test('Se devuelven lecturas de las dos variables solicitadas (obtenido: ' + JSON.stringify(tipos) + ')', function () { pm.expect(Object.keys(tipos).some(function (t) { return norm(t) === 'temperaturaambiental'; }), 'sin Temperatura Ambiental').to.be.true; pm.expect(Object.keys(tipos).some(function (t) { return /humedad/i.test(t); }), 'sin Humedad').to.be.true; });",
+                  "pm.test('El total corresponde a la suma de las dos series (' + (nT + nH) + ') y se recibio ' + J.total_encontrado, function () { pm.expect(J.total_encontrado).to.eql(nT + nH); });",
+                  "pm.test('La respuesta separa una serie por variable (campo de series o agrupacion por tipo_variable)', function () { const claves = Object.keys(J).filter(function (k) { return /serie/i.test(k); }); pm.expect(claves.length, 'sin campo de series; campos: ' + Object.keys(J).join(', ')).to.be.above(0); });",
+                  "console.log('[G118-1.2][OBSERVADO] status=' + pm.response.code + ' total_encontrado=' + J.total_encontrado + ' tipos=' + JSON.stringify(tipos) + ' filtros_aplicados.tipo_variable=' + JSON.stringify((J.filtros_aplicados || {}).tipo_variable));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Contrato OpenAPI: el parametro tipo_variable admite varios valores (TC-M03-236)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "if (pm.response.code !== 200) { pm.test.skip('Contrato: NO CONCLUYENTE, /openapi.json respondio ' + pm.response.code); }",
+                  "else {",
+                  "const p = (((J.paths || {})['/iot/monitoreo/historial'] || {}).get || {}).parameters || [];",
+                  "const tv = p.find(function (x) { return x.name === 'tipo_variable'; });",
+                  "const sch = tv ? JSON.stringify(tv.schema) : '';",
+                  "pm.test('El parametro tipo_variable del contrato acepta una lista de valores (esquema: ' + sch + ')', function () { pm.expect(tv, 'no existe tipo_variable en el contrato').to.be.ok; pm.expect(/\"type\":\"array\"/.test(sch), 'el esquema solo admite un valor').to.be.true; });",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Control: serie de la variable Temperatura Ambiental por separado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&tipo_variable={{tipo_temp_q}}&por_pagina=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Todas las lecturas son de Temperatura Ambiental', function () { pm.expect(items.length).to.be.above(0); pm.expect(items.filter(function (i) { return norm(i.tipo_variable) !== 'temperaturaambiental'; }).length).to.eql(0); });",
+                  "pm.test('Cada lectura trae timestamp_captura y valor numerico', function () { const mal = items.filter(function (i) { return !i.timestamp_captura || i.valor === null || i.valor === undefined || !isFinite(Number(i.valor)); }); pm.expect(mal.length, mal.length + ' lecturas sin timestamp o sin valor numerico').to.eql(0); });",
+                  "pm.test('Cada lectura expone los campos de umbral de referencia', function () { pm.expect(items.length, 'sin lecturas').to.be.above(0); const ks = Object.keys(items[0]).filter(function (k) { return /umbral/i.test(k); }); pm.expect(ks.length, 'campos de umbral: ' + JSON.stringify(ks)).to.be.above(0); });",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Control: serie de la variable de humedad por separado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&tipo_variable={{tipo_hum_q}}&por_pagina=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 1.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('Todas las lecturas son de la variable de humedad', function () { pm.expect(items.length).to.be.above(0); pm.expect(items.filter(function (i) { return !/humedad/i.test(i.tipo_variable); }).length).to.eql(0); });",
+                  "pm.test('Cada lectura trae timestamp_captura y valor numerico', function () { const mal = items.filter(function (i) { return !i.timestamp_captura || i.valor === null || i.valor === undefined || !isFinite(Number(i.valor)); }); pm.expect(mal.length, mal.length + ' lecturas sin timestamp o sin valor numerico').to.eql(0); });",
+                  "pm.test('Cada lectura expone los campos de umbral de referencia', function () { pm.expect(items.length, 'sin lecturas').to.be.above(0); const ks = Object.keys(items[0]).filter(function (k) { return /umbral/i.test(k); }); pm.expect(ks.length, 'campos de umbral: ' + JSON.stringify(ks)).to.be.above(0); });",
+                  ""
                 ]
               }
             }
@@ -472,56 +303,121 @@
       ]
     },
     {
-      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
-      "event": [
+      "name": "2. Sin metricas de correlacion (TC-M03-237)",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "(function () {",
-              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
-              "  console.log('[TC-M03-G118] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
-              "  pm.collectionVariables.set('ids_alertas', '[]');",
-              "})();",
-              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "iot",
-            "alertas"
-          ],
-          "query": [
+          "name": "2.1 Sin metricas de correlacion ni regresion entre variables (TC-M03-237)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&por_pagina=100"
+          },
+          "event": [
             {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
-              "key": "por_pagina",
-              "value": "1"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const buscar = function (o, ruta) { let hallados = []; if (Array.isArray(o)) { o.slice(0, 50).forEach(function (x) { hallados = hallados.concat(buscar(x, ruta)); }); } else if (o && typeof o === 'object') { Object.keys(o).forEach(function (k) { if (/correlaci|regresi|pearson|spearman|covarianza|r_cuadrado|r2|coeficiente/i.test(k)) { hallados.push(ruta + '.' + k); } hallados = hallados.concat(buscar(o[k], ruta + '.' + k)); }); } return hallados; };",
+                  "const h = buscar(J, 'respuesta');",
+                  "pm.test('La respuesta no incluye correlacion, regresion ni otra metrica entre variables' + (h.length ? ': ' + h.join(', ') : ''), function () { pm.expect(h.length).to.eql(0); });",
+                  "pm.test('Las estadisticas son por variable (' + (J.estadisticas || []).length + ' variables) y solo describen cada una por separado', function () { pm.expect((J.estadisticas || []).length).to.be.above(1); (J.estadisticas || []).forEach(function (s) { pm.expect(Object.keys(s).filter(function (k) { return /(vs|entre|cruz)/i.test(k); }).length, 'estadistica cruzada en ' + s.tipo_variable).to.eql(0); }); });",
+                  "console.log('[G118-2.1][OBSERVADO] claves de estadisticas: ' + JSON.stringify(Object.keys((J.estadisticas || [])[0] || {})));",
+                  ""
+                ]
+              }
             }
           ]
         }
-      }
+      ]
+    },
+    {
+      "name": "3. Solo datos numericos en la grafica (TC-M03-238)",
+      "item": [
+        {
+          "name": "3.1 Lecturas con ERROR_CALIBRACION: valor numerico y estados categoricos aparte (TC-M03-238)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&estado_dato=ERROR_CALIBRACION&por_pagina=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const SEM = ['VERDE', 'AMARILLO', 'ROJO', 'GRIS', 'SIN_DATOS'];",
+                  "pm.test('Hay lecturas con estado ERROR_CALIBRACION para revisar (' + items.length + ')', function () { pm.expect(items.length).to.be.above(0); });",
+                  "pm.test('El campo valor (el que se grafica) es siempre numerico; los estados no se mezclan en el valor', function () { const mal = items.filter(function (i) { return i.valor !== null && i.valor !== undefined && !isFinite(Number(i.valor)); }); pm.expect(mal.length, 'valor no numerico, ej.: ' + JSON.stringify(mal.slice(0, 1).map(function (i) { return { id: i.id_telemetria, valor: i.valor }; }))).to.eql(0); });",
+                  "pm.test('estado_calidad y estado_semaforo_historico llegan como campos categoricos separados del valor', function () { const mal = items.filter(function (i) { return typeof i.estado_calidad !== 'string' || (i.estado_semaforo_historico != null && SEM.indexOf(i.estado_semaforo_historico) === -1); }); pm.expect(mal.length, 'estados fuera de catalogo, ej.: ' + JSON.stringify(mal.slice(0, 1).map(function (i) { return { q: i.estado_calidad, s: i.estado_semaforo_historico }; }))).to.eql(0); });",
+                  "pm.test.skip('Gráfica de línea solo con variables numericas y estados solo en tabla: NO CONCLUYENTE con Newman (es de la interfaz, requiere Cypress)');",
+                  "console.log('[G118-3.1][OBSERVADO] lecturas=' + items.length + ' con valor nulo=' + items.filter(function (i) { return i.valor === null || i.valor === undefined; }).length + ' semaforos=' + JSON.stringify(Array.from(new Set(items.map(function (i) { return i.estado_semaforo_historico; })))));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Lecturas con FUERA_DE_RANGO: valor numerico y estados categoricos aparte (TC-M03-238)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&estado_dato=FUERA_DE_RANGO&por_pagina=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G118 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "const norm = function (s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); };",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "const SEM = ['VERDE', 'AMARILLO', 'ROJO', 'GRIS', 'SIN_DATOS'];",
+                  "pm.test('Hay lecturas con estado FUERA_DE_RANGO para revisar (' + items.length + ')', function () { pm.expect(items.length).to.be.above(0); });",
+                  "pm.test('El campo valor (el que se grafica) es siempre numerico; los estados no se mezclan en el valor', function () { const mal = items.filter(function (i) { return i.valor !== null && i.valor !== undefined && !isFinite(Number(i.valor)); }); pm.expect(mal.length, 'valor no numerico, ej.: ' + JSON.stringify(mal.slice(0, 1).map(function (i) { return { id: i.id_telemetria, valor: i.valor }; }))).to.eql(0); });",
+                  "pm.test('estado_calidad y estado_semaforo_historico llegan como campos categoricos separados del valor', function () { const mal = items.filter(function (i) { return typeof i.estado_calidad !== 'string' || (i.estado_semaforo_historico != null && SEM.indexOf(i.estado_semaforo_historico) === -1); }); pm.expect(mal.length, 'estados fuera de catalogo, ej.: ' + JSON.stringify(mal.slice(0, 1).map(function (i) { return { q: i.estado_calidad, s: i.estado_semaforo_historico }; }))).to.eql(0); });",
+                  "pm.test.skip('Gráfica de línea solo con variables numericas y estados solo en tabla: NO CONCLUYENTE con Newman (es de la interfaz, requiere Cypress)');",
+                  "console.log('[G118-3.2][OBSERVADO] lecturas=' + items.length + ' con valor nulo=' + items.filter(function (i) { return i.valor === null || i.valor === undefined; }).length + ' semaforos=' + JSON.stringify(Array.from(new Set(items.map(function (i) { return i.estado_semaforo_historico; })))));",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

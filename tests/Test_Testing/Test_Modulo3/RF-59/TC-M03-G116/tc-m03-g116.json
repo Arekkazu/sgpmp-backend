@@ -1,74 +1,37 @@
 {
   "info": {
-    "name": "TC-M03-G116 - Estado vacio orientativo cuando la consulta del historial no arroja resultados (E3)",
-    "description": "RF-59 flujo alterno E3. Parte API: filtros validos sobre un sensor sin datos en el periodo -> HTTP 200 con items vacio y total=0, sin 5xx ni datos fabricados. El mensaje orientativo de la interfaz (\"No se encontraron registros para los filtros seleccionados\") se valida con Cypress (herramienta de la ficha: Frontend/API - Cypress + Postman). Variable especifica: sensor_sin_datos. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): periodo_ini / periodo_fin (rango YYYY-MM-DD con lecturas conocidas; si quedan vacias se usan los ultimos 30 dias), sensor_temperatura_ambiental (id de un sensor con lecturas en el periodo), id_infraestructura y especie con lecturas, y las variables propias de cada caso. Auth: JWT del Administrador (admin.test); el recurso historial_telemetria (34) exige permiso Leer. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "name": "TC-M03-G116 - Estado vacio del historial de telemetria: consulta valida sin resultados",
+    "description": "RF-59 CU04 flujo alterno E3 sobre GET /iot/monitoreo/historial: consulta valida sin resultados. Primero comprueba que el sensor 545 tiene lecturas (0.1); luego lo consulta en 18/10 a 20/10, donde no tiene, y consulta el dia 24/10 sin filtros. Verifica HTTP 200, items vacio, total = 0, sin estadisticas ni rango de datos fabricados y estructura de paginacion. El mensaje de la interfaz (Cypress) no se puede verificar con Newman. Solo GET. Las claves no se guardan en este archivo: correr_newman.ps1 pide correo y contrasena del Administrador. Ejecucion (desde tests\\Test_Testing): .\\correr_newman.ps1 -Caso G116 -Rf RF-59. Ambiente: solo TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": ""
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
-      "value": ""
-    },
-    {
-      "key": "ids_alertas",
-      "value": "[]"
-    },
-    {
-      "key": "periodo_ini",
-      "value": ""
-    },
-    {
-      "key": "periodo_fin",
-      "value": ""
-    },
-    {
-      "key": "sensor_temperatura_ambiental",
-      "value": "1"
-    },
-    {
-      "key": "id_infraestructura",
-      "value": "1"
-    },
-    {
-      "key": "especie",
-      "value": ""
-    },
-    {
-      "key": "sensor_sin_datos",
       "value": ""
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login Administrador",
       "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.collectionVariables.set('ids_alertas', '[]');"
-            ]
-          }
-        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -95,10 +58,10 @@
       }
     },
     {
-      "name": "1. Consulta sin resultados (TC-M03-233)",
+      "name": "0. Precondicion",
       "item": [
         {
-          "name": "1.1 Sensor sin datos en el periodo - 200 con items vacio y total=0",
+          "name": "0.1 Precondicion: el sensor 545 si tiene lecturas en el periodo completo",
           "request": {
             "method": "GET",
             "header": [
@@ -107,94 +70,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{periodo_ini}}&fecha_fin={{periodo_fin}}&sensor_id={{sensor_sin_datos}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "monitoreo",
-                "historial"
-              ],
-              "query": [
-                {
-                  "key": "fecha_inicio",
-                  "value": "{{periodo_ini}}"
-                },
-                {
-                  "key": "fecha_fin",
-                  "value": "{{periodo_fin}}"
-                },
-                {
-                  "key": "sensor_id",
-                  "value": "{{sensor_sin_datos}}"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
-                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
-                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
-                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G116 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Estructura de la respuesta: total, pagina, por_pagina, paginas_totales, filtros_aplicados, rango_real_datos, items y estadisticas', function () { ['total', 'pagina', 'por_pagina', 'paginas_totales', 'filtros_aplicados', 'rango_real_datos', 'items', 'estadisticas'].forEach(function (k) { pm.expect(J, k).to.have.property(k); }); });",
-                  "pm.test('items vacio y total = 0', function () { pm.expect(J.items).to.be.an('array').that.is.empty; pm.expect(J.total).to.eql(0); });",
-                  "pm.test('Sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
-                  "pm.test('Sin datos fabricados: estadisticas vacias', function () { pm.expect(J.estadisticas).to.be.an('array').that.is.empty; });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.2 La interfaz muestra \"No se encontraron registros para los filtros seleccionados\" y sugiere ampliar el rango",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: validacion de interfaz con Cypress (Frontend); no verificable por API"
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=545&por_pagina=1"
           },
           "event": [
             {
@@ -202,8 +78,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G116 0.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - validacion de interfaz con Cypress (Frontend); no verificable por API\");"
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('El sensor 545 tiene lecturas en 18/10 a 25/10 (el vacio posterior se debe al periodo elegido)', function () { pm.expect(J.total_encontrado).to.be.above(0); });",
+                  ""
                 ]
               }
             }
@@ -212,56 +93,106 @@
       ]
     },
     {
-      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
-      "event": [
+      "name": "1. Consulta sin resultados (TC-M03-233)",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "(function () {",
-              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
-              "  console.log('[TC-M03-G116] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
-              "  pm.collectionVariables.set('ids_alertas', '[]');",
-              "})();",
-              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "iot",
-            "alertas"
-          ],
-          "query": [
+          "name": "1.1 Sensor 545 en un periodo sin lecturas (18/10 a 20/10) (TC-M03-233)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-20&sensor_id=545"
+          },
+          "event": [
             {
-              "key": "pagina",
-              "value": "1"
-            },
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('items vacio y total = 0 (cero resultados no es un error)', function () { pm.expect(J.items, 'items').to.be.an('array').that.is.empty; pm.expect(J.total, 'total').to.eql(0); pm.expect(J.total_encontrado, 'total_encontrado').to.eql(0); });",
+                  "pm.test('No se fabrican datos: sin estadisticas ni rango real de datos', function () { pm.expect((J.estadisticas || []).length, 'estadisticas').to.eql(0); pm.expect(J.rango_real_datos && (J.rango_real_datos.primer_timestamp || J.rango_real_datos.ultimo_timestamp) ? 'con rango' : 'sin rango', JSON.stringify(J.rango_real_datos)).to.eql('sin rango'); });",
+                  "pm.test('La respuesta mantiene la estructura de paginacion (pagina 1, paginas_totales >= 1)', function () { pm.expect(J.pagina).to.eql(1); pm.expect(J.paginas_totales).to.be.at.least(1); pm.expect(J).to.have.property('filtros_aplicados'); });",
+                  "console.log('[G116-OBSERVADO] aviso=' + JSON.stringify(J.aviso) + ' message=' + JSON.stringify(J.message) + ' filtros_aplicados=' + JSON.stringify(J.filtros_aplicados));",
+                  "pm.test.skip('Mensaje de la interfaz \"No se encontraron registros para los filtros seleccionados\" y sugerencia de ampliar el rango: NO CONCLUYENTE con Newman (es de la interfaz, requiere Cypress)');",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Periodo sin datos (24/10, sin filtros) (TC-M03-233)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-24&fecha_fin=2026-10-24"
+          },
+          "event": [
             {
-              "key": "por_pagina",
-              "value": "1"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, TXT.slice(0, 300)).to.eql(200); });",
+                  "pm.test('items vacio y total = 0 (cero resultados no es un error)', function () { pm.expect(J.items, 'items').to.be.an('array').that.is.empty; pm.expect(J.total, 'total').to.eql(0); pm.expect(J.total_encontrado, 'total_encontrado').to.eql(0); });",
+                  "pm.test('No se fabrican datos: sin estadisticas ni rango real de datos', function () { pm.expect((J.estadisticas || []).length, 'estadisticas').to.eql(0); pm.expect(J.rango_real_datos && (J.rango_real_datos.primer_timestamp || J.rango_real_datos.ultimo_timestamp) ? 'con rango' : 'sin rango', JSON.stringify(J.rango_real_datos)).to.eql('sin rango'); });",
+                  "pm.test('La respuesta mantiene la estructura de paginacion (pagina 1, paginas_totales >= 1)', function () { pm.expect(J.pagina).to.eql(1); pm.expect(J.paginas_totales).to.be.at.least(1); pm.expect(J).to.have.property('filtros_aplicados'); });",
+                  "console.log('[G116-OBSERVADO] aviso=' + JSON.stringify(J.aviso) + ' message=' + JSON.stringify(J.message) + ' filtros_aplicados=' + JSON.stringify(J.filtros_aplicados));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Control: sensor inexistente (999999) con rango valido (informativo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio=2026-10-18&fecha_fin=2026-10-25&sensor_id=999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G116 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const TXT = pm.response.text();",
+                  "const items = Array.isArray(J.items) ? J.items : [];",
+                  "console.log('[G116-1.3][OBSERVADO] sensor inexistente -> status=' + pm.response.code + ' total_encontrado=' + J.total_encontrado);",
+                  "pm.test('Control informativo: sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  ""
+                ]
+              }
             }
           ]
         }
-      }
+      ]
     }
   ]
 }
