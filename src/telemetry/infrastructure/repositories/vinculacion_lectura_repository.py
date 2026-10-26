@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-44 RF-61: guarda contexto y serializa vinculaciones |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-61: nombres de activo, área, finca, variable y usuario (read-model) |
+# | 2026-10-26 | Arekkazu | USAB-M03 T-18 RF-61: SQL literal en text() para el SAST (CWE-89) |
 from __future__ import annotations
 
 from datetime import datetime
@@ -132,23 +133,23 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         def ids(campo):
             return list({getattr(v, campo) for v in vinculaciones if getattr(v, campo) is not None})
 
-        def filas(sql, campo):
+        def filas(consulta, campo):
             valores = ids(campo)
-            return {f[0]: f[1:] for f in self.db.execute(text(sql), {'ids': valores}).all()} if valores else {}
+            return {f[0]: f[1:] for f in self.db.execute(consulta, {'ids': valores}).all()} if valores else {}
 
-        activos = filas('SELECT a.id_activo_biologico, a.identificador, e.nombre FROM modulo2.activos_biologicos a '
+        activos = filas(text('SELECT a.id_activo_biologico, a.identificador, e.nombre FROM modulo2.activos_biologicos a '
                         'LEFT JOIN modulo9.especies e ON e.id_especie = a.id_especie '
-                        'WHERE a.id_activo_biologico = ANY(:ids)', 'id_activo_biologico')
-        infra = filas('SELECT i.id_infraestructura, i.nombre, f.nombre FROM modulo9.infraestructuras i '
-                      'JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = ANY(:ids)',
+                        'WHERE a.id_activo_biologico = ANY(:ids)'), 'id_activo_biologico')
+        infra = filas(text('SELECT i.id_infraestructura, i.nombre, f.nombre FROM modulo9.infraestructuras i '
+                      'JOIN modulo9.fincas f ON f.id_finca = i.id_finca WHERE i.id_infraestructura = ANY(:ids)'),
                       'id_infraestructura')
-        lecturas = filas('SELECT t.id_telemetria, va.nombre, s.nombre, coalesce(t.valor_ajustado, t.valor_crudo), '
+        lecturas = filas(text('SELECT t.id_telemetria, va.nombre, s.nombre, coalesce(t.valor_ajustado, t.valor_crudo), '
                          'coalesce(va.unidad, t.unidad_medida), t.timestamp_captura FROM modulo3.telemetrias t '
                          'LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable '
                          'LEFT JOIN modulo9.sensores s ON s.id_sensores = t.id_sensor '
-                         'WHERE t.id_telemetria = ANY(:ids)', 'id_telemetria')
-        usuarios = filas("SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
-                         'WHERE id_usuario = ANY(:ids)', 'id_usuario')
+                         'WHERE t.id_telemetria = ANY(:ids)'), 'id_telemetria')
+        usuarios = filas(text("SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+                         'WHERE id_usuario = ANY(:ids)'), 'id_usuario')
         for v in vinculaciones:
             v.nombre_activo, v.especie_activo = activos.get(v.id_activo_biologico, (None, None))
             v.nombre_infraestructura, v.nombre_finca = infra.get(v.id_infraestructura, (None, None))
