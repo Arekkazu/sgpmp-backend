@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
+# | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: proyectar última lectura válida y condición más reciente de forma independiente. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,12 +26,19 @@ _SQL_ESTADOS = text("""
 SELECT
     eas.id_sensor,
     eas.id_dispositivo_iot,
-    eas.ultimo_valor,
+    CASE WHEN t_valida.id_telemetria IS NOT NULL THEN t_valida.valor_ajustado
+         WHEN t_lat.id_variable IS NULL AND eas.estado_calidad::text = 'LECTURA_VALIDA' THEN eas.ultimo_valor
+    END AS ultimo_valor,
     -- M3-09: el pH se mostraba en "%" porque la unidad venía de la lectura; manda I3P-1.
-    COALESCE(va.unidad, eas.ultima_unidad) AS ultima_unidad,
-    eas.ultimo_timestamp_captura,
+    COALESCE(va.unidad, t_valida.unidad_medida, eas.ultima_unidad) AS ultima_unidad,
+    CASE WHEN t_valida.id_telemetria IS NOT NULL THEN t_valida.timestamp_captura
+         WHEN t_lat.id_variable IS NULL AND eas.estado_calidad::text = 'LECTURA_VALIDA' THEN eas.ultimo_timestamp_captura
+    END AS ultimo_timestamp_captura,
     eas.estado_semaforo,
-    eas.estado_calidad::text        AS estado_calidad,
+    COALESCE(t_lat.estado_calidad::text, eas.estado_calidad::text) AS estado_calidad,
+    CASE WHEN t_valida.id_telemetria IS NOT NULL OR (t_lat.id_variable IS NULL AND eas.estado_calidad::text = 'LECTURA_VALIDA')
+         THEN 'LECTURA_VALIDA' END AS estado_calidad_valor_operativo,
+    COALESCE(t_lat.timestamp_captura, eas.ultimo_timestamp_captura) AS timestamp_estado_actual,
     eas.estado_desviacion::text     AS estado_desviacion,
     eas.estado_conectividad::text   AS estado_conectividad,
     eas.tiempo_sin_reporte_min,
@@ -53,15 +61,26 @@ JOIN modulo9.sensores s ON s.id_sensores = eas.id_sensor
 LEFT JOIN LATERAL (
     SELECT
         t2.id_variable,
+        t2.estado_calidad,
+        t2.timestamp_captura,
         t2.categoria_variable::text AS categoria_variable_txt,
         t2.nivel_bateria_pct,
         t2.calidad_senal_rssi,
         t2.calidad_senal_snr
     FROM modulo3.telemetrias t2
     WHERE t2.id_sensor = eas.id_sensor
-    ORDER BY t2.timestamp_captura DESC
+    ORDER BY t2.timestamp_captura DESC, t2.id_telemetria DESC
     LIMIT 1
 ) t_lat ON true
+LEFT JOIN LATERAL (
+    SELECT tv.id_telemetria, tv.valor_ajustado, tv.unidad_medida, tv.timestamp_captura
+    FROM modulo3.telemetrias tv
+    WHERE tv.id_sensor = eas.id_sensor
+      AND tv.id_variable = t_lat.id_variable
+      AND tv.estado_calidad = 'LECTURA_VALIDA'
+    ORDER BY tv.timestamp_captura DESC, tv.id_telemetria DESC
+    LIMIT 1
+) t_valida ON true
 LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t_lat.id_variable
 LEFT JOIN LATERAL (
     SELECT saa2.id_infraestructura
@@ -105,7 +124,7 @@ SELECT
                                 AS sensores_online,
     COUNT(CASE WHEN eas.estado_conectividad::text IN ('SIN_SEÑAL','SIN_SEÑAL','INACTIVO') THEN 1 END)
                                 AS sensores_sin_senal,
-    COUNT(CASE WHEN eas.estado_calidad::text = 'ERROR_CALIBRACION' THEN 1 END)
+    COUNT(CASE WHEN COALESCE(t_actual.estado_calidad::text, eas.estado_calidad::text) = 'ERROR_CALIBRACION' THEN 1 END)
                                 AS sensores_con_error,
     CASE MAX(CASE eas.estado_semaforo
                 WHEN 'ROJO'     THEN 4
@@ -131,6 +150,13 @@ JOIN LATERAL (
     ORDER BY saa2.fecha_asociacion DESC
     LIMIT 1
 ) saa_lat ON true
+LEFT JOIN LATERAL (
+    SELECT t.estado_calidad
+    FROM modulo3.telemetrias t
+    WHERE t.id_sensor = eas.id_sensor
+    ORDER BY t.timestamp_captura DESC, t.id_telemetria DESC
+    LIMIT 1
+) t_actual ON true
 JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
 JOIN modulo9.fincas f ON f.id_finca = i.id_finca
 WHERE (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
@@ -220,6 +246,8 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
             ultimo_timestamp_captura=f['ultimo_timestamp_captura'],
             estado_semaforo=f['estado_semaforo'] or 'GRIS',
             estado_calidad=f['estado_calidad'],
+            estado_calidad_valor_operativo=f.get('estado_calidad_valor_operativo'),
+            timestamp_estado_actual=f.get('timestamp_estado_actual'),
             estado_desviacion=f['estado_desviacion'],
             estado_conectividad=f['estado_conectividad'],
             tiempo_sin_reporte_min=f['tiempo_sin_reporte_min'],
