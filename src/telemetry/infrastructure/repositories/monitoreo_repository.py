@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
+# | 2026-10-26 | Arekkazu | INC-M03-205-G93 RF-58: unidades sin sensores en el resumen (GRIS, sin datos) |
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,7 +12,11 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva
+from src.telemetry.domain.entities.monitoreo import (
+    MENSAJE_UNIDAD_SIN_DATOS,
+    EstadoSensorActual,
+    ResumenUnidadProductiva,
+)
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
 
 _SQL_ACTUALIZAR_SEMAFORO = text("""
@@ -95,48 +100,74 @@ WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestr
 """)
 
 _SQL_RESUMEN = text("""
+WITH agg AS (
+    SELECT
+        saa_lat.id_infraestructura,
+        COUNT(eas.id_sensor)        AS total_sensores,
+        COUNT(CASE WHEN eas.estado_conectividad::text = 'ACTIVO' THEN 1 END)
+                                    AS sensores_online,
+        COUNT(CASE WHEN eas.estado_conectividad::text IN ('SIN_SEÑAL','SIN_SEÑAL','INACTIVO') THEN 1 END)
+                                    AS sensores_sin_senal,
+        COUNT(CASE WHEN eas.estado_calidad::text = 'ERROR_CALIBRACION' THEN 1 END)
+                                    AS sensores_con_error,
+        CASE MAX(CASE eas.estado_semaforo
+                    WHEN 'ROJO'     THEN 4
+                    WHEN 'AMARILLO' THEN 3
+                    WHEN 'GRIS'     THEN 2
+                    WHEN 'VERDE'    THEN 1
+                    ELSE 0 END)
+            WHEN 4 THEN 'ROJO'
+            WHEN 3 THEN 'AMARILLO'
+            WHEN 2 THEN 'GRIS'
+            WHEN 1 THEN 'VERDE'
+            ELSE 'SIN_DATOS'
+        END                         AS estado_general,
+        COUNT(CASE WHEN eas.id_alerta IS NOT NULL THEN 1 END)
+                                    AS alertas_activas_count,
+        MAX(eas.ultimo_timestamp_captura)
+                                    AS ultimo_dato_recibido
+    FROM modulo3.estados_actuales_sensores eas
+    JOIN LATERAL (
+        SELECT saa2.id_infraestructura
+        FROM modulo9.sensores_areas_asociadas saa2
+        WHERE saa2.id_sensor = eas.id_sensor AND saa2.fecha_finalizacion IS NULL
+        ORDER BY saa2.fecha_asociacion DESC
+        LIMIT 1
+    ) saa_lat ON true
+    GROUP BY saa_lat.id_infraestructura
+)
+-- INC-M03-205-G93 (CU04 E1): la unidad sin sensores también sale, en GRIS y con la
+-- fecha de su último dato histórico (de sensores que tuvo asociados), si existe.
 SELECT
     i.id_infraestructura,
-    i.nombre                    AS nombre_infraestructura,
+    i.nombre                                    AS nombre_infraestructura,
     i.id_finca,
-    f.nombre                    AS nombre_finca,
-    COUNT(eas.id_sensor)        AS total_sensores,
-    COUNT(CASE WHEN eas.estado_conectividad::text = 'ACTIVO' THEN 1 END)
-                                AS sensores_online,
-    COUNT(CASE WHEN eas.estado_conectividad::text IN ('SIN_SEÑAL','SIN_SEÑAL','INACTIVO') THEN 1 END)
-                                AS sensores_sin_senal,
-    COUNT(CASE WHEN eas.estado_calidad::text = 'ERROR_CALIBRACION' THEN 1 END)
-                                AS sensores_con_error,
-    CASE MAX(CASE eas.estado_semaforo
-                WHEN 'ROJO'     THEN 4
-                WHEN 'AMARILLO' THEN 3
-                WHEN 'GRIS'     THEN 2
-                WHEN 'VERDE'    THEN 1
-                ELSE 0 END)
-        WHEN 4 THEN 'ROJO'
-        WHEN 3 THEN 'AMARILLO'
-        WHEN 2 THEN 'GRIS'
-        WHEN 1 THEN 'VERDE'
-        ELSE 'SIN_DATOS'
-    END                         AS estado_general,
-    COUNT(CASE WHEN eas.id_alerta IS NOT NULL THEN 1 END)
-                                AS alertas_activas_count,
-    MAX(eas.ultimo_timestamp_captura)
-                                AS ultimo_dato_recibido
-FROM modulo3.estados_actuales_sensores eas
-JOIN LATERAL (
-    SELECT saa2.id_infraestructura
-    FROM modulo9.sensores_areas_asociadas saa2
-    WHERE saa2.id_sensor = eas.id_sensor AND saa2.fecha_finalizacion IS NULL
-    ORDER BY saa2.fecha_asociacion DESC
-    LIMIT 1
-) saa_lat ON true
-JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
+    f.nombre                                    AS nombre_finca,
+    COALESCE(agg.total_sensores, 0)             AS total_sensores,
+    COALESCE(agg.sensores_online, 0)            AS sensores_online,
+    COALESCE(agg.sensores_sin_senal, 0)         AS sensores_sin_senal,
+    COALESCE(agg.sensores_con_error, 0)         AS sensores_con_error,
+    COALESCE(agg.estado_general, 'GRIS')        AS estado_general,
+    COALESCE(agg.alertas_activas_count, 0)      AS alertas_activas_count,
+    COALESCE(agg.ultimo_dato_recibido, hist.ultimo) AS ultimo_dato_recibido
+FROM modulo9.infraestructuras i
 JOIN modulo9.fincas f ON f.id_finca = i.id_finca
-WHERE (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
-GROUP BY i.id_infraestructura, i.nombre, i.id_finca, f.nombre
+LEFT JOIN agg ON agg.id_infraestructura = i.id_infraestructura
+LEFT JOIN LATERAL (
+    SELECT MAX(t.timestamp_captura) AS ultimo
+    FROM modulo9.sensores_areas_asociadas saa
+    JOIN modulo3.telemetrias t
+      ON t.id_sensor = saa.id_sensor
+     AND t.timestamp_captura >= saa.fecha_asociacion
+     AND (saa.fecha_finalizacion IS NULL OR t.timestamp_captura < saa.fecha_finalizacion)
+    WHERE saa.id_infraestructura = i.id_infraestructura
+      AND agg.id_infraestructura IS NULL
+) hist ON true
+WHERE (i.es_activo OR agg.id_infraestructura IS NOT NULL)
+  AND (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
 ORDER BY i.nombre
 """)
+
 
 
 class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
@@ -203,6 +234,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
                 estado_general=f['estado_general'],
                 alertas_activas_count=f['alertas_activas_count'],
                 ultimo_dato_recibido=f['ultimo_dato_recibido'],
+                mensaje_estado=MENSAJE_UNIDAD_SIN_DATOS if f['total_sensores'] == 0 else None,
             )
             for f in filas
         ]

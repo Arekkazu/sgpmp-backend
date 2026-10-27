@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones R12, varias variables, activo, alertas y series |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -58,6 +59,11 @@ class ResumenUnidadProductiva:
     estado_general: str         # peor semáforo entre todos sus sensores
     alertas_activas_count: int
     ultimo_dato_recibido: Optional[datetime]
+    # CU04 E1 (INC-M03-205-G93): la unidad sin sensores sale en GRIS con este mensaje.
+    mensaje_estado: Optional[str] = None
+
+
+MENSAJE_UNIDAD_SIN_DATOS = 'Sin datos disponibles'
 
 
 @dataclass
@@ -86,6 +92,9 @@ class LecturaHistorica:
     nivel_bateria_pct: Optional[Decimal]
     calidad_senal_rssi: Optional[Decimal]
     calidad_senal_snr: Optional[Decimal]
+    # Fase 4 / Salida 1 (INC-M03-183-G112): contexto del activo (lote o individuo).
+    identificador_activo: Optional[str] = None
+    tipo_activo: Optional[str] = None
     # RF-17 — identifica el umbral M09 usado para calcular estado_semaforo_historico
     id_umbral_ambiental: Optional[int] = None
     valor_min_umbral: Optional[Decimal] = None
@@ -104,6 +113,18 @@ class ResumenEstadistico:
     pct_dentro_rango: Optional[float]
     pct_fuera_rango: Optional[float]
     total_alertas_en_periodo: int = 0
+    desviacion_estandar: Optional[Decimal] = None
+
+
+@dataclass
+class AlertaCorrelacionada:
+    """RF-59 Salida 5 / CA-8: alerta de RF-57 del periodo, ligada a una lectura consultada."""
+    id_alerta: int
+    tipo_alerta: str
+    severidad: str
+    timestamp_generacion: Optional[datetime]
+    variable_afectada: Optional[str]
+    estado_final: str
 
 
 @dataclass
@@ -118,13 +139,39 @@ class VacioTemporal:
     frecuencia_esperada_min: int
 
 
+#: RF-59 Restricción 12: combinaciones válidas además del rango de fechas (que siempre va).
+#: Se agregan "solo fechas" (CA-1, con el límite de 90 días de E4) y el activo biológico
+#: solo, que es una entrada propia del RF (RF-61, caso 220).
+COMBINACIONES_FILTROS_VALIDAS: tuple[frozenset[str], ...] = (
+    frozenset(),
+    frozenset({'tipo_variable'}),
+    frozenset({'sensor_id'}),
+    frozenset({'id_unidad_productiva'}),
+    frozenset({'especie'}),
+    frozenset({'tipo_variable', 'id_unidad_productiva'}),
+    frozenset({'tipo_variable', 'especie'}),
+    frozenset({'sensor_id', 'estado_dato'}),
+    frozenset({'categoria_variable', 'id_unidad_productiva'}),
+    frozenset({'id_activo_biologico'}),
+)
+
+
+def describir_combinaciones_validas() -> str:
+    return '; '.join(
+        ' + '.join(['fechas', *sorted(c)]) for c in COMBINACIONES_FILTROS_VALIDAS
+    )
+
+
 @dataclass
 class FiltrosHistorial:
-    """Parámetros validados de consulta histórica (RF-59)."""
+    """Parámetros validados de consulta histórica (RF-59).
+
+    ``tipo_variable`` admite varias variables (CA-9): lista, o texto separado por comas.
+    """
     fecha_inicio: date
     fecha_fin: date
     sensor_id: Optional[int] = None
-    tipo_variable: Optional[str] = None
+    tipo_variable: Optional[list[str] | str] = None
     categoria_variable: Optional[str] = None
     id_infraestructura: Optional[int] = None
     especie: Optional[str] = None
@@ -135,29 +182,41 @@ class FiltrosHistorial:
     por_pagina: int = 100
     orden: str = 'DESC'
     ids_fincas_permitidas: Optional[list[int]] = None
+    id_activo_biologico: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        valores = [self.tipo_variable] if isinstance(self.tipo_variable, str) else (self.tipo_variable or [])
+        tipos: list[str] = []
+        for valor in valores:
+            for parte in valor.split(','):
+                parte = parte.strip()
+                if parte and parte not in tipos:
+                    tipos.append(parte)
+        self.tipo_variable = tipos or None
+
+    def filtros_presentes(self) -> frozenset[str]:
+        """Nombres (de la Restricción 12) de los filtros aplicados además del rango de fechas."""
+        presentes = {
+            'sensor_id': self.sensor_id is not None,
+            'tipo_variable': bool(self.tipo_variable),
+            'categoria_variable': bool(self.categoria_variable),
+            'id_unidad_productiva': self.id_infraestructura is not None,
+            'especie': bool(self.especie),
+            'estado_dato': bool(self.estado_dato),
+            'origen_dato': bool(self.origen_dato),
+            'id_activo_biologico': self.id_activo_biologico is not None,
+        }
+        return frozenset(k for k, v in presentes.items() if v)
 
     def tiene_filtro_adicional(self) -> bool:
         """True si hay al menos un filtro adicional además del rango de fechas."""
-        return any([
-            self.sensor_id,
-            self.tipo_variable,
-            self.categoria_variable,
-            self.id_infraestructura,
-            self.especie,
-            self.estado_dato,
-            self.origen_dato,
-        ])
+        return bool(self.filtros_presentes())
 
     def combinacion_valida(self) -> bool:
-        """Verifica que la combinación de filtros sea una de las permitidas por RF-59."""
-        # Con solo rango de fechas es inválido (requiere al menos un filtro adicional
-        # si el rango supera 90 días — validado en el use case)
-        # Las combinaciones inválidas son: filtros sin rango de fechas
+        """RF-59 Restricción 12 (INC-M03-184-G113): solo las combinaciones listadas."""
         if self.fecha_inicio is None or self.fecha_fin is None:
             return False
-        # Combinaciones explícitamente prohibidas: sensor_id y especie juntos sin variable
-        # (el RF lista las válidas; cualquier filtro con fecha_inicio+fecha_fin es base válida)
-        return True
+        return self.filtros_presentes() in COMBINACIONES_FILTROS_VALIDAS
 
 
 # Orden de severidad del semáforo para agregación de peor estado

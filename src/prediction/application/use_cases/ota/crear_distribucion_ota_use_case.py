@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-26 RF-69/70: OTA distribuye versiones APROBADO    |
+# | 2026-10-26 | Arekkazu     | INC-M04-204-G43/207-G46 RF-70: PROGRAMADO fuera de ventana se pospone (E1) |
 """Crear una distribución OTA de un componente a varios nodos (DEV-15, RF-70, D6 de AIOT-DEV-03).
 
 1. Valida la versión: debe estar APROBADO (RFC-015 C3, R11 de RF-69 corregida:
@@ -16,20 +17,25 @@
    su fase del rollout (canary, parcial 20–30 %, total) y la versión que el nodo
    tiene instalada de ese componente (``id_version_modelo_anterior``).
 4. Después del commit avisa ``ota/notify`` (BRK-08) solo a la fase CANARY, con la
-   URL firmada y temporal, el SHA-256 y la firma del artefacto.
+   URL firmada y temporal, el SHA-256 y la firma del artefacto. En modo PROGRAMADO,
+   antes de ``ventana_inicio`` no avisa: deja los despliegues PENDIENTE con
+   FUERA_VENTANA_ACTUALIZACION, registra DISTRIBUCION_POSPUESTA (RF-73) y los avisa
+   ``LiberarDesplieguesProgramadosUseCase`` al abrir la ventana (RF-70 E1).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.prediction.application.use_cases.ota._aviso_fase import avisar_despliegues
+from src.prediction.application.use_cases.ota._aviso_fase import MOTIVO_FUERA_VENTANA, avisar_despliegues
 from src.prediction.domain.entities.despliegue_ota import DespliegueOta
 from src.prediction.domain.entities.distribucion_ota import FASE_CANARY, DistribucionOta, planificar_fases
 from src.prediction.domain.repositories.despliegue_ota_repository import DespliegueOtaRepository
 from src.prediction.domain.repositories.distribucion_ota_repository import DistribucionOtaRepository
+from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.ota_edge_port import AvisoOtaPort, NodoOtaPort, UrlDescargaPort
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
 from src.prediction.infrastructure.dto.ota_dto import CrearDistribucionOtaDTO
@@ -56,8 +62,10 @@ class CrearDistribucionOtaUseCase:
         nodo_port: NodoOtaPort,
         aviso_port: AvisoOtaPort,
         url_port: UrlDescargaPort,
+        auditoria_repo: Optional[EventoAuditoriaM04Repository] = None,
     ) -> None:
         self._db = db
+        self._auditoria_repo = auditoria_repo
         self._version_repo = version_repo
         self._distribucion_repo = distribucion_repo
         self._despliegue_repo = despliegue_repo
@@ -175,6 +183,23 @@ class CrearDistribucionOtaUseCase:
                 despliegue_repo=self._despliegue_repo, nodo_port=self._nodo_port,
                 aviso_port=self._aviso_port, url_port=self._url_port, ahora=ahora,
             )
+            pospuestos = [d for d in avisados if d.motivo_fallo == MOTIVO_FUERA_VENTANA]
+            if pospuestos and self._auditoria_repo is not None:
+                self._auditoria_repo.registrar(
+                    tipo_evento="DISTRIBUCION_POSPUESTA",
+                    tipo_actor="USUARIO",
+                    id_usuario=id_usuario,
+                    id_referencia=str(distribucion.id_distribucion_ota),
+                    entidad_referencia="distribucion_ota",
+                    severidad_evento="INFO",
+                    payload_evento={
+                        "id_distribucion_ota": distribucion.id_distribucion_ota,
+                        "id_version_modelo": version.id_version_modelo,
+                        "motivo": MOTIVO_FUERA_VENTANA,
+                        "dispositivos": [d.id_dispositivo_iot for d in pospuestos],
+                        "proximo_intento": distribucion.ventana_inicio.isoformat(),
+                    },
+                )
             self._db.commit()
         except Exception:
             self._db.rollback()

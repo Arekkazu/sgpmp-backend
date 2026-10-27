@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: unidad sin sensores, lote, desviación, alertas y series |
 from __future__ import annotations
 
 from datetime import datetime
@@ -61,6 +62,8 @@ class ResumenUnidadSchema(BaseModel):
     estado_general: str
     alertas_activas_count: int
     ultimo_dato_recibido: Optional[datetime] = None
+    # CU04 E1: "Sin datos disponibles" cuando la unidad no tiene sensores (estado GRIS).
+    mensaje_estado: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -106,6 +109,9 @@ class LecturaHistoricaSchema(BaseModel):
     valor_min_umbral: Optional[Decimal] = None
     valor_max_umbral: Optional[Decimal] = None
     version_umbral: Optional[datetime] = None
+    # Contexto del activo (Fase 4): identificador del lote o individuo y su tipo.
+    identificador_activo: Optional[str] = None
+    tipo_activo: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -120,8 +126,35 @@ class ResumenEstadisticoSchema(BaseModel):
     pct_dentro_rango: Optional[float] = None
     pct_fuera_rango: Optional[float] = None
     total_alertas_en_periodo: int = 0
+    desviacion_estandar: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}
+
+
+class AlertaCorrelacionadaSchema(BaseModel):
+    """RF-59 Salida 5 — alerta de RF-57 del periodo (con ``incluir_alertas=true``)."""
+    id_alerta: int
+    tipo_alerta: str
+    severidad: str
+    timestamp_generacion: Optional[datetime] = None
+    variable_afectada: Optional[str] = None
+    estado_final: str
+
+
+class PuntoSerieSchema(BaseModel):
+    timestamp_captura: datetime
+    valor: Optional[Decimal] = None
+    estado_semaforo_historico: str
+    id_sensor: int
+
+
+class SerieTemporalSchema(BaseModel):
+    """RF-59 Salida 3 / CA-9 — serie de una variable (sobre las lecturas de la página)."""
+    tipo_variable: str
+    unidad_medida: str
+    umbral_min: Optional[Decimal] = None
+    umbral_max: Optional[Decimal] = None
+    puntos: list[PuntoSerieSchema]
 
 
 class VacioTemporalSchema(BaseModel):
@@ -138,7 +171,8 @@ class HistorialPageSchema(BaseModel):
     """RF-59 — respuesta paginada del historial.
 
     ``total`` son los registros navegables (como mucho 10 000, CA-19); ``total_encontrado``
-    los que cumplen los filtros. Si los supera, ``truncado`` y ``aviso`` lo explican (E6).
+    los que cumplen los filtros. Si los supera, ``truncado`` y ``aviso`` lo explican (E6);
+    sin resultados, ``aviso`` trae el mensaje de estado vacío (E3).
     """
     total: int
     total_encontrado: int
@@ -152,3 +186,5 @@ class HistorialPageSchema(BaseModel):
     items: list[LecturaHistoricaSchema]
     estadisticas: list[ResumenEstadisticoSchema]
     vacios_temporales: list[VacioTemporalSchema] = []
+    series: list[SerieTemporalSchema] = []
+    alertas_correlacionadas: list[AlertaCorrelacionadaSchema] = []
