@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
+# | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -171,6 +172,10 @@ class EstadoPaqueteInferencia(str, Enum):
     ENVIADO = "ENVIADO"
     PENDIENTE = "PENDIENTE"
     FALLIDO = "FALLIDO"
+
+
+# RF-56 restricción 5: máximo 500 registros por envío al motor; más se fragmenta.
+MAX_REGISTROS_POR_ENVIO_INFERENCIA = 500
 
 
 # Mapeo de clasificación RF-55 al enum tipo_evento de eventos_edge_computing en BD

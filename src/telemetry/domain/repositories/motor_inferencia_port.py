@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 from abc import ABC, abstractmethod
 
 from src.shared.errors import ServiceUnavailableError
@@ -21,5 +24,14 @@ class MotorInferenciaPort(ABC):
 
         MotorInferenciaNoIntegradoError indica que no hubo intento por falta
         de integración. No define protocolo, ACK ni reintentos del futuro IA-1.
+        """
+        ...
+
+    @abstractmethod
+    def enviar_lote(self, paquetes: list[PaqueteInferencia]) -> bool:
+        """Envío batch (RF-56 Fase 6). Recibe como máximo
+        MAX_REGISTROS_POR_ENVIO_INFERENCIA paquetes, en orden cronológico.
+
+        Misma semántica que enviar_paquete, para el lote completo.
         """
         ...
