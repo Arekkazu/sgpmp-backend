@@ -1,3 +1,6 @@
+# | Fecha      | Nombre     | Que se hizo                                                                      |
+# |------------|------------|----------------------------------------------------------------------------------|
+# | 2026-10-26 | HulkyZeus  | TC-M04-G010 RF-67: siembra unica e idempotente, sin borrar (historial inmutable)  |
 """
 TC-M04-G010 - Consulta del historial diagnostico con y sin filtros (arnes de datos + ejecucion de la coleccion).
 
@@ -10,14 +13,17 @@ RF-66 es externo). Decision del 2026-10-19: sembrar datos de prueba propios.
 
 Que hace:
 1. Crea por API un activo biologico propio (finca, especie, area y activo individual).
-2. Inserta en la BD de TEST 6 inferencias SOLO para ese activo (usuario QA, que tiene INSERT/DELETE y sin RLS),
+2. Inserta en la BD de TEST 6 inferencias SOLO para ese activo (una sola vez) (usuario QA, que tiene INSERT/DELETE y sin RLS),
    con niveles de riesgo, patologias y fechas conocidos. Una de ellas se correlaciona con una alerta de RF-57
    que ya existe: modulo4.alertas_patologicas es inmutable (trigger que bloquea UPDATE/DELETE), asi que crear
    una alerta nueva la dejaria para siempre en el TEST compartido.
 3. Ejecuta la coleccion con Newman pasando el activo y los conteos esperados por --env-var.
-4. Borra todo lo sembrado: primero los eventos que el historial materializa en
-   modulo4.historial_diagnostico_eventos y luego las inferencias. El activo creado por API queda (como en el
-   resto de los casos).
+4. NO borra nada: modulo4.historial_diagnostico_eventos es inmutable (RF-67, INC-M04-145: triggers que
+   bloquean UPDATE/DELETE) y la API materializa ahi un evento por inferencia consultada. La siembra es por eso
+   unica e idempotente: las inferencias llevan ids deterministas (uuid5) y fechas fijas del pasado, asi que la
+   primera corrida crea el activo y las inserta, y las siguientes reutilizan el mismo activo y los mismos datos
+   (los eventos del historial tienen id estable, INC-M04-146, y no se duplican). Las expectativas se calculan
+   leyendo lo sembrado. Un fallo a medias se completa en la siguiente corrida.
 
 Requisitos: newman en el PATH y acceso de red a TEST (API y Postgres 5448).
 Variables opcionales: BASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
@@ -64,12 +70,22 @@ def _crear(s, ruta, cuerpo, campo):
     return r.json()[campo]
 
 
-@pytest.fixture(scope="module")
-def activo() -> dict:
+# Ids deterministas y fechas fijas (pasadas): la misma siembra en cada corrida. El historial rechaza fecha_fin futura.
+NAMESPACE_SIEMBRA = uuid.UUID("5b0c1a64-7d0e-4a57-9c1d-0f6f6a2f1010")
+ANCLA = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)
+# (dias antes del ancla, nivel_riesgo, indice de patologia base o None, con_alerta)
+PLAN = [(1, 3, 0, True), (2, 1, 1, False), (4, 3, 1, False), (6, 2, 0, False), (9, 0, None, False), (12, 3, 0, False)]
+
+
+def _sesion() -> requests.Session:
     s = requests.Session()
     r = s.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": "admin@pecuaria.co", "contrasena": "Test1234!"}, timeout=TIMEOUT)
     assert r.status_code == 200, f"Login Administrador: HTTP {r.status_code} {r.text}"
     s.headers["Authorization"] = f"Bearer {r.json()['token']}"
+    return s
+
+
+def _crear_activo(s) -> dict:
     suf = _sufijo()
     finca = _crear(s, "/configuracion/fincas", {
         "nombre": f"Finca Historial Diagnostico {suf}",
@@ -86,74 +102,85 @@ def activo() -> dict:
         "origen_financiero": "nacimiento", "id_infraestructura": area, "identificador": f"CERDO-{suf}",
         "raza": "Landrace", "sexo": "Macho", "fecha_nacimiento": "2026-05-01T00:00:00", "peso_inicial": "30.0",
         "detalles_procedencia": "Activo de prueba TC-M04-G010"}, "id_activo_biologico")
+    return {"id": id_activo, "especie": especie}
+
+
+def _patologias_base(s) -> list[int]:
     base = s.get(f"{BASE_URL}/prediccion/patologias?solo_base=true", timeout=TIMEOUT)
     assert base.status_code == 200 and len(base.json()["items"]) >= 2, f"Se necesitan 2 patologias base: {base.text[:200]}"
-    patologias = [p["id_patologia"] for p in base.json()["items"][:2]]
-    return {"id": id_activo, "especie": especie, "patologias": patologias}
+    return [p["id_patologia"] for p in base.json()["items"][:2]]
+
+
+_LEER = """
+    SELECT id_resultado_inferencia::text AS id, id_activo_biologico, id_especie, fecha_inferencia, nivel_riesgo,
+           id_patologia, tiene_alerta_generada, id_alerta_generada
+    FROM modulo4.resultados_inferencia WHERE id_resultado_inferencia = ANY(%s::uuid[]) ORDER BY fecha_inferencia DESC
+"""
 
 
 @pytest.fixture(scope="module")
-def sembrado(activo):
-    """Inserta 6 inferencias del activo y las borra al terminar."""
-    ahora = datetime.now(timezone.utc).replace(microsecond=0)
-    pat_a, pat_b = activo["patologias"]
-    # (dias atras, nivel_riesgo, patologia, con_alerta)
-    plan = [(1, 3, pat_a, True), (2, 1, pat_b, False), (4, 3, pat_b, False),
-            (6, 2, pat_a, False), (9, 0, None, False), (12, 3, pat_a, False)]
+def sembrado():
+    """Siembra (una sola vez) las 6 inferencias del activo y devuelve los parametros de la coleccion."""
+    ids = [str(uuid.uuid5(NAMESPACE_SIEMBRA, f"inferencia-{i}")) for i in range(len(PLAN))]
     con = psycopg2.connect(**DB)
-    ids: list[str] = []
     try:
-        with con.cursor() as cur:
-            cur.execute("SELECT min(id_version_modelo) FROM modulo4.versiones_modelos")
-            version = cur.fetchone()[0]
-            cur.execute("SELECT min(id_alerta_patologica) FROM modulo4.alertas_patologicas")
-            alerta = cur.fetchone()[0]
-            assert version is not None, "No hay ninguna version de modelo en TEST para referenciar"
-            assert alerta is not None, "No hay ninguna alerta de RF-57 existente para correlacionar"
-            filas = []
-            for dias, riesgo, patologia, con_alerta in plan:
-                fecha = ahora - timedelta(days=dias)
-                id_ri = str(uuid.uuid4())
-                ids.append(id_ri)
-                cur.execute(
-                    """
-                    INSERT INTO modulo4.resultados_inferencia
-                      (id_resultado_inferencia, id_activo_biologico, id_especie, tipo_modelo, id_version_modelo,
-                       nivel_riesgo, probabilidad_riesgo, id_patologia, probabilidad_enfermedad, confianza_global,
-                       modo_ejecucion, latencia_ms, fecha_inicio_ventana, fecha_fin_ventana, fecha_inferencia,
-                       tiene_alerta_generada, id_alerta_generada)
-                    VALUES (%s, %s, %s, 'MODELO_PORCINOS', %s, %s, %s, %s, %s, 0.85, 'SERVIDOR', 120,
-                            %s, %s, %s, %s, %s)
-                    """,
-                    (id_ri, activo["id"], activo["especie"], version, riesgo,
-                     json.dumps({str(n): round(0.1 + 0.2 * (n == riesgo), 2) for n in range(4)}), patologia,
-                     json.dumps({str(patologia): 0.7} if patologia else {}),
-                     fecha - timedelta(hours=1), fecha, fecha, con_alerta, alerta if con_alerta else None),
-                )
-                filas.append((id_ri, fecha, riesgo, patologia, con_alerta))
-        con.commit()
-        rango = [f for f in filas if 3 <= (ahora - f[1]).days <= 7]
-        yield {
-            "id_activo": activo["id"],
-            "desde": str((ahora - timedelta(days=30)).date()),
-            "hasta": str(ahora.date()),  # el historial rechaza fecha_fin futura (FECHA_FIN_FUTURA)
-            "rango_desde": str((ahora - timedelta(days=7)).date()),
-            "rango_hasta": str((ahora - timedelta(days=3)).date()),
-            "esperado_total": len(filas),
-            "esperado_rango": len(rango),
-            "esperado_riesgo3": sum(1 for f in filas if f[2] == 3),
-            "id_patologia_a": pat_a,
-            "esperado_patologia_a": sum(1 for f in filas if f[3] == pat_a),
-            "id_resultado_con_alerta": next(f[0] for f in filas if f[4]),
-            "id_alerta": alerta,
-        }
+        with con.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(_LEER, (ids,))
+            filas = cur.fetchall()
+            if len(filas) < len(ids):  # primera corrida (o una a medias): se completa lo que falte
+                s = _sesion()
+                activo = {"id": filas[0]["id_activo_biologico"], "especie": filas[0]["id_especie"]} if filas else _crear_activo(s)
+                patologias = _patologias_base(s)
+                cur.execute("SELECT min(id_version_modelo) AS v FROM modulo4.versiones_modelos")
+                version = cur.fetchone()["v"]
+                cur.execute("SELECT min(id_alerta_patologica) AS a FROM modulo4.alertas_patologicas")
+                alerta = cur.fetchone()["a"]
+                assert version is not None, "No hay ninguna version de modelo en TEST para referenciar"
+                assert alerta is not None, "No hay ninguna alerta de RF-57 existente para correlacionar"
+                for id_ri, (dias, riesgo, idx_pat, con_alerta) in zip(ids, PLAN):
+                    patologia = patologias[idx_pat] if idx_pat is not None else None
+                    fecha = ANCLA - timedelta(days=dias)
+                    cur.execute(
+                        """
+                        INSERT INTO modulo4.resultados_inferencia
+                          (id_resultado_inferencia, id_activo_biologico, id_especie, tipo_modelo, id_version_modelo,
+                           nivel_riesgo, probabilidad_riesgo, id_patologia, probabilidad_enfermedad, confianza_global,
+                           modo_ejecucion, latencia_ms, fecha_inicio_ventana, fecha_fin_ventana, fecha_inferencia,
+                           tiene_alerta_generada, id_alerta_generada)
+                        VALUES (%s, %s, %s, 'MODELO_PORCINOS', %s, %s, %s, %s, %s, 0.85, 'SERVIDOR', 120,
+                                %s, %s, %s, %s, %s)
+                        ON CONFLICT (id_resultado_inferencia) DO NOTHING
+                        """,
+                        (id_ri, activo["id"], activo["especie"], version, riesgo,
+                         json.dumps({str(n): round(0.1 + 0.2 * (n == riesgo), 2) for n in range(4)}), patologia,
+                         json.dumps({str(patologia): 0.7} if patologia else {}),
+                         fecha - timedelta(hours=1), fecha, fecha, con_alerta, alerta if con_alerta else None),
+                    )
+                con.commit()
+                cur.execute(_LEER, (ids,))
+                filas = cur.fetchall()
+        assert len(filas) == len(ids), f"Siembra incompleta: {len(filas)} de {len(ids)} inferencias"
     finally:
-        con.rollback()
-        with con.cursor() as cur:
-            cur.execute("DELETE FROM modulo4.historial_diagnostico_eventos WHERE id_resultado_inferencia = ANY(%s::uuid[])", (ids,))
-            cur.execute("DELETE FROM modulo4.resultados_inferencia WHERE id_resultado_inferencia = ANY(%s::uuid[])", (ids,))
-        con.commit()
         con.close()
+
+    # Las expectativas salen de lo sembrado (no de constantes): la fuente de verdad es la BD.
+    primera = next(f for f in filas if f["id"] == ids[0])           # la que lleva alerta y patologia A
+    pat_a = primera["id_patologia"]
+    en_rango = [f for f in filas if 3 <= (ANCLA - f["fecha_inferencia"]).days <= 7]
+    return {
+        "id_activo": primera["id_activo_biologico"],
+        "desde": str((ANCLA - timedelta(days=30)).date()),
+        "hasta": str(datetime.now(timezone.utc).date()),  # el historial rechaza fecha_fin futura (FECHA_FIN_FUTURA)
+        "rango_desde": str((ANCLA - timedelta(days=7)).date()),
+        "rango_hasta": str((ANCLA - timedelta(days=3)).date()),
+        "esperado_total": len(filas),
+        "esperado_rango": len(en_rango),
+        "esperado_riesgo3": sum(1 for f in filas if f["nivel_riesgo"] == 3),
+        "id_patologia_a": pat_a,
+        "esperado_patologia_a": sum(1 for f in filas if f["id_patologia"] == pat_a),
+        "id_resultado_con_alerta": ids[0],
+        "id_alerta": primera["id_alerta_generada"],
+    }
 
 
 @pytest.fixture(scope="module")
