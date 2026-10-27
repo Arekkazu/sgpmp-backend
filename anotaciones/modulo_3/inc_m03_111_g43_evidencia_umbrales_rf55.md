@@ -48,9 +48,24 @@ backend nunca las llenaba:
    - TC-M03-076: medición de 25.
    - TC-M03-077: medición de 35.
    - TC-M03-078: medición de 10.
-3. **Grupo de análisis:** decidir qué pasa cuando la medición es exactamente igual a un límite.
-   El RF solo dice "valor dentro de rango". *Pendiente: se completa con el documento de
-   requerimientos que comparte el equipo.*
+3. **Grupo de análisis:** confirmar qué pasa cuando la medición es exactamente igual a un límite.
+   Se revisó la especificación del Módulo 3 y `ESPECIFICACION_REQUERIMIENTOS_COMPLETA.xlsx`
+   (carpeta de requerimientos en Drive, versión del 2026-10-26):
+   - **RF-55 no lo define.** Solo dice "NORMAL: valor dentro de rango" y "DESVIACIÓN SIMPLE: una
+     variable fuera de rango".
+   - **RF-58 sí lo define, y para todo el sistema.** En la Fase 3 (Cálculo del Estado del
+     Semáforo) establece `VERDE: valor ∈ [umbral_min, umbral_max]` (intervalo cerrado) y agrega:
+     "Esta lógica debe aplicarse de forma determinística y consistente en todo el sistema"
+     (`Especificacion-Requerimientos-Modulo3.md`, líneas 5197 y 5207).
+   - **RF-16 aplica el mismo criterio** a los valores de las métricas dinámicas: "dentro de ese
+     rango, inclusive".
+
+   **Propuesta:** el intervalo es inclusivo. `umbral_min ≤ valor ≤ umbral_max` → NORMAL, y solo
+   `valor < umbral_min` o `valor > umbral_max` → DESVIACION_SIMPLE. Así, una medición igual a 18 o
+   a 30, con los umbrales propuestos, es NORMAL. Como RF-55 no lo dice de forma explícita, el
+   grupo de análisis debe ratificarlo, y el equipo Edge lo debe implementar en el `edge_agent`.
+   Se sugieren dos casos de borde para la matriz de QA: medición igual a 18 y medición igual
+   a 30, ambas NORMAL.
 4. **QA:** cuando el motor esté disponible, ejecutar los tres casos y guardar como evidencia la
    respuesta del endpoint o la fila de `modulo3.eventos_edge_computing`, con el valor y los
    umbrales.
