@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: 422 en E2, varias variables, activo, alertas y series |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -28,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.errors import ServiceUnavailableError, ValidationError
+from src.shared.errors import BusinessRuleError, ServiceUnavailableError, ValidationError
 from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -50,10 +51,20 @@ from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAl
 from src.telemetry.infrastructure.schema.monitoreo_schema import (
     DashboardResponseSchema,
     EstadoSensorSchema,
+    AlertaCorrelacionadaSchema,
     HistorialPageSchema,
     LecturaHistoricaSchema,
     ResumenEstadisticoSchema,
     ResumenUnidadSchema,
+    SerieTemporalSchema,
+)
+
+#: RF-59 Fase 2 / E2: parámetros inválidos → 422, también los que rechaza FastAPI
+#: (fecha faltante, por_pagina fuera de 1–500; INC-M03-180-G111 / INC-M03-185-G114).
+_VALIDACION_422 = {"x-codigo-validacion": 422}
+_DESC_TIPO_VARIABLE = (
+    "Código (TEMPERATURA_AMBIENTAL) o nombre de la variable. Varias: repetir el parámetro "
+    "o separarlas por coma (CA-9)."
 )
 
 router = APIRouter(prefix="/iot/monitoreo", tags=["Telemetría IoT - Monitoreo"])
@@ -164,6 +175,7 @@ def obtener_dashboard_por_unidad(
     dependencies=[Depends(require_permission_auditado(
         34, 5, componente_origen=ComponenteOrigen.RF59, tipo_evento='HISTORIAL_ACCESO_DENEGADO',
     ))],
+    openapi_extra=_VALIDACION_422,
     summary="Exportar historial en PDF/Excel — pendiente implementación M08 (RF-59)",
 )
 def exportar_historial(
@@ -171,12 +183,13 @@ def exportar_historial(
     fecha_inicio: date = Query(),
     fecha_fin: date = Query(),
     sensor_id: Optional[int] = Query(default=None),
-    tipo_variable: Optional[str] = Query(default=None),
+    tipo_variable: Optional[list[str]] = Query(default=None, description=_DESC_TIPO_VARIABLE),
     categoria_variable: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
     especie: Optional[str] = Query(default=None),
     estado_dato: Optional[str] = Query(default=None),
     origen_dato: Optional[str] = Query(default=None),
+    id_activo_biologico: Optional[int] = Query(default=None),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> None:
     filtros = FiltrosHistorial(
@@ -189,6 +202,7 @@ def exportar_historial(
         especie=especie,
         estado_dato=estado_dato,
         origen_dato=origen_dato,
+        id_activo_biologico=id_activo_biologico,
     )
     # FA-11: bloquear exportación sin filtros activos
     if not filtros.tiene_filtro_adicional():
@@ -208,11 +222,11 @@ def exportar_historial(
     response_model=HistorialPageSchema,
     status_code=200,
     responses={
-        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
+        422: {"model": ErrorResponse, "description": "Parámetros inválidos (E2) o rango sin filtros (E4)"},
     },
+    openapi_extra=_VALIDACION_422,
     # E1 (DEV-38): el 403 de RBAC queda en la bitácora de RF-63.
     dependencies=[Depends(require_permission_auditado(
         34, 2, componente_origen=ComponenteOrigen.RF59, tipo_evento='HISTORIAL_ACCESO_DENEGADO',
@@ -223,9 +237,10 @@ def consultar_historial(
     fecha_inicio: date = Query(description="Fecha inicio del rango (YYYY-MM-DD)"),
     fecha_fin: date = Query(description="Fecha fin del rango (YYYY-MM-DD)"),
     sensor_id: Optional[int] = Query(default=None),
-    tipo_variable: Optional[str] = Query(default=None),
+    tipo_variable: Optional[list[str]] = Query(default=None, description=_DESC_TIPO_VARIABLE),
     categoria_variable: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
+    id_activo_biologico: Optional[int] = Query(default=None, description="Lecturas vinculadas al activo (RF-61)"),
     especie: Optional[str] = Query(default=None),
     estado_dato: Optional[str] = Query(default=None, description="LECTURA_VALIDA / FUERA_DE_RANGO / ERROR_CALIBRACION"),
     origen_dato: Optional[str] = Query(default=None, description="TIEMPO_REAL / BUFFER_LOCAL / EDGE_AGREGADO"),
@@ -237,7 +252,7 @@ def consultar_historial(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialPageSchema:
     if orden.upper() not in ('ASC', 'DESC'):
-        raise ValidationError(code='ORDEN_INVALIDO', message="El parámetro 'orden' debe ser ASC o DESC.")
+        raise BusinessRuleError(code='ORDEN_INVALIDO', message="El parámetro 'orden' debe ser ASC o DESC.", field='orden')
 
     filtros = FiltrosHistorial(
         fecha_inicio=fecha_inicio,
@@ -250,6 +265,7 @@ def consultar_historial(
         estado_dato=estado_dato,
         origen_dato=origen_dato,
         incluir_alertas=incluir_alertas,
+        id_activo_biologico=id_activo_biologico,
         pagina=pagina,
         por_pagina=por_pagina,
         orden=orden.upper(),
@@ -280,4 +296,8 @@ def consultar_historial(
         rango_real_datos=metadatos['rango_real_datos'],
         items=[LecturaHistoricaSchema.model_validate(l.__dict__) for l in lecturas],
         estadisticas=[ResumenEstadisticoSchema.model_validate(e.__dict__) for e in estadisticas],
+        series=[SerieTemporalSchema.model_validate(serie) for serie in metadatos['series']],
+        alertas_correlacionadas=[
+            AlertaCorrelacionadaSchema.model_validate(a) for a in metadatos['alertas_correlacionadas']
+        ],
     )

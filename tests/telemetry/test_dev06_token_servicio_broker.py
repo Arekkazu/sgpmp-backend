@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el evento de prueba referencia su lectura de origen |
 """DEV-06 (D3, AIOT-DEV-03): los endpoints /iot/* de dispositivo exigen el token de
 servicio del broker; el serial deja de ser credencial y viaja en el cuerpo."""
 from __future__ import annotations
@@ -73,7 +76,7 @@ def test_con_token_el_serial_debe_corresponder_al_dispositivo(cliente, monkeypat
             "device_id": 3, "sensor_id": 9, "serial": "GW-001",
             "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": "31.5", "unidad": "C",
             "timestamp_evento": "2026-10-17T10:00:00Z", "estado_dato": "LECTURA_VALIDA",
-            "severidad_edge": "MODERADO", "origen_evento": "EDGE",
+            "severidad_edge": "MODERADO", "origen_evento": "EDGE", "id_telemetria": 1,
         },
     )
     assert r.status_code == 401, r.text

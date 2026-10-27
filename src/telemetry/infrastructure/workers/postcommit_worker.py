@@ -12,6 +12,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
+# | 2026-10-26 | Arekkazu | FW-06 RF-60: la etapa de diagnostico devuelve su resultado a la bitacora |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -120,7 +121,7 @@ def _diagnostico(db, identificador, metodo, politica):
     heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
     infraestructura = SqlAlchemyLecturaPostcommitRepository(db).infraestructura(heartbeat.id_dispositivo_iot)
     servicio = EvaluarDiagnosticoHeartbeatUseCase(SqlAlchemyAlertaRepository(db), politica or DiagnosticoHeartbeatMLOpsAdapter(db))
-    getattr(servicio, metodo)(heartbeat, infraestructura)
+    return getattr(servicio, metodo)(heartbeat, infraestructura)
 
 
 def _alerta_critica(db, identificador):

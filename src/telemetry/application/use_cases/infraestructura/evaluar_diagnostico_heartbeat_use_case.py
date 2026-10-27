@@ -1,9 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo                                                    |
+# |------------|----------|----------------------------------------------------------------|
+# | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware no comparable cierra la etapa sin reintento |
 """Evaluación del heartbeat confirmado, común a HTTP y MQTT (DEV-05).
 
 Sin commits: las alertas y la evidencia RF-63 se confirman en la transacción de
 la etapa. La indisponibilidad de temperatura/firmware no bloquea sensores.
 """
-from src.shared.errors import ServiceUnavailableError
+from src.shared.errors import BusinessRuleError, ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.diagnostico_heartbeat_port import DiagnosticoHeartbeatPort
 from src.telemetry.infrastructure.dto.heartbeat_dto import DiagnosticoHeartbeatDTO
@@ -39,7 +42,13 @@ class EvaluarDiagnosticoHeartbeatUseCase:
         if heartbeat.version_firmware is None:
             return
         politica = self._politica('POLITICA_FIRMWARE_NO_DISPONIBLE')
-        comparacion = politica.comparar_firmware(heartbeat.id_dispositivo_iot, heartbeat.version_firmware)
+        try:
+            comparacion = politica.comparar_firmware(heartbeat.id_dispositivo_iot, heartbeat.version_firmware)
+        except BusinessRuleError as exc:
+            if exc.code != 'VERSION_FIRMWARE_NO_COMPARABLE':
+                raise
+            # FW-06: reintentar no corrige la versión reportada; la etapa termina con ese resultado.
+            return {'resultado': exc.code, 'version_instalada': heartbeat.version_firmware}
         if comparacion.es_anterior:
             self._registrar(heartbeat, id_infraestructura, 'FIRMWARE_DESACTUALIZADO', 'LEVE',
                 {'version_instalada': heartbeat.version_firmware, 'version_minima': comparacion.version_minima})

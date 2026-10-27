@@ -1,3 +1,25 @@
+## [1.4.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.9...v1.4.0-rc.10) (2026-10-27)
+
+### Features
+
+* **rf68-mod4:** migracion con tipo de alerta RIESGO_CONTAGIO y permiso para ejecutar el modelo ([2711a1d](https://github.com/Arekkazu/sgpmp-backend/commit/2711a1df97aa5e6315e7307d774b51e4d1f86d76))
+* **rf68-mod4:** POST /prediccion/riesgo-contagio ejecuta el modelo de riesgo de contagio (INC-M04-196-G026) ([a1a312f](https://github.com/Arekkazu/sgpmp-backend/commit/a1a312ffc03fabf4fad72ea7af33931dcc78e63f))
+
+### Bug Fixes
+
+* **rf55-mod3:** validar orden temporal de eventos edge (INC-M03-110-G42) ([e2f952e](https://github.com/Arekkazu/sgpmp-backend/commit/e2f952eb3445ffc64ab67e914cc9dc7a80b18ea2))
+* **rf57:** POST /iot/alertas rechaza eventos incoherentes y las alertas de umbral nombran su regla ([1589c45](https://github.com/Arekkazu/sgpmp-backend/commit/1589c451f77becdc0bb720b9846cb6107268f566))
+* **rf58-mod3:** conservar lectura valida y condicion posterior ([#678](https://github.com/Arekkazu/sgpmp-backend/issues/678)) ([c8c584f](https://github.com/Arekkazu/sgpmp-backend/commit/c8c584fec451a60d3bd2f4e3eee437ead614fd7d))
+* **rf59-rf58:** historial con combinaciones R12, varias variables, alertas y estadisticas por umbral ([890b160](https://github.com/Arekkazu/sgpmp-backend/commit/890b160ffd8ab709ee3ff4f2c70bed4ce83731ae))
+* **rf60-telemetry:** firmware se compara con SemVer 2.0 y el no comparable cierra la etapa (FW-06) ([d8ed027](https://github.com/Arekkazu/sgpmp-backend/commit/d8ed027640681089335f831b0ef9302ba14853d0))
+* **rf62-mod3:** conservar snapshot de calibracion en ingesta (INC-M03-123-G167) ([96b23b8](https://github.com/Arekkazu/sgpmp-backend/commit/96b23b8ef46b30dad0c3601979786f366b00f7e2))
+* **rf62-mod3:** corregir sigma cero y auditar drift pendiente (INC-M03-104-G165) ([0b7b230](https://github.com/Arekkazu/sgpmp-backend/commit/0b7b230bc72b77e7ac76104a21ce578877cd7417))
+* **rf62-mod3:** validar consultas y parametros de calidad (INC-M03-103-G164) ([c1401d5](https://github.com/Arekkazu/sgpmp-backend/commit/c1401d5ad7b9b5857f6010b75654aa651faaca7c))
+* **rf65-mod4:** cada peso del modelo de contagio en [0, 1] ademas de sumar 1.0 (RF-68) ([5c9aa30](https://github.com/Arekkazu/sgpmp-backend/commit/5c9aa30ea29b22a4f757fb21d2fdcccfca8bb920))
+* **rf70-mod4:** la OTA PROGRAMADO espera su ventana y se libera sola al abrirla (E1) ([3c16f18](https://github.com/Arekkazu/sgpmp-backend/commit/3c16f18ae07ca382ba6a08d24a200447e192484b))
+* **rf73-mod4:** truncado conserva campos minimos, filtro correlacion_id y correccion de timestamp E7 ([b440932](https://github.com/Arekkazu/sgpmp-backend/commit/b440932a9af838a95a810e67e0050a44b27db9ac))
+* **shared:** 422 por ruta en validacion de parametros y bitacora E1 de alertas (RF-59, RF-73, RF-57) ([e77e7ff](https://github.com/Arekkazu/sgpmp-backend/commit/e77e7ff994d5ec2eedee1b6fdbe738327c202757))
+
 ## [1.4.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.8...v1.4.0-rc.9) (2026-10-26)
 
 ### Features

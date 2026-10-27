@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: prueba clasificacion y etapa critica |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-40: CATALOGO_I3P1 ya retirado |
+# | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: la alerta de umbral lleva su regla en reglas_activadas |
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -75,6 +76,8 @@ def test_aptitud_ia_no_sustituye_calidad_para_alerta_local():
     assert dto.metadata_evento['id_finca']==1
     assert dto.metadata_evento['id_umbral_ambiental']==4
     assert dto.metadata_evento['valor_evaluado']=='40'
+    # INC-M03-179-G57F: la regla que disparó la alerta queda en reglas_activas.
+    assert dto.reglas_activadas[0]['id']==4 and dto.reglas_activadas[0]['nombre'].endswith('_ROJO')
 
 
 @pytest.mark.parametrize('vinculo',[None,{'id_activo_biologico':None}])

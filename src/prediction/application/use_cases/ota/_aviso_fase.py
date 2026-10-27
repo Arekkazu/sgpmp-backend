@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: modo PROGRAMADO espera su ventana (E1) |
 """Avisar ``ota/notify`` a los nodos de una fase del rollout (DEV-15, D6 paso 3).
 
 Lo usan crear la distribución (fase CANARY) y el avance de fase al llegar el
@@ -21,6 +24,9 @@ COMPONENTE_MODELO_COMPLETO = "COMPLETO"
 
 _TTL_URL_DEFAULT_SEGUNDOS = 24 * 3600
 
+#: RF-70 E1: la distribución PROGRAMADO no se avisa fuera de su ventana.
+MOTIVO_FUERA_VENTANA = "FUERA_VENTANA_ACTUALIZACION"
+
 
 def ttl_url() -> timedelta:
     return timedelta(seconds=int(os.environ.get("OTA_URL_TTL_SEGUNDOS", _TTL_URL_DEFAULT_SEGUNDOS)))
@@ -34,6 +40,13 @@ def vencimiento_url(distribucion: DistribucionOta, ahora: datetime) -> datetime:
     return expira
 
 
+def fuera_de_ventana(distribucion: DistribucionOta, ahora: datetime) -> bool:
+    """PROGRAMADO solo se avisa entre ``ventana_inicio`` y ``ventana_fin`` (RF-70 Fase 1)."""
+    if distribucion.modo_distribucion != "PROGRAMADO" or distribucion.ventana_inicio is None:
+        return False
+    return not (distribucion.ventana_inicio <= ahora <= (distribucion.ventana_fin or ahora))
+
+
 def avisar_despliegues(
     *,
     despliegues: list[DespliegueOta],
@@ -45,8 +58,17 @@ def avisar_despliegues(
     url_port: UrlDescargaPort,
     ahora: datetime,
 ) -> list[DespliegueOta]:
-    """Pide al broker el aviso de cada despliegue PENDIENTE y guarda el resultado (sin commit)."""
+    """Pide al broker el aviso de cada despliegue PENDIENTE y guarda el resultado (sin commit).
+
+    Fuera de la ventana de una distribución PROGRAMADO no se avisa: el despliegue queda
+    PENDIENTE con motivo FUERA_VENTANA_ACTUALIZACION y lo libera la tarea periódica al
+    abrir la ventana (RF-70 E1).
+    """
     pendientes = [d for d in despliegues if d.estado_despliegue == "PENDIENTE"]
+    if fuera_de_ventana(distribucion, ahora):
+        for despliegue in pendientes:
+            despliegue.posponer(MOTIVO_FUERA_VENTANA)
+        return [despliegue_repo.actualizar(d) for d in pendientes]
     seriales = nodo_port.obtener_seriales([d.id_dispositivo_iot for d in pendientes]) if pendientes else {}
     avisados = []
     for despliegue in pendientes:

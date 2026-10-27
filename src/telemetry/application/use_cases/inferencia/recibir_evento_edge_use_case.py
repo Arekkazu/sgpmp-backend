@@ -4,6 +4,7 @@
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 rechazo temporal en bitácora, E6 límite por dispositivo, E7 intento no autorizado |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
+# | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: rechaza orden temporal invertido y devuelve la captura original. |
 from __future__ import annotations
 
 import logging
@@ -86,6 +87,9 @@ class RecibirEventoEdgeUseCase:
         ts_captura = dto.timestamp_captura
         if ts_captura.tzinfo is None:
             ts_captura = ts_captura.replace(tzinfo=timezone.utc)
+        ts_procesamiento = dto.timestamp_procesamiento_edge
+        if ts_procesamiento.tzinfo is None:
+            ts_procesamiento = ts_procesamiento.replace(tzinfo=timezone.utc)
 
         # E6: control de tasa por dispositivo; un evento CRITICO nunca se frena.
         if dto.severidad != "CRITICO":
@@ -93,7 +97,7 @@ class RecibirEventoEdgeUseCase:
 
         # Paso 1: Validar coherencia temporal (E1: el rechazo queda en bitácora con el evento)
         try:
-            self._validar_temporal(ts_captura, ahora, dto.origen)
+            self._validar_temporal(ts_captura, ts_procesamiento, ahora, dto.origen)
         except ValidationError as exc:
             if self.auditoria_repo is not None:
                 registrar_evento_rechazado(self.db, self.auditoria_repo, motivo=exc.message, codigo=exc.code,
@@ -112,10 +116,6 @@ class RecibirEventoEdgeUseCase:
                 code="DISPOSITIVO_NO_AUTORIZADO",
                 message="El dispositivo o el sensor no corresponden al serial, o están inactivos.",
             )
-
-        ts_procesamiento = dto.timestamp_procesamiento_edge
-        if ts_procesamiento.tzinfo is None:
-            ts_procesamiento = ts_procesamiento.replace(tzinfo=timezone.utc)
 
         tipo_evento_bd = clasificacion_a_tipo_evento_bd(dto.clasificacion_rf55)
 
@@ -195,6 +195,7 @@ class RecibirEventoEdgeUseCase:
             clasificacion_rf55=evento_guardado.clasificacion_rf55,
             severidad=evento_guardado.severidad,
             estado_conectividad=evento_guardado.estado_conectividad,
+            fecha_captura=evento_guardado.fecha_captura,
             fecha_procesamiento=evento_guardado.fecha_procesamiento,
             paquete_inferencia_estado=paquete_estado,
         )
@@ -242,7 +243,9 @@ class RecibirEventoEdgeUseCase:
             logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
     @staticmethod
-    def _validar_temporal(ts_captura: datetime, ahora: datetime, origen: str) -> None:
+    def _validar_temporal(
+        ts_captura: datetime, ts_procesamiento: datetime, ahora: datetime, origen: str,
+    ) -> None:
         delta = (ts_captura - ahora).total_seconds()
         if delta > _MAX_DRIFT_FUTURO_SEG:
             raise ValidationError(
@@ -258,3 +261,10 @@ class RecibirEventoEdgeUseCase:
                     message=f"El dato de buffer tiene {antiguedad:.1f} h de antigüedad (máx. {_MAX_VENTANA_BUFFER_HORAS} h).",
                     field="timestamp_captura",
                 )
+        # RF-55 CA-13: la igualdad es válida cuando el reloj tiene precisión limitada.
+        if ts_procesamiento < ts_captura:
+            raise ValidationError(
+                code="ORDEN_TEMPORAL_INVALIDO",
+                message="El timestamp de procesamiento Edge no puede ser anterior al de captura.",
+                field="timestamp_procesamiento_edge",
+            )

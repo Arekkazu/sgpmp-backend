@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: filtros (código, área, activo), estadísticas por umbral y alertas |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from src.shared.fechas import zona_usuario
 from src.telemetry.domain.entities.monitoreo import (
+    AlertaCorrelacionada,
     FiltrosHistorial,
     LecturaHistorica,
     ResumenEstadistico,
@@ -41,6 +43,8 @@ SELECT
     vl_lat.id_activo_biologico,
     esp.nombre                                      AS especie,
     ab.id_especie,
+    ab.identificador                                AS identificador_activo,
+    ab.tipo::text                                   AS tipo_activo,
     {alerta_col}
     t.nivel_bateria_pct,
     t.calidad_senal_rssi,
@@ -108,9 +112,15 @@ SELECT
     MIN(COALESCE(t.valor_ajustado, t.valor_crudo)) AS valor_minimo,
     MAX(COALESCE(t.valor_ajustado, t.valor_crudo)) AS valor_maximo,
     AVG(COALESCE(t.valor_ajustado, t.valor_crudo)) AS valor_promedio,
+    STDDEV_SAMP(COALESCE(t.valor_ajustado, t.valor_crudo)) AS desviacion_estandar,
     COUNT(*)                            AS total_lecturas,
-    COUNT(CASE WHEN t.estado_calidad::text = 'LECTURA_VALIDA' THEN 1 END)  AS dentro_rango,
-    COUNT(CASE WHEN t.estado_calidad::text != 'LECTURA_VALIDA' THEN 1 END) AS fuera_rango
+    -- INC-M03-190-G119: dentro/fuera contra el umbral operativo (banda normal de RF-17),
+    -- como el semáforo histórico; las lecturas sin umbral (GRIS) no cuentan en ninguno.
+    COUNT(*) FILTER (WHERE um.existe AND banda.es_normal)          AS dentro_rango,
+    COUNT(*) FILTER (WHERE um.existe AND banda.es_normal IS NULL
+                     AND COALESCE(t.valor_ajustado, t.valor_crudo) IS NOT NULL) AS fuera_rango,
+    -- INC-M03-189-G119: alertas de RF-57 ligadas a las lecturas del periodo.
+    COALESCE(SUM(alc.n), 0)             AS total_alertas
 FROM modulo3.telemetrias t
 LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable
 -- DEV-38: mismas uniones que el conteo. Sin vl_lat/ab/esp, filtrar por especie
@@ -133,6 +143,25 @@ LEFT JOIN modulo9.infraestructuras i
     ON i.id_infraestructura = COALESCE(vl_lat.id_infraestructura, saa_lat.id_infraestructura)
 LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = vl_lat.id_activo_biologico
 LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
+LEFT JOIN LATERAL (
+    SELECT true AS existe, ua.id_umbral_ambiental
+    FROM modulo9.umbrales_ambientales ua
+    WHERE ua.id_especie = ab.id_especie AND ua.id_variable_ambiental = t.id_variable AND ua.es_activo
+    LIMIT 1
+) um ON true
+LEFT JOIN LATERAL (
+    SELECT true AS es_normal
+    FROM modulo9.niveles_alerta_ambientales n
+    WHERE n.id_umbral_ambiental = um.id_umbral_ambiental
+      AND n.nivel = 'normal'
+      AND COALESCE(t.valor_ajustado, t.valor_crudo) BETWEEN n.limite_inferior AND n.limite_superior
+    LIMIT 1
+) banda ON true
+LEFT JOIN LATERAL (
+    SELECT COUNT(*) AS n
+    FROM modulo3.alertas al
+    WHERE al.id_telemetria = t.id_telemetria AND al.tipo_alerta::text <> 'TECNICA'
+) alc ON true
 WHERE t.timestamp_captura >= :fecha_inicio
   AND t.timestamp_captura < :fecha_fin_ex
   {filtros_where}
@@ -190,6 +219,34 @@ ORDER BY anterior
 LIMIT :max_vacios
 """
 
+# RF-59 Salida 5 / CA-8 (INC-M03-186-G117): alertas de RF-57 del periodo ligadas a las
+# lecturas que cumplen los filtros (mismo alcance de finca que el historial).
+_ALERTAS_HISTORIAL = """
+SELECT al.id_alerta, al.tipo_alerta::text AS tipo_alerta, al.severidad::text AS severidad,
+       COALESCE(al.fecha_generacion, al.fecha_evento) AS timestamp_generacion,
+       al.tipo_variable AS variable_afectada, al.estado_alerta::text AS estado_final
+FROM modulo3.alertas al
+WHERE al.tipo_alerta::text <> 'TECNICA'
+  AND al.id_telemetria IN ({ids_lecturas})
+ORDER BY timestamp_generacion DESC
+LIMIT :max_alertas
+"""
+
+# INC-M03-181-G112: el filtro acepta el código de telemetría (TEMPERATURA_AMBIENTAL) o el
+# nombre visible, sin distinguir mayúsculas. RF-59 nombra TEMPERATURA_CORPORAL a la
+# variable que el catálogo I3P-1 codifica TEMP_CORPORAL.
+_ALIAS_VARIABLE = {'TEMPERATURA_CORPORAL': 'TEMP_CORPORAL'}
+
+_VARIABLES_NO_RECONOCIDAS = """
+SELECT v FROM unnest(CAST(:tipos AS text[])) AS v
+WHERE NOT EXISTS (
+    SELECT 1 FROM modulo9.variables_ambientales va
+    WHERE upper(va.codigo_telemetria) = upper(v) OR lower(va.nombre) = lower(v)
+)
+"""
+
+_MAX_ALERTAS = 500
+
 # Tope de vacíos devueltos: con un sensor caído muchos días la lista no crece sin límite.
 _MAX_VACIOS = 500
 
@@ -211,14 +268,21 @@ def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
         conds.append('t.id_sensor = :sensor_id')
         params['sensor_id'] = filtros.sensor_id
     if filtros.tipo_variable:
-        conds.append("va.nombre = :tipo_variable")
-        params['tipo_variable'] = filtros.tipo_variable
+        tipos = [_ALIAS_VARIABLE.get(v.upper(), v) for v in filtros.tipo_variable]
+        conds.append("(upper(va.codigo_telemetria) = ANY(:tipos_codigo) OR lower(va.nombre) = ANY(:tipos_nombre))")
+        params['tipos_codigo'] = [v.upper() for v in tipos]
+        params['tipos_nombre'] = [v.lower() for v in tipos]
     if filtros.categoria_variable:
         conds.append("t.categoria_variable::text = :categoria_variable")
         params['categoria_variable'] = filtros.categoria_variable
     if filtros.id_infraestructura is not None:
-        conds.append('saa_lat.id_infraestructura = :id_infraestructura')
+        # INC-M03-182-G112: el mismo campo que devuelve el ítem (vinculación RF-61 o, sin
+        # ella, el área del sensor en la fecha de captura).
+        conds.append('COALESCE(vl_lat.id_infraestructura, saa_lat.id_infraestructura) = :id_infraestructura')
         params['id_infraestructura'] = filtros.id_infraestructura
+    if filtros.id_activo_biologico is not None:
+        conds.append('vl_lat.id_activo_biologico = :id_activo_biologico')
+        params['id_activo_biologico'] = filtros.id_activo_biologico
     if filtros.especie:
         conds.append("esp.nombre = :especie")
         params['especie'] = filtros.especie
@@ -282,17 +346,31 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
             total = f['total_lecturas'] or 0
             dentro = f['dentro_rango'] or 0
             fuera = f['fuera_rango'] or 0
+            evaluadas = dentro + fuera
             result.append(ResumenEstadistico(
                 tipo_variable=f['tipo_variable'] or '',
                 valor_minimo=f['valor_minimo'],
                 valor_maximo=f['valor_maximo'],
                 valor_promedio=f['valor_promedio'],
                 total_lecturas=total,
-                pct_dentro_rango=round(dentro / total * 100, 2) if total else None,
-                pct_fuera_rango=round(fuera / total * 100, 2) if total else None,
-                total_alertas_en_periodo=0,
+                pct_dentro_rango=round(dentro / evaluadas * 100, 2) if evaluadas else None,
+                pct_fuera_rango=round(fuera / evaluadas * 100, 2) if evaluadas else None,
+                total_alertas_en_periodo=int(f['total_alertas'] or 0),
+                desviacion_estandar=f['desviacion_estandar'],
             ))
         return result
+
+    def alertas_correlacionadas(self, filtros: FiltrosHistorial) -> list[AlertaCorrelacionada]:
+        sql_ids, params = _build_query(filtros, _COUNT_HISTORIAL.replace('SELECT COUNT(*)', 'SELECT t.id_telemetria', 1))
+        params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
+        params['max_alertas'] = _MAX_ALERTAS
+        filas = self.db.execute(text(_ALERTAS_HISTORIAL.format(ids_lecturas=sql_ids)), params).mappings().all()
+        return [AlertaCorrelacionada(**f) for f in filas]
+
+    def variables_no_reconocidas(self, tipos: list[str]) -> list[str]:
+        alias = {v: _ALIAS_VARIABLE.get(v.upper(), v) for v in tipos}
+        desconocidas = set(self.db.execute(text(_VARIABLES_NO_RECONOCIDAS), {'tipos': list(alias.values())}).scalars())
+        return [v for v, a in alias.items() if a in desconocidas]
 
     def detectar_vacios(self, filtros: FiltrosHistorial) -> list[VacioTemporal]:
         sql, params = _build_query(filtros, _VACIOS_HISTORIAL)
@@ -337,4 +415,6 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
             nivel_bateria_pct=f['nivel_bateria_pct'],
             calidad_senal_rssi=f['calidad_senal_rssi'],
             calidad_senal_snr=f['calidad_senal_snr'],
+            identificador_activo=f['identificador_activo'],
+            tipo_activo=f['tipo_activo'],
         )
