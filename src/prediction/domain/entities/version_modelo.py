@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06 RF-69: rechazadas y deprecadas no reciben notas (409) |
 from __future__ import annotations
 
 import uuid
@@ -198,6 +199,17 @@ class VersionModelo:
             raise BusinessRuleError(
                 code="NOTAS_VACIAS",
                 message="Las notas de validación no pueden estar vacías.",
+                field="notas_validacion",
+            )
+        # CU05 H-06 (RF-69 fase 4): una versión terminal solo se consulta. Las notas son el
+        # requisito para activar, y una RECHAZADO o DEPRECADO ya no se activa nunca.
+        if self.estado_version in ("RECHAZADO", "DEPRECADO"):
+            raise ConflictError(
+                code="VERSION_SOLO_LECTURA",
+                message=(
+                    f"Las versiones en estado {self.estado_version} solo se consultan "
+                    "y no admiten notas de validación."
+                ),
                 field="notas_validacion",
             )
         # M4-06 / CA-13: la nota clínica no se sobrescribe. Antes el PATCH reemplazaba el
