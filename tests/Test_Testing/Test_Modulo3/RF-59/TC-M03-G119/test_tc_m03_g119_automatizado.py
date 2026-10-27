@@ -1,3 +1,6 @@
+# | Fecha      | Nombre     | Que se hizo                                                                 |
+# |------------|------------|-----------------------------------------------------------------------------|
+# | 2026-10-27 | HulkyZeus  | RF-59 TC-M03-G119: fecha_fin = hoy (antes manana, 422) y lectura BD paginada (tope LIMIT 100 del sandbox) |
 """TC-M03-G119 - subcaso 1.3: verificacion contra BD (solo lectura) del conjunto de lecturas devuelto por el historial. SCRIPT SIN EJECUTAR.
 Variables: SENSOR_TEMPERATURA_AMBIENTAL y TEST_DATABASE_URL (la conexion se abre en modo SOLO LECTURA).
 
@@ -182,7 +185,7 @@ def sql(consulta: str, params: tuple = ()) -> list[tuple]:
 # ---------------------------------------------------------------- casos de prueba
 def test_1_3_lecturas_del_historial_coinciden_con_la_bd():
     id_sensor = sensor("TEMPERATURA_AMBIENTAL")
-    ini, fin = ahora_iso(-30 * 86400)[:10], ahora_iso(86400)[:10]
+    ini, fin = ahora_iso(-30 * 86400)[:10], ahora_iso()[:10]   # fecha_fin no puede ser futura (422 FECHA_FIN_FUTURA)
     ids_api, pagina = [], 1
     while True:
         r = api("GET", "/iot/monitoreo/historial", params={"fecha_inicio": ini, "fecha_fin": fin, "sensor_id": id_sensor, "pagina": pagina, "por_pagina": 500, "orden": "ASC"})
@@ -192,8 +195,14 @@ def test_1_3_lecturas_del_historial_coinciden_con_la_bd():
         if pagina * 500 >= j.get("total", len(items)) or not items:
             break
         pagina += 1
-    ids_bd = [f[0] for f in sql("SELECT id_telemetria FROM modulo3.telemetrias WHERE id_sensor = %s AND timestamp_captura::date BETWEEN %s AND %s ORDER BY timestamp_captura",
-                                (id_sensor, ini, fin))]     # solo lectura; en el sandbox va por POST /test-control/query
+    ids_bd, desplazamiento = [], 0
+    while True:     # /test-control/query envuelve toda consulta en LIMIT 100: se lee por paginas deterministas (ORDER BY id_telemetria)
+        filas = sql("SELECT id_telemetria FROM modulo3.telemetrias WHERE id_sensor = %s AND timestamp_captura::date BETWEEN %s AND %s ORDER BY id_telemetria LIMIT 100 OFFSET " + str(desplazamiento),
+                    (id_sensor, ini, fin))     # solo lectura; en el sandbox va por POST /test-control/query
+        ids_bd += [f[0] for f in filas]
+        if len(filas) < 100:
+            break
+        desplazamiento += 100
     assert len(ids_api) == len(ids_bd), f"conteo API={len(ids_api)} vs BD={len(ids_bd)}"
     assert sorted(ids_api) == sorted(ids_bd), "el conjunto de lecturas del historial debe ser identico al de la BD"
 
