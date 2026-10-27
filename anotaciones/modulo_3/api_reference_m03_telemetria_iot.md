@@ -457,6 +457,28 @@ ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
 
 ---
 
+#### `POST /iot/eventos-buffer` — Aviso técnico de buffer (RF-54 → RF-60/RF-63)
+
+**Auth:** token de servicio del broker. El nodo publica `EVENTO_BUFFER` por `sgpmp/<serial>/status`; el broker añade el serial y reenvía el aviso.
+
+**Body:** `serial`, `evento`, `porcentaje_ocupacion` (finito, 0–100), `cantidad_datos_afectados` (≥0), `timestamp_evento`; `politica_aplicada` es opcional.
+
+| Evento | Severidad |
+|---|---|
+| `BUFFER_CAPACITY_WARNING` | `LEVE`; desde 95 % `CRITICO` |
+| `BUFFER_OVERFLOW` | `MODERADO` |
+| `BUFFER_DATA_CORRUPTION` | `CRITICO` |
+
+**#684, ampliación de D10 confirmada:** el aviso de capacidad se emite en Edge según su umbral configurable (ej. 80 %). Una alerta `ACTIVA`/`EN_ATENCION` del mismo tipo/dispositivo se consolida, incrementa su frecuencia y conserva la severidad máxima. Un reporte posterior al 95 % escala el mismo ID. Los metadatos de la alerta conservan la primera ocurrencia; RF-63 conserva el detalle de cada aviso bajo el comportamiento best-effort existente.
+
+**HTTP 201:** `id_alerta`, `es_duplicado`, `tipo_alerta_tecnica`, `severidad`. Se conservan los errores vigentes de autenticación, validación y serial no encontrado.
+
+La alerta se consulta mediante `GET /iot/alertas-tecnicas`, con JWT, permiso 36/Leer y alcance por finca. El Productor no accede a esa bandeja. La integración requiere que firmware/broker envíen el nuevo evento; un porcentaje aislado en el heartbeat no ejecuta este flujo.
+
+[Diagnóstico y pruebas](inc_m03_129_g27_rf54_alerta_capacidad.md) · [Contrato de integración IoT](inc_m03_129_g27_rf54_integracion_iot.md).
+
+---
+
 #### `GET /iot/dispositivos/{id_dispositivo_iot}/estado` — Estado actual + historial reciente
 
 **Query:** `limite_historial: int` (1–100, default 20)
