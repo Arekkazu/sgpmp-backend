@@ -1,19 +1,31 @@
 <#
 .SYNOPSIS
-    Runner PowerShell para TC-M03-G169 (RF-62 / RF-63).
+    Runner PowerShell para TC-M03-G169 (Estados heredados de RF-53 en RF-62).
 .DESCRIPTION
-    Ejecuta la colección Newman de TC-M03-G169 bajo Sandbox transaccional, exportando
-    el reporte oficial a resultados/resultado_TC-M03-G169.html (leído por el scanner).
+    Ejecuta la colección Newman de TC-M03-G169 bajo Sandbox transaccional.
+    Subcasos: TC-321 (FUERA_DE_RANGO -> índice 0, NO_APTO), TC-322 (ERROR_CALIBRACION + anomalías).
+.PARAMETER BaseUrl
+    URL base de la API. Por defecto https://www.api.inmero.co/api-sgpmp-test.
+.EXAMPLE
+    .\ejecutar_tc_m03_g169.ps1
 #>
+[CmdletBinding()]
 param (
-    [string]$BaseUrl = "https://api.inmero.co/back-sigab-test"
+    [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 )
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Cargar variables de entorno desde .env.test si existen
-$envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+# Cargar .env.test si existe
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = ".env.test"
+}
+
 if (Test-Path $envTestPath) {
     Get-Content $envTestPath | ForEach-Object {
         $line = $_.Trim()
@@ -28,51 +40,77 @@ if (Test-Path $envTestPath) {
     }
 }
 
-$sandboxSecret = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
-$adminPassword = [System.Environment]::GetEnvironmentVariable("TEST_ADMIN_PASSWORD")
+$sandboxSecret  = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
+$adminPassword  = [System.Environment]::GetEnvironmentVariable("TEST_ADMIN_PASSWORD")
+$brokerToken    = [System.Environment]::GetEnvironmentVariable("BROKER_TOKEN")
+if (-not $brokerToken) {
+    $brokerToken = [System.Environment]::GetEnvironmentVariable("BROKER_SERVICE_TOKEN")
+}
 
 if (-not $sandboxSecret) {
-    Write-Error "Variable TEST_SANDBOX_SECRET no definida en el entorno ni en .env.test"
+    Write-Error "TEST_SANDBOX_SECRET no configurada. Abortando."
 }
 if (-not $adminPassword) {
-    Write-Error "Variable TEST_ADMIN_PASSWORD no definida en el entorno ni en .env.test"
+    Write-Error "TEST_ADMIN_PASSWORD no configurada. Abortando."
 }
-
-# Generar run_id efímero
-$runId = "test-g169-" + [System.Guid]::NewGuid().ToString().Substring(0, 8)
-Write-Host "Iniciando ejecución de TC-M03-G169 con Run ID: $runId" -ForegroundColor Cyan
-
-# Directorio de resultados computables para el scanner
-$resultadosDir = Join-Path $scriptDir "resultados"
-if (-not (Test-Path $resultadosDir)) {
-    New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
+if (-not $brokerToken) {
+    Write-Error "BROKER_TOKEN (o BROKER_SERVICE_TOKEN) no configurada. Abortando."
 }
 
 $collectionPath = Join-Path $scriptDir "test_tc_m03_g169.json"
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169.html"
+if (-not (Test-Path $collectionPath)) {
+    Write-Error "Colección no encontrada: $collectionPath. Ejecutá 'node build_collection.cjs' primero."
+}
 
-# Ejecutar Newman con reporters cli y htmlextra
+$runId = "test-g169-" + [System.Guid]::NewGuid().ToString().Substring(0, 8)
+
+$resultadosDir = Join-Path $scriptDir "resultados"
+$evidenciasDir = Join-Path $scriptDir "evidencias"
+if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
+if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
+
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169.html"
+$consoleLog = Join-Path $evidenciasDir "console_run.log"
+
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "TC-M03-G169 - Estados heredados de RF-53 (RF-62)" -ForegroundColor Cyan
+Write-Host "BaseUrl:    $BaseUrl"
+Write-Host "Run ID:     $runId"
+Write-Host "Coleccion:  $collectionPath"
+Write-Host "Reporte:    $reportHtml"
+Write-Host "==========================================================" -ForegroundColor Cyan
+
 $newmanArgs = @(
     "run", $collectionPath,
     "--env-var", "baseUrl=$BaseUrl",
     "--env-var", "run_id=$runId",
     "--env-var", "sandbox_secret=$sandboxSecret",
     "--env-var", "admin_password=$adminPassword",
+    "--env-var", "broker_token=$brokerToken",
     "-r", "cli,htmlextra",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "Reporte TC-M03-G169 - Estado Heredado de RF-53",
+    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53",
     "--reporter-htmlextra-omitRequestBodies",
-    "--reporter-htmlextra-hideRequestBody", "00-Preflight-Login-Admin",
-    "--reporter-htmlextra-hideResponseBodies"
+    "--reporter-htmlextra-omitHeaders"
 )
 
-Write-Host "Ejecutando Newman..." -ForegroundColor Yellow
+$exitCode = 0
 try {
-    & npx -y newman @newmanArgs
+    & npx -y newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
+    $exitCode = $LASTEXITCODE
 } catch {
-    Write-Warning "Newman completó con fallos reportados en aserciones."
+    Write-Warning "Fallo durante la ejecucion de Newman: $_"
+    $exitCode = 1
+} finally {
+    Write-Host "`nVerificando cierre de sandbox..." -ForegroundColor Cyan
+    try {
+        $delUri = "$BaseUrl/test-control/runs/$runId"
+        $delHeaders = @{ "X-Sandbox-Secret" = $sandboxSecret }
+        $delResp = Invoke-RestMethod -Method DELETE -Uri $delUri -Headers $delHeaders -ErrorAction SilentlyContinue
+        Write-Host "Sandbox cerrado via runner: $($delResp | ConvertTo-Json -Compress)" -ForegroundColor Green
+    } catch {
+        Write-Host "Sandbox ya habia sido cerrado por la coleccion." -ForegroundColor Gray
+    }
 }
 
-Write-Host "Reporte generado en: $reportHtml" -ForegroundColor Green
-Write-Host "Para verificar en scanner:" -ForegroundColor Cyan
-Write-Host "python3 -c `"import scanner as s; print([c for c in s.scan()['casos'] if c['tc_id']=='TC-M03-G169'])`"" -ForegroundColor Green
+exit $exitCode

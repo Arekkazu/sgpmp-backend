@@ -1,44 +1,29 @@
 {
   "tc": "TC-M04-G089",
-  "rf": "RF-73",
-  "titulo": "TC-M04-G089: Límites de paginación",
-  "estado_general": "Aprobado",
-  "stats": {
-    "tests": 5,
-    "passes": 5,
-    "failures": 0
+  "summary": {
+    "total": 3,
+    "ok": 2,
+    "falla": 1,
+    "veredicto": "RECHAZADO"
   },
   "checkpoints": [
     {
-      "paso": "NW-01: Autenticación Admin",
-      "esperado": "Status 200 con token JWT",
-      "obtenido": "OK",
+      "paso": "test_tc_m04_273_default_50",
+      "esperado": "RF-73: por_pagina default 50, len(items)=min(50,total)",
+      "obtenido": "todos los asserts pasaron",
       "estado": "OK"
     },
     {
-      "paso": "TC-M04-273: Paginación default 50",
-      "esperado": "Status 200, por_pagina=50, items <= 50",
-      "obtenido": "OK",
+      "paso": "test_tc_m04_274_max_200",
+      "esperado": "RF-73: por_pagina=200, len(items)=min(200,total)",
+      "obtenido": "todos los asserts pasaron",
       "estado": "OK"
     },
     {
-      "paso": "TC-M04-274: Paginación máxima 200",
-      "esperado": "Status 200, por_pagina=200, items <= 200",
-      "obtenido": "OK",
-      "estado": "OK"
-    },
-    {
-      "paso": "TC-M04-275: Paginación excedida 201",
-      "esperado": "Status 422 con detalle de validación",
-      "obtenido": "OK",
-      "estado": "OK"
-    },
-    {
-      "paso": "NW-Teardown: Rollback transaccional",
-      "esperado": "Status 200 con Rollback exitoso",
-      "obtenido": "OK",
-      "estado": "OK"
+      "paso": "test_tc_m04_275_max_excedido_201",
+      "esperado": "RF-73: por_pagina=201 debe rechazar (422 o 400 según OpenAPI)",
+      "obtenido": "AssertionError: OpenAPI declara 422 para por_pagina>200; backend devolvió 400. INC a M04 (HTTP_COM). Body: {\"error_code\":\"VAL_ENTRADA\",\"message\":\"Errores de validacion en la solicitud\",\"fields\":[{\"field\":\"por_pagina\",\"message\":\"Input should be less than or equal to 200\"}],\"timestamp\":\"2026-10-26T02:15:43.378408+00:00\"} assert 400 == 422  +  where 400 = <Response [400 Bad Request]>.status_code",
+      "estado": "FALLA"
     }
-  ],
-  "pendientes_dev": []
+  ]
 }

@@ -1,0 +1,131 @@
+{
+  "tc": "TC-M03-G180",
+  "summary": {
+    "total": 20,
+    "ok": 20,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "Status 200 - Login exitoso de ADMIN",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Exportación JSON exitosa",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Cabeceras Content-Type y Content-Disposition correctas para JSON",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Cuerpo es array JSON no truncado con eventos generados",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Estructura de cada evento exportado cumple esquema sin componente_origen",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Exportación JSON filtrada por NIC41 exitosa",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los eventos exportados respetan el filtro clasificacion_registro=NIC41",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09 - SLA JSON: 200, application/json, <=10000ms",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09 - SLA JSON: respuesta con eventos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Exportación CSV exitosa",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Cabeceras Content-Type y Content-Disposition correctas para CSV",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "CSV contiene al menos cabecera y una fila de datos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Cabecera CSV contiene nombres de columnas del esquema",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Invariante de seguridad: componente_origen NO aparece en la cabecera CSV",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Validación de parseo de filas CSV (filas de datos = total líneas - 1)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Exportación CSV filtrada por TECNICO exitosa",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "CSV filtrado por TECNICO tiene filas y respeta cabecera",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "12 - SLA CSV: 200, text/csv, <=10000ms",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "12 - SLA CSV: al menos 10001 lineas (header + 10000 eventos)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Rollback exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

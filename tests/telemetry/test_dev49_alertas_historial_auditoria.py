@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                             |
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica historial, 403 y eventos tecnicos |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: cada paquete deja PAQUETE_INFERENCIA_GENERADO |
 """Pruebas de aplicación y HTTP con dobles explícitos, sin simular PostgreSQL."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -199,10 +200,12 @@ def test_distingue_entrega_fallida_indisponibilidad_y_error(motor_datos, resulta
         motor.enviar_paquete.return_value = resultado
     paquete = ConsolidarEnviarPaqueteUseCase(db, repo, motor, auditoria).execute(evento)
     assert paquete.estado_paquete == estado
+    generado, *fallos = eventos
+    assert generado.tipo_evento == "PAQUETE_INFERENCIA_GENERADO" and generado.componente_origen == "RF56"
     if tipo_evento is None:
-        assert eventos == []
+        assert fallos == []
     else:
-        registro, = eventos
+        registro, = fallos
         assert registro.tipo_evento == tipo_evento and registro.resultado == "FALLIDO"
         assert registro.accion_detallada["estado_paquete"] == "FALLIDO"
         assert "NO_REGISTRAR_SECRETO" not in str(registro)
@@ -214,12 +217,13 @@ def test_stub_y_reconsolidacion_no_duplican_evento_ni_entrega(motor_datos):
     caso = ConsolidarEnviarPaqueteUseCase(db, repo, motor, auditoria)
     paquete = caso.execute(evento)
     assert paquete.estado_paquete == "PENDIENTE" and paquete.intento_envios == 0
-    registro, = eventos
+    generado, registro = eventos
+    assert generado.tipo_evento == "PAQUETE_INFERENCIA_GENERADO"
     assert registro.tipo_evento == "MOTOR_INFERENCIA_NO_INTEGRADO"
     assert registro.accion_detallada["estado_paquete"] == "PENDIENTE"
     repo.obtener_por_evento.return_value = paquete
     assert caso.execute(evento) is paquete
-    assert len(eventos) == 1
+    assert len(eventos) == 2  # reconsolidar no genera otro paquete ni otro evento
     motor.enviar_paquete.assert_called_once()
 
 

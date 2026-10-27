@@ -1,0 +1,1192 @@
+{
+  "info": {
+    "name": "TC-M04-G033 - Control de frecuencia, concurrencia y sobrecarga de la cola de ejecucion por lote (RF-68 restricciones de frecuencia/concurrencia, E10)",
+    "description": "Subcasos: (1) TC-M04-16 frecuencia (minimo 5 s entre ejecuciones, maximo 12/min) con 15 eventos en 60 s. (2) TC-M04-17 concurrencia maxima de 3 por lote (FIFO). (3) TC-M04-18 cola >10: se descartan las mas antiguas (SOBRECARGA_MODELO_CONTAGIO). (4) TC-M04-19 >5 ejecuciones consecutivas en modo degradado: ALERTA_CALIDAD_DATOS y suspension de alertas criticas. Este caso tarda ~1.5 min. ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para calcular el riesgo de contagio (ficha: 'No existe ningun endpoint'). La ruta se toma de la variable de coleccion ruta_contagio y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_lote (lote con activos y sensores), ruta_contagio (provisional), contagio_banda_medio_min / contagio_banda_alto_min (limites de bandas de RF-65), correo_/contrasena_ de los roles usados. Script sin ejecutar: el ambiente aun no esta listo. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambientes: DEV https://api.inmero.co/api-sgpmp-dev, TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m04-g033.json -e <environment>.json --env-var sandbox_secret=<SECRETO_SANDBOX> -r cli,htmlextra --reporter-htmlextra-export resultados/resultado_TC-M04-G033.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_contagio",
+      "value": "/prediccion/riesgo-contagio"
+    },
+    {
+      "key": "id_lote",
+      "value": "210"
+    },
+    {
+      "key": "id_lote_finca_a",
+      "value": "210"
+    },
+    {
+      "key": "contagio_banda_medio_min",
+      "value": "0.40"
+    },
+    {
+      "key": "contagio_banda_alto_min",
+      "value": "0.60"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0. Preparacion",
+      "item": [
+        {
+          "name": "0C. Configurar pesos por defecto W_fs=0.5, W_fa=0.3, W_fd=0.2 (RF-65)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_RIESGO_CONTAGIO\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.5,\n  \"umbral_alerta_critica\": 0.75,\n  \"w_factor_sanitario\": 0.5,\n  \"w_factor_ambiental\": 0.3,\n  \"w_factor_densidad\": 0.2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 0C.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M04-16 - Frecuencia maxima (15 eventos en 60 s, separacion 2-6 s)",
+      "item": [
+        {
+          "name": "1.0 Inicializar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('n_ev', '0'); pm.collectionVariables.set('ev_log', '[]'); pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 1.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1 Evento con datos distintos (se repite 15 veces)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": {{fs_var}},\n    \"fa\": 0.5,\n    \"fd\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "const _k = parseInt(pm.collectionVariables.get('n_ev') || '0');",
+                  "pm.variables.set('fs_var', (0.2 + _k * 0.02).toFixed(2));",
+                  "const _esp = 2000 + Math.floor(((_k * 7919) % 5) * 1000); const _w = Date.now(); while (Date.now() - _w < _esp) {}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201/202/429', function () { pm.expect([200, 201, 202, 429]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "const _k = parseInt(pm.collectionVariables.get('n_ev') || '0') + 1; pm.collectionVariables.set('n_ev', String(_k));",
+                  "const _l = JSON.parse(pm.collectionVariables.get('ev_log') || '[]'); _l.push({n: _k, t: Date.now(), code: pm.response.code, ejecutado: !(R.omitido || R.estado_ejecucion === 'OMITIDO' || pm.response.code === 429)}); pm.collectionVariables.set('ev_log', JSON.stringify(_l));",
+                  "if (_k < 15) { postman.setNextRequest(pm.info.requestName); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Evaluar: separacion minima de 5 s y maximo 12 ejecuciones por minuto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const l = JSON.parse(pm.collectionVariables.get('ev_log') || '[]'); const ej = l.filter(function (x) { return x.ejecutado; });",
+                  "console.log('[TC-M04-G033] eventos=' + l.length + ' ejecutados=' + ej.length);",
+                  "pm.test('Se enviaron 15 eventos', function () { pm.expect(l.length).to.eql(15); });",
+                  "pm.test('Entre ejecuciones consecutivas hay >= 5 s', function () { for (let i = 1; i < ej.length; i++) { pm.expect(ej[i].t - ej[i - 1].t, 'ejecucion ' + i).to.be.at.least(4800); } });",
+                  "pm.test('Nunca mas de 12 ejecuciones en una ventana de 60 s', function () { for (let i = 0; i < ej.length; i++) { const w = ej.filter(function (x) { return x.t >= ej[i].t && x.t < ej[i].t + 60000; }).length; pm.expect(w).to.be.at.most(12); } });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-17 - Concurrencia maxima de 3 ejecuciones por lote (FIFO)",
+      "item": [
+        {
+          "name": "2.1 Lanzar 5 eventos simultaneos para el mismo lote (E1-E5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 6000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "(function () {",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin'); const ruta = pm.collectionVariables.get('ruta_contagio');",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk}; hdr['X-Test-Run-Id'] = pm.variables.get('run_id') || ''; hdr['X-Sandbox-Secret'] = pm.variables.get('sandbox_secret') || '';",
+                  "  pm.collectionVariables.set('burst', '[]'); const t0 = Date.now();",
+                  "  for (let i = 0; i < 5; i++) {",
+                  "    const body = {id_lote: parseInt(pm.collectionVariables.get('id_lote')), timestamp_calculo: new Date().toISOString(), qa_factores_simulados: {fs: 0.2 + i * 0.05, fa: 0.5, fd: 0.5}, qa_latencia_simulada_ms: 3000, qa_orden: i + 1};",
+                  "    pm.sendRequest({url: base + ruta, method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(body)}}, (function (idx) { return function (e, r) { const b = JSON.parse(pm.collectionVariables.get('burst') || '[]'); let j = {}; try { j = r.json(); } catch (x) {} const R = j.resultado || j; b.push({i: idx, code: r ? r.code : 0, t: r ? r.responseTime : null, fin: Date.now() - t0, estado: R.estado_ejecucion || R.estado || null, error: j.error_code || null, prob: R.probabilidad_contagio, cache: R.desde_cache, alerta: R.alerta_id || null}); pm.collectionVariables.set('burst', JSON.stringify(b)); }; })(i));",
+                  "  }",
+                  "})();",
+                  "pm.test('Rafaga de 5 eventos lanzada (E1-E5)', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Evaluar: E1-E3 ejecutan de inmediato; E4-E5 se encolan en orden FIFO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 9000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const b = JSON.parse(pm.collectionVariables.get('burst') || '[]').sort(function (a, c) { return a.fin - c.fin; });",
+                  "console.log('[TC-M04-G033] rafaga=' + JSON.stringify(b));",
+                  "pm.test('Las 5 solicitudes obtuvieron respuesta correcta', function () { pm.expect(b.length).to.eql(5); b.forEach(function (x) { pm.expect(x.code).to.be.within(200, 299); }); });",
+                  "pm.test('Maximo 3 ejecuciones simultaneas: las 2 ultimas terminan despues de la primera tanda', function () { const z = {fin: 0}; pm.expect((b[3] || z).fin).to.be.above((b[0] || z).fin); pm.expect((b[4] || z).fin).to.be.above((b[2] || z).fin); });",
+                  "pm.test('Las solicitudes en exceso se atienden en orden FIFO (E4 antes que E5)', function () { const e4 = b.filter(function (x) { return x.i === 3; })[0], e5 = b.filter(function (x) { return x.i === 4; })[0]; pm.expect((e4 || {fin: 0}).fin).to.be.at.most((e5 || {fin: 1}).fin); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-18 - Sobrecarga de cola (>10 pendientes)",
+      "item": [
+        {
+          "name": "3.1 Acumular 13 eventos pendientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 6000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "(function () {",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin'); const ruta = pm.collectionVariables.get('ruta_contagio');",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk}; hdr['X-Test-Run-Id'] = pm.variables.get('run_id') || ''; hdr['X-Sandbox-Secret'] = pm.variables.get('sandbox_secret') || '';",
+                  "  pm.collectionVariables.set('burst', '[]'); const t0 = Date.now();",
+                  "  for (let i = 0; i < 13; i++) {",
+                  "    const body = {id_lote: parseInt(pm.collectionVariables.get('id_lote')), timestamp_calculo: new Date(Date.now() - (13 - i) * 1000).toISOString(), qa_factores_simulados: {fs: 0.2 + i * 0.03, fa: 0.5, fd: 0.5}, qa_latencia_simulada_ms: 3000};",
+                  "    pm.sendRequest({url: base + ruta, method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(body)}}, (function (idx) { return function (e, r) { const b = JSON.parse(pm.collectionVariables.get('burst') || '[]'); let j = {}; try { j = r.json(); } catch (x) {} const R = j.resultado || j; b.push({i: idx, code: r ? r.code : 0, t: r ? r.responseTime : null, fin: Date.now() - t0, estado: R.estado_ejecucion || R.estado || null, error: j.error_code || null, prob: R.probabilidad_contagio, cache: R.desde_cache, alerta: R.alerta_id || null}); pm.collectionVariables.set('burst', JSON.stringify(b)); }; })(i));",
+                  "  }",
+                  "})();",
+                  "pm.test('Rafaga de 13 eventos lanzada (13 pendientes)', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Evaluar: se descartan las mas antiguas y se priorizan las recientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 12000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const b = JSON.parse(pm.collectionVariables.get('burst') || '[]');",
+                  "console.log('[TC-M04-G033] rafaga=' + JSON.stringify(b));",
+                  "pm.test('Con 13 pendientes (>10) se descarta al menos un evento', function () { pm.expect(b.filter(function (x) { return x.code >= 400 || x.estado === 'DESCARTADO'; }).length).to.be.at.least(1); });",
+                  "pm.test('Los descartados son los mas antiguos (indices bajos)', function () { const d = b.filter(function (x) { return x.code >= 400 || x.estado === 'DESCARTADO'; }).map(function (x) { return x.i; }); const ok = b.filter(function (x) { return x.code < 300 && x.estado !== 'DESCARTADO'; }).map(function (x) { return x.i; }); if (d.length && ok.length) { pm.expect(Math.max.apply(null, d)).to.be.below(Math.max.apply(null, ok)); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 SOBRECARGA_MODELO_CONTAGIO registrado en la auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?fecha_desde={{t0}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{t0}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 3.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Evento SOBRECARGA_MODELO_CONTAGIO registrado', function () { console.log('[TC-M04-G033][OBSERVADO] eventos=' + (J.items || []).map(function (e) { return e.tipo_evento; }).join(',')); pm.expect((J.items || []).some(function (e) { return e.tipo_evento === 'SOBRECARGA_MODELO_CONTAGIO'; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-19 - Mas de 5 ejecuciones consecutivas en modo degradado",
+      "item": [
+        {
+          "name": "4.0 Esperar a que expire la cola y marcar tiempo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('t0', new Date(Date.now() - 2000).toISOString());",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 15000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.1 Ciclo 1 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 1 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Ciclo 2 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 2 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.3 Ciclo 3 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 3 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.4 Ciclo 4 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 4 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.5 Ciclo 5 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 5 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.6 Ciclo 6 de 6 con data_quality_score = 0.5 (< 0.6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Ciclo 6 en modo degradado', function () { pm.expect(String(R.modo_ejecucion || R.modo).toUpperCase()).to.eql('DEGRADADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.7 Ciclo 7 degradado: ya con >5 consecutivos, las alertas criticas nuevas quedan suspendidas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"alerta_id vacio (no se dispara alerta hacia RF-57)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) === null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.8 ALERTA_CALIDAD_DATOS registrada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?fecha_desde={{t0}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{t0}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Evento ALERTA_CALIDAD_DATOS registrado', function () { console.log('[TC-M04-G033][OBSERVADO] eventos=' + (J.items || []).map(function (e) { return e.tipo_evento; }).join(',')); pm.expect((J.items || []).some(function (e) { return e.tipo_evento === 'ALERTA_CALIDAD_DATOS'; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.9 Recuperacion: ciclo con data_quality_score = 0.92 reactiva las alertas criticas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"qa_factores_simulados\": {\n    \"fs\": 0.9,\n    \"fa\": 0.9,\n    \"fd\": 0.9\n  },\n  \"qa_datos_lote\": {\n    \"data_quality_score\": 0.92\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 5200) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G033 4.9] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test(\"alerta_id presente (RF-57 invocado con tipo_alerta=RIESGO_CONTAGIO)\", function () { pm.expect((R.alerta_id || R.id_alerta || (R.alerta && (R.alerta.id_alerta || R.alerta.id)) || null) !== null).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M04-G033] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      }
+    }
+  ]
+}

@@ -5,6 +5,8 @@
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30 RF-57: descartar sobre el recurso real alertas_operativas |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-08 RF-57: filtro fecha_resolucion_desde |
+# | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -55,6 +57,7 @@ from src.telemetry.infrastructure.schema.alerta_schema import (
     ResultadoGeneracionAlertaSchema,
 )
 from src.shared.fechas import FechaHoraUtc
+from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
 
 router = APIRouter(prefix="/iot/alertas", tags=["Telemetría IoT - Alertas"], route_class=RutaAlertaAuditada)
 
@@ -132,6 +135,7 @@ def listar_alertas(
     tipo_alerta: Optional[str] = Query(default=None),
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
+    id_infraestructura: Optional[int] = Query(default=None, description="Área de la alerta (T-18)."),
     origen_evento: Optional[str] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
@@ -163,6 +167,7 @@ def listar_alertas(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
         fecha_resolucion_desde=fecha_resolucion_desde,
+        id_infraestructura=id_infraestructura,
     )
     return ListaAlertasSchema(
         total=total,
@@ -239,6 +244,7 @@ def actualizar_estado_alerta(
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         ambito=AmbitoAlerta.OPERATIVA,
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        recalcular_semaforo=lambda id_sensor: recalcular_semaforo_sensor(db, id_sensor),
     )
     alerta = use_case.execute(
         id_alerta=id_alerta,

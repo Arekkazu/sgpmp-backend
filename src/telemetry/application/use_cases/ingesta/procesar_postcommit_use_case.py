@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: confirma alerta y correlacion juntas |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: omite etapas sin adaptador en vez de fallar en cada reintento |
 # | 2026-10-25 | Arekkazu | RF-63: si falla la consulta de pendientes de una etapa, las demás siguen |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope de la espera creciente entre reintentos |
 """Cada etapa confirma sus efectos y su evidencia juntos; las demás pueden avanzar."""
 import logging
 
@@ -13,13 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class ProcesarPostcommitUseCase:
-    def __init__(self, unidad_factory, acciones, limite=50, reintento_seg=60):
-        if limite <= 0 or reintento_seg <= 0:
-            raise ValueError('Límite y espera de reintento deben ser positivos.')
+    def __init__(self, unidad_factory, acciones, limite=50, reintento_seg=60, reintento_max_seg=None):
+        if limite <= 0 or reintento_seg <= 0 or (reintento_max_seg is not None and reintento_max_seg < reintento_seg):
+            raise ValueError('Límite y espera de reintento deben ser positivos, y el tope no menor que la espera.')
         self.unidad_factory = unidad_factory
         self.acciones = acciones
         self.limite = limite
         self.reintento_seg = reintento_seg
+        # M3-12: la espera se duplica en cada fallo hasta este tope (None = espera fija).
+        self.reintento_max_seg = reintento_max_seg
 
     def execute(self):
         resultado = {'completados': 0, 'fallidos': 0}
@@ -29,7 +32,8 @@ class ProcesarPostcommitUseCase:
                 continue
             try:
                 with self.unidad_factory() as unidad:
-                    ids = unidad.pendientes(etapa, self.limite, self.reintento_seg)
+                    ids = unidad.pendientes(etapa, self.limite, self.reintento_seg,
+                                            reintento_max_seg=self.reintento_max_seg)
             except Exception as exc:
                 # Un timeout en una etapa no detiene a las siguientes. Solo el tipo:
                 # el mensaje del driver trae el SQL completo.

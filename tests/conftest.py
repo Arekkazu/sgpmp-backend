@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: une fixtures de dev (en_colombia) y del sandbox de test |
 """Aislamiento compartido por toda la suite."""
 from __future__ import annotations
 
@@ -14,16 +15,27 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from main import app
 import src.shared.fechas as fechas
 from src.biological_assets.application.use_cases import _registrar_evento_bitacora as bitacora
 
 
 @pytest.fixture(autouse=True)
 def _buffer_auditoria_m02_aislado(tmp_path, monkeypatch) -> None:
-    """Aísla el buffer de auditoría del módulo 2 en un directorio temporal por test."""
-    monkeypatch.setattr(bitacora, "_DIR", tmp_path / "logs")
-    monkeypatch.setattr(bitacora, "_control", bitacora.ControlCarga())
+    """RF-52 E1/E3: el buffer de auditoría de M02 y el control de carga son estado
+    de proceso. Con el `logs/` real, el fallo simulado de una prueba se
+    "recuperaría" dentro del repositorio falso de la siguiente; con un solo
+    ControlCarga, las ráfagas de una prueba contarían para la siguiente.
+    """
+    monkeypatch.setattr(bitacora, '_DIR', tmp_path / 'logs')
+    monkeypatch.setattr(bitacora, '_control', bitacora.ControlCarga())
+
+
+@pytest.fixture
+def en_colombia():
+    """El request trae ``X-Zona-Horaria: America/Bogota`` (sin ella el día es el de UTC)."""
+    token = fechas.establecer_zona_usuario('America/Bogota')
+    yield ZoneInfo('America/Bogota')
+    fechas._zona.reset(token)
 
 
 @pytest.fixture(scope="session")
@@ -76,6 +88,10 @@ def sandbox_client(test_run_id, monkeypatch) -> Generator[TestClient, None, None
     Cliente HTTP que inyecta automáticamente los headers del sandbox, para
     que el middleware real controle la transacción vía HTTP.
     """
+    # Import diferido: `main` exige DATABASE_URL al importarse y las pruebas
+    # unitarias que no usan esta fixture no deben depender de esa variable.
+    from main import app
+
     monkeypatch.setenv("ENABLE_TEST_SANDBOX", "true")
 
     secret = os.getenv("TEST_SANDBOX_SECRET")
@@ -97,11 +113,3 @@ def sandbox_client(test_run_id, monkeypatch) -> Generator[TestClient, None, None
         f"/test-control/runs/{test_run_id}",
         headers={"X-Sandbox-Secret": secret},
     )
-
-
-@pytest.fixture
-def en_colombia():
-    """El request trae ``X-Zona-Horaria: America/Bogota`` (sin ella el día es el de UTC)."""
-    token = fechas.establecer_zona_usuario('America/Bogota')
-    yield ZoneInfo('America/Bogota')
-    fechas._zona.reset(token)

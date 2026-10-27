@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-40 RF-53: conecta catalogo M09 y bitacora      |
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: publica sobre normativo sin ocultar DB-09 |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta de vision responde la calidad pendiente |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
@@ -160,16 +161,7 @@ def ingerir_observaciones_vision(
         aceptadas=len(resultado.observaciones),
         duplicadas=resultado.duplicados,
         observaciones=[
-            ObservacionVisionResponse(
-                id_observacion_vision=o.id_observacion_vision,
-                timestamp_captura=o.fecha_observacion,
-                indice_calidad=o.indice_calidad,
-                clasificacion_calidad=o.clasificacion_calidad.value,
-                apto_para_ia=o.es_apto_para_ia,
-                ventana_inicio=o.fecha_inicio_ventana,
-                ventana_fin=o.fecha_observacion,
-                version_cascada=o.version_cascada,
-            )
+            ObservacionVisionResponse.desde(o)
             for o in resultado.observaciones
         ],
     )

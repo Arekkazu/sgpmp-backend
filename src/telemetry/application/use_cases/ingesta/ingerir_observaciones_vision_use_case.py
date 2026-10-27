@@ -1,12 +1,14 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: preserva legado y explicita dependencia DB-09 |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: persiste el sobre normativo; la calidad se evalua despues |
 """Caso de uso: ingesta de observaciones de visión por área (RF-53/RF-56/RF-62 v2.0, RFC-011).
 
 La cámara se resuelve por serial en D4, o device_id + serial en el lote legado,
-con el token de servicio del broker (D3, AIOT-DEV-03). Cada observación recibe su índice de calidad de visión y
-``apto_para_ia``; es lo que la calibración VISION de RF-24 consume
-(INC-M09-77-G137, #513).
+con el token de servicio del broker (D3, AIOT-DEV-03). La ingesta solo guarda la
+observación: RF-62 la evalúa después, de forma asíncrona (etapa post-commit
+``VISION_CALIDAD``), así que la respuesta trae la calidad en null
+(INC-M03-134-G192). RF-24 consume ``apto_para_ia`` una vez evaluada.
 
 El lote es atómico: una observación inválida rechaza el lote completo. Un
 reenvío (misma cámara e instante) no es error: se cuenta como duplicado.
@@ -18,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from src.shared.errors import AuthenticationError, BusinessRuleError, ValidationError, ServiceUnavailableError
+from src.shared.errors import AuthenticationError, BusinessRuleError, ValidationError
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import _MAX_DRIFT_FUTURO_SEG
 from src.telemetry.domain.entities.observacion_vision import ObservacionVision
 from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
@@ -55,7 +57,8 @@ class IngerirObservacionesVisionUseCase:
         es_d4 = isinstance(dto, (ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO))
         if es_d4:
             camara = self.dispositivo_port.obtener_camara_por_serial(dto.serial)
-            observaciones = [] if normativo else [ObservacionVisionDTO(
+            # El sobre ya viene validado; el normativo puede omitir n_tracks (DB-09).
+            observaciones = [ObservacionVisionDTO.model_construct(
                 timestamp_captura=dto.ventana_fin,
                 vector={k: float(v) for k, v in dto.componentes.model_dump().items()},
                 **dto.calidad.model_dump(),
@@ -87,13 +90,6 @@ class IngerirObservacionesVisionUseCase:
                 field='area_id',
             )
 
-        if normativo:
-            # DB-09 no esta en dev ni en la base oficial inspeccionada. No se
-            # descartan campos ni se convierten estados para insertar en el
-            # esquema legado. El indice decimal tampoco se trunca a SMALLINT.
-            raise ServiceUnavailableError('CONTRATO_VISION_PENDIENTE',
-                'El sobre normativo requiere integrar DB-09 y su persistencia de calidad asincrona.')
-
         limite_futuro = datetime.now(timezone.utc) + timedelta(seconds=_MAX_DRIFT_FUTURO_SEG)
         for i, obs in enumerate(observaciones):
             if _utc(obs.timestamp_captura) > limite_futuro:
@@ -119,11 +115,12 @@ class IngerirObservacionesVisionUseCase:
                     cantidad_tracks=obs.n_tracks,
                     cantidad_tracks_perdidos=obs.n_tracks_perdidos,
                     fps_efectivo=obs.fps_efectivo,
-                    fps_nominal=camara.fps_nominal,
                     estado_calibracion=obs.estado_calibracion,
                     vector=obs.vector,
                     fecha_inicio_ventana=_utc(dto.ventana_inicio) if es_d4 else None,
                     version_cascada=dto.version_cascada.model_dump() if es_d4 else None,
+                    n_individuos_observados=dto.n_individuos_observados if normativo else None,
+                    origen=dto.origen if normativo else None,
                 ))
                 if guardada is not None:
                     guardadas.append(guardada)

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M04-138-G001 RF-64: búsqueda por nombre |
 from __future__ import annotations
 
 from typing import Optional
@@ -15,9 +18,11 @@ class ConsultarPatologiasUseCase:
         especie_aplicable: Optional[str] = None,
         solo_activas: Optional[bool] = None,
         solo_base: Optional[bool] = None,
+        nombre: Optional[str] = None,
     ) -> list[PatologiaM04]:
         return self._repo.listar(
             especie_aplicable=especie_aplicable,
             solo_activas=solo_activas,
             solo_base=solo_base,
+            nombre=nombre,
         )

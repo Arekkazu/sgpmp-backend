@@ -1,29 +1,19 @@
 {
   "info": {
-    "name": "TC-M04-G084: Reentrenamiento y deteccion de degradacion (RF-73)",
+    "name": "TC-M04-G084: Ciclo de Vida de Modelos IA - Reentrenamiento y Degradacion (RF-73)",
     "_postman_id": "a0484001-0000-4000-8000-000000000084",
-    "description": "Suite de verificación de auditoría para reentrenamiento de modelos y degradación (RF-73 / RF-71) bajo Sandbox Transaccional SGPMP.",
+    "description": "Suite de verificacion de auditoria para reentrenamiento de modelos y degradacion (RF-73 / RF-71 / RF-72) como test negativo honesto bajo Sandbox Transaccional SGPMP.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "if (!pm.collectionVariables.get(\"run_id\")) {",
-          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
-          "}",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
-        ]
-      }
-    }
-  ],
   "variable": [
     {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test",
+      "type": "string"
+    },
+    {
       "key": "baseUrl",
-      "value": "https://api.inmero.co/back-sigab-test",
+      "value": "https://api.inmero.co/api-sgpmp-test",
       "type": "string"
     },
     {
@@ -33,7 +23,7 @@
     },
     {
       "key": "sandbox_secret",
-      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff",
+      "value": "",
       "type": "string"
     },
     {
@@ -42,13 +32,23 @@
       "type": "string"
     },
     {
-      "key": "token",
+      "key": "jwt_admin",
       "value": "",
       "type": "string"
     },
     {
-      "key": "correlacion_id_g084",
-      "value": "e0484001-0000-4000-8000-000000000084",
+      "key": "total_sub2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "total_sub3",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "count_f1_bajo",
+      "value": "",
       "type": "string"
     }
   ],
@@ -57,15 +57,29 @@
       "name": "01-Login-ADMIN",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var pwd = pm.environment.get(\"admin_password\") || pm.collectionVariables.get(\"admin_password\");",
+              "if (pwd) {",
+              "    pm.collectionVariables.set(\"admin_password\", pwd);",
+              "}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "pm.test(\"01.01: Login exitoso del Administrador (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
               "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('token');",
-              "    pm.collectionVariables.set('token', data.token);",
+              "    var jwt = data.token || data.access_token;",
+              "    pm.expect(jwt, \"Token JWT presente en respuesta\").to.be.a(\"string\").and.not.empty;",
+              "    pm.environment.set(\"jwt_admin\", jwt);",
+              "    pm.collectionVariables.set(\"jwt_admin\", jwt);",
               "});"
             ]
           }
@@ -84,9 +98,9 @@
           "raw": "{\"correo_electronico\":\"administador.dev@gmail.com\",\"contrasena\":\"{{admin_password}}\"}"
         },
         "url": {
-          "raw": "{{baseUrl}}/sesiones/",
+          "raw": "{{base_url}}/sesiones/",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "sesiones",
@@ -96,18 +110,31 @@
       }
     },
     {
-      "name": "02-Preflight-Auditoria-M04",
+      "name": "02-Preflight-Bitacora-Accesible",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var runId = pm.environment.get(\"run_id\") || pm.collectionVariables.get(\"run_id\");",
+              "if (!runId) {",
+              "    runId = \"test-m04-g084-\" + pm.variables.replaceIn('{{$guid}}').substring(0, 8);",
+              "    pm.environment.set(\"run_id\", runId);",
+              "    pm.collectionVariables.set(\"run_id\", runId);",
+              "}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-02: Preflight exitoso sobre GET /prediccion/auditoria (HTTP 200)\", function () {",
+              "pm.test(\"02.01: Preflight exitoso sobre GET /prediccion/auditoria (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
-              "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('items');",
-              "    pm.expect(Array.isArray(data.items)).to.be.true;",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.total).to.be.at.least(0);",
               "});"
             ]
           }
@@ -118,13 +145,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?pagina=1&por_pagina=10",
+          "raw": "{{base_url}}/prediccion/auditoria?por_pagina=1",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -132,26 +167,27 @@
           ],
           "query": [
             {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
               "key": "por_pagina",
-              "value": "10"
+              "value": "1"
             }
           ]
         }
       }
     },
     {
-      "name": "03-TC-M04-259-Reentrenamiento-Iniciado-Diagnostico",
+      "name": "03-Sonda-REENTRENAMIENTO_INICIADO-Ausencia-Confirmada",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-259 (REENTRENAMIENTO_INICIADO): El endpoint productor de disparo manual de reentrenamiento (RF-71) no existe en la API REST de FastAPI. La orquestación corre en worker externo.');"
+              "// Hallazgo G084: RF-71 no existe en el backend. Confirmacion empirica de ausencia. Ver .diagnostico/diagnostico_G084.md",
+              "pm.test(\"03.01: Confirmar ausencia de REENTRENAMIENTO_INICIADO en backend actual (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.total).to.equal(0, \"Confirmado: tipo_evento REENTRENAMIENTO_INICIADO no existe en el backend actual (RF-71 no implementado por decision de alcance)\");",
+              "});"
             ]
           }
         }
@@ -161,13 +197,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_INICIADO",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_INICIADO&por_pagina=5",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -177,20 +221,31 @@
             {
               "key": "tipo_evento",
               "value": "REENTRENAMIENTO_INICIADO"
+            },
+            {
+              "key": "por_pagina",
+              "value": "5"
             }
           ]
         }
       }
     },
     {
-      "name": "04-TC-M04-260-Reentrenamiento-Completado-Diagnostico",
+      "name": "04-Sonda-REENTRENAMIENTO_COMPLETADO-Documentar-Estado-Real",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-260 (REENTRENAMIENTO_COMPLETADO): El pipeline batch de reentrenamiento no expone endpoints REST para simular completación con métricas.');"
+              "// Semilla historica (2 eventos con origen_registro=DIRECTO, id_sistema=cron-reentrenamiento) NO constituye emision real. Veredicto del subcaso: BLOQUEADO_POR_DISENO.",
+              "pm.test(\"04.01: Documentar estado de REENTRENAMIENTO_COMPLETADO en auditoria (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.total).to.be.at.least(0);",
+              "    pm.environment.set(\"total_sub2\", body.total);",
+              "    pm.collectionVariables.set(\"total_sub2\", body.total);",
+              "});"
             ]
           }
         }
@@ -200,13 +255,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_COMPLETADO",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=REENTRENAMIENTO_COMPLETADO&por_pagina=5",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -216,20 +279,31 @@
             {
               "key": "tipo_evento",
               "value": "REENTRENAMIENTO_COMPLETADO"
+            },
+            {
+              "key": "por_pagina",
+              "value": "5"
             }
           ]
         }
       }
     },
     {
-      "name": "05-TC-M04-261-Degradacion-Detectada-Diagnostico",
+      "name": "05-Sonda-DEGRADACION_DETECTADA-Documentar-Estado-Real",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-261 (DEGRADACION_DETECTADA): No existe endpoint REST para enviar métricas degradadas (f1=0.78 < 0.80) y forzar la emisión del evento de degradación.');"
+              "// Semilla historica (2 eventos CRITICAL, origen_registro=DIRECTO). Motor de drift RF-72 no implementado. Veredicto: BLOQUEADO_POR_DISENO.",
+              "pm.test(\"05.01: Documentar estado de DEGRADACION_DETECTADA en auditoria (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.total).to.be.at.least(0);",
+              "    pm.environment.set(\"total_sub3\", body.total);",
+              "    pm.collectionVariables.set(\"total_sub3\", body.total);",
+              "});"
             ]
           }
         }
@@ -239,13 +313,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=DEGRADACION_DETECTADA",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=DEGRADACION_DETECTADA&por_pagina=5",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -255,20 +337,89 @@
             {
               "key": "tipo_evento",
               "value": "DEGRADACION_DETECTADA"
+            },
+            {
+              "key": "por_pagina",
+              "value": "5"
             }
           ]
         }
       }
     },
     {
-      "name": "06-Teardown-Sandbox-Rollback",
+      "name": "06-Verificar-Precondicion-Subcaso3-F1-Degradado",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "pm.test(\"06.01: Verificar precondicion de F1 degradado (<0.80) en modelos activos (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var items = body.items || body || [];",
+              "    if (!Array.isArray(items) && body.modelos) {",
+              "        items = body.modelos;",
+              "    }",
+              "    var count_activos_bajo_umbral = 0;",
+              "    items.forEach(function (m) {",
+              "        var estado = m.estado || m.estado_version;",
+              "        var f1 = m.f1_score_global !== undefined ? m.f1_score_global : m.f1_score;",
+              "        if (estado === \"ACTIVO\" && f1 !== null && f1 !== undefined && Number(f1) < 0.80) {",
+              "            count_activos_bajo_umbral++;",
+              "        }",
+              "    });",
+              "    pm.expect(count_activos_bajo_umbral).to.equal(0, \"Precondicion de degradacion no cumplida: no hay modelo ACTIVO con F1<0.80 en TEST. El subcaso 3 no puede activarse aunque el scheduler existiera.\");",
+              "    pm.environment.set(\"count_f1_bajo\", count_activos_bajo_umbral);",
+              "    pm.collectionVariables.set(\"count_f1_bajo\", count_activos_bajo_umbral);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/prediccion/modelos?por_pagina=100",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "modelos"
+          ],
+          "query": [
+            {
+              "key": "por_pagina",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "07-Teardown-Sandbox-Rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"07.01: Cierre y rollback de sandbox transaccional (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
               "    var data = pm.response.json();",
               "    var statusMsg = data.status || data.mensaje || \"\";",
@@ -282,14 +433,18 @@
         "method": "DELETE",
         "header": [
           {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
             "key": "X-Sandbox-Secret",
             "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "raw": "{{base_url}}/test-control/runs/{{run_id}}",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "test-control",

@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura reintentos de dev y conserva get_db del sandbox de test |
+# | 2026-10-25 | SamuelPR21 |  reseteo de contexto RLS en Sandbox QA para evitar herencia de identidad entre peticiones
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -228,27 +230,60 @@ _PAUSA_REINTENTO = 0.5
 
 
 def _conectar_con_reintentos(db: Session) -> None:
-    """Toma la conexión del pool reintentando ante fallos transitorios (RF-02)."""
+    """Toma la conexión del pool reintentando ante fallos transitorios.
+
+    Adelanta al inicio del request el checkout que SQLAlchemy haría en el primer
+    query, para poder distinguir "la base de datos no responde" de cualquier
+    otro fallo y traducirlo a un error de dominio.
+
+    Args:
+        db: Sesión recién creada por `SessionLocal`.
+
+    Raises:
+        ServiceUnavailableError: Si la base de datos no responde después de
+            agotar los reintentos. Código ``BD_NO_DISPONIBLE``, HTTP 503.
+    """
     for intento in range(1, _MAX_REINTENTOS_CONEXION + 1):
         try:
             db.connection()
             return
         except (OperationalError, InterfaceError) as exc:
+            # Devuelve la conexión inservible al pool para que el siguiente
+            # intento saque una nueva en vez de reusar la que acaba de fallar.
             db.rollback()
             if intento == _MAX_REINTENTOS_CONEXION:
                 logger.error(
-                    "No se pudo establecer conexión tras %s intentos: %s",
-                    _MAX_REINTENTOS_CONEXION, exc,
+                    "Base de datos inalcanzable tras %d intentos: %r", intento, exc
                 )
                 raise ServiceUnavailableError(
-                    "BD_NO_DISPONIBLE",
-                    "No fue posible conectar con la base de datos. Intenta más tarde.",
+                    code="BD_NO_DISPONIBLE",
+                    message=(
+                        "El servicio no está disponible temporalmente. "
+                        "Intenta de nuevo en unos momentos."
+                    ),
+                    original_error=exc,
                 ) from exc
+            logger.warning(
+                "Reintentando conexión a la base de datos (%d/%d).",
+                intento,
+                _MAX_REINTENTOS_CONEXION,
+            )
             time.sleep(_PAUSA_REINTENTO)
 
 
 def get_db():
-    """Generador principal de sesiones inyectado en routers."""
+    """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
+
+    Con ``ENABLE_TEST_SANDBOX=true`` y un ``X-Test-Run-Id`` en el request,
+    entrega la sesión aislada del sandbox de pruebas en vez de una del pool.
+
+    Yields:
+        Session: Sesión de base de datos activa para el request actual.
+
+    Raises:
+        ServiceUnavailableError: Si la base de datos no responde al inicio del
+            request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
+    """
     if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
         db = SessionLocal()
         try:
@@ -274,6 +309,31 @@ def get_db():
         test_session = None
         try:
             test_session = get_or_create_test_session(run_id)
+            
+            # --- INICIO PARCHE DBA-01: RESETEO DE IDENTIDAD EN SANDBOX ---
+            # Al reutilizar la sesión física para diferentes peticiones/usuarios 
+            # dentro del mismo run_id, debemos limpiar la identidad previa 
+            # almacenada en session.info. De lo contrario, funciones como 
+            # `declarar_identidad_si_anonima` no sobrescribirán la identidad 
+            # (porque ven que ya existe una) y la transacción heredará el 
+            # contexto RLS del usuario anterior, causando violaciones RLS.
+            test_session.info.pop(_CLAVE_IDENTIDAD, None)
+            
+            # Adicionalmente, limpiamos las variables de configuración de 
+            # PostgreSQL a nivel de transacción para asegurar un estado prístino
+            # antes de que el middleware/dependencias declaren la nueva identidad.
+            if test_session.in_transaction():
+                try:
+                    test_session.connection().execute(
+                        text(
+                            "SELECT set_config('app.current_user_id', '', true), "
+                            "set_config('app.current_role', '', true), "
+                            "set_config('app.usuario_id', '', true)"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"[Sandbox] No se pudo limpiar contexto RLS previo: {e}")
+
             yield test_session
         except SandboxCapacityExceeded as e:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))

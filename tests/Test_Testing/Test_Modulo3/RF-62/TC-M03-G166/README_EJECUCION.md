@@ -1,7 +1,8 @@
 # GUÍA DE EJECUCIÓN: TC-M03-G166 (RF-62 / RF-57 / RF-63)
 **Caso:** Detección de Sensor Congelado y Fronteras de Severidad  
 **Casos originales agrupados:** TC-M03-309, TC-M03-310, TC-M03-311  
-**Entorno objetivo:** TEST (`https://api.inmero.co/back-sigab-test`)  
+**Entorno objetivo:** TEST (`https://www.api.inmero.co/api-sgpmp-test`)  
+**Fallback secundario:** `https://api.inmero.co/api-sgpmp-test`  
 
 ---
 
@@ -10,35 +11,38 @@
 Configure las siguientes variables en `.env.test` en la raíz del proyecto o expórtelas en su shell:
 
 ```bash
-TEST_BASE_URL="https://api.inmero.co/back-sigab-test"
+TEST_BASE_URL="https://www.api.inmero.co/api-sgpmp-test"
 ENABLE_TEST_SANDBOX="true"
-TEST_SANDBOX_SECRET="<secreto-del-sandbox>"
+TEST_SANDBOX_SECRET="377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff"
 TEST_ADMIN_EMAIL="administador.dev@gmail.com"
 TEST_ADMIN_PASSWORD="<password-admin>"
 ```
 
 > **IMPORTANTE (Política Anti-Hardcode y Seguridad):**
 > - Prohibido usar `admin@pecuaria.co`.
-> - Prohibido escribir contraseñas o el secreto de sandbox en archivos de repositorio, scripts o documentación.
-> - Si falta alguna variable, el test aborta inmediatamente con un mensaje claro sin imprimir valores.
+> - Confirmar conectividad con `GET /health` antes de ejecutar; si la URL principal no responde, utilizar el fallback `https://api.inmero.co/api-sgpmp-test`.
+> - Prohibido escribir contraseñas reales en archivos de repositorio o documentación.
+> - Si falta alguna variable requerida, el test aborta inmediatamente con `SandboxConfigError` sin exponer secretos.
 
 ---
 
-## 2. Comando Oficial de Ejecución
+## 2. Comando Oficial de Ejecución (Fase 3)
 
-Para ejecutar el caso de prueba aislando los archivos de configuración globales (`conftest.py` raíz que importa `main.py`) y desactivando plugins de cobertura que puedan interferir:
+Para ejecutar el caso de prueba aislando los archivos de configuración globales (`conftest.py` raíz que importa `main.py`) y generando los reportes computables reconocidos por el Scanner del Dashboard de QA (JUnit XML y pytest-html):
 
 ```powershell
-pytest tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G166/test_tc_m03_g166.py `
+$env:PYTHONPATH="."
+$env:TEST_BASE_URL="https://www.api.inmero.co/api-sgpmp-test"
+$env:ENABLE_TEST_SANDBOX="true"
+$env:TEST_SANDBOX_SECRET="377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff"
+
+pytest tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G166/ `
   --confcutdir=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G166 `
   -p no:cov `
-  -v -s
+  -v --tb=short `
+  --html=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G166/resultados/resultado_TC-M03-G166.html --self-contained-html `
+  --junitxml=tests/Test_Testing/Test_Modulo3/RF-62/TC-M03-G166/resultados/resultado_TC-M03-G166.xml
 ```
-
-### Regla sobre Carpetas de Reportes
-- **No crear carpetas manuales:** Las carpetas `resultados/`, `RESULTADOS/` o `evidencias/` **NO se crean en esta fase**.
-- Cuando el equipo autorice la ejecución con generación de reporte HTML (`--html=...`), la carpeta se creará automáticamente siguiendo el casing oficial ya presente en el repositorio git (`git ls-files tests/Test_Testing | findstr /i resultados`).
-- **Primera corrida recomendada:** Ejecutar primero la serie completa **SIN la bandera `--html`** para validar la estabilidad de la conexión sin generar reportes computables parciales.
 
 ---
 

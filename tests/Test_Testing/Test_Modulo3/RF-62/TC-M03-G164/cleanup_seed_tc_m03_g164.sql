@@ -36,20 +36,38 @@ BEGIN
         RAISE EXCEPTION 'Limpieza abortada: No existen registros marcados con seed_id = TC_M03_G164_SEED.';
     END IF;
 
-    -- 3. Eliminar primero en la tabla hija (telemetria_calidad)
+    -- 3. Desactivar referencias circulares/recursivas de id_evaluacion_superada (F-HG8)
+    UPDATE modulo3.telemetria_calidad
+    SET id_evaluacion_superada = NULL
+    WHERE id_telemetria IN (
+        SELECT id_telemetria 
+        FROM modulo3.telemetrias 
+        WHERE metadatos->>'seed_id' = 'TC_M03_G164_SEED'
+    ) OR parametros_aplicados->>'seed_id' = 'TC_M03_G164_SEED';
+
+    -- 4. Eliminar en la tabla hija (telemetria_calidad)
     DELETE FROM modulo3.telemetria_calidad
     WHERE id_telemetria IN (
         SELECT id_telemetria 
         FROM modulo3.telemetrias 
         WHERE metadatos->>'seed_id' = 'TC_M03_G164_SEED'
-    );
+    ) OR parametros_aplicados->>'seed_id' = 'TC_M03_G164_SEED';
 
-    -- 4. Eliminar en la tabla padre (telemetrias)
+    -- 5. Eliminar en la tabla padre (telemetrias)
     DELETE FROM modulo3.telemetrias
     WHERE metadatos->>'seed_id' = 'TC_M03_G164_SEED';
 
     RAISE NOTICE 'Limpieza ejecutada exitosamente: % evaluaciones y % telemetrias eliminadas.', v_conteo_calidad, v_conteo_telemetrias;
 END $$;
+
+-- Sanity check post-cleanup: debe retornar 0 filas para ambos marcadores
+SELECT count(*) AS residual_telemetrias 
+FROM modulo3.telemetrias 
+WHERE metadatos->>'seed_id' = 'TC_M03_G164_SEED';
+
+SELECT count(*) AS residual_calidad 
+FROM modulo3.telemetria_calidad 
+WHERE parametros_aplicados->>'seed_id' = 'TC_M03_G164_SEED';
 
 -- AVISO NORMATIVO SOBRE TRIGGERS (M15):
 -- Estado de triggers de inmutabilidad: NO VERIFICADO en el catálogo activo de TEST.

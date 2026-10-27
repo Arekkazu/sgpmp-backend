@@ -1,0 +1,376 @@
+{
+  "info": {
+    "name": "TC-M04-G035 - Rendimiento y calidad predictiva del modelo de contagio (RF-68 RNF-01/RNF-02/RNF-04, Paso 6)",
+    "description": "Subcasos: (1) TC-M04-23 lote de 1000 aves <= 3000 ms y 5 lotes concurrentes de 50-500 activos sin degradacion significativa. (2) TC-M04-24 correlacion >=0.75 entre estimaciones retrospectivas y eventos sanitarios reales (script tc-m04-g035_correlacion.py). ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para calcular el riesgo de contagio (ficha: 'No existe ningun endpoint'). La ruta se toma de la variable de coleccion ruta_contagio y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_lote (lote con activos y sensores), ruta_contagio (provisional), contagio_banda_medio_min / contagio_banda_alto_min (limites de bandas de RF-65), correo_/contrasena_ de los roles usados. Script sin ejecutar: el ambiente aun no esta listo. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambientes: DEV https://api.inmero.co/api-sgpmp-dev, TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m04-g035.json -e <environment>.json --env-var sandbox_secret=<SECRETO_SANDBOX> -r cli,htmlextra --reporter-htmlextra-export resultados/resultado_TC-M04-G035.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "ruta_contagio",
+      "value": "/prediccion/riesgo-contagio"
+    },
+    {
+      "key": "id_lote",
+      "value": "210"
+    },
+    {
+      "key": "id_lote_finca_a",
+      "value": "210"
+    },
+    {
+      "key": "contagio_banda_medio_min",
+      "value": "0.40"
+    },
+    {
+      "key": "contagio_banda_alto_min",
+      "value": "0.60"
+    },
+    {
+      "key": "ids_lotes_concurrentes",
+      "value": "[210, 211, 212, 213, 214]"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0. Preparacion",
+      "item": [
+        {
+          "name": "0C. Configurar pesos por defecto W_fs=0.5, W_fa=0.3, W_fd=0.2 (RF-65)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_modelo\": \"MODELO_RIESGO_CONTAGIO\",\n  \"ventana_temporal_min\": 10,\n  \"modo_ejecucion\": \"SERVIDOR\",\n  \"umbral_riesgo_alto\": 0.5,\n  \"umbral_alerta_critica\": 0.75,\n  \"w_factor_sanitario\": 0.5,\n  \"w_factor_ambiental\": 0.3,\n  \"w_factor_densidad\": 0.2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G035 0C.] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M04-23 - Rendimiento",
+      "item": [
+        {
+          "name": "1.1 Lote de 1000 aves (1000 activos)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}{{ruta_contagio}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_lote\": {{id_lote}},\n  \"timestamp_calculo\": \"{{ts_now}}\",\n  \"n_enfermos_detectados\": 120,\n  \"total_activos_lote\": 1000,\n  \"qa_factores_simulados\": {\n    \"fs\": 0.3,\n    \"fa\": 0.5,\n    \"fd\": 0.6\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));",
+                  "const _d = (n) => new Date(Date.now() - n*864e5).toISOString().slice(0,10);",
+                  "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
+                  "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
+                  "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G035 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const R = (J && J.resultado) ? J.resultado : (J || {});",
+                  "pm.test('Calculo del lote de 1000 aves <= 3000 ms', function () { pm.expect(pm.response.responseTime).to.be.at.most(3000); });",
+                  "pm.collectionVariables.set('t_base', String(pm.response.responseTime));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Lanzar 5 lotes concurrentes de 50-500 activos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 6000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G035 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "(function () {",
+                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin'); const ruta = pm.collectionVariables.get('ruta_contagio');",
+                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk}; hdr['X-Test-Run-Id'] = pm.variables.get('run_id') || ''; hdr['X-Sandbox-Secret'] = pm.variables.get('sandbox_secret') || ''; const ids = JSON.parse(pm.collectionVariables.get('ids_lotes_concurrentes')); const tam = [50, 120, 250, 400, 500];",
+                  "  pm.collectionVariables.set('burst', '[]');",
+                  "  ids.forEach(function (id, i) { const body = {id_lote: id, timestamp_calculo: new Date().toISOString(), total_activos_lote: tam[i], n_enfermos_detectados: Math.floor(tam[i] * 0.1), qa_factores_simulados: {fs: 0.3, fa: 0.5, fd: 0.6}};",
+                  "    pm.sendRequest({url: base + ruta, method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(body)}}, function (e, r) { const b = JSON.parse(pm.collectionVariables.get('burst') || '[]'); b.push({id: id, code: r ? r.code : 0, t: r ? r.responseTime : null}); pm.collectionVariables.set('burst', JSON.stringify(b)); }); });",
+                  "})();",
+                  "pm.test('5 lotes lanzados concurrentemente', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Evaluar concurrencia: sin degradacion significativa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "(function () { const _w = Date.now(); while (Date.now() - _w < 6000) {} })();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M04-G035 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const b = JSON.parse(pm.collectionVariables.get('burst') || '[]'); const base = parseFloat(pm.collectionVariables.get('t_base') || '3000');",
+                  "console.log('[TC-M04-G035] lotes concurrentes=' + JSON.stringify(b));",
+                  "pm.test('Los 5 lotes respondieron correctamente', function () { pm.expect(b.length).to.eql(5); b.forEach(function (x) { pm.expect(x.code).to.be.within(200, 299); }); });",
+                  "pm.test('Cada lote concurrente responde en <= 3000 ms', function () { b.forEach(function (x) { pm.expect(x.t).to.be.at.most(3000); }); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-24 - Correlacion con eventos sanitarios reales",
+      "item": [
+        {
+          "name": "2.1 Correlacion >= 0.75 entre estimaciones retrospectivas y brotes confirmados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia",
+            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: es un analisis estadistico offline (pandas/scipy): ejecutar python tc-m04-g035_correlacion.py --estimaciones <csv> --eventos <csv> (falla si r < 0.75)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test.skip(\"NO AUTOMATIZABLE CON POSTMAN - es un analisis estadistico offline (pandas/scipy): ejecutar python tc-m04-g035_correlacion.py --estimaciones <csv> --eventos <csv> (falla si r < 0.75)\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M04-G035] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
+      }
+    }
+  ]
+}

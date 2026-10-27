@@ -1,0 +1,49 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G95",
+  "run_id": "RUN-G95-V1-20261026-160451",
+  "version": 1,
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "SIGAB_FRONT_TEST_URL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    }
+  ],
+  "barreras": [],
+  "efectos_declarados": [
+    "login_y_auditoria_fuera_run",
+    "lecturas_dashboard_y_posible_correo_E7"
+  ],
+  "plan": [
+    "login Administrador fuera del RUN",
+    "Cypress Productor fuera del RUN: login, segundo login, UI",
+    "Newman Productor fuera del RUN: token y cookie anteriores",
+    "GET /usuarios/me Administrador dentro del RUN con eco",
+    "DELETE RUN y verificar HTTP"
+  ],
+  "ok": true
+}

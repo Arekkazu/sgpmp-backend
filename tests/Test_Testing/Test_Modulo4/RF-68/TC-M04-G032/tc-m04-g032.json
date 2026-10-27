@@ -1,21 +1,47 @@
 {
   "info": {
     "name": "TC-M04-G032 - Optimizacion de ejecucion: cache de resultados, modo MVP y actualizacion real ante cambio de estado sanitario (RF-68 Paso 5.1/5.2, CA-4)",
-    "description": "Subcasos: (1) TC-M04-14 cache reutilizado si nada cambio en <5 s (t=0 y t=2 s). (2) TC-M04-15 modo MVP sin cache. (3) TC-M04-25 recalculo real cuando Fs cambia de 0.20 a 0.45 dentro de la ventana de cache (0.5225 -> 0.6475). Cada subcaso espera 6 s antes de empezar para expirar el cache del anterior. ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para calcular el riesgo de contagio (ficha: 'No existe ningun endpoint'). La ruta se toma de la variable de coleccion ruta_contagio y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_lote (lote con activos y sensores), ruta_contagio (provisional), contagio_banda_medio_min / contagio_banda_alto_min (limites de bandas de RF-65), correo_/contrasena_ de los roles usados. Script sin ejecutar: el ambiente aun no esta listo.",
+    "description": "Subcasos: (1) TC-M04-14 cache reutilizado si nada cambio en <5 s (t=0 y t=2 s). (2) TC-M04-15 modo MVP sin cache. (3) TC-M04-25 recalculo real cuando Fs cambia de 0.20 a 0.45 dentro de la ventana de cache (0.5225 -> 0.6475). Cada subcaso espera 6 s antes de empezar para expirar el cache del anterior. ENDPOINT PROVISIONAL: en el backend actual no existe una ruta publica para calcular el riesgo de contagio (ficha: 'No existe ningun endpoint'). La ruta se toma de la variable de coleccion ruta_contagio y debe ajustarse al contrato real cuando exista. Los campos qa_* son GANCHOS DE PRUEBA PROPUESTOS (modelo/latencia/fallo/datos simulados) que deben acordarse con backend/AIOT y estar habilitados solo en el ambiente TEST. VARIABLES A CONFIGURAR (ambiente TEST): id_lote (lote con activos y sensores), ruta_contagio (provisional), contagio_banda_medio_min / contagio_banda_alto_min (limites de bandas de RF-65), correo_/contrasena_ de los roles usados. Script sin ejecutar: el ambiente aun no esta listo. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambientes: DEV https://api.inmero.co/api-sgpmp-dev, TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m04-g032.json -e <environment>.json --env-var sandbox_secret=<SECRETO_SANDBOX> -r cli,htmlextra --reporter-htmlextra-export resultados/resultado_TC-M04-G032.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": "admin@pecuaria.co"
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
@@ -42,24 +68,20 @@
       "value": "0.60"
     },
     {
-      "key": "cfg_snapshot",
-      "value": "[]"
-    },
-    {
-      "key": "cfg_tocados",
-      "value": "[]"
+      "key": "endpoint_disponible",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login admin (Administrador)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login admin (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -86,28 +108,72 @@
       }
     },
     {
-      "name": "0S. Snapshot de la configuracion vigente del motor (se restaura al final)",
+      "name": "0B. Precondicion: existe el endpoint de ejecucion (si no, el caso queda BLOQUEADO)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Snapshot de configuracion del motor leido (200)', function () { pm.response.to.have.status(200); });",
-              "try { const J = pm.response.json(); const keep = (J.items || []).map(function (c) { return {tipo_modelo: c.tipo_modelo, umbral_riesgo_alto: c.umbral_riesgo_alto, umbral_alerta_critica: c.umbral_alerta_critica, umbral_score_anomalia: c.umbral_score_anomalia, versiones_activas_por_componente: c.versiones_activas_por_componente, ventana_temporal_min: c.ventana_temporal_min, modo_ejecucion: c.modo_ejecucion, w_factor_sanitario: c.w_factor_sanitario, w_factor_ambiental: c.w_factor_ambiental, w_factor_densidad: c.w_factor_densidad, id_version_modelo_activa: c.id_version_modelo_activa, temp_min_config: c.temp_min_config, temp_max_config: c.temp_max_config, hr_min_config: c.hr_min_config, hr_max_config: c.hr_max_config, densidad_maxima_config: c.densidad_maxima_config}; }); pm.collectionVariables.set('cfg_snapshot', JSON.stringify(keep)); } catch (e) {}"
+              "// Precondicion: el endpoint de ejecucion existe. Si responde 404/405 el caso queda BLOQUEADO (funcionalidad no implementada) y las peticiones que dependen de el se omiten.",
+              "var _rvar = 'ruta_contagio';",
+              "var _cands = [\"/prediccion/riesgo-contagio\", \"/prediccion/contagio\", \"/prediccion/riesgo-contagio/calcular\", \"/prediccion/contagio/calcular\", \"/prediccion/estimar-contagio\"];",
+              "var _base = pm.collectionVariables.get('base_url');",
+              "var _tok = pm.collectionVariables.get('token_admin');",
+              "var _rid = pm.variables.get('run_id'); var _sec = pm.variables.get('sandbox_secret') || '';",
+              "var _faltan = function (c) { return c === 404 || c === 405; };",
+              "var _resumen = [];",
+              "var _final = function (existe, ruta) {",
+              "    pm.collectionVariables.set('endpoint_disponible', existe ? 'true' : 'false');",
+              "    if (existe && ruta) { pm.collectionVariables.set(_rvar, ruta); }",
+              "    console.log('[TC-M04-G032 0B] endpoint ' + (existe ? ('DISPONIBLE en ' + ruta) : 'NO DISPONIBLE') + ' | probados: ' + _resumen.join(' ; '));",
+              "    pm.test('0B. Existe el endpoint de ejecucion (POST distinto de 404/405). Si falla: caso BLOQUEADO, funcionalidad no implementada', function () {",
+              "        pm.expect(existe, 'Ninguna ruta candidata existe: ' + _resumen.join(' ; ')).to.eql(true);",
+              "    });",
+              "};",
+              "_resumen.push(pm.collectionVariables.get(_rvar) + ' -> ' + pm.response.code);",
+              "if (!_faltan(pm.response.code)) {",
+              "    _final(true, pm.collectionVariables.get(_rvar));",
+              "} else {",
+              "    var _i = 0;",
+              "    var _sig = function () {",
+              "        if (_i >= _cands.length) { _final(false, null); return; }",
+              "        var _r = _cands[_i++];",
+              "        if (_r === pm.collectionVariables.get(_rvar)) { _sig(); return; }",
+              "        pm.sendRequest({ url: _base + _r, method: 'POST', header: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _tok, 'X-Test-Run-Id': _rid, 'X-Sandbox-Secret': _sec }, body: { mode: 'raw', raw: '{}' } }, function (err, res) {",
+              "            var _c = err ? 0 : res.code;",
+              "            _resumen.push(_r + ' -> ' + (err ? 'error' : _c));",
+              "            if (!err && !_faltan(_c)) { _final(true, _r); } else { _sig(); }",
+              "        });",
+              "    };",
+              "    _sig();",
+              "}"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
           {
             "key": "Authorization",
             "value": "Bearer {{token_admin}}"
           }
         ],
-        "url": "{{base_url}}/prediccion/motor-ia"
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}{{ruta_contagio}}"
       }
     },
     {
@@ -157,8 +223,7 @@
                   "pm.variables.set('hoy', _d(0)); pm.variables.set('ayer', _d(1)); pm.variables.set('manana', _d(-1));",
                   "pm.variables.set('hoy_m30', _d(30)); pm.variables.set('hoy_m89', _d(89)); pm.variables.set('hoy_m90', _d(90)); pm.variables.set('hoy_m91', _d(91)); pm.variables.set('hoy_m60', _d(60));",
                   "if (!pm.collectionVariables.get('periodo_ini')) pm.variables.set('periodo_ini', _d(30)); else pm.variables.set('periodo_ini', pm.collectionVariables.get('periodo_ini'));",
-                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));",
-                  "const _t = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]'); if (_t.indexOf('MODELO_RIESGO_CONTAGIO') < 0) { _t.push('MODELO_RIESGO_CONTAGIO'); pm.collectionVariables.set('cfg_tocados', JSON.stringify(_t)); }"
+                  "if (!pm.collectionVariables.get('periodo_fin')) pm.variables.set('periodo_fin', _d(0)); else pm.variables.set('periodo_fin', pm.collectionVariables.get('periodo_fin'));"
                 ]
               }
             },
@@ -235,13 +300,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "pm.test(\"P=0.5225\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.5225)).to.be.below(0.0005); });",
                   "pm.collectionVariables.set('p_ref', String(R.probabilidad_contagio)); pm.collectionVariables.set('id_ref', String(R.id_calculo || R.id_resultado || ''));",
-                  "pm.test(\"El primer calculo no proviene de cache\", function () { pm.expect(R.desde_cache === true).to.eql(false); });"
+                  "pm.test(\"El primer calculo no proviene de cache\", function () { pm.expect(R.desde_cache === true).to.eql(false); });",
+                  "}"
                 ]
               }
             }
@@ -301,12 +371,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "pm.test(\"desde_cache = true (no se recalculo)\", function () { pm.expect(R.desde_cache).to.eql(true); });",
-                  "pm.test('Mismo resultado que el primero', function () { pm.expect(String(R.probabilidad_contagio)).to.eql(pm.collectionVariables.get('p_ref')); });"
+                  "pm.test('Mismo resultado que el primero', function () { pm.expect(String(R.probabilidad_contagio)).to.eql(pm.collectionVariables.get('p_ref')); });",
+                  "}"
                 ]
               }
             }
@@ -371,11 +446,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"P=0.5225\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.5225)).to.be.below(0.0005); });"
+                  "pm.test(\"P=0.5225\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.5225)).to.be.below(0.0005); });",
+                  "}"
                 ]
               }
             }
@@ -435,11 +515,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"desde_cache = false (recalculo real)\", function () { pm.expect(R.desde_cache === true).to.eql(false); });"
+                  "pm.test(\"desde_cache = false (recalculo real)\", function () { pm.expect(R.desde_cache === true).to.eql(false); });",
+                  "}"
                 ]
               }
             }
@@ -504,11 +589,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
-                  "pm.test(\"P=0.5225\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.5225)).to.be.below(0.0005); });"
+                  "pm.test(\"P=0.5225\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.5225)).to.be.below(0.0005); });",
+                  "}"
                 ]
               }
             }
@@ -568,12 +658,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// Se omite si el endpoint de ejecucion no existe (ver 0B): sin esto un 404 o una lista vacia daria resultados enganosos.",
+                  "if (pm.collectionVariables.get('endpoint_disponible') !== 'true') {",
+                  "    pm.test.skip('Omitido: el endpoint de ejecucion no existe (ver 0B)');",
+                  "} else {",
                   "console.log('[TC-M04-G032 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
                   "const R = (J && J.resultado) ? J.resultado : (J || {});",
                   "pm.test(\"P_contagio = 0.5 x 0.45 + 0.3 x 0.875 + 0.2 x 0.80 = 0.6475\", function () { pm.expect(Math.abs(Number(Number(R.probabilidad_contagio)) - 0.6475)).to.be.below(0.0005); });",
-                  "pm.test(\"No se reutilizo el resultado cacheado (desde_cache = false)\", function () { pm.expect(R.desde_cache === true).to.eql(false); });"
+                  "pm.test(\"No se reutilizo el resultado cacheado (desde_cache = false)\", function () { pm.expect(R.desde_cache === true).to.eql(false); });",
+                  "}"
                 ]
               }
             }
@@ -582,39 +677,24 @@
       ]
     },
     {
-      "name": "Z. Restaurar configuracion del motor (valores previos al caso)",
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "(function () {",
-              "  let snap = []; try { snap = JSON.parse(pm.collectionVariables.get('cfg_snapshot') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const tocar = JSON.parse(pm.collectionVariables.get('cfg_tocados') || '[]');",
-              "  snap.filter(function (c) { return tocar.indexOf(c.tipo_modelo) >= 0; }).forEach(function (c) {",
-              "    Object.keys(c).forEach(function (k) { if (c[k] === null || c[k] === undefined) { delete c[k]; } });",
-              "    pm.sendRequest({url: base + '/prediccion/motor-ia', method: 'POST', header: hdr, body: {mode: 'raw', raw: JSON.stringify(c)}}, function (e, r) { console.log('[TC-M04-G032] restaurar config ' + c.tipo_modelo + ' -> ' + (r ? r.code : 'sin respuesta')); });",
-              "  });",
-              "  console.log('[TC-M04-G032] configuracion restaurada para: ' + tocar.join(', '));",
-              "  pm.collectionVariables.set('cfg_tocados', '[]');",
-              "})();",
-              "pm.test('Restauracion de configuracion ejecutada', function () { pm.expect(true).to.be.true; });"
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M04-G032] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": "{{base_url}}/prediccion/motor-ia"
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
       }
     }
   ]

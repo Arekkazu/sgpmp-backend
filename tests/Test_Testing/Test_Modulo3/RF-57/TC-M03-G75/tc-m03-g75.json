@@ -1,21 +1,47 @@
 {
   "info": {
     "name": "TC-M03-G75 - Indisponibilidad y recuperacion del motor de inferencia (E3, CA-6, E16)",
-    "description": "RF-57 E3 / E16 / CA-6. Parte automatizable por API: (1) con el motor de IA no disponible el evento del Edge (sin probabilidad_ia) genera la alerta con inferencia_no_disponible=true y sin bloquear el flujo. No automatizable con Postman (requiere apagar/recuperar el motor de IA, controlar un reloj de 60 min y configuracion de ventana): reevaluacion (2, 3), ventana de 60 min (4) y ventana configurable (5). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "description": "RF-57 E3 / E16 / CA-6. Parte automatizable por API: (1) con el motor de IA no disponible el evento del Edge (sin probabilidad_ia) genera la alerta con inferencia_no_disponible=true y sin bloquear el flujo. No automatizable con Postman (requiere apagar/recuperar el motor de IA, controlar un reloj de 60 min y configuracion de ventana): reevaluacion (2, 3), ventana de 60 min (4) y ventana configurable (5). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g75.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G75.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. V2: la carpeta 2 comprueba por contrato (GET /openapi.json y GET /configuracion/parametros) que existan la ruta de reevaluacion y la ventana configurable; N15 y N16 quedan BLOQUEADOS (skip) hasta que exista la funcionalidad. Las credenciales no se guardan en la coleccion (las pide el runner).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": ""
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
@@ -26,7 +52,11 @@
       "value": "1"
     },
     {
-      "key": "access_key",
+      "key": "serial",
+      "value": ""
+    },
+    {
+      "key": "broker_service_token",
       "value": ""
     },
     {
@@ -83,6 +113,79 @@
       }
     },
     {
+      "name": "0Z. Preparacion: crear evento edge valido (POST /iot/eventos-edge) para usar su id como id_evento_edge_computing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_service_token}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/eventos-edge",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"clasificacion_rf55\": \"NORMAL\",\n  \"severidad\": \"LEVE\",\n  \"variables_involucradas\": [{\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.0,\n      \"unidad\": \"°C\"\n    }],\n  \"timestamp_captura\": \"{{ts_now}}\",\n  \"timestamp_procesamiento_edge\": \"{{ts_now}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"estado_conectividad\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+              "pm.variables.set('ts_now', _iso(_n));",
+              "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+              "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+              "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+              "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+              "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+              "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+              "pm.variables.set('uniq', String(_n).slice(-9));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "console.log('[TC-M03-G75 0Z] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+              "const _guardar = function (j) {",
+              "  const k = ['id_evento_edge_computing', 'id_evento_edge', 'id_evento', 'id'].find(function (n) { return j && j[n] !== undefined && j[n] !== null; })",
+              "          || Object.keys(j || {}).find(function (n) { return /^id_/.test(n) && typeof j[n] === 'number'; });",
+              "  if (k) { pm.collectionVariables.set('id_evento_edge', String(j[k])); console.log('[TC-M03-G75 0Z] id_evento_edge = ' + j[k] + ' (campo ' + k + ')'); return true; }",
+              "  return false; };",
+              "const _cands = [\"NORMAL\", \"LEVE\", \"ANOMALIA\", \"ALERTA\", \"CRITICO\"];",
+              "const _fin = function () { pm.test('Preparacion: evento edge de referencia creado y id_evento_edge disponible (si falla, revisar el codigo y mensaje del log; o pasar --env-var id_evento_edge=<id existente>)', function () { pm.expect(pm.collectionVariables.get('id_evento_edge')).to.not.eql('1'); }); };",
+              "const _intentar = function (i) {",
+              "  const b = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); b.clasificacion_rf55 = _cands[i];",
+              "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+              "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/iot/eventos-edge', method: 'POST', header: h, body: {mode: 'raw', raw: JSON.stringify(b)}}, function (e, r) {",
+              "    let j = {}; try { j = r.json(); } catch (x) {}",
+              "    console.log('[TC-M03-G75 0Z] reintento clasificacion_rf55=' + _cands[i] + ' -> ' + (r ? r.code : e) + ' ' + (r ? r.text().slice(0, 300) : ''));",
+              "    if (r && r.code === 201) { _guardar(j); _fin(); } else if (r && (r.code === 400 || r.code === 422) && i + 1 < _cands.length) { _intentar(i + 1); } else { _fin(); } });",
+              "};",
+              "if (pm.response.code === 201) { _guardar(J); _fin(); }",
+              "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
+              "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Contingencia con el motor de IA no disponible (TC-M03-141)",
       "item": [
         {
@@ -93,12 +196,16 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -163,15 +270,7 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('inferencia_no_disponible=true (tiene_inferencia_no_disponible)', function () { pm.expect(J.tiene_inferencia_no_disponible === true || J.inferencia_no_disponible === true).to.be.true; });",
-                  "pm.test('severidad final = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });",
-                  "(function () {",
-                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
-                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-                  "  if (!tk) { return; }",
-                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
-                  "})();"
+                  "pm.test('severidad final = LEVE', function () { pm.expect(J.severidad).to.eql('LEVE'); });"
                 ]
               }
             }
@@ -229,7 +328,7 @@
       "name": "2. Reevaluacion tras la recuperacion del motor (TC-M03-153 / N15 / N16 / N17)",
       "item": [
         {
-          "name": "2.1 Reevaluacion difiere en tipo o severidad: alerta nueva origen IA con referencia_alerta_original y generada_por_reevaluacion=true",
+          "name": "2.1 N15/TC-M03-153: el contrato (openapi.json) tiene una ruta de reevaluacion de IA y POST /iot/alertas recibe referencia_alerta_original y generada_por_reevaluacion",
           "request": {
             "method": "GET",
             "header": [
@@ -238,27 +337,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere apagar y recuperar el motor de IA en ambiente de prueba; el contrato de POST /iot/alertas no recibe referencia_alerta_original"
+            "url": "{{base_url}}/openapi.json"
           },
           "event": [
             {
@@ -266,15 +345,26 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G75 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere apagar y recuperar el motor de IA en ambiente de prueba; el contrato de POST /iot/alertas no recibe referencia_alerta_original\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _paths = Object.keys(J.paths || {});",
+                  "function _ref(s) { if (s && s.$ref) { const n = s.$ref.split('/').pop(); return (J.components && J.components.schemas && J.components.schemas[n]) || {}; } return s || {}; }",
+                  "const _hit = _paths.filter(function (p) { return /reevalu|recuperaci/i.test(p) && !/calidad|contrasena/i.test(p); });",
+                  "const _rf62 = _paths.filter(function (p) { return /reevalu/i.test(p) && /calidad/i.test(p); });",
+                  "const _post = (((J.paths || {})['/iot/alertas'] || {}).post || {});",
+                  "let _props = []; try { _props = Object.keys(_ref(_post.requestBody.content['application/json'].schema).properties || {}); } catch (e) {}",
+                  "const _campos = _props.filter(function (c) { return /reevalu|referencia_alerta_original/i.test(c); });",
+                  "console.log('[G75-2.1][OBSERVADO] rutas de reevaluacion = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas | ruta de calidad RF-62 excluida (reevalua lecturas de telemetria, no alertas) = ' + JSON.stringify(_rf62) + ' | campos del POST /iot/alertas = ' + JSON.stringify(_props) + ' | campos de reevaluacion = ' + JSON.stringify(_campos));",
+                  "pm.test('Hay una ruta para informar la reevaluacion del motor de IA tras su recuperacion', function () { pm.expect(_hit.length, 'rutas de reevaluacion en /openapi.json').to.be.above(0); });",
+                  "pm.test('POST /iot/alertas (o la ruta de reevaluacion) recibe referencia_alerta_original y generada_por_reevaluacion', function () { pm.expect(_campos.length, 'campos de reevaluacion en el contrato: ' + JSON.stringify(_props)).to.be.above(0); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.2 Reevaluacion confirma tipo y severidad: sin alerta nueva y bitacora REEVALUACION_CONFIRMADA",
+          "name": "2.2 N15 Reevaluacion confirma tipo y severidad: sin alerta nueva y bitacora REEVALUACION_CONFIRMADA (BLOQUEADO)",
           "request": {
             "method": "GET",
             "header": [
@@ -283,27 +373,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere recuperacion del motor de IA"
+            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1"
           },
           "event": [
             {
@@ -311,15 +381,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere recuperacion del motor de IA\");"
+                  "pm.test.skip('BLOQUEADO: sin logica de reevaluacion (ver 2.1) no hay forma de provocar REEVALUACION_CONFIRMADA; se reejecuta cuando exista la ruta');"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.3 Recuperacion a 59:59 / 60:00 / 60:01 min",
+          "name": "2.3 N16 Recuperacion a 59:59 / 60:00 / 60:01 min (BLOQUEADO)",
           "request": {
             "method": "GET",
             "header": [
@@ -328,27 +397,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere reloj controlado o ventana reducida por configuracion"
+            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1"
           },
           "event": [
             {
@@ -356,15 +405,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere reloj controlado o ventana reducida por configuracion\");"
+                  "pm.test.skip('BLOQUEADO: depende de la reevaluacion (2.1) y fecha_generacion no se puede retroceder por BD (trigger de inmutabilidad RF-57); solo se podria probar esperando 60 min reales');"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.4 Ventana de reevaluacion configurable (60 -> 30 min)",
+          "name": "2.4a N17: los parametros operativos (GET /configuracion/parametros) incluyen la ventana de reevaluacion (base 60 min)",
           "request": {
             "method": "GET",
             "header": [
@@ -373,27 +421,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: endpoint de configuracion por confirmar"
+            "url": "{{base_url}}/configuracion/parametros"
           },
           "event": [
             {
@@ -401,8 +429,71 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G75 2.4a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - endpoint de configuracion por confirmar\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G75-2.4a][OBSERVADO] campos de parametros = ' + JSON.stringify(Object.keys(J || {})) + ' | cuerpo = ' + JSON.stringify(J).slice(0, 500));",
+                  "pm.test('Algun parametro es la ventana de reevaluacion', function () { pm.expect(/reevalu|ventana|recuperaci/i.test(Object.keys(J || {}).join(' ')), 'campos: ' + JSON.stringify(Object.keys(J || {}))).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4b N17: existe un endpoint para ver o cambiar la ventana de reevaluacion (60 -> 30 min)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G75 2.4b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _paths = Object.keys(J.paths || {});",
+                  "function _ref(s) { if (s && s.$ref) { const n = s.$ref.split('/').pop(); return (J.components && J.components.schemas && J.components.schemas[n]) || {}; } return s || {}; }",
+                  "const _hit = _paths.filter(function (p) { return /reevalu|ventana/i.test(p) && !/calidad/i.test(p); });",
+                  "console.log('[G75-2.4b][OBSERVADO] rutas de ventana o reevaluacion = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
+                  "pm.test('Hay una ruta para configurar la ventana de reevaluacion', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4c N17: configuracion del motor de IA (GET /prediccion/motor-ia, RF-65) - se documenta si ventana_temporal_min corresponde a la ventana de reevaluacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/prediccion/motor-ia"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G75 2.4c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _it = (J.items || []);",
+                  "console.log('[G75-2.4c][OBSERVADO] configuraciones del motor = ' + JSON.stringify(_it.map(function (c) { return {tipo_modelo: c.tipo_modelo, ventana_temporal_min: c.ventana_temporal_min, modo_ejecucion: c.modo_ejecucion, es_activa: c.es_activa, config_version: c.config_version}; })));",
+                  "pm.test('Configuracion del motor documentada (ventana_temporal_min presente)', function () { pm.expect(_it.length, 'configuraciones').to.be.above(0); _it.forEach(function (c) { pm.expect(c).to.have.property('ventana_temporal_min'); }); });"
                 ]
               }
             }
@@ -411,55 +502,24 @@
       ]
     },
     {
-      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "(function () {",
-              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
-              "  console.log('[TC-M03-G75] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
-              "  pm.collectionVariables.set('ids_alertas', '[]');",
-              "})();",
-              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M03-G75] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "iot",
-            "alertas"
-          ],
-          "query": [
-            {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
-              "key": "por_pagina",
-              "value": "1"
-            }
-          ]
-        }
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
       }
     }
   ]

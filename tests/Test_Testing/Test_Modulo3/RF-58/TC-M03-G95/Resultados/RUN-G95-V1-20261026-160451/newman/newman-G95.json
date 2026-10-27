@@ -1,0 +1,936 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "b43ba90b-f639-4445-8733-36797806e6af",
+        "name": "[TC-M03-186][ASSERT][API-186-01-DASHBOARD] Token anterior",
+        "request": {
+          "url": {
+            "path": [
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "1c49e1d2-3ed1-427e-a655-7bdf210579cb",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('[TC-M03-186][ASSERT][API-186-01-DASHBOARD]',()=>pm.expect(pm.response.code).to.eql(401));"
+              ],
+              "_lastExecutionId": "83420cf8-9452-443c-aa17-4c5beae746f4"
+            }
+          }
+        ]
+      },
+      {
+        "id": "7b3ea720-85c2-4318-adf0-5f2871abf834",
+        "name": "[TC-M03-186][ASSERT][API-186-01-REFRESH] Cookie anterior",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              "refresh"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=[REDACTADO]"
+            }
+          ],
+          "method": "POST"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "331725c4-68e7-4f15-ad08-009610c952db",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('[TC-M03-186][ASSERT][API-186-01-REFRESH]',()=>pm.expect([401,410]).to.include(pm.response.code));"
+              ],
+              "_lastExecutionId": "cecec6b3-93ae-40b3-a952-7f05f6e6bbd0"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [
+      {
+        "listen": "prerequest",
+        "script": {
+          "id": "6dc41d4a-e0b3-40fa-97ec-9ad85426444b",
+          "type": "text/javascript",
+          "exec": [
+            "if(pm.environment.get('qa_autorizado')!=='SI') throw new Error('LANZADOR_NO_AUTORIZADO');"
+          ],
+          "_lastExecutionId": "14b602f4-de27-43ee-b54b-6328e2530add"
+        }
+      }
+    ],
+    "variable": [],
+    "info": {
+      "_postman_id": "502bb0dc-4332-4aee-be24-59eb0a2db184",
+      "name": "G95 RF-58 TC-M03-186",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "id": "b0a49792-2b3b-414a-a47f-db1a04bc487b",
+    "values": [
+      {
+        "type": "any",
+        "value": "SI",
+        "key": "qa_autorizado"
+      },
+      {
+        "type": "any",
+        "value": "https://www.api.inmero.co/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "token_anterior"
+      },
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "cookie_anterior"
+      }
+    ]
+  },
+  "globals": {
+    "id": "9e3700bf-1ab4-446b-866c-e6f233990409",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 4,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 339.5,
+      "responseMin": 143,
+      "responseMax": 536,
+      "responseSd": 196.5,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1793030805746,
+      "completed": 1793030806605
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 2,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "e1200def-191b-4021-94de-4e374d8a6200",
+          "httpRequestId": "b4732078-d17d-4d90-ba88-9108878918d8"
+        },
+        "item": {
+          "id": "b43ba90b-f639-4445-8733-36797806e6af",
+          "name": "[TC-M03-186][ASSERT][API-186-01-DASHBOARD] Token anterior",
+          "request": {
+            "url": {
+              "path": [
+                "iot",
+                "monitoreo",
+                "dashboard"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "[REDACTADO]"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1c49e1d2-3ed1-427e-a655-7bdf210579cb",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M03-186][ASSERT][API-186-01-DASHBOARD]',()=>pm.expect(pm.response.code).to.eql(401));"
+                ],
+                "_lastExecutionId": "83420cf8-9452-443c-aa17-4c5beae746f4"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "iot",
+              "monitoreo",
+              "dashboard"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "por_pagina",
+                "value": "50"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "[REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "64747a68-9b61-4212-8227-3982a54bda21",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "05a9f4c0-0141-4480-b3e4-17f00199bd54",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "155"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 26 Oct 2026 16:06:46 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b76fcdbf-daf5-4811-8c05-d0ea48123ee7"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              86,
+              79,
+              67,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              104,
+              97,
+              32,
+              115,
+              105,
+              100,
+              111,
+              32,
+              114,
+              101,
+              118,
+              111,
+              99,
+              97,
+              100,
+              111,
+              32,
+              111,
+              32,
+              101,
+              115,
+              32,
+              105,
+              110,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              50,
+              54,
+              84,
+              49,
+              54,
+              58,
+              48,
+              54,
+              58,
+              52,
+              55,
+              46,
+              48,
+              57,
+              51,
+              50,
+              52,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 536,
+          "responseSize": 155
+        },
+        "id": "b43ba90b-f639-4445-8733-36797806e6af",
+        "assertions": [
+          {
+            "assertion": "[TC-M03-186][ASSERT][API-186-01-DASHBOARD]",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "967b1c9b-eb82-4301-b66e-660819fda7de",
+          "length": 2,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "5ef59228-8a59-4a9a-a34b-37863acd065e"
+        },
+        "item": {
+          "id": "7b3ea720-85c2-4318-adf0-5f2871abf834",
+          "name": "[TC-M03-186][ASSERT][API-186-01-REFRESH] Cookie anterior",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                "refresh"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "refresh_token=[REDACTADO]"
+              }
+            ],
+            "method": "POST"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "331725c4-68e7-4f15-ad08-009610c952db",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[TC-M03-186][ASSERT][API-186-01-REFRESH]',()=>pm.expect([401,410]).to.include(pm.response.code));"
+                ],
+                "_lastExecutionId": "cecec6b3-93ae-40b3-a952-7f05f6e6bbd0"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              "refresh"
+            ],
+            "host": [
+              "www",
+              "api",
+              "inmero",
+              "co"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=[REDACTADO]",
+              "system": true
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "33521d9b-dbdd-4541-aee4-216987ea0036",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "www.api.inmero.co",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "POST"
+        },
+        "response": {
+          "id": "78bc56a4-ea2a-4083-8252-e82f187e01fe",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "185"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Mon, 26 Oct 2026 16:06:46 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "62395793-e931-4075-9209-496509034319"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              82,
+              69,
+              70,
+              82,
+              69,
+              83,
+              72,
+              95,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              85,
+              84,
+              73,
+              76,
+              73,
+              90,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              100,
+              101,
+              116,
+              101,
+              99,
+              116,
+              195,
+              179,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              105,
+              100,
+              97,
+              100,
+              32,
+              115,
+              111,
+              115,
+              112,
+              101,
+              99,
+              104,
+              111,
+              115,
+              97,
+              46,
+              32,
+              76,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              102,
+              117,
+              101,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              97,
+              32,
+              112,
+              111,
+              114,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              49,
+              48,
+              45,
+              50,
+              54,
+              84,
+              49,
+              54,
+              58,
+              48,
+              54,
+              58,
+              52,
+              55,
+              46,
+              51,
+              51,
+              49,
+              50,
+              50,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 143,
+          "responseSize": 185
+        },
+        "id": "7b3ea720-85c2-4318-adf0-5f2871abf834",
+        "assertions": [
+          {
+            "assertion": "[TC-M03-186][ASSERT][API-186-01-REFRESH]",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 340
+    },
+    "failures": [],
+    "error": null
+  }
+}

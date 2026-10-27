@@ -1,0 +1,20 @@
+{
+  "info": { "name": "G93 RF-58 TC-M03-184", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+    "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+    "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+    "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+    "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+  ] } }],
+  "item": [{ "name": "Dashboard filtrado por unidad", "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/iot/monitoreo/dashboard/{{id_infraestructura}}?pagina=1&por_pagina=50" },
+    "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "const fase=pm.environment.get('fase'); const id=Number(pm.environment.get('id_infraestructura')); const j=pm.response.code===200?pm.response.json():{};",
+      "const u=(j.resumen_unidades||[]).find(x=>Number(x.id_infraestructura)===id); const s=(j.sensores||[]).filter(x=>Number(x.id_infraestructura)===id);",
+      "pm.test('[TC-M03-184][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+      "if(fase==='V1'){",
+      "pm.test('[TC-M03-184][ASSERT][API-184-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS')});",
+      "pm.test('[TC-M03-184][ASSERT][API-184-02]',()=>{pm.expect(s).to.have.length(0);pm.expect(u?.ultimo_dato_recibido).to.be.null});",
+      "}",
+      "if(fase==='V2') pm.test('[TC-M03-184][ASSERT][API-184-03]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(u,'unidad visible').to.exist;pm.expect(u.estado_general).to.eql('GRIS');pm.expect(s.length).to.be.greaterThan(0);pm.expect(s.length).to.eql(Number(u.total_sensores));s.forEach(x=>{pm.expect(['SIN_SEÑAL','INACTIVO']).to.include(x.estado_conectividad);pm.expect(x.dato_desactualizado).to.eql(true);if(u.ultimo_dato_recibido&&x.ultimo_timestamp_captura)pm.expect(Date.parse(x.ultimo_timestamp_captura)).to.be.at.most(Date.parse(u.ultimo_dato_recibido))})});"
+    ] } }] }]
+}

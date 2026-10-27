@@ -1,52 +1,112 @@
-# DISEÑO Y PRECONDICIONES — TC-M03-G168 (RF-62)
+# DISEÑO Y PRECONDICIONES — TC-M03-G168 (RF-62 / RF-57 / RF-63)
 
-## 1. Identificación del Caso
-* **Caso de Prueba:** TC-M03-G168 — Flags individuales sin escala de severidad.
+**Versión del diseño:** V1 — Suite autosuficiente de Flags Individuales.
+**Módulo:** Módulo 3 — Telemetría y Calidad.
+**Requisito Funcional:** RF-62 (Evaluación de calidad), RF-57 (Alertas técnicas), RF-63 (Bitácora de auditoría).
+
+---
+
+## 1. Identificación del Caso de Prueba
+
+* **Caso de Prueba:** TC-M03-G168 — Detección de flags individuales de calidad sin severidad acumulada.
 * **Subcasos cubiertos:**
-  - **TC-M03-312 (Outlier estadístico):**
-    - Serie base de $N=20$ lecturas alternadas entre $21.50$ y $22.50$ ($\mu=22.00$, $\sigma_{\text{poblacional}}=0.50$, $s_{\text{muestral}}\approx 0.513$). Intervalo de 10 minutos.
-    - Lectura $25.50$: Outlier claro ($>6.8\sigma$), activo=true, descuento $-20$ puntos, índice $80$, `APTO`, aptitud IA y NIC41 en true.
-    - Lectura $23.50$: Frontera inactiva ($\le 3.0\sigma$), activo=false, índice $100$, `APTO`.
-    - Lectura $23.51$: Frontera activa según diseño conceptual (asumiendo $\sigma$ poblacional $0.50 \rightarrow 22 + 3(0.50) = 23.50$). Marcado con prefijo `[DISCREPANCIA RF-62 σ muestral vs poblacional]` dado que el motor calcula $s_{\text{muestral}}$ vía `statistics.stdev` ($0.51299 \rightarrow$ umbral $23.539$), documentando formalmente la discrepancia con un SELECT/log explícito.
-  - **TC-M03-316 (Gap temporal anómalo):**
-    - Subcaso (a): Intervalo de 25 min frente a frecuencia nominal de 10 min ($>2\times$). Se marca con prefijo `[DEFECTO CONOCIDO RF-62 Fase 5]` exigiendo gap activo, $gap\_real=25$, $gap\_esperado=10$ e índice $90$ para evidenciar que el caso de uso no tiene implementada la Fase 5.
-    - Subcaso (b): Intervalo de 20 min ($\le 2\times$ nominal). Sin flag de anomalía, índice $100$.
-    - Subcaso (c) (Período de inactividad RF-60): **BLOQUEADO**. Se conserva el request pero **sin aserciones `pm.test`** (solo `console.log`) para no falsear el cómputo de pruebas aprobadas en el scanner.
-  - **TC-M03-317 (Serie insuficiente):**
-    - Sensor S2 con únicamente 3 lecturas previas ($<N=20$).
-    - Aserciones estrictas: `flags.serie_insuficiente.activo = true`, `clasificacion_calidad = 'INDETERMINADA'`, `indice_calidad = null`, y ausencia total de flags estadísticos (sensor congelado, outlier, drift, gap).
-    - Para `apto_para_ia` y `apto_para_nic41` se emite únicamente `console.log` del valor observado, sin `pm.expect`.
-  - **TC-M03-323 (Calibración no disponible vs disponible):**
-    - Comparación cruzada de la misma serie base + lectura $25.50$ entre sensor S3 (sin fila en `modulo9.calibraciones`) y sensor S4 (con calibración nominal ganancia=1.0, offset=0.0).
-    - S3: `calibracion_no_disponible.activo = true`, omisión de evaluación de drift.
-    - S4: `calibracion_no_disponible.activo = false` o undefined.
-    - Ambos deben arrojar exactamente el mismo índice de calidad ($80$, penalización exclusiva por outlier), verificado mediante una aserción explícita de igualdad entre las variables de colección.
-  - **Invariante D7 (Estado Canónico):**
-    - Verificación mediante `SELECT COUNT(*)` en `modulo3.telemetria_calidad` confirmando que cada lectura evaluada conserve exactamente una sola fila con `estado_evaluacion = 'VIGENTE'` (con prefijo `[DEFECTO CONOCIDO D7]`).
+  * **TC-M03-312** — Detección de Outlier Estadístico:
+    * `312a`: Lectura con desviación extrema ($25.50$ vs base $\mu=22.00, \sigma\approx 0.513$) $\rightarrow$ Activa `outlier_estadistico` (descuento -20, índice 80, `APTO`, NIC41=true).
+    * `312b`: Lectura dentro de rango normal ($23.50$) $\rightarrow$ No activa outlier (índice 100, `APTO`, NIC41=true).
+    * `312c`: Lectura en frontera ($23.51$) $\rightarrow$ Con $\sigma$ muestral ($3s \approx 1.539 \rightarrow 23.539$) no supera umbral (índice 100).
+  * **TC-M03-316** — Detección de Gap Temporal Anómalo:
+    * `316a`: Salto de timestamp de 25 min (esperado 5 min) $\rightarrow$ Evaluación de gap temporal.
+    * `316b`: Salto menor (20 min).
+    * `316c`: Salto con periodo de inactividad justificado.
+  * **TC-M03-317** — Detección de Serie Temporal Insuficiente:
+    * `317`: Sensor con 3 lecturas previas + 1 evaluada ($N=4 < 20$) $\rightarrow$ Activa `serie_insuficiente` (índice `null`, clasificación `INDETERMINADA`, NIC41=false, IA=false).
+  * **TC-M03-323** — Sensor sin Calibración previa:
+    * `323a`: Sensor con calibración registrada y lectura $25.50$ $\rightarrow$ Índice 80, calibración activa.
+    * `323b`: Sensor sin calibración previa y lectura $25.50$ $\rightarrow$ Activa `calibracion_no_disponible` (omite drift, mantiene índice 80 por outlier).
 
 ---
 
-## 2. Parámetros del Motor y Fórmulas
-* **Outlier Estadístico (`evaluar_calidad_telemetria_use_case.py:150-161`):**
-  $$\mu = \text{mean}(v), \quad s = \text{stdev}(v) \quad \text{sobre la serie de } N=20$$
-  $$\text{Condición:} \quad |v - \mu| > k \times s \quad (k=3.0)$$
-* **Serie Temporal ($N=20$):**
-  Filtro estricto `timestamp_captura < ts` en `telemetria_repository.py:124`. La lectura evaluada (lectura #21) **no forma parte de la serie de cálculo de $\mu$ y $\sigma$**.
-* **Aislamiento Temporal de Ventanas:**
-  Para evitar contaminación de ventanas entre lecturas evaluadas sucesivas ($25.50$, $23.50$, $23.51$, gap 25 min, gap 20 min), cada una se ejecuta sobre un bloque temporal independiente y limpio de $N=20$ lecturas base separadas por fechas distintas (+1 día por bloque: 2026-10-20, 2026-10-21, 2026-10-22, etc.).
+## 2. Parámetros del Motor de Calidad (Inspección Backend)
+
+A partir de la inspección de `evaluar_calidad_telemetria_use_case.py` y `ParametrosCalidad`:
+* **Desviación Estándar ($\sigma$):** **Muestral** (`statistics.stdev`, división entre $N-1$).
+* **Frecuencia de Muestreo:** En **minutos**, valor por defecto `5` min (`frecuencia_muestreo_min: int = 5`).
+* **$N$ Mínimo para análisis temporal:** Exactamente **20** lecturas (`params.N = 20`). Si `len(serie) < 20`, se activa `serie_insuficiente` y se aborta el cálculo estadístico retornando `INDETERMINADA`.
+* **$k$ para outliers:** `3.0` desviaciones estándar.
 
 ---
 
-## 3. Precondiciones, Sensores y Mitigación de Timeout
-1. **Sensores Garantizados:**
-   - **S1:** Sensor para Outlier y Gaps (con verificación de ventana limpia sin lecturas posteriores a 2026-10-20).
-   - **S2:** Sensor para Serie Insuficiente (sembrado con solo 3 lecturas).
-   - **S3:** Sensor sin calibración (se elimina cualquier calibración previa en `modulo9.calibraciones` dentro del sandbox).
-   - **S4:** Sensor con calibración nominal (ganancia=1.0, offset=0.0).
-2. **Siembra Eficiente por Batch:**
-   - Las 20 lecturas base con intervalo de 10 minutos se siembran mediante una sola petición `POST /iot/telemetria/batch` con origen `BUFFER_LOCAL`.
-   - La lectura evaluada entra por `POST /iot/telemetria` individual.
-   - La suite completa ejecuta únicamente **34 requests** (frente a los más de 120 de una ingesta individual), completando la corrida en aproximadamente **5 a 10 segundos** (muy inferior al timeout de 180 s del Sandbox).
-3. **Sandbox Transaccional:**
-   - Pre-request a nivel de colección genera automáticamente `run_id` efímero e inyecta `X-Test-Run-Id` y `X-Sandbox-Secret`.
-   - La suite finaliza con `DELETE /test-control/runs/{{run_id}}` garantizando la reversión total de cambios.
+## 3. Oráculos por Escenario
+
+| Subcaso | Escenario | Serie Base ($N=20$) | Lectura Evaluada | Flag Esperado | Índice | Clasificación |
+|---|---|---|---|---|---|---|
+| TC-312 | `312a` | 20 lecturas (21.5/22.5) | 25.50 | `outlier_estadistico.activo = true` | 80 | `APTO` |
+| TC-312 | `312b` | 20 lecturas (21.5/22.5) | 23.50 | Ninguno | 100 | `APTO` |
+| TC-312 | `312c` | 20 lecturas (21.5/22.5) | 23.51 | Ninguno ($\sigma$ muestral) | 100 | `APTO` |
+| TC-316 | `316a` | 20 lecturas | +25 min | `gap_temporal_anomalo` (ver hallazgo) | 90 / 100 | `APTO` |
+| TC-316 | `316b` | 20 lecturas | +20 min | Ninguno | 100 | `APTO` |
+| TC-316 | `316c` | 20 lecturas + inactividad | +25 min | Ninguno (inactividad) | 100 | `APTO` |
+| TC-317 | `317` | 3 lecturas previas | 22.00 | `serie_insuficiente.activo = true` | `null` | `INDETERMINADA` |
+| TC-323 | `323a` | 20 lecturas con calibración | 25.50 | `outlier_estadistico` | 80 | `APTO` |
+| TC-323 | `323b` | 20 lecturas sin calibración | 25.50 | `calibracion_no_disponible` | 80 | `APTO` |
+
+---
+
+## 4. Estrategia de Autosiembra y Aislamiento
+
+La suite es 100% autosuficiente y transaccional:
+1. `00-Preflight-Autosiembra`:
+   - `00.01-Login-Admin`: Login y extracción de `token_admin` y `id_usuario_admin` (desde payload JWT `sub`).
+   - `00.02-Descubrir-Tipo-Dispositivo`: Identifica tipo `SENSOR`.
+   - `00.03-Descubrir-Tipo-Area`: Identifica tipo área activa `Galpón`.
+   - `00.04-Crear-Finca`: Crea finca con nombre aleatorio alfabético (`id_usuario = id_usuario_admin`).
+   - `00.05-Crear-Area`: Crea área productiva con `especie_id = 123` (`ACUICULTURA`).
+   - `00.06-Crear-Dispositivo`: Registra dispositivo IoT con serial `GDEV...`.
+   - `00.07-Crear-Sensor`: Crea sensor en `/configuracion/dispositivos-iot/{id}/sensores`.
+   - `00.08-Asociar-Sensor-Area`: Asocia el sensor al área creada.
+2. Cada bloque de escenarios opera sobre sensores dedicados o el sensor aprovisionado.
+3. `99-Teardown`: Invoca `DELETE /test-control/runs/{{run_id}}` para rollback completo en la base de datos de test.
+
+---
+
+## Hallazgos del ambiente y del requerimiento
+
+### INC bloqueante (a nivel de sensor)
+- **INC-M03-G167-SENSOR-500**: `POST /configuracion/dispositivos-iot/{id}/sensores`
+  retorna 500 por `es_activo` NOT NULL sin default. Bloquea toda la autosiembra.
+
+### INC nuevos del subcaso (a nivel de motor de calidad)
+- **INC-M03-G168-GAP-NOT-IMPLEMENTED**: La detección de `gap_temporal_anomalo`
+  en `evaluar_calidad_telemetria_use_case.py` (Fase 5) está **comentada / no activa**.
+  Los 3 sub-pasos de TC-316 (gap 25min, gap 20min, gap 25min con inactividad)
+  no marcarán el flag aunque la lectura cumpla la condición del CSV. Requiere
+  implementación en backend antes de poder validar el caso.
+
+### Discrepancias requerimiento (CSV) vs código (hallazgos de requerimiento)
+- **σ poblacional vs muestral (TC-312)**: El CSV asume σ poblacional = 0.50000
+  (frontera 23.50 = μ+3σ). El backend usa `statistics.stdev` (muestral) = 0.51299
+  (frontera 23.5390). Bajo el código real, **23.51 NO marca** (contradice CSV).
+  El oráculo de 312c se ajusta al código: `activo=false, índice 100, APTO`.
+
+- **frecuencia_muestreo (TC-316)**: El CSV asume 10 min (umbral gap = 20 min).
+  El código real usa `frecuencia_muestreo_min = 5` (umbral = 10 min). Con 5 min,
+  el gap 20 min **debería marcar** por fórmula, pero no lo hace por el INC anterior.
+
+### Bloqueos de infraestructura del subcaso
+- **TC-316(c) periodo_inactividad**: No existe endpoint POST para crear
+  `modulo3.periodos_inactividad`. Solo lo crea el worker interno. `INSERT` vía
+  `/test-control/query` está bloqueado (403). El sub-paso (c) se marca como
+  **BLOCKED** en la colección y no ejecutable en V1/V2.
+
+### Parámetros del motor confirmados (A.5)
+- σ: **muestral** (`statistics.stdev`, ÷ N-1)
+- `frecuencia_muestreo_min`: **5 minutos**
+- `_N_MINIMO_SERIE_ANALISIS`: **20** (coincide con CSV)
+- `periodo_inactividad`: **no creable vía API**
+
+---
+
+## 6. Veredicto Inicial Esperado
+
+* **Veredicto V1:** **RECHAZADO POR BLOQUEO EXTERNO** — debido a `INC-M03-G167-SENSOR-500`.
+* Suite estructurada y lista para ejecución V2 una vez corregido el backend.

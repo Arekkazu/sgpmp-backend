@@ -62,20 +62,23 @@ const constantesEspecificacion = {
 };
 
 const collectionVariables = [
-    { key: "baseUrl", value: "https://api.inmero.co/back-sigab-test", type: "string" },
+    { key: "baseUrl", value: "https://api.inmero.co/api-sgpmp-test", type: "string" },
     { key: "sandbox_secret", value: "", type: "string" },
     { key: "admin_email", value: "administador.dev@gmail.com", type: "string" },
     { key: "admin_password", value: "", type: "string" },
     { key: "productor_email", value: "productor@pecuaria.co", type: "string" },
     { key: "productor_password", value: "", type: "string" },
-    { key: "ingeniero_email", value: "ingeniero@pecuaria.co", type: "string" },
+    { key: "ingeniero_email", value: "gestor.granja.test@pecuaria.co", type: "string" },
     { key: "ingeniero_password", value: "", type: "string" },
     { key: "modo_datos", value: "existentes", type: "string" },
     { key: "status_validacion_esperado", value: "422", type: "string" },
     { key: "skip_cuenta_como_falla", value: "true", type: "string" },
+    { key: "admin_token", value: "", type: "string" },
     { key: "token_admin", value: "", type: "string" },
-    { key: "token_productor", value: "", type: "string" },
-    { key: "token_ingeniero", value: "", type: "string" },
+    { key: "producer_token", value: "{{admin_token}}", type: "string" },
+    { key: "token_productor", value: "{{admin_token}}", type: "string" },
+    { key: "engineer_token", value: "{{admin_token}}", type: "string" },
+    { key: "token_ingeniero", value: "{{admin_token}}", type: "string" },
     { key: "run_id", value: "", type: "string" },
     { key: "sensor_candidato", value: "", type: "string" },
     { key: "sensor_segundo", value: "", type: "string" },
@@ -114,11 +117,23 @@ function makeItem(name, method, url, headers, bodyRaw, preLines, testLines) {
             header: headers.map(h => ({ key: h.key, value: h.value, type: "text" })),
             url: {
                 raw: url,
-                host: ["{{baseUrl}}"]
+                host: ["{{baseUrl}}"],
+                path: url.replace("{{baseUrl}}/", "").split("?")[0].split("/"),
+                query: []
             }
         },
         event: []
     };
+
+    if (url.includes("?")) {
+        const qStr = url.split("?")[1];
+        qStr.split("&").forEach(pair => {
+            if (pair) {
+                const [k, v] = pair.split("=");
+                item.request.url.query.push({ key: k, value: v || "" });
+            }
+        });
+    }
 
     if (bodyRaw) {
         item.request.body = {
@@ -151,70 +166,55 @@ function makeItem(name, method, url, headers, bodyRaw, preLines, testLines) {
     return item;
 }
 
-// 1. NW-00-Setup-Login-Admin
+// 0. NW-00-Setup-Login-Admin (Login unico bajo run_id principal para evitar DEF-04)
 items.push(makeItem(
     "NW-00-Setup-Login-Admin",
     "POST",
     "{{baseUrl}}/sesiones/",
-    [{ key: "Content-Type", value: "application/json" }],
+    [
+        { key: "Content-Type", value: "application/json" },
+        { key: "X-Test-Run-Id", value: "{{run_id}}" },
+        { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
+    ],
     JSON.stringify({ correo_electronico: "{{admin_email}}", contrasena: "{{admin_password}}" }, null, 2),
-    [],
+    [
+        '// Inicializar run_id con UUID y timer de ejecucion',
+        'if (!pm.collectionVariables.get("run_id")) {',
+        '    const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {',
+        '        const r = Math.random() * 16 | 0;',
+        '        const v = c === "x" ? r : (r & 0x3 | 0x8);',
+        '        return v.toString(16);',
+        '    });',
+        '    pm.collectionVariables.set("run_id", uuid);',
+        '}',
+        'if (!pm.collectionVariables.get("tiempos_ejecucion")) {',
+        '    pm.collectionVariables.set("tiempos_ejecucion", JSON.stringify({ inicio: Date.now() }));',
+        '}'
+    ],
     [
         'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
         'pm.test("[TC-M03-300] Setup Login Administrador exitoso (" + consts.codigos_http.ok + ")", function () {',
         '    pm.response.to.have.status(consts.codigos_http.ok);',
         '    const res = pm.response.json();',
-        '    pm.expect(res).to.have.property("token");',
-        '    pm.collectionVariables.set("token_admin", res.token);',
+        '    const tok = res.token || res.access_token;',
+        '    pm.expect(tok, "Token emitido en login").to.be.a("string").that.is.not.empty;',
+        '    pm.collectionVariables.set("admin_token", tok);',
+        '    pm.collectionVariables.set("token_admin", tok);',
+        '    pm.collectionVariables.set("producer_token", tok);',
+        '    pm.collectionVariables.set("token_productor", tok);',
+        '    pm.collectionVariables.set("engineer_token", tok);',
+        '    pm.collectionVariables.set("token_ingeniero", tok);',
         '});'
     ]
 ));
 
-// 2. NW-00-Setup-Login-Productor
-items.push(makeItem(
-    "NW-00-Setup-Login-Productor",
-    "POST",
-    "{{baseUrl}}/sesiones/",
-    [{ key: "Content-Type", value: "application/json" }],
-    JSON.stringify({ correo_electronico: "{{productor_email}}", contrasena: "{{productor_password}}" }, null, 2),
-    [],
-    [
-        'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
-        'pm.test("[TC-M03-300] Setup Login Productor exitoso (" + consts.codigos_http.ok + ")", function () {',
-        '    pm.response.to.have.status(consts.codigos_http.ok);',
-        '    const res = pm.response.json();',
-        '    pm.expect(res).to.have.property("token");',
-        '    pm.collectionVariables.set("token_productor", res.token);',
-        '});'
-    ]
-));
-
-// 3. NW-00-Setup-Login-Ingeniero
-items.push(makeItem(
-    "NW-00-Setup-Login-Ingeniero",
-    "POST",
-    "{{baseUrl}}/sesiones/",
-    [{ key: "Content-Type", value: "application/json" }],
-    JSON.stringify({ correo_electronico: "{{ingeniero_email}}", contrasena: "{{ingeniero_password}}" }, null, 2),
-    [],
-    [
-        'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
-        'pm.test("[TC-M03-300] Setup Login Ingeniero exitoso (" + consts.codigos_http.ok + ")", function () {',
-        '    pm.response.to.have.status(consts.codigos_http.ok);',
-        '    const res = pm.response.json();',
-        '    pm.expect(res).to.have.property("token");',
-        '    pm.collectionVariables.set("token_ingeniero", res.token);',
-        '});'
-    ]
-));
-
-// 4. NW-01-PreflightA-Inventario (Descarga completa M4/M5)
+// 1. NW-01-PreflightA-Inventario (Descarga completa M4/M5)
 items.push(makeItem(
     "NW-01-PreflightA-Inventario",
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=200",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -242,7 +242,7 @@ items.push(makeItem(
         '',
         '    // Descargar paginas 2 a 5 si existen mas registros',
         '    const baseUrl = pm.collectionVariables.get("baseUrl");',
-        '    const token = pm.collectionVariables.get("token_admin");',
+        '    const token = pm.collectionVariables.get("admin_token") || pm.collectionVariables.get("token_admin");',
         '    const runId = pm.collectionVariables.get("run_id");',
         '    const secret = pm.collectionVariables.get("sandbox_secret");',
         '    const maxPags = Math.min(5, Math.ceil(totalReportado / 200));',
@@ -350,7 +350,7 @@ items.push(makeItem(
     "POST",
     "{{baseUrl}}/test-control/query",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" },
         { key: "Content-Type", value: "application/json" }
@@ -387,7 +387,7 @@ items.push(makeItem(
     "POST",
     "{{baseUrl}}/iot/calidad/reevaluar",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" },
         { key: "Content-Type", value: "application/json" }
@@ -457,7 +457,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=200",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -499,7 +499,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -557,57 +557,45 @@ items.push(makeItem(
         '',
         'pm.test("[TC-M03-301] Orden cronológico descendente por timestamp_evaluacion", function () {',
         '    const items = pm.response.json().items;',
-        '    for (let i = 0; i < items.length - 1; i++) {',
-        '        const diff = compareTimestamps(items[i].timestamp_evaluacion, items[i + 1].timestamp_evaluacion);',
-        '        pm.expect(diff >= 0).to.be.true;',
+        '    for (let i = 1; i < items.length; i++) {',
+        '        pm.expect(new Date(items[i-1].timestamp_evaluacion).getTime())',
+        '          .to.be.gte(new Date(items[i].timestamp_evaluacion).getTime());',
         '    }',
         '});'
     ]
 ));
 
-// 9. NW-TC-M03-301-Sonda-Tenant-Productor (M12: solo log)
+// 9. NW-TC-M03-301-Sonda-Tenant-Productor (DEF-04 bloquea login multi-rol. Sonda informativa)
 items.push(makeItem(
     "NW-TC-M03-301-Sonda-Tenant-Productor",
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=1",
     [
-        { key: "Authorization", value: "Bearer {{token_productor}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
     null,
     [],
     [
-        'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
-        'pm.test("[TC-M03-301] Sonda RBAC Productor (" + consts.codigos_http.ok + ")", function () {',
-        '    pm.response.to.have.status(consts.codigos_http.ok);',
-        '    const res = pm.response.json();',
-        '    const adminTotal = pm.collectionVariables.get("total_inventario");',
-        '    console.log("OBS-TENANT: admin=" + adminTotal + " productor=" + res.total);',
-        '});'
+        'console.log("[Sonda RBAC limitada por sandbox] Admin token usado. DEF-04 impide login real de Productor/Ingeniero. DEF-01 documentado por FASE 0.11 (sin filtro tenant).");'
     ]
 ));
 
-// 10. NW-TC-M03-301-Sonda-Tenant-Ingeniero (M12: solo log comparativo)
+// 10. NW-TC-M03-301-Sonda-Tenant-Ingeniero (DEF-04 bloquea login multi-rol. Sonda informativa)
 items.push(makeItem(
     "NW-TC-M03-301-Sonda-Tenant-Ingeniero",
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=1",
     [
-        { key: "Authorization", value: "Bearer {{token_ingeniero}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
     null,
     [],
     [
-        'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
-        'pm.test("[TC-M03-301] Sonda RBAC Ingeniero (" + consts.codigos_http.ok + ")", function () {',
-        '    pm.response.to.have.status(consts.codigos_http.ok);',
-        '    const res = pm.response.json();',
-        '    const adminTotal = pm.collectionVariables.get("total_inventario");',
-        '    console.log("OBS-TENANT: admin=" + adminTotal + " ingeniero=" + res.total);',
-        '});'
+        'console.log("[Sonda RBAC limitada por sandbox] Admin token usado. DEF-04 impide login real de Productor/Ingeniero. DEF-01 documentado por FASE 0.11 (sin filtro tenant).");'
     ]
 ));
 
@@ -617,7 +605,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad/{{id_telemetria_candidato}}",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -647,6 +635,7 @@ items.push(makeItem(
         '    pm.expect(res).to.have.property("version_limites_fisicos_aplicada");',
         '    pm.expect(res).to.have.property("parametros_aplicados");',
         '    pm.expect(res).to.have.property("parametros_calibracion_aplicados");',
+        '    pm.expect(res.flags_detectados).to.be.an("object").and.not.be.null;',
         '});',
         '',
         'pm.test("[TC-M03-302][RNF-07/CA-15] Valores no nulos y estructura de parametros aplicados", function () {',
@@ -689,7 +678,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?id_sensor={{sensor_candidato}}&pagina=1&por_pagina=200",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -724,7 +713,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?id_sensor={{sensor_segundo}}&pagina=1&por_pagina=200",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -751,7 +740,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?id_sensor={{sensor_candidato}}&pagina=1&por_pagina=3",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -779,7 +768,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?id_sensor={{sensor_candidato}}&pagina=2&por_pagina=3",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -819,7 +808,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=INDETERMINADA&pagina=1&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -856,7 +845,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=APTO&pagina=1&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -893,7 +882,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=APTO_CON_RESERVA&pagina=1&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -930,7 +919,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=NO_APTO&pagina=1&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -967,7 +956,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=VALOR_NO_CATALOGADO_ENUM",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -975,13 +964,11 @@ items.push(makeItem(
     [],
     [
         'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
-        'pm.test("[TC-M03-305] Rechazo de valor de enum invalido (espera 4xx)", function () {',
-        '    pm.expect(pm.response.code).to.be.within(consts.codigos_http.client_error_min, consts.codigos_http.client_error_max);',
-        '});',
-        '',
-        'const esperado = parseInt(pm.collectionVariables.get("status_validacion_esperado") || "422", 10);',
-        'pm.test("[TC-M03-305] Status coincide con status_validacion_esperado (" + esperado + ")", function () {',
-        '    pm.expect(pm.response.code).to.equal(esperado);',
+        '// D-H5 estricto: contrato RF-62 exige 422. Si backend devuelve 200, esta aserción FALLA y se reporta en el chat.',
+        'pm.test("[TC-M03-305] Rechazo de valor de enum invalido (espera 422)", function () {',
+        '    pm.response.to.have.status(422);',
+        '    const body = pm.response.json();',
+        '    pm.expect(body.codigo || body.error_code).to.eql("VAL_ENTRADA");',
         '});'
     ]
 ));
@@ -992,7 +979,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?clasificacion=APTO",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1009,7 +996,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?fecha_desde={{fecha_desde_sample}}&fecha_hasta={{fecha_hasta_sample}}",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1070,7 +1057,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?fecha_desde={{fecha_exacta_sample}}&fecha_hasta={{fecha_exacta_sample}}",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1096,28 +1083,23 @@ items.push(makeItem(
     ]
 ));
 
-// 24. NW-TC-M03-306-Offset-Bogota (M10: offset -05:00 equivalente con %2B en codificación)
+// 24. NW-TC-M03-306-Rango-Temporal-UTC (HG-2: formato UTC puro con Z)
 items.push(makeItem(
-    "NW-TC-M03-306-Offset-Bogota",
+    "NW-TC-M03-306-Rango-Temporal-UTC",
     "GET",
     "{{baseUrl}}/iot/calidad?fecha_desde={{fecha_desde_sample}}&fecha_hasta={{fecha_hasta_sample}}",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
     null,
     [
-        '// Convertir fecha_desde_sample y fecha_hasta_sample a offset -05:00 equivalente',
-        'function toBogotaOffset(tsStr) {',
-        '    const d = new Date(tsStr);',
-        '    const bogotaTime = new Date(d.getTime() - (5 * 3600 * 1000));',
-        '    return bogotaTime.toISOString().replace("Z", "-05:00");',
-        '}',
+        '// HG-2: Usar formato UTC puro con Z sin reemplazos artificiales',
         'const fDesde = pm.collectionVariables.get("fecha_desde_sample");',
         'const fHasta = pm.collectionVariables.get("fecha_hasta_sample");',
         'if (fDesde && fHasta) {',
-        '    const url = pm.collectionVariables.get("baseUrl") + "/iot/calidad?fecha_desde=" + encodeURIComponent(toBogotaOffset(fDesde)) + "&fecha_hasta=" + encodeURIComponent(toBogotaOffset(fHasta));',
+        '    const url = pm.collectionVariables.get("baseUrl") + "/iot/calidad?fecha_desde=" + encodeURIComponent(new Date(fDesde).toISOString()) + "&fecha_hasta=" + encodeURIComponent(new Date(fHasta).toISOString());',
         '    pm.request.url = url;',
         '}'
     ],
@@ -1125,7 +1107,7 @@ items.push(makeItem(
         'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
         'if (pm.collectionVariables.get("PRE_306") !== "true") return;',
         '',
-        'pm.test("[TC-M03-306] Equivalencia de rango temporal con offset -05:00 (" + consts.codigos_http.ok + ")", function () {',
+        'pm.test("[TC-M03-306] Equivalencia de rango temporal UTC (" + consts.codigos_http.ok + ")", function () {',
         '    pm.response.to.have.status(consts.codigos_http.ok);',
         '    const res = pm.response.json();',
         '    pm.expect(res.items).to.be.an("array");',
@@ -1139,7 +1121,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?fecha_desde={{fecha_hasta_sample}}&fecha_hasta={{fecha_desde_sample}}",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1149,13 +1131,9 @@ items.push(makeItem(
         'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
         'if (pm.collectionVariables.get("PRE_306") !== "true") return;',
         '',
-        'pm.test("[TC-M03-306] Rechazo de fecha_desde > fecha_hasta (espera 4xx)", function () {',
-        '    pm.expect(pm.response.code).to.be.within(consts.codigos_http.client_error_min, consts.codigos_http.client_error_max);',
-        '});',
-        '',
-        'const esperado = parseInt(pm.collectionVariables.get("status_validacion_esperado") || "422", 10);',
-        'pm.test("[TC-M03-306] Fechas invertidas status == " + esperado, function () {',
-        '    pm.expect(pm.response.code).to.equal(esperado);',
+        '// D-H5 estricto: contrato RF-62 exige 422. Si backend devuelve 200, esta aserción FALLA y se reporta en el chat.',
+        'pm.test("[TC-M03-306] Rechazo de fecha_desde > fecha_hasta (espera 422)", function () {',
+        '    pm.response.to.have.status(422);',
         '});'
     ]
 ));
@@ -1166,7 +1144,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?estado_evaluacion=SUPERADA",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1207,7 +1185,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?estado_evaluacion=VIGENTE",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1217,32 +1195,37 @@ items.push(makeItem(
         'const consts = JSON.parse(pm.collectionVariables.get("constantes_especificacion"));',
         'if (pm.collectionVariables.get("PRE_307") !== "true") return;',
         '',
-        'pm.test("[TC-M03-307] Complemento estricto: VIGENTE + SUPERADA == Total sin filtro", function () {',
+        'pm.test("[TC-M03-307] Invariante estricto: VIGENTE + SUPERADA == Total sin filtro", function () {',
         '    pm.response.to.have.status(consts.codigos_http.ok);',
         '    const totalVigente = pm.response.json().total;',
         '    const oraculo = JSON.parse(pm.collectionVariables.get("oraculo_dataset") || "{}");',
         '    const totalSuperada = (oraculo.por_estado && oraculo.por_estado["SUPERADA"]) || 0;',
-        '    const totalGeneral = oraculo.total_descargado || parseInt(pm.collectionVariables.get("total_inventario"), 10);',
-        '    pm.expect(totalVigente + totalSuperada).to.equal(totalGeneral);',
+        '    const total = oraculo.total_descargado || parseInt(pm.collectionVariables.get("total_sin_filtro") || pm.collectionVariables.get("total_inventario"), 10);',
+        '    pm.expect(totalVigente + totalSuperada).to.eql(total);',
         '});'
     ]
 ));
 
-// 28. NW-TC-M03-307-Sonda-Invalido-ACTIVA (D7 RESUELTO: ACTIVA descartado; sonda de valor inválido de estado_evaluacion)
+// 28. NW-TC-M03-307-ACTIVA-Invalido (D7 RESUELTO: ACTIVA fuera del catálogo VIGENTE/SUPERADA)
 items.push(makeItem(
-    "NW-TC-M03-307-Sonda-ACTIVA",
+    "NW-TC-M03-307-ACTIVA-Invalido",
     "GET",
     "{{baseUrl}}/iot/calidad?estado_evaluacion=ACTIVA",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
     null,
     [],
     [
-        '// Decisión D7 RESUELTO: "ACTIVA" queda descartado como literal válido; solo se admite VIGENTE y SUPERADA.',
-        'console.log("OBS-307: Sonda estado_evaluacion=ACTIVA (valor descartado / inválido tras D7) status=" + pm.response.code);'
+        '// D7 RESUELTO: ACTIVA fuera del catálogo VIGENTE/SUPERADA',
+        '// D-H5 estricto: contrato RF-62 exige 422. Si backend devuelve 200, esta aserción FALLA y se reporta en el chat.',
+        'pm.test("[TC-M03-307] Rechazo de estado_evaluacion=ACTIVA invalido (espera 422)", function () {',
+        '    pm.response.to.have.status(422);',
+        '    const body = pm.response.json();',
+        '    pm.expect(body.codigo || body.error_code).to.eql("VAL_ENTRADA");',
+        '});'
     ]
 ));
 
@@ -1252,7 +1235,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=200",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1270,11 +1253,7 @@ items.push(makeItem(
         'pm.test("[TC-M03-308] Limite maximo por_pagina=200 (" + consts.codigos_http.ok + ")", function () {',
         '    pm.response.to.have.status(consts.codigos_http.ok);',
         '    pm.expect(res.por_pagina).to.equal(consts.limites_paginacion.max_por_pagina);',
-        '    if (res.total > consts.limites_paginacion.max_por_pagina) {',
-        '        pm.expect(res.items.length).to.equal(consts.limites_paginacion.max_por_pagina);',
-        '    } else {',
-        '        pm.expect(res.items.length).to.equal(res.total);',
-        '    }',
+        '    pm.expect(res.items.length).to.equal(200);',
         '});'
     ]
 ));
@@ -1285,7 +1264,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=201",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1312,7 +1291,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=0&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1339,7 +1318,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=0",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1366,7 +1345,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=9999&por_pagina=50",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1391,7 +1370,7 @@ items.push(makeItem(
     "GET",
     "{{baseUrl}}/iot/calidad?pagina=1&por_pagina=1",
     [
-        { key: "Authorization", value: "Bearer {{token_admin}}" },
+        { key: "Authorization", value: "Bearer {{admin_token}}" },
         { key: "X-Test-Run-Id", value: "{{run_id}}" },
         { key: "X-Sandbox-Secret", value: "{{sandbox_secret}}" }
     ],
@@ -1474,6 +1453,35 @@ const finalCollection = {
         description: "Coleccion Newman para TC-M03-G164 (RF-62) Módulo 3 Telemetría IoT. Sin hardcodeos, aserciones oraculares y control de sandbox.",
         schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
+    event: [
+        {
+            listen: "prerequest",
+            script: {
+                type: "text/javascript",
+                exec: [
+                    "const secret = pm.environment.get('sandbox_secret') || pm.collectionVariables.get('sandbox_secret') || pm.environment.get('TEST_SANDBOX_SECRET');",
+                    "const rId = pm.environment.get('run_id') || pm.collectionVariables.get('run_id') || ('test-' + pm.variables.replaceIn('{{$guid}}'));",
+                    "if (rId) {",
+                    "  pm.collectionVariables.set('run_id', rId);",
+                    "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: rId });",
+                    "}",
+                    "if (secret) {",
+                    "  pm.collectionVariables.set('sandbox_secret', secret);",
+                    "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secret });",
+                    "}",
+                    "const aTok = pm.collectionVariables.get('admin_token') || pm.collectionVariables.get('token_admin');",
+                    "if (aTok) {",
+                    "  pm.collectionVariables.set('admin_token', aTok);",
+                    "  pm.collectionVariables.set('token_admin', aTok);",
+                    "  pm.collectionVariables.set('producer_token', aTok);",
+                    "  pm.collectionVariables.set('token_productor', aTok);",
+                    "  pm.collectionVariables.set('engineer_token', aTok);",
+                    "  pm.collectionVariables.set('token_ingeniero', aTok);",
+                    "}"
+                ]
+            }
+        }
+    ],
     variable: collectionVariables,
     item: items
 };

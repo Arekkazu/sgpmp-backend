@@ -1,39 +1,54 @@
-param(
-    [string]$baseUrl = "https://api.inmero.co/back-sigab-test"
-)
-
+# ejecutar_tc_m04_g099.ps1 - Runner Pytest para TC-M04-G099
 $ErrorActionPreference = "Stop"
-$TC_ID = "TC-M04-G099"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Collection = Join-Path $ScriptDir "test_tc_m04_g099.json"
-$ResultadosDir = Join-Path $ScriptDir "resultados"
-$RawExport = Join-Path $ResultadosDir "_raw_newman.json"
-$HtmlExport = Join-Path $ResultadosDir "resultado_${TC_ID}.html"
-$ConsolidarScript = Join-Path $ScriptDir "consolidar-resultados.cjs"
 
-if (-not (Test-Path $ResultadosDir)) {
-    New-Item -ItemType Directory -Path $ResultadosDir -Force | Out-Null
+$RepoRoot  = "c:\Users\Juansegutt\Integrador\sgpmp-backend"
+$TC        = "tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G099"
+$ResultDir = Join-Path $RepoRoot "$TC\resultados"
+
+# Cargar .env.test
+$EnvFile = Join-Path $RepoRoot ".env.test"
+if (Test-Path $EnvFile) {
+    Get-Content $EnvFile | ForEach-Object {
+        if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$') {
+            $name  = $matches[1]
+            $value = $matches[2].Trim('"').Trim("'")
+            [Environment]::SetEnvironmentVariable($name, $value, "Process")
+        }
+    }
 }
 
-$SandboxSecret = if ($env:TEST_SANDBOX_SECRET) { $env:TEST_SANDBOX_SECRET } else { "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff" }
-$AdminPassword = if ($env:TEST_ADMIN_PASSWORD) { $env:TEST_ADMIN_PASSWORD } else { "Test1234!" }
-
-Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Ejecutando Suite Newman: $TC_ID (RF-73 Consistencia Temporal)" -ForegroundColor Cyan
-Write-Host "==========================================================" -ForegroundColor Cyan
-
-npx newman run $Collection `
-    --env-var baseUrl="$baseUrl" `
-    --env-var TEST_SANDBOX_SECRET="$SandboxSecret" `
-    --env-var TEST_ADMIN_PASSWORD="$AdminPassword" `
-    -r cli,json,htmlextra `
-    --reporter-json-export $RawExport `
-    --reporter-htmlextra-export $HtmlExport
-
-$newmanExit = $LASTEXITCODE
-
-if (Test-Path $ConsolidarScript) {
-    node $ConsolidarScript
+$TestDb = $env:TEST_DATABASE_URL
+if (-not $TestDb -or -not $TestDb.StartsWith("postgresql://")) {
+    Write-Host "ERROR: TEST_DATABASE_URL debe empezar con postgresql:// (recibido: '$TestDb')" -ForegroundColor Red
+    exit 2
 }
 
-exit $newmanExit
+$env:PYTHONPATH = "."
+
+if (-not (Test-Path $ResultDir)) {
+    New-Item -ItemType Directory -Path $ResultDir -Force | Out-Null
+}
+
+$JunitXml = Join-Path $ResultDir "_raw_pytest.xml"
+Push-Location $RepoRoot
+try {
+    .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --tb=short
+    $ExitPytest = $LASTEXITCODE
+}
+finally {
+    Pop-Location
+}
+
+$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G099.json"
+.\.venv\Scripts\python.exe (Join-Path $RepoRoot "$TC\consolidar_resultados.py") $JunitXml $FinalJson
+
+Write-Host ""
+Write-Host "=== RESUMEN TC-M04-G099 ===" -ForegroundColor Cyan
+if (Test-Path $FinalJson) {
+    Get-Content $FinalJson | ConvertFrom-Json | ConvertTo-Json -Depth 5
+}
+Write-Host "EXIT_PYTEST=$ExitPytest"
+Write-Host "RESULT_JSON=$FinalJson"
+
+# FIX OBS-M04-G086-02: propagar exit code de pytest
+exit $ExitPytest

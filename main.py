@@ -6,6 +6,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura imports perdidos en el merge dev → test (sandbox y X-Zona-Horaria) |
 import asyncio
 import logging
 import os

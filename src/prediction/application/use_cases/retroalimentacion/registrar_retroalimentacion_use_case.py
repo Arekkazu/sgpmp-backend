@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | INC-M04-154-G085 RF-73: payload mínimo de CONFLICTO_RETROALIMENTACION |
 from __future__ import annotations
 
 import logging
@@ -177,10 +178,14 @@ class RegistrarRetroalimentacionUseCase:
                 resultado_operacion="EXITOSO",
                 severidad_evento="WARNING",
                 correlacion_id=correlacion,
+                # Campos mínimos de RF-73; con otra clave el validador lo convertía en
+                # AUDITORIA_EVENTO_INVALIDO y el conflicto no quedaba en la bitácora.
                 payload_evento={
                     "id_resultado_inferencia": str(dto.id_resultado_inferencia),
+                    "activo_biologico_id": dto.id_activo_biologico,
+                    "numero_retroalimentaciones": len(otras_existentes) + 1,
+                    "estados_registrados": [r.estado_retroalimentacion for r in otras_existentes] + [estado],
                     "nueva_retroalimentacion": str(entidad_guardada.id_retroalimentacion),
-                    "total_retroalimentaciones": len(otras_existentes) + 1,
                 },
             )
         try:

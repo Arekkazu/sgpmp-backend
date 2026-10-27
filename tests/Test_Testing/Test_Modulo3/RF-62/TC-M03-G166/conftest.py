@@ -23,7 +23,7 @@ if str(_DIR) not in sys.path:
     sys.path.insert(0, str(_DIR))
 
 from spec_tc_m03_g166 import SpecTCM03G166
-from helpers_tc_m03_g166 import SandboxClient, cargar_configuracion_entorno
+from helpers_tc_m03_g166 import SandboxClient, cargar_configuracion_entorno, extraer_filas
 
 # Diccionario vivo de estado para reporte y metadata HTML
 _METADATA_EVENTOS: dict[str, str] = {
@@ -34,6 +34,19 @@ _METADATA_EVENTOS: dict[str, str] = {
 
 # Referencia a la metadata inyectada en pytest_metadata
 _METADATA_DICT_REF: Optional[dict] = None
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Registra markers personalizados para evitar warnings en ejecución estricta."""
+    config.addinivalue_line(
+        "markers",
+        "backend_defect: Documenta defecto de backend conocido; su fallo es correcto y esperado.",
+    )
+    config.addinivalue_line(
+        "markers",
+        "no_fail_si_bloqueado: el test se ejecuta incluso si el setup "
+        "detecta bloqueo externo (broker 503).",
+    )
 
 
 def pytest_report_header(config: pytest.Config) -> List[str]:
@@ -92,8 +105,7 @@ def consultar_conteo_eventos(cfg: dict[str, str], client_factory=None) -> Tuple[
     try:
         resp = client.execute_query("SELECT COUNT(*) AS total FROM modulo1.eventos")
         if resp.status_code == 200:
-            data = resp.json()
-            rows = data.get("rows") or data.get("data", [])
+            rows = extraer_filas(resp)
             if rows:
                 val = rows[0].get("total", rows[0].get("count", 0))
                 return int(val), None

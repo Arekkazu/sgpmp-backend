@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="1" tests="5" time="6.736" timestamp="2026-10-24T21:28:33.979456-05:00" hostname="LAPTOP-TMUKKLVF"><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367a_sin_tipo_evento_se_registra_incompleto" time="3.797"><failure message="AssertionError: CA-13 INCUMPLIDO: evento sin tipo_evento NO fue persistido. El use case hizo rollback interno en lugar de registrar con registro_incompleto=true. GAP: tipo_evento NOT NULL en BD.&#10;assert None is not None">db_session = &lt;sqlalchemy.orm.session.Session object at 0x0000021B176A1160&gt;
+
+    def test_367a_sin_tipo_evento_se_registra_incompleto(db_session):
+        """CA-13: evento sin tipo_evento debe persistirse, no rechazarse."""
+        use_case = construir_use_case(db_session)
+        payload = payload_base_completo()
+        payload["tipo_evento"] = None  # &lt;- campo faltante
+        payload["descripcion"] = "TEST_367a_sin_tipo_evento"
+    
+        try:
+            use_case.execute(**payload)
+            db_session.commit()
+        except Exception as e:
+            db_session.rollback()
+            pytest.fail(
+                f"CA-13 INCUMPLIDO: use case rechazo evento sin tipo_evento. "
+                f"Excepcion: {type(e).__name__}: {e}. "
+                f"Se esperaba persistencia con registro_incompleto=true."
+            )
+    
+        registro = buscar_evento_por_descripcion(db_session, "TEST_367a_sin_tipo_evento")
+&gt;       assert registro is not None, (
+            "CA-13 INCUMPLIDO: evento sin tipo_evento NO fue persistido. "
+            "El use case hizo rollback interno en lugar de registrar con "
+            "registro_incompleto=true. GAP: tipo_evento NOT NULL en BD."
+        )
+E       AssertionError: CA-13 INCUMPLIDO: evento sin tipo_evento NO fue persistido. El use case hizo rollback interno en lugar de registrar con registro_incompleto=true. GAP: tipo_evento NOT NULL en BD.
+E       assert None is not None
+
+tests\Test_Testing\Test_Modulo3\RF-63\TC-M03-G191\test_tc_m03_g191.py:47: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367b_sin_componente_origen_se_registra_incompleto" time="0.982" /><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367c_sin_timestamp_se_registra_incompleto" time="0.005"><skipped type="pytest.skip" message="GAP 2: use_case.execute() no expone parametro fecha_hora; siempre asigna datetime.now(). No es posible simular 'evento sin timestamp_evento' desde el llamador. Requiere cambio en el use case.">C:\Users\Juansegutt\Integrador\sgpmp-backend\tests\Test_Testing\Test_Modulo3\RF-63\TC-M03-G191\test_tc_m03_g191.py:94: GAP 2: use_case.execute() no expone parametro fecha_hora; siempre asigna datetime.now(). No es posible simular 'evento sin timestamp_evento' desde el llamador. Requiere cambio en el use case.</skipped></testcase><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367d_evento_completo_registra_incompleto_false" time="1.069" /><testcase classname="tests.Test_Testing.Test_Modulo3.RF-63.TC-M03-G191.test_tc_m03_g191" name="test_367e_post_manual_rechazado" time="0.034" /></testsuite></testsuites>
