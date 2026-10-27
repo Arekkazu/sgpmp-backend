@@ -3,6 +3,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: serializa incidentes y consulta avisos persistidos |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a los equipos de las fincas del usuario |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,6 +26,7 @@ from src.telemetry.infrastructure.models.alerta_model import AlertaModel
 from src.telemetry.infrastructure.models.bitacora_auditoria_iot_model import BitacoraAuditoriaIotModel
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.models.observacion_vision_model import ObservacionVisionModel
+from src.telemetry.infrastructure.models.paquete_inferencia_model import PaqueteInferenciaModel
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
 
 _SQL_EQUIPOS_DE_FINCAS = text(
@@ -113,6 +115,10 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
                 ObservacionVisionModel.id_dispositivo_iot.in_(dispositivos))),
             and_(m.entidad_afectada_tipo == 'ALERTA', ids(
                 AlertaModel.id_alerta, AlertaModel.id_infraestructura.in_(infraestructuras))),
+            # INC-M03-116-G59: el ciclo de vida del paquete (RF-56 CA-8) llega a la finca por su equipo.
+            and_(m.entidad_afectada_tipo == 'PAQUETE_IA', ids(
+                PaqueteInferenciaModel.id_paquetes_inferencia,
+                PaqueteInferenciaModel.id_dispositivo_iot.in_(dispositivos))),
         )
 
     def listar(
@@ -129,6 +135,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         id_usuario: Optional[int] = None,
         rf_origen: Optional[str] = None,
         registro_incompleto: Optional[bool] = None,
+        entidad_afectada_tipo: Optional[str] = None,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
@@ -152,6 +159,8 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
             q = q.filter(BitacoraAuditoriaIotModel.severidad_log == severidad_log)
         if clasificacion_registro:
             q = q.filter(BitacoraAuditoriaIotModel.clasificacion_registro == clasificacion_registro)
+        if entidad_afectada_tipo:
+            q = q.filter(BitacoraAuditoriaIotModel.entidad_afectada_tipo == entidad_afectada_tipo)
         if entidad_afectada_id:
             q = q.filter(BitacoraAuditoriaIotModel.entidad_afectada_id == entidad_afectada_id)
         if resultado:

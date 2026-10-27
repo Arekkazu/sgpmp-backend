@@ -8,6 +8,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
 import asyncio
 import logging
 import os
@@ -63,6 +64,7 @@ from src.telemetry.infrastructure.routers.infraestructura_iot_router import rout
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.telemetry.infrastructure.routers.paquete_inferencia_router import router as paquete_inferencia_router
 from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
@@ -896,6 +898,7 @@ app.include_router(regla_alerta_edge_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
+app.include_router(paquete_inferencia_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
 app.include_router(riesgo_contagio_router)

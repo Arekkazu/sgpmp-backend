@@ -1,9 +1,13 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita paquete pendiente y resultado real de envio |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
-from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
+    _SQL_EQUIPOS_DE_FINCAS,
+    SqlAlchemyBitacoraAuditoriaIotRepository,
+)
 
 from datetime import datetime, timezone
 from typing import Optional
@@ -36,6 +40,22 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             orm = self.db.query(PaqueteInferenciaModel).filter(
                 PaqueteInferenciaModel.id_evento_edge_computing == id_evento,
             ).order_by(PaqueteInferenciaModel.id_paquetes_inferencia).first()
+            return self._a_entidad(orm) if orm else None
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def obtener(
+        self, id_paquete: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[PaqueteInferencia]:
+        try:
+            q = self.db.query(PaqueteInferenciaModel).filter(
+                PaqueteInferenciaModel.id_paquetes_inferencia == id_paquete)
+            if ids_fincas_permitidas is not None:
+                # Mismo camino a la finca que la bitácora RF-63 (M3-14): por el equipo.
+                equipos = [fila[0] for fila in self.db.execute(
+                    _SQL_EQUIPOS_DE_FINCAS, {'fincas': ids_fincas_permitidas}).all()]
+                q = q.filter(PaqueteInferenciaModel.id_dispositivo_iot.in_(equipos))
+            orm = q.first()
             return self._a_entidad(orm) if orm else None
         except Exception as exc:
             raise_from_db_error(exc)

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -13,6 +16,16 @@ class PaqueteInferenciaRepository(ABC):
 
         bloquear_evento serializa la consolidación del mismo evento hasta el
         commit/rollback del caso de uso, incluso si todavía no tiene paquete.
+        """
+        ...
+
+    @abstractmethod
+    def obtener(
+        self, id_paquete: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[PaqueteInferencia]:
+        """El paquete, o None si no existe o su equipo no es de esas fincas.
+
+        ``ids_fincas_permitidas`` None = alcance global (auditor), como en la bitácora RF-63.
         """
         ...
 

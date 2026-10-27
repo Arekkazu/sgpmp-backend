@@ -383,3 +383,68 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
   "fields": [{"field": "timestamp_captura", "message": "..."}]
 }
 ```
+
+---
+
+## RF-56 — Consultar un paquete y su ciclo de vida (INC-M03-116-G59, TC-M03-117/118)
+
+`GET /iot/paquetes-inferencia/{id_paquete}`
+
+Autenticación JWT (`Authorization: Bearer $TOKEN`) y RBAC recurso 39 (`bitacora_auditoria_iot`),
+acción R. Es la misma bitácora RF-63, con su mismo alcance por finca: quien no tiene la acción E
+del recurso 39 solo ve los paquetes de los equipos de sus fincas. Fuera de ese alcance el
+paquete responde 404, igual que la bitácora y Alertas.
+
+```bash
+curl -s -X GET http://localhost:8000/iot/paquetes-inferencia/11 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_paquete_inferencia": 11,
+  "id_sensor": 3,
+  "id_dispositivo_iot": 2,
+  "id_evento_edge_computing": 7,
+  "id_version_modelo": null,
+  "tipo_variable": "TEMPERATURA_AMBIENTAL",
+  "valor_numerico": "38.5",
+  "unidad": "°C",
+  "estado_calidad": "LECTURA_VALIDA",
+  "estado_desviacion": "DESVIACION_SIMPLE",
+  "severidad": "MODERADO",
+  "origen": "TIEMPO_REAL",
+  "contexto_incompleto": true,
+  "contexto_ambiental": {"AMBIENTAL": [{"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": "38.5", "unidad": "°C"}]},
+  "metadatos": {"timestamp_captura": "2026-10-27T12:00:00+00:00", "timestamp_procesamiento_edge": "2026-10-27T12:00:00.200000+00:00", "clasificacion_rf55": "DESVIACION_SIMPLE"},
+  "estado_paquete": "PENDIENTE",
+  "intento_envios": 0,
+  "fecha_envio": "2026-10-27T12:00:00.300000Z",
+  "ciclo_vida": [
+    {
+      "id_evento": "5fa85f64-5717-4562-b3fc-2c963f66afa8",
+      "tipo_evento": "PAQUETE_INFERENCIA_GENERADO",
+      "resultado": "EXITOSO",
+      "fecha_hora": "2026-10-27T12:00:00.300000Z",
+      "entidad_afectada_tipo": "PAQUETE_IA",
+      "entidad_afectada_id": "11",
+      "accion_detallada": {"estado_paquete": "PENDIENTE", "intentos": 0, "id_evento_edge": 7, "id_dispositivo_iot": 2},
+      "severidad_log": "INFO",
+      "...": "resto de campos de EventoAuditoriaIotSchema"
+    },
+    {"tipo_evento": "CONTEXTO_INCOMPLETO", "...": "..."}
+  ]
+}
+```
+
+`ciclo_vida` va en orden cronológico. La trazabilidad end-to-end (Postcondición 3 de RF-56) es
+`id_sensor` → `id_evento_edge_computing` → `id_paquete_inferencia` → `id_version_modelo`.
+La bitácora de todos los paquetes se consulta en
+`GET /iot/auditoria?entidad_afectada_tipo=PAQUETE_IA` (ver `curls_m03_cu06_calidad_auditoria.md`).
+
+**Errores:**
+- `401` — Sin token o token inválido.
+- `403` — El rol no tiene el permiso R sobre el recurso 39.
+- `404 PAQUETE_INFERENCIA_NO_ENCONTRADO` — No existe, o su equipo no es de las fincas del usuario.
+- `400 VAL_ENTRADA` — `id_paquete` menor que 1.
