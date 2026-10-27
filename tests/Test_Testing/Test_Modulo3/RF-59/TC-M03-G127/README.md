@@ -1,55 +1,36 @@
-# TC-M03-G127 — RF-59 / CU04 (auditoría del historial)
+# TC-M03-G127 — auditoría del historial (RF-59)
 
-Caso original: **TC-M03-256**. Toda consulta histórica genera un registro de auditoría con usuario, filtros aplicados, rango temporal, cantidad de registros y timestamp. Cuando la operación es una exportación, el registro incluye además el formato.
+## Oráculo original
 
-Herramientas: **Newman** genera las operaciones (como Ingeniero de Campo) y el ejecutor en Node busca y evalúa su registro en las bitácoras. Sin Cypress.
+`Casos_Prueba(Modulo3 Agrupado).csv:194-195`, TC-M03-256:
 
-## Variantes
+> Para la consulta existe un registro de auditoría con usuario, filtros aplicados, rango temporal, cantidad de registros y timestamp. Cuando se ejecute una exportación, el registro incluye además el formato de exportación utilizado.
 
-| Variante | Operación | Cuándo se exige |
-| --- | --- | --- |
-| CONSULTA | `GET /iot/monitoreo/historial` con sensor, unidad, `estado_dato` y periodo conocidos | Siempre |
-| EXPORTACION | `GET /iot/monitoreo/historial/exportar` con los mismos filtros y `formato=EXCEL` | Solo cuando la exportación existe (la matriz dice «cuando aplique») |
+La nota de la misma fila declara independiente la auditoría de la consulta normal y limita la comprobación del formato a una exportación disponible. RF-59, `Especificacion-Requerimientos-Modulo3.md`: Fase 8, líneas 5982-5990; Postcondición 6, líneas 6224-6226; CA-16, líneas 6281-6284. CA-16 exige registrar también “si se exportó” en cualquier consulta. Para la consulta normal se exige `exportado=false` o campo equivalente. La verificación en BD descrita por la matriz se sustituye por la API pública RF-63 porque la orden prohíbe SQL y acceso directo a BD.
 
-- **Exportación no disponible:** si responde **503 `M08_NO_DISPONIBLE`**, la variante se registra como INFO, se anota la dependencia de M08 y el resultado del caso se basa en la consulta.
-- **Exportación disponible (2xx):** se exige además su registro, incluido el formato.
-- **Cualquier otra respuesta** (por ejemplo, 403 o 500): la variante queda BLOQUEADA y el caso no se aprueba.
+## Código consultado y efecto
 
-## Cómo se identifica la auditoría
+En `origin/test` consulté `src/telemetry/application/use_cases/monitoreo/consultar_historial_use_case.py:200-239`, que emite `HISTORIAL_CONSULTADO` con `id_usuario`, `id_rol`, `filtros` (incluye `fecha_inicio` y `fecha_fin`), `registros_devueltos`, `por_pagina` y `exportado=false`, y `src/telemetry/infrastructure/routers/auditoria_iot_router.py:49,64-112`, que expone `GET /iot/auditoria` con permiso `(39,2)` y filtros `tipo_evento`, `id_usuario`, `fecha_desde`, `fecha_hasta`. En el árbol local consulté además `src/telemetry/infrastructure/routers/monitoreo_router.py:261-267`, que pasa la misma sesión `db` a RF-63, y `src/telemetry/application/use_cases/auditoria/registrar_evento_auditoria_iot_use_case.py:84-125`, que hace `commit()` y absorbe fallos: la constancia puede persistir fuera del rollback del RUN. Estos archivos orientan la prueba; no acreditan el commit desplegado en TEST. La ausencia o divergencia se tratará como `DEFECTO_FUNCIONAL_CANDIDATO` hasta observarla por la API en un RUN autorizado.
 
-- **No existe un mecanismo propio de auditoría del historial** en el código actual: ni el caso de uso ni el router registran la consulta. No se inventa ninguna tabla ni endpoint.
-- **Fuentes revisadas:** las bitácoras oficiales existentes, **RF-10** (`GET /auditoria/`) y **RF-63** (`GET /iot/auditoria`), consultadas con la cuenta de preparación (Administrador).
-- **Ancla temporal:** se toma del servidor antes del login del Ingeniero.
-- **Correlación:** un registro solo cuenta si es del Ingeniero y menciona el historial o la exportación, o lleva el sensor del RUN. Se descartan los registros de otros usuarios y los del login.
-- **Atributos evaluados** sobre el mejor registro relacionado, recorriendo toda su estructura:
-  - usuario;
-  - los tres filtros con sus valores;
-  - el rango (fecha de inicio y de fin, nunca la marca de tiempo del propio evento);
-  - la cantidad, igual al `total` devuelto por la consulta;
-  - un timestamp posterior al ancla;
-  - el formato, en la exportación.
-- **Reintentos:** hasta 3 búsquedas separadas por 10 s.
-- **Testigo positivo:** la bitácora RF-10 debe mostrar eventos del propio RUN (el inicio de sesión del Ingeniero). Si no puede consultarse, o no los muestra, la ausencia no se interpreta y el caso queda BLOQUEADO.
+## Diseño y contrato
 
-| Aserción | Atributo |
-| --- | --- |
-| API-256-01 | Existe un registro de auditoría de la operación |
-| API-256-02 a 06 | Usuario, filtros, rango temporal, cantidad de registros y timestamp |
-| API-256-07 | Formato (solo en EXPORTACION) |
+Solo el lanzador externo puede crear el RUN y pasar `--operacion`, `--version`, `--intento`, `--run-id`, `--autorizacion` y `--contexto`; `contexto_operacion.json` se verifica antes de credenciales o red. La versión V2 exige `reevaluar`. El preflight acepta `.env.qa` y las variables normales `QA_*`, sin variables manuales G127. Los logins de Productor y Administrador van sin cabecera de RUN. Dentro del RUN se selecciona automáticamente una consulta con datos del sensor 6 en 7/30 días; el respaldo acotado usa el rango conocido 2026-10-20..27. Si no hay datos, el caso queda BLOQUEADO con diagnóstico.
 
-## Dependencias
+Newman ejecuta una consulta distintiva (`por_pagina=37`), luego la lectura RF-63 del Administrador, luego el GET informativo de exportación PDF. El ejecutor compara usuario, rol, filtros y rango, cantidad de `items`, timestamp en ventana y `exportado=false`; no toma como evidencia un evento de la selección. Reintenta una ausencia de evento hasta dos veces por API pública. `503 M08_NO_DISPONIBLE` deja formato como NO APLICA sin bloquear la consulta; si la exportación responde 200 se busca el formato PDF en RF-63. No hay Cypress ni UI obligatoria.
 
-- **Auditoría del historial (RF-59 CA-16):** sin implementar en el código actual. Con el testigo positivo cumplido, la ausencia del registro se propondría como RECHAZADO con evidencia.
-- **Posible auditoría post-commit:** si Desarrollo la implementa después del commit (no visible dentro del sandbox), habrá que acordar un mecanismo observable. Los reintentos cubren solo escrituras en sesión separada.
-- **M08 (exportación):** pendiente; la variante se activa sola cuando el servicio responda.
-- **Escrituras:** no hay SQL de escritura. `auditoria.logs_dml` se usa solo como testigo de aislamiento del sandbox, no como auditoría evaluada.
+Presupuesto único: hasta 14 solicitudes directas (incluidos dos logins, hasta tres consultas de selección, dos reintentos RF-63, hasta tres búsquedas de exportación y DELETE, con una solicitud reservada para cierre), tres solicitudes Newman, 720 s de duración, 120 s de inactividad máxima declarada, 30 s por solicitud y 20 s en selección. Los reportes Newman JSON y HTML generados se sanean y quedan en el RUN. La única comprobación obligatoria es `API-256-01`; solo APROBADO/RECHAZADO con evidencia y cierre correcto produce RUN OFICIAL según la emulación de `registro_qa`. BLOQUEADO y NO_CONCLUYENTE son TÉCNICOS. No se ejecuta Newman contra TEST durante preparación.
 
-## Uso
+## Efectos para autorización posterior
 
-```
-node ejecutar_tc_m03_g127.mjs --validar-local
-node --test validar_local_g127.mjs
-node ejecutar_tc_m03_g127.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo evaluacion --aceptar-efectos notificacion-login
+No hay escritura de negocio, SQL, creación de datos ni llamadas a `/test-control/query`. Los logins pueden persistir sesión o auditoría. Los GET de historial y exportación pueden persistir auditoría RF-63 por el `commit()` indicado; DELETE del RUN no acredita revertirla. La lectura de bitácora es GET. El cierre se informa como DELETE 200, con rollback limitado a la ausencia de escrituras de escenario. Estos efectos requieren autorización particular para el lanzador externo.
+
+## Validación local
+
+```text
+node g127.mjs --capacidades
+node g127.mjs --comprobar
+node pruebas/g127.test.mjs
+node pruebas/g127_ensayo.mjs
 ```
 
-La ejecución solo procede con autorización de Desarrollo y `QA_AUTORIZADO=SI`. V1 se guarda en `RESULTADOS/<RUN_ID>/` y V2 y siguientes en `EvaluacionVN/RESULTADOS/<RUN_ID>/`.
+El ensayo usa solo servidor loopback y archivos temporales; la salida esperada termina en `OK G127: 7/7 modos; resultado.json e informe coherentes; registro QA fiel`. El informe oficial futuro empieza `# TC-M03-G127 — <DECISIÓN>` y queda únicamente dentro de `Resultados/RUN-G127-V1-.../` o `EvaluacionV2/Resultados/RUN-G127-V2-.../`, junto con `resultado.json` y reportes generados.
