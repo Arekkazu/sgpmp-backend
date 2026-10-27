@@ -4,6 +4,7 @@
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 rechazo temporal en bitácora, E6 límite por dispositivo, E7 intento no autorizado |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
+# | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 from __future__ import annotations
 
 import logging
@@ -132,6 +133,9 @@ class RecibirEventoEdgeUseCase:
             origen_dato=dto.origen,
             estado_conectividad=dto.estado_conectividad,
             metadatos=dto.metadata_edge or {},
+            valor_evaluado=dto.valor_evaluado,
+            umbral_min_aplicado=dto.umbral_min_aplicado,
+            umbral_max_aplicado=dto.umbral_max_aplicado,
         )
 
         # Paso 3-4: Guardar evento
@@ -197,6 +201,9 @@ class RecibirEventoEdgeUseCase:
             estado_conectividad=evento_guardado.estado_conectividad,
             fecha_procesamiento=evento_guardado.fecha_procesamiento,
             paquete_inferencia_estado=paquete_estado,
+            valor_evaluado=evento_guardado.valor_evaluado,
+            umbral_min_aplicado=evento_guardado.umbral_min_aplicado,
+            umbral_max_aplicado=evento_guardado.umbral_max_aplicado,
         )
 
     def _generar_alerta_best_effort(

@@ -1,12 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 from src.shared.fechas import FechaHoraUtc
@@ -33,6 +34,10 @@ class RecibirEventoEdgeDTO(BaseDTO):
     estado_conectividad: bool
     metadata_edge: Optional[dict[str, Any]] = None
     version_modelo_objetivo: Optional[str] = None
+    # Evidencia de RF-55.1: valor que el Edge evaluó y umbrales con que lo clasificó
+    valor_evaluado: Optional[Decimal] = None
+    umbral_min_aplicado: Optional[Decimal] = None
+    umbral_max_aplicado: Optional[Decimal] = None
 
     @field_validator('clasificacion_rf55')
     @classmethod
@@ -55,3 +60,10 @@ class RecibirEventoEdgeDTO(BaseDTO):
         if v not in {"TIEMPO_REAL", "BUFFER_LOCAL"}:
             raise ValueError("origen debe ser TIEMPO_REAL o BUFFER_LOCAL")
         return v
+
+    @model_validator(mode='after')
+    def validar_umbrales(self) -> 'RecibirEventoEdgeDTO':
+        if (self.umbral_min_aplicado is not None and self.umbral_max_aplicado is not None
+                and self.umbral_min_aplicado > self.umbral_max_aplicado):
+            raise ValueError("umbral_min_aplicado no puede ser mayor que umbral_max_aplicado")
+        return self

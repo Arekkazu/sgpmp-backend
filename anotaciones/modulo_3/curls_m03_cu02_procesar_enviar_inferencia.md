@@ -10,6 +10,58 @@ Autenticación con el token de servicio del broker (`Authorization: Bearer $BROK
 confirma recepción y persistencia; no confirma entrega a IA. Las desviaciones
 conservan su paquete en `PENDIENTE`, con `intento_envios = 0`.
 
+**INC-M03-111-G43 (RF-55.1):** el body acepta además `valor_evaluado`,
+`umbral_min_aplicado` y `umbral_max_aplicado` (opcionales). Los envía el Edge con
+la clasificación que calculó; el backend no la recalcula, solo los guarda en
+`modulo3.eventos_edge_computing` y los devuelve como evidencia. Ver
+`inc_m03_111_g43_evidencia_umbrales_rf55.md`.
+
+---
+
+## RF-55.1 — Evento con valor y umbrales aplicados (TC-M03-076/077/078)
+
+```bash
+curl -s -X POST http://localhost:8000/iot/eventos-edge \
+  -H "Authorization: Bearer $BROKER_SERVICE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": 1,
+    "sensor_id": 1,
+    "serial": "IOT-EST01-HLA-001",
+    "clasificacion_rf55": "DESVIACION_SIMPLE",
+    "severidad": "MODERADO",
+    "variables_involucradas": [
+      {"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 35.0, "unidad": "C"}
+    ],
+    "valor_evaluado": 35.0,
+    "umbral_min_aplicado": 18.0,
+    "umbral_max_aplicado": 30.0,
+    "timestamp_captura": "2026-10-26T11:01:00Z",
+    "timestamp_procesamiento_edge": "2026-10-26T11:01:00.200Z",
+    "origen": "TIEMPO_REAL",
+    "estado_conectividad": true
+  }'
+```
+
+**Respuesta esperada (201):**
+```json
+{
+  "id_evento_edge_computing": 32,
+  "clasificacion_rf55": "DESVIACION_SIMPLE",
+  "severidad": "MODERADO",
+  "estado_conectividad": true,
+  "fecha_procesamiento": "2026-10-26T11:01:00.200000Z",
+  "paquete_inferencia_estado": "PENDIENTE",
+  "valor_evaluado": "35.0",
+  "umbral_min_aplicado": "18.0",
+  "umbral_max_aplicado": "30.0"
+}
+```
+
+**Errores:**
+- `422` — `umbral_min_aplicado` mayor que `umbral_max_aplicado` ("umbral_min_aplicado no puede ser mayor que umbral_max_aplicado").
+- Sin los tres campos el evento se acepta igual (`null` en la respuesta), como antes.
+
 ---
 
 ## Flujo principal — DESVIACION_SIMPLE con contexto completo → paquete PENDIENTE
