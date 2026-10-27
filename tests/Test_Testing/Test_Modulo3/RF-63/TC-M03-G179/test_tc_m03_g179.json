@@ -1,0 +1,600 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g179-clasificacion-nic41-v1",
+    "name": "TC-M03-G179 - Clasificación NIC41 vs TECNICO Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G179 (RF-63). Verifica reglas de negocio de clasificación NIC41 (retención 5 años) vs TECNICO (retención 1 año).\n\nVersion de SOLO LECTURA (2026-10-26): ya no crea finca, dispositivo ni sensor ni genera eventos (el sandbox nunca confirma, asi que los eventos de auditoria, que se emiten despues del commit, no se generan dentro de el, y su reloj de BD queda congelado). Las pruebas consultan la bitacora tal como esta y toman de ella los ids que necesitan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar con --env-var sandbox_secret=<secreto> (el lanzador .ps1 ya lo hace).",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox esta prueba dejaria datos permanentes).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  // pm.variables respeta la precedencia entorno > coleccion: el run_id del encabezado es el mismo del DELETE final.",
+          "  let runId = pm.variables.get('run_id');",
+          "  if (!runId || runId.trim() === '') { runId = 'test-' + pm.variables.replaceIn('{{$guid}}'); pm.collectionVariables.set('run_id', runId); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: runId });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://www.api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "infra_id",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Autenticacion",
+      "item": [
+        {
+          "name": "00-Login-ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso de ADMIN\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-342-Filtro-Clasificacion",
+      "item": [
+        {
+          "name": "08-TC-M03-342-Filtro-NIC41-Retencion-5",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?clasificacion_registro=NIC41",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro clasificacion_registro=NIC41 exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los eventos clasificados NIC41 tienen retencion_aplicable=5\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
+                  "        pm.expect(item.retencion_aplicable).to.eql(5);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09-TC-M03-342-Filtro-TECNICO-Retencion-1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "clasificacion_registro",
+                  "value": "TECNICO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro clasificacion_registro=TECNICO exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Todos los eventos clasificados TECNICO tienen retencion_aplicable=1\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"TECNICO\");",
+                  "        pm.expect(item.retencion_aplicable).to.eql(1);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10-TC-M03-342-Inyeccion-Evento-Ambiguo-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?registro_incompleto=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "registro_incompleto",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso Inyección Evento Ambiguo: No existe endpoint público para registrar eventos de auditoría sin componente_origen. Los use cases internos siempre asignan un componente canónico.\");",
+                  "console.log(\"[INFO G179] Status consulta:\", pm.response.code);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04-TC-M03-344-Positivos-NIC41",
+      "item": [
+        {
+          "name": "11-TC-M03-344-Verificar-RF62-EVALUACION_CALIDAD_COMPLETADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Eventos EVALUACION_CALIDAD_COMPLETADA obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"RF-62 (EVALUACION_CALIDAD_COMPLETADA) clasifica como NIC41 con retención 5 años\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
+                  "        pm.expect(item.retencion_aplicable).to.eql(5);",
+                  "        pm.expect(item.registro_incompleto).to.be.false;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12-TC-M03-344-Verificar-RF62-REEVALUACION_CALIDAD_SOLICITADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=REEVALUACION_CALIDAD_SOLICITADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "REEVALUACION_CALIDAD_SOLICITADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Eventos REEVALUACION_CALIDAD_SOLICITADA obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"RF-62 (REEVALUACION_CALIDAD_SOLICITADA) clasifica como NIC41 con retención 5 años\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
+                  "        pm.expect(item.retencion_aplicable).to.eql(5);",
+                  "        pm.expect(item.registro_incompleto).to.be.false;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=PAQUETE_INFERENCIA_GENERADO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "PAQUETE_INFERENCIA_GENERADO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso RF-56 PAQUETE_INFERENCIA_GENERADO: Emitido exclusivamente por motor de IA/M04 o worker de inferencia. No expone endpoint REST directo de generación síncrona en M03.\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14-TC-M03-344-RF61-VINCULACION_AUTOMATICA-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=VINCULACION_AUTOMATICA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "VINCULACION_AUTOMATICA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso RF-61 VINCULACION_AUTOMATICA: Emitido por worker de vinculación edge/RFID en segundo plano. No emitible por endpoint síncrono API.\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05-TC-M03-345-Negativos-TECNICO",
+      "item": [
+        {
+          "name": "15-TC-M03-345-Verificar-RF60-TRANSICION_MANTENIMIENTO_MANUAL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "TRANSICION_MANTENIMIENTO_MANUAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Eventos TRANSICION_MANTENIMIENTO_MANUAL obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"RF-60 (TRANSICION_MANTENIMIENTO_MANUAL) clasifica como TECNICO con retención 1 año\", function () {",
+                  "    pm.expect(res.items.length).to.be.at.least(1);",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.clasificacion_registro).to.eql(\"TECNICO\");",
+                  "        pm.expect(item.retencion_aplicable).to.eql(1);",
+                  "        pm.expect(item.registro_incompleto).to.be.false;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16-TC-M03-345-Eventos-Broker-Worker-Bloqueados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?clasificacion_registro=TECNICO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "clasificacion_registro",
+                  "value": "TECNICO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcasos RF-54 (BUFFER_ACTIVADO), RF-55 (DESVIACION_DETECTADA), RF-57 (ALERTA_GENERADA), RF-58, RF-59, RF-60 (DISPOSITIVO_SIN_SEÑAL):\");",
+                  "console.log(\"  Motivo: Eventos emitidos por brokers MQTT, workers periódicos o procesamiento asíncrono sin interfaz REST directa en el sandbox.\");",
+                  "pm.test(\"Verificación de que eventos técnicos en sandbox cumplen retención de 1 año\", function () {",
+                  "    const res = pm.response.json();",
+                  "    res.items.forEach(item => {",
+                  "        pm.expect(item.retencion_aplicable).to.eql(1);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
