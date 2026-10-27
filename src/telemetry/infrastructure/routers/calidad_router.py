@@ -6,6 +6,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evaluacion de calidad de vision bajo demanda |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: validar enums y declarar errores de consulta HTTP 422. |
 # | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: pasar a RF62 el reloj de la lectura original sin consultar estado actual. |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -185,7 +186,7 @@ def evaluar_calidad(
     row = db.execute(
         text(
             'SELECT id_sensor, id_variable, valor_crudo, valor_ajustado, '
-            'timestamp_captura, estado_calidad, parametros_calibracion '
+            'timestamp_captura, estado_calidad, parametros_calibracion, reloj_desincronizado, metadatos '
             'FROM modulo3.telemetrias WHERE id_telemetria = :id'
         ),
         {'id': id_telemetria},
@@ -212,6 +213,8 @@ def evaluar_calidad(
         timestamp_captura=row[4],
         estado_calidad_rf53=row[5],
         parametros_calibracion=row[6],
+        reloj_desincronizado=row[7],
+        evidencia_reloj=(row[8] or {}).get('rf53_reloj'),
     )
     if evaluacion is None:
         return JSONResponse(status_code=200,content={

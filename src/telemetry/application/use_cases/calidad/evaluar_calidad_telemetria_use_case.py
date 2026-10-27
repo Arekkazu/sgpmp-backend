@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: gaps, omisiones y evidencia de limites |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: persistir la regla aplicada cuando RF-53 excluye el analisis estadistico. |
 # | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: detectar outlier con sigma cero y auditar notificaciones de drift pendientes sin perder calidad. |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: restringir aptitud por TIME_DESYNC usando snapshot RF53 sin modificar el indice. |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -77,10 +78,13 @@ class EvaluarCalidadTelemetriaUseCase:
         estado_calidad_rf53: str,
         parametros_calibracion: Optional[dict],
         tipo_variable: Optional[str] = None,
+        reloj_desincronizado: bool = False,
+        evidencia_reloj: Optional[dict] = None,
     ) -> TelemetriaCalidad | None:
         try:
             return self._execute(id_telemetria,id_sensor,id_variable,valor,valor_ajustado,
-                                 timestamp_captura,estado_calidad_rf53,parametros_calibracion,tipo_variable)
+                                 timestamp_captura,estado_calidad_rf53,parametros_calibracion,tipo_variable,
+                                 reloj_desincronizado,evidencia_reloj)
         except Exception:
             self.db.rollback()
             raise
@@ -96,6 +100,8 @@ class EvaluarCalidadTelemetriaUseCase:
         estado_calidad_rf53: str,
         parametros_calibracion: Optional[dict],
         tipo_variable: Optional[str] = None,
+        reloj_desincronizado: bool = False,
+        evidencia_reloj: Optional[dict] = None,
     ) -> TelemetriaCalidad | None:
         self._version_limites = None
         self._contexto = {'id_variable': id_variable}
@@ -103,6 +109,15 @@ class EvaluarCalidadTelemetriaUseCase:
             self.contexto_port.bloquear_evaluacion(id_telemetria)
         ahora = datetime.now(timezone.utc)
         flags: dict = {}
+        if evidencia_reloj is not None:
+            self._contexto['reloj_rf53'] = evidencia_reloj
+        if reloj_desincronizado:
+            flags['reloj_desincronizado'] = {'activo': True, 'codigo': 'TIME_DESYNC'}
+            self._contexto['restriccion_temporal'] = {
+                'codigo': 'TIME_DESYNC', 'regla_aplicada': 'RF54_E9',
+                'apto_para_ia': False, 'apto_para_nic41': False,
+                'descuento_indice': 0,
+            }
         omitir_drift = False
 
         # ── Fase 0: estado heredado de RF-53 ──────────────────────────────────
@@ -304,6 +319,8 @@ class EvaluarCalidadTelemetriaUseCase:
         motivo_reevaluacion: Optional[str],
     ) -> TelemetriaCalidad:
         apto_ia, apto_nic41 = derivar_aptitud(clasificacion)
+        if flags.get('reloj_desincronizado', {}).get('activo'):
+            apto_ia, apto_nic41 = False, False
         evaluacion = TelemetriaCalidad(
             id_evaluacion=None,
             id_telemetria=id_telemetria,
