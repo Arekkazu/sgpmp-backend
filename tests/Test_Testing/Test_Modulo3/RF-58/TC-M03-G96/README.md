@@ -1,49 +1,28 @@
-# TC-M03-G96 — RF-58 / CU04
+# TC-M03-G96 — TC-M03-187
 
-Caso original: TC-M03-187. Newman verifica que el dashboard expone para `estado_conectividad` solo valores del catálogo de RF-58: `ONLINE`, `OFFLINE` o `SIN_SEÑAL`.
+**Oráculo literal (matriz, RF-58/CU04):** «El estado de conectividad presentado por el monitoreo utiliza exclusivamente uno de los valores definidos por RF-58 (ONLINE, OFFLINE o SIN_SEÑAL); no se exponen valores diferentes al catálogo establecido.» La matriz pide las tres condiciones: conectado, desconectado y sin señal. Fuente: `Casos_Prueba(Modulo3 Agrupado).csv`, fila G96 (Windows-1252). RF-58: `Especificacion-Requerimientos-Modulo3.md:4923,5160`. RF-60: línea 6336; no define la correspondencia entre sus cinco estados internos y los tres valores de RF-58.
 
-La matriz pide preparar o simular las tres condiciones: conectado, desconectado y sin señal.
+Una sola comprobación API `API-187-01`; no hay UI. Se leen respuestas públicas del Productor con Newman; no se crean sensores ni lecturas, ni se usa SQL. Un valor con significado ajeno al catálogo, null o campo ausente en una respuesta 200 con eco basta para RECHAZADO. APROBADO exige ver los tres valores y completar la paginación de cada unidad recorrida. Si faltan condiciones, BLOQUEADO por datos; 5xx BLOQUEADO; sin respuesta NO_CONCLUYENTE. Variantes ortográficas como `SIN_SENAL` se reconocen por significado y quedan anotadas con el texto exacto.
 
-## Preparación de cada condición
+Orden de unidades: 1, 268, 337 (historial G93 con INACTIVO/ACTIVO), y hasta tres más halladas con un GET acotado de fincas del Productor y hasta dos GET de infraestructuras. No se consulta el dashboard global. Se detiene al hallar un valor fuera del catálogo o después de completar una unidad con los tres valores observados.
 
-| Condición | Cómo se obtiene |
-| --- | --- |
-| **ONLINE** (conectado) | Se construye en el sandbox: área QA, dispositivo sin gateway, sensor calibrado y una lectura válida con `estado_conectividad=true` por `POST /iot/telemetria`. El trigger `fn_actualizar_estado_sensor` registra ACTIVO. |
-| **SIN_SEÑAL** y **OFFLINE** | Se descubren en solo lectura entre unidades del Productor. |
+## Presupuesto único para la SOL futura
 
-**Por qué SIN_SEÑAL y OFFLINE no se construyen.** RF-58 indica que esos estados provienen de RF-60, es decir, de la transición por ausencia de reportes. Esa transición la calcula una tarea periódica global que no ve el sandbox. Enviar `estado_conectividad=false` en una lectura que sí llega sería el estado que comunica el dispositivo, no la ausencia de reportes, por eso no se usa. Tampoco se escribe SQL.
+`lib/g96_presupuesto.cjs`: hasta 3 lecturas de descubrimiento, 12 páginas de dashboard (`por_pagina=50`), total 15 GET dentro del RUN, 1 DELETE de cierre y 600 segundos (prevalidación 30 s, login 30 s, descubrimiento 90 s, Newman 390 s y cierre 30 s, con 30 s de margen). Máximo 6 unidades, de ellas 3 adicionales. El informe generado toma estos límites del mismo módulo.
 
-**Consulta de descubrimiento.** Antes de cada consulta se declara la identidad de Administrador, porque las tablas de `modulo9` tienen RLS por rol.
+## Contrato del lanzador
 
-**Si falta alguna condición:**
-- se evalúan las condiciones disponibles;
-- la colección omite las demás;
-- el caso queda **BLOQUEADO**: no hay cobertura completa.
+`node g96.mjs --capacidades` y `node g96.mjs --comprobar` son locales. `node pruebas/g96.test.mjs` ejecuta regresiones. `node pruebas/g96_ensayo.mjs` inicia una API loopback y ejecuta el runner completo con cinco modos sintéticos; no usa TEST. Salida esperada exacta:
 
-## Aislamiento y veredicto
-
-- **Aislamiento:** el testigo es el INSERT del dispositivo en `auditoria.logs_dml` (tabla sin RLS). Se exige 1 dentro del RUN, 0 desde otra transacción y 0 después del rollback.
-- **Veredicto:**
-  - BLOQUEADO: fallos de entorno, de rollback, de `[PRE]` o errores de script.
-  - RECHAZADO: un `[ASSERT]` incumplido con respuesta real, aunque falten condiciones.
-  - APROBADO: solo con las tres condiciones verificadas.
-
-## Autenticación del dispositivo
-
-Hoy se usa `access_key = serial`. DEV-06 la sustituirá por un token de servicio cuyo contrato aún no está definido; la adaptación se concentra en `cuerpoLectura`. `QA_DEVICE_PREFIX` es opcional; si está vacío se usa `QAAUTO`.
-
-## Uso
-
-Validación local:
-
-```
-node ejecutar_tc_m03_g96.mjs --validar-local
+```text
+catalogo_ok APROBADO OFICIAL
+fuera_catalogo RECHAZADO OFICIAL
+cobertura_incompleta BLOQUEADO NO_OFICIAL
+error5xx BLOQUEADO NO_OFICIAL
+sin_respuesta NO_CONCLUYENTE NO_OFICIAL
+G96 ensayo 5/5
 ```
 
-Ejecución futura, solo con autorización de Desarrollo:
+Para TEST, únicamente el lanzador externo crea `Resultados/RUN-G96-V1-<timestamp>/contexto_operacion.json` y llama `node g96.mjs --operacion evaluar --version 1 --intento 1 --run-id ... --autorizacion ... --contexto ...` con autorización particular. V2 requiere `reevaluar` y decisión explícita. El runner carga `.env.qa` solo al ejecutar TEST; `--comprobar` y el ensayo no lo leen.
 
-```
-node ejecutar_tc_m03_g96.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo evaluacion --aceptar-efectos notificacion-login
-```
-
-Cada RUN produce un informe Markdown y `evidencia.json`. V1 se guarda en `RESULTADOS`; V2 y siguientes, en `EvaluacionVN/RESULTADOS`.
+La sesión del Productor se inicia antes del RUN: puede registrar último acceso, auditoría, notificaciones y cierre de sesiones previas. Las lecturas del dashboard dentro del RUN pueden provocar correo RF-58 E7 por sensores GRIS sin umbral no desactualizados. El cierre verifica bitácora de solo GET con eco y DELETE 200; no presume reversión de efectos externos. El código backend de referencia `origin/test` es `5b46ca00a0ba92774f8e3d4b9eeaeec169344f17`; el oráculo se juzga sobre TEST desplegado.

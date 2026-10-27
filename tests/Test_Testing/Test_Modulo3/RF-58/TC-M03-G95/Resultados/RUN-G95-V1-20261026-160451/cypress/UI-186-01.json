@@ -1,0 +1,199 @@
+{
+  "caso": "TC-M03-186",
+  "id": "UI-186-01/UI-186-02",
+  "mecanismo": "segundo_login_real",
+  "captura": true,
+  "dashboard_inicial_200": true,
+  "auto_on": true,
+  "periodica_200": true,
+  "auto_motivo": null,
+  "filtro_fijado": true,
+  "filtro_id": 3,
+  "segundo_login_200": true,
+  "dashboard_rechazado_401": true,
+  "redirigido_login": true,
+  "aviso_sesion_terminada": true,
+  "sin_200_vencida": true,
+  "auto_detenido": true,
+  "estado_visual_conservado": false,
+  "aviso_texto": "Sesión cerrada Cerramos tu sesión por seguridad: tu credencial de sesión se usó dos veces. Ingresa de nuevo y, si no fuiste tú, cambia tu contraseña.",
+  "filtro_conservado": false,
+  "auto_conservado": true,
+  "retorno_automatico": true,
+  "ruta_aterrizaje": "/telemetria/monitoreo",
+  "navegacion_manual": false,
+  "reingreso_200": true,
+  "monitoreo_cargado": true,
+  "error_interno_visible": false,
+  "recarga_200_posterior": true,
+  "infra_5xx": false,
+  "error_qa": null,
+  "error_selector": null,
+  "bloqueo_datos": null,
+  "e7_riesgo": false,
+  "e7_motivo": "UNIDAD_COMPLETA_SIN_GRIS_VIGENTE_EN_PRIMERA_PAGINA",
+  "lecturas_dashboard": 7,
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/sesiones/",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/sesiones/refresh",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/interfaz/contexto",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/usuarios/me",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/sesiones/me/permisos",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/personalizacion/idioma",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/personalizacion/tema",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/notificaciones",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 401,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/sesiones/refresh",
+      "http": 401,
+      "fuera_sandbox": true,
+      "posterior_reingreso": false
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/sesiones/",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/sesiones/me/permisos",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/usuarios/me",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/interfaz/contexto",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/personalizacion/tema",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/configuracion/personalizacion/idioma",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/notificaciones",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+      "http": 200,
+      "fuera_sandbox": true,
+      "posterior_reingreso": true
+    }
+  ]
+}

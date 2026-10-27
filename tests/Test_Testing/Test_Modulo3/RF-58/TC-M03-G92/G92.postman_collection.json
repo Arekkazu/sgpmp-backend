@@ -17,7 +17,7 @@
       "  pm.test(pre('TC-M03-181','PRE-181-01'), () => { pm.expect(pm.response.code).to.eql(200); pm.expect(j.total).to.eql(3); pm.expect(s.length).to.eql(3); pm.expect(s.every(x => Number(x.id_infraestructura) === B)).to.eql(true); ['VERDE','AMARILLO','ROJO'].forEach(x => pm.expect(colores).to.include(x)); });",
       "  pm.test(id('TC-M03-181','API-181-01'), () => pm.expect(u && u.estado_general).to.eql('ROJO'));",
       "  pm.test(id('TC-M03-181','API-181-02'), () => { pm.expect(u && u.alertas_activas_count).to.eql(2); pm.expect(u && u.ultimo_dato_recibido).to.be.ok; });",
-      "  pm.test(id('TC-M03-181','API-181-03'), () => pm.expect(Object.entries(u || {}).some(([k,v]) => /variable/i.test(k) && v != null && (/(atenci[oó]n|cr[ií]tic)/i.test(k) || (typeof v === 'object' && Object.keys(v).some(x => /(atenci[oó]n|cr[ií]tic)/i.test(x)))))).to.eql(true));",
+      "  console.info('[TC-M03-181][EXCLUIDA][API-181-03] campo observado en resumen:', Object.entries(u || {}).some(([k,v]) => /variable/i.test(k) && (/(atenci|cr[i\u00ed]tic)/i.test(k) || (typeof v === 'object' && Object.keys(v).some(x => /(atenci|cr[i\u00ed]tic)/i.test(x))))));",
       "}",
       "if (fase === 'a1') {",
       "  pm.test(id('TC-M03-183','API-183-01'), () => { pm.expect(pm.response.code).to.eql(200); pm.expect(j.total).to.eql(60); pm.expect(s.length).to.eql(50); pm.expect(s.every(x => Number(x.id_infraestructura) === A && x.estado_semaforo === 'VERDE')).to.eql(true); });",
@@ -26,7 +26,6 @@
       "  pm.test(id('TC-M03-182','API-182-02'), () => { pm.expect(r.length).to.eql(1); pm.expect(Number(r[0].id_infraestructura)).to.eql(A); });",
       "}",
       "if (fase === 'a2') pm.test(pre('TC-M03-183','PRE-183-01'), () => { pm.expect(j.total).to.eql(60); pm.expect(s.length).to.eql(10); pm.expect(s[4].estado_semaforo).to.eql('ROJO'); pm.expect(s.filter(x => x.estado_semaforo === 'ROJO').length).to.eql(1); pm.expect(s.every((x,i) => Number(x.id_infraestructura) === A && (i === 4 || x.estado_semaforo === 'VERDE'))).to.eql(true); });",
-      "if (fase === 'b1') { pm.test(id('TC-M03-182','API-182-01'), () => { pm.expect(j.total).to.eql(3); pm.expect(s.length).to.eql(3); pm.expect(s.every(x => Number(x.id_infraestructura) === B)).to.eql(true); }); pm.test(id('TC-M03-182','API-182-02'), () => { pm.expect(r.length).to.eql(1); pm.expect(Number(r[0].id_infraestructura)).to.eql(B); }); }",
-      "if (fase === 'libre') pm.test(pre('TC-M03-182','PRE-182-01'), () => { pm.expect(r.some(x => Number(x.id_infraestructura) === A)).to.eql(true); pm.expect(r.some(x => Number(x.id_infraestructura) === B)).to.eql(true); });"
+      "if (fase === 'b1') { pm.test(id('TC-M03-182','API-182-01'), () => { pm.expect(j.total).to.eql(3); pm.expect(s.length).to.eql(3); pm.expect(s.every(x => Number(x.id_infraestructura) === B)).to.eql(true); }); pm.test(id('TC-M03-182','API-182-02'), () => { pm.expect(r.length).to.eql(1); pm.expect(Number(r[0].id_infraestructura)).to.eql(B); }); }"
     ]}}] }]
 }

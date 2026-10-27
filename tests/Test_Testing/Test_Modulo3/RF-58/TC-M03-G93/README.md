@@ -1,57 +1,44 @@
-# TC-M03-G93 — TC-M03-184 (RF-58 / CU04)
+# TC-M03-G93 — RECHAZADO (API: unidad sin sensores ausente del resumen; UI pendiente de DBA)
 
-Matriz: `Casos_Prueba(Modulo3 Agrupado).csv`, fila G93 (flujo alterno E1).
+**Estado: CERRADO documentalmente.** El caso está RECHAZADO funcionalmente por API: en tres RUN autorizados una unidad recién creada sin sensores no figuró en resumen_unidades. La UI queda BLOQUEADA para el cierre por INC-M03-184-G93-02 (sesión del sandbox). El [informe consolidado del último RUN](Resultados/RUN-G93-V1-20261026-014819/TC-M03-G93_resultado.md) contiene las incidencias INC-M03-184-G93-01 para Desarrollo e INC-M03-184-G93-02 para DBA, su evidencia, las limitaciones y el historial transcrito. El RUN es **no oficial**; su resultado.json permanece intacto.
 
-## Variantes del caso
+La fuente del oráculo es la fila TC-M03-G93 de Casos_Prueba(Modulo3 Agrupado).csv: «La unidad se muestra con estado GRIS y el mensaje "Sin datos disponibles", junto con la fecha del último dato histórico si existe; la unidad no desaparece del panel y no se devuelven errores 5xx ni valores fabricados». Se exige API y UI. QA considera equivalentes «Sin datos»/«Sin datos disponibles», admite INACTIVO como ausencia de señal para V2 y exige fecha histórica solo si existe.
 
-| Variante | Origen de los datos | Estado |
-| --- | --- | --- |
-| Unidad QA nueva sin lecturas | Se crea en el sandbox: finca compartida o creada con acceso del Productor, y área QA | Construida |
-| Unidad con todos los sensores `SIN_SEÑAL` | Se descubre entre las unidades del Productor | Dependencia de RF-60 |
+## Estructura vigente
 
-La variante `SIN_SEÑAL` depende de RF-60. La transición la produce la tarea periódica global, que no ve el sandbox, y no existe un disparador aislado. No se fuerza por SQL ni se simula. Si no se descubre, esa variante queda bloqueada y el caso no se aprueba.
+- g93.mjs: ejecutor canónico y contrato de operaciones.
+- G93.postman_collection.json: colección Newman única.
+- g93.cy.js y g93.cypress.config.cjs: spec y configuración Cypress únicos.
+- lib/: lógica y resguardos compartidos del ejecutor.
+- pruebas/: regresiones y ensayos locales de la automatización; sus datos son sintéticos y sus artefactos se crean en el directorio temporal del sistema.
+- Resultados/RUN-G93-V1-20261026-014819/: único RUN conservado, con un solo Markdown oficial, resultado.json, preflight.json, contexto_operacion.json, reportes Newman y acta/captura Cypress reales.
 
-## Aserciones
+La operación diagnostico sigue en el ejecutor para futuros usos expresamente autorizados y escribiría una carpeta diagnostico/ nueva. Ningún diagnóstico histórico ni RUN anterior es dependencia de las pruebas vigentes. No invocar diagnostico durante este cierre.
 
-Son aserciones, no condiciones previas:
+## Historial resumido
 
-- La unidad nueva aparece en el dashboard.
-- Su estado es GRIS.
-- Se muestra el mensaje «Sin datos disponibles».
-- Se muestra la fecha histórica, si existe.
-- No hay valores fabricados.
-- No hay errores 5xx.
+| Registro | Hecho |
+|---|---|
+| Intento 1, 20261025-150037 | Aborto local por carga de entorno; sin peticiones de negocio. |
+| Intento 2, 20261025-154913 | Área 514 ausente del resumen, API-184-01/02 RECHAZADO; UI ERROR_QA; rollback confirmado. |
+| Diagnóstico 20261025-173337 | Áreas 1/2/3 con sensores INACTIVO; 268/337 ACTIVO; 349/390/389/399 sin resumen. |
+| Intento 3, 20261025-182304 | Área 515 ausente, API-184-01/02 RECHAZADO; área 1 API-184-03 APROBADO; UI ERROR_QA; rollback confirmado. |
+| Intento 4, 20261025-221324 | Preflight Newman agotó plazo de 5 s; sin peticiones de negocio. |
+| Intento 5, 20261025-222242 | Timeout transitorio de login; sin peticiones de negocio. |
+| Diagnóstico 20261026-013518 | Login de Administrador y Productor HTTP 200 fuera del sandbox. |
+| Intento 6, 20261026-014819 | Área 519 ausente, API-184-01/02 RECHAZADO; UI V1 NO_CONCLUYENTE por sesión, V2 no ejecutada; rollback confirmado. |
 
-## Aislamiento y rollback
+## Validación e invocaciones vigentes
 
-- **Testigo:** el INSERT del área en `auditoria.logs_dml`, identificado por `id_infraestructura` y por el nombre del RUN.
-- **Por qué ese testigo:** el trigger `fn_auditoria_dml` es `SECURITY DEFINER` y no tiene condiciones, y el esquema `auditoria` no tiene RLS. En cambio, `modulo9.infraestructuras` tiene RLS: desde una transacción sin identidad devolvería 0 siempre y no probaría nada.
-- **Qué se exige:**
-  - dentro del RUN, 1;
-  - desde otra transacción, 0;
-  - después del rollback, 0.
-- **Consulta fallida:** si la consulta falla (por ejemplo, porque el rol no tiene SELECT), el resultado es «no verificable», nunca 0. En ese caso el aislamiento no se declara demostrado y el RUN se detiene antes de los escenarios.
+Desde esta carpeta, las consultas locales sin TEST son:
 
-## Veredicto propuesto
+- node g93.mjs --capacidades
+- node g93.mjs --comprobar
+- node pruebas/g93.test.mjs
+- node pruebas/g93_ensayo_spec_real.mjs (ensayo local del spec con servidor loopback y temporales del sistema; requiere Cypress/Chrome operativos).
 
-- **BLOQUEADO:** fallos de entorno, de rollback, de precondición `[PRE]` o del hook de Cypress (login).
-- **RECHAZADO:** solo un criterio `[ASSERT]` incumplido con respuesta real.
+La ejecución sobre TEST corresponde exclusivamente al lanzador externo con autorización humana específica. El contrato del ejecutor usa g93.mjs --operacion reintentar --version 1 --intento N --run-id RUN-G93-V1-AAAAMMDD-HHMMSS --autorizacion REF --contexto RUTA_ABSOLUTA_AL_CONTEXTO. Esta línea documenta el contrato; no autoriza ejecutarla. V2 requiere decisión explícita de reevaluación y su propia estructura EvaluacionV2/Resultados/.
 
-## Uso
+## Condiciones para reevaluar
 
-Validación local, sin conexiones a TEST ni DEV:
-
-```
-node ejecutar_tc_m03_g93.mjs --validar-local
-node --test validar_local_g93.mjs
-```
-
-Ejecución futura, solo con autorización de Desarrollo y `QA_AUTORIZADO=SI`:
-
-```
-node ejecutar_tc_m03_g93.mjs --ejecutar --ambiente TEST --autorizacion "<referencia>" --tipo evaluacion --aceptar-efectos notificacion-login
-```
-
-- `--tipo reintento` conserva la versión.
-- V1 se guarda en `RESULTADOS/<RUN_ID>/`; V2 y siguientes, en `EvaluacionVN/RESULTADOS/<RUN_ID>/`.
-- Cada RUN produce un informe Markdown y `evidencia.json`, más una captura de la unidad si aplica.
+Atender INC-M03-184-G93-01 y resolver la dependencia de sesión de DBA-01/INC-M03-184-G93-02. Corregir y validar localmente la secuencia para ejecutar toda la API V1 y V2 antes de Cypress; en el último RUN, el refresh de la UI de V1 dejó inválido el token previo del ejecutor para preparar V2. Tras autorización humana específica, repetir API y UI públicas, conservar evidencias reales bajo el nuevo RUN y verificar cierre y rollback con alcance explícito.

@@ -1,0 +1,120 @@
+{
+  "caso": "TC-M03-185",
+  "id": "UI-185-01",
+  "estado": "NO_CONCLUYENTE",
+  "motivo": "dashboard no recibido en el plazo",
+  "peticiones": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/refresh",
+      "http": 200,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": null,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": null,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 200,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 401,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/notificaciones",
+      "http": 200,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/refresh",
+      "http": 200,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 500,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/idioma",
+      "http": 500,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/interfaz/contexto",
+      "http": 200,
+      "en_sandbox": true,
+      "eco_run": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/sesiones/me/permisos",
+      "http": null,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": null,
+      "en_sandbox": false,
+      "eco_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/personalizacion/tema",
+      "http": 200,
+      "en_sandbox": true,
+      "eco_run": true
+    }
+  ],
+  "dashboard": null,
+  "captura": true,
+  "motivo_captura": null,
+  "mensaje_exacto": false,
+  "contacto_admin": false,
+  "sin_tarjetas": false,
+  "sin_error_interno": false,
+  "texto_observado": "",
+  "rutas_fuera_sandbox": [
+    "POST /sesiones/refresh",
+    "GET /sesiones/me/permisos",
+    "GET /usuarios/me"
+  ],
+  "fincas_perfil": null
+}

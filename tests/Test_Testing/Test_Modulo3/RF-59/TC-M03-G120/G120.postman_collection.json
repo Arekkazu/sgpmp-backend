@@ -1,0 +1,33 @@
+{
+  "info": { "name": "TC-M03-G120 RF-59 historial de buffer", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [{
+    "name": "API-G120-HISTORIAL",
+    "request": {
+      "method": "GET",
+      "header": [
+        { "key": "Authorization", "value": "Bearer {{token}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ],
+      "url": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_inicio}}&fecha_fin={{fecha_fin}}&sensor_id={{sensor_id}}&tipo_variable={{tipo_variable}}&por_pagina=500&pagina=1&orden=ASC"
+    },
+    "event": [
+      { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+        "const base=pm.environment.get('base_url')||'';",
+        "if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(base==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(base)))){pm.execution.skipRequest();throw Error('BLOQUEO_G120');}"
+      ] } },
+      { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const eco=pm.response.headers.get('X-Test-Run-Id')===pm.environment.get('run_id');",
+        "let b=null;try{b=pm.response.json()}catch{}",
+        "if(pm.response.code===200&&eco&&Array.isArray(b?.items)){",
+        "const m=JSON.parse(pm.environment.get('marcas'));const sensor=Number(pm.environment.get('sensor_id'));const variable=pm.environment.get('tipo_variable');",
+        "const ts=x=>Date.parse(x);const filas=(t,o)=>b.items.filter(x=>Number(x.id_sensor)===sensor&&x.tipo_variable===variable&&ts(x.timestamp_captura)===ts(t)&&(!o||x.origen_dato===o));",
+        "pm.test('[TC-M03-241][ASSERT][API-241-01] intervalo, captura, origen y contraste',()=>{pm.expect(m.intervalo.every(t=>filas(t,'BUFFER_LOCAL').length===1&&filas(t).length===1),'intervalo').to.eql(true);pm.expect(filas(m.real,'TIEMPO_REAL').length,'contraste').to.eql(1);pm.expect(filas(m.real).length,'contraste total').to.eql(1)});",
+        "pm.test('[TC-M03-242][ASSERT][API-242-01] deduplicacion por clave',()=>{pm.expect(filas(m.duplicado,'BUFFER_LOCAL').length,'lectura BUFFER_LOCAL').to.eql(1);pm.expect(filas(m.duplicado).length,'lecturas logicas totales').to.eql(1)});",
+        "pm.test('[TC-M03-243][ASSERT][API-243-01] bordes y captura original',()=>{pm.expect(m.bordes.every(t=>filas(t,'BUFFER_LOCAL').length===1&&filas(t).length===1),'bordes').to.eql(true)});",
+        "}"
+      ] } }
+    ]
+  }]
+}
