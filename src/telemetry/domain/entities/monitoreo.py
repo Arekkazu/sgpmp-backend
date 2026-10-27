@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones R12, varias variables, activo, alertas y series |
+# | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: distinguir calidad del valor operativo y momento de la condición actual. |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -38,10 +39,13 @@ class EstadoSensorActual:
     nivel_bateria_pct: Optional[Decimal]
     calidad_senal_rssi: Optional[Decimal]
     calidad_senal_snr: Optional[Decimal]
+    # ISSUE-678: el valor y su fecha pueden preceder a la condición actual del sensor.
+    estado_calidad_valor_operativo: Optional[str] = None
+    timestamp_estado_actual: Optional[datetime] = None
     # DEV-39 (RF-58 E7, R2, E2): los calcula el use case.
     sin_umbral: bool = False            # GRIS porque la variable no tiene umbral en M09
     indicador_anomalia: bool = False    # FUERA_DE_RANGO / ERROR_CALIBRACION
-    es_valor_operativo: bool = True     # False si la lectura no es LECTURA_VALIDA
+    es_valor_operativo: bool = True     # Describe el valor mostrado, no la condición posterior.
     etiqueta_estado: Optional[str] = None  # "Sin umbral configurado", "Requiere calibración"...
 
 

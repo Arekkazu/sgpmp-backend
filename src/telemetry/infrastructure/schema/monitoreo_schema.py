@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: unidad sin sensores, lote, desviación, alertas y series |
+# | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: exponer separadamente referencia válida y condición actual por rol. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,6 +26,8 @@ class EstadoSensorSchema(BaseModel):
     ultimo_timestamp_captura: Optional[datetime] = None
     estado_semaforo: str
     estado_calidad: Optional[str] = None
+    estado_calidad_valor_operativo: Optional[str] = None
+    timestamp_estado_actual: Optional[datetime] = None
     estado_desviacion: Optional[str] = None
     estado_conectividad: Optional[str] = None
     tiempo_sin_reporte_min: Optional[int] = None
