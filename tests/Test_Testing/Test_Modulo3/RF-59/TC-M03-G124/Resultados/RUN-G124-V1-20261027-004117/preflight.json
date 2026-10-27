@@ -1,0 +1,31 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G124",
+  "run_id": "RUN-G124-V1-20261027-004117",
+  "version": 1,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_directas": 25,
+    "solicitudes_newman": 3,
+    "margen_cierre": 1,
+    "duracion_segundos": 720,
+    "inactividad_maxima_segundos": 120,
+    "timeout_ms": 30000,
+    "timeout_seleccion_ms": 20000,
+    "unidades_dashboard": 8,
+    "unidades_conocidas": [
+      1,
+      268,
+      337
+    ],
+    "historiales_descubrimiento": 12,
+    "max_bytes_respuesta": 20000000
+  },
+  "efectos_declarados": [
+    "login_productor_fuera_RUN_puede_persistir_sesion_o_auditoria",
+    "GET_historial_y_exportaciones_pueden_registrar_auditoria_fuera_RUN",
+    "GET_dashboard_puede_registrar_auditoria_y_enviar_correo_sin_umbral",
+    "DELETE_RUN_sin_escrituras_de_escenario"
+  ],
+  "ok": true
+}
