@@ -4,6 +4,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evaluacion de calidad de vision bajo demanda |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: validar enums y declarar errores de consulta HTTP 422. |
+# | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -38,6 +40,7 @@ from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter impor
 from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.schema.telemetria_schema import ObservacionVisionResponse
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
+from src.telemetry.domain.entities.telemetria_calidad import ClasificacionCalidad, EstadoEvaluacion
 from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
 from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
 from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
@@ -62,16 +65,17 @@ router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62
     "",
     response_model=ListaCalidadSchema,
     status_code=200,
-    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    openapi_extra={"x-codigo-validacion": 422},
     dependencies=[Depends(require_permission(38, 2))],
     summary="Listar evaluaciones de calidad (RF-62)",
 )
 def listar_calidad(
     id_sensor: Optional[int] = Query(default=None),
-    clasificacion: Optional[str] = Query(default=None),
+    clasificacion: Optional[ClasificacionCalidad] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
-    estado_evaluacion: Optional[str] = Query(default=None),
+    estado_evaluacion: Optional[EstadoEvaluacion] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),

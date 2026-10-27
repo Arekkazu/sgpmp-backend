@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-26 | Arekkazu     | INC-M04-203-G42 RF-65/68: cada peso de contagio en [0, 1], no solo la suma |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -338,6 +339,15 @@ class ConfigurarMotorUseCase:
                 message="ventana_temporal_min debe estar entre 5 y 15 minutos.",
                 field="ventana_temporal_min",
             )
+
+        # RF-68: cada peso en [0.0, 1.0] (INC-M04-203-G42: -0.1/0.6/0.5 sumaba 1.0 y pasaba).
+        for campo in ("w_factor_sanitario", "w_factor_ambiental", "w_factor_densidad"):
+            if not (Decimal("0") <= getattr(dto, campo) <= Decimal("1")):
+                raise BusinessRuleError(
+                    code="PESOS_CONTAGIO_INVALIDOS",
+                    message=f"{campo} debe estar entre 0.0 y 1.0.",
+                    field=campo,
+                )
 
         # Pesos de contagio: suma = 1.0 (tolerancia 0.001)
         suma = dto.w_factor_sanitario + dto.w_factor_ambiental + dto.w_factor_densidad

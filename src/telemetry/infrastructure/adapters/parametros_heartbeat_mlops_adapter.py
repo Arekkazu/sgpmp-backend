@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: adaptadores reales de politica M09  |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: consulta actividad valida y heartbeat real |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-60: firmware con prefijo v (v2.0.1) se compara como 2.0.1 |
+# | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware se compara con SemVer 2.0 (prerelease y +metadato) |
 """P-1 provisional: lectura dinámica DEV-14; ningún umbral se inventa al leer."""
 import re
 
@@ -82,8 +83,28 @@ class ParametrosHeartbeatMLOpsAdapter:
         )
 
 
-def _sin_prefijo_v(version):
-    return version[1:] if isinstance(version, str) and version[:1] in ('v', 'V') else version
+# FW-06 (acordado con Edge el 2026-10-25): SemVer 2.0 con "v" opcional; el
+# metadato "+..." no cuenta al comparar. Se mantienen núcleos cortos (1.0).
+_SEMVER = re.compile(r'[vV]?([0-9]+(?:\.[0-9]+)*)'
+                     r'(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?'
+                     r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?')
+
+
+def _semver(version):
+    """(núcleo, prerelease) o None si la cadena no sigue FW-06."""
+    coincidencia = _SEMVER.fullmatch(version) if isinstance(version, str) else None
+    if coincidencia is None:
+        return None
+    nucleo, prerelease = coincidencia.groups()
+    # SemVer §11: los identificadores numéricos se comparan por valor y van antes que los alfanuméricos.
+    identificadores = tuple((0, int(i), '') if i.isdigit() else (1, 0, i)
+                            for i in prerelease.split('.')) if prerelease else None
+    return tuple(int(parte) for parte in nucleo.split('.')), identificadores
+
+
+def _clave_semver(nucleo, prerelease, ancho):
+    # Sin prerelease va después de cualquier prerelease del mismo núcleo (1.0.0-rc.1 < 1.0.0).
+    return nucleo + (0,) * (ancho - len(nucleo)), prerelease is None, prerelease or ()
 
 
 class DiagnosticoHeartbeatMLOpsAdapter:
@@ -106,14 +127,11 @@ class DiagnosticoHeartbeatMLOpsAdapter:
         minima = valores[FIRMWARE].valor.strip()
         if version_instalada == minima:
             return ComparacionFirmware(minima, False)
-        # Orden numérico solo cuando ambas cadenas realmente tienen ese formato.
-        # No se afirma soporte SemVer, prereleases ni identificadores de FW-06.
-        # M3-12: el prefijo "v" de los tags (v2.0.1) es convención, no parte de la versión.
-        numericas = [_sin_prefijo_v(version) for version in (minima, version_instalada)]
-        if not all(isinstance(version, str) and re.fullmatch(r'[0-9]+(?:\.[0-9]+)*', version)
-                   for version in numericas):
+        # Nunca orden lexicográfico: lo que no sigue FW-06 no se compara.
+        partes = [_semver(version) for version in (minima, version_instalada)]
+        if None in partes:
             raise BusinessRuleError('VERSION_FIRMWARE_NO_COMPARABLE',
                                     'La versión de firmware requiere una convención de comparación compatible.')
-        requerida, instalada = (tuple(int(parte) for parte in version.split('.')) for version in numericas)
-        ancho = max(len(instalada), len(requerida))
-        return ComparacionFirmware(minima, instalada + (0,) * (ancho-len(instalada)) < requerida + (0,) * (ancho-len(requerida)))
+        ancho = max(len(nucleo) for nucleo, _ in partes)
+        requerida, instalada = (_clave_semver(nucleo, prerelease, ancho) for nucleo, prerelease in partes)
+        return ComparacionFirmware(minima, instalada < requerida)

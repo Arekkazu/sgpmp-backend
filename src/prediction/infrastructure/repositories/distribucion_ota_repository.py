@@ -1,11 +1,16 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: modo PROGRAMADO espera su ventana (E1) |
 """Implementación SQLAlchemy de ``DistribucionOtaRepository`` (DB-04, DEV-15)."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.distribucion_ota import DistribucionOta
+from src.prediction.domain.entities.distribucion_ota import ESTADO_EN_CURSO, DistribucionOta
 from src.prediction.domain.repositories.distribucion_ota_repository import DistribucionOtaRepository
 from src.prediction.infrastructure.models.distribucion_ota_model import DistribucionOtaModel
 from src.shared.db_error_translator import raise_from_db_error
@@ -54,6 +59,15 @@ class SqlAlchemyDistribucionOtaRepository(DistribucionOtaRepository):
             return self._a_entidad(orm)
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def listar_programadas_en_ventana(self, ahora: datetime) -> list[DistribucionOta]:
+        stmt = select(DistribucionOtaModel).where(
+            DistribucionOtaModel.modo_distribucion == "PROGRAMADO",
+            DistribucionOtaModel.estado_distribucion == ESTADO_EN_CURSO,
+            DistribucionOtaModel.ventana_inicio <= ahora,
+            DistribucionOtaModel.ventana_fin >= ahora,
+        )
+        return [self._a_entidad(r) for r in self._db.execute(stmt).scalars().all()]
 
     @staticmethod
     def _a_entidad(orm: DistribucionOtaModel) -> DistribucionOta:

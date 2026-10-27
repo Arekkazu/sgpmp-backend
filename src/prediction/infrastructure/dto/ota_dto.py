@@ -1,9 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-207-G46 RF-70: la ventana de PROGRAMADO no puede haber vencido |
 """DTOs del orquestador OTA (DEV-15, D6 de AIOT-DEV-03)."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Literal, Optional
 
@@ -52,6 +54,8 @@ class CrearDistribucionOtaDTO(BaseDTO):
             raise ValueError("El modo PROGRAMADO exige ventana_inicio y ventana_fin.")
         if self.ventana_inicio and self.ventana_fin and self.ventana_fin <= self.ventana_inicio:
             raise ValueError("ventana_fin debe ser posterior a ventana_inicio.")
+        if self.ventana_fin and self.ventana_fin <= datetime.now(timezone.utc):
+            raise ValueError("ventana_fin ya pasó: la distribución nunca se ejecutaría.")
         return self
 
 
