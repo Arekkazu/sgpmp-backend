@@ -1,3 +1,6 @@
+# | Fecha      | Nombre     | Que se hizo                                                                        |
+# |------------|------------|------------------------------------------------------------------------------------|
+# | 2026-10-26 | HulkyZeus  | TC-M04-G012 RF-67: limpieza tolerante (historial inmutable) e inferencia posterior a la patologia |
 """
 TC-M04-G012 - Inmutabilidad e integridad del historial diagnostico.
 
@@ -14,8 +17,9 @@ Endpoints: GET /prediccion/historial/{id_activo_biologico}, POST /prediccion/ret
 /prediccion/patologias (renombrar/inactivar). Mismo formato que TC-M04-G011 (pytest con llamadas HTTP directas).
 
 Datos (decision del 2026-10-19, igual que TC-M04-G010): TEST no tiene inferencias de RF-66, asi que se crean activos y
-una patologia propios por API y se siembran inferencias en la BD (usuario QA). Al final se borra lo sembrado y lo que
-el historial y la retroalimentacion generaron.
+una patologia propios por API y se siembran inferencias en la BD (usuario QA). Al final se intenta borrar lo sembrado y
+lo que el historial y la retroalimentacion generaron; como esas tablas ya son inmutables (INC-M04-145) el borrado puede
+quedar bloqueado: se avisa con una advertencia (warnings) y el dato queda en TEST, sin marcar el caso como fallido.
 
 SEGURIDAD: los UPDATE/DELETE directos de TC-M04-023 se ejecutan dentro de una transaccion que SIEMPRE se revierte y
 solo sobre filas sembradas por este archivo.
@@ -25,9 +29,10 @@ TC-M04-036, "reintentos o fallo parcial": la escritura de eventos ocurre al cons
 en la BD que no haya id_evento repetidos (clave primaria) ni el mismo evento (id_resultado_inferencia, tipo_evento)
 materializado dos veces con ids distintos.
 
-Notas del codigo: nombre_patologia se lee de modulo9.patologias en cada consulta (no del momento de la inferencia);
-resultados_inferencia e historial_diagnostico_eventos no tienen triggers de inmutabilidad; la materializacion revisa
-"si ya existe" antes de insertar, sin indice unico sobre (id_resultado_inferencia, tipo_evento).
+Notas del codigo (version original, 2026-10-19; INC-M04-144/145/146 las corrigieron despues): nombre_patologia se leia
+de modulo9.patologias en cada consulta (no del momento de la inferencia); resultados_inferencia e
+historial_diagnostico_eventos no tenian triggers de inmutabilidad; la materializacion revisaba "si ya existe" antes de
+insertar, sin indice unico sobre (id_resultado_inferencia, tipo_evento).
 
 Requisitos: acceso de red a TEST (API y Postgres 5448).
 Variables opcionales: BASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
@@ -44,6 +49,7 @@ import random
 import string
 import threading
 import uuid
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import psycopg2
@@ -134,7 +140,9 @@ def datos(api):
                     """, (id_ri, activo, especie, version, patologia, fecha))
                 return id_ri
 
-            historica = inferencia(activos["historico"], ahora - timedelta(days=2), id_patologia)
+            # La inferencia va DESPUES de crear la patologia y ANTES de renombrarla/inactivarla (el orden real):
+            # con fecha anterior a la creacion no existe nombre vigente a esa fecha y el historial cae al nombre actual.
+            historica = inferencia(activos["historico"], datetime.now(timezone.utc), id_patologia)
             concurrentes = [inferencia(activos["concurrente"], ahora - timedelta(hours=1, minutes=i)) for i in range(20)]
         con.commit()
         yield {"activos": activos, "id_patologia": id_patologia, "nombre_original": nombre_original, "suf": suf,
@@ -142,11 +150,20 @@ def datos(api):
                "desde": str((ahora - timedelta(days=10)).date()), "hasta": str(ahora.date())}
     finally:
         con.rollback()
-        with con.cursor() as cur:
-            cur.execute("DELETE FROM modulo4.historial_diagnostico_eventos WHERE id_resultado_inferencia = ANY(%s::uuid[])", (inferencias,))
-            cur.execute("DELETE FROM modulo4.retroalimentaciones_clinicas WHERE id_resultado_inferencia = ANY(%s::uuid[])", (inferencias,))
-            cur.execute("DELETE FROM modulo4.resultados_inferencia WHERE id_resultado_inferencia = ANY(%s::uuid[])", (inferencias,))
-        con.commit()
+        # Cada borrado en su propia transaccion: si la base lo bloquea (historial inmutable, INC-M04-145) se avisa
+        # y se sigue; no es un fallo del caso, solo queda ese dato en TEST.
+        for tabla, borrar in (
+            ("historial_diagnostico_eventos", "DELETE FROM modulo4.historial_diagnostico_eventos WHERE id_resultado_inferencia = ANY(%s::uuid[])"),
+            ("retroalimentaciones_clinicas", "DELETE FROM modulo4.retroalimentaciones_clinicas WHERE id_resultado_inferencia = ANY(%s::uuid[])"),
+            ("resultados_inferencia", "DELETE FROM modulo4.resultados_inferencia WHERE id_resultado_inferencia = ANY(%s::uuid[])"),
+        ):
+            try:
+                with con.cursor() as cur:
+                    cur.execute(borrar, (inferencias,))
+                con.commit()
+            except psycopg2.Error as exc:
+                con.rollback()
+                warnings.warn(f"TC-M04-G012: no se pudo limpiar {tabla} ({str(exc).splitlines()[0]}); el dato queda en TEST.")
         con.close()
 
 
