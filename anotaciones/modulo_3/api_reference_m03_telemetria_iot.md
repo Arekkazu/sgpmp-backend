@@ -140,6 +140,16 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano. Visión tambi
 > SQL requiere DB-02. Ver [diagnóstico y validación DEV-05](dev05_ingesta_bplus_postcommit.md).
 
 
+> **INC-M03-131-G23 / #686 — Secuencia del buffer RF-54.**
+> `POST /iot/telemetria` y cada registro de `/iot/telemetria/batch` admiten
+> `buffer_sequence_id` opcional: entero JSON no negativo de 64 bits con signo.
+> Se conserva exactamente en `telemetrias.metadatos.buffer_sequence_id`.
+> Si se omite o llega null, no se genera ni se añade una secuencia.
+> No cambia la respuesta, la clave de deduplicación ni el orden cronológico
+> existente del batch. El broker debe reenviarla en `p_metadatos` de la función
+> común de 19 entradas. Ver el
+> [contrato de integración](inc_m03_131_g23_rf54_integracion_iot.md).
+
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
 | `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |

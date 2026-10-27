@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: valida referencia y categoria escalar |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: recibir opcionalmente la secuencia original del Edge sin coerciones ni generacion. |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -36,6 +37,10 @@ class IngerirTelemetriaDTO(BaseDTO):
     calidad_senal_rssi: Optional[Decimal] = None
     calidad_senal_snr: Optional[Decimal] = None
     checksum: Optional[str] = None
+    buffer_sequence_id: Optional[int] = Field(
+        default=None, strict=True, ge=0, le=2**63-1,
+        description='Secuencia original del buffer Edge; se conserva como metadato de trazabilidad.',
+    )
     categoria_variable: Optional[str] = None
     id_variable: Optional[int] = Field(default=None, gt=0)
 
