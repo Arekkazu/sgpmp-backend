@@ -6,6 +6,8 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
+# | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
 import asyncio
 import logging
 import os
@@ -64,6 +66,7 @@ from src.telemetry.infrastructure.routers.auditoria_iot_router import router as 
 from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
+from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
@@ -551,6 +554,42 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
             db.close()
 
 
+async def _liberar_ota_programadas_periodicamente() -> None:
+    """RF-70 E1: avisa ota/notify a los despliegues PROGRAMADO pospuestos cuando abre su ventana."""
+    from src.prediction.application.use_cases.ota.liberar_despliegues_programados_use_case import (
+        LiberarDesplieguesProgramadosUseCase,
+    )
+    from src.prediction.infrastructure.adapters.ota_edge_adapters import (
+        AvisoOtaBrokerAdapter,
+        NodoOtaM09Adapter,
+        UrlDescargaHmacAdapter,
+    )
+    from src.prediction.infrastructure.repositories.despliegue_ota_repository import SqlAlchemyDespliegueOtaRepository
+    from src.prediction.infrastructure.repositories.distribucion_ota_repository import (
+        SqlAlchemyDistribucionOtaRepository,
+    )
+    from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+    from src.shared.database import sesion_sistema
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(LiberarDesplieguesProgramadosUseCase(
+                db=db,
+                version_repo=SqlAlchemyVersionModeloRepository(db),
+                distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
+                despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),
+                nodo_port=NodoOtaM09Adapter(db),
+                aviso_port=AvisoOtaBrokerAdapter(),
+                url_port=UrlDescargaHmacAdapter(),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudieron liberar las distribuciones OTA programadas; se reintentará.")
+        finally:
+            db.close()
+
+
 async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
     """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
     respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
@@ -685,6 +724,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
+        asyncio.create_task(_liberar_ota_programadas_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -858,6 +898,7 @@ app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
+app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)

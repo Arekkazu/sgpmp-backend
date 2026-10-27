@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62/57: alerta tecnica por condicion de sensor |
+# | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62/RF-57: devolver alerta de drift pendiente para auditoria sin inventar severidad ni bloquear calidad. |
 """Notificación técnica usando el repositorio y catálogo de fallos existentes."""
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import Alerta, SeveridadAlerta
@@ -11,6 +12,12 @@ class GenerarAlertaCalidadUseCase:
         self.alerta_repo = alerta_repo
 
     def execute(self, evaluacion):
+        """Devuelve avisos pendientes; el evaluador los audita en su transacción.
+
+        La falta de una severidad aprobada de drift no es un fallo de
+        persistencia. Las excepciones del repositorio siguen propagándose.
+        """
+        pendientes = []
         for anomalia in ('sensor_congelado', 'posible_drift'):
             flag = evaluacion.flags_detectados.get(anomalia, {})
             if not flag.get('activo'):
@@ -21,6 +28,13 @@ class GenerarAlertaCalidadUseCase:
                     continue
             severidad = flag.get('severidad')
             if severidad not in {s.value for s in SeveridadAlerta}:
+                if anomalia == 'posible_drift':
+                    pendientes.append({
+                        'anomalia': anomalia,
+                        'motivo': 'SEVERIDAD_DRIFT_NO_CONFIGURADA',
+                        'magnitud_drift_porcentaje': flag['magnitud_drift_porcentaje'],
+                    })
+                    continue
                 raise ServiceUnavailableError('SEVERIDAD_DRIFT_NO_CONFIGURADA',
                     'Falta la regla aprobada de severidad para la alerta técnica de drift significativo.')
             self.alerta_repo.bloquear_condicion_calidad(evaluacion.id_sensor, anomalia)
@@ -52,3 +66,4 @@ class GenerarAlertaCalidadUseCase:
             alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento()
             self.alerta_repo.guardar(alerta)
             # El trigger conserva el historial inicial; sin commits en este servicio.
+        return pendientes

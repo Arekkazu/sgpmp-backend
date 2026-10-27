@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: fakes con alertas correlacionadas y validación de variables |
 """DEV-38 (RF-59, G-10): zona horaria, truncado con aviso, bitácora de consultas y vacíos.
 
 E2: "hoy" y los límites del rango son días en Colombia.
@@ -17,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 
 import src.shared.fechas as fechas
-from src.shared.errors import AuthorizationError, ValidationError
+from src.shared.errors import AuthorizationError, BusinessRuleError
 from src.telemetry.application.use_cases.monitoreo.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, SeveridadLog, TipoResultado
 from src.telemetry.domain.entities.monitoreo import FiltrosHistorial, LecturaHistorica, VacioTemporal
@@ -57,6 +58,12 @@ class _Repo:
     def detectar_vacios(self, f):
         return self.vacios
 
+    def alertas_correlacionadas(self, f):
+        return []
+
+    def variables_no_reconocidas(self, tipos):
+        return []
+
 
 class _Umbral:
     def obtener_umbral_vigente(self, **kw):
@@ -87,7 +94,7 @@ def _consultar(total, auditoria=None, vacios=(), **filtros):
 def test_hoy_es_el_dia_en_colombia(monkeypatch, en_colombia):
     # 2026-10-24 03:00 UTC = 2026-10-23 22:00 en Colombia: el 24 todavía es futuro.
     monkeypatch.setattr(fechas, '_ahora', lambda: datetime(2026, 10, 24, 3, 0, tzinfo=timezone.utc).astimezone(en_colombia))
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(BusinessRuleError) as exc:
         _consultar(1, fecha_inicio=date(2026, 10, 20), fecha_fin=date(2026, 10, 24))
     assert exc.value.code == 'FECHA_FIN_FUTURA'
     _consultar(1, fecha_inicio=date(2026, 10, 20), fecha_fin=date(2026, 10, 23))  # hoy en Colombia: válido
@@ -145,7 +152,7 @@ def test_cada_consulta_deja_su_evento_con_usuario_rol_filtros_y_registros():
     assert evento['id_usuario'] == 5
     detalle = evento['accion_detallada']
     assert detalle['id_rol'] == 2
-    assert detalle['filtros']['tipo_variable'] == 'TEMPERATURA_AMBIENTAL'
+    assert detalle['filtros']['tipo_variable'] == ['TEMPERATURA_AMBIENTAL']
     assert detalle['registros_devueltos'] == 100 and detalle['total_encontrado'] == 250
     assert detalle['truncado'] is False and detalle['exportado'] is False
 
@@ -160,7 +167,7 @@ def test_una_consulta_truncada_queda_como_advertencia_para_el_analisis_de_rendim
 
 def test_una_consulta_invalida_no_se_ejecuta_ni_se_registra():
     auditoria = _Auditoria()
-    with pytest.raises(ValidationError):
+    with pytest.raises(BusinessRuleError):
         _consultar(1, auditoria=auditoria, fecha_inicio=date(2026, 9, 30), fecha_fin=date(2026, 9, 1))
     assert auditoria.eventos == []
 

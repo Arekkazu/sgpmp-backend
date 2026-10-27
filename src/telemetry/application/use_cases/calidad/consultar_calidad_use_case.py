@@ -1,12 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: rechazar rangos invertidos antes de consultar y comparar fechas en UTC. |
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from src.shared.errors import NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError
 from src.telemetry.domain.entities.telemetria_calidad import TelemetriaCalidad
 from src.telemetry.domain.repositories.telemetria_calidad_repository import TelemetriaCalidadRepository
 
@@ -37,6 +38,18 @@ class ConsultarCalidadUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[TelemetriaCalidad], int]:
+        # Conservar las fechas sin zona admitidas por el contrato, haciendo
+        # explícita su interpretación UTC al comparar y consultar TIMESTAMPTZ.
+        if fecha_desde is not None:
+            fecha_desde = fecha_desde.replace(tzinfo=timezone.utc) if fecha_desde.tzinfo is None else fecha_desde.astimezone(timezone.utc)
+        if fecha_hasta is not None:
+            fecha_hasta = fecha_hasta.replace(tzinfo=timezone.utc) if fecha_hasta.tzinfo is None else fecha_hasta.astimezone(timezone.utc)
+        if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
+            raise BusinessRuleError(
+                code='VAL_ENTRADA',
+                message='La fecha desde no puede ser posterior a la fecha hasta.',
+                field='fecha_desde',
+            )
         return self.calidad_repo.listar(
             id_sensor=id_sensor,
             clasificacion=clasificacion,
