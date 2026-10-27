@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: prueba politica dinamica y cadena    |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: configura lectura bloqueada en doble de prueba |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-60: firmware con prefijo v y "pi-test" no comparable |
+# | 2026-10-26 | Arekkazu | FW-06 RF-60: casos SemVer 2.0 y hash de commit no comparable |
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -114,7 +115,11 @@ def test_bateria_y_snr_usan_parametros_releidos():
 @pytest.mark.parametrize('instalada,minima,anterior',[('1.10.0','1.9.0',False),('1.9.0','1.10.0',True),
     ('1.0','1.0.0',False),('1.0.0','1.0.0',False),
     # M3-12: el prefijo "v" de los tags no impide comparar.
-    ('v2.0.1','0.1.0',False),('v0.0.9','0.1.0',True),('V1.0','v1.0.1',True)])
+    ('v2.0.1','0.1.0',False),('v0.0.9','0.1.0',True),('V1.0','v1.0.1',True),
+    # FW-06: SemVer 2.0; prerelease antes de la versión final y "+metadato" ignorado.
+    ('v0.2.0-rc.1','0.2.0',True),('v0.2.0','0.2.0-rc.1',False),('0.2.0-rc.2','0.2.0-rc.10',True),
+    ('1.0.0-alpha','1.0.0-alpha.1',True),('1.0.0-alpha.1','1.0.0-alpha.beta',True),('1.0.0-beta.11','1.0.0-rc.1',True),
+    ('v0.2.0+3.gabc1234','0.2.0',False),('v0.2.0+dirty','0.2.1',True),('v0.2.0+3.gabc1234','v0.2.0+9.gfff0000',False)])
 def test_firmware_numerico_se_compara_por_segmentos(instalada,minima,anterior):
     adapter=DiagnosticoHeartbeatMLOpsAdapter(Mock())
     adapter.parametros_repo=repo(valores(**{FIRMWARE:minima}))
@@ -128,6 +133,9 @@ def test_formato_firmware_no_confirmado_no_produce_comparacion_ficticia():
         adapter.comparar_firmware(1,'release-inventada')
     with pytest.raises(BusinessRuleError,match='convención'):
         adapter.comparar_firmware(1,'pi-test')
+    # Hash de commit sin tag: no tiene orden.
+    with pytest.raises(BusinessRuleError,match='convención'):
+        adapter.comparar_firmware(1,'f889231')
 
 
 def test_parametro_ausente_no_tiene_fallback():

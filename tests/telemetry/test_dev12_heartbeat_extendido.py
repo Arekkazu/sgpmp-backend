@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                    |
+# |------------|----------|----------------------------------------------------------------|
+# | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware no comparable es resultado final de la etapa |
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -6,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 from pydantic import ValidationError
 
-from src.shared.errors import ServiceUnavailableError
+from src.shared.errors import BusinessRuleError, ServiceUnavailableError
 from src.telemetry.application.use_cases.infraestructura.evaluar_diagnostico_heartbeat_use_case import EvaluarDiagnosticoHeartbeatUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
 from src.telemetry.domain.repositories.diagnostico_heartbeat_port import ComparacionFirmware, UmbralesTemperaturaDispositivo
@@ -105,6 +108,23 @@ def test_firmware_respeta_comparacion_del_puerto_sin_ordenar_textos(anterior):
     assert repo.guardar.called==anterior
     politica.comparar_firmware.assert_called_once_with(3,'version-reportada')
     if anterior: assert repo.guardar.call_args.args[0].metadato_evento['version_minima']=='minima-del-contrato'
+
+
+def test_firmware_no_comparable_cierra_la_etapa_sin_reintento_ni_alerta():
+    # FW-06: un reintento no corrige la versión; la etapa devuelve el resultado a la bitácora.
+    politica=Mock()
+    politica.comparar_firmware.side_effect=BusinessRuleError('VERSION_FIRMWARE_NO_COMPARABLE','sin convención')
+    uc,repo=servicio(politica)
+    resultado=uc.firmware(heartbeat(version_firmware='f889231'),9)
+    assert resultado=={'resultado':'VERSION_FIRMWARE_NO_COMPARABLE','version_instalada':'f889231'}
+    repo.guardar.assert_not_called()
+
+
+def test_otra_regla_de_firmware_sigue_fallando():
+    politica=Mock()
+    politica.comparar_firmware.side_effect=BusinessRuleError('OTRA_REGLA','x')
+    uc,_=servicio(politica)
+    with pytest.raises(BusinessRuleError): uc.firmware(heartbeat(version_firmware='1.0.0'),9)
 
 
 @pytest.mark.parametrize('metodo,cambios,codigo',[
