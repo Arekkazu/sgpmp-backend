@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
+# | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -183,6 +184,16 @@ _MAPA_TIPO_EVENTO_BD: dict[str, str] = {
 }
 
 
+# RF-55 restricción 1 y CA-1: detección en ≤ 500 ms desde la captura, medida en el nodo Edge.
+LATENCIA_MAX_MS_RF55 = 500
+
+
+def latencia_edge_ms(fecha_captura: datetime, fecha_procesamiento: datetime) -> int:
+    """Latencia de detección del Edge: los dos instantes son del reloj del nodo, así que no
+    incluye red, broker ni backend (separada de la latencia de consolidación de RF-56)."""
+    return round((fecha_procesamiento - fecha_captura).total_seconds() * 1000)
+
+
 def clasificacion_a_tipo_evento_bd(clasificacion_rf55: str) -> str:
     return _MAPA_TIPO_EVENTO_BD.get(clasificacion_rf55, "DATOS_PROCESADOS")
 
@@ -236,3 +247,5 @@ class ResultadoEventoEdge:
     fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str] = None
+    latencia_edge_ms: Optional[int] = None
+    sla_edge_excedido: Optional[bool] = None
