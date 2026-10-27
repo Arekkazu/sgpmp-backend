@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: gaps, omisiones y evidencia de limites |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: persistir la regla aplicada cuando RF-53 excluye el analisis estadistico. |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -113,7 +114,14 @@ class EvaluarCalidadTelemetriaUseCase:
                 indice=0,
                 clasificacion=ClasificacionCalidad.NO_APTO,
                 flags=flags,
-                parametros_aplicados={},
+                # En esta rama no se consultan ni aplican k/M/N/drift.
+                # Registrar la regla real de RF-62 CA-9, sin atribuir al
+                # resultado parametros estadisticos que no intervinieron.
+                parametros_aplicados={
+                    'regla_aplicada': 'FUERA_DE_RANGO_RF53',
+                    'indice_calidad': 0,
+                    'fases_estadisticas_omitidas': True,
+                },
                 parametros_calibracion_aplicados=parametros_calibracion,
                 motivo_reevaluacion=None,
             )

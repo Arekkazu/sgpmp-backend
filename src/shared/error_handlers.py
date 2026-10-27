@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: un evento Edge con estructura inválida queda en la bitácora (E1) |
 # | 2026-10-26 | Arekkazu | INC-M03/M04 RF-57/59/73: 422 por ruta (x-codigo-validacion) y E1 de RF-57 en bitácora |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: respetar el HTTP 422 declarado por ruta y conservar el 400 predeterminado. |
 """Handlers globales de error de la aplicación FastAPI.
 
 Se registran en main.py con register_error_handlers(app). Cubren tres capas:
