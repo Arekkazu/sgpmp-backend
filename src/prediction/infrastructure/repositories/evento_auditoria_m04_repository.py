@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: persiste origen_dato (EDGE/BACKEND/HIBRIDO) |
+# | 2026-10-26 | Arekkazu     | INC-M04 G088/G092/G099 RF-73: truncado conserva mínimos, filtro correlacion_id, E7 |
 from __future__ import annotations
 
 import hashlib
@@ -48,6 +49,9 @@ _PAYLOAD_REQUERIDO: dict[str, list[str]] = {
 
 _PAYLOAD_MAX_BYTES = 64 * 1024  # 64 KB
 
+#: RF-73 E7: holgura de reloj antes de tratar un timestamp como futuro.
+_MAX_DESFASE_FUTURO_SEG = 60
+
 
 def _calcular_hash(tipo_evento: str, payload: dict, fecha: str) -> str:
     canonical = json.dumps(
@@ -67,11 +71,15 @@ _METRICAS_MINIMAS: dict[str, list[str]] = {
 _METRICAS_SUPERVISADAS = ["f1_score_global", "recall_clase_riesgo_alto"]
 
 
-def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
+def _campos_requeridos(tipo_evento: str, payload: dict) -> list[str]:
     requeridos = list(_PAYLOAD_REQUERIDO.get(tipo_evento, []))
     if tipo_evento in _EVENTOS_CON_METRICAS:
         requeridos += _METRICAS_MINIMAS.get(paradigma_de(payload.get("tipo_modelo")), _METRICAS_SUPERVISADAS)
-    return [campo for campo in requeridos if campo not in payload]
+    return requeridos
+
+
+def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
+    return [campo for campo in _campos_requeridos(tipo_evento, payload) if campo not in payload]
 
 
 # RF-73 E2: reintentos ante falla de persistencia antes de ir al respaldo local.
@@ -155,20 +163,24 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         codigo_error: Optional[str] = None,
         descripcion_error: Optional[str] = None,
         origen_dato: Optional[str] = None,
+        timestamp_evento: Optional[datetime] = None,
     ) -> None:
         campos_faltantes = _validar_payload(tipo_evento, payload_evento)
         if campos_faltantes:
             self._registrar_invalido(tipo_evento, payload_evento, campos_faltantes, correlacion_id)
             return
 
-        payload_final, truncado = _truncar_payload(payload_evento)
+        payload_final, truncado = _truncar_payload(payload_evento, _campos_requeridos(tipo_evento, payload_evento))
         sev_final = "WARNING" if truncado else severidad_evento
+        correlacion_id = correlacion_id or uuid.uuid4()
         ahora = datetime.now(timezone.utc)
+        fecha, motivo_correccion = self._fecha_evento(timestamp_evento, correlacion_id, ahora)
+        id_evento = uuid.uuid4()
         self._persistir(dict(
             # id y fecha se fijan aquí: si el evento termina en el respaldo, la
             # sincronización conserva los originales (RF-73 CA-14).
-            id_evento=uuid.uuid4(),
-            fecha_evento=ahora,
+            id_evento=id_evento,
+            fecha_evento=fecha,
             tipo_evento=tipo_evento,
             tipo_actor=tipo_actor,
             payload_evento=payload_final,
@@ -179,11 +191,70 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             id_referencia=id_referencia,
             entidad_referencia=entidad_referencia,
             resultado_operacion=resultado_operacion,
-            correlacion_id=correlacion_id or uuid.uuid4(),
-            hash_evento=_calcular_hash(tipo_evento, payload_final, ahora.isoformat()),
+            correlacion_id=correlacion_id,
+            hash_evento=_calcular_hash(tipo_evento, payload_final, fecha.isoformat()),
             codigo_error=codigo_error,
             descripcion_error=descripcion_error,
             origen_dato=origen_dato or _origen_por_actor(tipo_actor),
+        ))
+        if motivo_correccion:
+            self._registrar_timestamp_corregido(
+                tipo_evento, id_evento, correlacion_id, timestamp_evento, fecha, motivo_correccion
+            )
+
+    def _fecha_evento(
+        self, timestamp_evento: Optional[datetime], correlacion_id: uuid.UUID, ahora: datetime
+    ) -> tuple[datetime, Optional[str]]:
+        """RF-73 E7: un timestamp futuro, o anterior al último evento de su misma cadena
+        (``correlacion_id``), se reemplaza por el del sistema. Devuelve (fecha, motivo)."""
+        if timestamp_evento is None:
+            return ahora, None
+        if timestamp_evento.tzinfo is None:
+            timestamp_evento = timestamp_evento.replace(tzinfo=timezone.utc)
+        if (timestamp_evento - ahora).total_seconds() > _MAX_DESFASE_FUTURO_SEG:
+            return ahora, "FUTURO"
+        ultimo = self._db.execute(
+            select(func.max(EventoAuditoriaM04Model.fecha_evento))
+            .where(EventoAuditoriaM04Model.correlacion_id == correlacion_id)
+        ).scalar_one_or_none()
+        if ultimo is not None and timestamp_evento < ultimo:
+            return ahora, "DESORDENADO"
+        return timestamp_evento, None
+
+    def _registrar_timestamp_corregido(
+        self,
+        tipo_evento: str,
+        id_evento: uuid.UUID,
+        correlacion_id: uuid.UUID,
+        original: datetime,
+        corregido: datetime,
+        motivo: str,
+    ) -> None:
+        payload = {
+            "tipo_evento_corregido": tipo_evento,
+            "id_evento_corregido": str(id_evento),
+            "timestamp_original": original.isoformat(),
+            "timestamp_corregido": corregido.isoformat(),
+            "motivo": motivo,
+        }
+        self._persistir(dict(
+            id_evento=uuid.uuid4(),
+            fecha_evento=corregido,
+            tipo_evento="TIMESTAMP_CORREGIDO",
+            tipo_actor="SISTEMA",
+            payload_evento=payload,
+            es_payload_truncado=False,
+            severidad_evento="WARNING",
+            id_usuario=None,
+            id_sistema="M04",
+            id_referencia=str(id_evento),
+            entidad_referencia="evento_auditoria_m04",
+            resultado_operacion=None,
+            correlacion_id=correlacion_id,
+            hash_evento=_calcular_hash("TIMESTAMP_CORREGIDO", payload, corregido.isoformat()),
+            codigo_error=None,
+            descripcion_error=None,
+            origen_dato="BACKEND",
         ))
 
     def _persistir(self, campos: dict) -> None:
@@ -306,6 +377,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         id_sistema: Optional[str] = None,
         id_referencia: Optional[str] = None,
         severidad_evento: Optional[str] = None,
+        correlacion_id: Optional[uuid.UUID] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list[EventoAuditoriaM04], int]:
@@ -325,6 +397,8 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             q = q.where(EventoAuditoriaM04Model.id_referencia == id_referencia)
         if severidad_evento:
             q = q.where(EventoAuditoriaM04Model.severidad_evento == severidad_evento)
+        if correlacion_id is not None:
+            q = q.where(EventoAuditoriaM04Model.correlacion_id == correlacion_id)
 
         total_q = select(func.count()).select_from(q.subquery())
         total = self._db.execute(total_q).scalar_one()
@@ -380,15 +454,38 @@ def _lanzar_fallo_persistencia(exc: Exception) -> None:
     ) from exc
 
 
-def _truncar_payload(payload: dict) -> tuple[dict, bool]:
+def _truncar_payload(payload: dict, requeridos: list[str] = ()) -> tuple[dict, bool]:
+    """RF-73: payload de más de 64 KB → se conserva como claves todo lo que cabe.
+
+    INC-M04-201-G088: antes un corte a mitad del JSON dejaba solo
+    ``payload_truncado_raw`` y los campos mínimos (``tipo_modelo``, ``id_version``...)
+    quedaban como texto. Ahora se conservan, en este orden, los campos mínimos del tipo
+    de evento y los demás campos que quepan enteros (los escalares primero, que son la
+    cabecera); lo que no cabe queda en ``payload_truncado_raw`` (inicio del JSON
+    original) y sus nombres en ``campos_omitidos``.
+    """
     raw = json.dumps(payload, default=str)
     if len(raw.encode()) <= _PAYLOAD_MAX_BYTES:
         return payload, False
-    # Truncar serialización y agregar flag
-    truncado = raw.encode()[:_PAYLOAD_MAX_BYTES].decode(errors="ignore")
-    try:
-        resultado = json.loads(truncado)
-    except json.JSONDecodeError:
-        resultado = {"payload_truncado_raw": truncado[:500]}
-    resultado["payload_truncado"] = True
+
+    def tamano(d: dict) -> int:
+        return len(json.dumps(d, default=str).encode())
+
+    resultado: dict = {"payload_truncado": True}
+    omitidos: list[str] = []
+    orden = [k for k in requeridos if k in payload] + sorted(
+        (k for k in payload if k not in requeridos),
+        key=lambda k: isinstance(payload[k], (dict, list)),
+    )
+    reserva = 1024  # campos_omitidos + payload_truncado_raw
+    for clave in orden:
+        candidato = {**resultado, clave: payload[clave]}
+        if clave in requeridos or tamano(candidato) <= _PAYLOAD_MAX_BYTES - reserva:
+            resultado = candidato
+        else:
+            omitidos.append(clave)
+    if omitidos:
+        resultado["campos_omitidos"] = omitidos
+        libre = max(0, _PAYLOAD_MAX_BYTES - tamano(resultado) - 64)
+        resultado["payload_truncado_raw"] = raw.encode()[:min(libre, 500)].decode(errors="ignore")
     return resultado, True
