@@ -643,7 +643,7 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 
 **Response `ListaCalidadSchema`:** `total`, `pagina`, `por_pagina`, `items: list[TelemetriaCalidadSchema]`
 
-**`TelemetriaCalidadSchema`:** `id_evaluacion: UUID`, `id_telemetria`, `id_sensor`, `timestamp_evaluacion`, `indice_calidad: int \| None`, `clasificacion_calidad`, `apto_para_ia: bool`, `apto_para_nic41: bool`, `flags_detectados: dict`, `version_limites_fisicos_aplicada: str \| None`, `parametros_aplicados: dict`, `parametros_calibracion_aplicados: dict \| None`, `estado_evaluacion`, `motivo_reevaluacion: str \| None`, `id_evaluacion_superada: UUID \| None`, `version_evaluacion: int \| None`, `fecha_creacion: datetime \| None`
+**`TelemetriaCalidadSchema`:** `id_evaluacion: UUID`, `id_telemetria`, `id_sensor`, `timestamp_evaluacion`, `indice_calidad: int \| None`, `clasificacion_calidad`, `apto_para_ia: bool`, `apto_para_nic41: bool`, `flags_detectados: dict`, `version_limites_fisicos_aplicada: str \| None`, `parametros_aplicados: dict`, `parametros_calibracion_aplicados: dict \| None`, `estado_evaluacion`, `motivo_reevaluacion: str \| None`, `id_evaluacion_superada: UUID \| None`, `version_evaluacion: str \| None`, `fecha_creacion: datetime \| None`
 
 ---
 
@@ -666,7 +666,7 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 | `id_sensor` | `int` | `> 0` |
 | `fecha_desde` / `fecha_hasta` | `datetime` | — |
 | `causa_documentada` | `str` | 10–1000 chars |
-| `parametros_correctos` | `dict \| None` | Opcional |
+| `parametros_correctos` | `dict \| None` | Opcional; correcciones locales de calibración o parámetros estadísticos admitidos |
 
 **Response `ReevaluacionResponseSchema`:** `evaluaciones_superadas: int`, `evaluaciones_creadas: int`
 
@@ -678,6 +678,17 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 > `f"{nombre} {apellidos}"`) y lo pasa como `nombre_usuario` (fallback al
 > `id_usuario` si no hay detalle). El use case `SolicitarReevaluacionUseCase` no
 > cambió de firma.
+
+
+**INC-M03-133-G170 / #688 (2026-10-27):** requiere JWT, permiso de ejecución del recurso 38 y rol Administrador protegido. El permiso también usado por la evaluación individual no habilita por sí solo la reevaluación masiva. El lote crea las nuevas VIGENTE y supera las anteriores dentro de una sola transacción, con causa, enlace y versión. Si falla una lectura, su auditoría o el commit, el lote conserva las vigentes anteriores.
+
+Se mantiene HTTP 200 con ambos contadores finales. El rango continúa seleccionando por **timestamp_evaluacion** de las evaluaciones vigentes, con extremos inclusivos; no se cambia a timestamp_captura en esta corrección. Una lectura omitida por inactividad cancela el lote con 422, conservando las vigentes anteriores.
+
+Parámetros admitidos: `offset`, `ganancia`, `k`, `M`, `N`, `P`, `umbral_drift`, `umbral_drift_significativo` y `frecuencia_muestreo_min`. Los valores deben ser numéricos finitos; ganancia y k positivos; ventanas enteras válidas y M/P ≤ N. Una corrección parcial de calibración requiere que el otro componente exista en el snapshot original. No modifica la configuración global M09 ni las lecturas originales. Sin correcciones se utiliza la configuración vigente y el snapshot original. Los parámetros desconocidos o inválidos se rechazan con 422 PARAMETROS_REEVALUACION_INVALIDOS.
+
+La versión explícita usa la huella `rf62:<sha256>` de sus componentes persistidos en `parametros_aplicados.version_evaluacion_componentes`. Una versión de límites o calibración no disponible permanece null: no se atribuye una versión histórica inventada. Una versión repetida identifica los mismos componentes; el historial de ejecuciones se distingue por ID y cadena de sustitución.
+
+RF-63 registra usuario, causa, rango, parámetros anteriores/nuevos, IDs y evaluaciones_generadas. Los avisos a M04/M06 quedan auditados como pendientes de integración y el evento global es PARCIAL; no se afirma una entrega inexistente. El procesamiento asíncrono de RNF-08 queda pendiente separado, según el alcance confirmado. Auditoría no disponible devuelve 503 y revierte el lote.
 
 ---
 

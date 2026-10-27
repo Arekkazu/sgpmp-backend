@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-43 RF-62: gaps, omisiones y evidencia de limites |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: persistir la regla aplicada cuando RF-53 excluye el analisis estadistico. |
 # | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: detectar outlier con sigma cero y auditar notificaciones de drift pendientes sin perder calidad. |
+# | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: permitir reevaluacion dentro de una transaccion y registrar causa y version reproducible. |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -19,11 +20,14 @@ Pipeline de 8 fases:
 from __future__ import annotations
 
 import statistics
+import hashlib
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
 from src.shared.errors import ServiceUnavailableError
+from src.telemetry.domain.entities.parametros_reevaluacion import corregir_estadisticos
 from src.telemetry.domain.repositories.contexto_calidad_port import ContextoCalidadPort
 from src.telemetry.domain.entities.consistencia_temporal_calidad import (
     utc, unir_periodos, cubierto, detectar_gaps,
@@ -77,7 +81,16 @@ class EvaluarCalidadTelemetriaUseCase:
         estado_calidad_rf53: str,
         parametros_calibracion: Optional[dict],
         tipo_variable: Optional[str] = None,
+        *,
+        confirmar: bool = True,
+        motivo_reevaluacion: Optional[str] = None,
+        correcciones: Optional[dict] = None,
+        version_calibracion: Optional[str] = None,
     ) -> TelemetriaCalidad | None:
+        self._confirmar = confirmar
+        self._motivo_reevaluacion = motivo_reevaluacion
+        self._correcciones = correcciones or {}
+        self._version_calibracion = version_calibracion
         try:
             return self._execute(id_telemetria,id_sensor,id_variable,valor,valor_ajustado,
                                  timestamp_captura,estado_calidad_rf53,parametros_calibracion,tipo_variable)
@@ -137,6 +150,8 @@ class EvaluarCalidadTelemetriaUseCase:
 
         # ── Fase 1: Recuperar contexto ─────────────────────────────────────────
         params = self.parametros_port.obtener_parametros(id_sensor, tipo_variable)
+        if self._correcciones:
+            params = corregir_estadisticos(params, self._correcciones)
         contexto = None
         gaps, excluidos = [], []
         if self.contexto_port is not None:
@@ -145,16 +160,19 @@ class EvaluarCalidadTelemetriaUseCase:
             periodos = unir_periodos(contexto.periodos, utc(timestamp_captura))
             if contexto.lecturas and cubierto(min(fechas), max(fechas), periodos):
                 if self.contexto_port.omision_registrada(id_telemetria) is True:
-                    self.db.commit()
+                    if self._confirmar:
+                        self.db.commit()
                     return None
                 self._registrar_evidencia(id_telemetria, {},
                     'EVALUACION_OMITIDA_POR_INACTIVIDAD',
                     {'id_sensor':id_sensor,'inicio':min(fechas).isoformat(),
                      'fin':max(fechas).isoformat(),'periodos':[(a.isoformat(),b.isoformat()) for a,b in periodos]})
-                self.db.commit()
+                if self._confirmar:
+                    self.db.commit()
                 return None
-            frecuencia = (contexto.frecuencia_muestreo_min if contexto.frecuencia_muestreo_min is not None
-                          else params.frecuencia_muestreo_min)
+            frecuencia = self._correcciones.get('frecuencia_muestreo_min',
+                contexto.frecuencia_muestreo_min if contexto.frecuencia_muestreo_min is not None
+                else params.frecuencia_muestreo_min)
             gaps, excluidos = detectar_gaps(contexto.lecturas,timestamp_captura,frecuencia,periodos)
             serie = [l.valor for l in sorted(contexto.lecturas,
                 key=lambda l:(utc(l.timestamp_captura),l.id_telemetria),reverse=True)
@@ -317,10 +335,20 @@ class EvaluarCalidadTelemetriaUseCase:
             version_limites_fisicos_aplicada=self._version_limites,
             parametros_aplicados={**parametros_aplicados, **self._contexto},
             parametros_calibracion_aplicados=parametros_calibracion_aplicados,
-            motivo_reevaluacion=motivo_reevaluacion,
+            motivo_reevaluacion=self._motivo_reevaluacion or motivo_reevaluacion,
         )
-        # Todas las ramas (incluidas FUERA_DE_RANGO e INDETERMINADA) confirman
-        # la evaluación antes de emitir auditoría. RF-53 permanece inmutable.
+        if self._motivo_reevaluacion:
+            componentes = {
+                'version_limites_fisicos': self._version_limites,
+                'version_calibracion': self._version_calibracion,
+                'calibracion': parametros_calibracion_aplicados,
+                'estadisticos': parametros_aplicados,
+            }
+            evaluacion.parametros_aplicados['version_evaluacion_componentes'] = componentes
+            contenido = json.dumps(componentes, sort_keys=True, default=str, allow_nan=False)
+            evaluacion.version_evaluacion = 'rf62:' + hashlib.sha256(contenido.encode()).hexdigest()
+        # Todas las ramas escriben sustitución y evidencia en la transacción.
+        # El lote explícito controla su único commit; RF-53 permanece inmutable.
         try:
             anterior = self.calidad_repo.obtener_por_lectura(id_telemetria)
             if anterior is not None:
@@ -329,7 +357,7 @@ class EvaluarCalidadTelemetriaUseCase:
             if anterior is not None:
                 self.calidad_repo.marcar_superada(
                     anterior.id_evaluacion,
-                    motivo=motivo_reevaluacion or 'Superada por una evaluación posterior de RF-62.',
+                    motivo=self._motivo_reevaluacion or motivo_reevaluacion or 'Superada por una evaluación posterior de RF-62.',
                 )
             pendientes = []
             if self.alertas_calidad is not None:
@@ -344,7 +372,8 @@ class EvaluarCalidadTelemetriaUseCase:
                     detalle['notificaciones_pendientes'] = pendientes
                 self._registrar_evidencia(id_telemetria,flags,'EVALUACION_CALIDAD_COMPLETADA',
                     detalle)
-            self.db.commit()
+            if self._confirmar:
+                self.db.commit()
             return guardada
         except Exception:
             raise
@@ -355,7 +384,7 @@ class EvaluarCalidadTelemetriaUseCase:
         id_telemetria: int,
         flags: dict,
     ) -> None:
-        if self.contexto_port is not None or self.auditoria_repo is None:
+        if not self._confirmar or self.contexto_port is not None or self.auditoria_repo is None:
             return
         try:
             from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
