@@ -395,6 +395,7 @@ GET histórico ni demuestra su generación en el firmware Edge.
 | Método | Ruta | Auth | Recurso RBAC | Roles autorizados | Use Case |
 |--------|------|------|--------------|--------------------|----------|
 | `POST` | `/heartbeat` | Broker (token de servicio) | — | — | `RecibirHeartbeatUseCase` |
+| `GET` | `/dispositivos/{id_dispositivo_iot}/buffer` | JWT + RBAC `(35, R)` | 35 | Según permisos vigentes y finca | `ConsultarEstadoBufferUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/estado` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | `ObtenerEstadoDispositivoUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/historial` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | *(sin use case — llama al repositorio directo desde el router)* |
 | `PATCH` | `/dispositivos/{id_dispositivo_iot}/mantenimiento` | JWT + RBAC `(35, U)` | 35 | **Solo Admin, Ing** | `AplicarMantenimientoDispositivoUseCase` |
@@ -438,6 +439,7 @@ GET histórico ni demuestra su generación en el firmware Edge.
 | `calidad_senal_rssi` / `calidad_senal_snr` | `Decimal \| None` | Opcional |
 | `estado_local_buffer` | `str \| None` | Máx. 1 char — `'I'`=INACTIVO, `'A'`=ACTIVO, `'L'`=LLENO |
 | `datos_pendientes_buffer` | `int` | Default `0`, `≥ 0` |
+| `metricas_buffer` | `object \| None` | Opcional (#681, RF-54): capacidades total/utilizada en la misma unidad, último timestamp pendiente y política. Columna `json_metricas_buffer`, revisión `b68127f54a01` |
 | `version_firmware` | `str \| None` | Máx. 50 chars |
 | `coordenadas` | `Any \| None` | Opcional |
 | `fecha_registro` | `datetime` | — |
@@ -454,6 +456,22 @@ del commit por el mismo worker que procesa los INSERT del broker.
 en metadata. Temperatura y firmware tienen etapas independientes: si falta su
 política M09/FW-06, quedan pendientes con evidencia RF-63 y sin una alerta
 ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
+
+---
+
+#### `GET /iot/dispositivos/{id_dispositivo_iot}/buffer` — Último estado reportado del buffer (RF-54, #681)
+
+**Acceso:** JWT + `infraestructura_iot · Leer` (35/2), con alcance por finca.
+
+**Respuesta:** `capacidad_total`, `capacidad_utilizada`, `porcentaje_ocupacion`, `datos_pendientes`, `ultimo_timestamp_pendiente`, `estado_buffer` y `politica_buffer_activa`; además `id_dispositivo_iot`, `id_heartbeat`, `fecha_reporte`, `fecha_recepcion`, `estado_local_buffer` y `metricas_disponibles`.
+
+Clasificación: `NORMAL` <80 %, `WARNING` ≥80 %, `CRITICO` ≥95 %. Las métricas pertenecen al último heartbeat por recepción e ID; los datos desconocidos son `null`, sin representar un buffer vacío o normal. Un heartbeat legacy más reciente no hereda las métricas de uno anterior. Decimal se serializa como cadena.
+
+El bloque opcional `metricas_buffer` del heartbeat contiene capacidades, timestamp y política; la cantidad pendiente conserva su campo superior `datos_pendientes_buffer`. El broker debe ampliar su INSERT directo y el firmware debe medir y reportar el bloque. No se reconstruye el buffer Edge ni se restaura `modulo3.buffers`.
+
+**Errores:** 400 VAL_ENTRADA para entrada inválida, 401 sin JWT válido, 403 sin permiso y 404 DISPOSITIVO_NO_ENCONTRADO para inexistente/fuera de finca. Requiere migrar `b68127f54a01` antes de desplegar el código.
+
+[Contrato e integración IoT](inc_m03_126_g27_rf54_estado_buffer.md).
 
 ---
 
