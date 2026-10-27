@@ -349,7 +349,7 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `clasificacion_rf55` | `str` | Enum `{NORMAL, DESVIACION_SIMPLE, DESVIACION_COMPUESTA, ERROR_CONFIGURACION}` |
 | `severidad` | `str \| None` | Enum `{LEVE, MODERADO, CRITICO}` |
 | `variables_involucradas` | `list[VariableInvolucradaDTO]` | Ver abajo |
-| `timestamp_captura` / `timestamp_procesamiento_edge` | `datetime` | — |
+| `timestamp_captura` / `timestamp_procesamiento_edge` | `datetime` | Normalizados a UTC; procesamiento mayor o igual a captura (INC-M03-110-G42) |
 | `origen` | `str` | Default `TIEMPO_REAL` — enum `{TIEMPO_REAL, BUFFER_LOCAL}` |
 | `estado_conectividad` | `bool` | — |
 | `metadata_edge` | `dict \| None` | Opcional |
@@ -365,6 +365,7 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `clasificacion_rf55` | `str` |
 | `severidad` | `str \| None` |
 | `estado_conectividad` | `bool` |
+| `fecha_captura` | `datetime` |
 | `fecha_procesamiento` | `datetime` |
 | `paquete_inferencia_estado` | `str \| None` |
 
@@ -375,6 +376,17 @@ con `intento_envios = 0`; el 201 confirma recepción/procesamiento, no entrega a
 Solo una confirmación positiva de un adaptador integrado permite `ENVIADO`.
 La reconsolidación del mismo `id_evento_edge_computing` recupera su paquete
 existente sin reenviarlo. No se define una nueva API de consulta o reintentos.
+
+**INC-M03-110-G42 / RF-55 CA-13:** si el procesamiento es anterior a la captura,
+se responde `400 ORDEN_TEMPORAL_INVALIDO`, asociado al campo
+`timestamp_procesamiento_edge`. No se persiste el evento ni se genera un paquete;
+el rechazo sigue el registro existente `EVENTO_EDGE_RECHAZADO` de RF-56 E1.
+Se permite igualdad por precisión del reloj, según decisión confirmada por el usuario.
+La respuesta `201` expone `fecha_captura` y `fecha_procesamiento` del evento
+persistido: son los instantes recibidos, normalizados a UTC, no la hora del servidor.
+Se conservan los rechazos existentes `TIMESTAMP_FUTURO` y `TIMESTAMP_EXPIRADO`.
+Esta respuesta permite observar ambos tiempos durante la recepción; no agrega un
+GET histórico ni demuestra su generación en el firmware Edge.
 
 ---
 

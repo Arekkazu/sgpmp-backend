@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: conservar la referencia válida y adaptar la condición posterior al permiso técnico. |
 from __future__ import annotations
 
 import logging
@@ -133,18 +134,25 @@ class ObtenerDashboardUseCase:
         """R2 / E2 / E7: indicador y etiqueta de lo que no es un valor operativo normal.
 
         Nada se oculta del panel (R2: "no deben ser descartados ni ocultados"). En
-        ERROR_CALIBRACION el valor solo lo ve la vista técnica (E2: "solo visible en
-        detalle para el Ingeniero de Campo"); el resto ve el indicador.
+        ERROR_CALIBRACION el diagnóstico solo lo ve el permiso técnico. La última
+        lectura válida puede seguir como referencia para ambos permisos; el dato
+        inválido no pasa a ser un valor operativo.
         """
         if sensor.estado_calidad in _ANOMALIAS:
             sensor.indicador_anomalia = True
-            sensor.es_valor_operativo = False
+            sensor.es_valor_operativo = (
+                sensor.estado_calidad_valor_operativo == 'LECTURA_VALIDA'
+                and sensor.ultimo_valor is not None
+            )
             if sensor.estado_calidad == 'ERROR_CALIBRACION':
                 if ver_datos_tecnicos:
                     sensor.etiqueta_estado = ETIQUETA_REQUIERE_CALIBRACION
                 else:
                     sensor.etiqueta_estado = ETIQUETA_EN_REVISION
-                    sensor.ultimo_valor = None
+                    # El aviso genérico no expone el diagnóstico reservado al permiso técnico.
+                    sensor.estado_calidad = None
+                    if not sensor.es_valor_operativo:
+                        sensor.ultimo_valor = None
             else:
                 sensor.etiqueta_estado = ETIQUETA_FUERA_DE_RANGO
         elif sensor.sin_umbral:

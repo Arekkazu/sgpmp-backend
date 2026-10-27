@@ -7,6 +7,7 @@
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-08 RF-57: filtro fecha_resolucion_desde |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el POST valida fecha, origen, unidad y variable (400) |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -44,7 +45,7 @@ from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter impo
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
-from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
+from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
 from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -88,7 +89,7 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
     summary="Generar alerta desde evento de desviación (RF-57 FA-01–FA-08)",
 )
 def procesar_evento_alerta(
-    dto: ProcesarEventoAlertaDTO,
+    dto: EventoAlertaExternoDTO,
     db: Session = Depends(get_db_sistema),
 ) -> ResultadoGeneracionAlertaSchema:
     dispositivo_port = DispositivoM09Adapter(db)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
+# | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 from __future__ import annotations
 
@@ -237,5 +238,6 @@ class ResultadoEventoEdge:
     clasificacion_rf55: str
     severidad: Optional[str]
     estado_conectividad: bool
+    fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str] = None

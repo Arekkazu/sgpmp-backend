@@ -1,9 +1,12 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: alerta critica del origen confirmado |
+# | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: la alerta guarda el umbral que la disparó en reglas_activas |
 """Orquesta RF-17 → RF-57 dentro de la unidad post-commit existente."""
 from src.shared.errors import ServiceUnavailableError
+from src.telemetry.domain.entities.alerta import regla_umbral
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
+
 
 
 class GenerarAlertaTelemetriaUseCase:
@@ -54,6 +57,8 @@ class GenerarAlertaTelemetriaUseCase:
                 valor=clasificacion['valor'], unidad=lectura.unidad_medida,
                 timestamp_evento=lectura.timestamp_captura, estado_dato=lectura.estado_calidad,
                 severidad_edge='CRITICO', origen_evento='BACKEND', id_telemetria=identificador,
+                reglas_activadas=[regla_umbral(umbral['id_umbral_ambiental'], variable['tipo_variable'], color,
+                                               metadata['version_umbral'])],
                 metadata_evento=metadata,
             ), id_activo_biologico=vinculo['id_activo_biologico'],
             id_dispositivo_ioit=lectura.id_dispositivo_iot, id_infraestructura=contexto['id_infraestructura'],

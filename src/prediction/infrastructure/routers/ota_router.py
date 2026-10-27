@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: DISTRIBUCION_POSPUESTA al crear fuera de ventana |
 """Router FastAPI para distribución OTA de modelos Edge (`/prediccion`).
 
 RF-70 CU-06: Consulta del estado OTA y listado de despliegues por dispositivo.
@@ -176,6 +179,7 @@ def crear_distribucion_ota(
         version_repo=SqlAlchemyVersionModeloRepository(db),
         distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
         despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),
+        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         **_ota_edge(db),
     ).execute(dto, usuario_actual.id_usuario)
     return DistribucionOtaResponse.from_resultado(resultado)

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: prueba gaps, omision y notificacion tecnica |
+# | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: validar notificacion de drift pendiente sin descartar la evaluacion. |
 """Dobles explícitos: las versiones V1/V2 no representan el esquema M09 actual."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -84,6 +85,7 @@ def escenario(*,periodos=(),limites=None,congelado=False):
     auditoria.registrar.side_effect=lambda e: SimpleNamespace(id_evento=uuid4())
     params=SimpleNamespace(obtener_parametros=lambda *a:ParametrosCalidad())
     alertas=Mock()
+    alertas.execute.return_value=[]
     uc=EvaluarCalidadTelemetriaUseCase(db,Mock(),repo,params,auditoria,
                                       contexto_port=contexto,alertas_calidad=alertas)
     datos=dict(id_telemetria=123,id_sensor=7,id_variable=9,valor=Decimal(22),
@@ -191,7 +193,7 @@ def test_drift_significativo_no_inventa_severidad(magnitud,pendiente):
                        'magnitud_drift_porcentaje':magnitud}},
                        parametros_aplicados={'umbral_drift_significativo':10})
     repo=Mock();servicio=GenerarAlertaCalidadUseCase(repo)
-    if pendiente:
-        with pytest.raises(ServiceUnavailableError,match='severidad'):servicio.execute(ev)
-    else:servicio.execute(ev)
+    avisos=servicio.execute(ev)
+    assert bool(avisos) is pendiente
+    if pendiente:assert avisos[0]['motivo']=='SEVERIDAD_DRIFT_NO_CONFIGURADA'
     repo.guardar.assert_not_called()

@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: registrar() acepta origen_dato |
+# | 2026-10-26 | Arekkazu     | INC-M04 G092/G099 RF-73: timestamp_evento (E7) y filtro correlacion_id |
 from __future__ import annotations
 
 import uuid
@@ -32,7 +33,11 @@ class EventoAuditoriaM04Repository(ABC):
         codigo_error: Optional[str] = None,
         descripcion_error: Optional[str] = None,
         origen_dato: Optional[str] = None,
-    ) -> None: ...
+        timestamp_evento: Optional[datetime] = None,
+    ) -> None:
+        """``timestamp_evento``: instante en que ocurrió el evento en su origen (por omisión,
+        ahora). Si es futuro o anterior al último de su ``correlacion_id`` se corrige al del
+        sistema y se registra TIMESTAMP_CORREGIDO (RF-73 E7)."""
 
     @abstractmethod
     def consultar(
@@ -45,6 +50,7 @@ class EventoAuditoriaM04Repository(ABC):
         id_sistema: Optional[str] = None,
         id_referencia: Optional[str] = None,
         severidad_evento: Optional[str] = None,
+        correlacion_id: Optional[uuid.UUID] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list["EventoAuditoriaM04"], int]: ...

@@ -10,6 +10,7 @@
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: reglas_activas de alertas de umbral anteriores desde metadato_evento |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -26,10 +27,21 @@ from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen,
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 
 from src.shared.db_error_translator import raise_from_db_error
-from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta, TipoAlerta
+from src.telemetry.domain.entities.alerta import TIPO_ALERTA_TECNICA, Alerta, EstadoAlerta, TipoAlerta, regla_umbral
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
 from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import variable_para_alerta
+
+
+def _reglas_activas(orm: AlertaModel) -> list:
+    """INC-M03-179-G57F: las alertas del flujo de umbrales anteriores al fix se guardaron con
+    ``reglas_activas`` vacío; el umbral que las disparó está en ``metadato_evento``."""
+    reglas = list(orm.reglas_activas or [])
+    meta = orm.metadato_evento or {}
+    if reglas or not meta.get('id_umbral_ambiental'):
+        return reglas
+    return [regla_umbral(meta['id_umbral_ambiental'], orm.tipo_variable, meta.get('estado_semaforo'),
+                         meta.get('version_umbral'))]
 
 
 class SqlAlchemyAlertaRepository(AlertaRepository):
@@ -413,7 +425,7 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             tipo_variable=orm.tipo_variable,
             valor=orm.valor,
             unidad=orm.unidad,
-            reglas_activas=list(orm.reglas_activas or []),
+            reglas_activas=_reglas_activas(orm),
             contexto_activo_biologico=dict(orm.contexto_activo_biologico) if orm.contexto_activo_biologico else None,
             metadato_evento=dict(orm.metadato_evento) if orm.metadato_evento else None,
             accion_sugerida=orm.accion_sugerida,
