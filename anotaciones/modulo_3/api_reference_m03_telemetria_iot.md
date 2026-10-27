@@ -457,7 +457,13 @@ ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
 
 ---
 
+**INC-M03-127-G27 (#682):** `A`/`L` con pendientes prioriza `BUFFER_ACTIVO` sobre el contacto reciente. Un ciclo periódico o postcommit sin un reporte nuevo no acredita vaciado. Un reporte posterior con cero pendientes permite volver a `ACTIVO` si el contacto es reciente. `EN_MANTENIMIENTO` conserva su prioridad. Se requiere desplegar la aplicación y la revisión `c68227f60a01` que alinea el trigger y el procedimiento SQL; no cambia el contrato del heartbeat.
+
+[Diagnóstico, decisión RF-60 y pruebas](inc_m03_127_g27_rf60_buffer_activo.md).
+
 #### `GET /iot/dispositivos/{id_dispositivo_iot}/estado` — Estado actual + historial reciente
+
+**Acceso:** JWT, permiso `infraestructura_iot` · Leer y alcance por finca. Devuelve `404 ESTADO_DISPOSITIVO_NO_ENCONTRADO` si el dispositivo queda fuera del alcance, sin consultar su estado ni el historial incluido (#682).
 
 **Query:** `limite_historial: int` (1–100, default 20)
 

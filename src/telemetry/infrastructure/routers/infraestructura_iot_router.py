@@ -5,6 +5,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: aplicar el alcance por finca existente a la consulta de estado usada por G27. |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -30,7 +31,6 @@ from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
-from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -163,7 +163,13 @@ def obtener_estado_dispositivo(
         estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
         transicion_repo=SqlAlchemyHistoricoTransicionDispositivoRepository(db),
     )
-    resultado = use_case.execute(id_dispositivo_iot, limite_historial=limite_historial)
+    resultado = use_case.execute(
+        id_dispositivo_iot,
+        limite_historial=limite_historial,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return EstadoDispositivoDetalleSchema(
         estado=EstadoDispositivoIoTSchema.model_validate(resultado.estado),
         historial=[HistoricoTransicionSchema.model_validate(t) for t in resultado.historial],
