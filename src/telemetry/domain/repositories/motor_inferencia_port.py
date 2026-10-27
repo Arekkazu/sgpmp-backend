@@ -1,9 +1,10 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 from abc import ABC, abstractmethod
 
-from src.shared.errors import ServiceUnavailableError
+from src.shared.errors import BusinessRuleError, ServiceUnavailableError
 from src.telemetry.domain.entities.telemetria import PaqueteInferencia
 
 
@@ -17,13 +18,25 @@ class MotorInferenciaNoIntegradoError(ServiceUnavailableError):
         )
 
 
+class MotorInferenciaRechazoError(BusinessRuleError):
+    """RF-56 E5: el motor rechaza el paquete (esquema o datos). Es definitivo: no se reintenta."""
+
+    def __init__(self, detalle: str = "") -> None:
+        super().__init__(
+            code="MOTOR_INFERENCIA_RECHAZO",
+            message=f"El motor de inferencia rechazó el paquete. {detalle}".strip(),
+        )
+
+
 class MotorInferenciaPort(ABC):
     @abstractmethod
     def enviar_paquete(self, paquete: PaqueteInferencia) -> bool:
-        """True confirma entrega; False indica un intento fallido.
+        """True confirma entrega; False indica un intento fallido que se reintenta
+        (RF-56 restricción 14), igual que un error de transporte.
 
-        MotorInferenciaNoIntegradoError indica que no hubo intento por falta
-        de integración. No define protocolo, ACK ni reintentos del futuro IA-1.
+        MotorInferenciaRechazoError (E5) es un rechazo definitivo: FALLIDO sin
+        reintentos. MotorInferenciaNoIntegradoError indica que no hubo intento por
+        falta de integración. No define protocolo ni ACK del futuro IA-1.
         """
         ...
 

@@ -2,6 +2,7 @@
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica historial, 403 y eventos tecnicos |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: cada paquete deja PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: un intento no confirmado queda PENDIENTE y se reprograma |
 """Pruebas de aplicación y HTTP con dobles explícitos, sin simular PostgreSQL."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -187,9 +188,10 @@ def motor_datos(datos):
 
 @pytest.mark.parametrize("resultado,tipo_evento,estado", [
     (True, None, "ENVIADO"),
-    (False, "ENVIO_INFERENCIA_NO_CONFIRMADO", "FALLIDO"),
-    (TimeoutError("NO_REGISTRAR_SECRETO"), "MOTOR_INFERENCIA_NO_DISPONIBLE", "FALLIDO"),
-    (RuntimeError("NO_REGISTRAR_SECRETO"), "ERROR_ENVIO_INFERENCIA", "FALLIDO"),
+    # INC-M03-113-G56: el intento 1 no confirmado queda PENDIENTE; el fallo se registra igual.
+    (False, "ENVIO_INFERENCIA_NO_CONFIRMADO", "PENDIENTE"),
+    (TimeoutError("NO_REGISTRAR_SECRETO"), "MOTOR_INFERENCIA_NO_DISPONIBLE", "PENDIENTE"),
+    (RuntimeError("NO_REGISTRAR_SECRETO"), "ERROR_ENVIO_INFERENCIA", "PENDIENTE"),
 ])
 def test_distingue_entrega_fallida_indisponibilidad_y_error(motor_datos, resultado, tipo_evento, estado):
     db, repo, auditoria, eventos, evento = motor_datos
@@ -207,7 +209,7 @@ def test_distingue_entrega_fallida_indisponibilidad_y_error(motor_datos, resulta
     else:
         registro, = fallos
         assert registro.tipo_evento == tipo_evento and registro.resultado == "FALLIDO"
-        assert registro.accion_detallada["estado_paquete"] == "FALLIDO"
+        assert registro.accion_detallada["estado_paquete"] == estado
         assert "NO_REGISTRAR_SECRETO" not in str(registro)
 
 

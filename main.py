@@ -8,6 +8,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: tarea periodica de reenvio de paquetes de inferencia |
 import asyncio
 import logging
 import os
@@ -708,6 +709,7 @@ async def lifespan(app: FastAPI):
     verificar_migraciones_aplicadas(engine)
 
     from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+    from src.telemetry.infrastructure.workers.reenvio_inferencia_worker import reenviar_paquetes_inferencia_periodicamente
 
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
@@ -725,6 +727,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
         asyncio.create_task(_liberar_ota_programadas_periodicamente()),
+        asyncio.create_task(reenviar_paquetes_inferencia_periodicamente()),
     ]
     yield
     for task in tasks:

@@ -3,6 +3,7 @@
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E3 timestamps dispersos se procesan como evento individual, sin 422 |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 from __future__ import annotations
 
 import logging
@@ -24,8 +25,13 @@ from src.telemetry.domain.entities.telemetria import (
     EventoEdgeComputing,
     PaqueteInferencia,
     TipoEventoEdge,
+    estado_tras_envio_fallido,
 )
-from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaNoIntegradoError, MotorInferenciaPort
+from src.telemetry.domain.repositories.motor_inferencia_port import (
+    MotorInferenciaNoIntegradoError,
+    MotorInferenciaPort,
+    MotorInferenciaRechazoError,
+)
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 
 logger = logging.getLogger(__name__)
@@ -211,8 +217,10 @@ class ConsolidarEnviarPaqueteUseCase:
                 accion_detallada=metadatos["agrupacion_descartada"],
             )
 
-        # Paso 9: Intentar envío a M04 (un intento síncrono; backoff diferido fuera de alcance)
+        # Paso 9: intento 1, inmediato (RF-56 restricción 14). Los intentos 2..5 los hace
+        # DrenarPaquetesPendientesUseCase cuando vence su espera; aquí no se bloquea.
         causa_fallo = "ENVIO_INFERENCIA_NO_CONFIRMADO"
+        rechazado = False
         try:
             exito = self.motor_inferencia_port.enviar_paquete(paquete_guardado)
         except MotorInferenciaNoIntegradoError:
@@ -223,6 +231,10 @@ class ConsolidarEnviarPaqueteUseCase:
             )
             self._registrar_fallo_motor(paquete_guardado, "MOTOR_INFERENCIA_NO_INTEGRADO")
             return paquete_guardado
+        except MotorInferenciaRechazoError:
+            # E5: rechazo definitivo, sin reintentos.
+            exito, rechazado = False, True
+            causa_fallo = "MOTOR_INFERENCIA_RECHAZO"
         except (TimeoutError, ConnectionError, ServiceUnavailableError):
             exito = False
             causa_fallo = "MOTOR_INFERENCIA_NO_DISPONIBLE"
@@ -230,12 +242,18 @@ class ConsolidarEnviarPaqueteUseCase:
             exito = False
             causa_fallo = "ERROR_ENVIO_INFERENCIA"
 
-        nuevo_estado = EstadoPaqueteInferencia.ENVIADO if exito else EstadoPaqueteInferencia.FALLIDO
+        if exito:
+            nuevo_estado = EstadoPaqueteInferencia.ENVIADO
+        elif rechazado:
+            nuevo_estado = EstadoPaqueteInferencia.FALLIDO
+        else:
+            nuevo_estado = estado_tras_envio_fallido(1)
         try:
             self.paquete_repo.actualizar_estado(
                 paquete_guardado.id_paquetes_inferencia,
                 nuevo_estado,
                 1,
+                datetime.now(timezone.utc),
             )
             self.db.commit()
         except Exception:

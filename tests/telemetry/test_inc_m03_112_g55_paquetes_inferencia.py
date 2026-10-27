@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: el repositorio en memoria respeta el backoff; lote no confirmado se reprograma |
 """INC-M03-112-G55 (RF-56): generación del paquete y envío batch fragmentado a máximo 500.
 
 TC-M03-090: el paquete lleva los campos obligatorios de la Salida de RF-56.
@@ -23,6 +24,7 @@ from src.shared.errors import ValidationError
 from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import ConsolidarEnviarPaqueteUseCase
 from src.telemetry.application.use_cases.inferencia.drenar_paquetes_pendientes_use_case import DrenarPaquetesPendientesUseCase
 from src.telemetry.domain.entities.telemetria import (
+    ESPERAS_REINTENTO_INFERENCIA_SEG,
     MAX_REGISTROS_POR_ENVIO_INFERENCIA,
     EventoEdgeComputing,
     PaqueteInferencia,
@@ -36,9 +38,13 @@ _BASE = datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)
 
 
 class _RepoMemoria(PaqueteInferenciaRepository):
-    """Pendientes en memoria; listar_pendientes devuelve en orden de id (= captura)."""
+    """Pendientes en memoria; listar_pendientes devuelve en orden de id (= captura).
+
+    Respeta el backoff de RF-56 contra `self.ahora`, que la prueba puede adelantar.
+    """
 
     def __init__(self, cantidad: int) -> None:
+        self.ahora = None  # None = reloj real
         self.paquetes = {
             i: PaqueteInferencia(
                 id_paquetes_inferencia=i, id_sensor=3, id_dispositivo_iot=2, id_evento_edge_computing=i,
@@ -53,11 +59,22 @@ class _RepoMemoria(PaqueteInferenciaRepository):
 
     def guardar(self, paquete): ...
 
-    def actualizar_estado(self, id_paquete, estado, intento):
-        self.paquetes[id_paquete] = replace(self.paquetes[id_paquete], estado_paquete=estado, intento_envios=intento)
+    def actualizar_estado(self, id_paquete, estado, intento, fecha_intento=None):
+        cambios = dict(estado_paquete=estado, intento_envios=intento)
+        if fecha_intento is not None:
+            # Con reloj controlado, el intento ocurre "ahora" para poder probar el backoff.
+            cambios["fecha_envio"] = self.ahora or fecha_intento
+        self.paquetes[id_paquete] = replace(self.paquetes[id_paquete], **cambios)
+
+    def _vencido(self, p):
+        if p.intento_envios == 0:
+            return True
+        ahora = self.ahora or datetime.now(timezone.utc)
+        espera = ESPERAS_REINTENTO_INFERENCIA_SEG[min(p.intento_envios, len(ESPERAS_REINTENTO_INFERENCIA_SEG) - 1)]
+        return p.fecha_envio + timedelta(seconds=espera) <= ahora
 
     def listar_pendientes(self, limite):
-        pendientes = [p for p in self.paquetes.values() if p.estado_paquete == "PENDIENTE"]
+        pendientes = [p for p in self.paquetes.values() if p.estado_paquete == "PENDIENTE" and self._vencido(p)]
         return pendientes[:limite]
 
     def estados(self):
@@ -123,11 +140,12 @@ def test_stub_de_lote_senala_falta_de_integracion():
 
 
 @pytest.mark.parametrize("respuesta", [{"return_value": False}, {"side_effect": ConnectionError("sin red")}])
-def test_lote_no_confirmado_queda_fallido_con_un_intento(respuesta):
+def test_lote_no_confirmado_queda_pendiente_con_un_intento(respuesta):
+    # INC-M03-113-G56: RF-56 restricción 14, se reprograma en vez de quedar FALLIDO.
     repo = _RepoMemoria(3)
     resultado = DrenarPaquetesPendientesUseCase(Mock(), repo, _motor(**respuesta)).execute()
-    assert resultado.fallidos == 3 and resultado.enviados == 0
-    assert repo.estados() == {"FALLIDO"}
+    assert resultado.reprogramados == 3 and resultado.fallidos == 0 and resultado.enviados == 0
+    assert repo.estados() == {"PENDIENTE"}
     assert {p.intento_envios for p in repo.paquetes.values()} == {1}
 
 
