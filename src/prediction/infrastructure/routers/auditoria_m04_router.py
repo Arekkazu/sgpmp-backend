@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -20,6 +21,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -35,6 +37,19 @@ from src.shared.fechas import FechaHoraUtc
 router = APIRouter(prefix="/prediccion/auditoria", tags=["Predicción M04 - Auditoría RF-73"])
 
 _RECURSO = 46  # modulo1.recursos: 'auditoria_m04'
+
+
+def _con_nombre_usuario(db: Session, eventos: list[EventoAuditoriaM04Response]) -> list[EventoAuditoriaM04Response]:
+    """T-18: nombre de quien hizo cada evento, una consulta por página."""
+    ids = list({e.id_usuario for e in eventos if e.id_usuario is not None})
+    if ids:
+        nombres = dict(db.execute(text(
+            "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+            "WHERE id_usuario = ANY(:ids)"
+        ), {"ids": ids}).all())
+        for evento in eventos:
+            evento.nombre_usuario = nombres.get(evento.id_usuario)
+    return eventos
 
 
 @router.get(
@@ -81,7 +96,7 @@ def listar_auditoria(
         total=total,
         pagina=pagina,
         por_pagina=por_pagina,
-        items=[EventoAuditoriaM04Response.model_validate(e) for e in items],
+        items=_con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(e) for e in items]),
     )
 
 
@@ -151,4 +166,4 @@ def obtener_evento(
         repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.obtener_por_id(id_evento, id_usuario_consultor=usuario_actual.id_usuario)
-    return EventoAuditoriaM04Response.model_validate(entidad)
+    return _con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(entidad)])[0]

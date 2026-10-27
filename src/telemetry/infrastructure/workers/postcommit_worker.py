@@ -8,6 +8,10 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-61: conecta evidencia y reintento de avisos |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conecta auditoria de HTTP y persistencia MQTT |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
+# | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
+# | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
 """Composición del procesador B+. No recibe callbacks ni se conecta al broker."""
 import asyncio
 import logging
@@ -34,7 +38,10 @@ from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_cas
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_telemetria_use_case import GenerarAlertaTelemetriaUseCase
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_ventanas_vision_use_case import EvaluarVentanasVisionUseCase
+from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
 from src.telemetry.infrastructure.repositories.ventanas_vision_repository import SqlAlchemyVentanasVisionRepository
 from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
@@ -76,6 +83,14 @@ def _lectura(db):
     )
 
 
+def recalcular_semaforo_sensor(db, id_sensor):
+    """RF-58: color del sensor con su última lectura válida y las alertas aún abiertas
+    (la misma etapa RF17 del worker). Sin lectura válida no hay nada que recalcular."""
+    lectura = SqlAlchemyLecturaPostcommitRepository(db).ultima_lectura_valida(id_sensor)
+    if lectura is not None:
+        _lectura(db).clasificar_lectura(lectura.id_telemetria)
+
+
 def _heartbeat(db, identificador, alertas, parametros):
     heartbeat = SqlAlchemyHeartbeatRepository._a_entidad(db.get(HeartbeatModel, identificador))
     servicio = ProcesarHeartbeatPersistidoUseCase(
@@ -115,13 +130,19 @@ def _alerta_critica(db, identificador):
             SqlAlchemyHistoricoEstadoAlertaRepository(db), SqlAlchemyReglaAlertaRepository(db),
             ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db))),
     ).execute(identificador)
+def _calidad_vision(db, identificador):
+    EvaluarCalidadVisionUseCase(db, SqlAlchemyObservacionVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        DispositivoM09Adapter(db)).execute(identificador)
+
+
 def _vision(db,identificador):
     EvaluarVentanasVisionUseCase(SqlAlchemyVentanasVisionRepository(db),
         ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
         SqlAlchemyBitacoraAuditoriaIotRepository(db)).execute(identificador)
 
 
-def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60):
+def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbeat=None, diagnostico_heartbeat=None, avisos_vinculacion=None, limite=50, reintento_seg=60, reintento_max_seg=None):
     parametros = parametros_heartbeat
     acciones = {
             EtapaPostcommit.RF53_LECTURAS: auditar_lectura,
@@ -133,6 +154,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             EtapaPostcommit.RF17: lambda db, i: _lectura(db).clasificar_lectura(i),
             EtapaPostcommit.RF57: _alerta_critica,
             EtapaPostcommit.RF60: lambda db, i: _recuperar_comunicacion(db, i),
+            EtapaPostcommit.VISION_CALIDAD: _calidad_vision,
             EtapaPostcommit.VISION_DETECCION: _vision,
             EtapaPostcommit.HEARTBEAT_ESTADO: lambda db, i: _heartbeat(db, i, False, parametros),
             EtapaPostcommit.HEARTBEAT_ALERTAS: lambda db, i: _heartbeat(db, i, True, parametros),
@@ -148,7 +170,7 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
             SqlAlchemyVinculacionLecturaRepository(db), avisos_vinculacion, DestinatariosVinculacionM01Adapter(db)).execute(i)
     return ProcesarPostcommitUseCase(
         lambda: unidad_postcommit(engine_bd, identidad=identidad),
-        acciones, limite=limite, reintento_seg=reintento_seg,
+        acciones, limite=limite, reintento_seg=reintento_seg, reintento_max_seg=reintento_max_seg,
     )
 
 
@@ -156,6 +178,8 @@ async def procesar_postcommit_periodicamente():
     procesador = construir_procesador(
         limite=int(os.getenv('IOT_POSTCOMMIT_LOTE', '50')),
         reintento_seg=int(os.getenv('IOT_POSTCOMMIT_REINTENTO_SEG', '60')),
+        # M3-12: 60 s, 2 min, 4 min… hasta un intento al día por fila que sigue fallando.
+        reintento_max_seg=int(os.getenv('IOT_POSTCOMMIT_REINTENTO_MAX_SEG', '86400')),
     )
     intervalo = max(1, int(os.getenv('IOT_POSTCOMMIT_INTERVALO_SEG', '5')))
     while True:
@@ -168,5 +192,5 @@ async def procesar_postcommit_periodicamente():
             await trabajo
             raise
         except Exception:
-            logger.error('No se pudo consultar el trabajo postcommit; se reintentará.')
+            logger.exception('No se pudo consultar el trabajo postcommit; se reintentará.')
         await asyncio.sleep(intervalo)

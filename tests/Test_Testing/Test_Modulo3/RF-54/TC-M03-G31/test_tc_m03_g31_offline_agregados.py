@@ -21,7 +21,8 @@ backend real:
   valor promedio calculado en Edge.
 - Interno del nodo (SKIP): la operacion autonoma, la evaluacion de reglas RF-55 y BACKEND_UNAVAILABLE.
 
-Requisitos: acceso de red a TEST (API y Postgres 5448).
+Requisitos: acceso de red a TEST (API y Postgres 5448) y BROKER_TOKEN (token de servicio del broker de TEST,
+DEV-06; sin el /iot/* responde 401).
 Variables opcionales: BASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
 
 Como correrlo (desde la raiz del repo):
@@ -45,6 +46,11 @@ import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 VENTANA_MIN = 5
 DB = dict(
     host=os.getenv("DB_HOST", "158.69.200.27"), port=os.getenv("DB_PORT", "5448"),
@@ -67,7 +73,7 @@ class _NodoEdgeSimulado:
     def _base(self, sensor_id, valor, ts: datetime, origen: str) -> dict:
         return {"device_id": self.device_id, "sensor_id": sensor_id, "tipo_variable": "TEMPERATURA_AMBIENTAL",
                 "valor": valor, "unidad": "°C", "timestamp_captura": ts.isoformat(), "origen": origen,
-                "access_key": self.access_key}
+                "serial": self.access_key}
 
     def operar_offline(self, inicio: datetime, minutos: int) -> None:
         ventana: list[float] = []
@@ -78,7 +84,7 @@ class _NodoEdgeSimulado:
             ventana.append(valor)
             if valor > 30 and not any(e["timestamp_captura"] == ts.isoformat() for e in self.eventos):
                 self.eventos.append({
-                    "device_id": self.device_id, "sensor_id": self.sensor_crudo, "access_key": self.access_key,
+                    "device_id": self.device_id, "sensor_id": self.sensor_crudo, "serial": self.access_key,
                     "clasificacion_rf55": "DESVIACION_SIMPLE", "severidad": "MODERADO",
                     "variables_involucradas": [{"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": valor,
                                                 "unidad": "°C", "timestamp_captura": ts.isoformat()}],
@@ -145,9 +151,9 @@ def corrida(admin):
     nodo = _NodoEdgeSimulado(device_id, s_crudo, s_agregado, serial)
     nodo.operar_offline(datetime.now(timezone.utc) - timedelta(hours=1), 30)
 
-    sync_crudos = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": nodo.crudos}, timeout=TIMEOUT)
-    sync_agregados = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": nodo.agregados}, timeout=TIMEOUT)
-    eventos = [requests.post(f"{BASE_URL}/iot/eventos-edge", json=e, timeout=TIMEOUT) for e in nodo.eventos]
+    sync_crudos = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": nodo.crudos}, headers=_HEADERS_BROKER, timeout=TIMEOUT)
+    sync_agregados = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": nodo.agregados}, headers=_HEADERS_BROKER, timeout=TIMEOUT)
+    eventos = [requests.post(f"{BASE_URL}/iot/eventos-edge", json=e, headers=_HEADERS_BROKER, timeout=TIMEOUT) for e in nodo.eventos]
 
     con = psycopg2.connect(**DB)
     try:

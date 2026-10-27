@@ -10,6 +10,7 @@ Contiene:
 from __future__ import annotations
 
 import os
+import requests
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional

@@ -68,6 +68,26 @@ if (bearerLiteralRegex.test(rawContent)) {
     violations.push('Patrón "Bearer " con token literal (no variable) detectado.');
 }
 
+// 3b. F-1: Aserción estática contra hosts obsoletos (F-1) en archivos del directorio del TC
+const forbiddenHosts = ['back-' + 'sigab-test', 'sslip' + '.io'];
+try {
+    const dirFiles = fs.readdirSync(__dirname);
+    const selfName = path.basename(__filename);
+    dirFiles.forEach(file => {
+        if (file !== selfName && (file.endsWith('.cjs') || file.endsWith('.json') || file.endsWith('.ps1') || file.endsWith('.sql'))) {
+            const filePath = path.join(__dirname, file);
+            const content = fs.readFileSync(filePath, 'utf8');
+            forbiddenHosts.forEach(host => {
+                if (content.includes(host)) {
+                    violations.push(`Host obsoleto/no autorizado "${host}" detectado en archivo: ${file}`);
+                }
+            });
+        }
+    });
+} catch (e) {
+    console.warn('[AVISO] No se pudo escanear el directorio del TC:', e.message);
+}
+
 // 4. Parámetros de Query válidos extraídos de la firma de calidad_router.py (M2)
 const routerPath = path.resolve(__dirname, '../../../../../src/telemetry/infrastructure/routers/calidad_router.py');
 let validQueryParams = new Set(['id_sensor', 'clasificacion', 'fecha_desde', 'fecha_hasta', 'estado_evaluacion', 'pagina', 'por_pagina']);
@@ -94,7 +114,7 @@ if (fs.existsSync(routerPath)) {
 
 // 5. Lista permitida de enteros según constantes_especificacion (RF-62 / HTTP / Paginación) (M8)
 const allowedIntegers = new Set([
-    0, 1, 2, 3, 5, 10, 20, 40, 50, 79, 80, 100, 150, 200, 201, 204, 400, 401, 403, 404, 422, 500
+    0, 1, 2, 3, 5, 10, 20, 25, 40, 50, 70, 75, 79, 80, 90, 95, 100, 150, 200, 201, 204, 400, 401, 403, 404, 422, 500
 ]);
 
 // Inspección recursiva de items

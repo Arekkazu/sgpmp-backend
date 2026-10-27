@@ -2,28 +2,18 @@
   "info": {
     "name": "TC-M04-G085: Retroalimentacion clinica y conflictos (RF-73)",
     "_postman_id": "a0485001-0000-4000-8000-000000000085",
-    "description": "Suite de auditoría para retroalimentación clínica veterinaria y detección de conflictos (RF-73 / RF-72) bajo Sandbox Transaccional SGPMP.",
+    "description": "Suite de auditoria para retroalimentacion clinica veterinaria y deteccion de conflictos (RF-73 / RF-72) bajo Sandbox Transaccional SGPMP.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "if (!pm.collectionVariables.get(\"run_id\")) {",
-          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
-          "}",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
-        ]
-      }
-    }
-  ],
   "variable": [
     {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test",
+      "type": "string"
+    },
+    {
       "key": "baseUrl",
-      "value": "https://api.inmero.co/back-sigab-test",
+      "value": "https://api.inmero.co/api-sgpmp-test",
       "type": "string"
     },
     {
@@ -33,7 +23,7 @@
     },
     {
       "key": "sandbox_secret",
-      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff",
+      "value": "",
       "type": "string"
     },
     {
@@ -42,36 +32,122 @@
       "type": "string"
     },
     {
-      "key": "token",
+      "key": "vet1_email",
+      "value": "juan.carlos@email.com",
+      "type": "string"
+    },
+    {
+      "key": "vet1_password",
       "value": "",
       "type": "string"
     },
     {
-      "key": "id_inferencia_valida",
+      "key": "vet2_email",
+      "value": "juanstesting@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "vet2_password",
       "value": "",
       "type": "string"
     },
     {
-      "key": "correlacion_id_g085",
-      "value": "e0485001-0000-4000-8000-000000000085",
+      "key": "jwt_admin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_vet1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_vet2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_vet1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_vet2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inferencia_1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inferencia_1_activo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inferencia_2_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inferencia_2_activo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_retro_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bug_reproducido",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "bug_detalle",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sandbox_cerrado",
+      "value": "false",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "01-Login-ADMIN",
+      "name": "01-Login-Admin",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var pwd = pm.environment.get(\"admin_password\") || pm.collectionVariables.get(\"admin_password\");",
+              "if (pwd) {",
+              "    pm.collectionVariables.set(\"admin_password\", pwd);",
+              "}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "pm.test(\"01.01: Status 200 en login admin\", function () {",
               "    pm.response.to.have.status(200);",
-              "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('token');",
-              "    pm.collectionVariables.set('token', data.token);",
-              "});"
+              "});",
+              "var data = pm.response.json();",
+              "var token = data.token || data.access_token || data.token_acceso;",
+              "pm.test(\"01.02: Token JWT admin presente\", function () {",
+              "    pm.expect(token, \"access_token no encontrado\").to.be.a(\"string\").and.not.empty;",
+              "});",
+              "pm.environment.set(\"jwt_admin\", token);",
+              "pm.collectionVariables.set(\"jwt_admin\", token);"
             ]
           }
         }
@@ -89,9 +165,9 @@
           "raw": "{\"correo_electronico\":\"administador.dev@gmail.com\",\"contrasena\":\"{{admin_password}}\"}"
         },
         "url": {
-          "raw": "{{baseUrl}}/sesiones/",
+          "raw": "{{base_url}}/sesiones/",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "sesiones",
@@ -101,22 +177,320 @@
       }
     },
     {
-      "name": "02-Explorar-Historial-Inferencias",
+      "name": "02-Login-Vet1",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var email = pm.environment.get(\"vet1_email\") || pm.collectionVariables.get(\"vet1_email\");",
+              "if (!email) {",
+              "    throw new Error(\"vet1_email no definido\");",
+              "}",
+              "var pwd = pm.environment.get(\"vet1_password\") || pm.collectionVariables.get(\"vet1_password\");",
+              "if (pwd) {",
+              "    pm.collectionVariables.set(\"vet1_password\", pwd);",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"02.01: Status 200 en login vet1\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var data = pm.response.json();",
+              "var token = data.token || data.access_token || data.token_acceso;",
+              "pm.test(\"02.02: Token JWT vet1 presente\", function () {",
+              "    pm.expect(token, \"JWT vet1 no encontrado\").to.be.a(\"string\").and.not.empty;",
+              "});",
+              "pm.environment.set(\"jwt_vet1\", token);",
+              "pm.collectionVariables.set(\"jwt_vet1\", token);",
+              "const token_vet1 = pm.response.json().access_token || pm.response.json().token;",
+              "const payload_vet1 = JSON.parse(atob(token_vet1.split('.')[1]));",
+              "pm.environment.set(\"id_vet1\", payload_vet1.sub);",
+              "pm.test(\"02.03: ID vet1 extraido del claim sub\", function() {",
+              "    pm.expect(payload_vet1.sub).to.not.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{vet1_email}}\",\"contrasena\":\"{{vet1_password}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "03-Login-Vet2",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var email = pm.environment.get(\"vet2_email\") || pm.collectionVariables.get(\"vet2_email\");",
+              "if (!email) {",
+              "    throw new Error(\"vet2_email no definido\");",
+              "}",
+              "var pwd = pm.environment.get(\"vet2_password\") || pm.collectionVariables.get(\"vet2_password\");",
+              "if (pwd) {",
+              "    pm.collectionVariables.set(\"vet2_password\", pwd);",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"03.01: Status 200 en login vet2\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var data = pm.response.json();",
+              "var token = data.token || data.access_token || data.token_acceso;",
+              "pm.test(\"03.02: Token JWT vet2 presente\", function () {",
+              "    pm.expect(token, \"JWT vet2 no encontrado\").to.be.a(\"string\").and.not.empty;",
+              "});",
+              "pm.environment.set(\"jwt_vet2\", token);",
+              "pm.collectionVariables.set(\"jwt_vet2\", token);",
+              "const token_vet2 = pm.response.json().access_token || pm.response.json().token;",
+              "const payload_vet2 = JSON.parse(atob(token_vet2.split('.')[1]));",
+              "pm.environment.set(\"id_vet2\", payload_vet2.sub);",
+              "pm.test(\"03.03: ID vet2 extraido del claim sub\", function() {",
+              "    pm.expect(payload_vet2.sub).to.not.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\":\"{{vet2_email}}\",\"contrasena\":\"{{vet2_password}}\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "04-Preparar-Sandbox-Inferencias",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var runId = pm.environment.get(\"run_id\") || pm.collectionVariables.get(\"run_id\");",
+              "if (!runId) {",
+              "    runId = \"test-m04-g085-\" + pm.variables.replaceIn('{{$guid}}');",
+              "    pm.environment.set(\"run_id\", runId);",
+              "    pm.collectionVariables.set(\"run_id\", runId);",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"04.01: Status 200 en preparacion de sandbox y consulta de inferencias\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var res = pm.response.json();",
+              "var rows = res.data || res.rows || res.items || [];",
+              "pm.test(\"04.02: Al menos 2 inferencias vigentes de finca 184 encontradas\", function () {",
+              "    pm.expect(rows.length, \"Inferencias insuficientes en sandbox\").to.be.at.least(2);",
+              "});",
+              "if (rows.length >= 2) {",
+              "    pm.environment.set(\"inferencia_1_id\", rows[0].id_resultado_inferencia);",
+              "    pm.collectionVariables.set(\"inferencia_1_id\", rows[0].id_resultado_inferencia);",
+              "    pm.environment.set(\"inferencia_1_activo\", rows[0].id_activo_biologico);",
+              "    pm.collectionVariables.set(\"inferencia_1_activo\", rows[0].id_activo_biologico);",
+              "",
+              "    pm.environment.set(\"inferencia_2_id\", rows[1].id_resultado_inferencia);",
+              "    pm.collectionVariables.set(\"inferencia_2_id\", rows[1].id_resultado_inferencia);",
+              "    pm.environment.set(\"inferencia_2_activo\", rows[1].id_activo_biologico);",
+              "    pm.collectionVariables.set(\"inferencia_2_activo\", rows[1].id_activo_biologico);",
+              "",
+              "    console.log(\"[SETUP] Inferencia 1:\", rows[0].id_resultado_inferencia, \"Activo:\", rows[0].id_activo_biologico);",
+              "    console.log(\"[SETUP] Inferencia 2:\", rows[1].id_resultado_inferencia, \"Activo:\", rows[1].id_activo_biologico);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"query\":\"SELECT ri.id_resultado_inferencia, ri.id_activo_biologico FROM modulo4.resultados_inferencia ri LEFT JOIN modulo4.retroalimentaciones_clinicas rc ON rc.id_resultado_inferencia = ri.id_resultado_inferencia WHERE rc.id_retroalimentacion IS NULL AND ri.id_activo_biologico = 876 AND ri.fecha_inferencia >= NOW() - INTERVAL '90 days' ORDER BY ri.fecha_inferencia DESC LIMIT 3\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/test-control/query",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test-control",
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05-Subcaso-1-Post-Retroalimentacion-Vet1",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"02.01: Consulta de historial diagnóstico M04 (HTTP 200)\", function () {",
+              "pm.test(\"05.01: Status 200 o 201 en registro retroalimentacion vet1\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "var data = pm.response.json();",
+              "pm.test(\"05.02: ID de retroalimentacion presente y estado CORRECTO\", function () {",
+              "    var idRetro = data.id_retroalimentacion || data.id;",
+              "    pm.expect(idRetro, \"id_retroalimentacion no presente\").to.be.ok;",
+              "    pm.expect(data.estado_retroalimentacion).to.eql(\"CORRECTO\");",
+              "    pm.environment.set(\"id_retro_1\", idRetro);",
+              "    pm.collectionVariables.set(\"id_retro_1\", idRetro);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_vet1}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_resultado_inferencia\":\"{{inferencia_1_id}}\",\"id_activo_biologico\":{{inferencia_1_activo}},\"estado_retroalimentacion\":\"CORRECTO\",\"observaciones_clinicas\":\"QA G085 subcaso 1 - retroalimentacion valida\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/prediccion/retroalimentacion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "retroalimentacion"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06-Subcaso-1-Verificar-Retroalimentacion-Registrada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"06.01: Status 200 en consulta auditoria RETROALIMENTACION_REGISTRADA\", function () {",
               "    pm.response.to.have.status(200);",
-              "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('items');",
-              "    if (data.items && data.items.length > 0) {",
-              "        pm.collectionVariables.set('id_inferencia_valida', data.items[0].id_resultado_inferencia);",
-              "        console.log('[INFO] Inferencia existente descubierta:', data.items[0].id_resultado_inferencia);",
-              "    } else {",
-              "        console.log('[INFO] No hay inferencias preexistentes en la base de datos de TEST.');",
+              "});",
+              "var body = pm.response.json();",
+              "var inf1Id = pm.environment.get(\"inferencia_1_id\") || pm.collectionVariables.get(\"inferencia_1_id\");",
+              "var idRetro1 = pm.environment.get(\"id_retro_1\") || pm.collectionVariables.get(\"id_retro_1\");",
+              "var idVet1 = pm.environment.get(\"id_vet1\") || pm.collectionVariables.get(\"id_vet1\");",
+              "",
+              "pm.test(\"06.02: Total eventos RETROALIMENTACION_REGISTRADA >= 1\", function () {",
+              "    pm.expect(body.total).to.be.at.least(1);",
+              "});",
+              "",
+              "var items = body.items || [];",
+              "var matchItem = items.find(function (it) {",
+              "    if (!it) return false;",
+              "    var p = it.payload_evento || {};",
+              "    return (p.id_resultado_inferencia === inf1Id) || (it.id_referencia === idRetro1);",
+              "});",
+              "",
+              "pm.test(\"06.03: Evento RETROALIMENTACION_REGISTRADA para inferencia 1 localizado\", function () {",
+              "    pm.expect(matchItem, \"No se encontro evento para inferencia 1\").to.be.ok;",
+              "    if (matchItem) {",
+              "        pm.expect(matchItem.tipo_actor).to.eql(\"USUARIO\");",
+              "        pm.expect(String(matchItem.id_usuario)).to.eql(String(idVet1));",
+              "        pm.expect(matchItem.severidad_evento).to.eql(\"INFO\");",
+              "        var p = matchItem.payload_evento || {};",
+              "        var flagConflicto = p.conflicto_retroalimentacion !== undefined ? p.conflicto_retroalimentacion : p.es_conflicto_retroalimentacion;",
+              "        pm.expect(flagConflicto).to.be.false;",
               "    }",
               "});"
             ]
@@ -128,22 +502,30 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/historial-diagnostico?pagina=1&por_pagina=10",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=RETROALIMENTACION_REGISTRADA&por_pagina=10",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
-            "historial-diagnostico"
+            "auditoria"
           ],
           "query": [
             {
-              "key": "pagina",
-              "value": "1"
+              "key": "tipo_evento",
+              "value": "RETROALIMENTACION_REGISTRADA"
             },
             {
               "key": "por_pagina",
@@ -154,53 +536,210 @@
       }
     },
     {
-      "name": "03-TC-M04-262-Retroalimentacion-Registrada-Diagnostico",
+      "name": "07-Subcaso-2-Post-Retroalimentacion-Vet1",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-262 (RETROALIMENTACION_REGISTRADA): La precondición requiere un id_resultado_inferencia válido generado por API. Al no estar expuesto el motor RF-66, el caso queda BLOQUEADO conforme a las instrucciones de QA.');"
+              "pm.test(\"07.01: Status 200 o 201 en registro retroalimentacion subcaso 2 vet1\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_vet1}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
           }
         ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_resultado_inferencia\":\"{{inferencia_2_id}}\",\"id_activo_biologico\":{{inferencia_2_activo}},\"estado_retroalimentacion\":\"CORRECTO\",\"observaciones_clinicas\":\"QA G085 subcaso 2 vet1\"}"
+        },
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=RETROALIMENTACION_REGISTRADA",
+          "raw": "{{base_url}}/prediccion/retroalimentacion",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
-            "auditoria"
-          ],
-          "query": [
-            {
-              "key": "tipo_evento",
-              "value": "RETROALIMENTACION_REGISTRADA"
-            }
+            "retroalimentacion"
           ]
         }
       }
     },
     {
-      "name": "04-TC-M04-263-Conflicto-Retroalimentacion-Diagnostico",
+      "name": "08-Subcaso-2-Post-Retroalimentacion-Vet2",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-263 (CONFLICTO_RETROALIMENTACION): Requiere emitir dos feedbacks contradictorios sobre la misma inferencia. Bloqueado por ausencia de inferencias generables vía API.');"
+              "pm.test(\"08.01: Status 200 o 201 en registro retroalimentacion conflictiva vet2\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "if (pm.response.code !== 200 && pm.response.code !== 201) {",
+              "    console.warn(\"[WARN] Registro conflictivo vet2 fallo con codigo:\", pm.response.code, pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_vet2}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_resultado_inferencia\":\"{{inferencia_2_id}}\",\"id_activo_biologico\":{{inferencia_2_activo}},\"estado_retroalimentacion\":\"INCORRECTO\",\"diagnosticos_reales\":[1],\"observaciones_clinicas\":\"QA G085 subcaso 2 vet2 conflicto\",\"fuente_diagnostico\":\"OBSERVACION_DIRECTA\"}"
+        },
+        "url": {
+          "raw": "{{base_url}}/prediccion/retroalimentacion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "retroalimentacion"
+          ]
+        }
+      }
+    },
+    {
+      "name": "09-Subcaso-2-Verificar-Eventos-Conflicto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var baseUrl = pm.environment.get(\"base_url\") || pm.collectionVariables.get(\"base_url\") || \"https://api.inmero.co/api-sgpmp-test\";",
+              "var jwtAdmin = pm.environment.get(\"jwt_admin\") || pm.collectionVariables.get(\"jwt_admin\");",
+              "var runId = pm.environment.get(\"run_id\") || pm.collectionVariables.get(\"run_id\");",
+              "var inf2Id = pm.environment.get(\"inferencia_2_id\") || pm.collectionVariables.get(\"inferencia_2_id\");",
+              "var sandboxSecret = pm.environment.get(\"sandbox_secret\") || pm.collectionVariables.get(\"sandbox_secret\");",
+              "",
+              "// 9b. Asercion principal sobre respuesta CONFLICTO_RETROALIMENTACION",
+              "pm.test(\"09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var data9b = pm.response.json();",
+              "pm.test(\"09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)\", function () {",
+              "    pm.expect(data9b.total, \"Evento CONFLICTO_RETROALIMENTACION no emitido (esperado por el caso - afectado por bug INC-M04-151-G085)\").to.be.at.least(1);",
+              "    if (data9b.items && data9b.items.length > 0) {",
+              "        var ev = data9b.items[0];",
+              "        pm.expect(ev.severidad_evento).to.eql(\"WARNING\");",
+              "        var p = ev.payload_evento || {};",
+              "        var num = p.numero_retroalimentaciones || p.total_retroalimentaciones;",
+              "        pm.expect(num).to.eql(2);",
+              "        if (p.estados_registrados) {",
+              "            pm.expect(p.estados_registrados).to.include(\"CORRECTO\");",
+              "            pm.expect(p.estados_registrados).to.include(\"INCORRECTO\");",
+              "        }",
+              "    }",
+              "});",
+              "",
+              "// 9a. Consulta secundaria para verificar retroalimentaciones registradas sobre inferencia 2",
+              "pm.sendRequest({",
+              "    url: baseUrl + \"/prediccion/auditoria?tipo_evento=RETROALIMENTACION_REGISTRADA&por_pagina=20\",",
+              "    method: \"GET\",",
+              "    header: {",
+              "        \"Authorization\": \"Bearer \" + jwtAdmin,",
+              "        \"X-Test-Run-Id\": runId,",
+              "        \"X-Sandbox-Secret\": sandboxSecret",
+              "    }",
+              "}, function (err, res) {",
+              "    pm.test(\"09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2\", function () {",
+              "        pm.expect(err).to.be.null;",
+              "        pm.expect(res.code).to.eql(200);",
+              "    });",
+              "    if (!err && res.code === 200) {",
+              "        var body9a = res.json();",
+              "        var itemsInf2 = (body9a.items || []).filter(function (it) {",
+              "            return it.payload_evento && it.payload_evento.id_resultado_inferencia === inf2Id;",
+              "        });",
+              "        pm.test(\"09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado\", function () {",
+              "            pm.expect(itemsInf2.length).to.be.at.least(2);",
+              "            if (itemsInf2.length >= 2) {",
+              "                var masReciente = itemsInf2[0];",
+              "                var p = masReciente.payload_evento || {};",
+              "                var flag = p.conflicto_retroalimentacion !== undefined ? p.conflicto_retroalimentacion : p.es_conflicto_retroalimentacion;",
+              "                pm.expect(flag).to.be.true;",
+              "            }",
+              "        });",
+              "    }",
+              "});",
+              "",
+              "// 9c. Consulta diagnostica para evidencia del bug INC-M04-151-G085 (AUDITORIA_EVENTO_INVALIDO)",
+              "pm.sendRequest({",
+              "    url: baseUrl + \"/prediccion/auditoria?tipo_evento=AUDITORIA_EVENTO_INVALIDO&por_pagina=10\",",
+              "    method: \"GET\",",
+              "    header: {",
+              "        \"Authorization\": \"Bearer \" + jwtAdmin,",
+              "        \"X-Test-Run-Id\": runId,",
+              "        \"X-Sandbox-Secret\": sandboxSecret",
+              "    }",
+              "}, function (err, res) {",
+              "    pm.test(\"09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO\", function () {",
+              "        pm.expect(err).to.be.null;",
+              "        pm.expect(res.code).to.eql(200);",
+              "    });",
+              "    if (!err && res.code === 200) {",
+              "        var body9c = res.json();",
+              "        var bugDetectado = false;",
+              "        var bugPayload = null;",
+              "        (body9c.items || []).forEach(function (it) {",
+              "            var pStr = JSON.stringify(it.payload_evento || {});",
+              "            if (pStr.indexOf(\"numero_retroalimentaciones\") !== -1 || pStr.indexOf(\"total_retroalimentaciones\") !== -1) {",
+              "                bugDetectado = true;",
+              "                bugPayload = it.payload_evento;",
+              "            }",
+              "        });",
+              "        if (bugDetectado) {",
+              "            pm.environment.set(\"bug_reproducido\", \"true\");",
+              "            pm.environment.set(\"bug_detalle\", JSON.stringify(bugPayload));",
+              "            console.log(\"[BUG DETECTADO INC-M04-151-G085]: AUDITORIA_EVENTO_INVALIDO persistido por discrepancia numero_retroalimentaciones\");",
+              "        } else {",
+              "            pm.environment.set(\"bug_reproducido\", \"false\");",
+              "        }",
+              "    }",
+              "});"
             ]
           }
         }
@@ -210,13 +749,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=CONFLICTO_RETROALIMENTACION",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=CONFLICTO_RETROALIMENTACION&por_pagina=10",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -226,25 +773,31 @@
             {
               "key": "tipo_evento",
               "value": "CONFLICTO_RETROALIMENTACION"
+            },
+            {
+              "key": "por_pagina",
+              "value": "10"
             }
           ]
         }
       }
     },
     {
-      "name": "05-Teardown-Sandbox-Rollback",
+      "name": "10-Teardown-Sandbox",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "pm.test(\"10.01: Teardown de Sandbox exitoso (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
               "    var data = pm.response.json();",
-              "    var statusMsg = data.status || data.mensaje || \"\";",
-              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
-              "});"
+              "    var msg = data.status || data.mensaje || \"\";",
+              "    pm.expect(msg).to.include(\"Rollback exitoso\");",
+              "});",
+              "pm.environment.set(\"sandbox_cerrado\", \"true\");",
+              "pm.collectionVariables.set(\"sandbox_cerrado\", \"true\");"
             ]
           }
         }
@@ -253,14 +806,18 @@
         "method": "DELETE",
         "header": [
           {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
             "key": "X-Sandbox-Secret",
             "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "raw": "{{base_url}}/test-control/runs/{{run_id}}",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "test-control",

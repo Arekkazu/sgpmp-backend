@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-07 RF-74: recalcular el ICA consolida la alerta abierta en vez de duplicarla |
 """Puerto para generar la alerta de conversión alimenticia crítica (RF-74 paso 8, CA-3).
 
 Al clasificar ``CRITICA`` se persiste una alerta en ``modulo3.alertas`` reutilizando
@@ -24,5 +27,5 @@ class AlertaICAPort(ABC):
         fecha_evento: datetime,
     ) -> Optional[int]:
         """Inserta una alerta CONVERSION_ALIMENTICIA / CRITICO (``flush()``); devuelve
-        el id de la alerta creada."""
+        su id. Si el activo ya tiene una abierta, la consolida (CA-4) y devuelve esa."""
         raise NotImplementedError

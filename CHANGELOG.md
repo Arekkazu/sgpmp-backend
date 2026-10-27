@@ -1,3 +1,64 @@
+## [1.4.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.8...v1.4.0-rc.9) (2026-10-26)
+
+### Features
+
+* **rf57-telemetry:** filtro de alertas por area (T-18) ([5487e5c](https://github.com/Arekkazu/sgpmp-backend/commit/5487e5c0370dd3252a2d401881f44393a234398b))
+
+### Bug Fixes
+
+* **rf57-telemetry:** la alerta trae el nombre del activo ademas de la ubicacion (T-18) ([baf594f](https://github.com/Arekkazu/sgpmp-backend/commit/baf594ffdad449cca508fd299d5d19fcc25f80c2))
+* **rf58-telemetry:** dashboard e historial con la unidad del catalogo I3P-1 antes que la de la lectura (M3-09) ([332b5d1](https://github.com/Arekkazu/sgpmp-backend/commit/332b5d14ad11d1911058e7ed236eff4b5be1cf45))
+* **rf58-telemetry:** el dashboard trae el conteo del semaforo de todos los sensores, no de la pagina (M3-08) ([1db6ddd](https://github.com/Arekkazu/sgpmp-backend/commit/1db6dddc5c9d3860d3987fb9de198490be443356))
+* **rf60-telemetry:** firmware con prefijo v se compara por segmentos (M3-12) ([717bb80](https://github.com/Arekkazu/sgpmp-backend/commit/717bb80ca59759a9d3dd60e6011697f32fc128a5))
+* **rf61-telemetry:** vinculaciones con nombres de activo, area, finca, variable y usuario (T-18) ([dd4bb41](https://github.com/Arekkazu/sgpmp-backend/commit/dd4bb417ae977bcd4ecfa8b3eae6748e168e6a1e)), closes [#115703](https://github.com/Arekkazu/sgpmp-backend/issues/115703) [#854](https://github.com/Arekkazu/sgpmp-backend/issues/854) [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391)
+* **rf63-telemetry:** la bitacora IoT se limita a los equipos de las fincas del usuario salvo para el auditor (M3-14) ([bb36a38](https://github.com/Arekkazu/sgpmp-backend/commit/bb36a383d5232eeaf7456dd793c795fb1deba421))
+* **rf63-telemetry:** reintentos postcommit con espera creciente en vez de un fallo por minuto (M3-12) ([1a24381](https://github.com/Arekkazu/sgpmp-backend/commit/1a243816eedde752f1e2dda8b24926da897c0cf0))
+* **rf64-prediction:** patologias con nombre y unidad de cada variable y nombre de la especie (M4-02) ([481bce8](https://github.com/Arekkazu/sgpmp-backend/commit/481bce8a0317590e037e98445221bc6c554a4a69))
+* **rf73-prediction:** la auditoria M04 trae el nombre del usuario actor (T-18) ([4e456a1](https://github.com/Arekkazu/sgpmp-backend/commit/4e456a1759adaad7ae32c790ed4ae578777884de))
+* **rf74-supplies:** recalcular el ICA consolida la alerta critica abierta en vez de duplicarla (M3-07) ([25c1364](https://github.com/Arekkazu/sgpmp-backend/commit/25c1364acf1191f2e26ce47a2ab1c8dec71b16e2))
+* **telemetry:** SQL literal en text() en nombres de vinculaciones para el SAST CWE-89 (RF-61) ([cb54cda](https://github.com/Arekkazu/sgpmp-backend/commit/cb54cda835979f74e37da586335588b64cc53da0))
+
+## [1.4.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.7...v1.4.0-rc.8) (2026-10-26)
+
+### Bug Fixes
+
+* **alembic:** une los heads 4e7a1c9d2f60 y f62b120bb13f que dejo el merge de [#733](https://github.com/Arekkazu/sgpmp-backend/issues/733) (INC-M03-150-G92) ([6b116a2](https://github.com/Arekkazu/sgpmp-backend/commit/6b116a2a4b473a935ddbbe6033c212335749f1e7))
+
+## [1.4.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.6...v1.4.0-rc.7) (2026-10-25)
+
+### Bug Fixes
+
+* **rf22-mod9:** registrar sensor sin INSERT ... RETURNING bajo RLS (INC-M03-124-G01) ([d3d6ec3](https://github.com/Arekkazu/sgpmp-backend/commit/d3d6ec39663b9ba21e726788dd6f51b3378b14e3)), closes [#679](https://github.com/Arekkazu/sgpmp-backend/issues/679)
+* **rf58-telemetry:** el semaforo vuelve al color de la lectura al resolver o descartar la alerta (INC-M03-149-G89) ([2380f47](https://github.com/Arekkazu/sgpmp-backend/commit/2380f475abe2653cd85bfbfddc070870cfcb953f)), closes [#705](https://github.com/Arekkazu/sgpmp-backend/issues/705)
+* **rf62-telemetry:** calidad de vision ponderada y asincrona (INC-M03-134-G192) ([0e559f9](https://github.com/Arekkazu/sgpmp-backend/commit/0e559f91c5669f1ec7207dc31ad67e334272cc70)), closes [#689](https://github.com/Arekkazu/sgpmp-backend/issues/689)
+* **rf63-telemetry:** bitacora IoT completa, filtrable y con verificacion acotada (INC-M03-135/136/137/147) ([7907525](https://github.com/Arekkazu/sgpmp-backend/commit/79075257a46534430c4f457cdf9a90e24f041c0e)), closes [#690](https://github.com/Arekkazu/sgpmp-backend/issues/690) [#691](https://github.com/Arekkazu/sgpmp-backend/issues/691) [#692](https://github.com/Arekkazu/sgpmp-backend/issues/692) [#702](https://github.com/Arekkazu/sgpmp-backend/issues/702)
+* **rf64-prediction:** version del catalogo, nombre normalizado, variables unicas y busqueda (INC-M04-138/139/140/142) ([7aed822](https://github.com/Arekkazu/sgpmp-backend/commit/7aed8227eb281ea17f700ba766bdac6f116f352c)), closes [#693](https://github.com/Arekkazu/sgpmp-backend/issues/693) [#694](https://github.com/Arekkazu/sgpmp-backend/issues/694) [#695](https://github.com/Arekkazu/sgpmp-backend/issues/695) [#697](https://github.com/Arekkazu/sgpmp-backend/issues/697)
+* **rf67-prediction:** encadenar 4e7a1c9d2f60 tras 8c4e2a6f1b93 para un solo head de Alembic ([ec029d0](https://github.com/Arekkazu/sgpmp-backend/commit/ec029d028e34448fcf77e5f4a9511480362bb7bc)), closes [#718](https://github.com/Arekkazu/sgpmp-backend/issues/718) [#721](https://github.com/Arekkazu/sgpmp-backend/issues/721)
+* **rf67-prediction:** historial diagnostico ordenado, estable, con nombre historico e inmutable (INC-M04-143/144/145/146) ([000a9bd](https://github.com/Arekkazu/sgpmp-backend/commit/000a9bdff8394a4b6204c3f6106c15819710d281)), closes [#698](https://github.com/Arekkazu/sgpmp-backend/issues/698) [#699](https://github.com/Arekkazu/sgpmp-backend/issues/699) [#700](https://github.com/Arekkazu/sgpmp-backend/issues/700) [#701](https://github.com/Arekkazu/sgpmp-backend/issues/701)
+* **rf67-prediction:** md5 del id de alerta con usedforsecurity=False (Bandit B324) ([c7d02ce](https://github.com/Arekkazu/sgpmp-backend/commit/c7d02ce25d5d607d41b3db52838f85eed2b98c71))
+* **rf70-prediction:** registrar HASH_INVALIDO_DETECTADO en la OTA (INC-M04-152-G083) ([a8d7593](https://github.com/Arekkazu/sgpmp-backend/commit/a8d75933ac28c4631b63fea72acceac452a96fe8)), closes [#709](https://github.com/Arekkazu/sgpmp-backend/issues/709)
+* **rf73-prediction:** payload minimo de CONFLICTO_RETROALIMENTACION (INC-M04-154-G085) ([0daa24e](https://github.com/Arekkazu/sgpmp-backend/commit/0daa24e4a0ac76a66695012bc0bce034c17e338f)), closes [#711](https://github.com/Arekkazu/sgpmp-backend/issues/711)
+* **rf73-prediction:** persistir origen_dato en la bitacora M04 (INC-M04-151-G081) ([4400b74](https://github.com/Arekkazu/sgpmp-backend/commit/4400b7461153e5dd7614e698a061c0843d36d946)), closes [#708](https://github.com/Arekkazu/sgpmp-backend/issues/708)
+
+## [1.4.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.5...v1.4.0-rc.6) (2026-10-25)
+
+### Bug Fixes
+
+* **rls:** alinea SELECT/UPDATE de sensores a criterio directo por dispositivo ([0808894](https://github.com/Arekkazu/sgpmp-backend/commit/08088948c6dfdf577559ba3182abfc69f50bbc6e))
+* **rls:** encadenar f62b120bb13f al head de dev (INC-M03-150-G92) ([9a7fcda](https://github.com/Arekkazu/sgpmp-backend/commit/9a7fcdac8a774336351fb72ae53dc9c6ec64d831))
+
+## [1.4.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.4...v1.4.0-rc.5) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** keepalives en la conexión de Alembic para CREATE INDEX CONCURRENTLY ([29c2942](https://github.com/Arekkazu/sgpmp-backend/commit/29c2942a40463367b6ddeebcf3d8c5f8bc6bc919))
+
+## [1.4.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.3...v1.4.0-rc.4) (2026-10-25)
+
+### Bug Fixes
+
+* **rf63-telemetry:** el worker postcommit deja de pasar el statement_timeout en la bitacora IoT ([484ae6a](https://github.com/Arekkazu/sgpmp-backend/commit/484ae6ad6ff43bbde211495bb4434122f4dfa4c2))
+
 ## [1.4.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.2...v1.4.0-rc.3) (2026-10-25)
 
 ### Features

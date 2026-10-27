@@ -25,7 +25,8 @@ simulador, y el backend no expone el buffer (no existe GET /dispositivos/{id}/bu
 - La desconexion de 30 min se comprime: 30 lecturas con timestamps separados 1 min (dentro de la ventana
   de 72 h de BUFFER_LOCAL), sin esperar 30 min reales.
 
-Requisitos: acceso de red a TEST. Variables opcionales: BASE_URL.
+Requisitos: acceso de red a TEST. Variables: BROKER_TOKEN (token de servicio del broker de TEST, DEV-06;
+sin el /iot/* responde 401) y BASE_URL (opcional).
 
 Como correrlo (desde la raiz del repo):
 
@@ -48,6 +49,11 @@ import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 
 
 # --------------------------------------------------------------------------- simulador (driver)
@@ -92,12 +98,13 @@ class _NodoEdgeSimulado:
         return {
             "device_id": self.device_id, "sensor_id": self.sensor_id,
             "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": valor, "unidad": "°C",
-            "timestamp_captura": ts.isoformat(), "origen": origen, "access_key": self.access_key,
+            "timestamp_captura": ts.isoformat(), "origen": origen, "serial": self.access_key,
         }
 
     def capturar(self, ts: datetime, valor: float) -> Optional[requests.Response]:
         if self.conectado:
-            return requests.post(f"{BASE_URL}/iot/telemetria", json=self._lectura(ts, valor, "TIEMPO_REAL"), timeout=TIMEOUT)
+            return requests.post(f"{BASE_URL}/iot/telemetria", json=self._lectura(ts, valor, "TIEMPO_REAL"),
+                                 headers=_HEADERS_BROKER, timeout=TIMEOUT)
         self.buffer.append({"indice": self._siguiente_indice, **self._lectura(ts, valor, "BUFFER_LOCAL")})
         self._siguiente_indice += 1
         self.persistir()
@@ -110,12 +117,15 @@ class _NodoEdgeSimulado:
         return requests.post(
             f"{BASE_URL}/iot/heartbeat",
             json={
+                # DEV-06: device_id y serial viajan en el cuerpo (antes headers X-Device-Id / X-Device-API-Key).
+                "device_id": self.device_id,
+                "serial": self.access_key,
                 "tipo_mensaje": "HEARTBEAT",
                 "estado_local_buffer": "A" if self.pendientes() else "I",
                 "datos_pendientes_buffer": len(self.pendientes()),
                 "fecha_registro": datetime.now(timezone.utc).isoformat(),
             },
-            headers={"X-Device-Id": str(self.device_id), "X-Device-API-Key": self.access_key},
+            headers=_HEADERS_BROKER,
             timeout=TIMEOUT,
         )
 
@@ -126,6 +136,7 @@ class _NodoEdgeSimulado:
         r = requests.post(
             f"{BASE_URL}/iot/telemetria/batch",
             json={"registros": [{k: v for k, v in x.items() if k != "indice"} for x in lote]},
+            headers=_HEADERS_BROKER,
             timeout=TIMEOUT,
         )
         if r.status_code == 200 and persistir_indice and lote:

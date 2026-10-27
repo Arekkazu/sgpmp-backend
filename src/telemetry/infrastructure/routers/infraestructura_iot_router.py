@@ -4,6 +4,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: aplica alcance de finca al mantenimiento |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
+# | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -58,6 +59,7 @@ from src.telemetry.infrastructure.schema.alerta_schema import AlertaSchema, List
 from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import DispositivoConEstadoSchema, EstadoDispositivoDetalleSchema, EstadoDispositivoIoTSchema, HistoricoTransicionSchema
 from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
 from src.shared.fechas import FechaHoraUtc
+from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
@@ -295,6 +297,7 @@ def actualizar_estado_alerta_tecnica(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
         ambito=AmbitoAlerta.TECNICA,
+        recalcular_semaforo=lambda id_sensor: recalcular_semaforo_sensor(db, id_sensor),
     )
     permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario,usuario_actual.id_rol)

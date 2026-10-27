@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: prueba persistencia triggers recuperacion y concurrencia |
+# | 2026-10-25 | Arekkazu | INC-M03-135-G177 RF-63: verificar-integridad exige la ventana de fechas |
 """PostgreSQL real aislado. MQTT se representa por su función de persistencia."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
@@ -339,7 +340,10 @@ def test_get_integridad_autorizado_no_cae_en_ruta_uuid(db_session, monkeypatch):
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id_estado_cuenta=2, id_rol=99)
     monkeypatch.setattr(rbac, 'tiene_permiso', lambda *a, **k: True)
     with TestClient(app) as client:
-        respuesta = client.get('/iot/auditoria/verificar-integridad')
+        # INC-M03-135-G177: la ventana es obligatoria; sin ella responde 400.
+        assert client.get('/iot/auditoria/verificar-integridad').status_code == 400
+        respuesta = client.get('/iot/auditoria/verificar-integridad', params={
+            'fecha_desde': '2026-01-01T00:00:00Z', 'fecha_hasta': '2026-01-02T00:00:00Z'})
     assert respuesta.status_code == 200 and respuesta.json()['comprometidos'] == 0
 
 

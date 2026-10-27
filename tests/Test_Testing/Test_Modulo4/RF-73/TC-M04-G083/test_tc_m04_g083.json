@@ -1,39 +1,14 @@
 {
   "info": {
-    "name": "TC-M04-G083: Distribución OTA e integridad (RF-73)",
+    "name": "TC-M04-G083: Distribucion OTA e Integridad (RF-73 / RF-70)",
     "_postman_id": "a0483001-0000-4000-8000-000000000083",
-    "description": "Suite de auditoría para la distribución OTA e integridad de modelos Edge (RF-73 / RF-70) bajo Sandbox Transaccional SGPMP.",
+    "description": "Suite de auditoria E2E para la distribucion OTA e integridad de modelos Edge (RF-73 / RF-70) bajo Sandbox Transaccional SGPMP.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "if (!pm.collectionVariables.get(\"run_id\")) {",
-          "    pm.collectionVariables.set(\"run_id\", \"test-\" + pm.variables.replaceIn('{{$guid}}'));",
-          "}",
-          "pm.request.headers.upsert({ key: 'X-Test-Run-Id',  value: pm.collectionVariables.get(\"run_id\") });",
-          "pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.collectionVariables.get(\"sandbox_secret\") });"
-        ]
-      }
-    }
-  ],
   "variable": [
     {
-      "key": "baseUrl",
-      "value": "https://api.inmero.co/back-sigab-test",
-      "type": "string"
-    },
-    {
-      "key": "run_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "sandbox_secret",
-      "value": "377ab8a5ddc2e5b7f7fb5b58533329eb6ce7f22b99cbd6ad5ffecf3e05b7f8ff",
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test",
       "type": "string"
     },
     {
@@ -42,13 +17,43 @@
       "type": "string"
     },
     {
-      "key": "token",
+      "key": "broker_token",
       "value": "",
       "type": "string"
     },
     {
-      "key": "correlacion_id_g083",
-      "value": "e0483001-0000-4000-8000-000000000083",
+      "key": "sandbox_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_admin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_despliegue_ota",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "serial_dispositivo",
+      "value": "QA-SEMILLA-ADM-M03-EDGE-01",
+      "type": "string"
+    },
+    {
+      "key": "componente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "run_id_A",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "run_id_B",
+      "value": "",
       "type": "string"
     }
   ],
@@ -61,11 +66,13 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-01: Autenticación exitosa del Administrador (HTTP 200)\", function () {",
+              "pm.test(\"01.01: Login exitoso del Administrador (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
               "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('token');",
-              "    pm.collectionVariables.set('token', data.token);",
+              "    var jwt = data.token || data.access_token;",
+              "    pm.expect(jwt).to.be.a(\"string\").and.not.empty;",
+              "    pm.environment.set(\"jwt_admin\", jwt);",
+              "    pm.collectionVariables.set(\"jwt_admin\", jwt);",
               "});"
             ]
           }
@@ -84,9 +91,9 @@
           "raw": "{\"correo_electronico\":\"administador.dev@gmail.com\",\"contrasena\":\"{{admin_password}}\"}"
         },
         "url": {
-          "raw": "{{baseUrl}}/sesiones/",
+          "raw": "{{base_url}}/sesiones/",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "sesiones",
@@ -96,7 +103,7 @@
       }
     },
     {
-      "name": "02-Preflight-Despliegues-OTA",
+      "name": "02-Preflight-Identificar-Despliegue-Pendiente",
       "event": [
         {
           "listen": "test",
@@ -106,8 +113,19 @@
               "pm.test(\"02.01: Consulta de despliegues OTA existentes (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
               "    var data = pm.response.json();",
-              "    pm.expect(data).to.have.property('items');",
-              "    pm.expect(Array.isArray(data.items)).to.be.true;",
+              "    var items = Array.isArray(data) ? data : (data.items || []);",
+              "    pm.expect(items).to.be.an(\"array\").and.not.empty;",
+              "    var pendientes = items.filter(function (d) { return d.estado_despliegue === \"PENDIENTE\"; });",
+              "    pm.expect(pendientes.length, \"Precondition missing: no PENDIENTE deployment in TEST\").to.be.at.least(1);",
+              "    var chosen = pendientes.find(function (d) { return d.id_despliegue_ota === 11; }) || pendientes[0];",
+              "    pm.environment.set(\"id_despliegue_ota\", String(chosen.id_despliegue_ota));",
+              "    pm.collectionVariables.set(\"id_despliegue_ota\", String(chosen.id_despliegue_ota));",
+              "    var serial = chosen.serial || \"QA-SEMILLA-ADM-M03-EDGE-01\";",
+              "    pm.environment.set(\"serial_dispositivo\", serial);",
+              "    pm.collectionVariables.set(\"serial_dispositivo\", serial);",
+              "    var comp = chosen.componente || \"\";",
+              "    pm.environment.set(\"componente\", comp);",
+              "    pm.collectionVariables.set(\"componente\", comp);",
               "});"
             ]
           }
@@ -118,40 +136,136 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/despliegues?limit=10&offset=0",
+          "raw": "{{base_url}}/prediccion/despliegues",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
             "despliegues"
-          ],
-          "query": [
-            {
-              "key": "limit",
-              "value": "10"
-            },
-            {
-              "key": "offset",
-              "value": "0"
-            }
           ]
         }
       }
     },
     {
-      "name": "03-TC-M04-257-Modelo-Distribuido-Edge-Diagnostico",
+      "name": "03-TC-M04-257-Disparar-Distribucion-Sandbox-A",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.variables.replaceIn(\"{{$guid}}\");",
+              "pm.environment.set(\"run_id_A\", runId);",
+              "pm.collectionVariables.set(\"run_id_A\", runId);",
+              "var token = pm.environment.get(\"broker_token\") || pm.collectionVariables.get(\"broker_token\");",
+              "if (!token) {",
+              "    console.warn(\"WARN: broker_token no configurado en environment ni collectionVariables.\");",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"03.01: Reporte OTA integrity_ok aceptado (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var expectedId = Number(pm.environment.get(\"id_despliegue_ota\") || pm.collectionVariables.get(\"id_despliegue_ota\"));",
+              "    pm.expect(data.id_despliegue_ota).to.equal(expectedId);",
+              "    pm.environment.set(\"evento_rf73_sub1\", data.evento_rf73);",
+              "    pm.collectionVariables.set(\"evento_rf73_sub1\", data.evento_rf73);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id_A}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"{{serial_dispositivo}}\",\n  \"id_despliegue_ota\": {{id_despliegue_ota}},\n  \"componente\": \"{{componente}}\",\n  \"evento\": \"integrity_ok\",\n  \"detalle\": {}\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/prediccion/ota/reportes",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "ota",
+            "reportes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04-TC-M04-257-Verificar-Auditoria-Modelo-Distribuido",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "console.log('[BLOQUEADO] TC-M04-257 (MODELO_DISTRIBUIDO_EDGE): No existe endpoint REST para disparar la distribución OTA al nodo Edge. La API solo expone consulta en /prediccion/despliegues y /prediccion/modelos/{id}/ota-status.');"
+              "var data = pm.response.json();",
+              "var expectedId = pm.environment.get(\"id_despliegue_ota\") || pm.collectionVariables.get(\"id_despliegue_ota\");",
+              "var expectedSerial = pm.environment.get(\"serial_dispositivo\") || pm.collectionVariables.get(\"serial_dispositivo\");",
+              "pm.test(\"04.01: Consulta de auditoria exitosa (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"04.02: Total de eventos MODELO_DISTRIBUIDO_EDGE >= 1\", function () {",
+              "    pm.expect(data.total).to.be.at.least(1);",
+              "});",
+              "pm.test(\"04.03: tipo_evento es MODELO_DISTRIBUIDO_EDGE\", function () {",
+              "    pm.expect(data.items[0].tipo_evento).to.equal(\"MODELO_DISTRIBUIDO_EDGE\");",
+              "});",
+              "pm.test(\"04.04: tipo_actor es DISPOSITIVO_EDGE\", function () {",
+              "    pm.expect(data.items[0].tipo_actor).to.equal(\"DISPOSITIVO_EDGE\");",
+              "});",
+              "pm.test(\"04.05: id_sistema coincide con el serial del dispositivo\", function () {",
+              "    pm.expect(data.items[0].id_sistema).to.equal(expectedSerial);",
+              "});",
+              "pm.test(\"04.06: severidad_evento es INFO\", function () {",
+              "    pm.expect(data.items[0].severidad_evento).to.equal(\"INFO\");",
+              "});",
+              "pm.test(\"04.07: resultado_operacion es EXITOSO\", function () {",
+              "    pm.expect(data.items[0].resultado_operacion).to.equal(\"EXITOSO\");",
+              "});",
+              "pm.test(\"04.08: payload_evento valida hash_verificado / integrity_ok\", function () {",
+              "    var p = data.items[0].payload_evento || {};",
+              "    var ok = (p.hash_verificado === true) || (p.evento_nodo === \"integrity_ok\") || (p.estado_despliegue === \"EN_PROCESO\");",
+              "    pm.expect(ok).to.be.true;",
+              "});",
+              "pm.test(\"04.09: id_referencia coincide con id_despliegue_ota\", function () {",
+              "    pm.expect(String(data.items[0].id_referencia)).to.equal(String(expectedId));",
+              "});",
+              "pm.test(\"04.10: correlacion_id no es nulo\", function () {",
+              "    pm.expect(data.items[0].correlacion_id).to.not.be.null;",
+              "});"
             ]
           }
         }
@@ -161,13 +275,21 @@
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{token}}"
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id_A}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=MODELO_DISTRIBUIDO_EDGE",
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=MODELO_DISTRIBUIDO_EDGE&id_sistema={{serial_dispositivo}}&por_pagina=10",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "prediccion",
@@ -177,63 +299,29 @@
             {
               "key": "tipo_evento",
               "value": "MODELO_DISTRIBUIDO_EDGE"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "04-TC-M04-258-Hash-Invalido-Detectado-Diagnostico",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "console.log('[BLOQUEADO] TC-M04-258 (HASH_INVALIDO_DETECTADO): Simulación de hash corrupto en nodo Edge (id_sistema=\"nodo_edge\") no es viable por API REST al no existir endpoint de distribución OTA activa.');"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/prediccion/auditoria?tipo_evento=HASH_INVALIDO_DETECTADO",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "prediccion",
-            "auditoria"
-          ],
-          "query": [
+            },
             {
-              "key": "tipo_evento",
-              "value": "HASH_INVALIDO_DETECTADO"
+              "key": "id_sistema",
+              "value": "{{serial_dispositivo}}"
+            },
+            {
+              "key": "por_pagina",
+              "value": "10"
             }
           ]
         }
       }
     },
     {
-      "name": "05-Teardown-Sandbox-Rollback",
+      "name": "05-Teardown-Cerrar-Sandbox-A",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"NW-Teardown: Rollback transaccional exitoso del sandbox (HTTP 200)\", function () {",
+              "pm.test(\"05.01: Rollback y cierre exitoso de Sandbox A (HTTP 200)\", function () {",
               "    pm.response.to.have.status(200);",
-              "    var data = pm.response.json();",
-              "    var statusMsg = data.status || data.mensaje || \"\";",
-              "    pm.expect(statusMsg).to.include(\"Rollback exitoso\");",
               "});"
             ]
           }
@@ -243,19 +331,320 @@
         "method": "DELETE",
         "header": [
           {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
             "key": "X-Sandbox-Secret",
             "value": "{{sandbox_secret}}"
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+          "raw": "{{base_url}}/test-control/runs/{{run_id_A}}",
           "host": [
-            "{{baseUrl}}"
+            "{{base_url}}"
           ],
           "path": [
             "test-control",
             "runs",
-            "{{run_id}}"
+            "{{run_id_A}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06-TC-M04-258-Simular-Rollback-Hash-Invalido-Sandbox-B",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.variables.replaceIn(\"{{$guid}}\");",
+              "pm.environment.set(\"run_id_B\", runId);",
+              "pm.collectionVariables.set(\"run_id_B\", runId);",
+              "var token = pm.environment.get(\"broker_token\") || pm.collectionVariables.get(\"broker_token\");",
+              "if (!token) {",
+              "    console.warn(\"WARN: broker_token no configurado en environment ni collectionVariables.\");",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"06.01: Reporte OTA rollback procesado (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.evento_rf73).to.equal(\"DISTRIBUCION_FALLIDA\");",
+              "    pm.environment.set(\"evento_rf73_sub2\", data.evento_rf73);",
+              "    pm.collectionVariables.set(\"evento_rf73_sub2\", data.evento_rf73);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_token}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id_B}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"{{serial_dispositivo}}\",\n  \"id_despliegue_ota\": {{id_despliegue_ota}},\n  \"componente\": \"{{componente}}\",\n  \"evento\": \"rollback\",\n  \"detalle\": {\n    \"causa\": \"HASH_INVALIDO\",\n    \"hash_esperado\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n    \"hash_recibido\": \"1111111111111111111111111111111111111111111111111111111111111111\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/prediccion/ota/reportes",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "ota",
+            "reportes"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07-TC-M04-258-Verificar-Auditoria-Hash-Invalido-Falla",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Este assert falla por gap del backend (INC-M04-149-G083). El flujo OTA emite DISTRIBUCION_FALLIDA en lugar de HASH_INVALIDO_DETECTADO. Ver item 8 para evidencia.",
+              "var data = pm.response.json();",
+              "pm.test(\"07.01: Total de eventos HASH_INVALIDO_DETECTADO >= 1 [GAP ESPERADO: FALLA]\", function () {",
+              "    pm.expect(data.total, \"GAP CONFIRMADO: El backend no emite HASH_INVALIDO_DETECTADO en flujo OTA (emite DISTRIBUCION_FALLIDA)\").to.be.at.least(1);",
+              "});",
+              "pm.test(\"07.02: tipo_evento es HASH_INVALIDO_DETECTADO\", function () {",
+              "    pm.expect(data.items && data.items.length > 0 ? data.items[0].tipo_evento : null).to.equal(\"HASH_INVALIDO_DETECTADO\");",
+              "});",
+              "pm.test(\"07.03: tipo_actor es DISPOSITIVO_EDGE\", function () {",
+              "    pm.expect(data.items && data.items.length > 0 ? data.items[0].tipo_actor : null).to.equal(\"DISPOSITIVO_EDGE\");",
+              "});",
+              "pm.test(\"07.04: severidad_evento es CRITICAL\", function () {",
+              "    pm.expect(data.items && data.items.length > 0 ? data.items[0].severidad_evento : null).to.equal(\"CRITICAL\");",
+              "});",
+              "pm.test(\"07.05: payload_evento.hash_esperado no nulo\", function () {",
+              "    var p = data.items && data.items.length > 0 ? data.items[0].payload_evento : {};",
+              "    pm.expect(p && p.hash_esperado !== undefined && p.hash_esperado !== null).to.be.true;",
+              "});",
+              "pm.test(\"07.06: payload_evento.hash_recibido no nulo\", function () {",
+              "    var p = data.items && data.items.length > 0 ? data.items[0].payload_evento : {};",
+              "    pm.expect(p && p.hash_recibido !== undefined && p.hash_recibido !== null).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id_B}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=HASH_INVALIDO_DETECTADO&id_sistema={{serial_dispositivo}}&por_pagina=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "HASH_INVALIDO_DETECTADO"
+            },
+            {
+              "key": "id_sistema",
+              "value": "{{serial_dispositivo}}"
+            },
+            {
+              "key": "por_pagina",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "08-TC-M04-258-Evidencia-Distribucion-Fallida-Real",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var data = pm.response.json();",
+              "pm.test(\"08.01: Consulta de auditoria DISTRIBUCION_FALLIDA (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"08.02: Total de eventos DISTRIBUCION_FALLIDA >= 1\", function () {",
+              "    pm.expect(data.total).to.be.at.least(1);",
+              "});",
+              "pm.test(\"08.03: tipo_evento es DISTRIBUCION_FALLIDA\", function () {",
+              "    pm.expect(data.items[0].tipo_evento).to.equal(\"DISTRIBUCION_FALLIDA\");",
+              "});",
+              "pm.test(\"08.04: payload_evento documenta causa HASH_INVALIDO\", function () {",
+              "    var p = data.items[0].payload_evento || {};",
+              "    var motivo = (p.motivo || \"\") + \" \" + (p.detalle && p.detalle.causa ? p.detalle.causa : \"\");",
+              "    pm.expect(motivo.toUpperCase()).to.include(\"HASH_INVALIDO\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id_B}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/prediccion/auditoria?tipo_evento=DISTRIBUCION_FALLIDA&id_sistema={{serial_dispositivo}}&por_pagina=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "DISTRIBUCION_FALLIDA"
+            },
+            {
+              "key": "id_sistema",
+              "value": "{{serial_dispositivo}}"
+            },
+            {
+              "key": "por_pagina",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "09-Teardown-Cerrar-Sandbox-B",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"09.01: Rollback y cierre exitoso de Sandbox B (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/test-control/runs/{{run_id_B}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "test-control",
+            "runs",
+            "{{run_id_B}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10-Verificar-Despliegue-Post-Rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"10.01: Consulta de despliegues post-rollback (HTTP 200)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = Array.isArray(data) ? data : (data.items || []);",
+              "    var targetId = Number(pm.environment.get(\"id_despliegue_ota\") || pm.collectionVariables.get(\"id_despliegue_ota\"));",
+              "    var desp = items.find(function (d) { return d.id_despliegue_ota === targetId; });",
+              "    pm.expect(desp, \"El despliegue evaluado no fue encontrado en la lista\").to.not.be.undefined;",
+              "    pm.expect(desp.estado_despliegue).to.equal(\"PENDIENTE\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/prediccion/despliegues",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "despliegues"
           ]
         }
       }

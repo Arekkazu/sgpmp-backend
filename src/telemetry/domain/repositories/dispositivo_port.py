@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: cámara por id para su fps configurado |
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -25,6 +28,10 @@ class DispositivoPort(ABC):
 
     def obtener_camara_por_serial(self, serial: str) -> Optional[CamaraInfo]:
         """Identidad D4 tras autenticar al broker; el serial no es una credencial."""
+        raise NotImplementedError
+
+    def obtener_camara_por_id(self, id_dispositivo_iot: int) -> Optional[CamaraInfo]:
+        """Cámara ya registrada (RF-62 la necesita por su fps configurado en RF-23)."""
         raise NotImplementedError
 
     @abstractmethod

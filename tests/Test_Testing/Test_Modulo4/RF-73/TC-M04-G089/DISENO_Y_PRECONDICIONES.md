@@ -51,3 +51,37 @@
 - Generación de `run_id` en pre-request e inyección de `X-Test-Run-Id` y `X-Sandbox-Secret`.
 - Teardown con `DELETE /test-control/runs/{{run_id}}` (200 OK con `Rollback exitoso`).
 - Cero escrituras directas SQL en base de datos.
+
+---
+
+## 6. Diagnóstico 2026-10-25
+- `sandbox_client = TestClient(app)` en memoria (`conftest.py:112`).
+- Login: manual por test. `run_id`: function-scoped.
+- `por_pagina>200` → HTTP 400 `VAL_ENTRADA` (no 422); handler global de FastAPI.
+- `total` = count filtrado según subquery, dinámico.
+- Cada GET exitoso COMMITea `HISTORIAL_CONSULTADO` → contaminación +1.
+  `DELETE /test-control/runs/{run_id}` reporta "Rollback exitoso" pero es no-op para este evento.
+- `DB_TOTAL` tras el diagnóstico = 973 (971 base + 2 del diagnóstico).
+
+## 7. Diseño (D1=B, D2=A, D3=A)
+- **D1=B:** Test 275 verifica OpenAPI y decide el código a assertar (422 o 400).
+- **D2=A:** Baseline dinámico: `total >= 50/200`. Invariante `len(items) == min(por_pagina, total)`.
+- **D3=A:** Contaminación aceptada (B7 conocido). `INC-M04-160-G089` a abrir al cierre.
+
+## 8. Resultado esperado
+- Si OpenAPI declara 422: test 275 FALLA → 2/3 OK → RECHAZADO + INC-M04 a M04.
+- Si OpenAPI declara 400 (o no declara): 3/3 OK → APROBADO (con `OBS-M04-G089-01`).
+
+---
+
+## 9. Rediseño 2026-10-25 — P1'=B (httpx directo)
+- **Motivo:** sandbox_client no sirve para integración HTTP contra el backend desplegado (TestClient corre contra sqlite en memoria, y login local usa schema distinto: correo_electronico/contrasena vs desplegado correo/contraseña).
+- **Cambios:**
+  - `httpx.Client(base_url=$env:BACKEND, timeout=15s)`
+  - Login con `{"correo", "contraseña"}` (schema del desplegado)
+  - Headers sandbox manuales por test: `X-Test-Run-Id`, `X-Sandbox-Secret`
+  - 1 login + 1 GET + 1 DELETE por test (DEF-04)
+  - 3 tests × ~3 requests = ~9 requests totales (+5 de contaminación esperada: 3 sesiones + 2 HISTORIAL_CONSULTADO)
+  - smoke_check reescrito con httpx (health + openapi + login + teardown)
+
+

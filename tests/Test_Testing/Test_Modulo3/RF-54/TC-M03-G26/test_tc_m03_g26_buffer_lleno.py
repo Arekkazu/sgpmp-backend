@@ -17,15 +17,16 @@ DRIVER. Casi todo el caso ocurre dentro del nodo (que descartar, que sobrescribi
 BUFFER_OVERFLOW, bitacora local): eso queda en SKIP. Lo verificable en el backend real es:
 - Configuracion de la politica: la ficha dice "configurar POLITICA_RECHAZO / POLITICA_SOBRESCRITURA". El
   canal de configuracion del nodo desde el sistema es RF-23 (POST /configuracion/dispositivos-iot/{id}/configurar);
-  se comprueba si acepta y conserva la politica. (modulo3.buffers ya tiene el enum
-  POLITICA_RECHAZO/POLITICA_SOBRESCRITURA.)
+  se comprueba si acepta y conserva la politica. (modulo3.buffers, que tenia el enum
+  POLITICA_RECHAZO/POLITICA_SOBRESCRITURA, se retiro en DB-03: el buffer vive en el Edge.)
 - Buffer lleno visto por el backend: heartbeat con estado_local_buffer='L' (lleno). El dispositivo no
   deberia quedar como un ACTIVO normal y el administrador deberia enterarse (alerta tecnica).
 - Integridad al sincronizar: lo que el nodo conservo llega completo e inalterado (historial RF-59).
 - 056: los EVENTO_EDGE guardados en el buffer se aceptan al sincronizar (POST /iot/eventos-edge con
   origen BUFFER_LOCAL) y los datos agregados en Edge se guardan como EDGE_AGREGADO.
 
-Requisitos: acceso de red a TEST. Variables opcionales: BASE_URL.
+Requisitos: acceso de red a TEST. Variables: BROKER_TOKEN (token de servicio del broker de TEST, DEV-06;
+sin el /iot/* responde 401) y BASE_URL (opcional).
 
 Como correrlo (desde la raiz del repo):
 
@@ -45,6 +46,11 @@ import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 CAPACIDAD = 20
 
 
@@ -59,7 +65,7 @@ class _NodoEdgeSimulado:
     def capturar_offline(self, sensor_id: int, tipo: str, unidad: str, valor, ts: datetime) -> None:
         registro = {"device_id": self.device_id, "sensor_id": sensor_id, "tipo_variable": tipo, "valor": valor,
                     "unidad": unidad, "timestamp_captura": ts.isoformat(), "origen": "BUFFER_LOCAL",
-                    "access_key": self.access_key}
+                    "serial": self.access_key}
         if len(self.buffer) < CAPACIDAD:
             self.buffer.append(registro)
         elif self.politica == "POLITICA_SOBRESCRITURA":
@@ -70,13 +76,14 @@ class _NodoEdgeSimulado:
     def heartbeat(self) -> requests.Response:
         return requests.post(
             f"{BASE_URL}/iot/heartbeat",
-            json={"tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "L" if len(self.buffer) >= CAPACIDAD else "A",
+            json={
+                "device_id": self.device_id, "serial": self.access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "L" if len(self.buffer) >= CAPACIDAD else "A",
                   "datos_pendientes_buffer": len(self.buffer), "fecha_registro": datetime.now(timezone.utc).isoformat()},
-            headers={"X-Device-Id": str(self.device_id), "X-Device-API-Key": self.access_key}, timeout=TIMEOUT,
+            headers=_HEADERS_BROKER, timeout=TIMEOUT,
         )
 
     def sincronizar(self) -> requests.Response:
-        return requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": self.buffer}, timeout=TIMEOUT)
+        return requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": self.buffer}, headers=_HEADERS_BROKER, timeout=TIMEOUT)
 
 
 # --------------------------------------------------------------------------- datos propios en TEST
@@ -251,20 +258,20 @@ def corrida_056(admin, area):
     agregados = [{
         "device_id": device_id, "sensor_id": sensor, "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 24.0 + i / 10,
         "unidad": "°C", "timestamp_captura": (inicio + timedelta(minutes=5 * i)).isoformat(), "origen": "EDGE_AGREGADO",
-        "valor_agregado": True, "ventana_agregacion": 5, "access_key": serial,
+        "valor_agregado": True, "ventana_agregacion": 5, "serial": serial,
     } for i in range(6)]
-    sync = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": agregados}, timeout=TIMEOUT)
+    sync = requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": agregados}, headers=_HEADERS_BROKER, timeout=TIMEOUT)
     eventos = []
     for i in range(2):
         ts = inicio + timedelta(minutes=7 + i * 10)
         eventos.append(requests.post(f"{BASE_URL}/iot/eventos-edge", json={
-            "device_id": device_id, "sensor_id": sensor, "access_key": serial,
+            "device_id": device_id, "sensor_id": sensor, "serial": serial,
             "clasificacion_rf55": "DESVIACION_SIMPLE", "severidad": "MODERADO",
             "variables_involucradas": [{"tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": 34.5, "unidad": "°C",
                                         "timestamp_captura": ts.isoformat()}],
             "timestamp_captura": ts.isoformat(), "timestamp_procesamiento_edge": (ts + timedelta(seconds=2)).isoformat(),
             "origen": "BUFFER_LOCAL", "estado_conectividad": False,
-        }, timeout=TIMEOUT))
+        }, headers=_HEADERS_BROKER, timeout=TIMEOUT))
     return {"sync": sync, "eventos": eventos, "historial": _historial(admin, sensor)}
 
 

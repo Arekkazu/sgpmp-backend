@@ -136,7 +136,7 @@ def sembrado(activo):
         yield {
             "id_activo": activo["id"],
             "desde": str((ahora - timedelta(days=30)).date()),
-            "hasta": str((ahora + timedelta(days=1)).date()),
+            "hasta": str(ahora.date()),  # el historial rechaza fecha_fin futura (FECHA_FIN_FUTURA)
             "rango_desde": str((ahora - timedelta(days=7)).date()),
             "rango_hasta": str((ahora - timedelta(days=3)).date()),
             "esperado_total": len(filas),
@@ -162,7 +162,10 @@ def corrida(sembrado, tmp_path_factory):
     if newman is None:
         pytest.skip("newman no esta instalado en el PATH")
     reporte = tmp_path_factory.mktemp("g010") / "newman.json"
-    comando = [newman, "run", str(_COLECCION), "-r", "cli,json", "--reporter-json-export", str(reporte)]
+    html = Path(__file__).parent / "Resultados" / "reporte-TC-M04-G010.html"
+    comando = [newman, "run", str(_COLECCION), "-r", "cli,json,htmlextra", "--reporter-json-export", str(reporte),
+               "--reporter-htmlextra-export", str(html), "--reporter-htmlextra-skipHeaders", "Authorization",
+               "--reporter-htmlextra-title", "TC-M04-G010 Consulta del historial diagnóstico con y sin filtros"]
     for clave, valor in sembrado.items():
         comando += ["--env-var", f"{clave}={valor}"]
     proceso = subprocess.run(comando, capture_output=True, text=True, encoding="utf-8")

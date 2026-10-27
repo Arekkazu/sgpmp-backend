@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-25 | Arekkazu         | INC-M03-124-G01 RF-22: INSERT sin RETURNING   |
 """Modelo ORM para `modulo9.sensores` (RF-22).
 
 La columna `categoria` mapea al enum PG `enum_reglas_alertas_tipo_sensor`
@@ -23,7 +26,12 @@ class SensorModel(Base):
             name='sensores_id_dispositivo_iot_fkey',
         ),
         PrimaryKeyConstraint('id_sensores', name='sensores_pkey'),
-        {'schema': 'modulo9'},
+        # RLS: `pol_sensores_select` filtra con `fn_sensores_del_usuario`, que es
+        # STABLE y relee `sensores` con el snapshot de la sentencia, así que no ve
+        # la fila que el mismo INSERT crea y un INSERT ... RETURNING falla con
+        # "new row violates row-level security policy" (500, INC-M03-124-G01).
+        # Sin RETURNING, SQLAlchemy pide el id a la secuencia antes del INSERT.
+        {'schema': 'modulo9', 'implicit_returning': False},
     )
 
     id_sensores: Mapped[int] = mapped_column(

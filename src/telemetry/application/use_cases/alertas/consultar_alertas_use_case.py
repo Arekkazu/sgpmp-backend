@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 from __future__ import annotations
 
 from datetime import datetime
@@ -43,6 +44,7 @@ class ConsultarAlertasUseCase:
         ambito: AmbitoAlerta,
         ids_fincas_permitidas: Optional[list[int]] = None,
         fecha_resolucion_desde: Optional[datetime] = None,
+        id_infraestructura: Optional[int] = None,
     ) -> tuple[list[Alerta], int]:
         # RF-60 D-09: cada endpoint solo lista las alertas de su ámbito. En el
         # operativo, un filtro tipo_alerta=TECNICA devuelve una página vacía.
@@ -60,6 +62,7 @@ class ConsultarAlertasUseCase:
             pagina=pagina,
             por_pagina=por_pagina,
             ids_fincas_permitidas=ids_fincas_permitidas,
+            id_infraestructura=id_infraestructura,
             excluir_tipo_alerta=TIPO_ALERTA_TECNICA if ambito is AmbitoAlerta.OPERATIVA else None,
             fecha_resolucion_desde=fecha_resolucion_desde,
         )

@@ -1,32 +1,82 @@
 {
   "info": {
     "name": "TC-M03-G57F - Trazabilidad extremo a extremo de la alerta (Restriccion 4, CA-15, Postcondicion 2)",
-    "description": "RF-57 CA-15. Subcasos: (1) detalle de alertas de origen EDGE, BACKEND e IA: sensor origen, evento Edge, inferencia (si aplica), activo/unidad y reglas_activadas; (2) alerta con cambios de estado con usuario y timestamp; alertas por reevaluacion (referencia_alerta_original) y compuestas (reglas simples absorbidas). VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; access_key = token de servicio de dispositivo (DEV-06) que se pasa como variable de entorno de Newman, nunca se escribe en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente.",
+    "description": "RF-57 Restriccion 4 / CA-15 / Postcondicion 2 (trazabilidad de la alerta). Solo lectura del detalle (GET /iot/alertas/{id}) mas las alertas de apoyo que se crean dentro del sandbox transaccional. Sensores: temperatura corporal 471 y NH3 482 (dispositivo 310), frecuencia cardiaca 88 (dispositivo 268), temperatura 525 y humedad 526 (dispositivo 339) y oxigeno disuelto 3 (dispositivo 1); en TEST no hay sensor de frecuencia respiratoria. La alerta de origen BACKEND referencia una lectura de telemetria ya existente (GET /iot/calidad), y se revisa ademas una alerta BACKEND real. Las alertas por reevaluacion (E16) no tienen endpoint definido y el intento 2.8 solo documenta lo que ocurre. Variables a configurar antes de ejecutar (las pide el runner): sandbox_secret, broker_service_token, correo_/contrasena_ de admin y veterinario, device_id, serial, sensor_temperatura_ambiental, sensor_humedad_relativa, sensor_oxigeno_disuelto, device_id_oxigeno y serial_oxigeno; ninguna se guarda en la coleccion. Ejecucion: .\\correr_newman.ps1 -Caso G57F (desde tests\\Test_Testing). No usar --bail. Ambiente: solo TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional: un run_id unico por corrida, enviado en TODAS las peticiones.",
+          "if (!pm.variables.has('run_id')) {",
+          "    pm.variables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "if (!pm.variables.get('sandbox_secret')) { console.warn('Falta la variable sandbox_secret (secreto del sandbox; pedirlo al DBA y pasarlo como variable de entorno de Newman).'); }",
+          "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
+          "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
+          "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
+          "if (!_esLogin) {",
+          "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
+          "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "base_url",
-      "value": "https://api.inmero.co/back-sigab-test"
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
     },
     {
       "key": "correo_admin",
-      "value": "admin.test@sgpmp.com.co"
+      "value": ""
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
       "value": ""
     },
     {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_veterinario",
+      "value": ""
+    },
+    {
       "key": "device_id",
+      "value": "339"
+    },
+    {
+      "key": "serial",
+      "value": ""
+    },
+    {
+      "key": "device_id_oxigeno",
       "value": "1"
     },
     {
-      "key": "access_key",
+      "key": "serial_oxigeno",
+      "value": ""
+    },
+    {
+      "key": "broker_service_token",
       "value": ""
     },
     {
@@ -36,18 +86,111 @@
     {
       "key": "ids_alertas",
       "value": "[]"
+    },
+    {
+      "key": "sensor_temperatura_ambiental",
+      "value": "525"
+    },
+    {
+      "key": "sensor_humedad_relativa",
+      "value": "526"
+    },
+    {
+      "key": "sensor_oxigeno_disuelto",
+      "value": "3"
+    },
+    {
+      "key": "device_id_nh3",
+      "value": "310"
+    },
+    {
+      "key": "serial_nh3",
+      "value": "QA58-DEV-A10-01"
+    },
+    {
+      "key": "sensor_nh3",
+      "value": "482"
+    },
+    {
+      "key": "sensor_temp_corporal",
+      "value": "471"
+    },
+    {
+      "key": "device_id_fc",
+      "value": "268"
+    },
+    {
+      "key": "serial_fc",
+      "value": "QA58-DEV-A1-03"
+    },
+    {
+      "key": "sensor_fc",
+      "value": "88"
+    },
+    {
+      "key": "id_vet",
+      "value": "157"
+    },
+    {
+      "key": "tel_json",
+      "value": ""
+    },
+    {
+      "key": "id_tel_fc",
+      "value": "0"
+    },
+    {
+      "key": "id_edge",
+      "value": "0"
+    },
+    {
+      "key": "id_back",
+      "value": "0"
+    },
+    {
+      "key": "id_back_real",
+      "value": "0"
+    },
+    {
+      "key": "id_ia",
+      "value": "0"
+    },
+    {
+      "key": "id_est",
+      "value": "0"
+    },
+    {
+      "key": "id_comp",
+      "value": "0"
+    },
+    {
+      "key": "id_reev",
+      "value": "0"
+    },
+    {
+      "key": "id_reev_orig",
+      "value": "0"
+    },
+    {
+      "key": "id_rev0",
+      "value": "0"
+    },
+    {
+      "key": "id_rev1",
+      "value": "0"
     }
   ],
   "item": [
     {
-      "name": "0A. Login admin.test (Administrador)",
+      "name": "0A. Login Administrador",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.collectionVariables.set('ids_alertas', '[]');"
+              "pm.collectionVariables.set('ids_alertas', '[]');",
+              "pm.collectionVariables.set('ts_run_inicio', new Date(Date.now() - 60000).toISOString());"
             ]
           }
         },
@@ -56,7 +199,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Login admin.test (Administrador) exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Login Administrador exitoso (200)', function () { pm.response.to.have.status(200); });",
               "try { pm.collectionVariables.set('token_admin', pm.response.json().token); } catch (e) {}"
             ]
           }
@@ -83,22 +226,164 @@
       }
     },
     {
-      "name": "1. Rastreo del origen del evento (TC-M03-N59)",
+      "name": "0B. Login Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "try { pm.collectionVariables.set('token_veterinario', pm.response.json().token); } catch (e) {}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0Z. Preparacion: crear evento edge valido (POST /iot/eventos-edge) para usar su id como id_evento_edge_computing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{broker_service_token}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/eventos-edge",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"clasificacion_rf55\": \"NORMAL\",\n  \"severidad\": \"LEVE\",\n  \"variables_involucradas\": [{\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.0,\n      \"unidad\": \"°C\"\n    }],\n  \"timestamp_captura\": \"{{ts_now}}\",\n  \"timestamp_procesamiento_edge\": \"{{ts_now}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"estado_conectividad\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+              "pm.variables.set('ts_now', _iso(_n));",
+              "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+              "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+              "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+              "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+              "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+              "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+              "pm.variables.set('uniq', String(_n).slice(-9));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "console.log('[TC-M03-G57F 0Z] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+              "const _guardar = function (j) {",
+              "  const k = ['id_evento_edge_computing', 'id_evento_edge', 'id_evento', 'id'].find(function (n) { return j && j[n] !== undefined && j[n] !== null; })",
+              "          || Object.keys(j || {}).find(function (n) { return /^id_/.test(n) && typeof j[n] === 'number'; });",
+              "  if (k) { pm.collectionVariables.set('id_evento_edge', String(j[k])); console.log('[TC-M03-G57F 0Z] id_evento_edge = ' + j[k] + ' (campo ' + k + ')'); return true; }",
+              "  return false; };",
+              "const _cands = [\"NORMAL\", \"LEVE\", \"ANOMALIA\", \"ALERTA\", \"CRITICO\"];",
+              "const _fin = function () { pm.test('Preparacion: evento edge de referencia creado y id_evento_edge disponible (si falla, revisar el codigo y mensaje del log; o pasar --env-var id_evento_edge=<id existente>)', function () { pm.expect(pm.collectionVariables.get('id_evento_edge')).to.not.eql('1'); }); };",
+              "const _intentar = function (i) {",
+              "  const b = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); b.clasificacion_rf55 = _cands[i];",
+              "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+              "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/iot/eventos-edge', method: 'POST', header: h, body: {mode: 'raw', raw: JSON.stringify(b)}}, function (e, r) {",
+              "    let j = {}; try { j = r.json(); } catch (x) {}",
+              "    console.log('[TC-M03-G57F 0Z] reintento clasificacion_rf55=' + _cands[i] + ' -> ' + (r ? r.code : e) + ' ' + (r ? r.text().slice(0, 300) : ''));",
+              "    if (r && r.code === 201) { _guardar(j); _fin(); } else if (r && (r.code === 400 || r.code === 422) && i + 1 < _cands.length) { _intentar(i + 1); } else { _fin(); } });",
+              "};",
+              "if (pm.response.code === 201) { _guardar(J); _fin(); }",
+              "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
+              "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0Y. Lectura de telemetria existente del sensor de frecuencia cardiaca (solo lectura) para referenciarla en la alerta de origen BACKEND",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/iot/calidad?id_sensor={{sensor_fc}}&por_pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G57F 0Y] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const _t = (J.items || [])[0];",
+              "pm.collectionVariables.set('id_tel_fc', String(_t ? _t.id_telemetria : 0));",
+              "pm.collectionVariables.set('tel_json', _t ? ',\\n  \"id_telemetria\": ' + _t.id_telemetria : '');",
+              "console.log('[G57F-0Y][OBSERVADO] lecturas del sensor ' + pm.collectionVariables.get('sensor_fc') + ': total=' + J.total + '; se usa id_telemetria=' + pm.collectionVariables.get('id_tel_fc'));",
+              "pm.test('Existe al menos una lectura del sensor para usarla como referencia de origen', function () { pm.expect(J.total, 'total de lecturas').to.be.above(0); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Rastreo del origen del evento: EDGE, BACKEND e IA (TC-M03-N59)",
       "item": [
         {
-          "name": "1.1 POST origen EDGE",
+          "name": "1.1 Origen EDGE (temperatura corporal, sensor 471): crear con id_evento_edge_computing y reglas declaradas",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_corporal}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 40.8,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"R-TEMPER\"]\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 39.5,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"TEMPERATURA_CORPORAL_LEVE\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -113,14 +398,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -129,18 +407,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57f_1', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-1.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_edge', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.1b Detalle origen EDGE - trazabilidad completa",
+          "name": "1.1b EDGE: el detalle permite rastrear sensor, evento Edge, activo o unidad y reglas",
           "request": {
             "method": "GET",
             "header": [
@@ -149,7 +427,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_1}}"
+            "url": "{{base_url}}/iot/alertas/{{id_edge}}"
           },
           "event": [
             {
@@ -157,41 +435,101 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Sensor origen (id_sensor)', function () { pm.expect(J.id_sensor).to.exist; });",
-                  "pm.test('Identificador del evento origen', function () { pm.expect(J.id_evento_edge_computing || J.id_telemetria || J.id_paquete_inferencia).to.exist; });",
-                  "pm.test('Activo o unidad productiva', function () { pm.expect(J.id_activo_biologico || J.id_infraestructura).to.exist; });",
-                  "pm.test('Reglas que la dispararon (reglas_activas)', function () { pm.expect(J.reglas_activas).to.be.an('array').that.is.not.empty; });",
-                  "pm.test('origen_evento = EDGE', function () { pm.expect(J.origen_evento).to.eql('EDGE'); });",
-                  "(function () {",
-                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
-                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-                  "  if (!tk) { return; }",
-                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
-                  "})();"
+                  "const _sen = Number(pm.collectionVariables.get('sensor_temp_corporal')), _dev = Number(pm.collectionVariables.get('device_id_nh3'));",
+                  "const _refs = {id_evento_edge_computing: J.id_evento_edge_computing, id_telemetria: J.id_telemetria, id_paquete_inferencia: J.id_paquete_inferencia};",
+                  "console.log('[G57F][OBSERVADO] origen EDGE | alerta ' + J.id_alerta + ' | ' + JSON.stringify({id_sensor: J.id_sensor, id_dispositivo_ioit: J.id_dispositivo_ioit, refs: _refs, id_activo_biologico: J.id_activo_biologico, id_infraestructura: J.id_infraestructura, nombre_sensor: J.nombre_sensor, nombre_infraestructura: J.nombre_infraestructura, nombre_finca: J.nombre_finca, reglas_activas: J.reglas_activas, severidad_ia: J.severidad_ia, tiene_inferencia_no_disponible: J.tiene_inferencia_no_disponible, tiene_contexto_incompleto: J.tiene_contexto_incompleto, metadato_evento: J.metadato_evento}));",
+                  "pm.test('Origen EDGE: origen_evento = EDGE y tipo_variable presente', function () { pm.expect(J.origen_evento).to.eql('EDGE'); pm.expect(J.tipo_variable, 'tipo_variable').to.be.a('string').and.not.empty; });",
+                  "console.log('[G57F][OBSERVADO] tipo_variable enviado=TEMPERATURA_CORPORAL | devuelto=' + J.tipo_variable);",
+                  "pm.test('Sensor origen: id_sensor e id_dispositivo_ioit coinciden con los del evento', function () { pm.expect(J.id_sensor, 'id_sensor').to.eql(_sen); pm.expect(J.id_dispositivo_ioit, 'id_dispositivo_ioit').to.eql(_dev); });",
+                  "pm.test('Referencia al evento origen presente (id_evento_edge_computing, id_telemetria o id_paquete_inferencia)', function () { pm.expect(Object.keys(_refs).filter(function (r) { return _refs[r] !== null && _refs[r] !== undefined; }).length, 'referencias no nulas').to.be.above(0); });",
+                  "pm.test('El id del evento Edge de origen coincide con el enviado (id_evento_edge_computing)', function () { pm.expect(J.id_evento_edge_computing).to.eql(Number(pm.collectionVariables.get('id_evento_edge'))); });",
+                  "pm.test('Activo o unidad productiva: id_activo_biologico o id_infraestructura presentes', function () { pm.expect(J.id_activo_biologico !== null && J.id_activo_biologico !== undefined || J.id_infraestructura !== null && J.id_infraestructura !== undefined, 'activo=' + J.id_activo_biologico + ' infraestructura=' + J.id_infraestructura).to.eql(true); });",
+                  "pm.test('reglas_activas es una lista', function () { pm.expect(J.reglas_activas).to.be.an('array'); });",
+                  "pm.test('reglas_activas incluye TEMPERATURA_CORPORAL_LEVE', function () { pm.expect(JSON.stringify(J.reglas_activas)).to.include('TEMPERATURA_CORPORAL_LEVE'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2 POST origen BACKEND",
+          "name": "1.1c EDGE: el listado por sensor y origen trae los mismos campos de trazabilidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_sensor={{sensor_temp_corporal}}&origen_evento=EDGE&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.1c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _a = (J.items || []).filter(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('id_edge'); })[0];",
+                  "pm.test('El listado por sensor y origen incluye la alerta', function () { pm.expect(_a, 'alerta ' + pm.collectionVariables.get('id_edge')).to.exist; });",
+                  "pm.test('El listado trae los mismos campos de trazabilidad que el detalle (sensor, dispositivo y referencias)', function () { pm.expect(_a.id_sensor).to.eql(Number(pm.collectionVariables.get('sensor_temp_corporal'))); pm.expect(_a.id_dispositivo_ioit).to.eql(Number(pm.collectionVariables.get('device_id_nh3'))); pm.expect(_a).to.have.property('id_evento_edge_computing'); pm.expect(_a).to.have.property('id_telemetria'); pm.expect(_a).to.have.property('id_paquete_inferencia'); pm.expect(_a).to.have.property('reglas_activas'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1d EDGE: la bitacora (RF-63) registra la generacion de la alerta",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?tipo_evento=ALERTA_GENERADA&entidad_afectada_id={{id_edge}}&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.1d] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _e = (J.items || []).filter(function (x) { return x.entidad_afectada_tipo === 'ALERTA'; });",
+                  "console.log('[G57F-1.1d][OBSERVADO] eventos ALERTA_GENERADA=' + _e.length + ' ' + JSON.stringify(_e.map(function (x) { return [x.tipo_evento, x.resultado, x.fecha_hora, x.accion_detallada]; })).slice(0, 700));",
+                  "pm.test('La bitacora registra ALERTA_GENERADA de la alerta con fecha y resultado', function () { pm.expect(_e.length, 'eventos').to.be.above(0); pm.expect(_e[0].fecha_hora).to.be.a('string'); pm.expect(_e[0].resultado).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Origen BACKEND (frecuencia cardiaca, sensor 88): crear con id_telemetria de una lectura existente",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_cardiaca}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 115,\n  \"unidad\": \"lpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"BACKEND\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"R-FRECUE\"]\n}",
+              "raw": "{\n  \"device_id\": {{device_id_fc}},\n  \"sensor_id\": {{sensor_fc}},\n  \"serial\": \"{{serial_fc}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 140,\n  \"unidad\": \"lpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"BACKEND\"{{tel_json}},\n  \"reglas_activadas\": [\"FRECUENCIA_CARDIACA_MODERADA\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -206,14 +544,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -222,18 +553,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57f_2', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-1.2][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_back', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.2b Detalle origen BACKEND - trazabilidad completa",
+          "name": "1.2b BACKEND: el detalle permite rastrear sensor, lectura de origen, activo o unidad y reglas",
           "request": {
             "method": "GET",
             "header": [
@@ -242,7 +573,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_2}}"
+            "url": "{{base_url}}/iot/alertas/{{id_back}}"
           },
           "event": [
             {
@@ -250,41 +581,105 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Sensor origen (id_sensor)', function () { pm.expect(J.id_sensor).to.exist; });",
-                  "pm.test('Identificador del evento origen', function () { pm.expect(J.id_evento_edge_computing || J.id_telemetria || J.id_paquete_inferencia).to.exist; });",
-                  "pm.test('Activo o unidad productiva', function () { pm.expect(J.id_activo_biologico || J.id_infraestructura).to.exist; });",
-                  "pm.test('Reglas que la dispararon (reglas_activas)', function () { pm.expect(J.reglas_activas).to.be.an('array').that.is.not.empty; });",
-                  "pm.test('origen_evento = BACKEND', function () { pm.expect(J.origen_evento).to.eql('BACKEND'); });",
-                  "(function () {",
-                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
-                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-                  "  if (!tk) { return; }",
-                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
-                  "})();"
+                  "const _sen = Number(pm.collectionVariables.get('sensor_fc')), _dev = Number(pm.collectionVariables.get('device_id_fc'));",
+                  "const _refs = {id_evento_edge_computing: J.id_evento_edge_computing, id_telemetria: J.id_telemetria, id_paquete_inferencia: J.id_paquete_inferencia};",
+                  "console.log('[G57F][OBSERVADO] origen BACKEND | alerta ' + J.id_alerta + ' | ' + JSON.stringify({id_sensor: J.id_sensor, id_dispositivo_ioit: J.id_dispositivo_ioit, refs: _refs, id_activo_biologico: J.id_activo_biologico, id_infraestructura: J.id_infraestructura, nombre_sensor: J.nombre_sensor, nombre_infraestructura: J.nombre_infraestructura, nombre_finca: J.nombre_finca, reglas_activas: J.reglas_activas, severidad_ia: J.severidad_ia, tiene_inferencia_no_disponible: J.tiene_inferencia_no_disponible, tiene_contexto_incompleto: J.tiene_contexto_incompleto, metadato_evento: J.metadato_evento}));",
+                  "pm.test('Origen BACKEND: origen_evento = BACKEND y tipo_variable presente', function () { pm.expect(J.origen_evento).to.eql('BACKEND'); pm.expect(J.tipo_variable, 'tipo_variable').to.be.a('string').and.not.empty; });",
+                  "console.log('[G57F][OBSERVADO] tipo_variable enviado=FRECUENCIA_CARDIACA | devuelto=' + J.tipo_variable);",
+                  "pm.test('Sensor origen: id_sensor e id_dispositivo_ioit coinciden con los del evento', function () { pm.expect(J.id_sensor, 'id_sensor').to.eql(_sen); pm.expect(J.id_dispositivo_ioit, 'id_dispositivo_ioit').to.eql(_dev); });",
+                  "pm.test('Referencia al evento origen presente (id_evento_edge_computing, id_telemetria o id_paquete_inferencia)', function () { pm.expect(Object.keys(_refs).filter(function (r) { return _refs[r] !== null && _refs[r] !== undefined; }).length, 'referencias no nulas').to.be.above(0); });",
+                  "pm.test('El id de la lectura de origen coincide con el enviado (id_telemetria)', function () { pm.expect(J.id_telemetria).to.eql(Number(pm.collectionVariables.get('id_tel_fc'))); });",
+                  "pm.test('Activo o unidad productiva: id_activo_biologico o id_infraestructura presentes', function () { pm.expect(J.id_activo_biologico !== null && J.id_activo_biologico !== undefined || J.id_infraestructura !== null && J.id_infraestructura !== undefined, 'activo=' + J.id_activo_biologico + ' infraestructura=' + J.id_infraestructura).to.eql(true); });",
+                  "pm.test('reglas_activas es una lista', function () { pm.expect(J.reglas_activas).to.be.an('array'); });",
+                  "pm.test('reglas_activas incluye FRECUENCIA_CARDIACA_MODERADA', function () { pm.expect(JSON.stringify(J.reglas_activas)).to.include('FRECUENCIA_CARDIACA_MODERADA'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.3 POST origen IA",
+          "name": "1.2c Alertas BACKEND ya existentes en TEST (las generadas por el propio backend): se toma la mas reciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?origen_evento=BACKEND&por_pagina=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.2c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _l = (J.items || []);",
+                  "console.log('[G57F-1.2c][OBSERVADO] alertas BACKEND total=' + J.total + ' ' + JSON.stringify(_l.map(function (a) { return [a.id_alerta, a.id_sensor, a.id_telemetria, a.id_evento_edge_computing, a.id_paquete_inferencia, a.id_infraestructura, a.fecha_generacion]; })));",
+                  "pm.test('Hay alertas de origen BACKEND para revisar', function () { pm.expect(_l.length).to.be.above(0); });",
+                  "const _r = _l.filter(function (a) { return a.id_alerta !== Number(pm.collectionVariables.get('id_back')); })[0];",
+                  "pm.collectionVariables.set('id_back_real', String(_r ? _r.id_alerta : 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2d BACKEND real: el detalle de una alerta generada por el backend conserva sensor y referencia al origen",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_back_real}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.2d] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G57F-1.2d][OBSERVADO] ' + JSON.stringify({id: J.id_alerta, origen: J.origen_evento, id_sensor: J.id_sensor, id_dispositivo_ioit: J.id_dispositivo_ioit, id_telemetria: J.id_telemetria, id_evento_edge_computing: J.id_evento_edge_computing, id_paquete_inferencia: J.id_paquete_inferencia, id_activo_biologico: J.id_activo_biologico, id_infraestructura: J.id_infraestructura, reglas_activas: J.reglas_activas, metadato_evento: J.metadato_evento}).slice(0, 900));",
+                  "pm.test('Sensor origen presente (id_sensor e id_dispositivo_ioit)', function () { pm.expect(J.id_sensor, 'id_sensor').to.be.a('number'); pm.expect(J.id_dispositivo_ioit, 'id_dispositivo_ioit').to.be.a('number'); });",
+                  "pm.test('Referencia a la lectura u origen presente (id_telemetria, id_evento_edge_computing o id_paquete_inferencia)', function () { pm.expect([J.id_telemetria, J.id_evento_edge_computing, J.id_paquete_inferencia].filter(function (r) { return r !== null && r !== undefined; }).length, 'referencias no nulas').to.be.above(0); });",
+                  "pm.test('Activo o unidad productiva presentes', function () { pm.expect(J.id_activo_biologico !== null && J.id_activo_biologico !== undefined || J.id_infraestructura !== null && J.id_infraestructura !== undefined).to.eql(true); });",
+                  "pm.test('reglas_activas identifica la regla que genero la alerta (no vacia)', function () { pm.expect(J.reglas_activas, 'reglas_activas de la alerta ' + J.id_alerta + ' (metadato_evento=' + JSON.stringify(J.metadato_evento).slice(0, 120) + ')').to.be.an('array').that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Origen IA (NH3, sensor 482): crear con resultado de IA (PREDICCION_PATOLOGIA, probabilidad 0.9)",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 72,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"R-FRECUE\"],\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9,\n  \"id_paquete_inferencia\": {{id_paquete}}\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"NH3_MODERADO\"],\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -299,14 +694,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -315,18 +703,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57f_3', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-1.3][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_ia', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "1.3b Detalle origen IA - trazabilidad completa",
+          "name": "1.3b IA: el detalle incluye el resultado de IA, el evento de origen, sensor, activo o unidad y reglas",
           "request": {
             "method": "GET",
             "header": [
@@ -335,7 +723,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_3}}"
+            "url": "{{base_url}}/iot/alertas/{{id_ia}}"
           },
           "event": [
             {
@@ -343,23 +731,81 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 1.3b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 1.3b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Sensor origen (id_sensor)', function () { pm.expect(J.id_sensor).to.exist; });",
-                  "pm.test('Identificador del evento origen', function () { pm.expect(J.id_evento_edge_computing || J.id_telemetria || J.id_paquete_inferencia).to.exist; });",
-                  "pm.test('Activo o unidad productiva', function () { pm.expect(J.id_activo_biologico || J.id_infraestructura).to.exist; });",
-                  "pm.test('Reglas que la dispararon (reglas_activas)', function () { pm.expect(J.reglas_activas).to.be.an('array').that.is.not.empty; });",
-                  "pm.test('origen_evento = IA', function () { pm.expect(J.origen_evento).to.eql('IA'); });",
-                  "pm.test('Resultado de IA presente (severidad_ia / id_paquete_inferencia)', function () { pm.expect(J.id_paquete_inferencia || J.severidad_ia).to.exist; });",
-                  "(function () {",
-                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
-                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-                  "  if (!tk) { return; }",
-                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
-                  "})();"
+                  "const _sen = Number(pm.collectionVariables.get('sensor_nh3')), _dev = Number(pm.collectionVariables.get('device_id_nh3'));",
+                  "const _refs = {id_evento_edge_computing: J.id_evento_edge_computing, id_telemetria: J.id_telemetria, id_paquete_inferencia: J.id_paquete_inferencia};",
+                  "console.log('[G57F][OBSERVADO] origen IA | alerta ' + J.id_alerta + ' | ' + JSON.stringify({id_sensor: J.id_sensor, id_dispositivo_ioit: J.id_dispositivo_ioit, refs: _refs, id_activo_biologico: J.id_activo_biologico, id_infraestructura: J.id_infraestructura, nombre_sensor: J.nombre_sensor, nombre_infraestructura: J.nombre_infraestructura, nombre_finca: J.nombre_finca, reglas_activas: J.reglas_activas, severidad_ia: J.severidad_ia, tiene_inferencia_no_disponible: J.tiene_inferencia_no_disponible, tiene_contexto_incompleto: J.tiene_contexto_incompleto, metadato_evento: J.metadato_evento}));",
+                  "pm.test('Origen IA: origen_evento = IA y tipo_variable presente', function () { pm.expect(J.origen_evento).to.eql('IA'); pm.expect(J.tipo_variable, 'tipo_variable').to.be.a('string').and.not.empty; });",
+                  "console.log('[G57F][OBSERVADO] tipo_variable enviado=NH3 | devuelto=' + J.tipo_variable);",
+                  "pm.test('Sensor origen: id_sensor e id_dispositivo_ioit coinciden con los del evento', function () { pm.expect(J.id_sensor, 'id_sensor').to.eql(_sen); pm.expect(J.id_dispositivo_ioit, 'id_dispositivo_ioit').to.eql(_dev); });",
+                  "pm.test('Referencia al evento origen presente (id_evento_edge_computing, id_telemetria o id_paquete_inferencia)', function () { pm.expect(Object.keys(_refs).filter(function (r) { return _refs[r] !== null && _refs[r] !== undefined; }).length, 'referencias no nulas').to.be.above(0); });",
+                  "pm.test('El id del evento Edge de origen coincide con el enviado (id_evento_edge_computing)', function () { pm.expect(J.id_evento_edge_computing).to.eql(Number(pm.collectionVariables.get('id_evento_edge'))); });",
+                  "pm.test('Activo o unidad productiva: id_activo_biologico o id_infraestructura presentes', function () { pm.expect(J.id_activo_biologico !== null && J.id_activo_biologico !== undefined || J.id_infraestructura !== null && J.id_infraestructura !== undefined, 'activo=' + J.id_activo_biologico + ' infraestructura=' + J.id_infraestructura).to.eql(true); });",
+                  "pm.test('reglas_activas es una lista', function () { pm.expect(J.reglas_activas).to.be.an('array'); });",
+                  "pm.test('reglas_activas incluye NH3_MODERADO', function () { pm.expect(JSON.stringify(J.reglas_activas)).to.include('NH3_MODERADO'); });",
+                  "pm.test('Resultado de IA: la inferencia figura como disponible (tiene_inferencia_no_disponible = false)', function () { pm.expect(J.tiene_inferencia_no_disponible).to.eql(false); });",
+                  "console.log('[G57F-1.3b][OBSERVADO] id_paquete_inferencia=' + J.id_paquete_inferencia + ' tipo_alerta=' + J.tipo_alerta + ' severidad=' + J.severidad + ' severidad_ia=' + J.severidad_ia + ' conflicto_resolucion=' + J.conflicto_resolucion);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3c IA: el listado por sensor y origen trae los mismos campos de trazabilidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?id_sensor={{sensor_nh3}}&origen_evento=IA&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.3c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _a = (J.items || []).filter(function (x) { return String(x.id_alerta) === pm.collectionVariables.get('id_ia'); })[0];",
+                  "pm.test('El listado por sensor y origen incluye la alerta', function () { pm.expect(_a, 'alerta ' + pm.collectionVariables.get('id_ia')).to.exist; });",
+                  "pm.test('El listado trae los mismos campos de trazabilidad que el detalle (sensor, dispositivo y referencias)', function () { pm.expect(_a.id_sensor).to.eql(Number(pm.collectionVariables.get('sensor_nh3'))); pm.expect(_a.id_dispositivo_ioit).to.eql(Number(pm.collectionVariables.get('device_id_nh3'))); pm.expect(_a).to.have.property('id_evento_edge_computing'); pm.expect(_a).to.have.property('id_telemetria'); pm.expect(_a).to.have.property('id_paquete_inferencia'); pm.expect(_a).to.have.property('reglas_activas'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3d Alertas de origen IA ya existentes en TEST (con paquete de inferencia): el resultado de IA se ve en el listado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas?origen_evento=IA&por_pagina=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 1.3d] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _ia = (J.items || []).filter(function (a) { return a.id_paquete_inferencia !== null && a.id_paquete_inferencia !== undefined; });",
+                  "console.log('[G57F-1.3d][OBSERVADO] alertas IA=' + J.total + ' con paquete=' + _ia.length + ' ' + JSON.stringify((J.items || []).map(function (a) { return [a.id_alerta, a.id_paquete_inferencia, a.severidad_ia, a.severidad, a.metadato_evento]; })).slice(0, 700));",
+                  "pm.test('Hay alertas de origen IA con paquete de inferencia referenciado', function () { pm.expect(_ia.length, 'alertas IA con paquete').to.be.above(0); });",
+                  "pm.test('Las alertas de IA con paquete muestran severidad_ia', function () { _ia.forEach(function (a) { pm.expect(a.severidad_ia, 'severidad_ia de la alerta ' + a.id_alerta).to.be.a('string'); }); });"
                 ]
               }
             }
@@ -368,22 +814,26 @@
       ]
     },
     {
-      "name": "2. Cadena de estados, reevaluacion y compuestas (TC-M03-N60)",
+      "name": "2. Cadena de estados, reglas compuestas y reevaluacion (TC-M03-N60)",
       "item": [
         {
-          "name": "2.1 Alerta con tres cambios de estado",
+          "name": "2.1 Alerta con tres cambios de estado (humedad 526): crear",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 36.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_humedad_relativa}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"HUMEDAD_RELATIVA\",\n  \"valor\": 85.0,\n  \"unidad\": \"%\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"HUMEDAD_LEVE\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -398,14 +848,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -414,12 +857,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57f_e', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
-                  "(function () { try { const ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); const id = (J || {}).id_alerta; if (id && ids.indexOf(id) < 0) { ids.push(id); pm.collectionVariables.set('ids_alertas', JSON.stringify(ids)); } } catch (e) {} })();"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-2.1][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_est', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
@@ -439,10 +881,10 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_e}}/estado",
+            "url": "{{base_url}}/iot/alertas/{{id_est}}/estado",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\",\n  \"motivo\": \"Atencion QA\"\n}",
+              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\",\n  \"motivo\": \"Atencion QA administrador\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -456,16 +898,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('estado_alerta = EN_ATENCION', function () { pm.expect(J.estado_alerta).to.eql('EN_ATENCION'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.3 EN_ATENCION->RESUELTA",
+          "name": "2.3 EN_ATENCION->RESUELTA (Veterinario)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -475,13 +918,13 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
+                "value": "Bearer {{token_veterinario}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_e}}/estado",
+            "url": "{{base_url}}/iot/alertas/{{id_est}}/estado",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\",\n  \"motivo\": \"Resuelta QA\"\n}",
+              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\",\n  \"motivo\": \"Resolucion QA veterinario\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -495,16 +938,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('estado_alerta = RESUELTA', function () { pm.expect(J.estado_alerta).to.eql('RESUELTA'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.4 Historial: cada transicion con usuario y timestamp",
+          "name": "2.4 Historial: cada cambio con estados, usuario y timestamp; usuarios distintos en la atencion y en la resolucion",
           "request": {
             "method": "GET",
             "header": [
@@ -513,7 +957,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_e}}"
+            "url": "{{base_url}}/iot/alertas/{{id_est}}"
           },
           "event": [
             {
@@ -521,30 +965,73 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Historial con ACTIVA, EN_ATENCION y RESUELTA', function () { const e = (J.historico_estados || []).map(function (h) { return h.estado_nuevo; }); ['ACTIVA', 'EN_ATENCION', 'RESUELTA'].forEach(function (s) { pm.expect(e).to.include(s); }); });",
-                  "pm.test('Cada cambio con usuario y timestamp', function () { (J.historico_estados || []).slice(1).forEach(function (h) { pm.expect(h.id_usuario).to.exist; pm.expect(h.fecha_cambio).to.exist; }); });"
+                  "const _h = (J.historico_estados || []);",
+                  "console.log('[G57F-2.4][OBSERVADO] historial = ' + JSON.stringify(_h.map(function (h) { return [h.estado_anterior, h.estado_nuevo, h.fecha_cambio, h.id_usuario, h.nombre_usuario, h.motivo]; })) + ' | id_usuario_atencion=' + J.id_usuario_atencion + ' id_usuario_resolucion=' + J.id_usuario_resolucion);",
+                  "const _en = _h.filter(function (h) { return h.estado_nuevo === 'EN_ATENCION'; })[0], _re = _h.filter(function (h) { return h.estado_nuevo === 'RESUELTA'; })[0];",
+                  "pm.test('El historial muestra los tres estados (creacion ACTIVA, EN_ATENCION y RESUELTA)', function () { pm.expect(_h.map(function (h) { return h.estado_nuevo; })).to.eql(['ACTIVA', 'EN_ATENCION', 'RESUELTA']); });",
+                  "pm.test('Cada transicion encadena con la anterior (estado_anterior = estado_nuevo previo)', function () { for (let i = 1; i < _h.length; i++) { pm.expect(_h[i].estado_anterior, 'entrada ' + i).to.eql(_h[i - 1].estado_nuevo); } });",
+                  "pm.test('Cada transicion tiene timestamp valido y en orden', function () { for (let i = 0; i < _h.length; i++) { pm.expect(Date.parse(_h[i].fecha_cambio), 'fecha_cambio ' + i).to.be.a('number').and.not.NaN; if (i > 0) { pm.expect(Date.parse(_h[i].fecha_cambio)).to.be.at.least(Date.parse(_h[i - 1].fecha_cambio)); } } });",
+                  "pm.test('Cada cambio hecho por una persona registra su usuario', function () { pm.expect(_en && _en.id_usuario, 'usuario de EN_ATENCION').to.be.a('number'); pm.expect(_re && _re.id_usuario, 'usuario de RESUELTA').to.be.a('number'); });",
+                  "pm.test('La resolucion registra al Veterinario y la atencion a otro usuario (el Administrador)', function () { pm.expect(String(_re.id_usuario)).to.eql(pm.collectionVariables.get('id_vet')); pm.expect(_en.id_usuario).to.not.eql(_re.id_usuario); });",
+                  "pm.test('id_usuario_atencion e id_usuario_resolucion del detalle coinciden con el historial', function () { pm.expect(J.id_usuario_atencion).to.eql(_en.id_usuario); pm.expect(J.id_usuario_resolucion).to.eql(_re.id_usuario); });",
+                  "pm.test('Las observaciones enviadas quedan en el historial', function () { pm.expect(_en.motivo).to.eql('Atencion QA administrador'); pm.expect(_re.motivo).to.eql('Resolucion QA veterinario'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.5 Alerta compuesta (SINDROME_RESPIRATORIO) con reglas simples absorbidas",
+          "name": "2.5 Bitacora (RF-63): un evento por cada cambio de estado, con usuario y fecha",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{id_est}}&por_pagina=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _e = (J.items || []).filter(function (x) { return x.entidad_afectada_tipo === 'ALERTA'; });",
+                  "console.log('[G57F-2.5][OBSERVADO] eventos de la alerta = ' + JSON.stringify(_e.map(function (x) { return [x.tipo_evento, x.resultado, x.id_usuario, x.fecha_hora]; })));",
+                  "const _g = _e.filter(function (x) { return x.tipo_evento === 'ALERTA_GENERADA'; })[0], _a = _e.filter(function (x) { return x.tipo_evento === 'ALERTA_RECONOCIDA'; })[0], _r = _e.filter(function (x) { return x.tipo_evento === 'ALERTA_RESUELTA'; })[0];",
+                  "pm.test('La bitacora tiene la generacion, la atencion y la resolucion de la alerta', function () { pm.expect(_g, 'ALERTA_GENERADA').to.exist; pm.expect(_a, 'ALERTA_RECONOCIDA').to.exist; pm.expect(_r, 'ALERTA_RESUELTA').to.exist; });",
+                  "pm.test('Los eventos de atencion y resolucion llevan el usuario responsable y fecha', function () { pm.expect(_a.id_usuario, 'usuario de la atencion').to.be.a('number'); pm.expect(String(_r.id_usuario), 'usuario de la resolucion').to.eql(pm.collectionVariables.get('id_vet')); pm.expect(_a.fecha_hora).to.be.a('string'); pm.expect(_r.fecha_hora).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6 Alerta con regla compuesta declarada (temperatura 525): reglas_activadas con la compuesta y las dos reglas simples",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
               }
             ],
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frecuencia_respiratoria}},\n  \"access_key\": \"{{access_key}}\",\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"valor\": 76,\n  \"unidad\": \"rpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"FR_LEVE\", \"TC_39_5\", \"NH3_25\"],\n  \"correlacion_variables\": {\n    \"TEMPERATURA_CORPORAL\": 39.6,\n    \"NH3\": 26\n  }\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"ESTRES_TERMICO\",\"TEMPERATURA_LEVE\",\"HUMEDAD_LEVE\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -559,14 +1046,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
-                  "pm.variables.set('ts_now', _iso(_n));",
-                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
-                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
-                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
-                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
-                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
-                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
-                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                  "pm.variables.set('ts_now', _iso(_n));"
                 ]
               }
             },
@@ -575,18 +1055,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "if (J && J.id_alerta) { pm.collectionVariables.set('a57f_c', String(J.id_alerta)); }",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });"
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-2.6][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_comp', String((J || {}).id_alerta || 0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.6 La compuesta lista las reglas simples absorbidas en reglas_activas",
+          "name": "2.6b Compuesta: el detalle lista la regla compuesta y las reglas simples que la componen",
           "request": {
             "method": "GET",
             "header": [
@@ -595,7 +1075,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas/{{a57f_c}}"
+            "url": "{{base_url}}/iot/alertas/{{id_comp}}"
           },
           "event": [
             {
@@ -603,25 +1083,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57F 2.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "console.log('[TC-M03-G57F 2.6b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('reglas_activas contiene las 3 reglas absorbidas', function () { pm.expect(J.reglas_activas.length).to.be.at.least(3); });",
-                  "(function () {",
-                  "  const id = (J || {}).id_alerta; if (!id) { return; }",
-                  "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-                  "  if (!tk) { return; }",
-                  "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-                  "  const patch = (estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza automatica TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-                  "  patch('DESCARTADA', (e, r) => { if (r && r.code === 200) { return; } patch('EN_ATENCION', () => patch('RESUELTA')); });",
-                  "})();"
+                  "console.log('[G57F-2.6b][OBSERVADO] reglas_activas = ' + JSON.stringify(J.reglas_activas) + ' | tipo_alerta=' + J.tipo_alerta + ' | referencia_alerta_original=' + J.referencia_alerta_original);",
+                  "pm.test('reglas_activas incluye la regla compuesta y las dos reglas simples absorbidas', function () { const r = JSON.stringify(J.reglas_activas); ['ESTRES_TERMICO', 'TEMPERATURA_LEVE', 'HUMEDAD_LEVE'].forEach(function (n) { pm.expect(r, n).to.include(n); }); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.7 Alerta generada por reevaluacion con referencia_alerta_original y cadena completa",
+          "name": "2.7 Census de alertas generadas por reevaluacion en TEST (referencia_alerta_original o tiene_generada_por_reevaluacion)",
           "request": {
             "method": "GET",
             "header": [
@@ -630,27 +1103,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable con Postman/Newman. Motivo: requiere recuperar el motor de IA tras una caida (ver TC-M03-G75); el contrato de POST no recibe referencia_alerta_original"
+            "url": "{{base_url}}/iot/alertas?por_pagina=200"
           },
           "event": [
             {
@@ -658,8 +1111,201 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "console.log('[TC-M03-G57F 2.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test.skip(\"NO AUTOMATIZABLE POR API - requiere recuperar el motor de IA tras una caida (ver TC-M03-G75); el contrato de POST no recibe referencia_alerta_original\");"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const _l = (J.items || []);",
+                  "const _rev = _l.filter(function (a) { return (a.referencia_alerta_original !== null && a.referencia_alerta_original !== undefined) || a.tiene_generada_por_reevaluacion === true; });",
+                  "console.log('[G57F-2.7][OBSERVADO] alertas leidas=' + _l.length + ' de ' + J.total + ' | con referencia_alerta_original o generada_por_reevaluacion=' + _rev.length + ' ' + JSON.stringify(_rev.slice(0, 10).map(function (a) { return [a.id_alerta, a.origen_evento, a.referencia_alerta_original, a.tiene_generada_por_reevaluacion]; })));",
+                  "const _n = _rev.filter(function (a) { return a.referencia_alerta_original !== null && a.referencia_alerta_original !== undefined; })[0];",
+                  "pm.collectionVariables.set('id_reev', String(_n ? _n.id_alerta : 0));",
+                  "pm.collectionVariables.set('id_reev_orig', String(_n ? _n.referencia_alerta_original : 0));",
+                  "pm.test('Ninguna alerta apunta a si misma como original', function () { _l.forEach(function (a) { if (a.referencia_alerta_original !== null && a.referencia_alerta_original !== undefined) { pm.expect(a.referencia_alerta_original, 'alerta ' + a.id_alerta).to.not.eql(a.id_alerta); } }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.7b Si existe una alerta por reevaluacion: la original se puede consultar y esta marcada (cadena completa)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_reev_orig}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.7b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "if (pm.collectionVariables.get('id_reev') === '0') { console.log('[G57F-2.7b][OBSERVADO] No hay alertas por reevaluacion en TEST: no se verifica la cadena.'); pm.test('Sin alertas por reevaluacion en TEST (se documenta)', function () { pm.expect(true).to.eql(true); }); }",
+                  "else { pm.test('La alerta original referenciada existe (HTTP 200)', function () { pm.response.to.have.status(200); }); pm.test('La original esta marcada con tiene_generada_por_reevaluacion', function () { pm.expect(J.tiene_generada_por_reevaluacion).to.eql(true); }); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8 Intento de reevaluacion (oxigeno 3): alerta del Edge sin resultado de IA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial_oxigeno}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 4.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"OXIGENO_DISUELTO_LEVE\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-2.8][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_rev0', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8b Intento de reevaluacion: evento de IA para el mismo sensor y variable con severidad distinta (CRITICO, 0.95)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_oxigeno}},\n  \"sensor_id\": {{sensor_oxigeno_disuelto}},\n  \"serial\": \"{{serial_oxigeno}}\",\n  \"tipo_variable\": \"OXIGENO_DISUELTO\",\n  \"valor\": 4.0,\n  \"unidad\": \"mg/L\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"CRITICO\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"OXIGENO_DISUELTO_LEVE\"],\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"CRITICO\",\n  \"probabilidad_ia\": 0.95\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.8b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "console.log('[G57F-2.8b][OBSERVADO] ' + JSON.stringify({status: pm.response.code, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, tipo_alerta: J.tipo_alerta, severidad: J.severidad}));",
+                  "pm.collectionVariables.set('id_rev1', String((J || {}).id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8c Intento de reevaluacion: la alerta resultante (se documenta si referencia a la original; el RF no define el endpoint de reevaluacion)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_rev1}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.8c] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G57F-2.8c][OBSERVADO] alerta ' + J.id_alerta + ' (original esperada ' + pm.collectionVariables.get('id_rev0') + ') ' + JSON.stringify({origen: J.origen_evento, severidad: J.severidad, referencia_alerta_original: J.referencia_alerta_original, tiene_generada_por_reevaluacion: J.tiene_generada_por_reevaluacion, frecuencia_evento: J.frecuencia_evento}));",
+                  "pm.test('Respuesta documentada', function () { pm.expect(J.id_alerta).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8d Intento de reevaluacion: la alerta original (se documenta si cambio o se marco)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_rev0}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57F 2.8d] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G57F-2.8d][OBSERVADO] original ' + J.id_alerta + ' ' + JSON.stringify({severidad: J.severidad, estado: J.estado_alerta, tiene_generada_por_reevaluacion: J.tiene_generada_por_reevaluacion, tiene_inferencia_no_disponible: J.tiene_inferencia_no_disponible, frecuencia_evento: J.frecuencia_evento}));",
+                  "pm.test('Respuesta documentada', function () { pm.expect(J.id_alerta).to.exist; });"
                 ]
               }
             }
@@ -668,55 +1314,24 @@
       ]
     },
     {
-      "name": "Z. Limpieza - cerrar alertas de prueba creadas",
+      "name": "Z. Teardown del sandbox - DELETE /test-control/runs/{{run_id}} (rollback)",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "(function () {",
-              "  let ids = []; try { ids = JSON.parse(pm.collectionVariables.get('ids_alertas') || '[]'); } catch (e) {}",
-              "  const base = pm.variables.replaceIn('{{base_url}}'); const tk = pm.collectionVariables.get('token_admin');",
-              "  const hdr = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk};",
-              "  const patch = (id, estado, cb) => pm.sendRequest({url: base + '/iot/alertas/' + id + '/estado', method: 'PATCH', header: hdr, body: {mode: 'raw', raw: JSON.stringify({nuevo_estado: estado, motivo: 'QA limpieza final TC-M03'})}}, (e, r) => { if (cb) { cb(e, r); } });",
-              "  ids.forEach(function (id) { patch(id, 'DESCARTADA', function (e, r) { if (r && r.code === 200) { return; } patch(id, 'RESUELTA', function (e2, r2) { if (r2 && r2.code === 200) { return; } patch(id, 'EN_ATENCION', function () { patch(id, 'RESUELTA'); }); }); }); });",
-              "  console.log('[TC-M03-G57F] limpieza final: ' + ids.length + ' alerta(s) de prueba cerradas (DESCARTADA/RESUELTA)');",
-              "  pm.collectionVariables.set('ids_alertas', '[]');",
-              "})();",
-              "pm.test('Limpieza final ejecutada', function () { pm.expect(true).to.be.true; });"
+              "pm.test('Teardown del sandbox: rollback de la corrida (200/202/204)', function () { pm.expect([200, 202, 204]).to.include(pm.response.code); });",
+              "console.log('[TC-M03-G57F] teardown sandbox run_id=' + pm.variables.get('run_id') + ' status=' + pm.response.code);",
+              "pm.variables.unset('run_id');"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token_admin}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "iot",
-            "alertas"
-          ],
-          "query": [
-            {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
-              "key": "por_pagina",
-              "value": "1"
-            }
-          ]
-        }
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/test-control/runs/{{run_id}}"
       }
     }
   ]

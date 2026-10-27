@@ -1,0 +1,179 @@
+{
+  "tc": "TC-M03-G178",
+  "summary": {
+    "total": 26,
+    "ok": 24,
+    "falla": 2,
+    "veredicto": "RECHAZADO"
+  },
+  "metadata_reclasificacion": {
+    "veredicto_ejecucion_original": "APROBADO",
+    "total_ejecucion_original": 24,
+    "ok_ejecucion_original": 24,
+    "falla_ejecucion_original": 0,
+    "justificacion": "Los items 18 (id_usuario) y 21 (rf_origen) se disenaron como sondas tolerantes sin assert estricto. RF-63 Salida 2 declara ambos como filtros obligatorios. Backend no los implementa. Verificacion estricta habria fallado en ambos. Documentado en INC-M03-G178-01 (id_usuario) e INC-M03-G178-02 (rf_origen).",
+    "inc_referencias": [
+      "INC-M03-G178-01",
+      "INC-M03-G178-02"
+    ],
+    "fecha_reclasificacion": "2026-10-24T21:32:41.024Z"
+  },
+  "checkpoints": [
+    {
+      "paso": "Status 200 - Login exitoso de ADMIN",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro tipo_evento=EVALUACION_CALIDAD_COMPLETADA exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los items devueltos coinciden con el tipo_evento solicitado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro tipo_evento=TRANSICION_MANTENIMIENTO_MANUAL exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los items devueltos coinciden con TRANSICION_MANTENIMIENTO_MANUAL",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Tipo de evento sin registros devuelve total=0 y array vacío (no 404)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro severidad_log=INFO exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los items devueltos tienen severidad INFO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro severidad_log=WARNING responde 200",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Items devueltos tienen severidad WARNING",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 con lista vacía si backend filtra por string",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro por entidad_afectada_id (lectura) exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro por entidad_afectada_id (dispositivo) exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro resultado=EXITOSO exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los items devueltos tienen resultado EXITOSO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro resultado=FALLIDO responde 200",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Items devueltos tienen resultado FALLIDO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Endpoint acepta petición con id_usuario",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Combinación AND de 3 filtros exitosa",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los items cumplen la conjunción AND estricta",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Conjunción sin intersección devuelve total=0 y array vacío (no 500)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Petición con rf_origen procesada sin error",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Invariante de seguridad: componente_origen NO es revelado en la respuesta",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Rollback exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Item 18 - Filtro id_usuario aplica (assert estricto)",
+      "esperado": "PASSED (todos los items devueltos deben tener id_usuario=X)",
+      "obtenido": "FAILED (filtro no implementado en Swagger, items ignoran el parametro)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "Item 21 - Filtro rf_origen aplica (assert estricto)",
+      "esperado": "PASSED (todos los items devueltos deben tener rf_origen=X)",
+      "obtenido": "FAILED (filtro no implementado en Swagger, items ignoran el parametro)",
+      "estado": "FALLA"
+    }
+  ]
+}

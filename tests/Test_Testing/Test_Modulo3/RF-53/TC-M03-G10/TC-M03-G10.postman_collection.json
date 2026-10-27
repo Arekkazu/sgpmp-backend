@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-53 - TC-M03-G10 Manejo de datos agregados desde Edge (EDGE_AGREGADO)",
-    "description": "Automatiza TC-M03-024/059 (RF-53 fase 8, CA-13/CA-17, Flujo Principal B de CU-01). 024: valor_agregado=true sin ventana_agregacion -> 400 (estructura incompleta, sin persistencia); el mismo dato con ventana 5 -> 201. 059: EDGE_AGREGADO de FRECUENCIA_RESPIRATORIA 22 rpm con ventana 5 y frecuencia_muestreo 1 -> 201 LECTURA_VALIDA, verificado en el historial RF-59 (origen, estado, valor) y la trazabilidad de tipo_dato y ventana. Notas del código: el DTO no exige la ventana; el rechazo de 024a lo produce el CHECK chk_ventana_agregacion de modulo3.telemetrias (400 VALOR_NO_PERMITIDO). El historial no expone tipo_dato, dato_agregado ni ventana_agregacion (esas dos aserciones documentan esa falta; verificación en BD). No hay validación de coherencia entre ventana_agregacion y frecuencia_muestreo. Datos propios: finca, especie, corral, dispositivo y sensor biométrico asociado (RF-22) y calibrado (RF-24).",
+    "description": "Automatiza TC-M03-024/059 (RF-53 fase 8, CA-13/CA-17, Flujo Principal B de CU-01). 024: valor_agregado=true sin ventana_agregacion -> 400 (estructura incompleta, sin persistencia); el mismo dato con ventana 5 -> 201. 059: EDGE_AGREGADO de FRECUENCIA_RESPIRATORIA 22 rpm con ventana 5 y frecuencia_muestreo 1 -> 201 LECTURA_VALIDA, verificado en el historial RF-59 (origen, estado, valor) y la trazabilidad de tipo_dato y ventana. Notas del código: el DTO no exige la ventana; el rechazo de 024a lo produce el CHECK chk_ventana_agregacion de modulo3.telemetrias (400 VALOR_NO_PERMITIDO). El historial no expone tipo_dato, dato_agregado ni ventana_agregacion (esas dos aserciones documentan esa falta; verificación en BD). No hay validación de coherencia entre ventana_agregacion y frecuencia_muestreo. Datos propios: finca, especie, corral, dispositivo y sensor biométrico asociado (RF-22) y calibrado (RF-24). Desde DEV-06 los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer) y el campo access_key pasa a llamarse serial (identidad del nodo, no credencial): el token NO se versiona, se pasa con newman --env-var broker_token=<BROKER_SERVICE_TOKEN de TEST>.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -66,7 +66,7 @@
                   "pm.collectionVariables.set('sufijo', sufijo);",
                   "const ymd = (x) => x.toISOString().slice(0, 10);",
                   "pm.collectionVariables.set('fecha_desde', ymd(new Date(Date.now() - 86400000)));",
-                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date(Date.now() + 86400000)));"
+                  "pm.collectionVariables.set('fecha_hasta', ymd(new Date()));  // fecha_fin futura -> 400 FECHA_FIN_FUTURA"
                 ]
               }
             },
@@ -453,6 +453,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -467,7 +471,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"frecuencia_muestreo\": 1,\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -508,6 +512,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -522,7 +530,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -568,6 +576,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
               }
             ],
             "url": {
@@ -582,7 +594,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"access_key\": \"{{access_key}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_id}},\n  \"tipo_variable\": \"FRECUENCIA_RESPIRATORIA\",\n  \"categoria_variable\": \"ANIMAL\",\n  \"valor\": 22,\n  \"unidad\": \"rpm\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"EDGE_AGREGADO\",\n  \"valor_agregado\": true,\n  \"ventana_agregacion\": 5,\n  \"frecuencia_muestreo\": 1,\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

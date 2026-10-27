@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: casos de dispositivo y sensor inactivos (401) |
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 bitácora de rechazos, E3 evento individual, E6 límite por dispositivo, E7 intento no autorizado |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: la bitácora RF-55 confirma antes que el paquete |
 """RF-56 DEV-17: router, adaptadores y PostgreSQL reales, sin motor IA real."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -169,7 +170,8 @@ def test_fallo_persistencia_no_confirma_ni_invoca_motor(client, db_session, hard
         def fallar():
             nonlocal intentos
             intentos += 1
-            if intentos == 2:
+            # 1: evento Edge, 2: DESVIACION_DETECTADA en la bitácora (best-effort), 3: paquete.
+            if intentos == 3:
                 raise RuntimeError('commit no disponible')
             commit()
         monkeypatch.setattr(db_session, 'commit', fallar)

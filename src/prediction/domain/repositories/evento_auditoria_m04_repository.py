@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: registrar() acepta origen_dato |
 from __future__ import annotations
 
 import uuid
@@ -30,6 +31,7 @@ class EventoAuditoriaM04Repository(ABC):
         correlacion_id: Optional[uuid.UUID] = None,
         codigo_error: Optional[str] = None,
         descripcion_error: Optional[str] = None,
+        origen_dato: Optional[str] = None,
     ) -> None: ...
 
     @abstractmethod

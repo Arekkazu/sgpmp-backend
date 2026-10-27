@@ -19,12 +19,13 @@ leido en la BD (modulo3.telemetrias, solo lectura con el usuario QA).
 - El limite de payload LoRaWAN es binario y del firmware; aqui se usa un tope de bytes del JSON por lote
   (LIMITE_BYTES_LOTE, por defecto 4096) solo para forzar varios lotes. Que el NODO respete el limite real
   queda en SKIP (requiere hardware).
-- buffer_sequence_id: el contrato de ingesta no lo incluye y modulo3.telemetrias no tiene la columna. Existe
-  modulo3.buffers con buffer_sequence_id, pero ningun codigo del backend la escribe. El test busca el id en
-  esa tabla para el dispositivo de la prueba.
+- buffer_sequence_id: el contrato de ingesta no lo incluye. DB-03 (commit b0917b78) retiro modulo3.buffers: el
+  buffer vive en el Edge. El test verifica si el backend conserva el id en algun lado (columna en
+  modulo3.telemetrias); hoy no lo hace.
 
 Requisitos: acceso de red a TEST (API y Postgres 5448).
-Variables opcionales: BASE_URL, LIMITE_BYTES_LOTE, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
+Variables: BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el /iot/* responde 401).
+Opcionales: BASE_URL, LIMITE_BYTES_LOTE, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME.
 
 Como correrlo (desde la raiz del repo):
 
@@ -48,6 +49,11 @@ import requests
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
 LIMITE_BYTES_LOTE = int(os.getenv("LIMITE_BYTES_LOTE", "4096"))
 TIMEOUT = 30
+
+# DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
+# se toma de BROKER_TOKEN y no se versiona. El serial del cuerpo es la identidad del nodo, no una credencial.
+BROKER_TOKEN = os.getenv("BROKER_TOKEN", "")
+_HEADERS_BROKER = {"Authorization": f"Bearer {BROKER_TOKEN}"}
 DB = dict(
     host=os.getenv("DB_HOST", "158.69.200.27"), port=os.getenv("DB_PORT", "5448"),
     user=os.getenv("DB_USER", "member_qa"), password=os.getenv("DB_PASSWORD", "qaSGP2026"),
@@ -69,7 +75,7 @@ class _NodoEdgeSimulado:
             "buffer_sequence_id": self._secuencia,
             "device_id": self.device_id, "sensor_id": sensor_id, "tipo_variable": tipo, "valor": valor,
             "unidad": unidad, "timestamp_captura": ts.isoformat(), "origen": "BUFFER_LOCAL",
-            "access_key": self.access_key,
+            "serial": self.access_key,
         })
 
     def lotes_fifo(self, limite_bytes: int | None = None) -> list[list[dict]]:
@@ -86,7 +92,8 @@ class _NodoEdgeSimulado:
         return lotes + ([actual] if actual else [])
 
     def sincronizar(self, limite_bytes: int | None = None) -> list[requests.Response]:
-        return [requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": lote}, timeout=TIMEOUT)
+        return [requests.post(f"{BASE_URL}/iot/telemetria/batch", json={"registros": lote},
+                              headers=_HEADERS_BROKER, timeout=TIMEOUT)
                 for lote in self.lotes_fifo(limite_bytes)]
 
 
@@ -155,12 +162,13 @@ def _filas_bd(sensores: list[int]) -> list[dict]:
         con.close()
 
 
-def _secuencias_en_buffers(device_id: int) -> list[int]:
+def _columnas_buffer_sequence_id() -> list[str]:
+    """Tablas de modulo3 con columna buffer_sequence_id (modulo3.buffers se retiro en DB-03)."""
     con = psycopg2.connect(**DB)
     try:
         with con.cursor() as cur:
-            cur.execute("SELECT buffer_sequence_id FROM modulo3.buffers WHERE id_dispositivo_iot = %s "
-                        "ORDER BY buffer_sequence_id", (device_id,))
+            cur.execute("SELECT table_name FROM information_schema.columns "
+                        "WHERE table_schema = 'modulo3' AND column_name = 'buffer_sequence_id' ORDER BY 1")
             return [r[0] for r in cur.fetchall()]
     finally:
         con.close()
@@ -197,10 +205,11 @@ def test_tc_m03_037_orden_cronologico_estricto_en_la_bd(corrida_037):
 
 
 def test_tc_m03_037_se_conserva_el_buffer_sequence_id_del_nodo(corrida_037):
-    secuencias = _secuencias_en_buffers(corrida_037["nodo"].device_id)
-    assert secuencias == list(range(1, 51)), (
-        f"El backend no conserva el buffer_sequence_id asignado en el nodo (modulo3.buffers tiene {secuencias or 'nada'} "
-        "para el dispositivo; el contrato de ingesta no incluye el campo y modulo3.telemetrias no lo guarda)"
+    tablas = _columnas_buffer_sequence_id()
+    assert "telemetrias" in tablas, (
+        "El backend no conserva el buffer_sequence_id asignado en el nodo: el contrato de ingesta no incluye el "
+        f"campo, modulo3.telemetrias no tiene la columna y modulo3.buffers se retiro en DB-03 (tablas con la "
+        f"columna: {tablas or 'ninguna'})"
     )
 
 

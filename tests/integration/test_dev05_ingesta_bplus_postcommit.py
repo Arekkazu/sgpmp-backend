@@ -5,6 +5,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: verifica etapa nueva sin duplicados |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: explicita asociacion RF-22 en fixture de ingesta |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: exige eventos de ingesta y heartbeat sin duplicados |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: la espera entre reintentos se duplica con cada fallo |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -389,6 +390,32 @@ def test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente(db_session,
     assert tipos.count('POSTCOMMIT_RF61_COMPLETADO')==1
     assert tipos.count('POSTCOMMIT_RF17_COMPLETADO')==1
     assert tipos.count('POSTCOMMIT_RF62_COMPLETADO')==1
+
+
+def test_m3_12_la_espera_entre_reintentos_se_duplica_con_cada_fallo(db_session,equipo):
+    """Un error que no se arregla solo dejaba un FALLIDO por minuto y por fila (1,39 M eventos)."""
+    from time import sleep
+    identificador=sql_ingesta(db_session,equipo).id_telemetria
+    calidad(db_session,equipo,identificador)
+
+    def fallar():
+        p=procesador(db_session,reintento_seg=1,reintento_max_seg=60)
+        p.acciones[EtapaPostcommit.RF61]=Mock(side_effect=RuntimeError('indisponible'))
+        p.execute()
+
+    def pendiente():
+        with unidad_postcommit(db_session.get_bind(),identidad=False) as u:
+            return identificador in u.pendientes(EtapaPostcommit.RF61,1000,1,60)
+
+    fallar()
+    sleep(1.1)
+    fallar()  # tras 1 fallo la espera era 1 s; tras 2, ya es 2 s
+    sleep(1.1)
+    assert not pendiente()
+    sleep(1.0)
+    assert pendiente()
+    tipos=[x['tipo_evento'] for x in evidencias(db_session,identificador)]
+    assert tipos.count('POSTCOMMIT_RF61_FALLIDO')==2
 
 
 def test_heartbeat_http_conserva_autenticacion_y_se_procesa_sin_reinsertar(client,db_session,equipo,parametros_rf60):
