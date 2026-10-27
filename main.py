@@ -6,6 +6,7 @@
 # | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
 import asyncio
 import logging
 import os
@@ -668,10 +669,12 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.respaldo_auditoria_iot_worker import sincronizar_respaldo_auditoria_iot_periodicamente
     from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
 
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
+        asyncio.create_task(sincronizar_respaldo_auditoria_iot_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_notificar_alertas_periodicamente()),

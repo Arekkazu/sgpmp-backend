@@ -3,9 +3,15 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: serializa incidentes y consulta avisos persistidos |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a los equipos de las fincas del usuario |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: recuperar evidencia con UUID estable y exclusión transaccional sin modificar registros existentes. |
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
+from dataclasses import asdict
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import InfrastructureError
 from typing import Optional
 from uuid import UUID
 
@@ -72,6 +78,21 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         except Exception:
             # Auditoría es best-effort: no propaga error para no bloquear flujo principal
             return evento
+
+    def bloquear_respaldo(self) -> bool:
+        return bool(self.db.execute(text('SELECT pg_try_advisory_xact_lock(680, 53)')).scalar_one())
+
+    def registrar_respaldo(self, evento: EventoAuditoriaIot) -> None:
+        try:
+            datos = {k: (v.value if isinstance(v, Enum) else v) for k,v in asdict(evento).items()
+                     if k in BitacoraAuditoriaIotModel.__table__.columns and k != 'timestamp_registro'}
+            self.db.execute(pg_insert(BitacoraAuditoriaIotModel).values(**datos).on_conflict_do_nothing(index_elements=['id_evento']))
+            guardado = self.db.execute(select(BitacoraAuditoriaIotModel.hash_integridad).where(
+                BitacoraAuditoriaIotModel.id_evento == evento.id_evento)).scalar_one()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        if guardado != evento.hash_integridad:
+            raise InfrastructureError(code='RESPALDO_AUDITORIA_INCONSISTENTE', message='El UUID ya identifica otra evidencia de auditoría.')
 
     def obtener(
         self, id_evento: UUID, *, ids_fincas_permitidas: Optional[list[int]] = None,
