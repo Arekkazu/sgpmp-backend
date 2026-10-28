@@ -4,10 +4,76 @@ Revision ID: 4a4b067e7a24
 Revises: ebbb160365e5
 Create Date: 2026-10-27 10:35:45.634755
 
-Aplica Row Level Security al esquema modulo4 (RF-64 a RF-73).
-Tablas auditables (historial_*, eventos_auditoria_m04, auditorias_predicciones,
-configuracion_ia_log) son append-only: solo políticas SELECT e INSERT.
+Aplica Row Level Security al esquema modulo4 (RF-64 a RF-73) sobre sus 26 tablas.
 
+Patrones de acceso:
+  1. CATALOGO CLINICO (RF-64):  signos_clinicos, patologias_signos,
+                                patologias_variables_sensoricas,
+                                historial_catalogo_patologias
+  2. MLOPS / MODELOS (RF-69-71): parametros_mlops, versiones_modelos,
+                                historial_estados_modelos, datasets,
+                                metricas_drift, ciclos_entrenamientos,
+                                distribuciones_ota
+  3. MOTOR IA (RF-65):          configuraciones_motor_ia, configuracion_ia_log
+  4. FINCA DIRECTA:             alertas_patologicas
+  5. VIA ACTIVO BIOLOGICO:      resultados_inferencia, resultados_riesgo_contagio,
+                                observaciones_clinicas, historial_diagnostico_eventos,
+                                predicciones, auditorias_predicciones;
+                                EXISTS sobre padre: detalles_signos (-> observaciones),
+                                retroalimentaciones_clinicas (-> resultados)
+  6. VIA DISPOSITIVO IOT:       despliegues_ota, sincronizacion_nodos_edge,
+                                metricas_fallback_motor
+  7. AUDITORIA (RF-73):         eventos_auditoria_m04
+
+Append-only (solo SELECT/INSERT, tambien para el usuario de servicio):
+  historial_estados_modelos, historial_catalogo_patologias,
+  historial_diagnostico_eventos, configuracion_ia_log, eventos_auditoria_m04,
+  auditorias_predicciones, resultados_inferencia, retroalimentaciones_clinicas
+
+Recursos RBAC (modulo1.recursos) -- NOMBRES PROPUESTOS, validar contra la tabla:
+  catalogo_patologias        RF-64
+  configuracion_motor_ia     RF-65
+  inferencia_tiempo_real     RF-66
+  historial_diagnostico      RF-67
+  riesgo_contagio            RF-68
+  versionado_modelos         RF-69
+  distribucion_ota           RF-70
+  reentrenamiento_modelos    RF-71
+  retroalimentacion_clinica  RF-72
+  auditoria_motor_prediccion RF-73
+
+Reutiliza funciones de modulo9 (F5):
+  - fn_fincas_del_usuario()
+  - fn_infraestructuras_del_usuario()
+  - fn_dispositivos_del_usuario()
+
+Contrato con la app:
+  - Identidad: modulo1.fn_id_usuario_actual() lee app.current_user_id
+  - Servicio: modulo1.fn_es_usuario_servicio() identifica servicio.sistema@sgpmp.local
+  - Permisos: modulo1.fn_tiene_permiso(recurso, accion); no hay IDs de rol quemados
+  - Todas las funciones van dentro de (SELECT ...) para evaluarse por sentencia
+  - FORCE RLS: el motor de inferencia, el reentrenamiento y los procesos de fondo
+    de M04 DEBEN declarar el usuario de servicio en app.current_user_id; de lo
+    contrario sus INSERT/UPDATE quedan bloqueados (ver pol_*_servicio).
+
+Tabla de seguimiento
+  Tipo:                     Migracion Alembic (RLS)
+  Nombre:                   rls_modulo_04
+  Responsable:              Samuel
+  Version:                  <X.Y.Z segun semantic-release>
+  Version Alembic:          4a4b067e7a24 (down_revision: ebbb160365e5)
+  Fecha:                    2026-10-28
+  Estado:                   En correccion (PR pendiente de autorizacion)
+  Repositorio:              Arekkazu/sgpmp-backend
+  Commit:                   <hash tras reescribir commits>
+  Descripcion:              Habilita y fuerza RLS en las 26 tablas de modulo4
+                            (select/insert/update + politica de servicio)
+  Justificacion:            Aislar predicciones, diagnosticos, MLOps y auditoria
+                            del motor de IA por finca/activo/dispositivo/permiso
+  Objetos Afectados:        26 tablas de modulo4 (ENABLE + FORCE RLS), politicas pol_*
+  Requerimientos Funcionales: RF-64, RF-65, RF-66, RF-67, RF-68, RF-69, RF-70,
+                            RF-71, RF-72, RF-73
+  Evaluador:                <evaluador>
 """
 from typing import Sequence, Union
 
@@ -17,444 +83,349 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '4a4b067e7a24'
+# TODO: cuando #831 entre a dev, cambiar a 'c83690f30edd' (o a la revision de
+# modulo3 si entra antes) y actualizar "Revises" del docstring.
 down_revision: Union[str, Sequence[str], None] = 'ebbb160365e5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-_EXISTS_POLICY = """
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies
-        WHERE schemaname = 'modulo4' AND tablename = '{tabla}' AND policyname = '{policy}'
-    ) THEN
-        {stmt};
-    END IF;
-END$$;
-"""
+
+# ── Contexto de sesion (mismo contrato que modulo3) ───────────────────
+UID = "(SELECT modulo1.fn_id_usuario_actual())"
+SERVICIO = "(SELECT modulo1.fn_es_usuario_servicio())"
 
 
-def _pol(tabla: str, policy: str, stmt: str) -> str:
-    return _EXISTS_POLICY.format(tabla=tabla, policy=policy, stmt=stmt)
+def permiso(recurso: str, accion: str) -> str:
+    return f"(SELECT modulo1.fn_tiene_permiso('{recurso}', '{accion}'))"
 
 
-# ---------- Grupos de tablas por estrategia RLS ----------
+# ── Recursos RBAC (PROPUESTOS: validar contra modulo1.recursos) ───────
+R_CATALOGO = 'catalogo_patologias'          # RF-64
+R_MOTOR = 'configuracion_motor_ia'          # RF-65
+R_INFERENCIA = 'inferencia_tiempo_real'     # RF-66
+R_HIST_DIAG = 'historial_diagnostico'       # RF-67
+R_MODELOS = 'versionado_modelos'            # RF-69
+R_OTA = 'distribucion_ota'                  # RF-70
+R_REENTRENO = 'reentrenamiento_modelos'     # RF-71
+R_RETRO = 'retroalimentacion_clinica'       # RF-72
+R_AUDITORIA = 'auditoria_motor_prediccion'  # RF-73
 
-# A) Catálogos globales (sin finca, sin usuario): lectura a roles operativos
-#    escritura solo a admin/veterinario según catálogo.
-CATALOGOS_GLOBALES = [
-    'signos_clinicos',
-    'patologias_signos',
-    'patologias_variables_sensoricas',
-    'parametros_mlops',
-    'datasets',
-    'metricas_drift',
-]
-
-# B) Versionado de modelos / ciclos MLOps: lectura amplia, escritura admin
-#    (RF-69: RF-71 es el único emisor; el humano solo revisa/activa).
-MLOPS_GLOBALES = [
-    'versiones_modelos',
-    'historial_estados_modelos',
-    'historial_catalogo_patologias',
-    'ciclos_entrenamientos',
-    'configuracion_ia_log',       # append-only log de RF-65
-    'distribuciones_ota',
-]
-
-# C) Motor de inferencia: configuración global por tipo_modelo (RF-65).
-#    SELECT a roles técnicos; INSERT/UPDATE solo admin y veterinario.
-MOTOR_IA = ['configuraciones_motor_ia']
-
-# D) Tablas con id_finca directo: política por usuarios_fincas (RF-25/RF-46).
-CON_ID_FINCA = ['alertas_patologicas']
-
-# E) Tablas vinculadas a activo biológico (JOIN a modulo2.activos_biologicos
-#    y de ahí a modulo9.infraestructuras -> modulo9.fincas -> usuarios_fincas).
-#    Algunas además tienen id_usuario para "dueño del registro".
-VIA_ACTIVO_BIOLOGICO = [
-    'resultados_inferencia',         # RF-66 (inmutable)
-    'resultados_riesgo_contagio',    # RF-68
-    'observaciones_clinicas',        # RF-66/67
-    'retroalimentaciones_clinicas',  # RF-72 (append-only por usuario)
-    'historial_diagnostico_eventos', # RF-67 (append-only)
-    'predicciones',
-    'detalles_signos',
-    'auditorias_predicciones',       # append-only
-]
-
-# F) Tablas vinculadas a dispositivo IoT (JOIN a modulo9.dispositivos_iot
-#    -> modulo9.infraestructuras -> modulo9.fincas -> usuarios_fincas).
-VIA_DISPOSITIVO_IOT = [
-    'despliegues_ota',               # RF-70
-    'sincronizacion_nodos_edge',     # RF-65
-    'metricas_fallback_motor',       # RF-65
-]
-
-# G) Auditoría del módulo (RF-73): append-only, lectura restringida
-#    a admin / contador / revisor fiscal / veterinario (limitado).
-AUDITORIA_M04 = ['eventos_auditoria_m04']
+# ── Subconsultas de alcance (modulo9) ─────────────────────────────────
+_INFRA_SUBQ = (
+    "SELECT i.id_infraestructura"
+    f" FROM modulo9.fn_infraestructuras_del_usuario({UID}) i"
+)
+_DISP_SUBQ = (
+    "SELECT d.id_dispositivo_iot"
+    f" FROM modulo9.fn_dispositivos_del_usuario({UID}) d"
+)
+_FINCA_SUBQ = (
+    "SELECT f.id_finca"
+    f" FROM modulo9.fn_fincas_del_usuario({UID}) f"
+)
 
 
-# ---------- SQL fragments reutilizables ----------
-
-# Rol IDs (según seed provisto):
-# 1=Admin, 2=Productor, 3=Veterinario, 4=Ing.Campo, 5=Contador,
-# 6=Supervisor, 7=Gestor, 8=RevisorFiscal, 11=USUARIOS,
-# 21=IntegracionM04, 22=IntegracionM06
-
-ROLES_LECTURA_OPERATIVA = "(1,2,3,4,5,6,7,8,21,22)"
-ROLES_CLINICOS          = "(1,3)"              # Admin + Veterinario
-ROLES_ADMIN             = "(1,)"
-ROLES_AUDITORIA         = "(1,5,8)"            # Admin, Contador, Revisor Fiscal
-ROLES_IOT               = "(1,4,21)"           # Admin, Ing.Campo, Integración M04
-ROLES_SISTEMA           = "(21,22)"            # Integraciones M04/M06
-
-# Expresión que resuelve la finca del usuario actual vía usuarios_fincas.
-# Asume setting 'app.usuario_id' seteado por el backend en cada request.
-FINCA_DEL_USUARIO = """
-    EXISTS (
-        SELECT 1 FROM modulo9.usuarios_fincas uf
-        WHERE uf.id_usuario = current_setting('app.usuario_id')::integer
-          AND uf.es_activo = true
-          AND uf.id_finca = {col_finca}
+def _activo_visible(tabla: str) -> str:
+    """El activo biologico de la fila pertenece a una infraestructura del usuario."""
+    return (
+        "EXISTS (SELECT 1 FROM modulo2.activos_biologicos ab "
+        f"WHERE ab.id_activo_biologico = {tabla}.id_activo_biologico "
+        f"AND ab.id_infraestructura IN ({_INFRA_SUBQ}))"
     )
-"""
 
-# JOIN activo -> infraestructura -> finca -> usuarios_fincas
-# Requiere que la tabla tenga id_activo_biologico.
-FINCA_VIA_ACTIVO = """
-    EXISTS (
-        SELECT 1
-        FROM modulo2.activos_biologicos ab
-        JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
-        JOIN modulo9.usuarios_fincas uf
-             ON uf.id_finca = i.id_finca
-            AND uf.id_usuario = current_setting('app.usuario_id')::integer
-            AND uf.es_activo = true
-        WHERE ab.id_activo_biologico = {col_activo}
-    )
-"""
 
-# JOIN dispositivo_iot -> infraestructura -> finca -> usuarios_fincas
-FINCA_VIA_IOT = """
-    EXISTS (
-        SELECT 1
-        FROM modulo9.dispositivos_iot d
-        JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura
-        JOIN modulo9.usuarios_fincas uf
-             ON uf.id_finca = i.id_finca
-            AND uf.id_usuario = current_setting('app.usuario_id')::integer
-            AND uf.es_activo = true
-        WHERE d.id_dispositivo_iot = {col_iot}
-    )
-"""
+def _dispositivo_visible(tabla: str) -> str:
+    return f"{tabla}.id_dispositivo_iot IN ({_DISP_SUBQ})"
 
-# Chequeo de rol
-ES_ROL = "current_setting('app.rol_id')::integer = ANY({roles}::int[])"
+
+# ── Nombre singular de cada tabla (convencion: pol_<singular>_<criterio>) ──
+SING = {
+    'signos_clinicos': 'signo_clinico',
+    'patologias_signos': 'patologia_signo',
+    'patologias_variables_sensoricas': 'patologia_variable_sensorica',
+    'historial_catalogo_patologias': 'historial_catalogo_patologia',
+    'parametros_mlops': 'parametro_mlops',
+    'versiones_modelos': 'version_modelo',
+    'historial_estados_modelos': 'historial_estado_modelo',
+    'datasets': 'dataset',
+    'metricas_drift': 'metrica_drift',
+    'ciclos_entrenamientos': 'ciclo_entrenamiento',
+    'distribuciones_ota': 'distribucion_ota',
+    'configuraciones_motor_ia': 'configuracion_motor_ia',
+    'configuracion_ia_log': 'configuracion_ia_log',
+    'alertas_patologicas': 'alerta_patologica',
+    'resultados_inferencia': 'resultado_inferencia',
+    'resultados_riesgo_contagio': 'resultado_riesgo_contagio',
+    'observaciones_clinicas': 'observacion_clinica',
+    'retroalimentaciones_clinicas': 'retroalimentacion_clinica',
+    'historial_diagnostico_eventos': 'historial_diagnostico_evento',
+    'predicciones': 'prediccion',
+    'detalles_signos': 'detalle_signo',
+    'auditorias_predicciones': 'auditoria_prediccion',
+    'despliegues_ota': 'despliegue_ota',
+    'sincronizacion_nodos_edge': 'sincronizacion_nodo_edge',
+    'metricas_fallback_motor': 'metrica_fallback_motor',
+    'eventos_auditoria_m04': 'evento_auditoria_m04',
+}
+
+
+# ── Helpers ───────────────────────────────────────────────────────────
+def _pol(tabla: str, criterio: str, cmd: str, using: str = None, check: str = None) -> None:
+    nombre = f"pol_{SING[tabla]}_{criterio}"
+    sql = f"CREATE POLICY {nombre} ON modulo4.{tabla} FOR {cmd}"
+    if using:
+        sql += f" USING ({using})"
+    if check:
+        sql += f" WITH CHECK ({check})"
+    op.execute(sql + ";")
+
+
+def _servicio(tabla: str, append_only: bool = False) -> None:
+    """Usuario de servicio: ALL, o solo SELECT+INSERT en tablas append-only."""
+    if append_only:
+        _pol(tabla, 'servicio_select', 'SELECT', using=SERVICIO)
+        _pol(tabla, 'servicio_insert', 'INSERT', check=SERVICIO)
+    else:
+        _pol(tabla, 'servicio', 'ALL', using=SERVICIO, check=SERVICIO)
+
+
+def _enable_force(tabla: str) -> None:
+    op.execute(f"ALTER TABLE modulo4.{tabla} ENABLE ROW LEVEL SECURITY;")
+    op.execute(f"ALTER TABLE modulo4.{tabla} FORCE ROW LEVEL SECURITY;")
+
+
+def _politicas(tabla: str, select: str, insert: str = None, update: str = None,
+               append_only: bool = False) -> None:
+    _pol(tabla, 'select', 'SELECT', using=select)
+    if insert:
+        _pol(tabla, 'insert', 'INSERT', check=insert)
+    if update:
+        _pol(tabla, 'update', 'UPDATE', using=update, check=update)
+    _servicio(tabla, append_only=append_only)
+    _enable_force(tabla)
 
 
 # =====================================================================
 # UPGRADE
 # =====================================================================
 def upgrade() -> None:
-    # ------------------------------------------------------------------
-    # A) CATÁLOGOS GLOBALES
-    #    SELECT: todos los roles operativos.
-    #    INSERT/UPDATE/DELETE: admin + veterinario (RF-64 permite a vet
-    #    ampliar catálogo; admin lo gobierna).
-    # ------------------------------------------------------------------
-    for t in CATALOGOS_GLOBALES:
-        op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-        op.execute(_pol(t, f"{t}_select",
-            f"CREATE POLICY {t}_select ON modulo4.{t} "
-            f"FOR SELECT TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_LECTURA_OPERATIVA)})"))
-        op.execute(_pol(t, f"{t}_insert",
-            f"CREATE POLICY {t}_insert ON modulo4.{t} "
-            f"FOR INSERT TO authenticated "
-            f"WITH CHECK ({ES_ROL.format(roles=ROLES_CLINICOS)})"))
-        op.execute(_pol(t, f"{t}_update",
-            f"CREATE POLICY {t}_update ON modulo4.{t} "
-            f"FOR UPDATE TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_CLINICOS)}) "
-            f"WITH CHECK ({ES_ROL.format(roles=ROLES_CLINICOS)})"))
-        op.execute(_pol(t, f"{t}_delete",
-            f"CREATE POLICY {t}_delete ON modulo4.{t} "
-            f"FOR DELETE TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_ADMIN)})"))
 
-    # ------------------------------------------------------------------
-    # B) MLOPS GLOBALES (versiones_modelos, ciclos_entrenamientos, etc.)
-    #    SELECT: roles operativos + integraciones.
-    #    INSERT: solo sistema (RF-71) o admin (distribuciones_ota).
-    #    UPDATE: admin (p.ej. activar versión APROBADO -> ACTIVO en RF-69).
-    #    DELETE: nadie (append-only en historiales).
-    # ------------------------------------------------------------------
-    for t in MLOPS_GLOBALES:
-        op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-        op.execute(_pol(t, f"{t}_select",
-            f"CREATE POLICY {t}_select ON modulo4.{t} "
-            f"FOR SELECT TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_LECTURA_OPERATIVA)})"))
+    # ================================================================
+    # 1. CATALOGO CLINICO (RF-64): global, sin finca
+    #    SELECT: cualquier usuario autenticado (nombres de patologias/signos
+    #    se muestran en RF-66/67). Escritura: permiso U sobre el catalogo.
+    # ================================================================
+    for t in ('signos_clinicos', 'patologias_signos', 'patologias_variables_sensoricas'):
+        _politicas(
+            t,
+            select=f"{UID} IS NOT NULL",
+            insert=permiso(R_CATALOGO, 'U'),
+            update=permiso(R_CATALOGO, 'U'),
+        )
 
-    # version_modelo: el veterinario agrega notas_validacion (RF-69 Fase 4)
-    op.execute(_pol('versiones_modelos', 'versiones_modelos_update',
-        "CREATE POLICY versiones_modelos_update ON modulo4.versiones_modelos "
-        "FOR UPDATE TO authenticated "
-        f"USING ({ES_ROL.format(roles=ROLES_CLINICOS)}) "
-        f"WITH CHECK ({ES_ROL.format(roles=ROLES_CLINICOS)})"))
+    # historial del catalogo: append-only; lo escribe un trigger como invoker
+    _politicas(
+        'historial_catalogo_patologias',
+        select=permiso(R_CATALOGO, 'R'),
+        insert=permiso(R_CATALOGO, 'U'),
+        append_only=True,
+    )
 
-    # distribuciones_ota: el admin/ingeniero lanza OTA (RF-70)
-    op.execute(_pol('distribuciones_ota', 'distribuciones_ota_write',
-        "CREATE POLICY distribuciones_ota_write ON modulo4.distribuciones_ota "
-        "FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles=ROLES_IOT)})"))
-    op.execute(_pol('distribuciones_ota', 'distribuciones_ota_update',
-        "CREATE POLICY distribuciones_ota_update ON modulo4.distribuciones_ota "
-        "FOR UPDATE TO authenticated "
-        f"USING ({ES_ROL.format(roles=ROLES_IOT)}) "
-        f"WITH CHECK ({ES_ROL.format(roles=ROLES_IOT)})"))
+    # ================================================================
+    # 2. MLOPS / MODELOS (RF-69/70/71): global
+    # ================================================================
+    _politicas(
+        'parametros_mlops',
+        select=permiso(R_MODELOS, 'R'),
+        insert=permiso(R_MODELOS, 'U'),
+        update=permiso(R_MODELOS, 'U'),
+    )
+    # INSERT de versiones: solo sistema (RF-71). UPDATE humano: validacion (RF-69)
+    _politicas(
+        'versiones_modelos',
+        select=permiso(R_MODELOS, 'R'),
+        update=permiso(R_MODELOS, 'U'),
+    )
+    _politicas(
+        'historial_estados_modelos',
+        select=permiso(R_MODELOS, 'R'),
+        insert=permiso(R_MODELOS, 'U'),
+        append_only=True,
+    )
+    # datasets y metricas_drift: los escribe solo el sistema
+    _politicas('datasets', select=permiso(R_MODELOS, 'R'))
+    _politicas('metricas_drift', select=permiso(R_MODELOS, 'R'))
+    # ciclos: ejecucion manual (E) o automatica (servicio)
+    _politicas(
+        'ciclos_entrenamientos',
+        select=permiso(R_REENTRENO, 'R'),
+        insert=permiso(R_REENTRENO, 'E'),
+    )
+    # OTA global: lanzar y actualizar requiere permiso E (RF-70)
+    _politicas(
+        'distribuciones_ota',
+        select=permiso(R_OTA, 'R'),
+        insert=permiso(R_OTA, 'E'),
+        update=permiso(R_OTA, 'E'),
+    )
 
-    # Append-only: historial_estados_modelos, historial_catalogo_patologias,
-    # ciclos_entrenamientos, configuracion_ia_log, metricas_drift, datasets
-    for t in ['historial_estados_modelos', 'historial_catalogo_patologias',
-              'ciclos_entrenamientos', 'configuracion_ia_log',
-              'metricas_drift', 'datasets']:
-        op.execute(_pol(t, f"{t}_insert",
-            f"CREATE POLICY {t}_insert ON modulo4.{t} "
-            f"FOR INSERT TO authenticated "
-            f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))  # admin + sistema M04
+    # ================================================================
+    # 3. MOTOR IA (RF-65): configuracion global por tipo_modelo
+    # ================================================================
+    _politicas(
+        'configuraciones_motor_ia',
+        select=permiso(R_MOTOR, 'R'),
+        insert=permiso(R_MOTOR, 'U'),
+        update=permiso(R_MOTOR, 'U'),
+    )
+    _politicas(
+        'configuracion_ia_log',
+        select=permiso(R_MOTOR, 'R'),
+        insert=permiso(R_MOTOR, 'U'),
+        append_only=True,
+    )
 
-    # ------------------------------------------------------------------
-    # C) MOTOR IA (configuraciones_motor_ia) - RF-65
-    #    SELECT: roles técnicos. UPDATE/INSERT: admin + veterinario.
-    # ------------------------------------------------------------------
-    for t in MOTOR_IA:
-        op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-        op.execute(_pol(t, f"{t}_select",
-            f"CREATE POLICY {t}_select ON modulo4.{t} "
-            f"FOR SELECT TO authenticated "
-            f"USING ({ES_ROL.format(roles='(1,3,4,5,21,22)')})"))
-        op.execute(_pol(t, f"{t}_insert",
-            f"CREATE POLICY {t}_insert ON modulo4.{t} "
-            f"FOR INSERT TO authenticated "
-            f"WITH CHECK ({ES_ROL.format(roles=ROLES_CLINICOS)})"))
-        op.execute(_pol(t, f"{t}_update",
-            f"CREATE POLICY {t}_update ON modulo4.{t} "
-            f"FOR UPDATE TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_CLINICOS)}) "
-            f"WITH CHECK ({ES_ROL.format(roles=ROLES_CLINICOS)})"))
-        op.execute(_pol(t, f"{t}_delete",
-            f"CREATE POLICY {t}_delete ON modulo4.{t} "
-            f"FOR DELETE TO authenticated "
-            f"USING ({ES_ROL.format(roles=ROLES_ADMIN)})"))
+    # ================================================================
+    # 4. FINCA DIRECTA: alertas_patologicas (RF-66/68)
+    #    INSERT: solo sistema. UPDATE: confirmar diagnostico (RF-67).
+    # ================================================================
+    _politicas(
+        'alertas_patologicas',
+        select=f"alertas_patologicas.id_finca IN ({_FINCA_SUBQ})",
+        update=(
+            f"{permiso(R_HIST_DIAG, 'U')} "
+            f"AND alertas_patologicas.id_finca IN ({_FINCA_SUBQ})"
+        ),
+    )
 
-    # ------------------------------------------------------------------
-    # D) CON_ID_FINCA: alertas_patologicas (RF-66 / RF-68)
-    #    Tiene id_finca directo + id_usuario + id_activo_biologico.
-    #    SELECT por finca; INSERT solo sistema M04; UPDATE limitado.
-    #    Inmutable según RF-66 (no UPDATE real, solo diagnóstico_confirmado).
-    # ------------------------------------------------------------------
-    t = 'alertas_patologicas'
-    op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-    op.execute(_pol(t, f"{t}_select",
-        f"CREATE POLICY {t}_select ON modulo4.{t} "
-        f"FOR SELECT TO authenticated "
-        f"USING ("
-        f"  {FINCA_DEL_USUARIO.format(col_finca='id_finca')} "
-        f"  OR {ES_ROL.format(roles='(21,22)')} "  # sistemas M04/M06 ven todo
-        f")"))
-    op.execute(_pol(t, f"{t}_insert",
-        f"CREATE POLICY {t}_insert ON modulo4.{t} "
-        f"FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))  # motor M04
-    # UPDATE solo para que el veterinario confirme diagnóstico (RF-67)
-    op.execute(_pol(t, f"{t}_update",
-        f"CREATE POLICY {t}_update ON modulo4.{t} "
-        f"FOR UPDATE TO authenticated "
-        f"USING ("
-        f"  {FINCA_DEL_USUARIO.format(col_finca='id_finca')} "
-        f"  AND {ES_ROL.format(roles=ROLES_CLINICOS)}"
-        f") "
-        f"WITH CHECK ("
-        f"  {FINCA_DEL_USUARIO.format(col_finca='id_finca')} "
-        f"  AND {ES_ROL.format(roles=ROLES_CLINICOS)}"
-        f")"))
+    # ================================================================
+    # 5. VIA ACTIVO BIOLOGICO (2 saltos: activo -> infraestructura)
+    #    Sin excepcion para Administrador: ve solo sus fincas.
+    # ================================================================
+    # RF-66 (inmutable): solo sistema inserta
+    _politicas(
+        'resultados_inferencia',
+        select=_activo_visible('resultados_inferencia'),
+        append_only=True,
+    )
+    # RF-68: solo sistema inserta
+    _politicas(
+        'resultados_riesgo_contagio',
+        select=_activo_visible('resultados_riesgo_contagio'),
+    )
+    # RF-66/67: registro de observaciones por usuarios de la finca
+    _politicas(
+        'observaciones_clinicas',
+        select=_activo_visible('observaciones_clinicas'),
+        insert=(
+            f"{permiso(R_INFERENCIA, 'U')} "
+            f"AND {_activo_visible('observaciones_clinicas')}"
+        ),
+    )
+    # RF-67 (append-only): solo sistema inserta
+    _politicas(
+        'historial_diagnostico_eventos',
+        select=_activo_visible('historial_diagnostico_eventos'),
+        append_only=True,
+    )
+    _politicas('predicciones', select=_activo_visible('predicciones'))
+    _politicas(
+        'auditorias_predicciones',
+        select=_activo_visible('auditorias_predicciones'),
+        append_only=True,
+    )
 
-    # ------------------------------------------------------------------
-    # E) VÍA ACTIVO BIOLÓGICO
-    #    Tablas que cuelgan de un activo: requieren JOIN a M02+M09 para
-    #    resolver la finca. Algunas son append-only (RF-67/RF-72).
-    # ------------------------------------------------------------------
-    for t in VIA_ACTIVO_BIOLOGICO:
-        op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
+    # EXISTS sobre padre: heredan la visibilidad de observaciones_clinicas
+    _obs_visible = (
+        "EXISTS (SELECT 1 FROM modulo4.observaciones_clinicas oc "
+        "WHERE oc.id_observacion_clinica = detalles_signos.id_observaciones)"
+    )
+    _politicas(
+        'detalles_signos',
+        select=_obs_visible,
+        insert=f"{permiso(R_INFERENCIA, 'U')} AND {_obs_visible}",
+    )
 
-        # SELECT: usuarios con acceso a la finca del activo + sistemas M04/M06
-        op.execute(_pol(t, f"{t}_select",
-            f"CREATE POLICY {t}_select ON modulo4.{t} "
-            f"FOR SELECT TO authenticated "
-            f"USING ("
-            f"  {FINCA_VIA_ACTIVO.format(col_activo='id_activo_biologico')} "
-            f"  OR {ES_ROL.format(roles=ROLES_SISTEMA)} "
-            f"  OR {ES_ROL.format(roles=ROLES_ADMIN)}"
-            f")"))
+    # RF-72 (append-only): veterinario con permiso, sobre resultados visibles
+    # y firmando con su propio id. Columnas calificadas con el nombre de tabla.
+    _res_visible = (
+        "EXISTS (SELECT 1 FROM modulo4.resultados_inferencia ri "
+        "WHERE ri.id_resultado_inferencia = "
+        "retroalimentaciones_clinicas.id_resultado_inferencia)"
+    )
+    _politicas(
+        'retroalimentaciones_clinicas',
+        select=_res_visible,
+        insert=(
+            f"{permiso(R_RETRO, 'U')} "
+            f"AND {_res_visible} "
+            f"AND retroalimentaciones_clinicas.id_usuario_veterinario = {UID}"
+        ),
+        append_only=True,
+    )
 
-    # Inserts específicos por tabla (según RF):
-    # - resultados_inferencia / resultados_riesgo_contagio: solo M04 (21)
-    for t in ['resultados_inferencia', 'resultados_riesgo_contagio']:
-        op.execute(_pol(t, f"{t}_insert",
-            f"CREATE POLICY {t}_insert ON modulo4.{t} "
-            f"FOR INSERT TO authenticated "
-            f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))
+    # ================================================================
+    # 6. VIA DISPOSITIVO IOT (3 saltos): RF-65 / RF-70
+    # ================================================================
+    # OTA por dispositivo: lanzar/actualizar con permiso E sobre el recurso OTA
+    _politicas(
+        'despliegues_ota',
+        select=_dispositivo_visible('despliegues_ota'),
+        insert=(
+            f"{permiso(R_OTA, 'E')} "
+            f"AND {_dispositivo_visible('despliegues_ota')}"
+        ),
+        update=(
+            f"{permiso(R_OTA, 'E')} "
+            f"AND {_dispositivo_visible('despliegues_ota')}"
+        ),
+    )
+    # Los nodos Edge reportan por el servicio: escritura solo sistema
+    _politicas(
+        'sincronizacion_nodos_edge',
+        select=_dispositivo_visible('sincronizacion_nodos_edge'),
+    )
+    _politicas(
+        'metricas_fallback_motor',
+        select=_dispositivo_visible('metricas_fallback_motor'),
+    )
 
-    # - observaciones_clinicas: veterinario + productor de la finca
-    op.execute(_pol('observaciones_clinicas', 'observaciones_clinicas_insert',
-        "CREATE POLICY observaciones_clinicas_insert ON modulo4.observaciones_clinicas "
-        "FOR INSERT TO authenticated "
-        f"WITH CHECK ("
-        f"  {FINCA_VIA_ACTIVO.format(col_activo='id_activo_biologico')} "
-        f"  AND {ES_ROL.format(roles='(1,2,3,4)')}"
-        f")"))
-
-    # - predicciones: solo sistema M04
-    op.execute(_pol('predicciones', 'predicciones_insert',
-        "CREATE POLICY predicciones_insert ON modulo4.predicciones "
-        "FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))
-
-    # - detalles_signos: veterinario de la finca
-    op.execute(_pol('detalles_signos', 'detalles_signos_insert',
-        "CREATE POLICY detalles_signos_insert ON modulo4.detalles_signos "
-        "FOR INSERT TO authenticated "
-        "WITH CHECK ("
-        "  EXISTS ("
-        "    SELECT 1 FROM modulo4.observaciones_clinicas oc"
-        "    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = oc.id_activo_biologico"
-        "    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura"
-        "    JOIN modulo9.usuarios_fincas uf"
-        "         ON uf.id_finca = i.id_finca"
-        "        AND uf.id_usuario = current_setting('app.usuario_id')::integer"
-        "        AND uf.es_activo = true"
-        "    WHERE oc.id_observacion_clinica = id_observaciones"
-        "  )"
-        f"  AND {ES_ROL.format(roles=ROLES_CLINICOS)}"
-        ")"))
-
-    # - retroalimentaciones_clinicas (RF-72): solo veterinario, sobre
-    #   resultados de inferencia de su finca. UNIQUE por (resultado, usuario).
-    op.execute(_pol('retroalimentaciones_clinicas', 'retroalimentaciones_clinicas_insert',
-        "CREATE POLICY retroalimentaciones_clinicas_insert "
-        "ON modulo4.retroalimentaciones_clinicas "
-        "FOR INSERT TO authenticated "
-        "WITH CHECK ("
-        f"  {ES_ROL.format(roles=ROLES_CLINICOS)}"
-        "  AND EXISTS ("
-        "    SELECT 1 FROM modulo4.resultados_inferencia ri"
-        "    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = ri.id_activo_biologico"
-        "    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura"
-        "    JOIN modulo9.usuarios_fincas uf"
-        "         ON uf.id_finca = i.id_finca"
-        "        AND uf.id_usuario = current_setting('app.usuario_id')::integer"
-        "        AND uf.es_activo = true"
-        "    WHERE ri.id_resultado_inferencia = id_resultado_inferencia"
-        "  )"
-        "  AND id_usuario_veterinario = current_setting('app.usuario_id')::integer"
-        ")"))
-    # Append-only: sin UPDATE ni DELETE sobre retroalimentaciones (RF-72 restricción)
-
-    # - Append-only: historial_diagnostico_eventos, auditorias_predicciones
-    #   INSERT solo sistema; SELECT ya creado arriba.
-    op.execute(_pol('historial_diagnostico_eventos', 'historial_diagnostico_eventos_insert',
-        "CREATE POLICY historial_diagnostico_eventos_insert "
-        "ON modulo4.historial_diagnostico_eventos "
-        "FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))
-    op.execute(_pol('auditorias_predicciones', 'auditorias_predicciones_insert',
-        "CREATE POLICY auditorias_predicciones_insert "
-        "ON modulo4.auditorias_predicciones "
-        "FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))
-
-    # ------------------------------------------------------------------
-    # F) VÍA DISPOSITIVO IOT (RF-65 / RF-70)
-    #    Tablas que cuelgan de un dispositivo: JOIN a M09 para finca.
-    # ------------------------------------------------------------------
-    for t in VIA_DISPOSITIVO_IOT:
-        op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-        op.execute(_pol(t, f"{t}_select",
-            f"CREATE POLICY {t}_select ON modulo4.{t} "
-            f"FOR SELECT TO authenticated "
-            f"USING ("
-            f"  {FINCA_VIA_IOT.format(col_iot='id_dispositivo_iot')} "
-            f"  OR {ES_ROL.format(roles='(1,21)')}"
-            f")"))
-        op.execute(_pol(t, f"{t}_insert",
-            f"CREATE POLICY {t}_insert ON modulo4.{t} "
-            f"FOR INSERT TO authenticated "
-            f"WITH CHECK ("
-            f"  {FINCA_VIA_IOT.format(col_iot='id_dispositivo_iot')} "
-            f"  AND {ES_ROL.format(roles=ROLES_IOT)}"
-            f")"))
-        op.execute(_pol(t, f"{t}_update",
-            f"CREATE POLICY {t}_update ON modulo4.{t} "
-            f"FOR UPDATE TO authenticated "
-            f"USING ("
-            f"  {FINCA_VIA_IOT.format(col_iot='id_dispositivo_iot')} "
-            f"  AND {ES_ROL.format(roles=ROLES_IOT)}"
-            f") "
-            f"WITH CHECK ("
-            f"  {FINCA_VIA_IOT.format(col_iot='id_dispositivo_iot')} "
-            f"  AND {ES_ROL.format(roles=ROLES_IOT)}"
-            f")"))
-
-    # ------------------------------------------------------------------
-    # G) AUDITORÍA M04 (RF-73) - eventos_auditoria_m04
-    #    Append-only estricto: INSERT por sistema, SELECT por auditores.
-    #    FORCE RLS para que ni el owner se salte la política.
-    # ------------------------------------------------------------------
+    # ================================================================
+    # 7. AUDITORIA M04 (RF-73): append-only estricto
+    #    SELECT: auditores (R_AUDITORIA) o veterinario con permiso de
+    #    retroalimentacion limitado a 4 tipos de evento.
+    #    INSERT: cualquier usuario autenticado puede dejar rastro (los eventos
+    #    se generan desde funciones/triggers como invoker) o el servicio.
+    # ================================================================
     t = 'eventos_auditoria_m04'
-    op.execute(f"ALTER TABLE modulo4.{t} ENABLE ROW LEVEL SECURITY;")
-    op.execute(f"ALTER TABLE modulo4.{t} FORCE ROW LEVEL SECURITY;")
-    op.execute(_pol(t, f"{t}_select",
-        f"CREATE POLICY {t}_select ON modulo4.{t} "
-        f"FOR SELECT TO authenticated "
-        f"USING ({ES_ROL.format(roles='(1,5,8)')})"))  # admin, contador, revisor
-    op.execute(_pol(t, f"{t}_select_vet",
-        f"CREATE POLICY {t}_select_vet ON modulo4.{t} "
-        f"FOR SELECT TO authenticated "
-        f"USING ("
-        f"  {ES_ROL.format(roles='(3,)')} "  # veterinario
-        f"  AND tipo_evento = ANY(ARRAY["
-        f"    'RETROALIMENTACION_REGISTRADA'::modulo4.enum_tipo_evento_auditoria_m04,"
-        f"    'VERSION_APROBADA'::modulo4.enum_tipo_evento_auditoria_m04,"
-        f"    'VERSION_RECHAZADA'::modulo4.enum_tipo_evento_auditoria_m04,"
-        f"    'REENTRENAMIENTO_COMPLETADO'::modulo4.enum_tipo_evento_auditoria_m04"
-        f"  ]::modulo4.enum_tipo_evento_auditoria_m04[])"
-        f")"))
-    op.execute(_pol(t, f"{t}_insert",
-        f"CREATE POLICY {t}_insert ON modulo4.{t} "
-        f"FOR INSERT TO authenticated "
-        f"WITH CHECK ({ES_ROL.format(roles='(1,21)')})"))  # sistema M04
-    # Sin UPDATE ni DELETE: apéndice estricto (RF-73 RNF-03)
+    _pol(t, 'select', 'SELECT', using=permiso(R_AUDITORIA, 'R'))
+    _pol(t, 'select_vet', 'SELECT', using=(
+        f"{permiso(R_RETRO, 'R')} "
+        "AND eventos_auditoria_m04.tipo_evento::text IN ("
+        "'RETROALIMENTACION_REGISTRADA', 'VERSION_APROBADA', "
+        "'VERSION_RECHAZADA', 'REENTRENAMIENTO_COMPLETADO')"))
+    _pol(t, 'insert', 'INSERT', check=f"{SERVICIO} OR {UID} IS NOT NULL")
+    _servicio(t, append_only=True)
+    _enable_force(t)
 
 
 # =====================================================================
 # DOWNGRADE
 # =====================================================================
 def downgrade() -> None:
-    todas = (
-        CATALOGOS_GLOBALES + MLOPS_GLOBALES + MOTOR_IA + CON_ID_FINCA
-        + VIA_ACTIVO_BIOLOGICO + VIA_DISPOSITIVO_IOT + AUDITORIA_M04
-    )
-    for t in todas:
-        op.execute(f"DROP POLICY IF EXISTS {t}_select ON modulo4.{t};")
-        op.execute(f"DROP POLICY IF EXISTS {t}_select_vet ON modulo4.{t};")
-        op.execute(f"DROP POLICY IF EXISTS {t}_insert ON modulo4.{t};")
-        op.execute(f"DROP POLICY IF EXISTS {t}_update ON modulo4.{t};")
-        op.execute(f"DROP POLICY IF EXISTS {t}_delete ON modulo4.{t};")
-        # Políticas con nombres específicos
-        for suf in ('update', 'write', 'insert'):
-            op.execute(f"DROP POLICY IF EXISTS {t}_{suf} ON modulo4.{t};")
-        op.execute(f"ALTER TABLE modulo4.{t} DISABLE ROW LEVEL SECURITY;")
-        op.execute(f"ALTER TABLE modulo4.{t} NO FORCE ROW LEVEL SECURITY;")
+
+    # 1. Borrar politicas PRIMERO
+    op.execute("""
+        DO $$ DECLARE r record; BEGIN
+          FOR r IN
+            SELECT policyname, tablename FROM pg_policies
+            WHERE schemaname = 'modulo4'
+          LOOP
+            EXECUTE format('DROP POLICY %I ON modulo4.%I', r.policyname, r.tablename);
+          END LOOP; END $$;
+    """)
+
+    # 2. Quitar FORCE RLS y 3. DISABLE RLS (estado original: sin RLS)
+    for tabla in SING:
+        op.execute(f"ALTER TABLE modulo4.{tabla} NO FORCE ROW LEVEL SECURITY;")
+        op.execute(f"ALTER TABLE modulo4.{tabla} DISABLE ROW LEVEL SECURITY;")
