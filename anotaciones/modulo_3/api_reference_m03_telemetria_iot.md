@@ -140,6 +140,20 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano. Visión tambi
 > SQL requiere DB-02. Ver [diagnóstico y validación DEV-05](dev05_ingesta_bplus_postcommit.md).
 
 
+> **INC-M03-130-G16 / #685 — RF-53 y RF-62.** La ingesta marca
+> `frecuencia_anomala` para un intervalo al vecino cronológico más cercano
+> menor que 0,5 o mayor que 2 veces el muestreo configurado en M09; la primera
+> lectura no se marca sin un vecino. Se conserva `frecuencia_muestreo_min`
+> como snapshot del valor aplicado al insertar. La marca no rechaza la lectura
+> ni modifica lecturas previas; `EVENTO_EDGE` no es periódico.
+> El drift se consulta en `flags_detectados.posible_drift` de la evaluación
+> vigente mediante `GET /iot/calidad/{id_telemetria}`. El campo inicial
+> `telemetrias.posible_drift` no representa el resultado posterior de RF-62.
+> Un `201` de ingesta puede preceder a la evaluación; no certifica ausencia
+> de drift. Sin cambios en DTOs, respuestas, credenciales ni RBAC.
+> Requiere la migración `c685130a0260`; ver el
+> [diagnóstico de #685](inc_m03_130_g16_rf53_marcas_calidad.md).
+
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
 | `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |
