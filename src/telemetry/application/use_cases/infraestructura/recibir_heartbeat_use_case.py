@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: aplica politica canonica y señal SNR |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: bateria unica, reloj futuro y reconexion |
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: conservar las métricas de buffer en la misma transacción del heartbeat. |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: revalidar la fuente vigente bajo bloqueo y respetar los pendientes reportados. |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -105,8 +106,9 @@ class ProcesarHeartbeatPersistidoUseCase:
         tiempo = int((ahora-estado.fecha_ultimo_contacto).total_seconds())
         nuevo = estado.evaluar_transicion(
             tiempo,
-            heartbeat.estado_local_buffer, parametros.umbral_activo,
+            parametros.estado_local_buffer, parametros.umbral_activo,
             parametros.umbral_sin_senal, parametros.umbral_inactivo,
+            datos_pendientes_buffer=parametros.datos_pendientes_buffer,
         )
         if nuevo is not None:
             estado.aplicar_transicion(

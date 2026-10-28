@@ -6,6 +6,7 @@
 # | 2026-10-22 | Leandro | DEV-44 RF-61: explicita asociacion RF-22 en fixture de ingesta |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: exige eventos de ingesta y heartbeat sin duplicados |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: la espera entre reintentos se duplica con cada fallo |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: alinear buffer pendiente y fijar el reloj de la comprobación inmediata de reintento. |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -288,8 +289,8 @@ def test_heartbeat_sql_buffer_persistido_se_recupera_y_no_se_duplica(db_session,
     identificador=guardar_heartbeat(db_session,equipo,buffer=buffer)
     procesador(db_session).execute()
     procesador(db_session).execute()
-    # RF-60 Restricción 12: el contacto reciente tiene prioridad sobre el buffer.
-    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
+    # #682: el contacto reciente no demuestra vaciado de los dos datos reportados.
+    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='BUFFER_ACTIVO'
     assert [e['tipo_evento'] for e in evidencias(db_session,identificador,'HEARTBEAT')].count('HEARTBEAT_RECIBIDO')==1
     assert db_session.execute(text('SELECT count(*) FROM modulo3.heartbeats WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()==1
 
@@ -301,7 +302,7 @@ def test_umbrales_ausentes_quedan_pendientes_sin_perder_estado_buffer(db_session
     eventos=evidencias(db_session,identificador,'HEARTBEAT')
     assert {x['tipo_evento'] for x in eventos}=={'POSTCOMMIT_HEARTBEAT_ESTADO_COMPLETADO','POSTCOMMIT_HEARTBEAT_ALERTAS_FALLIDO','HEARTBEAT_RECIBIDO','POSTCOMMIT_HEARTBEAT_AUDITORIA_COMPLETADO'}
     assert 'PARAMETRO_CONFIGURACION_AUSENTE' in repr(eventos)
-    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='ACTIVO'
+    assert db_session.execute(text('SELECT estado_actual FROM modulo3.estados_dispositivos_iot WHERE id_dispositivo_iot=:id'),{'id':equipo['device']}).scalar_one()=='BUFFER_ACTIVO'
 
 
 def test_umbrales_inyectados_generan_alertas_sin_duplicados_ni_historial_inicial_extra(db_session,equipo,parametros_rf60):
@@ -373,16 +374,25 @@ def test_origen_sin_commit_no_es_visible_para_procesador(integration_engine):
             conn.execute(text('UPDATE modulo9.dispositivos_iot SET es_activo=false WHERE id_dispositivo_iot=:id'),{'id':equipo['device']})
 
 
-def test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente(db_session,equipo):
+def test_reintento_despues_de_fallo_recupera_solo_la_etapa_pendiente(db_session,equipo,monkeypatch):
     from time import sleep
+    from sqlalchemy import literal
+    from src.telemetry.infrastructure.repositories import postcommit_repository as repositorio
     identificador=sql_ingesta(db_session,equipo).id_telemetria
     calidad(db_session,equipo,identificador)
     p=procesador(db_session,reintento_seg=1)
     original=p.acciones[EtapaPostcommit.RF61]
     p.acciones[EtapaPostcommit.RF61]=Mock(side_effect=RuntimeError('indisponible'))
     p.execute()
-    with unidad_postcommit(db_session.get_bind(),identidad=False) as u:
-        assert identificador not in u.pendientes(EtapaPostcommit.RF61,1000,1)
+    fallo=db_session.execute(text("""SELECT fecha_hora FROM modulo3.bitacora_auditoria_iot
+        WHERE tipo_evento='POSTCOMMIT_RF61_FALLIDO' AND entidad_afectada_tipo='LECTURA'
+          AND entidad_afectada_id=:id"""),{'id':str(identificador)}).scalar_one()
+    # El resto del worker puede tardar más de 1 s: comprobar el instante del fallo,
+    # sin asumir que el reloj real aún esté dentro de la espera al terminar execute().
+    with monkeypatch.context() as reloj:
+        reloj.setattr(repositorio.func,'clock_timestamp',lambda:literal(fallo))
+        with unidad_postcommit(db_session.get_bind(),identidad=False) as u:
+            assert identificador not in u.pendientes(EtapaPostcommit.RF61,1000,1)
     sleep(1.1)
     procesador(db_session,reintento_seg=1).execute()
     tipos=[x['tipo_evento'] for x in evidencias(db_session,identificador)]
