@@ -2,6 +2,7 @@
 # |------------|---------|------------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
 # | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
+# | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por bandas de Fase 5, escalada THI y FALLO_AMBIENTAL técnica |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,7 +11,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.telemetry.domain.entities import reglas_base_rf57
 from src.telemetry.domain.entities.alerta import (
+    TIPO_ALERTA_TECNICA,
     Alerta,
     ConflictoResolucion,
     EstadoAlerta,
@@ -23,6 +26,7 @@ from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
+from src.telemetry.domain.repositories.variable_alerta_port import RangoFisicoVariable, VariableAlertaPort
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -57,6 +61,7 @@ class GenararAlertaUseCase:
         regla_repo: ReglaAlertaRepository,
         parametros_port: ParametrosAlertasPort,
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
+        variable_port: VariableAlertaPort | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
@@ -65,6 +70,9 @@ class GenararAlertaUseCase:
         self.regla_repo = regla_repo
         self.parametros_port = parametros_port
         self.auditoria_repo = auditoria_repo
+        # G68: con el catálogo de M09 se evalúa el evento externo contra RF-57 Fase 5
+        # (bandas base, THI y FALLO_AMBIENTAL) en vez de copiar la severidad declarada.
+        self.variable_port = variable_port
 
     def execute(
         self,
@@ -75,6 +83,10 @@ class GenararAlertaUseCase:
         id_infraestructura: Optional[int] = None,
     ) -> ResultadoGeneracionAlerta:
         ahora = datetime.now(timezone.utc)
+        ids = dict(id_activo_biologico=id_activo_biologico, id_dispositivo_ioit=id_dispositivo_ioit,
+                   id_infraestructura=id_infraestructura)
+        rango = self.variable_port.obtener_rango_fisico(dto.tipo_variable) if self.variable_port else None
+        causa_fallo = self._causa_fallo_ambiental(dto, rango)
 
         # Fase 2: Validar estado_dato (FA-01/E1/E2/CA-3)
         if dto.estado_dato != "LECTURA_VALIDA":
@@ -99,10 +111,29 @@ class GenararAlertaUseCase:
                         "id_paquete_inferencia": dto.id_paquete_inferencia,
                     },
                 )
+            if causa_fallo:
+                return self._fallo_ambiental(dto, rango, causa_fallo, ahora, ids)
             return ResultadoGeneracionAlerta(
                 es_duplicado=False,
                 motivo_descarte=f"estado_dato={dto.estado_dato} no genera alerta operativa",
             )
+        if causa_fallo:
+            # Una lectura imposible no es una condición del animal ni del ambiente.
+            return self._fallo_ambiental(dto, rango, causa_fallo, ahora, ids)
+
+        # Fase 5 (CA-1, Restricción 7): la severidad sale del valor, no de la declarada.
+        severidad_reportada = dto.severidad_edge
+        evaluacion = None
+        if self.variable_port is not None and dto.origen_evento != OrigenEventoAlerta.IA:
+            evaluacion = reglas_base_rf57.evaluar_evento(dto.tipo_variable, dto.valor, dto.correlacion_variables)
+            if evaluacion.evaluable and evaluacion.severidad is None:
+                self._auditar_sin_desviacion(dto, evaluacion.detalle)
+                return ResultadoGeneracionAlerta(
+                    es_duplicado=False,
+                    motivo_descarte=f"{dto.tipo_variable}={dto.valor} está en la banda NORMAL de RF-57: no genera alerta",
+                )
+            if evaluacion.evaluable:
+                dto = dto.model_copy(update={"severidad_edge": evaluacion.severidad})
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
         tiene_contexto_incompleto = (id_activo_biologico is None)
@@ -152,11 +183,12 @@ class GenararAlertaUseCase:
             valor=dto.valor,
             unidad=dto.unidad,
             contexto_activo_biologico=contexto_activo_biologico,
-            metadato_evento=dto.metadata_evento,
+            metadato_evento=self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
             tiene_inferencia_no_disponible=(dto.probabilidad_ia is None and dto.origen_evento == OrigenEventoAlerta.EDGE),
             tiene_contexto_incompleto=tiene_contexto_incompleto,
             conflicto_resolucion=conflicto_resolucion,
-            severidad_edge_original=dto.severidad_edge if conflicto_resolucion else None,
+            severidad_edge_original=(dto.severidad_edge if conflicto_resolucion
+                                     else severidad_reportada if severidad_reportada != dto.severidad_edge else None),
             severidad_ia=dto.severidad_ia if conflicto_resolucion else None,
             id_evento_edge_computing=dto.id_evento_edge_computing,
             id_telemetria=dto.id_telemetria,
@@ -182,6 +214,90 @@ class GenararAlertaUseCase:
             tipo_alerta=alerta_guardada.tipo_alerta,
             severidad=alerta_guardada.severidad,
         )
+
+    def _causa_fallo_ambiental(self, dto: ProcesarEventoAlertaDTO,
+                               rango: Optional[RangoFisicoVariable]) -> Optional[str]:
+        """RF-57 FALLO_AMBIENTAL: error de calibración o valor fuera del rango absoluto del sensor."""
+        if self.variable_port is None:
+            return None
+        if dto.estado_dato == "ERROR_CALIBRACION":
+            return "ERROR_CALIBRACION"
+        if rango and reglas_base_rf57.fuera_de_rango_fisico(dto.valor, rango.valor_fisico_min, rango.valor_fisico_max):
+            return "VALOR_FUERA_DE_RANGO_ABSOLUTO"
+        return None
+
+    def _fallo_ambiental(self, dto, rango, causa, ahora, ids) -> ResultadoGeneracionAlerta:
+        """Alerta técnica para el ingeniero de campo (no operativa): MODERADO, CRITICO si la variable es crítica."""
+        severidad = SeveridadAlerta.CRITICO if rango and rango.es_critica else SeveridadAlerta.MODERADO
+        motivo = f"FALLO_AMBIENTAL ({causa}): no genera alerta operativa; alerta técnica para el ingeniero de campo"
+        try:
+            self.alerta_repo.bloquear_condicion(dto.sensor_id, TipoAlerta.FALLO_AMBIENTAL)
+            existente = self.alerta_repo.buscar_activa_duplicada(
+                id_sensor=dto.sensor_id, tipo_variable=TipoAlerta.FALLO_AMBIENTAL, ventana_min=30)
+            if existente:
+                self.alerta_repo.actualizar_deduplicacion(id_alerta=existente.id_alerta, ultima_ocurrencia=ahora)
+                self.db.commit()
+                return ResultadoGeneracionAlerta(
+                    es_duplicado=True, id_alerta=existente.id_alerta, tipo_alerta=existente.tipo_alerta,
+                    severidad=existente.severidad, alerta_existente_id=existente.id_alerta, motivo_descarte=motivo)
+            alerta = Alerta(
+                tipo_alerta=TIPO_ALERTA_TECNICA,
+                severidad=severidad,
+                estado_alerta=EstadoAlerta.ACTIVA,
+                origen_evento=dto.origen_evento,
+                tipo_variable=TipoAlerta.FALLO_AMBIENTAL,
+                fecha_evento=dto.timestamp_evento,
+                fecha_generacion=ahora,
+                reglas_activas=dto.reglas_activadas,
+                valor=dto.valor,
+                unidad=dto.unidad,
+                metadato_evento={
+                    **(dto.metadata_evento or {}),
+                    "componente_origen": "RF57", "alerta": TipoAlerta.FALLO_AMBIENTAL.value, "causa": causa,
+                    "tipo_variable": dto.tipo_variable, "estado_dato": dto.estado_dato,
+                    "severidad_reportada": dto.severidad_edge,
+                    "rango_fisico": {"min": str(rango.valor_fisico_min) if rango else None,
+                                     "max": str(rango.valor_fisico_max) if rango else None,
+                                     "variable_critica": bool(rango and rango.es_critica)},
+                },
+                diagnostico=causa,
+                id_evento_edge_computing=dto.id_evento_edge_computing,
+                id_telemetria=dto.id_telemetria,
+                id_paquete_inferencia=dto.id_paquete_inferencia,
+                id_sensor=dto.sensor_id,
+                **ids,
+            )
+            alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento()
+            guardada = self.alerta_repo.guardar(alerta)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return ResultadoGeneracionAlerta(es_duplicado=False, id_alerta=guardada.id_alerta,
+                                         tipo_alerta=guardada.tipo_alerta, severidad=guardada.severidad,
+                                         motivo_descarte=motivo)
+
+    def _auditar_sin_desviacion(self, dto: ProcesarEventoAlertaDTO, detalle: dict) -> None:
+        if self.auditoria_repo is None:
+            return
+        RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+            tipo_evento="EVENTO_SIN_DESVIACION_RF57",
+            resultado=TipoResultado.RECHAZADO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.WARNING,
+            descripcion="Evento con severidad declarada pero valor en la banda NORMAL de RF-57.",
+            entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+            entidad_afectada_id=str(dto.device_id),
+            accion_detallada={"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable,
+                              "valor": str(dto.valor), "severidad_reportada": dto.severidad_edge, **detalle},
+        )
+
+    @staticmethod
+    def _metadato_con_evaluacion(dto, evaluacion, severidad_reportada) -> Optional[dict]:
+        if evaluacion is None or not evaluacion.evaluable:
+            return dto.metadata_evento
+        return {**(dto.metadata_evento or {}),
+                "evaluacion_rf57": {"severidad_reportada": severidad_reportada, **evaluacion.detalle}}
 
     def _clasificar(self, dto: ProcesarEventoAlertaDTO) -> tuple[str, str, Optional[str]]:
         """Determina tipo_alerta, severidad final y conflicto_resolucion (E12/E13)."""

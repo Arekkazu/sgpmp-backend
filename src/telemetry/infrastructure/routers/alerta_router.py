@@ -8,6 +8,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el POST valida fecha, origen, unidad y variable (400) |
+# | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: POST /iot/alertas evalúa el valor contra RF-57 y M09 |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -44,6 +45,7 @@ from src.telemetry.domain.entities.alerta import AmbitoAlerta, EstadoAlerta
 from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import VariableAlertaM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
 from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
@@ -71,6 +73,8 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
         parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        # G68: el evento externo se evalúa contra RF-57 Fase 5 y el rango físico de M09.
+        variable_port=VariableAlertaM09Adapter(db),
     )
 
 
