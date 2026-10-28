@@ -3,10 +3,12 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: lee los umbrales de tormenta; sin configurar no agrupa (E8) |
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
 import logging
 
 from src.configuration.domain.entities.parametro_mlops import (
     RF57_CONFIANZA,
+    RF57_CONFIANZA_BASE,
     RF57_CONFIANZA_MINIMA,
     RF57_CONFIANZA_MINIMA_BASE,
     RF57_VENTANA_REEVALUACION,
@@ -26,8 +28,15 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
         self.parametros_repo = parametros_repo
 
     def obtener_confianza_edge_ia(self):
-        return numero_configurado(self.parametros_repo.obtener([RF57_CONFIANZA]), RF57_CONFIANZA,
-                                 minimo='0.70', maximo='0.95')
+        try:
+            return numero_configurado(self.parametros_repo.obtener([RF57_CONFIANZA]), RF57_CONFIANZA,
+                                      minimo='0.70', maximo='0.95')
+        except ServiceUnavailableError as exc:
+            # G76: sin cargar (TEST) respondía 503 a todo conflicto Edge/IA. El RF publica 0.85 como base;
+            # solo la ausencia lo usa, un valor inválido sigue fallando (DEV-14).
+            if exc.code != 'PARAMETRO_CONFIGURACION_AUSENTE':
+                raise
+            return RF57_CONFIANZA_BASE
 
     def obtener_confianza_minima_ia(self):
         try:

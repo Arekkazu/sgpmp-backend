@@ -8,6 +8,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
 import asyncio
 import logging
 import os
@@ -35,6 +36,7 @@ from src.biological_assets.infrastructure.routers.activo_biologico_router import
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
+from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -875,6 +877,7 @@ app.include_router(umbral_router)
 app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
+app.include_router(parametros_alertas_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
