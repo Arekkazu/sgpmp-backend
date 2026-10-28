@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: notificación de alertas, tormenta (E8), contexto incompleto (E6) y fallos con reintento (E7) |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 """Caso de uso: notificar las alertas nuevas (RF-57 Fase 8, E6, E7, E8).
 
 Corre cada pocos segundos fuera del request del broker:
@@ -51,6 +52,8 @@ logger = logging.getLogger(__name__)
 
 VENTANA_TORMENTA = timedelta(minutes=1)
 REPOSO_TORMENTA = timedelta(minutes=10)  # una alerta de tormenta por ventana, no una por vuelta
+# G77 (E6): un aviso por sensor sin asociación cada 24 h; el RF no fija la frecuencia.
+VENTANA_AVISO_CONTEXTO = timedelta(hours=24)
 
 
 def _titulo(alerta: Alerta) -> str:
@@ -94,6 +97,7 @@ class NotificarAlertasUseCase:
             self._a_administradores(tormenta, _titulo(tormenta), self._cuerpo_tormenta(tormenta), agrupable=False)
 
         agrupadas: dict[int, list[Alerta]] = defaultdict(list)
+        sensores_avisados: set[int] = set()
         for alerta in pendientes:
             if alerta.tipo_alerta == TipoAlerta.TORMENTA_DE_ALERTAS.value:
                 continue
@@ -103,12 +107,14 @@ class NotificarAlertasUseCase:
                     agrupadas[id_usuario].append(alerta)
                 else:
                     self._enviar(id_usuario, alerta, _titulo(alerta), _cuerpo(alerta), agrupable=not critica)
-            if alerta.tiene_contexto_incompleto:
+            if alerta.tiene_contexto_incompleto and self._avisar_contexto(alerta, ahora, sensores_avisados):
+                # G77: sin anti-spam. El anti-spam es por tipo de evento (32) y una notificación de otra
+                # alerta en los últimos 5 min descartaba este aviso en silencio.
                 self._a_administradores(
                     alerta, "Alerta sin contexto de activo biológico",
                     f"La alerta #{alerta.id_alerta} ({alerta.tipo_variable}) se generó sin activo asociado. "
                     f"Complete la asociación del sensor {alerta.id_sensor} a su unidad productiva (RF-22).",
-                    agrupable=True,
+                    agrupable=False,
                 )
 
         for id_usuario, alertas in agrupadas.items():
@@ -119,6 +125,16 @@ class NotificarAlertasUseCase:
 
         self.notificacion.reintentar_fallidas(ahora)
         return len(pendientes)
+
+    def _avisar_contexto(self, alerta: Alerta, ahora: datetime, sensores_avisados: set[int]) -> bool:
+        """Un aviso por sensor: ni dos en la misma vuelta ni otro si ya se avisó en las últimas 24 h."""
+        if alerta.id_sensor is None:
+            return True
+        if alerta.id_sensor in sensores_avisados:
+            return False
+        sensores_avisados.add(alerta.id_sensor)
+        return not self.alerta_repo.contexto_incompleto_avisado_desde(
+            alerta.id_sensor, ahora - VENTANA_AVISO_CONTEXTO, ahora)
 
     def _crear_tormenta_si_aplica(self, ahora: datetime) -> Optional[Alerta]:
         umbrales = self.parametros.obtener_umbrales_tormenta()

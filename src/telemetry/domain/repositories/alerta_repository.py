@@ -7,6 +7,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de bateria unica y recuperacion |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,6 +18,10 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 
 class AlertaRepository(ABC):
+    def contexto_incompleto_avisado_desde(self, id_sensor: int, desde: datetime, antes_de: datetime) -> bool:
+        """E6: otra alerta sin contexto del mismo sensor se notificó en [desde, antes_de)."""
+        raise NotImplementedError
+
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
         raise NotImplementedError

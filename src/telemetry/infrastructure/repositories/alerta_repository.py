@@ -11,6 +11,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: reglas_activas de alertas de umbral anteriores desde metadato_evento |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -479,6 +480,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             return [self._a_entidad(orm) for orm in filas]
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def contexto_incompleto_avisado_desde(self, id_sensor, desde, antes_de):
+        return self.db.query(
+            self.db.query(AlertaModel.id_alerta).filter(
+                AlertaModel.id_sensor == id_sensor,
+                AlertaModel.tiene_contexto_incompleto.is_(True),
+                AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                AlertaModel.fecha_notificacion >= desde,
+                AlertaModel.fecha_notificacion < antes_de,
+            ).exists()
+        ).scalar()
 
     def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
         filas = (
