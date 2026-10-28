@@ -10,6 +10,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: tarea periodica de reenvio de paquetes de inferencia |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
 import asyncio
 import logging
 import os
@@ -37,6 +38,7 @@ from src.biological_assets.infrastructure.routers.activo_biologico_router import
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
+from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -880,6 +882,7 @@ app.include_router(umbral_router)
 app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
+app.include_router(parametros_alertas_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)

@@ -3,6 +3,7 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: parámetros de tormenta de alertas (E8) |
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -22,6 +23,8 @@ RF62_N = 'rf62_n'
 RF62_DRIFT = 'rf62_umbral_drift'
 RF62_P = 'rf62_p'
 RF57_CONFIANZA = 'umbral_confianza_edge_ia'
+# RF-57 E12/E13: "El umbral de confianza (0.85) es configurable por el administrador (0.70–0.95)".
+RF57_CONFIANZA_BASE = Decimal('0.85')
 # RF-57 CA-2: probabilidad mínima para generar PREDICCION_PATOLOGIA. El RF fija un valor base (0.75).
 RF57_CONFIANZA_MINIMA = 'rf57_umbral_confianza_minimo'
 RF57_CONFIANZA_MINIMA_BASE = Decimal('0.75')
