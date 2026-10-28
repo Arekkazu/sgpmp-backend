@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita paquete pendiente y resultado real de envio |
+# | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -83,6 +84,22 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             self.db.flush()
             if estado in ('ENVIADO', 'FALLIDO'):
                 self._auditar(orm, 'PAQUETE_ENVIADO_IA' if estado == 'ENVIADO' else 'FALLO_ENVIO_PAQUETE')
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def listar_pendientes(self, limite: int) -> list[PaqueteInferencia]:
+        try:
+            filas = self.db.query(PaqueteInferenciaModel).join(
+                EventoEdgeComputingModel,
+                EventoEdgeComputingModel.id_evento_edge_computing == PaqueteInferenciaModel.id_evento_edge_computing,
+            ).filter(
+                PaqueteInferenciaModel.estado_paquete == 'PENDIENTE',
+            ).order_by(
+                # RF-56 restricción 6: orden cronológico y secuencia original.
+                EventoEdgeComputingModel.fecha_captura,
+                PaqueteInferenciaModel.id_paquetes_inferencia,
+            ).limit(limite).with_for_update(of=PaqueteInferenciaModel, skip_locked=True).all()
+            return [self._a_entidad(orm) for orm in filas]
         except Exception as exc:
             raise_from_db_error(exc)
 
