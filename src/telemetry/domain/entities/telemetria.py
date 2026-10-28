@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
+# | 2026-10-28 | Arekkazu | BE-2 RF-55: id_regla_alerta en el evento Edge |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -202,6 +203,8 @@ class EventoEdgeComputing:
     id_evento_edge_computing: Optional[int] = None
     severidad: Optional[str] = None  # SeveridadEdge
     metadatos: dict[str, Any] = field(default_factory=dict)
+    # BE-2: regla de modulo3.reglas_alertas que evaluó el Edge (metadata_edge.id_regla_alerta).
+    id_regla_alerta: Optional[int] = None
 
 
 @dataclass

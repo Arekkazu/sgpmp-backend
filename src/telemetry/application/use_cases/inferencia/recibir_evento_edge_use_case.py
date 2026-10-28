@@ -5,6 +5,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: rechaza orden temporal invertido y devuelve la captura original. |
+# | 2026-10-28 | Arekkazu | BE-2/BE-3 RF-55: id_regla_alerta en el evento y regla aplicada en la alerta |
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ from src.shared.errors import AuthenticationError, ValidationError
 from src.shared.rate_limit import registrar_llamada
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
+from src.telemetry.domain.entities.alerta import regla_edge
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
     ConsolidarEnviarPaqueteUseCase,
@@ -38,6 +40,7 @@ from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeR
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
+from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -49,6 +52,7 @@ _MAX_VENTANA_BUFFER_HORAS = 72
 # RF-56 E6: eventos por minuto y por dispositivo; los CRITICO no cuentan (se priorizan).
 # ponytail: contador en memoria por proceso (src/shared/rate_limit.py); compartido si hay réplicas.
 LIMITE_EVENTOS_POR_MINUTO = 60
+_MAX_INT4 = 2**31 - 1
 logger = logging.getLogger(__name__)
 
 # RF-63: tipo de evento de la bitácora para cada desviación que reporta RF-55.
@@ -69,6 +73,7 @@ class RecibirEventoEdgeUseCase:
         motor_inferencia_port: MotorInferenciaPort,
         parametros_alertas_port: ParametrosAlertasPort,
         auditoria_repo: Optional[BitacoraAuditoriaIotRepository] = None,
+        regla_repo: Optional[ReglaAlertaRepository] = None,
     ) -> None:
         self.db = db
         self.evento_edge_repo = evento_edge_repo
@@ -77,6 +82,7 @@ class RecibirEventoEdgeUseCase:
         self.motor_inferencia_port = motor_inferencia_port
         self.parametros_alertas_port = parametros_alertas_port
         self.auditoria_repo = auditoria_repo
+        self.regla_repo = regla_repo
 
     def execute(
         self,
@@ -132,6 +138,7 @@ class RecibirEventoEdgeUseCase:
             origen_dato=dto.origen,
             estado_conectividad=dto.estado_conectividad,
             metadatos=dto.metadata_edge or {},
+            id_regla_alerta=self._id_regla_existente(dto.metadata_edge),
         )
 
         # Paso 3-4: Guardar evento
@@ -188,6 +195,7 @@ class RecibirEventoEdgeUseCase:
                 id_infraestructura=dispositivo.id_infraestructura,
                 id_evento_edge=evento_guardado.id_evento_edge_computing,
                 id_paquete=paquete.id_paquetes_inferencia if paquete else None,
+                id_regla_alerta=evento_guardado.id_regla_alerta,
             )
 
         return ResultadoEventoEdge(
@@ -207,6 +215,7 @@ class RecibirEventoEdgeUseCase:
         id_infraestructura: Optional[int],
         id_evento_edge: int,
         id_paquete: Optional[int],
+        id_regla_alerta: Optional[int] = None,
     ) -> None:
         try:
             var_primaria = dto.variables_involucradas[0]
@@ -223,7 +232,7 @@ class RecibirEventoEdgeUseCase:
                 origen_evento="EDGE",
                 id_evento_edge_computing=id_evento_edge,
                 id_paquete_inferencia=id_paquete,
-                reglas_activadas=[dto.clasificacion_rf55],
+                reglas_activadas=[regla_edge(dto.clasificacion_rf55, dto.metadata_edge, id_regla_alerta)],
                 metadata_evento=dto.metadata_edge,
             )
             GenararAlertaUseCase(
@@ -241,6 +250,16 @@ class RecibirEventoEdgeUseCase:
         except Exception:
             self.db.rollback()
             logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
+
+    def _id_regla_existente(self, metadata_edge: Optional[dict]) -> Optional[int]:
+        """BE-2: ``metadata_edge.id_regla_alerta`` solo si la regla existe (la columna tiene FK:
+        un id que mandó el Edge y no existe haría perder el evento)."""
+        id_regla = (metadata_edge or {}).get("id_regla_alerta")
+        if self.regla_repo is None or isinstance(id_regla, bool) or not isinstance(id_regla, int):
+            return None
+        if not 0 < id_regla <= _MAX_INT4:  # fuera de integer, la consulta misma fallaría
+            return None
+        return id_regla if self.regla_repo.obtener_por_id(id_regla) is not None else None
 
     @staticmethod
     def _validar_temporal(

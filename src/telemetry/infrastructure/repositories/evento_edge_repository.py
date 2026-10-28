@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-28 | Arekkazu | BE-2 RF-55: persiste id_regla_alerta del evento Edge |
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -28,6 +31,7 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
                 origen_dato=entidad.origen_dato,
                 estado_conectividad=entidad.estado_conectividad,
                 metadatos=metadatos,
+                id_regla_alerta=entidad.id_regla_alerta,
                 enviado_backend=False,
                 almacendado_buffer=not entidad.estado_conectividad,
             )
@@ -55,4 +59,5 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
             origen_dato=orm.origen_dato,
             estado_conectividad=orm.estado_conectividad,
             metadatos=metadatos,
+            id_regla_alerta=orm.id_regla_alerta,
         )
