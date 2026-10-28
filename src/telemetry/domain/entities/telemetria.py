@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -236,3 +237,8 @@ class ResultadoEventoEdge:
     fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str] = None
+
+
+#: INC-M03-199-G54 (RF-55 §6, "contexto: variables y reglas usadas"): trazabilidad de la regla que
+#: produjo la clasificación. La emite el nodo Edge; el backend la conserva en evento, paquete y alerta.
+CAMPOS_TRAZABILIDAD_REGLA = ("regla_aplicada", "nombre_regla", "version_regla")

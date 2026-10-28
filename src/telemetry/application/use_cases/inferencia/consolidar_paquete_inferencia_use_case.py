@@ -3,6 +3,7 @@
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E3 timestamps dispersos se procesan como evento individual, sin 422 |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-56: el paquete conserva la regla que produjo la clasificación |
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import 
 
 from src.shared.errors import BusinessRuleError
 from src.telemetry.domain.entities.telemetria import (
+    CAMPOS_TRAZABILIDAD_REGLA,
     EstadoCalidadBitacora,
     EstadoCalidadTelemetria,
     EstadoPaqueteInferencia,
@@ -145,6 +147,9 @@ class ConsolidarEnviarPaqueteUseCase:
             "timestamp_procesamiento_edge": evento.fecha_procesamiento.isoformat(),
             "clasificacion_rf55": evento.clasificacion_rf55,
         }
+        # G54: la regla que produjo la clasificación viaja con el paquete hacia M04.
+        metadatos.update({c: (evento.metadatos or {})[c] for c in CAMPOS_TRAZABILIDAD_REGLA
+                          if (evento.metadatos or {}).get(c) is not None})
         if agrupacion_descartada:
             metadatos["agrupacion_descartada"] = {"dispersion_seg": delta, "maximo_seg": _MAX_DISPERSION_SEG}
 

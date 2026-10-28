@@ -5,6 +5,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: rechaza orden temporal invertido y devuelve la captura original. |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 from __future__ import annotations
 
 import logging
@@ -28,6 +29,7 @@ from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edg
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.telemetria import (
+    CAMPOS_TRAZABILIDAD_REGLA,
     EventoEdgeComputing,
     ResultadoEventoEdge,
     TipoEventoEdge,
@@ -56,6 +58,10 @@ _EVENTO_BITACORA_RF55 = {
     TipoEventoEdge.DESVIACION_SIMPLE: "DESVIACION_DETECTADA",
     TipoEventoEdge.DESVIACION_COMPUESTA: "EVENTO_COMPUESTO_GENERADO",
 }
+
+
+def _trazabilidad_completa(metadatos: dict) -> bool:
+    return all(metadatos.get(campo) is not None for campo in CAMPOS_TRAZABILIDAD_REGLA)
 
 
 class RecibirEventoEdgeUseCase:
@@ -131,7 +137,7 @@ class RecibirEventoEdgeUseCase:
             fecha_procesamiento=ts_procesamiento,
             origen_dato=dto.origen,
             estado_conectividad=dto.estado_conectividad,
-            metadatos=dto.metadata_edge or {},
+            metadatos=self._metadatos_evento(dto),
         )
 
         # Paso 3-4: Guardar evento
@@ -241,6 +247,14 @@ class RecibirEventoEdgeUseCase:
         except Exception:
             self.db.rollback()
             logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
+
+    @staticmethod
+    def _metadatos_evento(dto: RecibirEventoEdgeDTO) -> dict:
+        """metadata_edge tal como la emitió el nodo; en un evento compuesto, marca si trae la regla (G54)."""
+        metadatos = dict(dto.metadata_edge or {})
+        if dto.clasificacion_rf55 == TipoEventoEdge.DESVIACION_COMPUESTA:
+            metadatos["trazabilidad_regla_completa"] = _trazabilidad_completa(metadatos)
+        return metadatos
 
     @staticmethod
     def _validar_temporal(
