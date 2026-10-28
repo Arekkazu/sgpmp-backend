@@ -2,6 +2,7 @@
 # |------------|---------|------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica flujos HTTP y triggers reales  |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-27/42: evaluador con parametros y lectura con lock |
+# | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: ERROR_CALIBRACION genera alerta técnica FALLO_AMBIENTAL |
 """DEV-49 con JWT, broker, repositorios y PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -239,10 +240,17 @@ def test_calidad_no_valida_conserva_lectura_y_registro_tecnico(db_session, hardw
     consulta = text("SELECT to_jsonb(t) FROM modulo3.telemetrias t WHERE id_telemetria=:id")
     previo = db_session.execute(consulta, {"id": id_lectura}).scalar_one()
     response = http49[0].post("/iot/alertas", headers=http49[3], json=_payload(hardware49, id_lectura, calidad))
-    assert response.status_code == 201, response.text  # Contrato previo: resultado sin alerta.
-    assert response.json()["id_alerta"] is None
+    assert response.status_code == 201, response.text
     assert db_session.execute(consulta, {"id": id_lectura}).scalar_one() == previo
-    assert db_session.execute(text("SELECT count(*) FROM modulo3.alertas WHERE id_telemetria=:id"), {"id": id_lectura}).scalar_one() == 0
+    alertas = db_session.execute(text(
+        "SELECT tipo_alerta, tipo_variable FROM modulo3.alertas WHERE id_telemetria=:id"), {"id": id_lectura}).all()
+    if calidad == "ERROR_CALIBRACION":
+        # INC-M03-162-G68: RF-57 FALLO_AMBIENTAL. No hay alerta operativa, pero sí la técnica para el ingeniero.
+        assert response.json()["tipo_alerta"] == "TECNICA"
+        assert [tuple(a) for a in alertas] == [("TECNICA", "FALLO_AMBIENTAL")]
+    else:
+        assert response.json()["id_alerta"] is None
+        assert alertas == []
     evento, = db_session.execute(text("""
         SELECT clasificacion_registro,accion_detallada FROM modulo3.bitacora_auditoria_iot
         WHERE tipo_evento='LECTURA_EXCLUIDA_RF57' AND entidad_afectada_id=:id
