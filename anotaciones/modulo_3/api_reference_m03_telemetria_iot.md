@@ -216,6 +216,7 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `ventana_agregacion` | `int \| None` | `> 0` |
 | `latitud` / `longitud` | `Decimal \| None` | Opcional |
 | `estado_conectividad` | `bool \| None` | Opcional |
+| `reloj_sincronizado` | `bool \| None` | Opcional; booleano estricto. Señal del reloj al capturar; prevalece sobre el heartbeat (INC-M03-132-G30, 2026-10-27). |
 | `nivel_bateria` | `Decimal \| None` | `0–100` |
 | `calidad_senal_rssi` / `calidad_senal_snr` | `Decimal \| None` | Opcional |
 | `checksum` | `str \| None` | Opcional |
@@ -231,6 +232,17 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `latencia_procesamiento_ms` | `int \| None` |
 
 ---
+
+**Reloj — RF-54 E9 / #687 (2026-10-27):** la función común de ingesta escribe
+`telemetrias.reloj_desincronizado` antes del INSERT. Si falta la señal por lectura
+o llega en null, utiliza el último heartbeat recibido del mismo dispositivo. El
+snapshot `metadatos.rf53_reloj` registra la fuente, el heartbeat usado y el código
+`TIME_DESYNC` cuando corresponde. En datos del buffer, el fallback acredita el
+estado conocido al ingerir; no reconstruye el reloj al capturar. Sin evidencia,
+la señal queda desconocida y no se inventa un estado sincronizado. Los rechazos
+existentes de timestamps futuros y buffer mayor de 72 horas se mantienen.
+La misma entrada opcional aplica a cada registro del lote. Ver
+[integración IoT de #687](inc_m03_132_g30_rf54_integracion_iot.md).
 
 #### `POST /iot/telemetria/batch` — Sincronización de buffer (RF-53 Flujo C, máx. 500)
 
@@ -728,6 +740,14 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 **Response:** `TelemetriaCalidadSchema`
 
 ---
+
+**Restricción temporal — #687:** la evaluación manual y la automática usan la
+marca original y su snapshot. Si hay TIME_DESYNC, ambas aptitudes oficiales en
+`telemetria_calidad` quedan en false, sin descuento adicional al índice ni cambio
+artificial de clasificación. Por ello una clasificación APTO puede coexistir
+con aptitudes false. La respuesta mantiene su estructura: el flag se encuentra
+en `flags_detectados.reloj_desincronizado` y la justificación en
+`parametros_aplicados.restriccion_temporal`. La lectura original no se actualiza.
 
 #### `POST /iot/calidad/reevaluar` — Solicitar reevaluación masiva (RF-62 FA-08)
 

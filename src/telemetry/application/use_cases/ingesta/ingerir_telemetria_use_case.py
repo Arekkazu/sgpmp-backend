@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: resuelve variables desde el puerto M09 |
 # | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: conservar la secuencia recibida en metadatos del INSERT comun HTTP y batch. |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: enviar evidencia de reloj en metadatos a la funcion comun antes del INSERT. |
 """RF-53 B+: HTTP adapta el sobre; la función SQL valida y persiste la fila."""
 from typing import Any, Optional
 
@@ -75,6 +76,8 @@ class IngerirTelemetriaUseCase:
                          'frecuencia_muestreo': dto.frecuencia_muestreo}
             if dto.buffer_sequence_id is not None:
                 metadatos['buffer_sequence_id'] = dto.buffer_sequence_id
+            if dto.reloj_sincronizado is not None:
+                metadatos['reloj_sincronizado'] = dto.reloj_sincronizado
             # Unidad, rango, tiempo, duplicados y calibración conservan una sola
             # regla de validación, en fn_ingesta_telemetria (ingesta B+).
             resultado = self.ingesta_port.ingerir({
