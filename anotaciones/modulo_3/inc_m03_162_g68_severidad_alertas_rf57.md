@@ -94,6 +94,9 @@ objeto indexado por código de variable, sin distinguir mayúsculas:
    así que **nunca alcanza 72**. Los umbrales 72/79/84 son de la escala NRC en °F. Por eso el backend
    **no recalcula** el THI: usa el que deriva el Edge (RF-55, "indicadores derivados (ej. THI)") y llega
    en `correlacion_variables`. QA envió THI en escala NRC (72,12 y 79,14). Hay que confirmar la fórmula.
+   **Actualizado en INC-M03-163-G70:** si no llega el THI pero sí la temperatura y la humedad, el backend
+   lo calcula con la fórmula **NRC** (`(1.8T + 32) − (0.55 − 0.0055·HR)·(1.8T − 26)`). Es la misma que
+   usa QA: 24.4 °C con 60 % da 71.98.
 2. **Valores configurables.** RF-57 dice que los valores base "pueden ser modificados por el
    administrador o el ingeniero de campo", pero no hay dónde configurarlos: `modulo3.reglas_alertas` en
    DEV tiene datos de prueba inconsistentes (claves ALTA/MEDIA/BAJA/CRITICA y variables cruzadas). Por

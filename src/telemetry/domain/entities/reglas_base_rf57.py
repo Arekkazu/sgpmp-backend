@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: bandas base de Fase 5, THI y escalada de ESTRES_TERMICO |
+# | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: condición mínima de ESTRES_TERMICO y RIESGO_HIDRICO, THI NRC |
 """RF-57 Fase 5: valores base de las reglas simples y de la regla compuesta ESTRES_TERMICO.
 
 La severidad de un evento externo sale del valor, no de lo que declara el emisor
@@ -58,11 +59,18 @@ BANDAS_BASE: dict[str, tuple[Banda, ...]] = {
     "TDS": (_b(CRITICO, desde="2000"), _b(MODERADO, encima="1500"), _b(LEVE, encima="1000")),
 }
 
-#: ESTRES_TERMICO: bandas THI del RF (escala NRC). El THI lo deriva el Edge (RF-55) y llega en
-#: correlacion_variables: la fórmula del RF está en °C y nunca alcanza 72, así que no se recalcula aquí.
+#: ESTRES_TERMICO: bandas THI del RF, que son de la escala NRC. La fórmula escrita en el RF es la
+#: variante en °C (da valores cercanos a T y nunca alcanza 72); se usa la NRC con T en °C, la misma
+#: con la que QA calcula sus casos (24.4 °C y 60 % → 71.98). Si el Edge envía el THI, prevalece.
 BANDAS_THI = (_b(CRITICO, desde="84"), _b(MODERADO, desde="79"), _b(LEVE, desde="72"))
 _VARIABLES_THI = {"TEMPERATURA_AMBIENTAL", "HUMEDAD_RELATIVA"}
 _TEMPERATURA_CORPORAL_ESCALADA = Decimal("40")
+
+
+def calcular_thi(temperatura: Decimal, humedad: Decimal) -> Decimal:
+    f = Decimal("1.8") * temperatura
+    thi = (f + 32) - (Decimal("0.55") - Decimal("0.0055") * humedad) * (f - 26)
+    return thi.quantize(Decimal("0.01"))
 
 
 def severidad_por_bandas(bandas, valor: Decimal) -> Optional[str]:
@@ -90,7 +98,7 @@ def evaluar_evento(tipo_variable: str, valor: Decimal,
     detalle: dict[str, Any] = {"regla": f"RF57_BASE_{tipo}", "severidad_por_valor": severidad}
 
     if tipo in _VARIABLES_THI:
-        thi = corr.numero("THI")
+        thi = _thi(tipo, valor, corr)
         if thi is not None:
             severidad_thi = severidad_por_bandas(BANDAS_THI, thi)
             detalle.update(thi=str(thi), severidad_thi=severidad_thi)
@@ -102,6 +110,60 @@ def evaluar_evento(tipo_variable: str, valor: Decimal,
                     severidad = _SUBIR[severidad]
     detalle["severidad_rf57"] = severidad
     return EvaluacionRF57(evaluable=True, severidad=severidad, detalle=detalle)
+
+
+def _thi(tipo: str, valor: Decimal, corr: "_Correlacion") -> Optional[Decimal]:
+    thi = corr.numero("THI")
+    if thi is not None:
+        return thi
+    otra = corr.numero("HUMEDAD_RELATIVA" if tipo == "TEMPERATURA_AMBIENTAL" else "TEMPERATURA_AMBIENTAL")
+    if otra is None or tipo not in _VARIABLES_THI:
+        return None
+    return calcular_thi(valor, otra) if tipo == "TEMPERATURA_AMBIENTAL" else calcular_thi(otra, valor)
+
+
+#: Reglas compuestas cuya condición mínima se comprueba (RF-57 Fase 5).
+ESTRES_TERMICO, RIESGO_HIDRICO = "ESTRES_TERMICO", "RIESGO_HIDRICO"
+COMPUESTAS_VALIDADAS = (ESTRES_TERMICO, RIESGO_HIDRICO)
+
+
+def condicion_minima(compuesta: str, tipo_variable: str, valor: Decimal,
+                     correlacion: Optional[dict[str, Any]] = None) -> Optional[str]:
+    """``None`` si la condición mínima de activación se cumple; si no, el motivo.
+
+    - ESTRES_TERMICO: temperatura ambiental + humedad relativa (o el THI) con THI ≥ 72 (LEVE).
+    - RIESGO_HIDRICO: pH del agua fuera de rango LEVE o TDS en rango LEVE o superior; el oxígeno
+      disuelto es solo complementario.
+    """
+    tipo = tipo_variable.upper()
+    corr = _Correlacion(correlacion)
+    if compuesta == ESTRES_TERMICO:
+        thi = _thi(tipo, valor, corr)
+        if thi is None:
+            return "faltan temperatura_ambiental y humedad_relativa (o el THI) en correlacion_variables"
+        if severidad_por_bandas(BANDAS_THI, thi) is None:
+            return f"THI {thi} < 72: la regla compuesta no se activa"
+        return None
+    if compuesta == RIESGO_HIDRICO:
+        def banda(variable):
+            v = valor if tipo == variable else corr.numero(variable)
+            return None if v is None else severidad_por_bandas(BANDAS_BASE[variable], v)
+        if banda("PH_AGUA") is None and banda("TDS") is None:
+            return "ni pH_agua fuera de rango LEVE ni TDS en rango LEVE o superior"
+        return None
+    return None
+
+
+def compuestas_declaradas(reglas_activadas) -> list[str]:
+    """Reglas compuestas validables que el emisor declara activas (texto u objeto {id, nombre})."""
+    textos = []
+    for regla in reglas_activadas or []:
+        if isinstance(regla, dict):
+            textos += [str(regla.get(k, "")) for k in ("nombre", "id", "tipo")]
+        else:
+            textos.append(str(regla))
+    textos = [t.upper() for t in textos]
+    return [c for c in COMPUESTAS_VALIDADAS if any(c in t for t in textos)]
 
 
 def _motivo_escalada(corr: "_Correlacion") -> Optional[str]:

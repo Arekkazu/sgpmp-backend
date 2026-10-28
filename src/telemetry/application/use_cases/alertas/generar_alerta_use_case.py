@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
 # | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por bandas de Fase 5, escalada THI y FALLO_AMBIENTAL técnica |
+# | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: 422 si la regla compuesta no cumple su condición mínima |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,6 +11,8 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
+
+from src.shared.errors import BusinessRuleError
 
 from src.telemetry.domain.entities import reglas_base_rf57
 from src.telemetry.domain.entities.alerta import (
@@ -134,6 +137,8 @@ class GenararAlertaUseCase:
                 )
             if evaluacion.evaluable:
                 dto = dto.model_copy(update={"severidad_edge": evaluacion.severidad})
+            # G70: una regla compuesta solo se activa con su condición mínima (variables requeridas, THI).
+            self._validar_condicion_minima(dto)
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
         tiene_contexto_incompleto = (id_activo_biologico is None)
@@ -291,6 +296,45 @@ class GenararAlertaUseCase:
             accion_detallada={"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable,
                               "valor": str(dto.valor), "severidad_reportada": dto.severidad_edge, **detalle},
         )
+
+    def _validar_condicion_minima(self, dto: ProcesarEventoAlertaDTO) -> None:
+        """422 si la regla compuesta declarada o derivada de la variable no se activó según RF-57.
+
+        El RF no define el tipo de una alerta simple (el enum solo tiene tipos compuestos), así que
+        un evento que no activa su compuesta se rechaza en vez de crear un falso positivo.
+        """
+        declaradas = reglas_base_rf57.compuestas_declaradas(dto.reglas_activadas)
+        derivada = self._inferir_tipo_alerta(dto)
+        derivada = getattr(derivada, "value", derivada)
+        candidatas = [(c, "EVENTO_INCOHERENTE_REGLA_COMPUESTA") for c in declaradas]
+        if derivada in reglas_base_rf57.COMPUESTAS_VALIDADAS and derivada not in declaradas:
+            candidatas.append((derivada, "REGLA_COMPUESTA_NO_ACTIVADA"))
+        for compuesta, codigo in candidatas:
+            motivo = reglas_base_rf57.condicion_minima(compuesta, dto.tipo_variable, dto.valor,
+                                                      dto.correlacion_variables)
+            if motivo is None:
+                continue
+            if self.auditoria_repo is not None:
+                RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                    tipo_evento=codigo,
+                    resultado=TipoResultado.RECHAZADO,
+                    componente_origen=ComponenteOrigen.RF57,
+                    severidad_log=SeveridadLog.WARNING,
+                    descripcion=f"{compuesta} no se activa: {motivo}.",
+                    entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+                    entidad_afectada_id=str(dto.device_id),
+                    accion_detallada={"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable,
+                                      "valor": str(dto.valor), "regla_compuesta": compuesta, "motivo": motivo,
+                                      "reglas_activadas": dto.reglas_activadas,
+                                      "correlacion_variables": dto.correlacion_variables},
+                )
+            declarada = codigo == "EVENTO_INCOHERENTE_REGLA_COMPUESTA"
+            raise BusinessRuleError(
+                code=codigo,
+                message=(f"El evento declara {compuesta} pero " if declarada else
+                         f"{dto.tipo_variable} solo genera {compuesta} y ") + f"su condición mínima no se cumple: {motivo}.",
+                field="reglas_activadas" if declarada else "correlacion_variables",
+            )
 
     @staticmethod
     def _metadato_con_evaluacion(dto, evaluacion, severidad_reportada) -> Optional[dict]:
