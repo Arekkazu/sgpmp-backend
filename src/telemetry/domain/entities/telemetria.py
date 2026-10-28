@@ -7,6 +7,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
 # | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 from __future__ import annotations
 
 import hashlib
@@ -331,3 +332,8 @@ class ResultadoEventoEdge:
     umbral_max_aplicado: Optional[Decimal] = None
     latencia_edge_ms: Optional[int] = None
     sla_edge_excedido: Optional[bool] = None
+
+
+#: INC-M03-199-G54 (RF-55 §6, "contexto: variables y reglas usadas"): trazabilidad de la regla que
+#: produjo la clasificación. La emite el nodo Edge; el backend la conserva en evento, paquete y alerta.
+CAMPOS_TRAZABILIDAD_REGLA = ("regla_aplicada", "nombre_regla", "version_regla")

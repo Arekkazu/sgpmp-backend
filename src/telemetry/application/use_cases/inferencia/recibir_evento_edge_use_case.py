@@ -8,6 +8,7 @@
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 # | 2026-10-27 | destroyerban | INC-M03-121-G64 RF-56 E6: límite de eventos por dispositivo configurable por entorno |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
 from __future__ import annotations
 
 import logging
@@ -33,6 +34,7 @@ from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edg
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.telemetria import (
     LATENCIA_MAX_MS_RF55,
+    CAMPOS_TRAZABILIDAD_REGLA,
     EventoEdgeComputing,
     ResultadoEventoEdge,
     TipoEventoEdge,
@@ -79,6 +81,8 @@ def _limite_eventos_por_minuto() -> int:
                        _ENV_LIMITE_EVENTOS, valor, LIMITE_EVENTOS_POR_MINUTO)
         return LIMITE_EVENTOS_POR_MINUTO
     return limite
+def _trazabilidad_completa(metadatos: dict) -> bool:
+    return all(metadatos.get(campo) is not None for campo in CAMPOS_TRAZABILIDAD_REGLA)
 
 
 class RecibirEventoEdgeUseCase:
@@ -145,7 +149,7 @@ class RecibirEventoEdgeUseCase:
         # claves en metadata_edge, prevalece el cálculo del backend sobre sus propios timestamps.
         latencia = latencia_edge_ms(ts_captura, ts_procesamiento)
         sla_excedido = latencia > LATENCIA_MAX_MS_RF55
-        metadatos = {**(dto.metadata_edge or {}), "latencia_edge_ms": latencia, "sla_edge_excedido": sla_excedido}
+        metadatos = {**self._metadatos_evento(dto), "latencia_edge_ms": latencia, "sla_edge_excedido": sla_excedido}
 
         evento = EventoEdgeComputing(
             id_dispositivo_iot=dispositivo.id_dispositivo_iot,
@@ -277,6 +281,14 @@ class RecibirEventoEdgeUseCase:
         except Exception:
             self.db.rollback()
             logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
+
+    @staticmethod
+    def _metadatos_evento(dto: RecibirEventoEdgeDTO) -> dict:
+        """metadata_edge tal como la emitió el nodo; en un evento compuesto, marca si trae la regla (G54)."""
+        metadatos = dict(dto.metadata_edge or {})
+        if dto.clasificacion_rf55 == TipoEventoEdge.DESVIACION_COMPUESTA:
+            metadatos["trazabilidad_regla_completa"] = _trazabilidad_completa(metadatos)
+        return metadatos
 
     @staticmethod
     def _validar_temporal(
