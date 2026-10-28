@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: el repositorio en memoria respeta el backoff; lote no confirmado se reprograma |
+# | 2026-10-28 | Arekkazu | INC-M03-116-G59 RF-56: el repositorio en memoria implementa obtener() del puerto |
 """INC-M03-112-G55 (RF-56): generación del paquete y envío batch fragmentado a máximo 500.
 
 TC-M03-090: el paquete lleva los campos obligatorios de la Salida de RF-56.
@@ -56,6 +57,8 @@ class _RepoMemoria(PaqueteInferenciaRepository):
         }
 
     def obtener_por_evento(self, id_evento, *, bloquear_evento=False): ...
+
+    def obtener(self, id_paquete, *, ids_fincas_permitidas=None): ...
 
     def guardar(self, paquete): ...
 
