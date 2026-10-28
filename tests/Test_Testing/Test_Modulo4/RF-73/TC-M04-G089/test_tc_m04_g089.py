@@ -1,3 +1,6 @@
+# | Fecha      | Nombre    | Que se hizo                                                          |
+# |------------|-----------|----------------------------------------------------------------------|
+# | 2026-10-27 | HulkyZeus | RF-73 TC-M04-G089: correo admin configurable; 275 acepta fields |
 """
 TC-M04-G089 — Límites de paginación en GET /prediccion/auditoria (httpx).
 Subcasos: TC-M04-273 (default 50), 274 (max 200), 275 (201 → rechazo).
@@ -18,7 +21,7 @@ import pytest
 
 
 BASE_URL = (os.environ.get("BACKEND") or os.environ["TEST_BASE_URL"]).rstrip("/")
-ADMIN_EMAIL = "administador.dev@gmail.com"
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "administador.dev@gmail.com")
 SANDBOX_SECRET = os.environ["TEST_SANDBOX_SECRET"]
 
 
@@ -150,8 +153,10 @@ def test_tc_m04_275_max_excedido_201(client):
                 f"devolvió {r.status_code}. INC a M04 (HTTP_COM). "
                 f"Body: {r.text[:300]}"
             )
-            detail = r.json().get("detail", [])
-            assert len(detail) > 0, "422 sin detail Pydantic"
+            cuerpo = r.json()
+            # formato estandar del backend (error_code/message/fields); "detail" es el crudo de Pydantic/FastAPI
+            detail = cuerpo.get("detail") or cuerpo.get("fields") or []
+            assert len(detail) > 0, f"422 sin detalle de validacion (ni detail ni fields): {r.text[:300]}"
         else:
             assert r.status_code == 400, (
                 f"Backend devolvió {r.status_code}; esperado 400 según "
