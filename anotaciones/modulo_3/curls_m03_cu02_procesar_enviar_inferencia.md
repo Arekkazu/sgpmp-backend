@@ -62,6 +62,17 @@ curl -s -X POST http://localhost:8000/iot/eventos-edge \
 - `422` — `umbral_min_aplicado` mayor que `umbral_max_aplicado` ("umbral_min_aplicado no puede ser mayor que umbral_max_aplicado").
 - Sin los tres campos el evento se acepta igual (`null` en la respuesta), como antes.
 
+**INC-M03-118-G61 (RF-55, SLA de 500 ms):** toda respuesta `201` incluye además
+`latencia_edge_ms` (`timestamp_procesamiento_edge − timestamp_captura`, en ms, reloj del
+nodo) y `sla_edge_excedido` (`true` si supera 500 ms; exactamente 500 cumple). Los dos
+valores quedan en `metadatos` del evento. Es evidencia de lo que reporta el Edge, no una
+medición del backend. Por ejemplo, en el primer flujo de abajo
+(`11:01:00Z` → `11:01:00.200Z`):
+
+```json
+{"latencia_edge_ms": 200, "sla_edge_excedido": false}
+```
+
 ---
 
 ## Flujo principal — DESVIACION_SIMPLE con contexto completo → paquete PENDIENTE

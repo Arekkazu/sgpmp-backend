@@ -6,6 +6,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: rechaza orden temporal invertido y devuelve la captura original. |
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
+# | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 from __future__ import annotations
 
 import logging
@@ -29,10 +30,12 @@ from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edg
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.telemetria import (
+    LATENCIA_MAX_MS_RF55,
     EventoEdgeComputing,
     ResultadoEventoEdge,
     TipoEventoEdge,
     clasificacion_a_tipo_evento_bd,
+    latencia_edge_ms,
 )
 from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
 from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeRepository
@@ -119,6 +122,11 @@ class RecibirEventoEdgeUseCase:
             )
 
         tipo_evento_bd = clasificacion_a_tipo_evento_bd(dto.clasificacion_rf55)
+        # INC-M03-118-G61: evidencia del SLA de RF-55 por evento. Si el Edge enviara estas
+        # claves en metadata_edge, prevalece el cálculo del backend sobre sus propios timestamps.
+        latencia = latencia_edge_ms(ts_captura, ts_procesamiento)
+        sla_excedido = latencia > LATENCIA_MAX_MS_RF55
+        metadatos = {**(dto.metadata_edge or {}), "latencia_edge_ms": latencia, "sla_edge_excedido": sla_excedido}
 
         evento = EventoEdgeComputing(
             id_dispositivo_iot=dispositivo.id_dispositivo_iot,
@@ -132,10 +140,10 @@ class RecibirEventoEdgeUseCase:
             fecha_procesamiento=ts_procesamiento,
             origen_dato=dto.origen,
             estado_conectividad=dto.estado_conectividad,
-            metadatos=dto.metadata_edge or {},
             valor_evaluado=dto.valor_evaluado,
             umbral_min_aplicado=dto.umbral_min_aplicado,
             umbral_max_aplicado=dto.umbral_max_aplicado,
+            metadatos=metadatos,
         )
 
         # Paso 3-4: Guardar evento
@@ -205,6 +213,8 @@ class RecibirEventoEdgeUseCase:
             valor_evaluado=evento_guardado.valor_evaluado,
             umbral_min_aplicado=evento_guardado.umbral_min_aplicado,
             umbral_max_aplicado=evento_guardado.umbral_max_aplicado,
+            latencia_edge_ms=latencia,
+            sla_edge_excedido=sla_excedido,
         )
 
     def _generar_alerta_best_effort(

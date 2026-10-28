@@ -6,6 +6,7 @@
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
+# | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 from __future__ import annotations
 
 import hashlib
@@ -205,6 +206,16 @@ _MAPA_TIPO_EVENTO_BD: dict[str, str] = {
 }
 
 
+# RF-55 restricción 1 y CA-1: detección en ≤ 500 ms desde la captura, medida en el nodo Edge.
+LATENCIA_MAX_MS_RF55 = 500
+
+
+def latencia_edge_ms(fecha_captura: datetime, fecha_procesamiento: datetime) -> int:
+    """Latencia de detección del Edge: los dos instantes son del reloj del nodo, así que no
+    incluye red, broker ni backend (separada de la latencia de consolidación de RF-56)."""
+    return round((fecha_procesamiento - fecha_captura).total_seconds() * 1000)
+
+
 def clasificacion_a_tipo_evento_bd(clasificacion_rf55: str) -> str:
     return _MAPA_TIPO_EVENTO_BD.get(clasificacion_rf55, "DATOS_PROCESADOS")
 
@@ -318,3 +329,5 @@ class ResultadoEventoEdge:
     valor_evaluado: Optional[Decimal] = None
     umbral_min_aplicado: Optional[Decimal] = None
     umbral_max_aplicado: Optional[Decimal] = None
+    latencia_edge_ms: Optional[int] = None
+    sla_edge_excedido: Optional[bool] = None
