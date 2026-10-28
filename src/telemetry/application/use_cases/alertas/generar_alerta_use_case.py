@@ -2,6 +2,7 @@
 # |------------|---------|------------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
 # | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
+# | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: sin umbral configurado no hay alerta operativa; técnica y ERROR_CONFIGURACION_REGLA |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
+from src.telemetry.domain.repositories.umbral_configurado_port import UmbralConfiguradoPort
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -47,6 +49,11 @@ _VARIABLE_A_TIPO_ALERTA: dict[str, str] = {
 }
 
 
+#: E9: tipo_variable de la alerta técnica de regla ausente y su ventana de consolidación (una abierta por sensor).
+_ERROR_CONFIGURACION_REGLA = "ERROR_CONFIGURACION_REGLA"
+_VENTANA_E9_MIN = 24 * 60
+
+
 class GenararAlertaUseCase:
 
     def __init__(
@@ -57,6 +64,7 @@ class GenararAlertaUseCase:
         regla_repo: ReglaAlertaRepository,
         parametros_port: ParametrosAlertasPort,
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
+        umbral_port: UmbralConfiguradoPort | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
@@ -65,6 +73,8 @@ class GenararAlertaUseCase:
         self.regla_repo = regla_repo
         self.parametros_port = parametros_port
         self.auditoria_repo = auditoria_repo
+        # G85 (E9): sin umbral RF-17 para la variable en el área, el evento no genera alerta operativa.
+        self.umbral_port = umbral_port
 
     def execute(
         self,
@@ -103,6 +113,15 @@ class GenararAlertaUseCase:
                 es_duplicado=False,
                 motivo_descarte=f"estado_dato={dto.estado_dato} no genera alerta operativa",
             )
+
+        # E9: regla ausente (sin umbrales configurados para la variable) → técnica, no operativa.
+        if self.umbral_port is not None and dto.origen_evento != OrigenEventoAlerta.IA:
+            umbral = self.umbral_port.consultar(dto.tipo_variable, id_infraestructura)
+            if not umbral.configurado:
+                return self._error_configuracion_regla(
+                    dto, umbral, ahora, dict(id_activo_biologico=id_activo_biologico,
+                                             id_dispositivo_ioit=id_dispositivo_ioit,
+                                             id_infraestructura=id_infraestructura))
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
         tiene_contexto_incompleto = (id_activo_biologico is None)
@@ -182,6 +201,65 @@ class GenararAlertaUseCase:
             tipo_alerta=alerta_guardada.tipo_alerta,
             severidad=alerta_guardada.severidad,
         )
+
+    def _error_configuracion_regla(self, dto, umbral, ahora, ids) -> ResultadoGeneracionAlerta:
+        """E9: sin alerta operativa; ERROR_CONFIGURACION_REGLA en la bitácora y una alerta técnica al
+        Administrador. El evento no se pierde: queda PENDIENTE_EVALUACION en la técnica y en la bitácora."""
+        evento = {"estado_evaluacion": "PENDIENTE_EVALUACION", **dto.model_dump(mode="json")}
+        diagnostico = {"motivo": umbral.motivo, "id_variable_ambiental": umbral.id_variable,
+                       "especies_del_area": list(umbral.especies)}
+        if self.auditoria_repo is not None:
+            RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+                tipo_evento="ERROR_CONFIGURACION_REGLA",
+                resultado=TipoResultado.ADVERTENCIA,
+                componente_origen=ComponenteOrigen.RF57,
+                severidad_log=SeveridadLog.WARNING,
+                descripcion=f"Sin umbrales configurados para {dto.tipo_variable}: el evento queda PENDIENTE_EVALUACION.",
+                entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+                entidad_afectada_id=str(dto.device_id),
+                accion_detallada={**diagnostico, "evento": evento},
+            )
+        motivo = (f"ERROR_CONFIGURACION_REGLA ({umbral.motivo}): sin umbrales configurados para "
+                  f"{dto.tipo_variable}; el evento queda PENDIENTE_EVALUACION y no genera alerta operativa")
+        try:
+            self.alerta_repo.bloquear_condicion(dto.sensor_id, _ERROR_CONFIGURACION_REGLA)
+            existente = self.alerta_repo.buscar_activa_duplicada(
+                id_sensor=dto.sensor_id, tipo_variable=_ERROR_CONFIGURACION_REGLA, ventana_min=_VENTANA_E9_MIN)
+            if existente:
+                # Una técnica abierta por sensor: los eventos siguientes suman frecuencia y quedan en la bitácora.
+                self.alerta_repo.actualizar_deduplicacion(id_alerta=existente.id_alerta, ultima_ocurrencia=ahora)
+                self.db.commit()
+                return ResultadoGeneracionAlerta(
+                    es_duplicado=True, id_alerta=existente.id_alerta, tipo_alerta=existente.tipo_alerta,
+                    severidad=existente.severidad, alerta_existente_id=existente.id_alerta, motivo_descarte=motivo)
+            tecnica = Alerta(
+                tipo_alerta="TECNICA",
+                severidad=SeveridadAlerta.MODERADO,
+                estado_alerta=EstadoAlerta.ACTIVA,
+                origen_evento=dto.origen_evento,
+                tipo_variable=_ERROR_CONFIGURACION_REGLA,
+                fecha_evento=dto.timestamp_evento,
+                fecha_generacion=ahora,
+                reglas_activas=dto.reglas_activadas,
+                valor=dto.valor,
+                unidad=dto.unidad,
+                metadato_evento={"componente_origen": "RF57", "e9": diagnostico, "evento_pendiente": evento},
+                diagnostico=umbral.motivo,
+                id_evento_edge_computing=dto.id_evento_edge_computing,
+                id_telemetria=dto.id_telemetria,
+                id_paquete_inferencia=dto.id_paquete_inferencia,
+                id_sensor=dto.sensor_id,
+                **ids,
+            )
+            tecnica.fecha_vencimiento = tecnica.calcular_fecha_vencimiento()
+            guardada = self.alerta_repo.guardar(tecnica)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return ResultadoGeneracionAlerta(es_duplicado=False, id_alerta=guardada.id_alerta,
+                                         tipo_alerta=guardada.tipo_alerta, severidad=guardada.severidad,
+                                         motivo_descarte=motivo)
 
     def _clasificar(self, dto: ProcesarEventoAlertaDTO) -> tuple[str, str, Optional[str]]:
         """Determina tipo_alerta, severidad final y conflicto_resolucion (E12/E13)."""
