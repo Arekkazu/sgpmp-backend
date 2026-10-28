@@ -4,12 +4,15 @@
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: registrar() acepta origen_dato |
 # | 2026-10-26 | Arekkazu     | INC-M04 G092/G099 RF-73: timestamp_evento (E7) y filtro correlacion_id |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: declarar el resultado tipado de aceptacion o rechazo E1. |
 from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
+
+from src.prediction.domain.services.validacion_auditoria_m04 import ResultadoRegistroAuditoriaM04
 
 if TYPE_CHECKING:
     from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
@@ -34,8 +37,10 @@ class EventoAuditoriaM04Repository(ABC):
         descripcion_error: Optional[str] = None,
         origen_dato: Optional[str] = None,
         timestamp_evento: Optional[datetime] = None,
-    ) -> None:
-        """``timestamp_evento``: instante en que ocurrió el evento en su origen (por omisión,
+    ) -> ResultadoRegistroAuditoriaM04:
+        """Devuelve rechazo E1 sin cancelar el proceso; el commit pertenece al emisor.
+
+        ``timestamp_evento``: instante en que ocurrió el evento en su origen (por omisión,
         ahora). Si es futuro o anterior al último de su ``correlacion_id`` se corrige al del
         sistema y se registra TIMESTAMP_CORREGIDO (RF-73 E7)."""
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-152-G083 RF-70/73: emite HASH_INVALIDO_DETECTADO |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: conservar los minimos auditables del reporte de integridad OTA. |
 """Reporte de un nodo durante la OTA (DEV-15, RF-70/RF-73, D6 paso 5).
 
 El broker reenvía cada ``ota/<evento>`` del nodo (BRK-08) con su token de servicio.
@@ -140,6 +141,9 @@ class RegistrarReporteOtaUseCase:
                     severidad_evento=severidad,
                     resultado_operacion=resultado_op,
                     payload_evento={
+                        "device_id": despliegue.id_dispositivo_iot,
+                        "id_version": despliegue.id_version_modelo,
+                        "hash_verificado": despliegue.resultado_validacion_hash,
                         "id_despliegue_ota": despliegue.id_despliegue_ota,
                         "id_distribucion_ota": despliegue.id_distribucion_ota,
                         "id_version_modelo": despliegue.id_version_modelo,
