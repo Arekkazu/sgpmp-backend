@@ -5,6 +5,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por bandas de Fase 5, escalada THI y FALLO_AMBIENTAL técnica |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: 422 si la regla compuesta no cumple su condición mínima |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta con la lectura compañera y consolidación por área |
+# | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -150,6 +151,17 @@ class GenararAlertaUseCase:
                 dto = dto.model_copy(update={"severidad_edge": evaluacion.severidad})
             # G70: una regla compuesta solo se activa con su condición mínima (variables requeridas, THI).
             self._validar_condicion_minima(dto)
+
+        # CA-2: una predicción de IA solo genera PREDICCION_PATOLOGIA con probabilidad ≥ umbral mínimo.
+        if dto.origen_evento == OrigenEventoAlerta.IA and dto.tipo_alerta_ia == TipoAlerta.PREDICCION_PATOLOGIA:
+            minimo = self.parametros_port.obtener_confianza_minima_ia()
+            if dto.probabilidad_ia is None or dto.probabilidad_ia < minimo:
+                self._auditar_bajo_umbral(dto, minimo)
+                return ResultadoGeneracionAlerta(
+                    es_duplicado=False,
+                    motivo_descarte=(f"probabilidad_ia={dto.probabilidad_ia} por debajo del umbral mínimo de "
+                                     f"confianza {minimo}: no genera PREDICCION_PATOLOGIA"),
+                )
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
         tiene_contexto_incompleto = (id_activo_biologico is None)
@@ -426,6 +438,22 @@ class GenararAlertaUseCase:
             return dto.metadata_evento
         return {**(dto.metadata_evento or {}),
                 "evaluacion_rf57": {"severidad_reportada": severidad_reportada, **evaluacion.detalle}}
+
+    def _auditar_bajo_umbral(self, dto: ProcesarEventoAlertaDTO, minimo: Decimal) -> None:
+        if self.auditoria_repo is None:
+            return
+        RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+            tipo_evento="PREDICCION_BAJO_UMBRAL_CONFIANZA",
+            resultado=TipoResultado.RECHAZADO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.INFO,
+            descripcion="Predicción de IA por debajo del umbral mínimo de confianza: no se genera alerta (CA-2).",
+            entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+            entidad_afectada_id=str(dto.device_id),
+            accion_detallada={"id_sensor": dto.sensor_id, "tipo_alerta_ia": dto.tipo_alerta_ia,
+                              "probabilidad_ia": str(dto.probabilidad_ia), "umbral_confianza_minimo": str(minimo),
+                              "severidad_ia": dto.severidad_ia, "id_paquete_inferencia": dto.id_paquete_inferencia},
+        )
 
     def _clasificar(self, dto: ProcesarEventoAlertaDTO) -> tuple[str, str, Optional[str]]:
         """Determina tipo_alerta, severidad final y conflicto_resolucion (E12/E13)."""

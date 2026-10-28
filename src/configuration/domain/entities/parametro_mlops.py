@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: parámetros de tormenta de alertas (E8) |
+# | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -20,6 +21,9 @@ RF62_N = 'rf62_n'
 RF62_DRIFT = 'rf62_umbral_drift'
 RF62_P = 'rf62_p'
 RF57_CONFIANZA = 'umbral_confianza_edge_ia'
+# RF-57 CA-2: probabilidad mínima para generar PREDICCION_PATOLOGIA. El RF fija un valor base (0.75).
+RF57_CONFIANZA_MINIMA = 'rf57_umbral_confianza_minimo'
+RF57_CONFIANZA_MINIMA_BASE = Decimal('0.75')
 # RF-57 E8: alertas por minuto que activan la tormenta (sistema y por unidad productiva).
 RF57_TORMENTA_SISTEMA = 'rf57_tormenta_alertas_por_minuto'
 RF57_TORMENTA_UNIDAD = 'rf57_tormenta_alertas_por_minuto_unidad'
