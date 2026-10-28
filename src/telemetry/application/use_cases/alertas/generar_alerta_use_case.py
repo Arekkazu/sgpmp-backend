@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por bandas de Fase 5, escalada THI y FALLO_AMBIENTAL técnica |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: 422 si la regla compuesta no cumple su condición mínima |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta con la lectura compañera y consolidación por área |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -30,6 +31,7 @@ from src.telemetry.domain.repositories.historico_estado_alerta_repository import
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
 from src.telemetry.domain.repositories.variable_alerta_port import RangoFisicoVariable, VariableAlertaPort
+from src.telemetry.domain.repositories.lectura_companera_port import LecturaCompaneraPort
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -65,6 +67,7 @@ class GenararAlertaUseCase:
         parametros_port: ParametrosAlertasPort,
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
         variable_port: VariableAlertaPort | None = None,
+        lectura_port: LecturaCompaneraPort | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
@@ -76,6 +79,8 @@ class GenararAlertaUseCase:
         # G68: con el catálogo de M09 se evalúa el evento externo contra RF-57 Fase 5
         # (bandas base, THI y FALLO_AMBIENTAL) en vez de copiar la severidad declarada.
         self.variable_port = variable_port
+        # G71 (E14): la variable compañera de una compuesta se busca en las lecturas del área.
+        self.lectura_port = lectura_port
 
     def execute(
         self,
@@ -123,6 +128,12 @@ class GenararAlertaUseCase:
         if causa_fallo:
             # Una lectura imposible no es una condición del animal ni del ambiente.
             return self._fallo_ambiental(dto, rango, causa_fallo, ahora, ids)
+
+        # E14: si el evento no trae la otra variable requerida de su compuesta, se toma la lectura
+        # válida del área dentro de la ventana de la regla (varias reglas simples a la vez).
+        companera = None
+        if self.variable_port is not None and self.lectura_port is not None and dto.origen_evento != OrigenEventoAlerta.IA:
+            dto, companera = self._completar_con_companera(dto, id_infraestructura, id_dispositivo_ioit)
 
         # Fase 5 (CA-1, Restricción 7): la severidad sale del valor, no de la declarada.
         severidad_reportada = dto.severidad_edge
@@ -172,6 +183,24 @@ class GenararAlertaUseCase:
                 alerta_existente_id=alerta_existente.id_alerta,
             )
 
+        # E14/E15: una sola alerta compuesta por área y ventana; las reglas simples se consolidan en ella.
+        reglas_e14 = self._reglas_e14(dto, evaluacion, companera)
+        if reglas_e14 and id_infraestructura is not None:
+            compuesta = self.alerta_repo.buscar_compuesta_activa(reglas_e14[-1]["nombre"], id_infraestructura, 30)
+            if compuesta:
+                correlacion = {"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable, "valor": str(dto.valor),
+                               "id_telemetria": dto.id_telemetria, "severidad": dto.severidad_edge}
+                self.alerta_repo.consolidar_compuesta(
+                    compuesta.id_alerta, ahora, list(dto.reglas_activadas) + reglas_e14,
+                    dto.severidad_edge if self._severidad_mayor(dto.severidad_edge, compuesta.severidad) else None,
+                    correlacion)
+                self.db.commit()
+                self._auditar_e14(compuesta.id_alerta, reglas_e14, consolidada=True)
+                return ResultadoGeneracionAlerta(
+                    es_duplicado=True, id_alerta=compuesta.id_alerta, tipo_alerta=compuesta.tipo_alerta,
+                    severidad=max(compuesta.severidad, dto.severidad_edge, key=self._orden_severidad),
+                    alerta_existente_id=compuesta.id_alerta)
+
         # Fase 5/6: Clasificar tipo y severidad
         tipo_alerta, severidad_final, conflicto_resolucion = self._clasificar(dto)
 
@@ -184,11 +213,12 @@ class GenararAlertaUseCase:
             tipo_variable=dto.tipo_variable,
             fecha_evento=dto.timestamp_evento,
             fecha_generacion=ahora,
-            reglas_activas=dto.reglas_activadas,
+            reglas_activas=list(dto.reglas_activadas) + reglas_e14,
             valor=dto.valor,
             unidad=dto.unidad,
             contexto_activo_biologico=contexto_activo_biologico,
-            metadato_evento=self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
+            metadato_evento=self._metadato_e14(self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
+                                               companera),
             tiene_inferencia_no_disponible=(dto.probabilidad_ia is None and dto.origen_evento == OrigenEventoAlerta.EDGE),
             tiene_contexto_incompleto=tiene_contexto_incompleto,
             conflicto_resolucion=conflicto_resolucion,
@@ -212,6 +242,8 @@ class GenararAlertaUseCase:
         except Exception:
             self.db.rollback()
             raise
+        if companera is not None:
+            self._auditar_e14(alerta_guardada.id_alerta, reglas_e14, consolidada=False)
 
         return ResultadoGeneracionAlerta(
             es_duplicado=False,
@@ -296,6 +328,58 @@ class GenararAlertaUseCase:
             accion_detallada={"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable,
                               "valor": str(dto.valor), "severidad_reportada": dto.severidad_edge, **detalle},
         )
+
+    def _completar_con_companera(self, dto, id_infraestructura, id_dispositivo):
+        faltante = reglas_base_rf57.companera_faltante(dto.tipo_variable, dto.correlacion_variables)
+        if faltante is None:
+            return dto, None
+        lectura = self.lectura_port.ultima_lectura_valida(
+            faltante, id_infraestructura, id_dispositivo, dto.timestamp_evento,
+            reglas_base_rf57.VENTANA_ESTRES_TERMICO_MIN)
+        if lectura is None:
+            return dto, None
+        correlacion = {**(dto.correlacion_variables or {}), faltante: str(lectura.valor)}
+        return dto.model_copy(update={"correlacion_variables": correlacion}), lectura
+
+    def _reglas_e14(self, dto, evaluacion, companera) -> list:
+        """Reglas simples activadas y la compuesta que las agrupa (E14/E15); [] si no aplica."""
+        compuesta = getattr(self._inferir_tipo_alerta(dto), "value", self._inferir_tipo_alerta(dto))
+        if evaluacion is None or not evaluacion.evaluable or compuesta not in reglas_base_rf57.COMPUESTAS_VALIDADAS:
+            return []
+        reglas = [reglas_base_rf57.regla_simple(dto.tipo_variable, dto.valor, dto.sensor_id, dto.id_telemetria)]
+        if companera is not None:
+            reglas.append(reglas_base_rf57.regla_simple(companera.tipo_variable, companera.valor,
+                                                        companera.id_sensor, companera.id_telemetria))
+        return reglas + [reglas_base_rf57.regla_compuesta(compuesta, evaluacion.detalle.get("thi"))]
+
+    @staticmethod
+    def _metadato_e14(metadato, companera) -> Optional[dict]:
+        if companera is None:
+            return metadato
+        return {**(metadato or {}), "e14": {
+            "evento_correlacionado": True,
+            "lecturas_correlacionadas": [{"id_telemetria": companera.id_telemetria, "id_sensor": companera.id_sensor,
+                                          "tipo_variable": companera.tipo_variable, "valor": str(companera.valor),
+                                          "timestamp_captura": companera.timestamp_captura.isoformat()}]}}
+
+    def _auditar_e14(self, id_alerta, reglas, consolidada: bool) -> None:
+        if self.auditoria_repo is None:
+            return
+        RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
+            tipo_evento="REGLAS_MULTIPLES_CORRELACIONADAS",
+            resultado=TipoResultado.EXITOSO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.INFO,
+            descripcion=("Regla simple consolidada en la alerta compuesta abierta del área." if consolidada
+                         else "Alerta compuesta generada con varias reglas simples activas (E14)."),
+            entidad_afectada_tipo=EntidadAfectadaTipo.ALERTA,
+            entidad_afectada_id=str(id_alerta),
+            accion_detallada={"id_alerta": id_alerta, "consolidada": consolidada, "reglas": reglas},
+        )
+
+    @staticmethod
+    def _orden_severidad(severidad) -> int:
+        return {SeveridadAlerta.LEVE: 0, SeveridadAlerta.MODERADO: 1, SeveridadAlerta.CRITICO: 2}.get(severidad, 0)
 
     def _validar_condicion_minima(self, dto: ProcesarEventoAlertaDTO) -> None:
         """422 si la regla compuesta declarada o derivada de la variable no se activó según RF-57.
