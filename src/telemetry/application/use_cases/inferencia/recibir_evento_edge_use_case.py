@@ -5,9 +5,11 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: conecta bitacora al procesamiento Edge |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite DESVIACION_DETECTADA / EVENTO_COMPUESTO_GENERADO |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: rechaza orden temporal invertido y devuelve la captura original. |
+# | 2026-10-27 | destroyerban | INC-M03-121-G64 RF-56 E6: límite de eventos por dispositivo configurable por entorno |
 from __future__ import annotations
 
 import logging
+import os
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -48,7 +50,9 @@ _MAX_DRIFT_FUTURO_SEG = 30
 _MAX_VENTANA_BUFFER_HORAS = 72
 # RF-56 E6: eventos por minuto y por dispositivo; los CRITICO no cuentan (se priorizan).
 # ponytail: contador en memoria por proceso (src/shared/rate_limit.py); compartido si hay réplicas.
+# G64: el RF no fija la cifra; 60 es la propuesta de DEV-45, ajustable sin código por entorno.
 LIMITE_EVENTOS_POR_MINUTO = 60
+_ENV_LIMITE_EVENTOS = "IOT_EVENTOS_EDGE_LIMITE_POR_MINUTO"
 logger = logging.getLogger(__name__)
 
 # RF-63: tipo de evento de la bitácora para cada desviación que reporta RF-55.
@@ -56,6 +60,21 @@ _EVENTO_BITACORA_RF55 = {
     TipoEventoEdge.DESVIACION_SIMPLE: "DESVIACION_DETECTADA",
     TipoEventoEdge.DESVIACION_COMPUESTA: "EVENTO_COMPUESTO_GENERADO",
 }
+
+
+def _limite_eventos_por_minuto() -> int:
+    valor = os.environ.get(_ENV_LIMITE_EVENTOS, "").strip()
+    if not valor:
+        return LIMITE_EVENTOS_POR_MINUTO
+    try:
+        limite = int(valor)
+    except ValueError:
+        limite = 0
+    if limite <= 0:
+        logger.warning("RF-56 E6: %s=%r no es un entero positivo; se usa %d.",
+                       _ENV_LIMITE_EVENTOS, valor, LIMITE_EVENTOS_POR_MINUTO)
+        return LIMITE_EVENTOS_POR_MINUTO
+    return limite
 
 
 class RecibirEventoEdgeUseCase:
@@ -93,7 +112,7 @@ class RecibirEventoEdgeUseCase:
 
         # E6: control de tasa por dispositivo; un evento CRITICO nunca se frena.
         if dto.severidad != "CRITICO":
-            registrar_llamada(f"rf56_eventos_edge:{dto.serial}", LIMITE_EVENTOS_POR_MINUTO, 60)
+            registrar_llamada(f"rf56_eventos_edge:{dto.serial}", _limite_eventos_por_minuto(), 60)
 
         # Paso 1: Validar coherencia temporal (E1: el rechazo queda en bitácora con el evento)
         try:
