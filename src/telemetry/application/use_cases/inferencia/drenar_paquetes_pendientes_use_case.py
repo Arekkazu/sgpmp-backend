@@ -1,20 +1,26 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
-"""RF-56 Fase 6, envío batch: drena los paquetes PENDIENTE hacia el motor de inferencia.
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+"""RF-56 Fase 6, envío batch y cola de reenvío: drena los paquetes PENDIENTE hacia el motor.
 
-Restricción 5 (máximo 500 registros por paquete, se permite fragmentación) y 6 (orden
-cronológico). Cada lote se toma, se envía y se confirma en su propia transacción, así el
-bloqueo de las filas dura solo lo que tarda ese lote.
+Restricción 5 (máximo 500 registros por paquete, se permite fragmentación), 6 (orden
+cronológico) y 14 (5 intentos: inmediato, 5, 15, 30 y 60 s). Solo se toman los pendientes
+cuyo reintento ya venció; cada lote se toma, se envía y se confirma en su propia transacción.
 
-Mismos estados que la consolidación (DEV-17): True → ENVIADO, False o error de envío →
-FALLIDO, ambos con un intento más. Sin integración (stub) se detiene sin tocar nada: los
-paquetes siguen PENDIENTE con sus intentos.
+Por paquete, tras el envío del lote:
+- confirmado → ENVIADO;
+- rechazo del motor (E5) → FALLIDO, sin reintentos;
+- no confirmado o error de transporte (E4) → PENDIENTE con un intento más y el siguiente
+  programado, o FALLIDO si ese era el quinto.
+Sin integración (stub) se detiene sin tocar nada: los paquetes siguen PENDIENTE con sus
+intentos y se reenvían en orden cuando el motor esté disponible (CA-6).
 """
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -22,8 +28,13 @@ from src.shared.errors import ValidationError
 from src.telemetry.domain.entities.telemetria import (
     MAX_REGISTROS_POR_ENVIO_INFERENCIA,
     EstadoPaqueteInferencia,
+    estado_tras_envio_fallido,
 )
-from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaNoIntegradoError, MotorInferenciaPort
+from src.telemetry.domain.repositories.motor_inferencia_port import (
+    MotorInferenciaNoIntegradoError,
+    MotorInferenciaPort,
+    MotorInferenciaRechazoError,
+)
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 
 logger = logging.getLogger(__name__)
@@ -34,6 +45,7 @@ class ResultadoDrenado:
     lotes: list[int] = field(default_factory=list)   # tamaño de cada lote intentado
     enviados: int = 0
     fallidos: int = 0
+    reprogramados: int = 0                           # quedan PENDIENTE con otro intento programado
     motor_integrado: bool = True
 
 
@@ -69,33 +81,44 @@ class DrenarPaquetesPendientesUseCase:
                 self.db.rollback()
                 break
 
+            rechazado = False
             try:
                 exito = self.motor_inferencia_port.enviar_lote(lote)
             except MotorInferenciaNoIntegradoError:
                 # No hubo intento: se liberan las filas y quedan PENDIENTE.
                 self.db.rollback()
-                logger.warning('RF-56: %s paquetes pendientes; motor de inferencia no integrado.', len(lote))
+                # INFO: la cola corre cada pocos segundos; el WARNING por paquete ya lo deja la consolidación.
+                logger.info('RF-56: %s paquetes pendientes; motor de inferencia no integrado.', len(lote))
                 resultado.motor_integrado = False
                 break
+            except MotorInferenciaRechazoError:
+                exito, rechazado = False, True
             except Exception:
                 exito = False
 
             resultado.lotes.append(len(lote))
-            estado = EstadoPaqueteInferencia.ENVIADO if exito else EstadoPaqueteInferencia.FALLIDO
+            ahora = datetime.now(timezone.utc)
             try:
                 for paquete in lote:
-                    self.paquete_repo.actualizar_estado(
-                        paquete.id_paquetes_inferencia, estado, paquete.intento_envios + 1,
-                    )
+                    intento = paquete.intento_envios + 1
+                    if exito:
+                        estado = EstadoPaqueteInferencia.ENVIADO
+                    elif rechazado:
+                        estado = EstadoPaqueteInferencia.FALLIDO
+                    else:
+                        estado = estado_tras_envio_fallido(intento)
+                    self.paquete_repo.actualizar_estado(paquete.id_paquetes_inferencia, estado, intento, ahora)
+                    if estado == EstadoPaqueteInferencia.ENVIADO:
+                        resultado.enviados += 1
+                    elif estado == EstadoPaqueteInferencia.FALLIDO:
+                        resultado.fallidos += 1
+                    else:
+                        resultado.reprogramados += 1
                 self.db.commit()
             except Exception:
                 self.db.rollback()
                 raise
 
-            if exito:
-                resultado.enviados += len(lote)
-            else:
-                resultado.fallidos += len(lote)
             if len(lote) < self.tamano_lote:
                 break
         return resultado

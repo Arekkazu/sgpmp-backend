@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita paquete pendiente y resultado real de envio |
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -9,14 +10,22 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import text
+from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
-from src.telemetry.domain.entities.telemetria import PaqueteInferencia
+from src.telemetry.domain.entities.telemetria import ESPERAS_REINTENTO_INFERENCIA_SEG, PaqueteInferencia
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 from src.telemetry.infrastructure.models.paquete_inferencia_model import PaqueteInferenciaModel
 from src.telemetry.infrastructure.models.evento_edge_model import EventoEdgeComputingModel
+
+
+# Espera antes del siguiente intento según los intentos ya hechos (RF-56 restricción 14).
+_ESPERA_SQL = case(
+    {n: espera for n, espera in enumerate(ESPERAS_REINTENTO_INFERENCIA_SEG)},
+    value=PaqueteInferenciaModel.intento_envios,
+    else_=ESPERAS_REINTENTO_INFERENCIA_SEG[-1],
+)
 
 
 class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
@@ -73,7 +82,9 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
-    def actualizar_estado(self, id_paquete: int, estado: str, intento: int) -> None:
+    def actualizar_estado(
+        self, id_paquete: int, estado: str, intento: int, fecha_intento: Optional[datetime] = None,
+    ) -> None:
         try:
             orm = self.db.query(PaqueteInferenciaModel).filter(
                 PaqueteInferenciaModel.id_paquetes_inferencia == id_paquete).with_for_update().one()
@@ -81,9 +92,14 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
             if anterior == (estado, intento):
                 return
             orm.estado_paquete, orm.intento_envios = estado, intento
+            if fecha_intento is not None:
+                orm.fecha_envio = fecha_intento
             self.db.flush()
             if estado in ('ENVIADO', 'FALLIDO'):
                 self._auditar(orm, 'PAQUETE_ENVIADO_IA' if estado == 'ENVIADO' else 'FALLO_ENVIO_PAQUETE')
+            elif intento > anterior[1]:
+                # RF-56 restricción 14: intento no confirmado, queda programado el siguiente.
+                self._auditar(orm, 'REINTENTO_ENVIO_PAQUETE_PROGRAMADO')
         except Exception as exc:
             raise_from_db_error(exc)
 
@@ -94,6 +110,11 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
                 EventoEdgeComputingModel.id_evento_edge_computing == PaqueteInferenciaModel.id_evento_edge_computing,
             ).filter(
                 PaqueteInferenciaModel.estado_paquete == 'PENDIENTE',
+                or_(
+                    PaqueteInferenciaModel.intento_envios == 0,
+                    PaqueteInferenciaModel.fecha_envio + func.make_interval(0, 0, 0, 0, 0, 0, _ESPERA_SQL)
+                    <= func.now(),
+                ),
             ).order_by(
                 # RF-56 restricción 6: orden cronológico y secuencia original.
                 EventoEdgeComputingModel.fecha_captura,
@@ -105,7 +126,7 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
 
     def _auditar(self, orm, tipo):
         from src.telemetry.domain.entities.evento_auditoria_iot import TipoResultado, SeveridadLog
-        fallo = tipo == 'FALLO_ENVIO_PAQUETE'
+        fallo = tipo in ('FALLO_ENVIO_PAQUETE', 'REINTENTO_ENVIO_PAQUETE_PROGRAMADO')
         registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(self.db), tipo,
             ComponenteOrigen.RF56, entidad=EntidadAfectadaTipo.PAQUETE_IA,
             identificador=orm.id_paquetes_inferencia,

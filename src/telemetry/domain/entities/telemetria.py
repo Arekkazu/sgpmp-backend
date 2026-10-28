@@ -4,6 +4,7 @@
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -178,6 +179,18 @@ class EstadoPaqueteInferencia(str, Enum):
 
 # RF-56 restricción 5: máximo 500 registros por envío al motor; más se fragmenta.
 MAX_REGISTROS_POR_ENVIO_INFERENCIA = 500
+
+# RF-56 restricción 14: intento 1 inmediato, luego 5, 15, 30 y 60 s. El índice n es la
+# espera antes del intento n+1 (tras n intentos fallidos).
+ESPERAS_REINTENTO_INFERENCIA_SEG = (0, 5, 15, 30, 60)
+MAX_INTENTOS_ENVIO_INFERENCIA = len(ESPERAS_REINTENTO_INFERENCIA_SEG)
+
+
+def estado_tras_envio_fallido(intentos: int) -> "EstadoPaqueteInferencia":
+    """Tras un intento no confirmado: PENDIENTE (se reintenta) hasta agotar los 5; luego FALLIDO."""
+    if intentos >= MAX_INTENTOS_ENVIO_INFERENCIA:
+        return EstadoPaqueteInferencia.FALLIDO
+    return EstadoPaqueteInferencia.PENDIENTE
 
 
 # Mapeo de clasificación RF-55 al enum tipo_evento de eventos_edge_computing en BD
