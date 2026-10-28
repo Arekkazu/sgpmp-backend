@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: aplica politica canonica y señal SNR |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: bateria unica, reloj futuro y reconexion |
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: conservar las métricas de buffer en la misma transacción del heartbeat. |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -66,6 +67,7 @@ class RecibirHeartbeatUseCase:
                 reloj_sincronizado=dto.reloj_sincronizado and dto.fecha_registro <= ahora,
                 sensores_operativos=[s.model_dump() for s in dto.sensores_operativos] if dto.sensores_operativos is not None else None,
                 temperatura_dispositivo=dto.temperatura_dispositivo,
+                metricas_buffer=dto.metricas_buffer.model_dump(mode='json') if dto.metricas_buffer is not None else None,
             ))
 
             # El trigger conserva contacto/reconexión. Las demás responsabilidades
