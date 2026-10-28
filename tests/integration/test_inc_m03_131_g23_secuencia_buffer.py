@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: verificar persistencia exacta, FIFO observable, compatibilidad, deduplicacion y rollback en PostgreSQL. |
+# | 2026-10-28 | Arekkazu | INC-M03-131-G23 RF-54: tolera rf53_reloj de G30 en los metadatos |
 """Ingesta real y rol API; no certifica el orden de envío físico del nodo Edge."""
 from datetime import timedelta
 
@@ -145,7 +146,8 @@ def test_funcion_comun_del_broker_conserva_metadato_sin_cambiar_su_firma(db_sess
             db_session.execute(text('RESET ROLE'))
     assert r.id_telemetria is not None
     fila = lecturas(db_session,e)[0]
-    assert fila['metadatos'] == {'buffer_sequence_id':MAX_LONG,'gateway_id':'G23'}
+    # G30 (#813) agrega rf53_reloj a los metadatos en la misma función.
+    assert {k:v for k,v in fila['metadatos'].items() if k!='rf53_reloj'} == {'buffer_sequence_id':MAX_LONG,'gateway_id':'G23'}
     assert fila['tipo_secuencia'] == 'number'
 
 

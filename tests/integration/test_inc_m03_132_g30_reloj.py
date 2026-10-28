@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: reproducir marca TIME_DESYNC al insertar con evidencia de heartbeat en PostgreSQL real. |
+# | 2026-10-28 | Arekkazu | INC-M03-132-G30 RF-54: acepta el bloque de frecuencia de G16 al revertir |
 """La función SQL compartida determina el snapshot antes del INSERT inmutable."""
 import importlib.util
 from pathlib import Path
@@ -276,7 +277,8 @@ def test_migracion_reversible_conserva_funcion_y_privilegios(db_session):
         m.downgrade()
         antes = db_session.execute(q,p).scalar_one()
         assert 'G33_RELOJ_' not in antes
-        assert 'G167_SNAPSHOT_VALOR' in antes and 'RFC053_B_INICIO' in antes
+        # El bloque de frecuencia es RFC053_B, o G31_FRECUENCIA si ya corrió G16 (#811).
+        assert 'G167_SNAPSHOT_VALOR' in antes and ('RFC053_B_INICIO' in antes or 'G31_FRECUENCIA_INICIO' in antes)
         assert db_session.execute(atributos,p).one()==original
         m.upgrade()
         assert db_session.execute(q,p).scalar_one()==actual

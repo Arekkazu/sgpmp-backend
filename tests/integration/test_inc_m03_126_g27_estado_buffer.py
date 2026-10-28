@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: validar HTTP, inserción directa del broker, migración, JWT, RBAC y RLS con PostgreSQL real. |
+# | 2026-10-28 | Arekkazu | INC-M03-126-G27 RF-54: no fija el head de Alembic (la columna ya prueba la migracion) |
 """Sin firmware ni broker MQTT real; se ejercita su INSERT en una base local exclusiva."""
 from datetime import datetime,timedelta,timezone
 from decimal import Decimal
@@ -184,7 +185,6 @@ def test_migracion_nullable_sin_tabla_buffers_y_politicas_preservadas(integratio
         assert db.execute(text("SELECT is_nullable,data_type FROM information_schema.columns WHERE table_schema='modulo3' AND table_name='heartbeats' AND column_name='json_metricas_buffer'")).one()==('YES','jsonb')
         assert db.execute(text("SELECT to_regclass('modulo3.buffers')")).scalar_one() is None
         assert db.execute(text("SELECT relrowsecurity,relforcerowsecurity FROM pg_class WHERE oid='modulo9.dispositivos_iot'::regclass")).one()==(True,True)
-        assert db.execute(text('SELECT version_num FROM alembic_version')).scalar_one()=='b68127f54a01'
 
 
 def test_buffer_vacio_reportado_se_distingue_de_ausencia_de_datos(cliente,contexto):
