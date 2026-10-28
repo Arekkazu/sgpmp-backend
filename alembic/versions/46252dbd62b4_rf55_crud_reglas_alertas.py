@@ -24,7 +24,7 @@ CRUD ``/iot/reglas-alertas`` necesita en BD:
   secuencia: el código lo ubica por nombre (``require_permission_sobre``).
 - INSERT/UPDATE sobre la tabla para los roles de la app que existan.
 
-El downgrade restaura la función anterior y retira los permisos reversibles;
+El downgrade vuelve al criterio de versión anterior (sin el error de tipo) y retira los permisos reversibles;
 los ``admin_*`` y el recurso quedan (``trg_fn_proteger_permisos_admin_delete``).
 
 Revision ID: 46252dbd62b4
@@ -143,7 +143,8 @@ def downgrade() -> None:
                                   WHERE nombre_recurso = '{_NOMBRE_RECURSO}');
         END $$;
     """)
-    # Definición anterior, tal como está en el baseline (incluido su error de tipo).
+    # Vuelve el criterio de versión anterior, pero sin su error de tipo: con
+    # now()::time editar reglas fallaría otra vez tras un downgrade.
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_regla_alerta_versionamiento()
          RETURNS trigger
@@ -157,7 +158,7 @@ def downgrade() -> None:
                OLD.es_regla_compuesta      IS DISTINCT FROM NEW.es_regla_compuesta
             THEN
                 NEW.version_regla       := OLD.version_regla + 1;
-                NEW.fecha_actualizacion := now()::time with time zone;
+                NEW.fecha_actualizacion := now();
             END IF;
             RETURN NEW;
         END;

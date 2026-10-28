@@ -39,7 +39,7 @@ curl -s -X POST http://localhost:8000/iot/reglas-alertas \
     "descripcion": "Estrés térmico por THI",
     "tipo_sensor": "TEMPERATURA",
     "categoria_variable": "AMBIENTAL",
-    "umbrales_severidad": {"THI": {"LEVE": 68, "MODERADO": 72, "CRITICO": 79}},
+    "umbrales_severidad": {"LEVE": 68, "MODERADO": 72, "CRITICO": 79},
     "ventana_confirmacion_min": "5",
     "lectura_confirmacion_max": "3",
     "mensaje": "Estrés térmico",
@@ -67,6 +67,9 @@ curl -s -X POST http://localhost:8000/iot/reglas-alertas \
 | Sin `umbral_min`, `umbral_max` ni `umbrales_severidad` | 400 | `REGLA_SIN_UMBRAL` |
 | `umbral_min >= umbral_max` | 400 | `RANGO_UMBRAL_INVALIDO` |
 | `tiene_ejecutar_edge` en una regla simple | 400 | `REGLA_EDGE_NO_COMPUESTA` |
+| Regla Edge: `lectura_confirmacion_max` no entero o fuera de 1–100 | 400 | `LECTURAS_CONFIRMACION_INVALIDAS` |
+| Regla Edge: `ventana_confirmacion_min` 0 con más de una lectura | 400 | `VENTANA_CONFIRMACION_INVALIDA` |
+| Regla Edge: clave de `umbrales_severidad` fuera de `LEVE`, `MODERADO`, `CRITICO`, `temperatura_corporal_max` (mayúsculas exactas; el firmware ignora las demás) | 400 | `UMBRALES_SEVERIDAD_INVALIDOS` |
 | `id_finca` / `id_especie` inexistente | 400 | (FK) |
 | Nombre repetido | 409 | `RECURSO_DUPLICADO` |
 | Rol sin C | 403 | `ACCESO_DENEGADO` |
@@ -95,7 +98,7 @@ devolvió el último GET/POST/PUT.
 curl -s -X PUT http://localhost:8000/iot/reglas-alertas/12 \
   -H "Authorization: Bearer <TOKEN_ADMIN>" -H "Content-Type: application/json" \
   -d '{"nombre": "ESTRES_TERMICO", "tipo_sensor": "TEMPERATURA", "categoria_variable": "AMBIENTAL",
-       "umbrales_severidad": {"THI": {"LEVE": 68, "MODERADO": 74, "CRITICO": 80}},
+       "umbrales_severidad": {"LEVE": 68, "MODERADO": 74, "CRITICO": 80},
        "ventana_confirmacion_min": "5", "lectura_confirmacion_max": "3", "id_finca": 1,
        "fecha_actualizacion": "2026-10-28T18:46:27.151216Z"}'
 ```
@@ -107,6 +110,7 @@ trigger); con eso el Gateway descarta la versión vieja. Se repropaga si aplica.
 |-------|------|--------------|
 | `fecha_actualizacion` vieja o ausente | 412 | `CONFLICTO_CONCURRENCIA` |
 | Regla inactiva | 422 | `REGLA_ALERTA_INACTIVA` |
+| Cambiar `id_finca`/`id_especie` de una regla Edge (desactivar y crear otra) | 422 | `ALCANCE_REGLA_EDGE_INMUTABLE` |
 | Validaciones del POST | 400 / 409 | ídem |
 
 ---
@@ -135,5 +139,7 @@ En `POST /iot/eventos-edge` (`curls_m03_cu02_procesar_enviar_inferencia.md`):
 - `metadata_edge.id_regla_alerta` se guarda en `eventos_edge_computing.id_regla_alerta`
   si la regla existe (si no existe se ignora; el evento no se pierde).
 - La alerta generada lleva en `reglas_activadas` la regla que evaluó el Edge:
-  `{"id": 12, "nombre": "ESTRES_TERMICO", "tipo": "REGLA_EDGE", "clasificacion_rf55": "DESVIACION_COMPUESTA", "version_regla": 3}`.
-  Sin `metadata_edge.regla_aplicada` queda la clasificación, como antes.
+  - compuesta: `{"id": 12, "nombre": "<nombre en BD>", "tipo": "REGLA_EDGE", "codigo_edge": "ESTRES_TERMICO", ...}`
+    (`metadata_edge.regla_aplicada` es un código del firmware, no el nombre);
+  - umbral simple: la forma de RF-17 con `id_umbral_ambiental`, `version_umbral` y `nivel_umbral` de `metadata_edge`;
+  - sin nada de eso, la clasificación, como antes.

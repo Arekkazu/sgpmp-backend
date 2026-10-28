@@ -101,6 +101,36 @@ def test_compuesta_solo_con_umbrales_severidad_es_valida(ctx):
     assert regla.umbrales_severidad == {"THI": {"MODERADO": 72, "CRITICO": 79}}
 
 
+_EDGE = dict(es_regla_compuesta=True, tiene_ejecutar_edge=True)
+
+
+@pytest.mark.parametrize("cambios, codigo", [
+    ({"lectura_confirmacion_max": "2.5"}, "LECTURAS_CONFIRMACION_INVALIDAS"),
+    ({"lectura_confirmacion_max": "101"}, "LECTURAS_CONFIRMACION_INVALIDAS"),
+    ({"ventana_confirmacion_min": "0"}, "VENTANA_CONFIRMACION_INVALIDA"),
+    ({"umbrales_severidad": {"leve": 68}}, "UMBRALES_SEVERIDAD_INVALIDOS"),
+])
+def test_regla_edge_rechaza_lo_que_el_firmware_no_aplicaria(ctx, cambios, codigo):
+    with pytest.raises(ValidationError) as exc:
+        _crear(ctx, **_EDGE, **cambios)
+    assert exc.value.code == codigo
+
+
+def test_regla_edge_sin_ventana_con_una_lectura_es_valida(ctx):
+    regla, _ = _crear(ctx, **_EDGE, ventana_confirmacion_min="0", lectura_confirmacion_max="1",
+                      umbrales_severidad={"LEVE": 68, "MODERADO": 72, "CRITICO": 79})
+    assert regla.ventana_confirmacion_min == 0
+
+
+def test_regla_edge_no_cambia_de_alcance(ctx):
+    _crear(ctx, **_EDGE, id_finca=1)
+    with pytest.raises(BusinessRuleError) as exc:
+        _editar(ctx, T0, id_finca=2)
+    assert exc.value.code == "ALCANCE_REGLA_EDGE_INMUTABLE"
+    regla, _ = _editar(ctx, T0, id_finca=1, umbral_max="31")
+    assert regla.umbral_max == Decimal("31")
+
+
 def test_dto_rechaza_tipo_sensor_fuera_del_enum():
     with pytest.raises(Exception):
         CrearReglaAlertaDTO(**{**_BASE, "tipo_sensor": "THI"})
@@ -171,13 +201,23 @@ def test_desactivar_retira_del_edge_y_reactivar_la_devuelve(ctx):
 
 # --- BE-3: la regla que evaluó el Edge llega a la alerta ------------------------------------
 
-def test_regla_edge_usa_regla_aplicada_y_conserva_la_clasificacion_sin_ella():
-    metadata = {"regla_aplicada": "ESTRES_TERMICO", "version_regla": 3, "valores_derivados": {"THI": 81.3}}
-    assert regla_edge("DESVIACION_COMPUESTA", metadata, 12) == {
-        "id": 12, "nombre": "ESTRES_TERMICO", "tipo": "REGLA_EDGE",
+def test_regla_edge_compuesta_usa_el_nombre_de_la_regla_en_bd():
+    regla = ReglaAlerta(id_regla_alertas=12, nombre="Estrés térmico por THI", tipo_sensor="TEMPERATURA",
+                        es_regla_compuesta=True, ventana_confirmacion_min=Decimal("5"),
+                        lectura_confirmacion_max=Decimal("3"), es_activa=True, version_regla=3)
+    metadata = {"regla_aplicada": "ESTRES_TERMICO", "version_regla": 3}
+    assert regla_edge("DESVIACION_COMPUESTA", metadata, regla, "TEMPERATURA_AMBIENTAL") == {
+        "id": 12, "nombre": "Estrés térmico por THI", "tipo": "REGLA_EDGE", "codigo_edge": "ESTRES_TERMICO",
         "clasificacion_rf55": "DESVIACION_COMPUESTA", "version_regla": 3,
     }
-    assert regla_edge("DESVIACION_SIMPLE", None, None) == "DESVIACION_SIMPLE"
+
+
+def test_regla_edge_simple_conserva_los_datos_del_umbral():
+    metadata = {"regla_aplicada": "UMBRAL_AMBIENTAL", "id_umbral_ambiental": 5, "version_umbral": 2,
+                "nivel_umbral": "critico"}
+    r = regla_edge("DESVIACION_SIMPLE", metadata, None, "PH_AGUA")
+    assert r["id_umbral_ambiental"] == 5 and r["version_umbral"] == 2 and r["tipo"] == "UMBRAL_AMBIENTAL"
+    assert regla_edge("DESVIACION_SIMPLE", None, None, "PH_AGUA") == "DESVIACION_SIMPLE"
 
 
 # --- BE-1 / BE-2: eventos Edge ---------------------------------------------------------------
@@ -201,7 +241,7 @@ def recibir(monkeypatch):
         id_dispositivo_iot=3, id_sensor=7, id_infraestructura=9, es_activo_dispositivo=True, es_activo_sensor=True,
     )
     eventos.guardar.side_effect = lambda e: setattr(e, "id_evento_edge_computing", 17) or e
-    reglas.obtener_por_id.side_effect = lambda i: object() if i == 12 else None
+    reglas.obtener_por_id.side_effect = lambda i: SimpleNamespace(id_regla_alertas=12) if i == 12 else None
     uc = modulo_evento.RecibirEventoEdgeUseCase(
         Mock(), eventos, Mock(), dispositivos, Mock(), Mock(), None, regla_repo=reglas,
     )
@@ -230,4 +270,4 @@ def test_evento_guarda_id_regla_alerta_solo_si_la_regla_existe(recibir, metadata
     recibir.uc.execute(_evento(metadata))
     assert recibir.eventos.guardar.call_args.args[0].id_regla_alerta == esperado
     if esperado:
-        assert recibir.uc._generar_alerta_best_effort.call_args.kwargs["id_regla_alerta"] == esperado
+        assert recibir.uc._generar_alerta_best_effort.call_args.kwargs["regla"].id_regla_alertas == esperado

@@ -19,7 +19,7 @@ from src.shared.errors import AuthenticationError, ValidationError
 from src.shared.rate_limit import registrar_llamada
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
-from src.telemetry.domain.entities.alerta import regla_edge
+from src.telemetry.domain.entities.alerta import ReglaAlerta, regla_edge
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
     ConsolidarEnviarPaqueteUseCase,
@@ -124,6 +124,7 @@ class RecibirEventoEdgeUseCase:
             )
 
         tipo_evento_bd = clasificacion_a_tipo_evento_bd(dto.clasificacion_rf55)
+        regla = self._regla_existente(dto.metadata_edge)
 
         evento = EventoEdgeComputing(
             id_dispositivo_iot=dispositivo.id_dispositivo_iot,
@@ -138,7 +139,7 @@ class RecibirEventoEdgeUseCase:
             origen_dato=dto.origen,
             estado_conectividad=dto.estado_conectividad,
             metadatos=dto.metadata_edge or {},
-            id_regla_alerta=self._id_regla_existente(dto.metadata_edge),
+            id_regla_alerta=regla.id_regla_alertas if regla else None,
         )
 
         # Paso 3-4: Guardar evento
@@ -195,7 +196,7 @@ class RecibirEventoEdgeUseCase:
                 id_infraestructura=dispositivo.id_infraestructura,
                 id_evento_edge=evento_guardado.id_evento_edge_computing,
                 id_paquete=paquete.id_paquetes_inferencia if paquete else None,
-                id_regla_alerta=evento_guardado.id_regla_alerta,
+                regla=regla,
             )
 
         return ResultadoEventoEdge(
@@ -215,7 +216,7 @@ class RecibirEventoEdgeUseCase:
         id_infraestructura: Optional[int],
         id_evento_edge: int,
         id_paquete: Optional[int],
-        id_regla_alerta: Optional[int] = None,
+        regla: Optional[ReglaAlerta] = None,
     ) -> None:
         try:
             var_primaria = dto.variables_involucradas[0]
@@ -232,7 +233,7 @@ class RecibirEventoEdgeUseCase:
                 origen_evento="EDGE",
                 id_evento_edge_computing=id_evento_edge,
                 id_paquete_inferencia=id_paquete,
-                reglas_activadas=[regla_edge(dto.clasificacion_rf55, dto.metadata_edge, id_regla_alerta)],
+                reglas_activadas=[regla_edge(dto.clasificacion_rf55, dto.metadata_edge, regla, var_primaria.tipo_variable)],
                 metadata_evento=dto.metadata_edge,
             )
             GenararAlertaUseCase(
@@ -251,7 +252,7 @@ class RecibirEventoEdgeUseCase:
             self.db.rollback()
             logger.warning("RF-57: no se pudo generar la alerta del evento Edge %s.", id_evento_edge)
 
-    def _id_regla_existente(self, metadata_edge: Optional[dict]) -> Optional[int]:
+    def _regla_existente(self, metadata_edge: Optional[dict]) -> Optional[ReglaAlerta]:
         """BE-2: ``metadata_edge.id_regla_alerta`` solo si la regla existe (la columna tiene FK:
         un id que mandó el Edge y no existe haría perder el evento)."""
         id_regla = (metadata_edge or {}).get("id_regla_alerta")
@@ -259,7 +260,7 @@ class RecibirEventoEdgeUseCase:
             return None
         if not 0 < id_regla <= _MAX_INT4:  # fuera de integer, la consulta misma fallaría
             return None
-        return id_regla if self.regla_repo.obtener_por_id(id_regla) is not None else None
+        return self.regla_repo.obtener_por_id(id_regla)
 
     @staticmethod
     def _validar_temporal(
