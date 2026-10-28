@@ -11,6 +11,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: tarea periodica de reenvio de paquetes de inferencia |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
 import asyncio
 import logging
 import os
@@ -712,11 +713,13 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.respaldo_auditoria_iot_worker import sincronizar_respaldo_auditoria_iot_periodicamente
     from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
     from src.telemetry.infrastructure.workers.reenvio_inferencia_worker import reenviar_paquetes_inferencia_periodicamente
 
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
+        asyncio.create_task(sincronizar_respaldo_auditoria_iot_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_notificar_alertas_periodicamente()),
