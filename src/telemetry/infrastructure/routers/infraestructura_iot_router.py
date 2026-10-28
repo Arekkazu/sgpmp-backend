@@ -5,6 +5,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
+# | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -46,6 +47,7 @@ from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
 from src.telemetry.infrastructure.dto.evento_buffer_dto import RecibirEventoBufferDTO
+from src.telemetry.infrastructure.dto.filtros_alerta_dto import FiltroEstadoAlerta, FiltroSeveridadAlerta
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -241,8 +243,8 @@ def aplicar_mantenimiento_dispositivo(
     summary="Listar alertas técnicas de dispositivos IoT (RF-60) — solo admin e Ingeniero",
 )
 def listar_alertas_tecnicas(
-    estado: Optional[str] = Query(default=None),
-    severidad: Optional[str] = Query(default=None),
+    estado: Optional[FiltroEstadoAlerta] = Query(default=None),
+    severidad: Optional[FiltroSeveridadAlerta] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),

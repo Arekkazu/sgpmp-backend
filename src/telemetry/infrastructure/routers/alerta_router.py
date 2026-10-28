@@ -8,6 +8,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el POST valida fecha, origen, unidad y variable (400) |
+# | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -46,6 +47,12 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
+from src.telemetry.infrastructure.dto.filtros_alerta_dto import (
+    FiltroEstadoAlerta,
+    FiltroOrigenEventoAlerta,
+    FiltroSeveridadAlerta,
+    FiltroTipoAlerta,
+)
 from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -131,13 +138,13 @@ def procesar_evento_alerta(
     summary="Listar alertas con filtros (RF-57 FA-09)",
 )
 def listar_alertas(
-    estado: Optional[str] = Query(default=None),
-    severidad: Optional[str] = Query(default=None),
-    tipo_alerta: Optional[str] = Query(default=None),
+    estado: Optional[FiltroEstadoAlerta] = Query(default=None),
+    severidad: Optional[FiltroSeveridadAlerta] = Query(default=None),
+    tipo_alerta: Optional[FiltroTipoAlerta] = Query(default=None),
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None, description="Área de la alerta (T-18)."),
-    origen_evento: Optional[str] = Query(default=None),
+    origen_evento: Optional[FiltroOrigenEventoAlerta] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     fecha_resolucion_desde: Optional[FechaHoraUtc] = Query(
