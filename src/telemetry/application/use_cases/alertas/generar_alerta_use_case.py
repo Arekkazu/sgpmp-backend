@@ -2,6 +2,7 @@
 # |------------|---------|------------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: historial por trigger y diagnostico de calidad |
 # | 2026-10-21 | Leandro | DEV-41 RF-57: reutiliza consolidacion atomica e historial SQL |
+# | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: asocia el activo biológico y su contexto a la alerta |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,6 +24,7 @@ from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.historico_estado_alerta_repository import HistoricoEstadoAlertaRepository
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
+from src.telemetry.domain.repositories.contexto_activo_alerta_port import ContextoActivoAlertaPort
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -57,6 +59,7 @@ class GenararAlertaUseCase:
         regla_repo: ReglaAlertaRepository,
         parametros_port: ParametrosAlertasPort,
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
+        contexto_port: ContextoActivoAlertaPort | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
@@ -65,6 +68,8 @@ class GenararAlertaUseCase:
         self.regla_repo = regla_repo
         self.parametros_port = parametros_port
         self.auditoria_repo = auditoria_repo
+        # G77 (Fase 3): sin activo dado por quien llama, se resuelve desde RF-61 / asociación del sensor.
+        self.contexto_port = contexto_port
 
     def execute(
         self,
@@ -105,6 +110,14 @@ class GenararAlertaUseCase:
             )
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
+        motivo_contexto = None
+        if id_activo_biologico is None and self.contexto_port is not None:
+            resuelto = self.contexto_port.resolver(dto.sensor_id, id_infraestructura, dto.timestamp_evento,
+                                                   dto.id_telemetria)
+            id_activo_biologico = resuelto.id_activo_biologico
+            contexto_activo_biologico = resuelto.contexto
+            if id_activo_biologico is None:
+                motivo_contexto = {"motivo": resuelto.motivo, "fuente": resuelto.fuente}
         tiene_contexto_incompleto = (id_activo_biologico is None)
 
         # Fase 4: Deduplicación (FA-02/E4/CA-4/CA-5)
@@ -152,7 +165,8 @@ class GenararAlertaUseCase:
             valor=dto.valor,
             unidad=dto.unidad,
             contexto_activo_biologico=contexto_activo_biologico,
-            metadato_evento=dto.metadata_evento,
+            metadato_evento=({**(dto.metadata_evento or {}), "contexto_incompleto": motivo_contexto}
+                             if motivo_contexto else dto.metadata_evento),
             tiene_inferencia_no_disponible=(dto.probabilidad_ia is None and dto.origen_evento == OrigenEventoAlerta.EDGE),
             tiene_contexto_incompleto=tiene_contexto_incompleto,
             conflicto_resolucion=conflicto_resolucion,
