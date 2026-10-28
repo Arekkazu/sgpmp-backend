@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: resuelve variables desde el puerto M09 |
+# | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: conservar la secuencia recibida en metadatos del INSERT comun HTTP y batch. |
 """RF-53 B+: HTTP adapta el sobre; la función SQL valida y persiste la fila."""
 from typing import Any, Optional
 
@@ -70,6 +71,10 @@ class IngerirTelemetriaUseCase:
                 )
                 self.db.commit()
                 raise rechazo_catalogo
+            metadatos = {'gateway_id': gateway_id, 'checksum': dto.checksum,
+                         'frecuencia_muestreo': dto.frecuencia_muestreo}
+            if dto.buffer_sequence_id is not None:
+                metadatos['buffer_sequence_id'] = dto.buffer_sequence_id
             # Unidad, rango, tiempo, duplicados y calibración conservan una sola
             # regla de validación, en fn_ingesta_telemetria (ingesta B+).
             resultado = self.ingesta_port.ingerir({
@@ -84,8 +89,7 @@ class IngerirTelemetriaUseCase:
                 'latitud': dto.latitud, 'longitud': dto.longitud, 'nivel_bateria': dto.nivel_bateria,
                 'calidad_senal_rssi': dto.calidad_senal_rssi, 'calidad_senal_snr': dto.calidad_senal_snr,
                 'estado_conectividad': dto.estado_conectividad,
-                'metadatos': {'gateway_id': gateway_id, 'checksum': dto.checksum,
-                              'frecuencia_muestreo': dto.frecuencia_muestreo},
+                'metadatos': metadatos,
             })
             rechazo = None
             if resultado.id_telemetria is None:
