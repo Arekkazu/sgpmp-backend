@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: consulta y actualización de los parámetros de alertas por el administrador |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y SLA en los parámetros de alertas |
 """Parámetros de RF-57 que el administrador configura (E12/E13, CA-2, E16, E8).
 
 Viven en el almacén de DEV-14 (``modulo4.parametros_mlops``). La escritura reutiliza
@@ -22,6 +23,12 @@ from src.configuration.domain.entities.parametro_mlops import (
     RF57_CONFIANZA_BASE,
     RF57_CONFIANZA_MINIMA,
     RF57_CONFIANZA_MINIMA_BASE,
+    RF57_SLA_BASE,
+    RF57_SLA_CRITICO,
+    RF57_SLA_LEVE,
+    RF57_SLA_MODERADO,
+    RF57_VENTANA_DEDUPLICACION,
+    RF57_VENTANA_DEDUPLICACION_BASE,
     RF57_TORMENTA_SISTEMA,
     RF57_TORMENTA_UNIDAD,
     RF57_VENTANA_REEVALUACION,
@@ -36,6 +43,11 @@ PARAMETROS_ALERTAS: dict[str, tuple[Any, str]] = {
     RF57_VENTANA_REEVALUACION: (RF57_VENTANA_REEVALUACION_BASE, "E16: minutos para reevaluar una alerta generada sin IA"),
     RF57_TORMENTA_SISTEMA: (None, "E8: alertas por minuto del sistema que activan la tormenta (sin valor: no agrupa)"),
     RF57_TORMENTA_UNIDAD: (None, "E8: alertas por minuto por unidad productiva que activan la tormenta"),
+    RF57_VENTANA_DEDUPLICACION: (RF57_VENTANA_DEDUPLICACION_BASE,
+                                 "E4: minutos en los que un evento de la misma condición se consolida"),
+    RF57_SLA_CRITICO: (RF57_SLA_BASE[RF57_SLA_CRITICO], "SLA de atención de una alerta CRITICO (minutos)"),
+    RF57_SLA_MODERADO: (RF57_SLA_BASE[RF57_SLA_MODERADO], "SLA de atención de una alerta MODERADO (minutos)"),
+    RF57_SLA_LEVE: (RF57_SLA_BASE[RF57_SLA_LEVE], "SLA de atención de una alerta LEVE (minutos)"),
 }
 
 

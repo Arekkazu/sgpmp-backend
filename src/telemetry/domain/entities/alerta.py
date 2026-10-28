@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: regla de umbral M09 con forma {id, nombre} |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: tipo de alerta RIESGO_CONTAGIO |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -171,8 +172,9 @@ class Alerta:
     # T-18: el detalle decía "Activo biológico #829".
     nombre_activo: Optional[str] = None
 
-    def calcular_fecha_vencimiento(self) -> datetime:
-        minutos = _SLA_MINUTOS.get(self.severidad, 120)
+    def calcular_fecha_vencimiento(self, sla_minutos: Optional[dict[str, int]] = None) -> datetime:
+        """SLA por severidad; ``sla_minutos`` lo configura el administrador (G57A), si no, los valores base."""
+        minutos = (sla_minutos or _SLA_MINUTOS).get(self.severidad, _SLA_MINUTOS.get(self.severidad, 120))
         base = self.fecha_generacion
         if base.tzinfo is None:
             base = base.replace(tzinfo=timezone.utc)

@@ -4,6 +4,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 import logging
 
 from src.configuration.domain.entities.parametro_mlops import (
@@ -13,6 +14,12 @@ from src.configuration.domain.entities.parametro_mlops import (
     RF57_CONFIANZA_MINIMA_BASE,
     RF57_VENTANA_REEVALUACION,
     RF57_VENTANA_REEVALUACION_BASE,
+    RF57_SLA_BASE,
+    RF57_SLA_CRITICO,
+    RF57_SLA_LEVE,
+    RF57_SLA_MODERADO,
+    RF57_VENTANA_DEDUPLICACION,
+    RF57_VENTANA_DEDUPLICACION_BASE,
     RF57_TORMENTA_SISTEMA,
     RF57_TORMENTA_UNIDAD,
     numero_configurado,
@@ -57,6 +64,21 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
             if exc.code != 'PARAMETRO_CONFIGURACION_AUSENTE':
                 raise
             return RF57_VENTANA_REEVALUACION_BASE
+
+    def _entero_con_base(self, nombre, base):
+        try:
+            return numero_configurado(self.parametros_repo.obtener([nombre]), nombre, minimo=1, entero=True)
+        except ServiceUnavailableError as exc:
+            if exc.code != 'PARAMETRO_CONFIGURACION_AUSENTE':
+                raise
+            return base
+
+    def obtener_ventana_deduplicacion_min(self):
+        return self._entero_con_base(RF57_VENTANA_DEDUPLICACION, RF57_VENTANA_DEDUPLICACION_BASE)
+
+    def obtener_sla_minutos(self):
+        por_severidad = {'CRITICO': RF57_SLA_CRITICO, 'MODERADO': RF57_SLA_MODERADO, 'LEVE': RF57_SLA_LEVE}
+        return {sev: self._entero_con_base(nombre, RF57_SLA_BASE[nombre]) for sev, nombre in por_severidad.items()}
 
     def obtener_umbrales_tormenta(self):
         # Sin configurar no se inventa un valor (regla de DEV-14): se notifica una por una.
