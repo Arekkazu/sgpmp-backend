@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -28,6 +31,9 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
                 origen_dato=entidad.origen_dato,
                 estado_conectividad=entidad.estado_conectividad,
                 metadatos=metadatos,
+                valor_evaluado=entidad.valor_evaluado,
+                umbral_min_aplicado=entidad.umbral_min_aplicado,
+                umbral_max_aplicado=entidad.umbral_max_aplicado,
                 enviado_backend=False,
                 almacendado_buffer=not entidad.estado_conectividad,
             )
@@ -55,4 +61,7 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
             origen_dato=orm.origen_dato,
             estado_conectividad=orm.estado_conectividad,
             metadatos=metadatos,
+            valor_evaluado=orm.valor_evaluado,
+            umbral_min_aplicado=orm.umbral_min_aplicado,
+            umbral_max_aplicado=orm.umbral_max_aplicado,
         )

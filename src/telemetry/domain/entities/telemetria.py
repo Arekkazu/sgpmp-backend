@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
+# | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -202,6 +203,9 @@ class EventoEdgeComputing:
     id_evento_edge_computing: Optional[int] = None
     severidad: Optional[str] = None  # SeveridadEdge
     metadatos: dict[str, Any] = field(default_factory=dict)
+    valor_evaluado: Optional[Decimal] = None        # RF-55.1: valor que clasificó el Edge
+    umbral_min_aplicado: Optional[Decimal] = None
+    umbral_max_aplicado: Optional[Decimal] = None
 
 
 @dataclass
@@ -236,3 +240,6 @@ class ResultadoEventoEdge:
     fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str] = None
+    valor_evaluado: Optional[Decimal] = None
+    umbral_min_aplicado: Optional[Decimal] = None
+    umbral_max_aplicado: Optional[Decimal] = None
