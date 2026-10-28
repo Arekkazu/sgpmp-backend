@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: bandas base de Fase 5, THI y escalada de ESTRES_TERMICO |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: condición mínima de ESTRES_TERMICO y RIESGO_HIDRICO, THI NRC |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: variable compañera y reglas simples como objeto |
 """RF-57 Fase 5: valores base de las reglas simples y de la regla compuesta ESTRES_TERMICO.
 
 La severidad de un evento externo sale del valor, no de lo que declara el emisor
@@ -164,6 +165,33 @@ def compuestas_declaradas(reglas_activadas) -> list[str]:
             textos.append(str(regla))
     textos = [t.upper() for t in textos]
     return [c for c in COMPUESTAS_VALIDADAS if any(c in t for t in textos)]
+
+
+#: E14: variable compañera de ESTRES_TERMICO y su ventana de evaluación (RF-57: 10 min).
+_COMPANERA_ESTRES_TERMICO = {"TEMPERATURA_AMBIENTAL": "HUMEDAD_RELATIVA", "HUMEDAD_RELATIVA": "TEMPERATURA_AMBIENTAL"}
+VENTANA_ESTRES_TERMICO_MIN = 10
+
+
+def companera_faltante(tipo_variable: str, correlacion: Optional[dict[str, Any]]) -> Optional[str]:
+    """Variable requerida de ESTRES_TERMICO que el evento no trae (ni el THI); ``None`` si no falta."""
+    companera = _COMPANERA_ESTRES_TERMICO.get(tipo_variable.upper())
+    corr = _Correlacion(correlacion)
+    if companera is None or corr.numero("THI") is not None or corr.numero(companera) is not None:
+        return None
+    return companera
+
+
+def regla_simple(tipo_variable: str, valor: Decimal, id_sensor: Optional[int] = None,
+                 id_telemetria: Optional[int] = None) -> dict[str, Any]:
+    """Regla simple activada, con la forma {id, nombre} de reglas_activas (E14/E15)."""
+    tipo = tipo_variable.upper()
+    severidad = severidad_por_bandas(BANDAS_BASE[tipo], valor) if tipo in BANDAS_BASE else None
+    return {"id": f"RF57_BASE_{tipo}", "nombre": f"{tipo}_{severidad or 'NORMAL'}", "tipo": "REGLA_SIMPLE_RF57",
+            "valor": str(valor), "id_sensor": id_sensor, "id_telemetria": id_telemetria}
+
+
+def regla_compuesta(compuesta: str, thi: Optional[str] = None) -> dict[str, Any]:
+    return {"id": f"RF57_{compuesta}", "nombre": compuesta, "tipo": "REGLA_COMPUESTA_RF57", "thi": thi}
 
 
 def _motivo_escalada(corr: "_Correlacion") -> Optional[str]:

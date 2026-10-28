@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: condición mínima de las compuestas por HTTP (G70, G71, G72) |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: la lectura de prueba usa la variable del evento |
 """INC-M03-163-G70 (RF-57 Fase 5, TC-M03-G70/G71/G72): sin condición mínima no hay alerta compuesta.
 
 Router real, adaptadores de M09 y PostgreSQL real. Reutiliza las fixtures de G68.
@@ -24,7 +25,7 @@ def _post(http, hw, variable, valor, severidad, correlacion=None, reglas=None):
               "tipo_variable": variable, "valor": str(valor), "unidad": _UNIDAD[variable],
               "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
               "estado_dato": "LECTURA_VALIDA", "severidad_edge": severidad, "origen_evento": "EDGE",
-              "id_telemetria": _lectura(db, hw, valor, "LECTURA_VALIDA")}
+              "id_telemetria": _lectura(db, hw, valor, "LECTURA_VALIDA", variable)}
     if correlacion is not None:
         cuerpo["correlacion_variables"] = correlacion
     if reglas is not None:

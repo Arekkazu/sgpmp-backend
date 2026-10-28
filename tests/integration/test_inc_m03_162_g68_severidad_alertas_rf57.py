@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por valor, FALLO_AMBIENTAL técnica y escalada THI por HTTP |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: los casos de severidad envían la condición mínima de su compuesta |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: la lectura de prueba usa la variable del evento |
 """INC-M03-162-G68 (RF-57 Fase 5, TC-M03-G68/G69/G72): POST /iot/alertas evalúa el valor.
 
 Router real, adaptadores reales de M09 y PostgreSQL real. Reproduce los casos de QA:
@@ -88,12 +89,15 @@ def http(db_session, crear_usuario_db, crear_auth_headers, monkeypatch, headers_
         yield client, admin, headers_broker, db_session
 
 
-def _lectura(db, hw, valor, estado):
+def _lectura(db, hw, valor, estado, variable="TEMPERATURA_AMBIENTAL"):
+    # G71: la lectura es de la variable del evento (E14 busca compañeras por variable en el área).
+    id_variable = db.execute(text("SELECT id_variable_ambiental FROM modulo9.variables_ambientales "
+                                  "WHERE codigo_telemetria=:c"), {"c": variable}).scalar_one()
     id_lectura = db.execute(text("""
         INSERT INTO modulo3.telemetrias(id_sensor,id_variable,id_dispositivo_iot,valor_crudo,
           timestamp_captura,timestamp_procesamiento,origen,estado_calidad,metadatos,categoria_variable,unidad_medida)
-        VALUES (:s,9,:d,:v,:captura,now(),'TIEMPO_REAL',:estado,'{}','AMBIENTAL','°C') RETURNING id_telemetria
-    """), {"s": hw["sensor"], "d": hw["device"], "v": valor, "estado": estado,
+        VALUES (:s,:var,:d,:v,:captura,now(),'TIEMPO_REAL',:estado,'{}','AMBIENTAL','°C') RETURNING id_telemetria
+    """), {"s": hw["sensor"], "var": id_variable, "d": hw["device"], "v": valor, "estado": estado,
            "captura": datetime.now(timezone.utc) - timedelta(minutes=1)}).scalar_one()
     db.commit()
     return id_lectura
@@ -105,7 +109,7 @@ def _enviar(http, hw, tipo_variable, valor, severidad, estado="LECTURA_VALIDA", 
               "tipo_variable": tipo_variable, "valor": str(valor), "unidad": _UNIDAD[tipo_variable],
               "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
               "estado_dato": estado, "severidad_edge": severidad, "origen_evento": "EDGE",
-              "id_telemetria": _lectura(db, hw, valor, estado), "metadata_evento": {"caso": "G68"}}
+              "id_telemetria": _lectura(db, hw, valor, estado, tipo_variable), "metadata_evento": {"caso": "G68"}}
     if correlacion is not None:
         cuerpo["correlacion_variables"] = correlacion
     respuesta = client.post("/iot/alertas", headers=broker, json=cuerpo)
