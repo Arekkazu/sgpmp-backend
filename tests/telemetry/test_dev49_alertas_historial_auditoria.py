@@ -2,6 +2,7 @@
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica historial, 403 y eventos tecnicos |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: cada paquete deja PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-28 | destroyerban | INC-M03-172-G79 RF-57 CA-11: estado no catalogado es 422 TRANSICION_INVALIDA, no 400 |
 """Pruebas de aplicación y HTTP con dobles explícitos, sin simular PostgreSQL."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -133,7 +134,8 @@ def test_transicion_valida_no_insert_historial_desde_python(http, datos):
 
 def test_400_no_se_registra_como_rechazo_403(http, datos):
     http[1]["valor"] = True
-    respuesta = http[0].patch("/iot/alertas/71/estado", json={"nuevo_estado": "DESCONOCIDO"})
+    # G79: un estado no catalogado ya es 422 (CA-11); el 400 sigue siendo el cuerpo mal formado.
+    respuesta = http[0].patch("/iot/alertas/71/estado", json={"nuevo_estado": 12})
     assert respuesta.status_code == 400
     assert datos[4] == []
 
