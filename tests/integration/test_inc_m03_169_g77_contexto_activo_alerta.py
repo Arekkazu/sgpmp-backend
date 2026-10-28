@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: la alerta lleva el activo y su contexto |
+# | 2026-10-28 | Arekkazu | INC-M03-169-G77 RF-57: el evento trae el pH que exige G70 para RIESGO_HIDRICO |
 """INC-M03-169-G77 (RF-57 Fase 3, E6, CA-7): POST /iot/alertas asocia el activo biológico del sensor.
 
 Router real, adaptadores reales y PostgreSQL real. Reproduce el caso de QA: sensor asociado a un lote
@@ -23,6 +24,9 @@ from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import alerta_router
 
 pytestmark = pytest.mark.integration
+
+# G70 (#823): RIESGO_HIDRICO exige pH fuera de rango LEVE o TDS; el oxígeno solo es complementario.
+_PH_RIESGO_HIDRICO = {"PH_AGUA": "8.6"}
 
 
 def _sid():
@@ -110,7 +114,8 @@ def _alerta(client, db, e):
     r = client.post("/iot/alertas", json={
         "device_id": e["device"], "sensor_id": e["sensor"], "serial": e["serial"], "tipo_variable": "OXIGENO_DISUELTO",
         "valor": "4.0", "unidad": "mg/L", "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
-        "estado_dato": "LECTURA_VALIDA", "severidad_edge": "LEVE", "origen_evento": "EDGE", "id_telemetria": id_lectura})
+        "estado_dato": "LECTURA_VALIDA", "severidad_edge": "LEVE", "origen_evento": "EDGE", "id_telemetria": id_lectura,
+        "correlacion_variables": _PH_RIESGO_HIDRICO})
     assert r.status_code == 201, r.text
     return db.execute(text("SELECT to_jsonb(a) FROM modulo3.alertas a WHERE id_alerta=:id"),
                       {"id": r.json()["id_alerta"]}).scalar_one()
@@ -190,7 +195,8 @@ def test_vinculacion_rf61_de_la_lectura_prevalece(client, db_session, escenario)
         "device_id": escenario["device"], "sensor_id": escenario["sensor"], "serial": escenario["serial"],
         "tipo_variable": "OXIGENO_DISUELTO", "valor": "4.0", "unidad": "mg/L",
         "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
-        "estado_dato": "LECTURA_VALIDA", "severidad_edge": "LEVE", "origen_evento": "EDGE", "id_telemetria": id_lectura})
+        "estado_dato": "LECTURA_VALIDA", "severidad_edge": "LEVE", "origen_evento": "EDGE", "id_telemetria": id_lectura,
+        "correlacion_variables": _PH_RIESGO_HIDRICO})
     assert r.status_code == 201, r.text
     a = db_session.execute(text("SELECT id_activo_biologico, contexto_activo_biologico->>'fuente_vinculacion' "
                                 "FROM modulo3.alertas WHERE id_alerta=:id"), {"id": r.json()["id_alerta"]}).one()

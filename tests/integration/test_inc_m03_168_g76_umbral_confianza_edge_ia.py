@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: E12/E13 sin parámetro cargado y configuración por API |
+# | 2026-10-28 | Arekkazu | INC-M03-168-G76 RF-57: el evento trae el THI que exigen G68/G70 |
 """INC-M03-168-G76 (RF-57 E12/E13, TC-M03-142/143/N18).
 
 Sin `umbral_confianza_edge_ia` en la BD (como en TEST) los conflictos Edge/IA respondían 503. Ahora
@@ -93,7 +94,10 @@ def _conflicto(http, db, sev_edge, sev_ia, prob, tipo_ia=None):
               "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": "31", "unidad": "°C",
               "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
               "estado_dato": "LECTURA_VALIDA", "severidad_edge": sev_edge, "origen_evento": "EDGE",
-              "severidad_ia": sev_ia, "probabilidad_ia": prob, "id_telemetria": id_lectura}
+              "severidad_ia": sev_ia, "probabilidad_ia": prob, "id_telemetria": id_lectura,
+              # G68/G70 (#822/#823): la severidad Edge sale del valor y ESTRES_TERMICO exige el THI;
+              # con 31 °C (banda LEVE) el THI fija la severidad Edge de cada caso.
+              "correlacion_variables": {"THI": {"LEVE": "75", "MODERADO": "80", "CRITICO": "85"}[sev_edge]}}
     if tipo_ia:
         cuerpo["tipo_alerta_ia"] = tipo_ia
     r = client.post("/iot/alertas", headers=broker, json=cuerpo)
