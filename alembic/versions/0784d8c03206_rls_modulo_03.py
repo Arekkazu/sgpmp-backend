@@ -1,7 +1,7 @@
 """rls_modulo_03
 
 Revision ID: 0784d8c03206
-Revises: c83690f30edd
+Revises: ebbb160365e5
 Create Date: 2026-10-27 10:10:59.058781
 
 Clasifica la totalidad de las 18 tablas de modulo3 en patrones de acceso:
@@ -68,7 +68,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '0784d8c03206'
-down_revision: Union[str, Sequence[str], None] = 'c83690f30edd'
+down_revision: Union[str, Sequence[str], None] = 'ebbb160365e5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
