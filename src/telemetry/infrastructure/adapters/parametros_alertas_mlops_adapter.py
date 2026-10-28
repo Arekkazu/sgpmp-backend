@@ -2,12 +2,15 @@
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: lee los umbrales de tormenta; sin configurar no agrupa (E8) |
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 import logging
 
 from src.configuration.domain.entities.parametro_mlops import (
     RF57_CONFIANZA,
     RF57_CONFIANZA_MINIMA,
     RF57_CONFIANZA_MINIMA_BASE,
+    RF57_VENTANA_REEVALUACION,
+    RF57_VENTANA_REEVALUACION_BASE,
     RF57_TORMENTA_SISTEMA,
     RF57_TORMENTA_UNIDAD,
     numero_configurado,
@@ -35,6 +38,16 @@ class ParametrosAlertasMLOpsAdapter(ParametrosAlertasPort):
             if exc.code != 'PARAMETRO_CONFIGURACION_AUSENTE':
                 raise
             return RF57_CONFIANZA_MINIMA_BASE
+
+    def obtener_ventana_reevaluacion_min(self):
+        try:
+            return numero_configurado(self.parametros_repo.obtener([RF57_VENTANA_REEVALUACION]),
+                                      RF57_VENTANA_REEVALUACION, minimo=1, entero=True)
+        except ServiceUnavailableError as exc:
+            # Mismo criterio que G73: el RF publica el valor base (60 min); solo la ausencia lo usa.
+            if exc.code != 'PARAMETRO_CONFIGURACION_AUSENTE':
+                raise
+            return RF57_VENTANA_REEVALUACION_BASE
 
     def obtener_umbrales_tormenta(self):
         # Sin configurar no se inventa un valor (regla de DEV-14): se notifica una por una.

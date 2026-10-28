@@ -8,6 +8,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el POST valida fecha, origen, unidad y variable (400) |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: POST /iot/alertas/{id}/reevaluacion |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -27,7 +28,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
@@ -46,6 +47,8 @@ from src.prediction.infrastructure.repositories.parametros_mlops_repository impo
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
+from src.telemetry.infrastructure.dto.reevaluar_alerta_dto import ReevaluarAlertaDTO
+from src.telemetry.application.use_cases.alertas.reevaluar_alerta_use_case import CONFIRMADA, ReevaluarAlertaUseCase
 from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
@@ -56,6 +59,7 @@ from src.telemetry.infrastructure.schema.alerta_schema import (
     AlertaSchema,
     ListaAlertasSchema,
     ResultadoGeneracionAlertaSchema,
+    ResultadoReevaluacionSchema,
 )
 from src.shared.fechas import FechaHoraUtc
 from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
@@ -117,6 +121,40 @@ def procesar_evento_alerta(
         alerta_existente_id=resultado.alerta_existente_id,
         motivo_descarte=resultado.motivo_descarte,
     )
+
+
+@router.post(
+    "/{id_alerta}/reevaluacion",
+    response_model=ResultadoReevaluacionSchema,
+    status_code=201,
+    responses={
+        200: {"model": ResultadoReevaluacionSchema, "description": "La IA confirma tipo y severidad: sin alerta nueva."},
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Reevaluar una alerta generada sin motor de IA, tras su recuperación (RF-57 E16)",
+)
+def reevaluar_alerta(
+    id_alerta: int,
+    dto: ReevaluarAlertaDTO,
+    response: Response,
+    db: Session = Depends(get_db_sistema),
+) -> ResultadoReevaluacionSchema:
+    # G75: el RF no define la entrada; se usa el mismo canal y token de servicio que los eventos de IA.
+    resultado = ReevaluarAlertaUseCase(
+        db=db,
+        alerta_repo=SqlAlchemyAlertaRepository(db),
+        parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    ).execute(id_alerta, dto)
+    if resultado.resultado == CONFIRMADA:
+        response.status_code = 200
+    return ResultadoReevaluacionSchema.model_validate(resultado)
 
 
 @router.get(

@@ -7,6 +7,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de bateria unica y recuperacion |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: alerta generada por reevaluación de otra |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,6 +18,10 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 
 class AlertaRepository(ABC):
+    def buscar_reevaluacion(self, id_alerta_original: int):
+        """E16: alerta ya generada por reevaluación de ``id_alerta_original`` (bloqueada), o ``None``."""
+        raise NotImplementedError
+
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
         raise NotImplementedError
