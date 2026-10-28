@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite PAQUETE_INFERENCIA_GENERADO |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
 from __future__ import annotations
 
 import logging
@@ -23,9 +24,11 @@ from src.telemetry.domain.entities.telemetria import (
     EstadoCalidadTelemetria,
     EstadoPaqueteInferencia,
     EventoEdgeComputing,
+    CLAVE_HUELLA_CONTENIDO,
     PaqueteInferencia,
     TipoEventoEdge,
     estado_tras_envio_fallido,
+    huella_contenido_paquete,
 )
 from src.telemetry.domain.repositories.motor_inferencia_port import (
     MotorInferenciaNoIntegradoError,
@@ -172,6 +175,9 @@ class ConsolidarEnviarPaqueteUseCase:
             estado_paquete=EstadoPaqueteInferencia.PENDIENTE,
             intento_envios=0,
         )
+        # INC-M03-117-G60: la huella viaja con el paquete; los reintentos reutilizan la fila
+        # (mismo id, misma huella) y el receptor puede distinguirlos de un contenido distinto.
+        paquete.metadatos[CLAVE_HUELLA_CONTENIDO] = huella_contenido_paquete(paquete)
 
         try:
             existente = self.paquete_repo.obtener_por_evento(

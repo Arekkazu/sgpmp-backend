@@ -5,8 +5,11 @@
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -247,6 +250,60 @@ class PaqueteInferencia:
     contexto_ambiental: Optional[dict] = None
     metadatos: Optional[dict] = None
     id_version_modelo: Optional[int] = None
+
+
+# RF-56 restricciones 3 y 10 (INC-M03-117-G60): con id_paquetes_inferencia, identifica un envío.
+# Mismo id y misma huella = reintento del mismo paquete; mismo id y otra huella = el contenido
+# cambió y el receptor no debe tratarlo como reintento.
+CLAVE_HUELLA_CONTENIDO = "huella_contenido"
+
+
+def _normalizar(valor: Any) -> Any:
+    if isinstance(valor, Enum):
+        return valor.value
+    if isinstance(valor, Decimal):
+        # 38.5 y 38.5000 son el mismo valor: la huella no depende de la escala con que se guardó.
+        return format(valor.normalize(), "f")
+    if isinstance(valor, datetime):
+        return valor.isoformat()
+    if isinstance(valor, dict):
+        return {str(k): _normalizar(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [_normalizar(v) for v in valor]
+    return valor
+
+
+def huella_contenido_paquete(paquete: PaqueteInferencia) -> str:
+    """SHA-256 del contenido del paquete, sin el estado de envío.
+
+    Excluye el id (va aparte), estado_paquete, intento_envios y fecha_envio (cambian en cada
+    intento) y la propia huella. Determinista: JSON canónico con claves ordenadas.
+    """
+    metadatos = {k: v for k, v in (paquete.metadatos or {}).items() if k != CLAVE_HUELLA_CONTENIDO}
+    contenido = _normalizar({
+        "id_sensor": paquete.id_sensor,
+        "id_dispositivo_iot": paquete.id_dispositivo_iot,
+        "id_evento_edge_computing": paquete.id_evento_edge_computing,
+        "tipo_variable": paquete.tipo_variable,
+        "valor_numerico": paquete.valor_numerico,
+        "unidad": paquete.unidad,
+        "estado_calidad": paquete.estado_calidad,
+        "estado_desviacion": paquete.estado_desviacion,
+        "severidad": paquete.severidad,
+        "origen": paquete.origen,
+        "contexto_ambiental": paquete.contexto_ambiental,
+        "contexto_incompleto": paquete.contexto_incompleto,
+        "id_version_modelo": paquete.id_version_modelo,
+        "metadatos": metadatos,
+    })
+    canonico = json.dumps(contenido, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
+
+
+def huella_coincide(paquete: PaqueteInferencia) -> bool:
+    """El contenido actual corresponde a la huella guardada al generar el paquete."""
+    guardada = (paquete.metadatos or {}).get(CLAVE_HUELLA_CONTENIDO)
+    return guardada is not None and guardada == huella_contenido_paquete(paquete)
 
 
 @dataclass
