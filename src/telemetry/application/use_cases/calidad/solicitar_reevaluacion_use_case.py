@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: regenerar evaluaciones con causa y auditar el lote antes de un solo commit. |
+# | 2026-10-28 | Arekkazu | INC-M03-132-G30 RF-62: la reevaluacion conserva TIME_DESYNC de la lectura |
 """RF-62 FA-08: sustituir evaluaciones y auditar el lote en una transacción."""
 from __future__ import annotations
 from dataclasses import dataclass
@@ -66,7 +67,9 @@ class SolicitarReevaluacionUseCase:
                     id_telemetria=identificador,id_sensor=lectura.id_sensor,id_variable=lectura.id_variable,
                     valor=lectura.valor_crudo,valor_ajustado=lectura.valor_ajustado,
                     timestamp_captura=lectura.timestamp_captura,estado_calidad_rf53=lectura.estado_calidad,
-                    parametros_calibracion=calibracion,confirmar=False,
+                    parametros_calibracion=calibracion,
+                    reloj_desincronizado=lectura.reloj_desincronizado,
+                    evidencia_reloj=(lectura.metadatos or {}).get('rf53_reloj'),confirmar=False,
                     motivo_reevaluacion=dto.causa_documentada,correcciones=correcciones,
                     version_calibracion=(lectura.version_calibracion if calibracion==lectura.parametros_calibracion else None))
                 if nueva is None:
