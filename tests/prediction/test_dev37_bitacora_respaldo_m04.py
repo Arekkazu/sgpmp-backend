@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: mantener pruebas de contingencia con un evento de entrada valido. |
 """DEV-37 (RF-73 E2, E8 y CA-14): reintentos, respaldo local y sincronización de la bitácora de M04.
 
 E2: N reintentos ante una falla de persistencia; si todos fallan, el evento va al
@@ -55,7 +56,7 @@ def _registrar(sesion, respaldo, severidad="CRITICAL", reintentos=3):
     repo = SqlAlchemyEventoAuditoriaM04Repository(sesion, respaldo, reintentos=reintentos, pausa_reintento=0)
     repo.registrar(
         tipo_evento="INTENTO_CARGA_MODELO_EXTERNO", tipo_actor="SISTEMA", id_sistema="DESCONOCIDO",
-        severidad_evento=severidad, payload_evento={"motivo": "clave ausente", "id_proceso_rf71": "p-1"},
+        severidad_evento=severidad, id_referencia="p-1", entidad_referencia="proceso_rf71", payload_evento={"motivo": "clave ausente", "id_proceso_rf71": "p-1"},
     )
 
 

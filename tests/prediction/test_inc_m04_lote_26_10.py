@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04 lote 26-10 RF-65/70/73: pesos, truncado, E7 y ventana PROGRAMADO |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: verificar E7 con tipo catalogado e identidad y referencia validas. |
 """M04: pesos de contagio por rango (G42), truncado con mínimos (G088), corrección de
 timestamp (G099) y ventana de la OTA PROGRAMADO (G43/G46)."""
 from __future__ import annotations
@@ -88,9 +89,10 @@ def test_e7_timestamp_futuro_o_desordenado_se_corrige():
 def test_e7_registra_timestamp_corregido_warning():
     repo = _repo()
     persistidos = []
-    repo._persistir = persistidos.append
-    repo.registrar(tipo_evento='MOTOR_CONFIG_ACTUALIZADO', tipo_actor='SISTEMA',
-                   payload_evento={'id_configuracion': 1},
+    repo._persistir = lambda campos, **_kw: persistidos.append(campos)
+    repo.registrar(tipo_evento='CONFIGURACION_MOTOR_CAMBIADA', tipo_actor='SISTEMA',
+                   id_sistema='M04', id_referencia='config-1',
+                   payload_evento={'accion': 'ACTUALIZADA', 'valores_anteriores': {}, 'valores_nuevos': {'id_configuracion': 1}},
                    timestamp_evento=datetime.now(timezone.utc) + timedelta(hours=2))
     evento, correccion = persistidos
     assert correccion['tipo_evento'] == 'TIMESTAMP_CORREGIDO' and correccion['severidad_evento'] == 'WARNING'

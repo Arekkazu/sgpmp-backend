@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: persiste origen_dato (EDGE/BACKEND/HIBRIDO) |
 # | 2026-10-26 | Arekkazu     | INC-M04 G088/G092/G099 RF-73: truncado conserva mínimos, filtro correlacion_id, E7 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: rechazar eventos invalidos con evidencia E1 y resultado tipado. |
 from __future__ import annotations
 
 import hashlib
@@ -18,34 +19,18 @@ from typing import Any, Optional
 from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import DataError, IntegrityError
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.respaldo_auditoria_m04_port import RespaldoAuditoriaM04Port
 from src.prediction.infrastructure.models.evento_auditoria_m04_model import EventoAuditoriaM04Model
 from src.shared.errors import InfrastructureError, NotFoundError
-from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
+from src.prediction.domain.services.validacion_auditoria_m04 import (
+    ResultadoRegistroAuditoriaM04, campos_requeridos as _campos_requeridos, validar_evento,
+)
 
 logger = logging.getLogger(__name__)
-
-# Campos mínimos requeridos en payload_evento por tipo_evento (solo eventos que genera Desarrollo)
-_PAYLOAD_REQUERIDO: dict[str, list[str]] = {
-    "RETROALIMENTACION_REGISTRADA": [
-        "id_resultado_inferencia", "estado_retroalimentacion", "id_usuario_veterinario",
-    ],
-    "CONFLICTO_RETROALIMENTACION": [
-        "id_resultado_inferencia", "numero_retroalimentaciones",
-    ],
-    "VERSION_APROBADA": ["tipo_modelo", "id_version"],
-    "VERSION_RECHAZADA": ["tipo_modelo", "id_version"],
-    "VERSION_ACTIVADA": ["tipo_modelo", "id_version_nueva"],
-    "VERSION_DEPRECADA": ["tipo_modelo", "id_version"],
-    "VERSION_REGISTRADA": ["tipo_modelo", "id_version"],
-    "CATALOGO_PATOLOGIA_AGREGADA": ["id_patologia", "nombre"],
-    "CATALOGO_PATOLOGIA_MODIFICADA": ["id_patologia"],
-    "CATALOGO_PATOLOGIA_INACTIVADA": ["id_patologia"],
-    "MOTOR_CONFIG_ACTUALIZADO": ["id_configuracion"],
-}
 
 _PAYLOAD_MAX_BYTES = 64 * 1024  # 64 KB
 
@@ -62,24 +47,8 @@ def _calcular_hash(tipo_evento: str, payload: dict, fecha: str) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-# RF-73 v2.0 (RFC-009): las métricas mínimas dependen del paradigma del modelo. Sin
-# esto un modelo POBLACIONAL (sin F1/recall) nunca podría emitir su aprobación.
-_EVENTOS_CON_METRICAS = {"VERSION_APROBADA", "VERSION_RECHAZADA"}
-_METRICAS_MINIMAS: dict[str, list[str]] = {
-    POBLACIONAL: ["calibracion_completada", "tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_clinicos"],
-}
-_METRICAS_SUPERVISADAS = ["f1_score_global", "recall_clase_riesgo_alto"]
-
-
-def _campos_requeridos(tipo_evento: str, payload: dict) -> list[str]:
-    requeridos = list(_PAYLOAD_REQUERIDO.get(tipo_evento, []))
-    if tipo_evento in _EVENTOS_CON_METRICAS:
-        requeridos += _METRICAS_MINIMAS.get(paradigma_de(payload.get("tipo_modelo")), _METRICAS_SUPERVISADAS)
-    return requeridos
-
-
 def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
-    return [campo for campo in _campos_requeridos(tipo_evento, payload) if campo not in payload]
+    return [c for c in _campos_requeridos(tipo_evento, payload) if c not in payload]
 
 
 # RF-73 E2: reintentos ante falla de persistencia antes de ir al respaldo local.
@@ -164,19 +133,21 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         descripcion_error: Optional[str] = None,
         origen_dato: Optional[str] = None,
         timestamp_evento: Optional[datetime] = None,
-    ) -> None:
-        campos_faltantes = _validar_payload(tipo_evento, payload_evento)
-        if campos_faltantes:
-            self._registrar_invalido(tipo_evento, payload_evento, campos_faltantes, correlacion_id)
-            return
+    ) -> ResultadoRegistroAuditoriaM04:
+        correlacion_id = correlacion_id or uuid.uuid4()
+        id_evento = uuid.uuid4()
+        errores = validar_evento(
+            tipo_evento=tipo_evento, tipo_actor=tipo_actor, id_usuario=id_usuario,
+            id_sistema=id_sistema, id_referencia=id_referencia, payload_evento=payload_evento,
+        )
+        if errores:
+            return self._registrar_invalido(tipo_evento, payload_evento, errores, correlacion_id, id_evento)
 
         payload_final, truncado = _truncar_payload(payload_evento, _campos_requeridos(tipo_evento, payload_evento))
         sev_final = "WARNING" if truncado else severidad_evento
-        correlacion_id = correlacion_id or uuid.uuid4()
         ahora = datetime.now(timezone.utc)
         fecha, motivo_correccion = self._fecha_evento(timestamp_evento, correlacion_id, ahora)
-        id_evento = uuid.uuid4()
-        self._persistir(dict(
+        campos = dict(
             # id y fecha se fijan aquí: si el evento termina en el respaldo, la
             # sincronización conserva los originales (RF-73 CA-14).
             id_evento=id_evento,
@@ -196,11 +167,16 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             codigo_error=codigo_error,
             descripcion_error=descripcion_error,
             origen_dato=origen_dato or _origen_por_actor(tipo_actor),
-        ))
+        )
+        try:
+            self._persistir(campos, rechazo_controlado=True)
+        except _RechazoEventoBD as exc:
+            return self._registrar_invalido(tipo_evento, payload_evento, exc.campos, correlacion_id, id_evento)
         if motivo_correccion:
             self._registrar_timestamp_corregido(
                 tipo_evento, id_evento, correlacion_id, timestamp_evento, fecha, motivo_correccion
             )
+        return ResultadoRegistroAuditoriaM04(aceptado=True, id_evento=id_evento)
 
     def _fecha_evento(
         self, timestamp_evento: Optional[datetime], correlacion_id: uuid.UUID, ahora: datetime
@@ -257,7 +233,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             origen_dato="BACKEND",
         ))
 
-    def _persistir(self, campos: dict) -> None:
+    def _persistir(self, campos: dict, *, rechazo_controlado: bool = False) -> None:
         """RF-73 E2: N intentos, cada uno en su savepoint; si todos fallan, respaldo local.
 
         El savepoint aísla el intento: un fallo no deja inutilizable la sesión del
@@ -272,11 +248,17 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
                     self._db.add(EventoAuditoriaM04Model(origen_registro=_ID_SISTEMA, **campos))
                     self._db.flush()
                 return
+            except (DataError, IntegrityError) as exc:
+                errores = _campos_rechazados_bd(exc)
+                if rechazo_controlado and errores:
+                    raise _RechazoEventoBD(errores) from exc
+                error = exc
             except Exception as exc:
                 error = exc
+            if error is not None:
                 logger.warning(
                     "Intento %s/%s de persistir el evento de auditoría M04 %s falló: %s",
-                    intento, self._reintentos, campos["tipo_evento"], exc,
+                    intento, self._reintentos, campos["tipo_evento"], error,
                 )
                 if intento < self._reintentos:
                     time.sleep(self._pausa * intento)
@@ -290,6 +272,8 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             "origen_dato": "BACKEND",
             "severidad_evento": "CRITICAL",
             "resultado_operacion": "FALLIDO",
+            "id_referencia": str(campos["id_evento"]),
+            "entidad_referencia": "evento_auditoria_m04",
             "correlacion_id": campos["correlacion_id"],
             "codigo_error": type(error).__name__[:50],
             "descripcion_error": str(error)[:2000],
@@ -340,32 +324,37 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         return resultado.rowcount == 1
 
     def _registrar_invalido(
-        self,
-        tipo_evento_orig: str,
-        payload_orig: dict,
-        campos_faltantes: list[str],
-        correlacion_id: Optional[uuid.UUID],
-    ) -> None:
+        self, tipo_evento_orig: str, payload_orig: object, errores: tuple[str, ...],
+        correlacion_id: uuid.UUID, id_intento: uuid.UUID,
+    ) -> ResultadoRegistroAuditoriaM04:
+        # El log técnico conserva evidencia aun si el emisor revierte su transacción.
+        # No se escribe SQL ni el payload recibido en el log.
+        logger.error("AUDITORIA_EVENTO_INVALIDO: intento=%s correlacion=%s campos=%s",
+                     id_intento, correlacion_id, ",".join(errores))
         payload = {
             "tipo_evento_original": tipo_evento_orig,
-            "campos_faltantes": campos_faltantes,
+            "campos_invalidos": list(errores),
+            "campos_faltantes": [c.removeprefix("payload_evento.") for c in errores if c.startswith("payload_evento.")],
             "payload_recibido": payload_orig,
+            "id_intento": str(id_intento),
         }
+        payload, truncado = _truncar_payload(payload, ["tipo_evento_original", "campos_invalidos", "id_intento"])
         ahora = datetime.now(timezone.utc)
+        id_rechazo = uuid.uuid4()
         self._persistir(dict(
-            id_evento=uuid.uuid4(),
-            fecha_evento=ahora,
-            tipo_evento="AUDITORIA_EVENTO_INVALIDO",
-            tipo_actor="SISTEMA",
-            # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
-            # este evento nunca llegaba a guardarse.
-            id_sistema=_ID_SISTEMA,
-            origen_dato="BACKEND",
-            payload_evento=payload,
-            severidad_evento="ERROR",
-            correlacion_id=correlacion_id or uuid.uuid4(),
+            id_evento=id_rechazo, fecha_evento=ahora,
+            tipo_evento="AUDITORIA_EVENTO_INVALIDO", tipo_actor="SISTEMA",
+            id_usuario=None, id_sistema=_ID_SISTEMA, origen_dato="BACKEND",
+            id_referencia=str(id_intento), entidad_referencia="intento_evento_auditoria_m04",
+            payload_evento=payload, es_payload_truncado=truncado, severidad_evento="ERROR",
+            resultado_operacion="FALLIDO", codigo_error="AUDITORIA_EVENTO_INVALIDO",
+            correlacion_id=correlacion_id,
             hash_evento=_calcular_hash("AUDITORIA_EVENTO_INVALIDO", payload, ahora.isoformat()),
         ))
+        return ResultadoRegistroAuditoriaM04(
+            aceptado=False, id_evento=id_rechazo, codigo="AUDITORIA_EVENTO_INVALIDO",
+            campos_invalidos=errores,
+        )
 
     def consultar(
         self,
@@ -489,3 +478,27 @@ def _truncar_payload(payload: dict, requeridos: list[str] = ()) -> tuple[dict, b
         libre = max(0, _PAYLOAD_MAX_BYTES - tamano(resultado) - 64)
         resultado["payload_truncado_raw"] = raw.encode()[:min(libre, 500)].decode(errors="ignore")
     return resultado, True
+
+
+class _RechazoEventoBD(Exception):
+    def __init__(self, campos: tuple[str, ...]):
+        self.campos = campos
+
+
+def _campos_rechazados_bd(exc: Exception) -> tuple[str, ...]:
+    """Solo rechazos del contrato conocido; una FK/caída no equivale a E1."""
+    original = exc.orig
+    codigo = getattr(original, "pgcode", None)
+    diagnostico = getattr(original, "diag", None)
+    constraint = getattr(diagnostico, "constraint_name", None)
+    if codigo == "23514" and constraint == "chk_eam_actor_exclusivo":
+        return ("actor",)
+    if codigo == "22P02":
+        # psycopg2 no expone el nombre del enum en diag: se inspecciona internamente,
+        # sin devolver el mensaje ni parámetros SQL al emisor.
+        mensaje = str(original)
+        for enum, campo in (("enum_tipo_evento_auditoria_m04", "tipo_evento"),
+                            ("enum_tipo_actor_auditoria", "tipo_actor")):
+            if enum in mensaje:
+                return (campo,)
+    return ()
