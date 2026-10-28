@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: respuesta de la reevaluación por IA |
 from __future__ import annotations
 
 from datetime import datetime
@@ -75,6 +76,17 @@ class HistoricoEstadoAlertaSchema(BaseModel):
 
 class AlertaDetalleSchema(AlertaSchema):
     historico_estados: list[HistoricoEstadoAlertaSchema] = []
+
+
+class ResultadoReevaluacionSchema(BaseModel):
+    """RF-57 E16: CONFIRMADA (sin alerta nueva) o ALERTA_GENERADA (alerta nueva vinculada)."""
+    resultado: str
+    id_alerta_original: int
+    id_alerta_nueva: Optional[int] = None
+    tipo_alerta: Optional[str] = None
+    severidad: Optional[str] = None
+
+    model_config = {"from_attributes": True}
 
 
 class ResultadoGeneracionAlertaSchema(BaseModel):

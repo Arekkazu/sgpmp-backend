@@ -12,6 +12,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: reglas_activas de alertas de umbral anteriores desde metadato_evento |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta abierta del área y consolidación de reglas |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: busca la reevaluación previa con lock |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -207,6 +208,18 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                 .with_for_update()
                 .first()
             )
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return self._a_entidad(orm) if orm else None
+
+    def buscar_reevaluacion(self, id_alerta_original):
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                            {'clave': f'rf57:reevaluacion:{id_alerta_original}'})
+            orm = (self.db.query(AlertaModel)
+                   .filter(AlertaModel.referencia_alerta_original == id_alerta_original,
+                           AlertaModel.tiene_generada_por_reevaluacion.is_(True))
+                   .order_by(AlertaModel.id_alerta).first())
         except Exception as exc:
             raise_from_db_error(exc)
         return self._a_entidad(orm) if orm else None
