@@ -3,6 +3,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica flujos HTTP y triggers reales  |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-27/42: evaluador con parametros y lectura con lock |
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: ERROR_CALIBRACION genera alerta técnica FALLO_AMBIENTAL |
+# | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: el evento de temperatura lleva la humedad de su compuesta |
 """DEV-49 con JWT, broker, repositorios y PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -134,7 +135,9 @@ def _payload(hardware, id_lectura, calidad="LECTURA_VALIDA"):
     return {"device_id": hardware["device"], "sensor_id": hardware["sensor"], "serial": hardware["serial"],
             "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": "38.5", "unidad": "°C",
             "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
-            "estado_dato": calidad, "severidad_edge": "MODERADO", "origen_evento": "EDGE", "id_telemetria": id_lectura}
+            "estado_dato": calidad, "severidad_edge": "MODERADO", "origen_evento": "EDGE", "id_telemetria": id_lectura,
+            # G70: ESTRES_TERMICO exige temperatura y humedad (THI ≥ 72); 38.5 °C y 60 % → THI 91.77.
+            "correlacion_variables": {"HUMEDAD_RELATIVA": 60}}
 
 
 def test_generacion_http_y_transiciones_generan_una_fila_cada_una(db_session, hardware49, http49):

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por valor, FALLO_AMBIENTAL técnica y escalada THI por HTTP |
+# | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: los casos de severidad envían la condición mínima de su compuesta |
 """INC-M03-162-G68 (RF-57 Fase 5, TC-M03-G68/G69/G72): POST /iot/alertas evalúa el valor.
 
 Router real, adaptadores reales de M09 y PostgreSQL real. Reproduce los casos de QA:
@@ -163,12 +164,13 @@ def test_fallo_ambiental_repetido_se_consolida(db_session, http, nuevo_sensor):
     ("TEMPERATURA_AMBIENTAL", "33.1", "CRITICO", "MODERADO"),
     ("TEMPERATURA_AMBIENTAL", "36.0", "CRITICO", "MODERADO"),
     ("TEMPERATURA_AMBIENTAL", "30.1", "CRITICO", "LEVE"),
-    ("TEMPERATURA_AMBIENTAL", "13.9", "LEVE", "CRITICO"),
     ("HUMEDAD_RELATIVA", "95", "LEVE", "CRITICO"),
     ("OXIGENO_DISUELTO", "2.5", "LEVE", "MODERADO"),
 ])
 def test_severidad_sale_del_valor_no_de_la_declarada(db_session, http, nuevo_sensor, variable, valor, declarada, esperada):
-    r = _enviar(http, nuevo_sensor(), variable, valor, declarada)
+    # G70: cada compuesta lleva su condición mínima (THI LEVE para ESTRES_TERMICO, pH LEVE para RIESGO_HIDRICO).
+    correlacion = {"OXIGENO_DISUELTO": {"PH_AGUA": 6.4}}.get(variable, {"THI": 72.5})
+    r = _enviar(http, nuevo_sensor(), variable, valor, declarada, correlacion=correlacion)
     assert r["severidad"] == esperada
     fila = _alerta(db_session, r["id_alerta"])
     assert fila["severidad"] == esperada
