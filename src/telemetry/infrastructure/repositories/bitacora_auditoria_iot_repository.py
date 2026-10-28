@@ -4,6 +4,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a los equipos de las fincas del usuario |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
+# | 2026-10-28 | destroyerban | INC-M03-165-G71 RF-63: el filtro tipo_evento acepta los nombres de RF-57 |
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,6 +21,7 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
     EventoAuditoriaIot,
     SeveridadLog,
     TipoResultado,
+    tipos_evento_equivalentes,
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
@@ -154,7 +156,8 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         if fecha_hasta:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora <= fecha_hasta)
         if tipo_evento:
-            q = q.filter(BitacoraAuditoriaIotModel.tipo_evento == tipo_evento)
+            # G71: ESTADO_CAMBIADO y EVENTO_CORRELACIONADO (RF-57) encuentran sus tipos del catálogo RF-63.
+            q = q.filter(BitacoraAuditoriaIotModel.tipo_evento.in_(tipos_evento_equivalentes(tipo_evento)))
         if severidad_log:
             q = q.filter(BitacoraAuditoriaIotModel.severidad_log == severidad_log)
         if clasificacion_registro:
