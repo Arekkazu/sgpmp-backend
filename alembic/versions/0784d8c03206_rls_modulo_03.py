@@ -1,17 +1,18 @@
 """rls_modulo_03
 
 Revision ID: 0784d8c03206
-Revises: ebbb160365e5
+Revises: c83690f30edd
 Create Date: 2026-10-27 10:10:59.058781
 
 Clasifica la totalidad de las 18 tablas de modulo3 en patrones de acceso:
 
   1. FINCA DIRECTA + GLOBAL: reglas_alertas (id_finca nullable)
   2. VIA INFRAESTRUCTURA:    alertas, observaciones_vision, vinculaciones_lecturas
-  3. VIA DISPOSITIVO:        eventos_edge, estados_dispositivos, heartbeats,
-                             historico_transiciones, paquetes_inferencia,
-                             periodos_inactividad, bitacora_ingest,
-                             transmisiones_mqtt, sincronizaciones_reglas_edge
+  3. VIA DISPOSITIVO:        eventos_edge_computing, estados_dispositivos_iot,
+                             heartbeats, historico_transiciones_dispositivos,
+                             paquetes_inferencia, periodos_inactividad,
+                             bitacora_ingest, transmisiones_mqtt,
+                             sincronizaciones_reglas_edge
   4. VIA SENSOR:             telemetrias, estados_actuales_sensores
   5. EXISTS SOBRE PADRE:     historico_estados_alertas, telemetria_calidad
   6. SIN FINCA (AUDITORIA):  bitacora_auditoria_iot (RF-63)
@@ -23,12 +24,11 @@ Recursos RBAC utilizados (modulo1.recursos):
   - infraestructura_iot (35): estados de dispositivos
   - alertas_tecnicas_iot (36): alertas tecnicas
   - vinculaciones_lecturas (37): vinculacion telemetria-activo
-  - calidad_telemetria (38): evaluacion de calidad
   - bitacora_auditoria_iot (39): bitacora RF-63
   - sincronizacion_reglas_edge (65): propagacion Edge
-  - datos_tecnicos_dashboard (85): datos tecnicos
 
 Reutiliza funciones de modulo9 (F5):
+  - fn_fincas_del_usuario()
   - fn_infraestructuras_del_usuario()
   - fn_dispositivos_del_usuario()
   - fn_sensores_del_usuario()
@@ -37,7 +37,28 @@ Contrato con la app:
   - Identidad: modulo1.fn_id_usuario_actual() lee app.current_user_id
   - Servicio: modulo1.fn_es_usuario_servicio() identifica servicio.sistema@sgpmp.local
   - Todas las funciones van dentro de (SELECT ...) para evaluarse por sentencia
+  - FORCE RLS: la ingesta (broker MQTT / fn_ingesta_telemetria / fn_procesar_heartbeat)
+    DEBE declarar el usuario de servicio en app.current_user_id; de lo contrario
+    los INSERT quedan bloqueados (ver pol_*_servicio).
 
+Tabla de seguimiento
+  Tipo:                     Migracion Alembic (RLS)
+  Nombre:                   rls_modulo_03
+  Responsable:              Samuel
+  Version:                  <X.Y.Z segun semantic-release>
+  Version Alembic:          0784d8c03206 (down_revision: c83690f30edd)
+  Fecha:                    2026-10-28
+  Estado:                   En correccion (PR pendiente de autorizacion)
+  Repositorio:              Arekkazu/sgpmp-backend
+  Commit:                   <hash tras reescribir commits>
+  Descripcion:              Habilita y fuerza RLS en las 18 tablas de modulo3 con
+                            63 politicas (select/insert/update/servicio)
+  Justificacion:            Aislar telemetria, alertas y dispositivos IoT por
+                            finca/infraestructura/dispositivo/sensor del usuario
+  Objetos Afectados:        18 tablas de modulo3 (ENABLE + FORCE RLS), 63 politicas
+  Requerimientos Funcionales: RF-53, RF-55, RF-56, RF-57, RF-58, RF-59, RF-60,
+                            RF-61, RF-62, RF-63
+  Evaluador:                <evaluador>
 """
 from typing import Sequence, Union
 
@@ -47,10 +68,9 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '0784d8c03206'
-down_revision: Union[str, Sequence[str], None] = 'ebbb160365e5'
+down_revision: Union[str, Sequence[str], None] = 'c83690f30edd'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
-
 
 
 UID = "(SELECT modulo1.fn_id_usuario_actual())"
@@ -403,8 +423,8 @@ def upgrade() -> None:
 
     # --- telemetrias (RF-53): TABLA DE MAYOR VOLUMEN
     #     SELECT: monitoreo tiempo real (33) o historial (34)
-    #     INSERT: solo sistema (ingesta IoT)
-    #     UPDATE: solo sistema (flags apto_para_ia, apto_para_nic41)
+    #     INSERT: sistema (ingesta IoT) o usuario con sensor visible
+    #     UPDATE: sistema (flags apto_para_ia, apto_para_nic41)
     op.execute(f"""
         CREATE POLICY pol_telemetrias_select ON modulo3.telemetrias
           FOR SELECT USING (
@@ -508,7 +528,7 @@ def upgrade() -> None:
             OR {SERVICIO});
     """)
     op.execute(f"""
-        CREATE POLICY pol_bitacora_iot_insert ON modulo3.bitacora_iot
+        CREATE POLICY pol_bitacora_iot_insert ON modulo3.bitacora_auditoria_iot
           FOR INSERT WITH CHECK (
             {SERVICIO}
             OR {UID} IS NOT NULL);
