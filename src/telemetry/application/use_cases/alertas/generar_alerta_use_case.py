@@ -6,6 +6,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: 422 si la regla compuesta no cumple su condición mínima |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta con la lectura compañera y consolidación por área |
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
+# | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: asocia el activo biológico y su contexto a la alerta |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -33,6 +34,7 @@ from src.telemetry.domain.repositories.parametros_alertas_port import Parametros
 from src.telemetry.domain.repositories.regla_alerta_repository import ReglaAlertaRepository
 from src.telemetry.domain.repositories.variable_alerta_port import RangoFisicoVariable, VariableAlertaPort
 from src.telemetry.domain.repositories.lectura_companera_port import LecturaCompaneraPort
+from src.telemetry.domain.repositories.contexto_activo_alerta_port import ContextoActivoAlertaPort
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -69,6 +71,7 @@ class GenararAlertaUseCase:
         auditoria_repo: BitacoraAuditoriaIotRepository | None = None,
         variable_port: VariableAlertaPort | None = None,
         lectura_port: LecturaCompaneraPort | None = None,
+        contexto_port: ContextoActivoAlertaPort | None = None,
     ) -> None:
         self.db = db
         self.alerta_repo = alerta_repo
@@ -82,6 +85,8 @@ class GenararAlertaUseCase:
         self.variable_port = variable_port
         # G71 (E14): la variable compañera de una compuesta se busca en las lecturas del área.
         self.lectura_port = lectura_port
+        # G77 (Fase 3): sin activo dado por quien llama, se resuelve desde RF-61 / asociación del sensor.
+        self.contexto_port = contexto_port
 
     def execute(
         self,
@@ -164,6 +169,14 @@ class GenararAlertaUseCase:
                 )
 
         # Fase 3: Contexto de activo biológico (FA-03/E6/CA-7)
+        motivo_contexto = None
+        if id_activo_biologico is None and self.contexto_port is not None:
+            resuelto = self.contexto_port.resolver(dto.sensor_id, id_infraestructura, dto.timestamp_evento,
+                                                   dto.id_telemetria)
+            id_activo_biologico = resuelto.id_activo_biologico
+            contexto_activo_biologico = resuelto.contexto
+            if id_activo_biologico is None:
+                motivo_contexto = {"motivo": resuelto.motivo, "fuente": resuelto.fuente}
         tiene_contexto_incompleto = (id_activo_biologico is None)
 
         # Fase 4: Deduplicación (FA-02/E4/CA-4/CA-5)
@@ -217,6 +230,10 @@ class GenararAlertaUseCase:
         tipo_alerta, severidad_final, conflicto_resolucion = self._clasificar(dto)
 
         # Fase 7: Construir alerta
+        metadato_evento = self._metadato_e14(self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
+                                             companera)
+        if motivo_contexto:
+            metadato_evento = {**(metadato_evento or {}), "contexto_incompleto": motivo_contexto}
         alerta = Alerta(
             tipo_alerta=tipo_alerta,
             severidad=severidad_final,
@@ -229,8 +246,7 @@ class GenararAlertaUseCase:
             valor=dto.valor,
             unidad=dto.unidad,
             contexto_activo_biologico=contexto_activo_biologico,
-            metadato_evento=self._metadato_e14(self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
-                                               companera),
+            metadato_evento=metadato_evento,
             tiene_inferencia_no_disponible=(dto.probabilidad_ia is None and dto.origen_evento == OrigenEventoAlerta.EDGE),
             tiene_contexto_incompleto=tiene_contexto_incompleto,
             conflicto_resolucion=conflicto_resolucion,
