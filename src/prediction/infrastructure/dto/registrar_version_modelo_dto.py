@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: tipo_modelo vacío llega al caso de uso (422 con los tipos admitidos) |
 from __future__ import annotations
 
 import json
@@ -38,7 +39,8 @@ class RegistrarVersionModeloDTO:
 
     def __init__(
         self,
-        tipo_modelo: str = Form(...),
+        # Vacío u omitido lo rechaza el caso de uso con la lista de tipos admitidos.
+        tipo_modelo: Optional[str] = Form(None),
         hash_artefacto_sha256: str = Form(...),
         dataset_entrenamiento_hash: str = Form(...),
         metricas_validacion: str = Form(...),

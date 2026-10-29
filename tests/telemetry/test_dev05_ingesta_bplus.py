@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: inyecta catalogo en regresion B+     |
+# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60/RF-53: mantenimiento desde cualquier estado |
 from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import Mock
@@ -23,6 +24,7 @@ def entrada(**cambios):
 def construir(resultado):
     db, port, identidad, bitacora = Mock(), Mock(), Mock(), Mock()
     port.ingerir.return_value = resultado
+    identidad.validar_dispositivo_heartbeat.return_value.en_mantenimiento = False
     catalogo = Mock()
     catalogo.obtener_regla.return_value = ReglaVariableI3P1(9, 'TEMPERATURA_AMBIENTAL', 'AMBIENTAL', '°C', ['°C'], Decimal('-50'), Decimal('100'))
     return IngerirTelemetriaUseCase(db, port, identidad, bitacora, catalogo)
@@ -112,3 +114,14 @@ def test_batch_no_convierte_indisponibilidad_en_confirmacion_de_rechazo():
     uc = construir(ResultadoPersistenciaIngesta(None,None,'DESCONOCIDO'))
     with pytest.raises(ServiceUnavailableError):
         SincronizarBufferUseCase(lambda: uc, Mock()).execute(IngerirTelemetriaBatchDTO(registros=[entrada()]))
+
+
+def test_dispositivo_en_mantenimiento_rechaza_la_lectura_con_401():
+    """INC-M03-134-G03 (RF-53 E1): no llega a SQL y queda en bitácora como ERROR_AUTENTICACION."""
+    uc = construir(None)
+    uc.dispositivo_port.validar_dispositivo_heartbeat.return_value.en_mantenimiento = True
+    with pytest.raises(AppError) as error:
+        uc.execute(entrada())
+    assert error.value.status_code == 401
+    uc.ingesta_port.ingerir.assert_not_called()
+    assert uc.bitacora_repo.registrar_error.call_args.kwargs['estado_calidad'] == 'ERROR_AUTENTICACION'

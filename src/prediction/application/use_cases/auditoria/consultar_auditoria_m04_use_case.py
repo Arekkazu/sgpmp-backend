@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-209-G092 RF-73: filtro por correlacion_id |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
+# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 from __future__ import annotations
 
 import logging
@@ -36,6 +37,7 @@ class ConsultarAuditoriaM04UseCase:
         por_pagina: int,
         id_usuario_consultor: int,
         correlacion_id: Optional[uuid.UUID] = None,
+        tipo_modelo: Optional[str] = None,
     ) -> tuple[list[EventoAuditoriaM04], int]:
         items, total = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -46,6 +48,7 @@ class ConsultarAuditoriaM04UseCase:
             id_referencia=id_referencia,
             severidad_evento=severidad_evento,
             correlacion_id=correlacion_id,
+            tipo_modelo=tipo_modelo,
             pagina=pagina,
             por_pagina=por_pagina,
         )

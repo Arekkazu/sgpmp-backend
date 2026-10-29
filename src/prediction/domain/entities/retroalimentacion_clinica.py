@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | INC-M04-215/216 RF-72: exceso de patologías y fuente inválida → 422 |
 from __future__ import annotations
 
 import uuid
@@ -5,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from src.shared.errors import BusinessRuleError, ValidationError
+from src.shared.errors import BusinessRuleError
 
 _ESTADOS_VALIDOS = frozenset({"CORRECTO", "PARCIAL", "INCORRECTO", "SIN_EVENTO"})
 _ESTADOS_CON_DIAGNOSTICO = frozenset({"PARCIAL", "INCORRECTO"})
@@ -52,7 +55,7 @@ class RetroalimentacionClinica:
 
         diags = diagnosticos_reales or []
         if len(diags) > _MAX_DIAGNOSTICOS:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code="DEMASIADOS_DIAGNOSTICOS",
                 message=f"Se permiten máximo {_MAX_DIAGNOSTICOS} diagnósticos reales.",
                 field="diagnosticos_reales",
@@ -60,7 +63,7 @@ class RetroalimentacionClinica:
 
         fuente = fuente_diagnostico.upper() if fuente_diagnostico else None
         if fuente is not None and fuente not in _FUENTES_VALIDAS:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code="FUENTE_DIAGNOSTICO_INVALIDA",
                 message="El valor de fuente_diagnostico no es válido. Valores permitidos: OBSERVACION_DIRECTA, LABORATORIO, HISTORIAL_CLINICO, OTRO.",
                 field="fuente_diagnostico",

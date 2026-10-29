@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar los procesos reales en incidentes previos al registro. |
+# | 2026-10-29 | Arekkazu | INC-M04-213/214 RF-69: SavedModel por estructura protobuf, fecha futura y tipo vacío 422 |
 from __future__ import annotations
 
 import hashlib
@@ -37,15 +38,59 @@ _METRICAS_REQUERIDAS = {
 # RF-69 v2.0 (RFC-009): un modelo no supervisado no produce F1/recall; se valida
 # con la calibración en sitio y sus tasas de falsos positivos y de detección.
 _TASAS_POBLACIONALES = ("tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_clinicos")
-# Magic bytes para identificar el formato del artefacto
-_ONNX_MAGIC = b"\x08"          # protobuf field tag 1 (model_ir_version)
-_TF_SAVEDMODEL_MAGIC = b"\x0a" # protobuf field tag 1 (saved_model_schema_version)
 # RF-69 E1b (DEV-48): un aviso al Administrador por ventana, aunque el intento se repita;
 # misma ventana anti-spam de RF-14. Todos los intentos quedan en la bitácora.
 _VENTANA_AVISO_CARGA_EXTERNA = timedelta(minutes=5)
 _MOTIVO_CARGA_EXTERNA = "X-RF71-Internal-Key ausente o incorrecta"
 
 logger = logging.getLogger(__name__)
+
+
+def _campos_protobuf(datos: bytes) -> list[tuple[int, int, bytes]] | None:
+    """Campos de primer nivel de un mensaje protobuf (número, wire type, payload); None si no parsea."""
+
+    def varint(i: int) -> tuple[int, int]:
+        valor = desplazamiento = 0
+        while i < len(datos) and desplazamiento < 64:
+            byte = datos[i]
+            valor |= (byte & 0x7F) << desplazamiento
+            i += 1
+            if not byte & 0x80:
+                return valor, i
+            desplazamiento += 7
+        raise ValueError
+
+    campos, i = [], 0
+    try:
+        while i < len(datos):
+            clave, i = varint(i)
+            numero, tipo = clave >> 3, clave & 0x07
+            if tipo == 0:
+                inicio = i
+                _, i = varint(i)
+            elif tipo == 1:
+                inicio, i = i, i + 8
+            elif tipo == 2:
+                largo, inicio = varint(i)
+                i = inicio + largo
+            elif tipo == 5:
+                inicio, i = i, i + 4
+            else:
+                return None
+            if numero == 0 or i > len(datos):
+                return None
+            campos.append((numero, tipo, datos[inicio:i] if tipo == 2 else b""))
+    except ValueError:
+        return None
+    return campos
+
+
+def _es_saved_model(datos: bytes) -> bool:
+    campos = _campos_protobuf(datos)
+    if not campos or any(numero not in (1, 2) for numero, _, _ in campos):
+        return False
+    meta_graphs = [payload for numero, tipo, payload in campos if numero == 2 and tipo == 2]
+    return bool(meta_graphs) and meta_graphs[0][:1] == b"\x0a"
 
 
 class RegistrarVersionModeloUseCase:
@@ -69,6 +114,10 @@ class RegistrarVersionModeloUseCase:
         # FA-02: verificar clave interna
         self._verificar_clave_interna(internal_key, dto.id_proceso_rf71)
 
+        # Antes de leer o guardar el artefacto: el trigger P0408 llegaba como 500 y el
+        # archivo ya estaba en disco (INC-M04-214).
+        self._validar_fecha_entrenamiento(dto.fecha_entrenamiento)
+
         # Leer bytes del archivo
         archivo_bytes = dto.archivo_modelo.file.read()
 
@@ -84,10 +133,10 @@ class RegistrarVersionModeloUseCase:
         self._verificar_hash_artefacto(archivo_bytes, dto.hash_artefacto_sha256, dto.id_proceso_rf71)
 
         # FA-04: tipo_modelo (antes que las métricas: el paradigma decide cuáles se exigen)
-        if dto.tipo_modelo not in TIPOS_MODELO:
+        if not dto.tipo_modelo or dto.tipo_modelo not in TIPOS_MODELO:
             raise BusinessRuleError(
                 code="TIPO_MODELO_INVALIDO",
-                message=f"tipo_modelo debe ser uno de: {sorted(TIPOS_MODELO)}.",
+                message=f"tipo_modelo es obligatorio y debe ser uno de: {sorted(TIPOS_MODELO)}.",
                 field="tipo_modelo",
             )
 
@@ -160,6 +209,7 @@ class RegistrarVersionModeloUseCase:
             self._db.commit()
         except Exception:
             self._db.rollback()
+            self._borrar_artefacto(ruta)
             raise
 
         tipo_evento_resultado = "VERSION_APROBADA" if estado_final == "APROBADO" else "VERSION_RECHAZADA"
@@ -251,20 +301,22 @@ class RegistrarVersionModeloUseCase:
             )
 
     def _detectar_formato(self, archivo_bytes: bytes) -> str:
+        """Formato por la estructura protobuf del archivo, no por su extensión (TC-M04-119).
+
+        ONNX (ModelProto) y SavedModel empiezan los dos con 0x08 (campo 1 varint), así que
+        el primer byte no distingue: SavedModel solo tiene los campos 1 y 2, y el 2
+        (meta_graphs) es un MetaGraphDef que empieza por meta_info_def (0x0a).
+        """
         if len(archivo_bytes) < 2:
             raise BusinessRuleError(
                 code="FORMATO_ARTEFACTO_INVALIDO",
                 message="El artefacto es demasiado pequeño para ser un modelo válido.",
                 field="archivo_modelo",
             )
-        # ONNX: protobuf ModelProto comienza con field_number=1 (model_ir_version, varint)
-        # bytes 0x08 = field 1, wire_type 0 (varint)
+        if _es_saved_model(archivo_bytes):
+            return "TENSORFLOW_SAVED_MODEL"
         if archivo_bytes[0:1] == b"\x08":
             return "ONNX"
-        # TF SavedModel.pb: protobuf SavedModel comienza con field_number=1 (saved_model_schema_version)
-        # bytes 0x0a = field 1, wire_type 2 (length-delimited)
-        if archivo_bytes[0:1] == b"\x0a":
-            return "TENSORFLOW_SAVED_MODEL"
         raise BusinessRuleError(
             code="FORMATO_ARTEFACTO_INVALIDO",
             message=(
@@ -273,6 +325,21 @@ class RegistrarVersionModeloUseCase:
             ),
             field="archivo_modelo",
         )
+
+    def _validar_fecha_entrenamiento(self, fecha: datetime) -> None:
+        if fecha > datetime.now(timezone.utc):
+            raise BusinessRuleError(
+                code="FECHA_ENTRENAMIENTO_FUTURA",
+                message="La fecha_entrenamiento no puede ser una fecha futura.",
+                field="fecha_entrenamiento",
+            )
+
+    @staticmethod
+    def _borrar_artefacto(ruta: str) -> None:
+        try:
+            os.remove(ruta)
+        except OSError:
+            logger.warning("No se pudo borrar el artefacto de un registro fallido: %s", ruta)
 
     def _validar_hash_sha256_campo(self, valor: str, campo: str) -> None:
         import re

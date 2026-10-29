@@ -6,6 +6,7 @@
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: unidad sin sensores, lote, desviación, alertas y series |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: exponer separadamente referencia válida y condición actual por rol. |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
+# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 from __future__ import annotations
 
 from datetime import datetime
@@ -72,6 +73,29 @@ class ResumenUnidadSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AlertaActivaPanelSchema(BaseModel):
+    """RF-58 CA-11 — alerta ACTIVA del panel; ``id_activo_biologico`` lleva al detalle del activo."""
+    id_alerta: int
+    tipo_alerta: str
+    severidad: Optional[str] = None
+    tipo_variable: Optional[str] = None
+    valor: Optional[Decimal] = None
+    unidad: Optional[str] = None
+    fecha_generacion: datetime
+    minutos_transcurridos: int
+    id_infraestructura: Optional[int] = None
+    id_activo_biologico: Optional[int] = None
+    identificador_activo: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class PanelAlertasActivasSchema(BaseModel):
+    """RF-58 CU04 salida 2: total de alertas ACTIVA del alcance y las primeras 50, CRITICO primero."""
+    total: int = 0
+    alertas: list[AlertaActivaPanelSchema] = []
+
+
 class DashboardResponseSchema(BaseModel):
     """RF-58 — respuesta completa del dashboard de monitoreo."""
     total: int
@@ -83,6 +107,8 @@ class DashboardResponseSchema(BaseModel):
     conteo_semaforo: dict[str, int] = {}
     # G57B (RF-57 Salida 3): alertas VENCIDA sin reconocer del alcance (todas las fincas o el área).
     alertas_vencidas_sin_atencion: int = 0
+    # G98: `total` de arriba es de sensores; este es el de alertas ACTIVA.
+    panel_alertas_activas: PanelAlertasActivasSchema = PanelAlertasActivasSchema()
 
 
 class LecturaHistoricaSchema(BaseModel):
