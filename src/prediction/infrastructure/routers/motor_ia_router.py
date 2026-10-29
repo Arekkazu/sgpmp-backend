@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario y versión |
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
 RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
@@ -32,6 +33,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -47,6 +49,7 @@ from src.prediction.infrastructure.adapters.config_motor_edge_mqtt_adapter impor
 from src.prediction.infrastructure.adapters.nodo_edge_m09_adapter import NodoEdgeM09Adapter
 from src.prediction.infrastructure.adapters.version_modelo_adapter import VersionModeloAdapter
 from src.prediction.infrastructure.dto.configurar_motor_dto import ConfigurarMotorDTO
+from src.prediction.infrastructure.models.version_modelo_model import VersionModeloModel
 from src.prediction.infrastructure.repositories.configuracion_motor_ia_repository import SqlAlchemyConfiguracionMotorIARepository
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.historial_configuracion_motor_repository import (
@@ -210,4 +213,29 @@ def consultar_historial(
         repo=SqlAlchemyConfiguracionMotorIARepository(db),
         historial_repo=SqlAlchemyHistorialConfiguracionMotorRepository(db),
     )
-    return HistorialConfiguracionMotorSchema.model_validate(use_case.execute(tipo_modelo))
+    return _con_nombres(db, HistorialConfiguracionMotorSchema.model_validate(use_case.execute(tipo_modelo)))
+
+
+def _con_nombres(db: Session, historial: HistorialConfiguracionMotorSchema) -> HistorialConfiguracionMotorSchema:
+    """CU02 H-04: nombre del usuario y de la versión del modelo, una consulta de cada uno."""
+    usuarios = {
+        u for v in historial.versiones for u in (v.id_usuario_responsable, v.id_usuario_cambio) if u is not None
+    }
+    versiones = {
+        v.configuracion["id_version_modelo_activa"]
+        for v in historial.versiones
+        if v.configuracion.get("id_version_modelo_activa") is not None
+    }
+    nombres_usuario = dict(db.execute(text(
+        "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+        "WHERE id_usuario = ANY(:ids)"
+    ), {"ids": list(usuarios)}).all()) if usuarios else {}
+    nombres_version = dict(db.execute(
+        select(VersionModeloModel.id_version_modelo, VersionModeloModel.nombre_version)
+        .where(VersionModeloModel.id_version_modelo.in_(versiones))
+    ).all()) if versiones else {}
+    for v in historial.versiones:
+        v.nombre_usuario_responsable = nombres_usuario.get(v.id_usuario_responsable)
+        v.nombre_usuario_cambio = nombres_usuario.get(v.id_usuario_cambio)
+        v.nombre_version_modelo_activa = nombres_version.get(v.configuracion.get("id_version_modelo_activa"))
+    return historial

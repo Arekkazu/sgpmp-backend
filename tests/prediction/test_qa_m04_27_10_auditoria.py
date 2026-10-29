@@ -1,6 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
-# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU05 H-03, CU09 H-01/H-02/H-03 RF-69/RF-73            |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU05 H-03, CU06 H-02, CU09 H-01/H-02/H-03 RF-69/70/73 |
 """Reporte de pruebas manuales M04 (27-10): eventos de auditoría y activación.
 
 CU09 H-01: los eventos del catálogo de patologías llegan sin id_patologia y quedan
@@ -151,3 +151,30 @@ def test_poblacional_con_componente_se_activa():
     version = dataclasses.replace(_version("APROBADO"), tipo_modelo="MODELO_AVES", componente="DETECTOR")
     version.activar()
     assert version.estado_version == "ACTIVO"
+
+
+# --- CU06 H-02: el despliegue trae el nombre de su versión ---------------------------------
+
+def test_despliegues_traen_nombre_de_version_y_de_la_anterior():
+    from datetime import datetime, timezone
+
+    from src.prediction.domain.entities.despliegue_ota import DespliegueOta
+    from src.prediction.infrastructure.routers.ota_router import _con_nombre_version
+    from src.prediction.infrastructure.schema.despliegue_ota_schema import DespliegueOtaResponse
+
+    class _DbVersiones:
+        def execute(self, sentencia):
+            assert "versiones_modelos" in str(sentencia)
+            return type("R", (), {"all": lambda _s: [(43, "qa-sem-aprobado-medianas-v1.1"), (44, "qa-v1.0")]})()
+
+    despliegue = DespliegueOta(
+        id_despliegue_ota=9, id_version_modelo=43, id_dispositivo_iot=347, tipo_modelo="MODELO_ESPECIES_MEDIANAS",
+        modo_distribucion="INMEDIATO", estado_despliegue="EXITOSO", hash_modelo_sha256="a" * 64,
+        resultado_validacion_hash=True, id_version_modelo_anterior=44, rollback_ejecutado=False,
+        intentos_descarga=1, max_reintentos=3, tamano_modelo_bytes=None, tamano_descargado_bytes=None,
+        duracion_proceso_ms=None, ventana_inicio=None, ventana_fin=None, nivel_bateria_al_inicio=None,
+        fecha_inicio=datetime(2026, 10, 24, tzinfo=timezone.utc), fecha_fin=None, motivo_fallo=None,
+    )
+    (respuesta,) = _con_nombre_version(_DbVersiones(), [DespliegueOtaResponse.from_entity(despliegue)])
+    assert respuesta.nombre_version == "qa-sem-aprobado-medianas-v1.1"
+    assert respuesta.nombre_version_anterior == "qa-v1.0"
