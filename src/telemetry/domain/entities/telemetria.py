@@ -2,8 +2,17 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: retira catalogo estatico de variables |
 # | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: incluir captura original en el resultado del evento Edge. |
+# | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
+# | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
+# | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
+# | 2026-10-28 | Arekkazu | BE-2 RF-55: id_regla_alerta en el evento Edge |
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
@@ -174,6 +183,22 @@ class EstadoPaqueteInferencia(str, Enum):
     FALLIDO = "FALLIDO"
 
 
+# RF-56 restricción 5: máximo 500 registros por envío al motor; más se fragmenta.
+MAX_REGISTROS_POR_ENVIO_INFERENCIA = 500
+
+# RF-56 restricción 14: intento 1 inmediato, luego 5, 15, 30 y 60 s. El índice n es la
+# espera antes del intento n+1 (tras n intentos fallidos).
+ESPERAS_REINTENTO_INFERENCIA_SEG = (0, 5, 15, 30, 60)
+MAX_INTENTOS_ENVIO_INFERENCIA = len(ESPERAS_REINTENTO_INFERENCIA_SEG)
+
+
+def estado_tras_envio_fallido(intentos: int) -> "EstadoPaqueteInferencia":
+    """Tras un intento no confirmado: PENDIENTE (se reintenta) hasta agotar los 5; luego FALLIDO."""
+    if intentos >= MAX_INTENTOS_ENVIO_INFERENCIA:
+        return EstadoPaqueteInferencia.FALLIDO
+    return EstadoPaqueteInferencia.PENDIENTE
+
+
 # Mapeo de clasificación RF-55 al enum tipo_evento de eventos_edge_computing en BD
 _MAPA_TIPO_EVENTO_BD: dict[str, str] = {
     TipoEventoEdge.NORMAL: "DATOS_PROCESADOS",
@@ -181,6 +206,16 @@ _MAPA_TIPO_EVENTO_BD: dict[str, str] = {
     TipoEventoEdge.DESVIACION_COMPUESTA: "ALERTA_GENERADA",
     TipoEventoEdge.ERROR_CONFIGURACION: "ERROR_PROCESAMIENTO",
 }
+
+
+# RF-55 restricción 1 y CA-1: detección en ≤ 500 ms desde la captura, medida en el nodo Edge.
+LATENCIA_MAX_MS_RF55 = 500
+
+
+def latencia_edge_ms(fecha_captura: datetime, fecha_procesamiento: datetime) -> int:
+    """Latencia de detección del Edge: los dos instantes son del reloj del nodo, así que no
+    incluye red, broker ni backend (separada de la latencia de consolidación de RF-56)."""
+    return round((fecha_procesamiento - fecha_captura).total_seconds() * 1000)
 
 
 def clasificacion_a_tipo_evento_bd(clasificacion_rf55: str) -> str:
@@ -202,6 +237,11 @@ class EventoEdgeComputing:
     id_evento_edge_computing: Optional[int] = None
     severidad: Optional[str] = None  # SeveridadEdge
     metadatos: dict[str, Any] = field(default_factory=dict)
+    valor_evaluado: Optional[Decimal] = None        # RF-55.1: valor que clasificó el Edge
+    umbral_min_aplicado: Optional[Decimal] = None
+    umbral_max_aplicado: Optional[Decimal] = None
+    # BE-2: regla de modulo3.reglas_alertas que evaluó el Edge (metadata_edge.id_regla_alerta).
+    id_regla_alerta: Optional[int] = None
 
 
 @dataclass
@@ -227,6 +267,60 @@ class PaqueteInferencia:
     id_version_modelo: Optional[int] = None
 
 
+# RF-56 restricciones 3 y 10 (INC-M03-117-G60): con id_paquetes_inferencia, identifica un envío.
+# Mismo id y misma huella = reintento del mismo paquete; mismo id y otra huella = el contenido
+# cambió y el receptor no debe tratarlo como reintento.
+CLAVE_HUELLA_CONTENIDO = "huella_contenido"
+
+
+def _normalizar(valor: Any) -> Any:
+    if isinstance(valor, Enum):
+        return valor.value
+    if isinstance(valor, Decimal):
+        # 38.5 y 38.5000 son el mismo valor: la huella no depende de la escala con que se guardó.
+        return format(valor.normalize(), "f")
+    if isinstance(valor, datetime):
+        return valor.isoformat()
+    if isinstance(valor, dict):
+        return {str(k): _normalizar(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [_normalizar(v) for v in valor]
+    return valor
+
+
+def huella_contenido_paquete(paquete: PaqueteInferencia) -> str:
+    """SHA-256 del contenido del paquete, sin el estado de envío.
+
+    Excluye el id (va aparte), estado_paquete, intento_envios y fecha_envio (cambian en cada
+    intento) y la propia huella. Determinista: JSON canónico con claves ordenadas.
+    """
+    metadatos = {k: v for k, v in (paquete.metadatos or {}).items() if k != CLAVE_HUELLA_CONTENIDO}
+    contenido = _normalizar({
+        "id_sensor": paquete.id_sensor,
+        "id_dispositivo_iot": paquete.id_dispositivo_iot,
+        "id_evento_edge_computing": paquete.id_evento_edge_computing,
+        "tipo_variable": paquete.tipo_variable,
+        "valor_numerico": paquete.valor_numerico,
+        "unidad": paquete.unidad,
+        "estado_calidad": paquete.estado_calidad,
+        "estado_desviacion": paquete.estado_desviacion,
+        "severidad": paquete.severidad,
+        "origen": paquete.origen,
+        "contexto_ambiental": paquete.contexto_ambiental,
+        "contexto_incompleto": paquete.contexto_incompleto,
+        "id_version_modelo": paquete.id_version_modelo,
+        "metadatos": metadatos,
+    })
+    canonico = json.dumps(contenido, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
+
+
+def huella_coincide(paquete: PaqueteInferencia) -> bool:
+    """El contenido actual corresponde a la huella guardada al generar el paquete."""
+    guardada = (paquete.metadatos or {}).get(CLAVE_HUELLA_CONTENIDO)
+    return guardada is not None and guardada == huella_contenido_paquete(paquete)
+
+
 @dataclass
 class ResultadoEventoEdge:
     id_evento_edge_computing: int
@@ -236,3 +330,13 @@ class ResultadoEventoEdge:
     fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str] = None
+    valor_evaluado: Optional[Decimal] = None
+    umbral_min_aplicado: Optional[Decimal] = None
+    umbral_max_aplicado: Optional[Decimal] = None
+    latencia_edge_ms: Optional[int] = None
+    sla_edge_excedido: Optional[bool] = None
+
+
+#: INC-M03-199-G54 (RF-55 §6, "contexto: variables y reglas usadas"): trazabilidad de la regla que
+#: produjo la clasificación. La emite el nodo Edge; el backend la conserva en evento, paquete y alerta.
+CAMPOS_TRAZABILIDAD_REGLA = ("regla_aplicada", "nombre_regla", "version_regla")

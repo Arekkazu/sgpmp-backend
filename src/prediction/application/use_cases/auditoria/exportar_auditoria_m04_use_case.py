@@ -1,4 +1,10 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
+# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: la exportación respeta el filtro tipo_modelo |
 from __future__ import annotations
+
+import uuid
 
 import csv
 import io
@@ -40,6 +46,7 @@ class ExportarAuditoriaM04UseCase:
         severidad_evento: Optional[str],
         formato: str,
         id_usuario_exportador: int,
+        tipo_modelo: Optional[str] = None,
     ) -> tuple[str | bytes, str, str]:
         items, _ = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -49,6 +56,7 @@ class ExportarAuditoriaM04UseCase:
             id_sistema=id_sistema,
             id_referencia=id_referencia,
             severidad_evento=severidad_evento,
+            tipo_modelo=tipo_modelo,
             pagina=1,
             por_pagina=10000,
         )
@@ -98,11 +106,15 @@ class ExportarAuditoriaM04UseCase:
         }
 
     def _emitir_evento_exportacion(self, id_usuario: int, total: int, formato: str) -> None:
+        correlacion = uuid.uuid4()
         try:
             self._repo.registrar(
                 tipo_evento="EXPORTACION_GENERADA",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
+                id_referencia=str(correlacion),
+                correlacion_id=correlacion,
+                entidad_referencia="consulta_auditoria_m04",
                 severidad_evento="INFO",
                 resultado_operacion="EXITOSO",
                 payload_evento={"exportacion": "AUDITORIA_M04", "total_registros": total, "formato": formato},

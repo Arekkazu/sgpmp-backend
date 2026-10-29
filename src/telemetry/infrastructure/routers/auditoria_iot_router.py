@@ -4,6 +4,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros de la ficha y verificación con rango obligatorio |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
+# | 2026-10-29 | Arekkazu | H-M3-18/19 RF-63: la exportación respeta los mismos filtros y el alcance por finca del listado |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -37,7 +39,7 @@ from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.auditoria.consultar_bitacora_iot_use_case import ConsultarBitacoraIotUseCase
 from src.telemetry.application.use_cases.auditoria.verificar_integridad_bitacora_use_case import VerificarIntegridadBitacoraUseCase
-from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.schema.bitacora_auditoria_iot_schema import (
     EventoAuditoriaIotSchema,
@@ -76,6 +78,11 @@ def listar_auditoria(
     severidad_log: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
     entidad_afectada_id: Optional[str] = Query(default=None),
+    entidad_afectada_tipo: Optional[EntidadAfectadaTipo] = Query(
+        default=None,
+        description="Tipo de la entidad afectada. Con entidad_afectada_id da el ciclo de vida de un "
+                    "registro, p. ej. PAQUETE_IA para un paquete de inferencia (RF-56 CA-8).",
+    ),
     resultado: Optional[str] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None, description="Usuario que originó el evento."),
     rf_origen: Optional[ComponenteOrigen] = Query(default=None, description="RF emisor (RF53–RF62...)."),
@@ -102,6 +109,7 @@ def listar_auditoria(
         id_usuario=id_usuario,
         rf_origen=rf_origen.value if rf_origen else None,
         registro_incompleto=registro_incompleto,
+        entidad_afectada_tipo=entidad_afectada_tipo.value if entidad_afectada_tipo else None,
         ids_fincas_permitidas=_fincas_de_la_bitacora(db, usuario_actual),
     )
     return ListaAuditoriaIotSchema(
@@ -123,11 +131,20 @@ def exportar_auditoria(
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     tipo_evento: Optional[str] = Query(default=None),
+    severidad_log: Optional[str] = Query(default=None),
     clasificacion_registro: Optional[str] = Query(default=None),
+    entidad_afectada_id: Optional[str] = Query(default=None),
+    entidad_afectada_tipo: Optional[EntidadAfectadaTipo] = Query(default=None),
+    resultado: Optional[str] = Query(default=None),
+    id_usuario: Optional[int] = Query(default=None),
+    rf_origen: Optional[ComponenteOrigen] = Query(default=None),
+    registro_incompleto: Optional[bool] = Query(default=None),
     formato: str = Query(default='json', pattern='^(json|csv)$'),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> StreamingResponse:
+    """Mismos filtros y alcance que el listado: antes exportaba 10 000 eventos aunque la
+    pantalla mostrara 13 (H-M3-18/19) y sin acotar a las fincas del usuario."""
     use_case = ConsultarBitacoraIotUseCase(
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
@@ -135,9 +152,17 @@ def exportar_auditoria(
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         tipo_evento=tipo_evento,
+        severidad_log=severidad_log,
         clasificacion_registro=clasificacion_registro,
+        entidad_afectada_id=entidad_afectada_id,
+        resultado=resultado,
         pagina=1,
         por_pagina=10000,
+        id_usuario=id_usuario,
+        rf_origen=rf_origen.value if rf_origen else None,
+        registro_incompleto=registro_incompleto,
+        entidad_afectada_tipo=entidad_afectada_tipo.value if entidad_afectada_tipo else None,
+        ids_fincas_permitidas=_fincas_de_la_bitacora(db, usuario_actual),
     )
     schemas = [EventoAuditoriaIotSchema.model_validate(e) for e in items]
 

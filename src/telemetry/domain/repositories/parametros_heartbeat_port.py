@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: umbrales y politica temporal tipados |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: evidencia temporal para heartbeat ausente |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: transportar los pendientes del mismo último heartbeat sin romper constructores previos. |
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -37,6 +38,7 @@ class ParametrosComunicacionHeartbeat:
     ultimo_heartbeat: datetime | None = None
     primera_telemetria: datetime | None = None
     id_infraestructura: int | None = None
+    datos_pendientes_buffer: int | None = None
 
     def heartbeat_ausente(self, ahora: datetime) -> bool:
         if self.ultima_telemetria is None:

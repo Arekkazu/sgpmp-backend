@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario |
 """DEV-36 (RF-65 CA-9 y Restricción 5): concurrencia optimista e historial de la configuración del motor.
 
 CA-9: POST /prediccion/motor-ia recibe la config_version que el cliente leyó y
@@ -70,6 +71,11 @@ class _Db:
     def __init__(self): self.commits = self.rollbacks = 0
     def commit(self): self.commits += 1
     def rollback(self): self.rollbacks += 1
+
+    def execute(self, sentencia, parametros=None):
+        """CU02 H-04: el router resuelve nombres de usuario (modulo1.usuarios) en una consulta."""
+        filas = [(1, "Ana Ruiz")] if "modulo1.usuarios" in str(sentencia) else []
+        return type("Resultado", (), {"all": lambda _self: filas})()
 
 
 class _Auditoria:
@@ -249,6 +255,9 @@ def test_post_dos_ediciones_misma_version_200_y_412_y_get_historial(cliente):
     assert (cuerpo["tipo_modelo"], cuerpo["config_version_vigente"], cuerpo["total"]) == (TIPO, 2, 2)
     assert [(v["config_version"], v["vigente"]) for v in cuerpo["versiones"]] == [(2, True), (1, False)]
     assert cuerpo["versiones"][1]["configuracion"]["ventana_temporal_min"] == 10
+    # CU02 H-04 (RF-65 CA-3): el historial trae el nombre de quien guardó, no "#1".
+    assert all(v["nombre_usuario_responsable"] == "Ana Ruiz" for v in cuerpo["versiones"])
+    assert cuerpo["versiones"][1]["nombre_usuario_cambio"] == "Ana Ruiz"
 
 
 def test_get_historial_de_tipo_desconocido_es_404(cliente):

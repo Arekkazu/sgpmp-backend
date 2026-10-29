@@ -1,6 +1,8 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: probar fallo de persistencia con referencia valida y conservar E1. |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02/H-04 RF-73: NOTAS_REGISTRADAS; solo RF-67 emite HISTORIAL_CONSULTADO |
 """DEV-03 (RF-67/70/73): la auditoría M04 solo emite valores que existen en sus enums.
 
 Cinco use cases emitían ``tipo_evento`` fuera de ``enum_tipo_evento_auditoria_m04``
@@ -42,7 +44,8 @@ TIPOS_EVENTO_M04 = frozenset({
     "INFERENCIA_NO_DISPONIBLE", "ALERTA_PREDICCION_GENERADA", "HISTORIAL_CONSULTADO", "EXPORTACION_GENERADA",
     "RIESGO_CONTAGIO_CALCULADO", "ALERTA_CONTAGIO_GENERADA", "ERROR_DATOS_INSUFICIENTES",
     "ERROR_DATOS_DESINCRONIZADOS", "SOBRECARGA_MODELO_CONTAGIO", "ALERTA_CALIDAD_DATOS", "VERSION_REGISTRADA",
-    "VERSION_APROBADA", "VERSION_RECHAZADA", "VERSION_ACTIVADA", "VERSION_DEPRECADA", "HASH_INVALIDO_DETECTADO",
+    "VERSION_APROBADA", "VERSION_RECHAZADA", "VERSION_ACTIVADA", "VERSION_DEPRECADA", "NOTAS_REGISTRADAS",
+    "HASH_INVALIDO_DETECTADO",
     "INTENTO_CARGA_MODELO_EXTERNO", "MODELO_DISTRIBUIDO_EDGE", "MODELO_ACTIVADO_EDGE", "DISTRIBUCION_FALLIDA",
     "DISTRIBUCION_POSPUESTA", "REENTRENAMIENTO_INICIADO", "REENTRENAMIENTO_COMPLETADO", "REENTRENAMIENTO_FALLIDO",
     "REENTRENAMIENTO_ABORTADO", "REENTRENAMIENTO_INTERRUMPIDO", "REENTRENAMIENTO_PAUSADO_POR_PRIORIDAD",
@@ -129,41 +132,29 @@ def test_consultar_historial_emite_historial_consultado():
     assert db.commits == 1
 
 
-def test_consultar_ota_status_emite_historial_consultado():
-    db, auditoria = _Db(), _Auditoria()
-    ConsultarOtaStatusUseCase(
-        db=db, repo=_OtaRepo(), auditoria_repo=auditoria, version_port=_VersionExiste(),
-    ).execute(id_version=3, id_dispositivo=None, estado=None, id_usuario=1)
-    evento = _evento_unico(auditoria)
-    assert evento["tipo_evento"] == "HISTORIAL_CONSULTADO"
-    assert evento["resultado_operacion"] == "EXITOSO"
-    assert evento["payload_evento"]["consulta"] == "OTA_STATUS"
-    assert db.commits == 1
+# CU09 H-04: HISTORIAL_CONSULTADO es del historial diagnóstico (RF-67). Consultar la
+# OTA, los despliegues o la bitácora llenaba la auditoría con 5 a 7 eventos por carga.
+
+def test_consultar_ota_status_no_deja_evento():
+    ota = _OtaRepo()
+    assert ConsultarOtaStatusUseCase(repo=ota, version_port=_VersionExiste()).execute(
+        id_version=3, id_dispositivo=None, estado=None,
+    ) == (3, [])
 
 
-def test_listar_despliegues_emite_historial_consultado():
-    db, auditoria = _Db(), _Auditoria()
-    ListarDesplieguesUseCase(
-        db=db, repo=_OtaRepo(), auditoria_repo=auditoria, version_port=_VersionExiste(),
-    ).execute(id_version=None, id_dispositivo=None, estado=None, limit=20, offset=0, id_usuario=1)
-    evento = _evento_unico(auditoria)
-    assert evento["tipo_evento"] == "HISTORIAL_CONSULTADO"
-    assert evento["resultado_operacion"] == "EXITOSO"
-    assert evento["payload_evento"]["consulta"] == "DESPLIEGUES_OTA"
-    assert db.commits == 1
+def test_listar_despliegues_no_deja_evento():
+    assert ListarDesplieguesUseCase(repo=_OtaRepo(), version_port=_VersionExiste()).execute(
+        id_version=None, id_dispositivo=None, estado=None, limit=20, offset=0,
+    ) == ([], 0)
 
 
-def test_consultar_auditoria_emite_historial_consultado():
-    db, auditoria = _Db(), _Auditoria()
-    ConsultarAuditoriaM04UseCase(db, auditoria).listar(
+def test_consultar_auditoria_no_deja_evento():
+    auditoria = _Auditoria()
+    ConsultarAuditoriaM04UseCase(auditoria).listar(
         tipo_evento=None, fecha_desde=None, fecha_hasta=None, id_usuario=None, id_sistema=None,
-        id_referencia=None, severidad_evento=None, pagina=1, por_pagina=50, id_usuario_consultor=1,
+        id_referencia=None, severidad_evento=None, pagina=1, por_pagina=50,
     )
-    evento = _evento_unico(auditoria)
-    assert evento["tipo_evento"] == "HISTORIAL_CONSULTADO"
-    assert evento["resultado_operacion"] == "EXITOSO"
-    assert evento["payload_evento"]["consulta"] == "AUDITORIA_M04"
-    assert db.commits == 1
+    assert auditoria.eventos == []
 
 
 def test_exportar_auditoria_emite_exportacion_generada():
@@ -201,7 +192,7 @@ def test_flush_fallido_se_propaga_como_500():
     with pytest.raises(InfrastructureError) as exc:
         repo.registrar(
             tipo_evento="HISTORIAL_CONSULTADO", tipo_actor="USUARIO", id_usuario=1,
-            payload_evento={"consulta": "OTA_STATUS"},
+            id_referencia="consulta-ota", payload_evento={"consulta": "OTA_STATUS"},
         )
     assert exc.value.code == "AUDITORIA_M04_NO_PERSISTIDA"
     assert isinstance(exc.value.__cause__, RuntimeError)

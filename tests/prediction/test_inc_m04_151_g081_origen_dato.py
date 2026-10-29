@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                          |
 # |------------|----------|------------------------------------------------------|
 # | 2026-10-25 | Arekkazu | INC-M04-151-G081 RF-73: origen_dato en la bitácora M04 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: conservar pruebas de origen con referencia valida. |
 """INC-M04-151-G081 (RF-73): ``origen_dato`` quedaba NULL en todos los eventos.
 
 Es obligatorio en RF-73 (EDGE/BACKEND/HIBRIDO, dónde ocurrió el evento): se
@@ -39,7 +40,7 @@ class _Respaldo:
 def _registrar(sesion, respaldo=None, **kw):
     repo = SqlAlchemyEventoAuditoriaM04Repository(sesion, respaldo or _Respaldo(), reintentos=1, pausa_reintento=0)
     repo.registrar(
-        tipo_evento="VERSION_REGISTRADA", payload_evento={"tipo_modelo": "INDIVIDUAL", "id_version": "v1"}, **kw,
+        tipo_evento="VERSION_REGISTRADA", id_referencia="v1", payload_evento={"tipo_modelo": "INDIVIDUAL", "id_version": "v1"}, **kw,
     )
 
 

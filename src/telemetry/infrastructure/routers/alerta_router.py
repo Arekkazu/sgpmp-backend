@@ -8,11 +8,19 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: el POST valida fecha, origen, unidad y variable (400) |
+# | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: POST /iot/alertas evalúa el valor contra RF-57 y M09 |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: inyecta la lectura compañera de la compuesta |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: POST /iot/alertas/{id}/reevaluacion |
+# | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3: inyecta el contexto del activo biológico |
+# | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
+# | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: inyecta la consulta de umbrales configurados |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: GET /iot/alertas/indicadores |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
   POST  /iot/alertas                   — Generar alerta desde evento de desviación
   GET   /iot/alertas                   — Listar alertas con filtros y paginación
+  GET   /iot/alertas/indicadores       — Indicadores de estado del sistema de alertas (Salida 3)
   GET   /iot/alertas/{id_alerta}       — Detalle de alerta con historial de estados
   PATCH /iot/alertas/{id_alerta}/estado — Transicionar estado de ciclo de vida
 
@@ -27,7 +35,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
@@ -39,23 +47,42 @@ from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
+from src.telemetry.application.use_cases.alertas.consultar_indicadores_alertas_use_case import (
+    ConsultarIndicadoresAlertasUseCase,
+)
+from src.telemetry.domain.entities.indicadores_alertas import FiltroIndicadoresAlertas
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.domain.entities.alerta import AmbitoAlerta, EstadoAlerta
 from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import VariableAlertaM09Adapter
+from src.telemetry.infrastructure.adapters.lectura_companera_m03_adapter import LecturaCompaneraM03Adapter
+from src.telemetry.infrastructure.adapters.contexto_activo_alerta_m02_adapter import ContextoActivoAlertaM02Adapter
+from src.telemetry.infrastructure.adapters.umbral_configurado_m09_adapter import UmbralConfiguradoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
+from src.telemetry.infrastructure.dto.reevaluar_alerta_dto import ReevaluarAlertaDTO
+from src.telemetry.application.use_cases.alertas.reevaluar_alerta_use_case import CONFIRMADA, ReevaluarAlertaUseCase
+from src.telemetry.infrastructure.dto.filtros_alerta_dto import (
+    FiltroEstadoAlerta,
+    FiltroOrigenEventoAlerta,
+    FiltroSeveridadAlerta,
+    FiltroTipoAlerta,
+)
 from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlertaAuditada, capturar_contexto_alertas
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
+from src.telemetry.infrastructure.repositories.indicadores_alertas_repository import SqlAlchemyIndicadoresAlertasRepository
 from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 from src.telemetry.infrastructure.schema.alerta_schema import (
     AlertaDetalleSchema,
     AlertaSchema,
+    IndicadoresAlertasSchema,
     ListaAlertasSchema,
     ResultadoGeneracionAlertaSchema,
+    ResultadoReevaluacionSchema,
 )
 from src.shared.fechas import FechaHoraUtc
 from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
@@ -71,6 +98,14 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
         parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        # G68: el evento externo se evalúa contra RF-57 Fase 5 y el rango físico de M09.
+        variable_port=VariableAlertaM09Adapter(db),
+        # G71 (E14): la otra variable de la compuesta se toma de las lecturas del área.
+        lectura_port=LecturaCompaneraM03Adapter(db),
+        # G77: el activo y su contexto se resuelven desde RF-61 o la asociación del sensor (M02).
+        contexto_port=ContextoActivoAlertaM02Adapter(db),
+        # G85 (E9): el evento externo se contrasta con los umbrales RF-17 de las especies del área.
+        umbral_port=UmbralConfiguradoM09Adapter(db),
     )
 
 
@@ -119,6 +154,40 @@ def procesar_evento_alerta(
     )
 
 
+@router.post(
+    "/{id_alerta}/reevaluacion",
+    response_model=ResultadoReevaluacionSchema,
+    status_code=201,
+    responses={
+        200: {"model": ResultadoReevaluacionSchema, "description": "La IA confirma tipo y severidad: sin alerta nueva."},
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Reevaluar una alerta generada sin motor de IA, tras su recuperación (RF-57 E16)",
+)
+def reevaluar_alerta(
+    id_alerta: int,
+    dto: ReevaluarAlertaDTO,
+    response: Response,
+    db: Session = Depends(get_db_sistema),
+) -> ResultadoReevaluacionSchema:
+    # G75: el RF no define la entrada; se usa el mismo canal y token de servicio que los eventos de IA.
+    resultado = ReevaluarAlertaUseCase(
+        db=db,
+        alerta_repo=SqlAlchemyAlertaRepository(db),
+        parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    ).execute(id_alerta, dto)
+    if resultado.resultado == CONFIRMADA:
+        response.status_code = 200
+    return ResultadoReevaluacionSchema.model_validate(resultado)
+
+
 @router.get(
     "",
     response_model=ListaAlertasSchema,
@@ -131,13 +200,13 @@ def procesar_evento_alerta(
     summary="Listar alertas con filtros (RF-57 FA-09)",
 )
 def listar_alertas(
-    estado: Optional[str] = Query(default=None),
-    severidad: Optional[str] = Query(default=None),
-    tipo_alerta: Optional[str] = Query(default=None),
+    estado: Optional[FiltroEstadoAlerta] = Query(default=None),
+    severidad: Optional[FiltroSeveridadAlerta] = Query(default=None),
+    tipo_alerta: Optional[FiltroTipoAlerta] = Query(default=None),
     id_sensor: Optional[int] = Query(default=None),
     id_activo_biologico: Optional[int] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None, description="Área de la alerta (T-18)."),
-    origen_evento: Optional[str] = Query(default=None),
+    origen_evento: Optional[FiltroOrigenEventoAlerta] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     fecha_resolucion_desde: Optional[FechaHoraUtc] = Query(
@@ -176,6 +245,40 @@ def listar_alertas(
         por_pagina=por_pagina,
         items=[AlertaSchema.model_validate(a.__dict__) for a in alertas],
     )
+
+
+# Antes de /{id_alerta}: si no, "indicadores" se tomaría como un id de alerta.
+@router.get(
+    "/indicadores",
+    response_model=IndicadoresAlertasSchema,
+    status_code=200,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
+    summary="Indicadores de estado del sistema de alertas (RF-57 Salida 3)",
+)
+def consultar_indicadores_alertas(
+    id_infraestructura: Optional[int] = Query(default=None, description="Solo las alertas de esta área."),
+    fecha_desde: Optional[FechaHoraUtc] = Query(
+        default=None, description="Vencidas, resueltas y descartadas cerradas desde este instante."),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
+        default=None, description="Vencidas, resueltas y descartadas cerradas hasta este instante."),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> IndicadoresAlertasSchema:
+    filtro = FiltroIndicadoresAlertas(
+        id_infraestructura=id_infraestructura,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+    )
+    indicadores = ConsultarIndicadoresAlertasUseCase(SqlAlchemyIndicadoresAlertasRepository(db)).execute(filtro)
+    return IndicadoresAlertasSchema(**indicadores.__dict__, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
 
 
 @router.get(

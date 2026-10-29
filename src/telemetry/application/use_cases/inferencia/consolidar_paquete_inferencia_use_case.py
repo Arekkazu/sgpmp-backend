@@ -3,6 +3,9 @@
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E3 timestamps dispersos se procesan como evento individual, sin 422 |
 # | 2026-10-21 | Leandro | DEV-49 RF-57: registra diagnostico real de fallo motor |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: emite PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
+# | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
+# | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-56: el paquete conserva la regla que produjo la clasificación |
 from __future__ import annotations
 
 import logging
@@ -18,14 +21,22 @@ from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import 
 
 from src.shared.errors import BusinessRuleError
 from src.telemetry.domain.entities.telemetria import (
+    CAMPOS_TRAZABILIDAD_REGLA,
     EstadoCalidadBitacora,
     EstadoCalidadTelemetria,
     EstadoPaqueteInferencia,
     EventoEdgeComputing,
+    CLAVE_HUELLA_CONTENIDO,
     PaqueteInferencia,
     TipoEventoEdge,
+    estado_tras_envio_fallido,
+    huella_contenido_paquete,
 )
-from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaNoIntegradoError, MotorInferenciaPort
+from src.telemetry.domain.repositories.motor_inferencia_port import (
+    MotorInferenciaNoIntegradoError,
+    MotorInferenciaPort,
+    MotorInferenciaRechazoError,
+)
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
 
 logger = logging.getLogger(__name__)
@@ -145,6 +156,9 @@ class ConsolidarEnviarPaqueteUseCase:
             "timestamp_procesamiento_edge": evento.fecha_procesamiento.isoformat(),
             "clasificacion_rf55": evento.clasificacion_rf55,
         }
+        # G54: la regla que produjo la clasificación viaja con el paquete hacia M04.
+        metadatos.update({c: (evento.metadatos or {})[c] for c in CAMPOS_TRAZABILIDAD_REGLA
+                          if (evento.metadatos or {}).get(c) is not None})
         if agrupacion_descartada:
             metadatos["agrupacion_descartada"] = {"dispersion_seg": delta, "maximo_seg": _MAX_DISPERSION_SEG}
 
@@ -166,6 +180,9 @@ class ConsolidarEnviarPaqueteUseCase:
             estado_paquete=EstadoPaqueteInferencia.PENDIENTE,
             intento_envios=0,
         )
+        # INC-M03-117-G60: la huella viaja con el paquete; los reintentos reutilizan la fila
+        # (mismo id, misma huella) y el receptor puede distinguirlos de un contenido distinto.
+        paquete.metadatos[CLAVE_HUELLA_CONTENIDO] = huella_contenido_paquete(paquete)
 
         try:
             existente = self.paquete_repo.obtener_por_evento(
@@ -211,8 +228,10 @@ class ConsolidarEnviarPaqueteUseCase:
                 accion_detallada=metadatos["agrupacion_descartada"],
             )
 
-        # Paso 9: Intentar envío a M04 (un intento síncrono; backoff diferido fuera de alcance)
+        # Paso 9: intento 1, inmediato (RF-56 restricción 14). Los intentos 2..5 los hace
+        # DrenarPaquetesPendientesUseCase cuando vence su espera; aquí no se bloquea.
         causa_fallo = "ENVIO_INFERENCIA_NO_CONFIRMADO"
+        rechazado = False
         try:
             exito = self.motor_inferencia_port.enviar_paquete(paquete_guardado)
         except MotorInferenciaNoIntegradoError:
@@ -223,6 +242,10 @@ class ConsolidarEnviarPaqueteUseCase:
             )
             self._registrar_fallo_motor(paquete_guardado, "MOTOR_INFERENCIA_NO_INTEGRADO")
             return paquete_guardado
+        except MotorInferenciaRechazoError:
+            # E5: rechazo definitivo, sin reintentos.
+            exito, rechazado = False, True
+            causa_fallo = "MOTOR_INFERENCIA_RECHAZO"
         except (TimeoutError, ConnectionError, ServiceUnavailableError):
             exito = False
             causa_fallo = "MOTOR_INFERENCIA_NO_DISPONIBLE"
@@ -230,12 +253,18 @@ class ConsolidarEnviarPaqueteUseCase:
             exito = False
             causa_fallo = "ERROR_ENVIO_INFERENCIA"
 
-        nuevo_estado = EstadoPaqueteInferencia.ENVIADO if exito else EstadoPaqueteInferencia.FALLIDO
+        if exito:
+            nuevo_estado = EstadoPaqueteInferencia.ENVIADO
+        elif rechazado:
+            nuevo_estado = EstadoPaqueteInferencia.FALLIDO
+        else:
+            nuevo_estado = estado_tras_envio_fallido(1)
         try:
             self.paquete_repo.actualizar_estado(
                 paquete_guardado.id_paquetes_inferencia,
                 nuevo_estado,
                 1,
+                datetime.now(timezone.utc),
             )
             self.db.commit()
         except Exception:

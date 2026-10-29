@@ -9,6 +9,13 @@
 # | 2026-10-25 | DanielRuiz | PR-706: restaura imports perdidos en el merge dev → test (sandbox y X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: tarea periodica de reenvio de paquetes de inferencia |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
+# | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
+# | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
+# | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
 import asyncio
 import logging
 import os
@@ -36,6 +43,8 @@ from src.biological_assets.infrastructure.routers.activo_biologico_router import
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
+from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
+from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -64,11 +73,14 @@ from src.telemetry.infrastructure.routers.infraestructura_iot_router import rout
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.telemetry.infrastructure.routers.paquete_inferencia_router import router as paquete_inferencia_router
 from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
+from src.telemetry.infrastructure.routers.regla_alerta_router import router as regla_alerta_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
 from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
+from src.prediction.infrastructure.routers.monitor_prediccion_router import router as monitor_prediccion_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
 from src.prediction.infrastructure.routers.retroalimentacion_clinica_router import router as retroalimentacion_clinica_router
@@ -710,10 +722,13 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.respaldo_auditoria_iot_worker import sincronizar_respaldo_auditoria_iot_periodicamente
     from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+    from src.telemetry.infrastructure.workers.reenvio_inferencia_worker import reenviar_paquetes_inferencia_periodicamente
 
     tasks = [
         asyncio.create_task(procesar_postcommit_periodicamente()),
+        asyncio.create_task(sincronizar_respaldo_auditoria_iot_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_vencer_alertas_sla_periodicamente()),
         asyncio.create_task(_notificar_alertas_periodicamente()),
@@ -728,6 +743,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
         asyncio.create_task(_liberar_ota_programadas_periodicamente()),
+        asyncio.create_task(reenviar_paquetes_inferencia_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -884,6 +900,8 @@ app.include_router(umbral_router)
 app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
+app.include_router(parametros_alertas_router)
+app.include_router(politica_vision_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
@@ -902,13 +920,16 @@ app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
 app.include_router(regla_alerta_edge_router)
+app.include_router(regla_alerta_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
+app.include_router(paquete_inferencia_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
 app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
+app.include_router(monitor_prediccion_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)
 app.include_router(retroalimentacion_clinica_router)

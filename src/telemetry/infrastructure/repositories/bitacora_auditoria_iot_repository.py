@@ -3,9 +3,17 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: serializa incidentes y consulta avisos persistidos |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a los equipos de las fincas del usuario |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
+# | 2026-10-28 | destroyerban | INC-M03-165-G71 RF-63: el filtro tipo_evento acepta los nombres de RF-57 |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: recuperar evidencia con UUID estable y exclusión transaccional sin modificar registros existentes. |
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
+from dataclasses import asdict
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import InfrastructureError
 from typing import Optional
 from uuid import UUID
 
@@ -19,12 +27,14 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
     EventoAuditoriaIot,
     SeveridadLog,
     TipoResultado,
+    tipos_evento_equivalentes,
 )
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.models.alerta_model import AlertaModel
 from src.telemetry.infrastructure.models.bitacora_auditoria_iot_model import BitacoraAuditoriaIotModel
 from src.telemetry.infrastructure.models.heartbeat_model import HeartbeatModel
 from src.telemetry.infrastructure.models.observacion_vision_model import ObservacionVisionModel
+from src.telemetry.infrastructure.models.paquete_inferencia_model import PaqueteInferenciaModel
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
 
 _SQL_EQUIPOS_DE_FINCAS = text(
@@ -73,6 +83,21 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
             # Auditoría es best-effort: no propaga error para no bloquear flujo principal
             return evento
 
+    def bloquear_respaldo(self) -> bool:
+        return bool(self.db.execute(text('SELECT pg_try_advisory_xact_lock(680, 53)')).scalar_one())
+
+    def registrar_respaldo(self, evento: EventoAuditoriaIot) -> None:
+        try:
+            datos = {k: (v.value if isinstance(v, Enum) else v) for k,v in asdict(evento).items()
+                     if k in BitacoraAuditoriaIotModel.__table__.columns and k != 'timestamp_registro'}
+            self.db.execute(pg_insert(BitacoraAuditoriaIotModel).values(**datos).on_conflict_do_nothing(index_elements=['id_evento']))
+            guardado = self.db.execute(select(BitacoraAuditoriaIotModel.hash_integridad).where(
+                BitacoraAuditoriaIotModel.id_evento == evento.id_evento)).scalar_one()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        if guardado != evento.hash_integridad:
+            raise InfrastructureError(code='RESPALDO_AUDITORIA_INCONSISTENTE', message='El UUID ya identifica otra evidencia de auditoría.')
+
     def obtener(
         self, id_evento: UUID, *, ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[EventoAuditoriaIot]:
@@ -113,6 +138,10 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
                 ObservacionVisionModel.id_dispositivo_iot.in_(dispositivos))),
             and_(m.entidad_afectada_tipo == 'ALERTA', ids(
                 AlertaModel.id_alerta, AlertaModel.id_infraestructura.in_(infraestructuras))),
+            # INC-M03-116-G59: el ciclo de vida del paquete (RF-56 CA-8) llega a la finca por su equipo.
+            and_(m.entidad_afectada_tipo == 'PAQUETE_IA', ids(
+                PaqueteInferenciaModel.id_paquetes_inferencia,
+                PaqueteInferenciaModel.id_dispositivo_iot.in_(dispositivos))),
         )
 
     def listar(
@@ -129,6 +158,7 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         id_usuario: Optional[int] = None,
         rf_origen: Optional[str] = None,
         registro_incompleto: Optional[bool] = None,
+        entidad_afectada_tipo: Optional[str] = None,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
@@ -147,11 +177,14 @@ class SqlAlchemyBitacoraAuditoriaIotRepository(BitacoraAuditoriaIotRepository):
         if fecha_hasta:
             q = q.filter(BitacoraAuditoriaIotModel.fecha_hora <= fecha_hasta)
         if tipo_evento:
-            q = q.filter(BitacoraAuditoriaIotModel.tipo_evento == tipo_evento)
+            # G71: ESTADO_CAMBIADO y EVENTO_CORRELACIONADO (RF-57) encuentran sus tipos del catálogo RF-63.
+            q = q.filter(BitacoraAuditoriaIotModel.tipo_evento.in_(tipos_evento_equivalentes(tipo_evento)))
         if severidad_log:
             q = q.filter(BitacoraAuditoriaIotModel.severidad_log == severidad_log)
         if clasificacion_registro:
             q = q.filter(BitacoraAuditoriaIotModel.clasificacion_registro == clasificacion_registro)
+        if entidad_afectada_tipo:
+            q = q.filter(BitacoraAuditoriaIotModel.entidad_afectada_tipo == entidad_afectada_tipo)
         if entidad_afectada_id:
             q = q.filter(BitacoraAuditoriaIotModel.entidad_afectada_id == entidad_afectada_id)
         if resultado:

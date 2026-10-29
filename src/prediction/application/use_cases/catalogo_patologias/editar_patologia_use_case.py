@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la edición toma la siguiente versión del catálogo |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -139,7 +140,12 @@ class EditarPatologiaUseCase:
             id_referencia=str(entidad.id_patologia),
             entidad_referencia="patologia",
             resultado_operacion="EXITOSO",
-            payload_evento={"anterior": snapshot_anterior, "nuevo": entidad._snapshot()},
+            # CU09 H-01: sin id_patologia en la raíz el evento quedaba como AUDITORIA_EVENTO_INVALIDO.
+            payload_evento={
+                "id_patologia": entidad.id_patologia,
+                "anterior": snapshot_anterior,
+                "nuevo": entidad._snapshot(),
+            },
         )
         try:
             self._db.commit()
