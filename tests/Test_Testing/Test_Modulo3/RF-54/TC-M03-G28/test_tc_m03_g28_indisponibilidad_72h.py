@@ -1,3 +1,6 @@
+# | Fecha      | Nombre      | Que se hizo                                                                  |
+# |------------|-------------|------------------------------------------------------------------------------|
+# | 2026-10-26 | Juan Manuel | M03 RF-54: asociar/calibrar sensores y fecha_fin=hoy (DB-10)                 |
 """
 TC-M03-G28 - Continuidad operativa durante indisponibilidad prolongada del backend: 72 h y reanudacion completa.
 
@@ -126,7 +129,24 @@ def admin() -> requests.Session:
 def _crear(s, ruta, cuerpo, campo):
     r = s.post(f"{BASE_URL}{ruta}", json=cuerpo, timeout=TIMEOUT)
     assert r.status_code == 201, f"Precondicion {ruta}: HTTP {r.status_code} {r.text}"
+    if ruta.endswith("/sensores"):
+        _asociar_y_calibrar(s, int(ruta.split("/")[-2]), r.json()[campo])
     return r.json()[campo]
+
+
+def _asociar_y_calibrar(s, device_id, sensor_id):
+    """DB-10: la ingesta exige que el sensor tenga asociación vigente (RF-22) a la fecha de captura; sin calibración
+    (RF-24) la lectura queda ERROR_CALIBRACION. Se asocia al área del dispositivo y se calibra neutro (ganancia 1, offset 0);
+    la referencia 7.0 cae dentro del rango de seguridad de todas las categorías (pH 0-14, amoníaco 0-10, temperatura 0-45...)."""
+    area = s.get(f"{BASE_URL}/configuracion/dispositivos-iot/{device_id}", timeout=TIMEOUT).json()["id_infraestructura"]
+    r = s.post(f"{BASE_URL}/configuracion/sensores/{sensor_id}/asociar", json={
+        "id_dispositivo_iot": device_id, "id_infraestructura": area, "punto_instalacion": "Punto central"}, timeout=TIMEOUT)
+    assert r.status_code == 201, f"Precondicion asociar sensor {sensor_id}: HTTP {r.status_code} {r.text}"
+    r = s.post(f"{BASE_URL}/configuracion/sensores/{sensor_id}/calibrar", json={
+        "id_dispositivo_iot": device_id, "id_infraestructura": area, "valor_referencia": 7.0, "ganancia": 1.0,
+        "offset": 0.0, "fecha_calibracion": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
+        "modo_calibracion": "SENSOR"}, timeout=TIMEOUT)
+    assert r.status_code == 201, f"Precondicion calibrar sensor {sensor_id}: HTTP {r.status_code} {r.text}"
 
 
 @pytest.fixture(scope="module")
@@ -159,7 +179,7 @@ def _nodo(admin, area, etiqueta, variables):
 def _contar(admin, sensor_id: int, desde: datetime) -> int:
     r = admin.get(f"{BASE_URL}/iot/monitoreo/historial", params={
         "fecha_inicio": str((desde - timedelta(days=1)).date()),
-        "fecha_fin": str((datetime.now(timezone.utc) + timedelta(days=1)).date()),
+        "fecha_fin": str(datetime.now(timezone.utc).date()),
         "sensor_id": sensor_id, "por_pagina": 1}, timeout=TIMEOUT)
     assert r.status_code == 200, f"Historial: HTTP {r.status_code} {r.text}"
     return r.json()["total"]
