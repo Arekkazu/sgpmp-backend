@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M03-G68 - Diferenciacion entre fallo ambiental real y problema de calidad/calibracion del dato (E2, FALLO_AMBIENTAL)",
-    "description": "RF-57 E2 / E7 / CA-3. Subcasos: (1) estados FUERA_DE_RANGO y ERROR_CALIBRACION no generan alerta operativa; ausencia de reportes y escalamiento por variable critica; (2) rango absoluto vs rango operativo del sensor; (3) severidad y destinatario de FALLO_AMBIENTAL y su consulta en GET /iot/alertas-tecnicas (no en GET /iot/alertas, DEV-13). LIMITES DEL SCRIPT: la ausencia de reportes (> 2x frecuencia de muestreo) exige un job/scheduler y reloj controlado, no se dispara con un POST; las notificaciones por rol requieren las cuentas de productor/veterinario/ingeniero. PUNTOS POR CONFIRMAR: (a) DB-02 y el umbral FUERA_DE_RANGO; (b) solapamiento con RF-60; (c) FALLO_AMBIENTAL como alerta tecnica. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g68.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G68.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. NOTA 2026-10-24: se retiraron 6 pasos que usan sensores no disponibles en TEST (pH, NH3, CO2, TDS, frecuencia respiratoria, frecuencia cardiaca, temperatura corporal) o dependen de ellos. Detalle en PENDIENTES_SENSORES_M3.md. AISLAMIENTO (2026-10-24): entre 2.1, 2.2 y 3.1 se resuelve la alerta anterior (pasos 2.1z y 2.2z) porque el backend deduplica por sensor y variable en 30 min (solo alertas ACTIVA/EN_ATENCION) y fusionaba 2.2 y 3.1 con la alerta de 2.1.",
+    "description": "RF-57 E2 / E7 / CA-3. Subcasos: (1) estados FUERA_DE_RANGO y ERROR_CALIBRACION no generan alerta operativa; ausencia de reportes y escalamiento por variable critica; (2) rango absoluto vs rango operativo del sensor; (3) severidad y destinatario de FALLO_AMBIENTAL y su consulta en GET /iot/alertas-tecnicas (no en GET /iot/alertas, DEV-13). LIMITES DEL SCRIPT: la ausencia de reportes (> 2x frecuencia de muestreo) exige un job/scheduler y reloj controlado, no se dispara con un POST; las notificaciones por rol requieren las cuentas de productor/veterinario/ingeniero. PUNTOS POR CONFIRMAR: (a) DB-02 y el umbral FUERA_DE_RANGO; (b) solapamiento con RF-60; (c) FALLO_AMBIENTAL como alerta tecnica. VARIABLES A CONFIGURAR ANTES DE EJECUTAR (ambiente TEST): device_id y sensor_<variable> con ids reales de dispositivo/sensores activos y vinculados; serial = serial del dispositivo (va en el cuerpo del evento); broker_service_token = BROKER_SERVICE_TOKEN del ambiente TEST (header Authorization: Bearer de los endpoints /iot/* de dispositivo), ambos se pasan como variable de entorno de Newman (--env-var) y nunca se escriben en la coleccion ni en el repositorio; correo_/contrasena_ de los roles que use cada caso. Script sin ejecutar: aun no se ha probado contra el ambiente. SANDBOX TRANSACCIONAL: la coleccion genera un run_id y lo envia en el header X-Test-Run-Id (con X-Sandbox-Secret) en todas las peticiones; el ultimo item (Z. Teardown) hace DELETE /test-control/runs/{{run_id}} y revierte todo lo que la corrida escribio, por eso no hay codigo de limpieza. Requiere ENABLE_TEST_SANDBOX=true en el backend TEST y la variable sandbox_secret (-e sandbox_secret=... o --env-var), nunca escrita en el repositorio. No usar --bail (si la corrida se corta, el backend la cierra solo a los 180 s). Maximo 5 corridas simultaneas. Ambiente: TEST https://api.inmero.co/api-sgpmp-test (valor por defecto de base_url); MAIN (https://api.inmero.co/sigab) NO se prueba. REPORTE PROPIO: newman run tc-m03-g68.json --env-var sandbox_secret=<SECRETO_SANDBOX> --env-var broker_service_token=<BROKER_SERVICE_TOKEN_TEST> --env-var serial=<SERIAL_DEL_DISPOSITIVO> --env-var device_id=<ID> --env-var sensor_temperatura_ambiental=<ID_SENSOR> --env-var correo_admin=<CORREO> --env-var contrasena_admin=<CLAVE> -r \"cli,htmlextra\" --reporter-htmlextra-export resultados/resultado_TC-M03-G68.html  (npm i -g newman newman-reporter-htmlextra; crear la carpeta resultados). Las colecciones que envian eventos de dispositivo crean al inicio un evento edge de referencia (POST /iot/eventos-edge) y usan su id; si ya tiene uno, pase --env-var id_evento_edge=<ID>. NOTA 2026-10-24: se retiraron 6 pasos que usan sensores no disponibles en TEST (pH, NH3, CO2, TDS, frecuencia respiratoria, frecuencia cardiaca, temperatura corporal) o dependen de ellos. Detalle en PENDIENTES_SENSORES_M3.md. AISLAMIENTO (2026-10-24): entre 2.1, 2.2 y 3.1 se resuelve la alerta anterior (pasos 2.1z y 2.2z) porque el backend deduplica por sensor y variable en 30 min (solo alertas ACTIVA/EN_ATENCION) y fusionaba 2.2 y 3.1 con la alerta de 2.1. 2026-10-29 (v2.0): 1.4 pasa de observacion a aserciones (ERROR_CALIBRACION debe dejar una alerta tecnica); 3.2 restaura la variable critica con el sensor 471 (device 310, TEMPERATURA_CORPORAL; sustitucion pendiente de aprobacion de la lider) y 3.5b la verifica con el administrador; se retiran 3.8 y 3.9 (limpieza innecesaria dentro del sandbox, fallaban por consecuencia de BUG-G68-01).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -41,7 +41,7 @@
     },
     {
       "key": "contrasena_admin",
-      "value": "Administrador123#"
+      "value": ""
     },
     {
       "key": "token_admin",
@@ -114,6 +114,22 @@
     {
       "key": "alerta_aislar",
       "value": ""
+    },
+    {
+      "key": "device_id_corp",
+      "value": "310"
+    },
+    {
+      "key": "serial_corp",
+      "value": "QA58-DEV-A10-01"
+    },
+    {
+      "key": "sensor_corp",
+      "value": "471"
+    },
+    {
+      "key": "ts_run_inicio",
+      "value": ""
     }
   ],
   "item": [
@@ -125,7 +141,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.collectionVariables.set('ids_alertas', '[]');"
+              "pm.collectionVariables.set('ids_alertas', '[]');",
+              "pm.collectionVariables.set('ts_run_inicio', new Date(Date.now() - 60000).toISOString());"
             ]
           }
         },
@@ -457,7 +474,7 @@
           ]
         },
         {
-          "name": "1.4 Alertas tecnicas del ingeniero/admin: registrar si E2 genera FALLO_AMBIENTAL (pendiente de definicion con Analisis)",
+          "name": "1.4 ERROR_CALIBRACION (1.2) genera alerta tecnica FALLO_AMBIENTAL para el ingeniero/admin (RF-57: regla FALLO_AMBIENTAL \"sensor reporta error_calibracion\"; E2 solo niega la alerta operativa)",
           "request": {
             "method": "GET",
             "header": [
@@ -467,7 +484,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=20",
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=100",
               "host": [
                 "{{base_url}}"
               ],
@@ -496,7 +513,10 @@
                   "console.log('[TC-M03-G68 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G68-1.4][OBSERVADO] alertas tecnicas recientes = ' + JSON.stringify((J.items || []).slice(0, 5).map(function (a) { return {id: a.id_alerta, tipo: a.tipo_alerta, sev: a.severidad}; })));"
+                  "const _ini = new Date(pm.collectionVariables.get('ts_run_inicio')).getTime();",
+                  "const _nuevas = (J.items || []).filter(function (a) { return new Date(a.fecha_generacion).getTime() >= _ini && a.origen_evento !== 'EVALUACION_PERIODICA'; });",
+                  "console.log('[G68-1.4][OBSERVADO] alertas tecnicas nuevas en la corrida (excluye EVALUACION_PERIODICA) = ' + JSON.stringify(_nuevas.map(function (a) { return {id: a.id_alerta, tipo: a.tipo_alerta, var: a.tipo_variable, origen: a.origen_evento, sev: a.severidad}; })));",
+                  "pm.test('El dato ERROR_CALIBRACION de 1.2 genera una alerta tecnica FALLO_AMBIENTAL (visible para el ingeniero/admin)', function () { pm.expect(_nuevas.length, 'alertas tecnicas nuevas').to.be.above(0); });"
                 ]
               }
             }
@@ -911,6 +931,65 @@
           ]
         },
         {
+          "name": "3.2 FALLO_AMBIENTAL con sensor de TEMPERATURA_CORPORAL (variable critica, sensor 471) - CRITICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_corp}},\n  \"sensor_id\": {{sensor_corp}},\n  \"serial\": \"{{serial_corp}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 80.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g68_fa_crit', String(J.id_alerta)); }",
+                  "pm.test('tipo_alerta = FALLO_AMBIENTAL', function () { pm.expect(J.tipo_alerta).to.eql('FALLO_AMBIENTAL'); });",
+                  "pm.test('severidad = CRITICO (variable critica)', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "3.5 Ingeniero de campo: ve la alerta tecnica",
           "request": {
             "method": "GET",
@@ -951,6 +1030,52 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('El ingeniero de campo recibe la alerta tecnica FALLO_AMBIENTAL', function () { const id = Number(pm.collectionVariables.get('alerta_g68_fa_nc')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.5b Administrador: ve la alerta tecnica FALLO_AMBIENTAL CRITICA de 3.2 (el administrador ve todas las fincas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/alertas-tecnicas?pagina=1&por_pagina=200",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "alertas-tecnicas"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "200"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.5b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('La alerta tecnica FALLO_AMBIENTAL CRITICA de 3.2 esta en /iot/alertas-tecnicas', function () { const id = Number(pm.collectionVariables.get('alerta_g68_fa_crit')); pm.expect(id, 'id de 3.2').to.be.above(0); pm.expect((J.items || []).some(function (x) { return x.id_alerta === id; })).to.be.true; });"
                 ]
               }
             }
@@ -1043,84 +1168,6 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/403', function () { pm.expect([200, 403]).to.include(pm.response.code); });",
                   "pm.test('El veterinario no ve la alerta tecnica (403 o lista sin ella)', function () { if (pm.response.code === 403) { return; } const id = Number(pm.collectionVariables.get('alerta_g68_fa_nc')); pm.expect((J.items || []).some(function (a) { return a.id_alerta === id; })).to.be.false; });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.8 Limpieza: cerrar alerta tecnica no critica",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas-tecnicas/{{alerta_g68_fa_nc}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"EN_ATENCION\",\n  \"motivo\": \"QA limpieza G68\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G68 3.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.9 Limpieza: resolver alerta tecnica no critica",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/iot/alertas-tecnicas/{{alerta_g68_fa_nc}}/estado",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nuevo_estado\": \"RESUELTA\",\n  \"motivo\": \"QA limpieza G68\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G68 3.9] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
                 ]
               }
             }

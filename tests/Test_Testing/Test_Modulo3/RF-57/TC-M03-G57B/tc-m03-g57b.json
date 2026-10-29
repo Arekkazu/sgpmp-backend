@@ -1155,7 +1155,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/notificaciones"
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
           },
           "event": [
             {
@@ -1163,13 +1163,26 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 6.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "// v2.0: recorre TODAS las paginas de notificaciones (la primera pagina se llena de avisos de inicio de sesion y no alcanza los de SLA)",
+                  "const RX = /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i;",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
-                  "const _l = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
-                  "const _esc = _l.filter(function (n) { return /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i.test(n.mensaje || JSON.stringify(n)); });",
-                  "console.log('[G57B-6.5][OBSERVADO] notificaciones=' + (J.total !== undefined ? J.total : _l.length) + ' (pagina 1: ' + _l.length + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
-                  "pm.collectionVariables.set('n_esc_admin', String(_esc.length));"
+                  "const _tam = 50; const _l0 = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
+                  "const _total = J.total !== undefined ? Number(J.total) : _l0.length; const _paginas = Math.max(1, Math.ceil(_total / _tam));",
+                  "let _esc = _l0.filter(function (n) { return RX.test(n.mensaje || JSON.stringify(n)); });",
+                  "const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+                  "function _fin() {",
+                  "  console.log('[G57B-6.5][OBSERVADO] notificaciones=' + _total + ' (paginas leidas: ' + _paginas + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
+                  "  pm.collectionVariables.set('n_esc_admin', String(_esc.length));",
+                  "}",
+                  "function _pag(i) {",
+                  "  if (i > _paginas) { _fin(); return; }",
+                  "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/notificaciones?pagina=' + i + '&tamano=' + _tam, method: 'GET', header: h}, function (e, r) {",
+                  "    if (!e && r && r.code === 200) { let K = {}; try { K = r.json(); } catch (x) {} const L = Array.isArray(K) ? K : (K.items || K.notificaciones || []); _esc = _esc.concat(L.filter(function (n) { return RX.test(n.mensaje || JSON.stringify(n)); })); } else { console.log('[G57B-6.5] pagina ' + i + ' no legible: ' + (e || (r && r.code))); }",
+                  "    _pag(i + 1);",
+                  "  });",
+                  "}",
+                  "_pag(2);"
                 ]
               }
             }
@@ -1185,7 +1198,7 @@
                 "value": "Bearer {{token_veterinario}}"
               }
             ],
-            "url": "{{base_url}}/notificaciones"
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=50"
           },
           "event": [
             {
@@ -1193,13 +1206,26 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 6.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "// v2.0: recorre TODAS las paginas de notificaciones (la primera pagina se llena de avisos de inicio de sesion y no alcanza los de SLA)",
+                  "const RX = /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i;",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
-                  "const _l = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
-                  "const _esc = _l.filter(function (n) { return /no se atendi.{0,6}dentro del SLA|escal|vencid|incumpl/i.test(n.mensaje || JSON.stringify(n)); });",
-                  "console.log('[G57B-6.6][OBSERVADO] notificaciones=' + (J.total !== undefined ? J.total : _l.length) + ' (pagina 1: ' + _l.length + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
-                  "pm.test('El veterinario o el administrador recibieron notificaciones de escalamiento por SLA vencido', function () { pm.expect(_esc.length + Number(pm.collectionVariables.get('n_esc_admin') || 0), 'notificaciones de SLA (administrador + veterinario)').to.be.above(0); });"
+                  "const _tam = 50; const _l0 = Array.isArray(J) ? J : (J.items || J.notificaciones || []);",
+                  "const _total = J.total !== undefined ? Number(J.total) : _l0.length; const _paginas = Math.max(1, Math.ceil(_total / _tam));",
+                  "let _esc = _l0.filter(function (n) { return RX.test(n.mensaje || JSON.stringify(n)); });",
+                  "const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
+                  "function _fin() {",
+                  "  console.log('[G57B-6.6][OBSERVADO] notificaciones=' + _total + ' (paginas leidas: ' + _paginas + ') | de SLA/vencimiento=' + _esc.length + ' | ' + JSON.stringify(_esc.slice(0, 10).map(function (n) { return [n.id_notificacion, n.tipo_evento, n.fecha_envio, (n.mensaje || '').slice(0, 110)]; })));",
+                  "  pm.test('El veterinario o el administrador recibieron notificaciones de escalamiento por SLA vencido', function () { pm.expect(_esc.length + Number(pm.collectionVariables.get('n_esc_admin') || 0), 'notificaciones de SLA (administrador + veterinario)').to.be.above(0); });",
+                  "}",
+                  "function _pag(i) {",
+                  "  if (i > _paginas) { _fin(); return; }",
+                  "  pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/notificaciones?pagina=' + i + '&tamano=' + _tam, method: 'GET', header: h}, function (e, r) {",
+                  "    if (!e && r && r.code === 200) { let K = {}; try { K = r.json(); } catch (x) {} const L = Array.isArray(K) ? K : (K.items || K.notificaciones || []); _esc = _esc.concat(L.filter(function (n) { return RX.test(n.mensaje || JSON.stringify(n)); })); } else { console.log('[G57B-6.6] pagina ' + i + ' no legible: ' + (e || (r && r.code))); }",
+                  "    _pag(i + 1);",
+                  "  });",
+                  "}",
+                  "_pag(2);"
                 ]
               }
             }
