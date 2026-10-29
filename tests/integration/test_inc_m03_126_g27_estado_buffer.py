@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: validar HTTP, inserción directa del broker, migración, JWT, RBAC y RLS con PostgreSQL real. |
 # | 2026-10-28 | Arekkazu | INC-M03-126-G27 RF-54: no fija el head de Alembic (la columna ya prueba la migracion) |
+# | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del panel del buffer con RBAC y alcance por finca |
 """Sin firmware ni broker MQTT real; se ejercita su INSERT en una base local exclusiva."""
 from datetime import datetime,timedelta,timezone
 from decimal import Decimal
@@ -222,3 +223,28 @@ def test_upgrade_downgrade_preserva_heartbeat_legacy(integration_engine,monkeypa
         command.upgrade(config,'head')
     with integration_engine.connect() as db:
         assert db.execute(text('SELECT datos_pendientes_buffer,json_metricas_buffer FROM modulo3.heartbeats WHERE id_heartbeat=:h'),{'h':identificador}).one()==(3,None)
+
+
+# --- TC-DIS-148: panel del buffer, todos los dispositivos del alcance --------------------
+
+def _del_listado(cliente,ctx,rol):
+    r=cliente.get('/iot/buffer',headers=ctx['headers'][rol])
+    assert r.status_code==200,r.text
+    return [d for d in r.json() if d['id_dispositivo_iot']==ctx['device']]
+
+
+def test_listado_trae_el_reporte_y_la_identidad_del_dispositivo(cliente,contexto):
+    identificador=enviar(cliente,contexto,usada=850)
+    (d,)=_del_listado(cliente,contexto,'ingeniero')
+    assert d['id_heartbeat']==identificador and d['estado_buffer']=='WARNING' and d['metricas_disponibles']
+    assert d['serial']==contexto['serial'] and d['nombre_finca'] and d['nombre_infraestructura']
+    assert d==consultar(cliente,contexto).json()
+
+
+def test_listado_con_rbac_y_aislamiento_de_finca(cliente,contexto):
+    enviar(cliente,contexto)
+    assert len(_del_listado(cliente,contexto,'admin'))==1
+    assert _del_listado(cliente,contexto,'externo')==[]
+    assert cliente.get('/iot/buffer',headers=contexto['headers']['sin_permiso']).status_code==403
+    assert cliente.get('/iot/buffer').status_code==401
+

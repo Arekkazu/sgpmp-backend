@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: representar métricas reportadas y clasificar ocupación sin reconstruir el buffer Edge. |
+# | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -52,3 +53,9 @@ class EstadoBufferReportado:
     estado_local_buffer: str | None = None
     datos_pendientes: int | None = None
     metricas: MetricasBuffer | None = None
+    # TC-DIS-148: el panel lista todos los dispositivos y necesita saber cuál es cuál.
+    serial: str | None = None
+    descripcion: str | None = None
+    nombre_infraestructura: str | None = None
+    nombre_finca: str | None = None
+    estado_dispositivo: str | None = None

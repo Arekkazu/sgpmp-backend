@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-03 RF-73: VERSION_ACTIVADA con id_version_deprecada |
 from __future__ import annotations
 
 import uuid
@@ -39,14 +40,19 @@ class ActivarVersionModeloUseCase:
 
         # RF-69 R5 v2.0 (RFC-009): una versión ACTIVO por (tipo_modelo, componente).
         version_previa = self._repo.obtener_activo_por_tipo(entidad.tipo_modelo, entidad.componente)
+        deprecada = (
+            version_previa
+            if version_previa and version_previa.id_version_modelo != entidad.id_version_modelo
+            else None
+        )
         correlacion = uuid.uuid4()
 
         try:
-            if version_previa and version_previa.id_version_modelo != entidad.id_version_modelo:
-                version_previa.deprecar()
-                self._repo.actualizar(version_previa)
+            if deprecada:
+                deprecada.deprecar()
+                self._repo.actualizar(deprecada)
                 self._repo.registrar_historial(
-                    id_version_modelo=version_previa.id_version_modelo,
+                    id_version_modelo=deprecada.id_version_modelo,
                     estado_anterior="ACTIVO",
                     estado_nuevo="DEPRECADO",
                     tipo_actor="USUARIO",
@@ -71,8 +77,8 @@ class ActivarVersionModeloUseCase:
             raise
 
         eventos = [("VERSION_ACTIVADA", entidad)]
-        if version_previa and version_previa.id_version_modelo != entidad.id_version_modelo:
-            eventos.append(("VERSION_DEPRECADA", version_previa))
+        if deprecada:
+            eventos.append(("VERSION_DEPRECADA", deprecada))
 
         for tipo_ev, obj in eventos:
             self._auditoria_repo.registrar(
@@ -85,7 +91,12 @@ class ActivarVersionModeloUseCase:
                 severidad_evento="INFO",
                 correlacion_id=correlacion,
                 payload_evento=(
-                    {**obj._snapshot(), "id_version_nueva": obj.id_version_modelo}
+                    # CU09 H-03 (RF-73 CA-15): null en la primera activación del tipo.
+                    {
+                        **obj._snapshot(),
+                        "id_version_nueva": obj.id_version_modelo,
+                        "id_version_deprecada": deprecada.id_version_modelo if deprecada else None,
+                    }
                     if tipo_ev == "VERSION_ACTIVADA"
                     else obj._snapshot()
                 ),

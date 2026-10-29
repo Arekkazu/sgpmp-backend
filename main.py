@@ -14,6 +14,7 @@
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
 # | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
+# | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
 import asyncio
 import logging
 import os
@@ -78,6 +79,7 @@ from src.prediction.infrastructure.routers.patologia_m04_router import router as
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
 from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
+from src.prediction.infrastructure.routers.monitor_prediccion_router import router as monitor_prediccion_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
 from src.prediction.infrastructure.routers.retroalimentacion_clinica_router import router as retroalimentacion_clinica_router
@@ -918,6 +920,7 @@ app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
 app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
+app.include_router(monitor_prediccion_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)
 app.include_router(retroalimentacion_clinica_router)
