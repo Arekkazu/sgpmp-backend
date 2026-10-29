@@ -9,6 +9,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: buscar y consolidar la compuesta abierta del área |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: alerta generada por reevaluación de otra |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -30,6 +31,10 @@ class AlertaRepository(ABC):
 
     def buscar_reevaluacion(self, id_alerta_original: int):
         """E16: alerta ya generada por reevaluación de ``id_alerta_original`` (bloqueada), o ``None``."""
+        raise NotImplementedError
+
+    def contexto_incompleto_avisado_desde(self, id_sensor: int, desde: datetime, antes_de: datetime) -> bool:
+        """E6: otra alerta sin contexto del mismo sensor se notificó en [desde, antes_de)."""
         raise NotImplementedError
 
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
