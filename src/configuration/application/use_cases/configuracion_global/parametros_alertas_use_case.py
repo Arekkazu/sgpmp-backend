@@ -2,7 +2,6 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: consulta y actualización de los parámetros de alertas por el administrador |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y SLA en los parámetros de alertas |
-# | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: catálogo por subclase para reutilizarlo en la política de visión |
 """Parámetros de RF-57 que el administrador configura (E12/E13, CA-2, E16, E8).
 
 Viven en el almacén de DEV-14 (``modulo4.parametros_mlops``). La escritura reutiliza
@@ -65,17 +64,14 @@ class ParametroAlerta:
 
 
 class ParametrosAlertasUseCase:
-    catalogo = PARAMETROS_ALERTAS
-    codigo_invalido, rf = "PARAMETRO_ALERTAS_INVALIDO", "RF-57"
-
     def __init__(self, db, parametros_repo) -> None:
         self.db = db
         self.parametros_repo = parametros_repo
 
     def consultar(self) -> list[ParametroAlerta]:
-        configurados = self.parametros_repo.obtener(list(self.catalogo))
+        configurados = self.parametros_repo.obtener(list(PARAMETROS_ALERTAS))
         resultado = []
-        for nombre, (base, descripcion) in self.catalogo.items():
+        for nombre, (base, descripcion) in PARAMETROS_ALERTAS.items():
             actual = configurados.get(nombre)
             minimo, maximo = (actual.minimo, actual.maximo) if actual else _LIMITES[nombre]
             valor = actual.valor if actual else base
@@ -85,11 +81,11 @@ class ParametrosAlertasUseCase:
         return resultado
 
     def actualizar(self, cambios: dict[str, Any], id_usuario: int) -> list[ParametroAlerta]:
-        ajenos = sorted(set(cambios) - set(self.catalogo))
+        ajenos = sorted(set(cambios) - set(PARAMETROS_ALERTAS))
         if not cambios or ajenos:
             raise ValidationError(
-                self.codigo_invalido,
-                f"Solo se admiten los parámetros de {self.rf}: {', '.join(self.catalogo)}."
+                "PARAMETRO_ALERTAS_INVALIDO",
+                f"Solo se admiten los parámetros de RF-57: {', '.join(PARAMETROS_ALERTAS)}."
                 + (f" No pertenecen: {', '.join(ajenos)}." if ajenos else ""),
                 field="parametros",
             )

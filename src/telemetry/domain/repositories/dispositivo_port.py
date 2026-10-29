@@ -1,7 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: cámara por id para su fps configurado |
-# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -23,7 +22,6 @@ class DispositivoHeartbeatInfo:
     id_dispositivo_iot: int
     id_infraestructura: int
     es_activo: bool
-    en_mantenimiento: bool = False
 
 
 class DispositivoPort(ABC):

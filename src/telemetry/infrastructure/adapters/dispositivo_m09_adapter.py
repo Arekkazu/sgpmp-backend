@@ -1,7 +1,6 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: cámara por id para su fps configurado |
-# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
 from typing import Optional
 
 from sqlalchemy import text
@@ -55,11 +54,9 @@ class DispositivoM09Adapter(DispositivoPort):
     ) -> Optional[DispositivoHeartbeatInfo]:
         row = self.db.execute(
             text(
-                'SELECT d.id_dispositivo_iot, d.es_activo, d.id_infraestructura, '
-                "       COALESCE(e.estado_actual = 'EN_MANTENIMIENTO', false) AS en_mantenimiento "
-                'FROM modulo9.dispositivos_iot d '
-                'LEFT JOIN modulo3.estados_dispositivos_iot e ON e.id_dispositivo_iot = d.id_dispositivo_iot '
-                'WHERE d.id_dispositivo_iot = :device_id AND d.serial = :serial'
+                'SELECT id_dispositivo_iot, es_activo, id_infraestructura '
+                'FROM modulo9.dispositivos_iot '
+                'WHERE id_dispositivo_iot = :device_id AND serial = :serial'
             ),
             {'device_id': device_id, 'serial': serial},
         ).fetchone()
@@ -71,7 +68,6 @@ class DispositivoM09Adapter(DispositivoPort):
             id_dispositivo_iot=row.id_dispositivo_iot,
             id_infraestructura=row.id_infraestructura,
             es_activo=row.es_activo,
-            en_mantenimiento=row.en_mantenimiento,
         )
 
     def obtener_por_serial(self, serial: str) -> Optional[DispositivoHeartbeatInfo]:

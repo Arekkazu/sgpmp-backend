@@ -3,7 +3,6 @@
 # | 2026-10-21 | Leandro | DEV-40 RF-53: resuelve variables desde el puerto M09 |
 # | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: conservar la secuencia recibida en metadatos del INSERT comun HTTP y batch. |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: enviar evidencia de reloj en metadatos a la funcion comun antes del INSERT. |
-# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
 """RF-53 B+: HTTP adapta el sobre; la función SQL valida y persiste la fila."""
 from typing import Any, Optional
 
@@ -46,19 +45,15 @@ class IngerirTelemetriaUseCase:
             # device_id debe pertenecerle. Que el sensor sea de ese dispositivo
             # lo valida fn_validar_dispositivo dentro de la función SQL.
             identidad = self.dispositivo_port.validar_dispositivo_heartbeat(dto.device_id, dto.serial)
-            motivo = ('El dispositivo no existe o no corresponde al serial.' if identidad is None
-                      # RF-53 E1: un dispositivo EN_MANTENIMIENTO (RF-60) no ingresa lecturas.
-                      else 'El dispositivo está en mantenimiento.' if identidad.en_mantenimiento
-                      else None)
-            if motivo is not None:
+            if identidad is None:
                 self.bitacora_repo.registrar_error(
                     estado_calidad='ERROR_AUTENTICACION',
-                    descripcion=motivo,
+                    descripcion='El dispositivo no existe o no corresponde al serial.',
                     payload={'device_id': dto.device_id, 'sensor_id': dto.sensor_id},
                     timestamp_captura=dto.timestamp_captura, gateway_id=gateway_id,
                 )
                 self.db.commit()
-                raise AuthenticationError('ERROR_AUTENTICACION', motivo)
+                raise AuthenticationError('ERROR_AUTENTICACION', 'El dispositivo no existe o no corresponde al serial.')
             entrada = self.catalogo_port.obtener_regla(dto.tipo_variable)
             rechazo_catalogo = None
             if entrada is None:

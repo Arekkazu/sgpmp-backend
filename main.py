@@ -13,7 +13,6 @@
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
-# | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
 import asyncio
 import logging
 import os
@@ -42,7 +41,6 @@ from src.biological_assets.infrastructure.routers.infraestructura_sensor_router 
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
 from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
-from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -890,7 +888,6 @@ app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
 app.include_router(parametros_alertas_router)
-app.include_router(politica_vision_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)

@@ -6,7 +6,6 @@
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: 422 en E2, varias variables, activo, alertas y series |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: aviso E7 en segundo plano; el dashboard no espera al SMTP |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
-# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -53,9 +52,7 @@ from src.telemetry.infrastructure.repositories.historial_telemetria_repository i
 from src.telemetry.infrastructure.repositories.indicadores_alertas_repository import SqlAlchemyIndicadoresAlertasRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
 from src.telemetry.infrastructure.schema.monitoreo_schema import (
-    AlertaActivaPanelSchema,
     DashboardResponseSchema,
-    PanelAlertasActivasSchema,
     EstadoSensorSchema,
     AlertaCorrelacionadaSchema,
     HistorialPageSchema,
@@ -83,12 +80,6 @@ _RECURSO_DATOS_TECNICOS = 'datos_tecnicos_dashboard'
 # ---------------------------------------------------------------------------
 # RF-58 — Dashboard en tiempo real
 # ---------------------------------------------------------------------------
-
-def _panel_alertas(use_case: ObtenerDashboardUseCase, id_infraestructura, ids_fincas) -> PanelAlertasActivasSchema:
-    alertas, total = use_case.panel_alertas_activas(id_infraestructura, ids_fincas_permitidas=ids_fincas)
-    return PanelAlertasActivasSchema(
-        total=total, alertas=[AlertaActivaPanelSchema.model_validate(a) for a in alertas])
-
 
 @router.get(
     "/dashboard",
@@ -133,7 +124,6 @@ def obtener_dashboard(
         conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
         alertas_vencidas_sin_atencion=use_case.contar_alertas_vencidas_sin_atencion(
             id_infraestructura, ids_fincas_permitidas=ids_fincas),
-        panel_alertas_activas=_panel_alertas(use_case, id_infraestructura, ids_fincas),
     )
 
 
@@ -180,7 +170,6 @@ def obtener_dashboard_por_unidad(
         conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
         alertas_vencidas_sin_atencion=use_case.contar_alertas_vencidas_sin_atencion(
             id_infraestructura, ids_fincas_permitidas=ids_fincas),
-        panel_alertas_activas=_panel_alertas(use_case, id_infraestructura, ids_fincas),
     )
 
 

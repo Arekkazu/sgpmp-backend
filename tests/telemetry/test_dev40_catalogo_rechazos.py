@@ -1,7 +1,6 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: prueba catalogo y rechazos HTTP     |
-# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60/RF-53: mantenimiento desde cualquier estado |
 """Pruebas aisladas de puertos y HTTP; no sustituyen PostgreSQL real."""
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -38,7 +37,6 @@ def regla():
 def use_case():
     db, persistencia, identidad, bitacora, catalogo = [Mock() for _ in range(5)]
     catalogo.obtener_regla.return_value = regla()
-    identidad.validar_dispositivo_heartbeat.return_value.en_mantenimiento = False
     persistencia.ingerir.return_value = ResultadoPersistenciaIngesta(1, 'ERROR_CALIBRACION', 'OK', datetime.now(timezone.utc))
     return IngerirTelemetriaUseCase(db, persistencia, identidad, bitacora, catalogo)
 

@@ -3,7 +3,6 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: algoritmo unico con umbrales dinamicos |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: restringe transiciones manuales       |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: priorizar buffer confirmado y conservarlo hasta reporte de vaciado. |
-# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60 CA-7/RF-53 E1: mantenimiento desde cualquier estado y lecturas rechazadas |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,10 +25,9 @@ class EstadoDispositivoIoT:
     id_usuario: Optional[int]
 
     def validar_transicion_manual(self, destino: str) -> None:
-        # RF-60 CA-7: a mantenimiento desde cualquier estado; CA-8: solo de ahí vuelve a ACTIVO.
-        a_mantenimiento = destino == 'EN_MANTENIMIENTO' and self.estado_actual != 'EN_MANTENIMIENTO'
-        cierre = (self.estado_actual, destino) == ('EN_MANTENIMIENTO', 'ACTIVO')
-        if not (a_mantenimiento or cierre):
+        if (self.estado_actual, destino) not in {
+            ('INACTIVO', 'EN_MANTENIMIENTO'), ('EN_MANTENIMIENTO', 'ACTIVO'),
+        }:
             raise BusinessRuleError('TRANSICION_INVALIDA',
                 f'No se permite la transición manual de {self.estado_actual} a {destino}.')
 

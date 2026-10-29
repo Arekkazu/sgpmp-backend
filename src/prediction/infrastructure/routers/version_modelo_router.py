@@ -3,7 +3,6 @@
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-29 | Arekkazu     | RLS modulo4 RF-69/71: el registro interno actúa como usuario de servicio |
-# | 2026-10-29 | Arekkazu     | INC-M04-214 RF-69: campos obligatorios ausentes responden 422 |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -58,7 +57,6 @@ _RECURSO = 43  # modulo1.recursos: 'version_modelo'
         500: {"model": ErrorResponse},
     },
     summary="Registrar nueva versión de modelo IA desde RF-71 (RF-69 — solo interno)",
-    openapi_extra={"x-codigo-validacion": 422},
 )
 async def registrar_version_modelo(
     response: Response,

@@ -5,7 +5,6 @@
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: registrar() acepta origen_dato |
 # | 2026-10-26 | Arekkazu     | INC-M04 G092/G099 RF-73: timestamp_evento (E7) y filtro correlacion_id |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: declarar el resultado tipado de aceptacion o rechazo E1. |
-# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 from __future__ import annotations
 
 import uuid
@@ -57,7 +56,6 @@ class EventoAuditoriaM04Repository(ABC):
         id_referencia: Optional[str] = None,
         severidad_evento: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
-        tipo_modelo: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list["EventoAuditoriaM04"], int]: ...

@@ -7,7 +7,6 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: exige eventos de ingesta y heartbeat sin duplicados |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: la espera entre reintentos se duplica con cada fallo |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: alinear buffer pendiente y fijar el reloj de la comprobación inmediata de reintento. |
-# | 2026-10-29 | Arekkazu | RFC-020 RF-58/60: el dashboard copia el estado del dispositivo |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -536,35 +535,3 @@ def test_serie_20_lecturas_evalua_rf62_cuando_dev02_esta_integrado(db_session,eq
     assert evaluacion is not None and evaluacion['apto_para_ia'] and evaluacion['apto_para_nic41']
     assert db_session.execute(text('SELECT jsonb_agg(to_jsonb(t) ORDER BY id_telemetria) FROM modulo3.telemetrias t WHERE id_sensor=:id'),{'id':equipo['sensor']}).scalar_one()==antes
     assert any(x['tipo_evento']=='POSTCOMMIT_RF62_COMPLETADO' for x in evidencias(db_session,ids[-1]))
-
-
-def _conectividad_cache(db, equipo):
-    return db.execute(text('SELECT estado_conectividad FROM modulo3.estados_actuales_sensores WHERE id_sensor=:id'),
-                      {'id': equipo['sensor']}).scalar_one()
-
-
-def _estado_dispositivo(db, equipo, estado):
-    db.execute(text("""UPDATE modulo3.estados_dispositivos_iot
-        SET estado_actual=CAST(:estado AS modulo3.enum_estado_dispositivo) WHERE id_dispositivo_iot=:id"""),
-        {'estado': estado, 'id': equipo['device']})
-
-
-def test_rfc020_d2_lectura_sin_conexion_no_marca_sin_senal(db_session, equipo):
-    """RF-60 CA-23: una lectura del buffer (conectividad=false) toma el estado del dispositivo."""
-    db_session.execute(text("""INSERT INTO modulo3.estados_dispositivos_iot(id_dispositivo_iot,estado_actual,fecha_ultima_actualizacion)
-        VALUES (:id,'BUFFER_ACTIVO',now()) ON CONFLICT (id_dispositivo_iot) DO UPDATE SET estado_actual='BUFFER_ACTIVO'"""),
-        {'id': equipo['device']})
-    sql_ingesta(db_session, equipo, conectividad=False)
-    assert _conectividad_cache(db_session, equipo) == 'BUFFER_ACTIVO'
-
-
-@pytest.mark.parametrize('estado', ['BUFFER_ACTIVO', 'EN_MANTENIMIENTO', 'ACTIVO'])
-def test_rfc020_d1_toda_transicion_llega_al_dashboard(db_session, equipo, estado):
-    """RF-60 CA-22: BUFFER_ACTIVO y EN_MANTENIMIENTO ya no conservan el valor anterior."""
-    db_session.execute(text("""INSERT INTO modulo3.estados_dispositivos_iot(id_dispositivo_iot,estado_actual,causa_primaria,fecha_ultima_actualizacion)
-        VALUES (:id,'SIN_SEÑAL','FALLO_CONECTIVIDAD',now()) ON CONFLICT (id_dispositivo_iot)
-        DO UPDATE SET estado_actual='SIN_SEÑAL', causa_primaria='FALLO_CONECTIVIDAD'"""),
-        {'id': equipo['device']})
-    sql_ingesta(db_session, equipo)
-    _estado_dispositivo(db_session, equipo, estado)
-    assert _conectividad_cache(db_session, equipo) == estado
