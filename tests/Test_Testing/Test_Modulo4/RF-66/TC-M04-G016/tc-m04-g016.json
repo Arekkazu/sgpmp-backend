@@ -170,7 +170,18 @@
               "            if (!err && !_faltan(_c)) { _final(true, _r); } else { _sig(); }",
               "        });",
               "    };",
-              "    _sig();",
+              "    pm.sendRequest({ url: _base + '/openapi.json', method: 'GET', header: { 'Authorization': 'Bearer ' + _tok, 'X-Test-Run-Id': _rid, 'X-Sandbox-Secret': _sec } }, function (e2, r2) {",
+              "        try {",
+              "            var _p = r2.json().paths || {};",
+              "            var _ks = Object.keys(_p);",
+              "            var _rel = _ks.filter(function (k) { return /^\\/prediccion/.test(k) || /infer/i.test(k); });",
+              "            console.log('[openapi] ' + _ks.length + ' rutas en total; relacionadas con prediccion/inferencia: ' + _rel.map(function (k) { return Object.keys(_p[k]).map(function (m) { return m.toUpperCase(); }).join('/') + ' ' + k; }).join(' | '));",
+              "            var _nuevas = _ks.filter(function (k) { return _p[k].post && (/^\\/prediccion\\//.test(k) || /infer/i.test(k)) && !/^\\/prediccion\\/(patologias|motor-ia|riesgo-contagio|modelos|ota|retroalimentacion|auditoria|despliegues|historial)/.test(k) && _cands.indexOf(k) === -1; });",
+              "            console.log('[openapi] rutas POST nuevas candidatas a ejecutar el motor: ' + (_nuevas.length ? _nuevas.join(' ; ') : 'ninguna'));",
+              "            _cands = _nuevas.concat(_cands);",
+              "        } catch (e) { console.log('[openapi] no se pudo leer /openapi.json (' + (e2 ? e2.message : (r2 ? r2.code : '?')) + '); se usan solo las rutas por defecto'); }",
+              "        _sig();",
+              "    });",
               "}"
             ]
           }

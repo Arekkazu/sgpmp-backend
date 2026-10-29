@@ -465,7 +465,7 @@
           ]
         },
         {
-          "name": "1.1b Evento valido con variable del catalogo sin umbral en ninguna especie (CONDUCTIVIDAD_ELECTRICA; sensor 482 - sustitucion pendiente de aprobacion)",
+          "name": "1.1b Evento valido con variable del catalogo sin umbral en ninguna especie (OMITIDO v2.0: CONDUCTIVIDAD_ELECTRICA no pertenece al catalogo de 11 variables del RF-57; el backend la rechaza con 400)",
           "request": {
             "method": "POST",
             "header": [
@@ -504,13 +504,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G85 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('El evento valido se recibe y no se pierde (HTTP 200/201)', function () { pm.expect([200, 201, 202], pm.response.text().slice(0, 300)).to.include(pm.response.code); });",
-                  "pm.test('El evento queda en estado PENDIENTE_EVALUACION (E9)', function () { pm.expect(pm.response.text()).to.include('PENDIENTE_EVALUACION'); });",
-                  "pm.test('No se genera alerta operativa para el productor/veterinario (sin id_alerta operativo)', function () { pm.expect(!J.id_alerta || J.tipo_alerta === 'TECNICA', 'id_alerta=' + J.id_alerta + ' tipo_alerta=' + J.tipo_alerta).to.be.true; });",
-                  "console.log('[G85-1.1b][OBSERVADO] respuesta = ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta, estado: J.estado || J.estado_alerta || J.estado_evento}));",
-                  "pm.collectionVariables.set('alerta_e9b', String((J || {}).id_alerta || 0));"
+                  "console.log('[TC-M03-G85 1.1b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 400));",
+                  "// Paso omitido: la variable del script no esta en el catalogo del RF-57 (ver hallazgos v2.0). No hay otra variable sin umbral con sensor disponible en TEST.",
+                  "pm.test.skip('El evento valido se recibe y no se pierde (HTTP 200/201)', function () {});",
+                  "pm.test.skip('El evento queda en estado PENDIENTE_EVALUACION (E9)', function () {});",
+                  "pm.test.skip('No se genera alerta operativa para el productor/veterinario', function () {});",
+                  "pm.collectionVariables.set('alerta_e9b', '0');"
                 ]
               }
             }
@@ -794,7 +793,7 @@
           ]
         },
         {
-          "name": "1.6c Regla mal configurada: niveles en orden invertido (normal en la franja alta) - se documenta si se acepta",
+          "name": "1.6c Regla mal configurada: niveles en orden invertido (normal en la franja alta) - se documenta si se acepta (v2.0: el umbral queda activo; 2.1 lo corrige)",
           "request": {
             "method": "POST",
             "header": [
@@ -830,8 +829,6 @@
                   "pm.test('El orden invertido de niveles se rechaza (400/409/422) o queda documentado', function () { pm.expect([201, 400, 409, 422]).to.include(pm.response.code); });",
                   "if (pm.response.code === 201) {",
                   "  const _id = J.id_umbral_ambiental || J.id_umbral || J.id; pm.collectionVariables.set('umbral_invertido', String(_id || ''));",
-                  "  const h = {}; pm.request.headers.each(function (x) { h[x.key] = pm.variables.replaceIn(x.value); });",
-                  "  if (!_id) { console.log('[G85-1.6c] sin id de umbral: no se desactiva'); } else pm.sendRequest({url: pm.variables.replaceIn('{{base_url}}') + '/configuracion/umbrales/' + _id + '/desactivar', method: 'PATCH', header: h}, function (e, r) { console.log('[G85-1.6c] desactivar umbral invertido -> ' + (r ? r.code : e)); });",
                   "}"
                 ]
               }
@@ -873,9 +870,9 @@
           ]
         },
         {
-          "name": "2.1 Corregir la configuracion: crear el umbral correcto de amoniaco para la especie QA",
+          "name": "2.1 Corregir la configuracion: editar el umbral de amoniaco de la especie QA creado en 1.6c (niveles en orden correcto)",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
@@ -886,10 +883,20 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/umbrales",
+            "url": {
+              "raw": "{{base_url}}/configuracion/umbrales/{{umbral_invertido}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "umbrales",
+                "{{umbral_invertido}}"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_especie\": {{id_especie_qa}},\n  \"id_variable_ambiental\": {{id_variable_nh3}},\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+              "raw": "{\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -904,8 +911,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G85 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Umbral creado (HTTP 201)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('Umbral corregido (HTTP 200)', function () { pm.expect(pm.response.code, 'umbral_invertido=' + pm.collectionVariables.get('umbral_invertido') + ' ' + pm.response.text().slice(0, 300)).to.eql(200); });",
                   "console.log('[G85-2.1][OBSERVADO] ' + pm.response.text().slice(0, 400));"
                 ]
               }
