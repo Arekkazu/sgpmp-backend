@@ -50,7 +50,8 @@ def escenario(db_session, crear_usuario_db, crear_auth_headers):
     contagio = db.execute(text(
         "INSERT INTO modulo4.resultados_riesgo_contagio (id_activo_biologico, id_configuracion_motor, "
         "factor_sanitario_fs, w_fs_aplicado, w_fa_aplicado, w_fd_aplicado, probabilidad_contagio, "
-        "nivel_riesgo_contagio) VALUES (:a, -1, 0.5, 0.5, 0.3, 0.2, 0.62, 2) RETURNING id_resultado_contagio"),
+        "nivel_riesgo_contagio, variables_ambientales_snap) VALUES (:a, -1, 0.5, 0.5, 0.3, 0.2, 0.62, 2, "
+        "'{\"definicion_fs\": \"CONTEO_INDIVIDUAL\", \"config_version\": 3}') RETURNING id_resultado_contagio"),
         {"a": activo}).scalar_one()
     db.execute(text("SET LOCAL session_replication_role = origin"))
     return dict(
@@ -87,6 +88,7 @@ def test_contagio_trae_el_calculo_del_lote_y_respeta_la_finca(client, escenario)
     (fila,) = _mias(client.get("/prediccion/riesgo-contagio", headers=escenario["dueno"]),
                     "id_resultado_contagio", escenario["contagio"])
     assert fila["nivel_riesgo_contagio"] == 2 and float(fila["probabilidad_contagio"]) == 0.62
+    assert fila["detalle_calculo"] == {"definicion_fs": "CONTEO_INDIVIDUAL", "config_version": 3}
     assert _mias(client.get("/prediccion/riesgo-contagio", headers=escenario["ajeno"]),
                  "id_resultado_contagio", escenario["contagio"]) == []
 

@@ -48,7 +48,8 @@ _SQL_CONTAGIO = text(f"""
            r.probabilidad_contagio, r.nivel_riesgo_contagio, r.factor_sanitario_fs, r.factor_ambiental_fa,
            r.factor_densidad_fd, r.w_fs_aplicado, r.w_fa_aplicado, r.w_fd_aplicado, r.confianza_baja,
            r.data_quality_score, r.factores_ausentes, r.modo_ejecucion_calculo, r.n_enfermos_detectados,
-           r.total_activos_lote, r.porcentaje_sensores_activos, r.fecha_calculo, r.id_alerta_generada
+           r.total_activos_lote, r.porcentaje_sensores_activos, r.fecha_calculo, r.id_alerta_generada,
+           r.variables_ambientales_snap AS detalle_calculo
     FROM modulo4.resultados_riesgo_contagio r
     {_UBICACION}
     WHERE {_FILTROS.format(fecha='r.fecha_calculo')}

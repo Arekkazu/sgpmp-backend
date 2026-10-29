@@ -78,3 +78,4 @@ class RiesgoContagioMonitorResponse(BaseModel):
     porcentaje_sensores_activos: Optional[Decimal]
     fecha_calculo: datetime
     id_alerta_generada: Optional[int]
+    detalle_calculo: Optional[dict] = None

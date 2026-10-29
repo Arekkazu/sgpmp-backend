@@ -70,3 +70,5 @@ class RiesgoContagioMonitor:
     porcentaje_sensores_activos: Optional[Decimal]
     fecha_calculo: datetime
     id_alerta_generada: Optional[int]
+    # Trazabilidad del cálculo (definicion_fs, motivos_degradacion, config_version, id_alerta_rf57...).
+    detalle_calculo: Optional[dict]
