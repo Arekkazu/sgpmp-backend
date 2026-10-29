@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: reevaluación por IA tras la recuperación del motor |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: la alerta reevaluada usa los plazos SLA configurados |
 """RF-57 E16 (y E3/CA-6): el motor de IA, ya recuperado, reevalúa el evento de una alerta generada sin él.
 
 - La alerta original no se modifica (inmutabilidad del historial).
@@ -118,7 +119,8 @@ class ReevaluarAlertaUseCase:
                 id_activo_biologico=original.id_activo_biologico,
                 id_infraestructura=original.id_infraestructura,
             )
-            nueva.fecha_vencimiento = nueva.calcular_fecha_vencimiento()
+            sla = self.parametros_port.obtener_sla_minutos()
+            nueva.fecha_vencimiento = nueva.calcular_fecha_vencimiento(sla if isinstance(sla, dict) else None)
             guardada = self.alerta_repo.guardar(nueva)
             self.db.commit()
         except Exception:

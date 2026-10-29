@@ -8,6 +8,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: asocia el activo biológico y su contexto a la alerta |
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: sin umbral configurado no hay alerta operativa; técnica y ERROR_CONFIGURACION_REGLA |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -200,7 +201,7 @@ class GenararAlertaUseCase:
         alerta_existente = self.alerta_repo.buscar_activa_duplicada(
             id_sensor=dto.sensor_id,
             tipo_variable=dto.tipo_variable,
-            ventana_min=30,
+            ventana_min=self._ventana_deduplicacion(),
         )
         if alerta_existente:
             nueva_sev = dto.severidad_edge
@@ -277,7 +278,7 @@ class GenararAlertaUseCase:
             id_activo_biologico=id_activo_biologico,
             id_infraestructura=id_infraestructura,
         )
-        alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento()
+        alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento(self._sla_minutos())
 
         try:
             alerta_guardada = self.alerta_repo.guardar(alerta)
@@ -314,7 +315,7 @@ class GenararAlertaUseCase:
         try:
             self.alerta_repo.bloquear_condicion(dto.sensor_id, TipoAlerta.FALLO_AMBIENTAL)
             existente = self.alerta_repo.buscar_activa_duplicada(
-                id_sensor=dto.sensor_id, tipo_variable=TipoAlerta.FALLO_AMBIENTAL, ventana_min=30)
+                id_sensor=dto.sensor_id, tipo_variable=TipoAlerta.FALLO_AMBIENTAL, ventana_min=self._ventana_deduplicacion())
             if existente:
                 self.alerta_repo.actualizar_deduplicacion(id_alerta=existente.id_alerta, ultima_ocurrencia=ahora)
                 self.db.commit()
@@ -348,7 +349,7 @@ class GenararAlertaUseCase:
                 id_sensor=dto.sensor_id,
                 **ids,
             )
-            alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento()
+            alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento(self._sla_minutos())
             guardada = self.alerta_repo.guardar(alerta)
             self.db.commit()
         except Exception:
@@ -536,7 +537,7 @@ class GenararAlertaUseCase:
                 id_sensor=dto.sensor_id,
                 **ids,
             )
-            tecnica.fecha_vencimiento = tecnica.calcular_fecha_vencimiento()
+            tecnica.fecha_vencimiento = tecnica.calcular_fecha_vencimiento(self._sla_minutos())
             guardada = self.alerta_repo.guardar(tecnica)
             self.db.commit()
         except Exception:
@@ -545,6 +546,14 @@ class GenararAlertaUseCase:
         return ResultadoGeneracionAlerta(es_duplicado=False, id_alerta=guardada.id_alerta,
                                          tipo_alerta=guardada.tipo_alerta, severidad=guardada.severidad,
                                          motivo_descarte=motivo)
+    # G57A: parámetros de RF-57 configurables. Con un doble de prueba sin valores, rigen los valores base.
+    def _ventana_deduplicacion(self) -> int:
+        ventana = self.parametros_port.obtener_ventana_deduplicacion_min()
+        return ventana if isinstance(ventana, int) else 30
+
+    def _sla_minutos(self) -> Optional[dict]:
+        sla = self.parametros_port.obtener_sla_minutos()
+        return sla if isinstance(sla, dict) else None
 
     def _clasificar(self, dto: ProcesarEventoAlertaDTO) -> tuple[str, str, Optional[str]]:
         """Determina tipo_alerta, severidad final y conflicto_resolucion (E12/E13)."""

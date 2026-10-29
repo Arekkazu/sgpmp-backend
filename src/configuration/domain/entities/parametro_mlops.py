@@ -4,6 +4,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: umbral mínimo de confianza de IA para PREDICCION_PATOLOGIA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -31,6 +32,13 @@ RF57_CONFIANZA_MINIMA_BASE = Decimal('0.75')
 # RF-57 E16: minutos desde la generación en los que el motor recuperado puede reevaluar una alerta.
 RF57_VENTANA_REEVALUACION = 'rf57_ventana_reevaluacion_min'
 RF57_VENTANA_REEVALUACION_BASE = 60
+# RF-57 E4 (deduplicación) y Restricción 11 (SLA por severidad): minutos, con los valores base del RF.
+RF57_VENTANA_DEDUPLICACION = 'rf57_ventana_deduplicacion_min'
+RF57_VENTANA_DEDUPLICACION_BASE = 30
+RF57_SLA_CRITICO = 'rf57_sla_critico_min'
+RF57_SLA_MODERADO = 'rf57_sla_moderado_min'
+RF57_SLA_LEVE = 'rf57_sla_leve_min'
+RF57_SLA_BASE = {RF57_SLA_CRITICO: 5, RF57_SLA_MODERADO: 30, RF57_SLA_LEVE: 120}
 # RF-57 E8: alertas por minuto que activan la tormenta (sistema y por unidad productiva).
 RF57_TORMENTA_SISTEMA = 'rf57_tormenta_alertas_por_minuto'
 RF57_TORMENTA_UNIDAD = 'rf57_tormenta_alertas_por_minuto_unidad'

@@ -107,6 +107,8 @@ explícitamente antes de habilitar los consumidores en un entorno compartido.
 | `rf62_p` | Entero; lecturas consecutivas | 1 ≤ P ≤ N |
 | `umbral_confianza_edge_ia` | Número; probabilidad | 0.70–0.95. **Excepción (INC-M03-168-G76):** si falta, se usa el valor base del RF (0.85); un valor inválido sigue respondiendo 503 |
 | `rf57_ventana_reevaluacion_min` | Entero; minutos | ≥ 1. RF-57 E16 (INC-M03-167-G75): ventana de reevaluación por IA desde la generación de la alerta. Si falta, se usa el valor base del RF (60); un valor inválido responde 503 |
+| `rf57_ventana_deduplicacion_min` | Entero; minutos | ≥ 1. RF-57 E4 (INC-M03-176-G57A). Si falta, valor base 30 |
+| `rf57_sla_critico_min` / `rf57_sla_moderado_min` / `rf57_sla_leve_min` | Entero; minutos | ≥ 1. SLA por severidad (G57A). Si faltan, valores base 5 / 30 / 120 |
 | `rf57_umbral_confianza_minimo` | Número; probabilidad | 0–1. RF-57 CA-2 (INC-M03-166-G73): mínimo para generar PREDICCION_PATOLOGIA. **Excepción:** si falta, se usa el valor base que publica el RF (0.75); un valor inválido sí responde 503 |
 | `ventana_retroalimentacion_dias` | Entero; días | 7–365 |
 
