@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: decisión del caso de uso sin BD |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57: el doble de parámetros trae la confianza mínima de G73 |
 """INC-M03-173-G85: E9 en GenararAlertaUseCase con el puerto de umbrales simulado."""
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -20,7 +21,10 @@ def _caso(configurado, existente=None):
     repo.guardar.side_effect = lambda a: Alerta(**{**a.__dict__, "id_alerta": 7})
     puerto = Mock()
     puerto.consultar.return_value = UmbralConfigurado(configurado, 11, (3,), None if configurado else "SIN_UMBRAL_PARA_LAS_ESPECIES")
-    return GenararAlertaUseCase(Mock(), repo, Mock(), Mock(), Mock(), umbral_port=puerto), repo, puerto
+    # G73 (#826) compara la probabilidad de IA con este parámetro; valor base de RF-57.
+    parametros = Mock()
+    parametros.obtener_confianza_minima_ia.return_value = Decimal("0.75")
+    return GenararAlertaUseCase(Mock(), repo, Mock(), Mock(), parametros, umbral_port=puerto), repo, puerto
 
 
 def _dto(origen="EDGE"):
