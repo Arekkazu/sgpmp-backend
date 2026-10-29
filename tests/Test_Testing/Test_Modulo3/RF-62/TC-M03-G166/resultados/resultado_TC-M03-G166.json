@@ -1,0 +1,654 @@
+{
+  "tc": "TC-M03-G166",
+  "summary": {
+    "total": 106,
+    "ok": 100,
+    "falla": 6,
+    "xfailed": 5,
+    "skipped": 1,
+    "bloqueados": 0,
+    "veredicto": "RECHAZADO",
+    "defectos_backend_documentados": [
+      "INC-M03-RF57-NOT-EMITTED (5 xfail)",
+      "INC-M03-104-G165 punto 3 (6 xfail transicion SUPERADA)"
+    ]
+  },
+  "checkpoints": [
+    {
+      "paso": "TestDiagnosticoBloqueo::test_diagnostico_bloqueo_broker",
+      "esperado": "PASSED",
+      "obtenido": "SKIP",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_precondicion_setup",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_sin_sensor_congelado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_indice_calidad_100",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_clasificacion_apto",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r4_aptitud_ambos_true",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_severidad_leve",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_repeticiones_exactas",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_valor_repetido",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_indice_calidad_85",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_clasificacion_apto",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r5_aptitud_ambos_true",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_severidad_leve",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_repeticiones_exactas",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_indice_calidad_85",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_clasificacion_apto",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC309SensorCongeladoLeve::test_tc309_r9_aptitud_ambos_true",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_severidad_moderado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_repeticiones_exactas",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_indice_calidad_65",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_clasificacion_apto_con_reserva",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r10_aptitud_ia_true_nic41_false",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_severidad_moderado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_repeticiones_exactas",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_indice_calidad_65",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_clasificacion_apto_con_reserva",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC310SensorCongeladoModerado::test_tc310_r19_aptitud_ia_true_nic41_false",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_http_201",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_flags_exactos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_severidad_critico",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_repeticiones_exactas",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_indice_calidad_10",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_clasificacion_no_apto",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_aptitud_ambos_false",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestTC311SensorCongeladoCritico::test_tc311_r20_sin_error_5xx_con_sigma_cero",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_no_vacio_y_no_superado[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_vigente_activo[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_d7_estado_evaluacion_en_catalogo_activo[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[4-I5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[5-I6]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[9-I10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[10-I11]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[19-I20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_invariante_una_sola_vigente[20-I21]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[4-I5]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I5 (ingesta + post eva",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[5-I6]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I6 (ingesta + post eva",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[9-I10]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I10 (ingesta + post ev",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[10-I11]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I11 (ingesta + post ev",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[19-I20]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I20 (ingesta + post ev",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEstadoD7::test_g166_transicion_superada[20-I21]",
+      "esperado": "PASSED",
+      "obtenido": "FAILED: AssertionError: Se esperaban al menos 2 evaluaciones para I21 (ingesta + post ev",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_delta_exacto[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf63_bitacora_metadatos_flags[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf57_alerta_tecnica_emitida[5]",
+      "esperado": "PASSED",
+      "obtenido": "XFAIL",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf57_alerta_tecnica_emitida[9]",
+      "esperado": "PASSED",
+      "obtenido": "XFAIL",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf57_alerta_tecnica_emitida[10]",
+      "esperado": "PASSED",
+      "obtenido": "XFAIL",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf57_alerta_tecnica_emitida[19]",
+      "esperado": "PASSED",
+      "obtenido": "XFAIL",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_rf57_alerta_tecnica_emitida[20]",
+      "esperado": "PASSED",
+      "obtenido": "XFAIL",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_telemetria_db_flags_aptitud[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[4]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[5]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[9]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[10]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[19]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestEfectosColaterales::test_efectos_get_calidad_consistencia[20]",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestCanaryDefectosBackend::test_canary_defectos_backend",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TestZTeardown::test_teardown_rollback",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

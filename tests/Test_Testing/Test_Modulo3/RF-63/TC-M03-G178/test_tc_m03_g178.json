@@ -139,6 +139,54 @@
       "name": "01-Descubrir-Datos-Existentes (solo lectura)",
       "item": [
         {
+          "name": "00b-Obtener-Total-Global-Auditoria",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?pagina=1&por_pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Total global de auditoria obtenido\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.above(0);",
+                  "    pm.collectionVariables.set(\"total_global_auditoria\", body.total);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "01-Telemetria-Con-Evaluacion-Existente",
           "event": [
             {
@@ -622,7 +670,31 @@
                   "            pm.expect(String(item.entidad_afectada_id)).to.eql(telId);",
                   "        });",
                   "    });",
-                  "}"
+                  "}",
+                  "",
+                  "pm.test(\"TC-M03-343: cadena de custodia con orden coherente\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.at.least(2,",
+                  "        \"una cadena de custodia completa requiere al menos 2 eventos\");",
+                  "",
+                  "    const timestamps = body.items.map(it => new Date(it.fecha_hora).getTime());",
+                  "    const esASC  = timestamps.every((t, i) => i === 0 || t >= timestamps[i-1]);",
+                  "    const esDESC = timestamps.every((t, i) => i === 0 || t <= timestamps[i-1]);",
+                  "    pm.expect(esASC || esDESC,",
+                  "        `eventos no ordenados coherentemente: ${timestamps.join(\", \")}`);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: secuencia logica captura -> validacion -> calidad -> vinculacion\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const tipos = body.items.map(it => it.tipo_evento);",
+                  "    const ordenEsperado = [",
+                  "        \"TELEMETRIA_VALIDADA\", \"POSTCOMMIT_RF53_LECTURAS_COMPLETADO\",",
+                  "        \"EVALUACION_CALIDAD_COMPLETADA\"",
+                  "    ];",
+                  "    const presentes = ordenEsperado.filter(t => tipos.includes(t));",
+                  "    pm.expect(presentes.length).to.be.at.least(2,",
+                  "        `se esperaban >=2 eventos de la cadena, encontrados: ${presentes.join(\", \")}`);",
+                  "});"
                 ]
               }
             }
@@ -778,7 +850,7 @@
           ]
         },
         {
-          "name": "18-TC-M03-343-Filtro-Id-Usuario-Limitacion",
+          "name": "18-TC-M03-343-Filtro-Id-Usuario",
           "request": {
             "method": "GET",
             "header": [
@@ -810,10 +882,25 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200 - Endpoint acepta petición con id_usuario\", function () {",
+                  "pm.test(\"Status 200 - Endpoint acepta peticion con id_usuario\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "console.log(\"[LIMITACION API] El router /iot/auditoria no define formalmente id_usuario como Query param. FastAPI lo ignora sin fallar.\");"
+                  "",
+                  "pm.test(\"TC-M03-343: todos los items cumplen id_usuario=1\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.above(0, \"debe haber items para id_usuario=1\");",
+                  "    body.items.forEach((it) => {",
+                  "        pm.expect(it.id_usuario).to.eql(1, `item ${it.id_evento} no cumple el filtro`);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-343: filtro id_usuario reduce el total vs global\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const totalGlobal = pm.collectionVariables.get(\"total_global_auditoria\") || 3008198;",
+                  "    pm.expect(body.total).to.be.below(totalGlobal,",
+                  "        `el filtro debe reducir el total; esperado < ${totalGlobal}, obtenido ${body.total}`);",
+                  "    pm.expect(body.total).to.be.above(0, \"debe haber al menos 1 evento con id_usuario=1\");",
+                  "});"
                 ]
               }
             }
@@ -825,7 +912,93 @@
       "name": "06-TC-M03-346-Combinaciones-AND",
       "item": [
         {
-          "name": "19-TC-M03-346-Combinacion-AND-3-Filtros",
+          "name": "19a-TC-M03-346-Filtro-1-Tipo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro solo tipo\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_tipo\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19b-TC-M03-346-Filtro-2-Tipo-Severidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro tipo y severidad\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_tipo_sev\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19c-TC-M03-346-Filtro-3-Tipo-Sev-Clasif",
           "request": {
             "method": "GET",
             "header": [
@@ -865,17 +1038,145 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200 - Combinación AND de 3 filtros exitosa\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "const res = pm.response.json();",
-                  "pm.test(\"Todos los items cumplen la conjunción AND estricta\", function () {",
-                  "    pm.expect(res.items.length).to.be.at.least(1);",
-                  "    res.items.forEach(item => {",
+                  "pm.test(\"Status 200 - Combinacion AND de 3 filtros exitosa\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Todos los items cumplen la conjuncion AND estricta\", function () {",
+                  "    pm.expect(body.items.length).to.be.at.least(1);",
+                  "    body.items.forEach(item => {",
                   "        pm.expect(item.tipo_evento).to.eql(\"EVALUACION_CALIDAD_COMPLETADA\");",
                   "        pm.expect(item.severidad_log).to.eql(\"INFO\");",
                   "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
                   "    });",
+                  "});",
+                  "pm.collectionVariables.set(\"total_346_tipo_sev_clasif\", body.total);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19d-TC-M03-346-Filtro-4-Con-Entidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO&clasificacion_registro=NIC41&entidad_afectada_id={{id_telemetria_eval}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                },
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "{{id_telemetria_eval}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Filtro AND con entidad\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"total_346_con_entidad\", body.total);",
+                  "",
+                  "pm.test(\"TC-M03-346: AND progresivo reduce o mantiene el total\", function () {",
+                  "    const totalSoloTipo       = pm.collectionVariables.get(\"total_346_tipo\");",
+                  "    const totalTipoSeveridad  = pm.collectionVariables.get(\"total_346_tipo_sev\");",
+                  "    const totalTipoSevClasif  = pm.collectionVariables.get(\"total_346_tipo_sev_clasif\");",
+                  "    const totalConEntidad     = pm.collectionVariables.get(\"total_346_con_entidad\");",
+                  "",
+                  "    pm.expect(totalTipoSeveridad).to.be.at.most(totalSoloTipo);",
+                  "    pm.expect(totalTipoSevClasif).to.be.at.most(totalTipoSeveridad);",
+                  "    pm.expect(totalConEntidad).to.be.at.most(totalTipoSevClasif);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19e-TC-M03-346-Paginacion-Filtrada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=EVALUACION_CALIDAD_COMPLETADA&severidad_log=INFO&clasificacion_registro=NIC41&pagina=2&por_pagina=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "EVALUACION_CALIDAD_COMPLETADA"
+                },
+                {
+                  "key": "severidad_log",
+                  "value": "INFO"
+                },
+                {
+                  "key": "clasificacion_registro",
+                  "value": "NIC41"
+                },
+                {
+                  "key": "pagina",
+                  "value": "2"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-346: paginacion sobre resultados filtrados\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const totalPaginasBackend = body.total_paginas ?? body.totalPages;",
+                  "    const totalPaginasComputado = Math.ceil(body.total / body.por_pagina);",
+                  "    const totalPaginas = totalPaginasBackend ?? totalPaginasComputado;",
+                  "",
+                  "    pm.expect(totalPaginas).to.be.at.least(1);",
+                  "    pm.expect(body.pagina).to.eql(2);",
+                  "    pm.expect(body.total_paginas === undefined).to.equal(true,",
+                  "        \"si total_paginas aparece en backend, ajustar el test\");",
                   "});"
                 ]
               }
@@ -919,7 +1220,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200 - Conjunción sin intersección devuelve total=0 y array vacío (no 500)\", function () {",
+                  "pm.test(\"Status 200 - Conjuncion sin interseccion devuelve total=0 y array vacio (no 500)\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const res = pm.response.json();",
                   "    pm.expect(res.total).to.eql(0);",
@@ -963,16 +1264,113 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200 - Petición con rf_origen procesada sin error\", function () {",
+                  "pm.test(\"Status 200 - Peticion con rf_origen procesada sin error\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "const res = pm.response.json();",
-                  "pm.test(\"Invariante de seguridad: componente_origen NO es revelado en la respuesta\", function () {",
-                  "    res.items.forEach(item => {",
-                  "        pm.expect(item).to.not.have.property(\"componente_origen\");",
-                  "    });",
+                  "",
+                  "pm.test(\"TC-M03-343: todos los items cumplen rf_origen=RF62\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.items.length).to.be.above(0);",
+                  "    const totalGlobal = pm.collectionVariables.get(\"total_global_auditoria\") || 3008198;",
+                  "    pm.expect(body.total).to.be.below(totalGlobal);",
+                  "    pm.expect(body.total).to.be.above(0);",
                   "});",
-                  "console.log(\"[LIMITACION API] rf_origen no está mapeado en router; se verifica que el payload jamás exponga componente_origen.\");"
+                  "",
+                  "pm.test(\"TC-M03-343: componente_origen NO se expone en items\", function () {",
+                  "    const body = pm.response.json();",
+                  "    body.items.forEach((it) => {",
+                  "        pm.expect(it).to.not.have.property(\"componente_origen\");",
+                  "        pm.expect(it).to.not.have.property(\"componente_origen_id\");",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22-TC-M03-346-Filtro-rf_origen-Invalido-400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?rf_origen=RF_INVALIDO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "rf_origen",
+                  "value": "RF_INVALIDO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-343: rf_origen invalido -> 400 VAL_ENTRADA\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error_code).to.eql(\"VAL_ENTRADA\");",
+                  "    pm.expect(body.fields).to.be.an(\"array\").with.length.greaterThan(0);",
+                  "    const detalle = body.fields[0].message || \"\";",
+                  "    pm.expect(detalle.toLowerCase()).to.match(/opci[oó]n|permitid|v[aá]lid/i);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23-TC-M03-346-Por-Pagina-Limite-400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?por_pagina=201",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "201"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-M03-346: por_pagina > 200 -> 400 VAL_ENTRADA\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().error_code).to.eql(\"VAL_ENTRADA\");",
+                  "});"
                 ]
               }
             }

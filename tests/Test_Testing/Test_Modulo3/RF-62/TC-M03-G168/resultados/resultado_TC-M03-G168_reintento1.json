@@ -1,0 +1,68 @@
+{
+  "tc": "TC-M03-G168",
+  "intento": "reintento1",
+  "fecha": "2026-10-28T21:36:20Z",
+  "ambiente": "TEST",
+  "resultado": "RECHAZADO",
+  "causa_raiz": "POST /iot/telemetria/batch y POST /iot/telemetria (individual) rechazan todas las lecturas con 'Dispositivo o sensor no encontrado o inactivo' a pesar de que los sensores fueron creados (201) y asociados (201) segundos antes bajo el mismo X-Test-Run-Id. El batch retorna HTTP 200 silencioso con aceptados=0, rechazados=20. El individual retorna 401. Cascada: /evaluar recibe tel_id vacío y responde 405.",
+  "inc_asociado": "INC-M03-G168-BROKER-ISOLATION (nuevo)",
+  "inc_descartado": "INC-M03-123-G167 (sensor creation 500) — RESUELTO, los 10 sensores se crearon con 201",
+  "summary": {
+    "total_assertions_newman": 65,
+    "passed": 43,
+    "failed": 22,
+    "ok_checkpoints": 3,
+    "falla_checkpoints": 3
+  },
+  "checkpoints": [
+    {
+      "id": "CP-01",
+      "paso": "Preflight admin (login + discover tipos + finca + area + device + sensor + asociacion, 8 requests)",
+      "esperado": "200/201 en los 8 requests",
+      "obtenido": "8/8 OK (200/201)",
+      "estado": "OK"
+    },
+    {
+      "id": "CP-02",
+      "paso": "Crear sensor via POST /configuracion/dispositivos-iot/{id}/sensores (10 subcasos)",
+      "esperado": "201 Created en los 10",
+      "obtenido": "10/10 OK (201 Created, id_sensores 1029-1038)",
+      "estado": "OK"
+    },
+    {
+      "id": "CP-03",
+      "paso": "Asociar sensor a infraestructura (10 subcasos)",
+      "esperado": "201 Created en los 10",
+      "obtenido": "10/10 OK (201, tiene_estado=true)",
+      "estado": "OK"
+    },
+    {
+      "id": "CP-04",
+      "paso": "Batch ingestion POST /iot/telemetria/batch con broker token (20 lecturas x 7 subcasos)",
+      "esperado": "HTTP 200 + aceptados=20, rechazados=0",
+      "obtenido": "HTTP 200 + aceptados=0, rechazados=20 ('Dispositivo o sensor no encontrado o inactivo')",
+      "estado": "FALLA"
+    },
+    {
+      "id": "CP-05",
+      "paso": "Ingesta individual POST /iot/telemetria de la lectura a evaluar",
+      "esperado": "201 Created con id_telemetria",
+      "obtenido": "401 ERROR_AUTENTICACION ('Dispositivo o sensor no encontrado o inactivo')",
+      "estado": "FALLA"
+    },
+    {
+      "id": "CP-06",
+      "paso": "Evaluar calidad POST /iot/calidad/{tel_id}/evaluar (4 subcasos x 2 variantes)",
+      "esperado": "201 Created con indice_calidad, flags y clasificacion",
+      "obtenido": "405 Method Not Allowed (tel_id vacio por fallo de CP-05)",
+      "estado": "FALLA"
+    },
+    {
+      "id": "CP-07",
+      "paso": "Teardown DELETE /test-control/runs/{run_id}",
+      "esperado": "200 Rollback exitoso, 0 contaminacion",
+      "obtenido": "200 Rollback exitoso",
+      "estado": "OK"
+    }
+  ]
+}

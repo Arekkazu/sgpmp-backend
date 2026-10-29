@@ -1,0 +1,149 @@
+{
+  "tc": "TC-M03-G179",
+  "summary": {
+    "total": 23,
+    "ok": 23,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "Status 200 - Login exitoso de ADMIN",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro clasificacion_registro=NIC41 exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los eventos clasificados NIC41 tienen retencion_aplicable=5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "RF-63 Restricción 4.4: componente_origen no expuesto",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Filtro clasificacion_registro=TECNICO exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Todos los eventos clasificados TECNICO tienen retencion_aplicable=1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos incompletos obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M03-342: existe al menos 1 evento incompleto NIC41/5 (E8 post-fix)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M03-342: históricos pre-fix conservan TECNICO/1 (inmutabilidad)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos EVALUACION_CALIDAD_COMPLETADA obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "RF-62 (EVALUACION_CALIDAD_COMPLETADA) clasifica como NIC41 con retención 5 años",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos REEVALUACION_CALIDAD_SOLICITADA obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "RF-62 (REEVALUACION_CALIDAD_SOLICITADA) clasifica como NIC41 con retención 5 años",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos PAQUETE_INFERENCIA_GENERADO obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M03-344: PAQUETE_INFERENCIA_GENERADO (RF-56) → NIC41/5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos VINCULACION_AUTOMATICA obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M03-344: VINCULACION_AUTOMATICA (RF-61) → NIC41/5",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos DESVIACION_DETECTADA obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M03-345: DESVIACION_DETECTADA (RF-55) → TECNICO/1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Eventos TRANSICION_MANTENIMIENTO_MANUAL obtenidos",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "RF-60 (TRANSICION_MANTENIMIENTO_MANUAL) clasifica como TECNICO con retención 1 año",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Verificación de que eventos técnicos en sandbox cumplen retención de 1 año",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "Status 200 - Rollback exitoso",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}
