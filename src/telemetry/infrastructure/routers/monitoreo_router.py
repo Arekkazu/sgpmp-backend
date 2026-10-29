@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: 422 en E2, varias variables, activo, alertas y series |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: aviso E7 en segundo plano; el dashboard no espera al SMTP |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -24,7 +25,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
@@ -40,7 +41,7 @@ from src.telemetry.application.use_cases.monitoreo.consultar_historial_use_case 
 from src.telemetry.application.use_cases.monitoreo.obtener_dashboard_use_case import ObtenerDashboardUseCase
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen
 from src.telemetry.domain.entities.monitoreo import FiltrosHistorial
-from src.telemetry.infrastructure.adapters.aviso_sin_umbral_email_adapter import AvisoSinUmbralEmailAdapter
+from src.telemetry.infrastructure.adapters.aviso_sin_umbral_background_adapter import AvisoSinUmbralBackgroundAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.rbac_auditoria import require_permission_auditado
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
@@ -90,6 +91,7 @@ _RECURSO_DATOS_TECNICOS = 'datos_tecnicos_dashboard'
     summary="Dashboard de monitoreo en tiempo real — todas las unidades (RF-58)",
 )
 def obtener_dashboard(
+    background_tasks: BackgroundTasks,
     id_infraestructura: Optional[int] = Query(default=None, description="Filtrar por unidad productiva"),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=50, description="Máximo 50 sensores por vista (FA-07)"),
@@ -98,7 +100,8 @@ def obtener_dashboard(
 ) -> DashboardResponseSchema:
     use_case = ObtenerDashboardUseCase(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
-        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+        # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
+        aviso_sin_umbral=AvisoSinUmbralBackgroundAdapter(background_tasks),
     )
     ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
@@ -132,6 +135,7 @@ def obtener_dashboard(
 )
 def obtener_dashboard_por_unidad(
     id_infraestructura: int,
+    background_tasks: BackgroundTasks,
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -139,7 +143,8 @@ def obtener_dashboard_por_unidad(
 ) -> DashboardResponseSchema:
     use_case = ObtenerDashboardUseCase(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
-        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+        # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
+        aviso_sin_umbral=AvisoSinUmbralBackgroundAdapter(background_tasks),
     )
     ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
