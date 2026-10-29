@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: indicadores de estado del sistema de alertas |
+# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
 """Indicadores de estado del sistema de alertas (RF-57, Salida 3).
 
 Solo alertas operativas (las técnicas son de RF-60). "Abiertas" son las que siguen en el
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 ESTADOS_ABIERTOS = ('ACTIVA', 'EN_ATENCION')
@@ -23,6 +25,22 @@ class FiltroIndicadoresAlertas:
     ids_fincas_permitidas: Optional[list[int]] = None
     fecha_desde: Optional[datetime] = None
     fecha_hasta: Optional[datetime] = None
+
+
+@dataclass
+class AlertaActivaPanel:
+    """RF-58 CU04 salida 2 / CA-11: una alerta ACTIVA del panel integrado del dashboard."""
+    id_alerta: int
+    tipo_alerta: str
+    severidad: Optional[str]
+    tipo_variable: Optional[str]
+    valor: Optional[Decimal]
+    unidad: Optional[str]
+    fecha_generacion: datetime
+    minutos_transcurridos: int
+    id_infraestructura: Optional[int]
+    id_activo_biologico: Optional[int]
+    identificador_activo: Optional[str]
 
 
 @dataclass

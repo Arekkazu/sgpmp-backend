@@ -5,6 +5,7 @@
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: conservar la referencia válida y adaptar la condición posterior al permiso técnico. |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
+# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 from __future__ import annotations
 
 import logging
@@ -17,7 +18,7 @@ from src.telemetry.domain.entities.monitoreo import (
     SemaforoBaseSensor,
     SemaforoCalculator,
 )
-from src.telemetry.domain.entities.indicadores_alertas import FiltroIndicadoresAlertas
+from src.telemetry.domain.entities.indicadores_alertas import AlertaActivaPanel, FiltroIndicadoresAlertas
 from src.telemetry.domain.repositories.aviso_sin_umbral_port import AvisoSinUmbralPort
 from src.telemetry.domain.repositories.indicadores_alertas_repository import IndicadoresAlertasRepository
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
@@ -139,6 +140,21 @@ class ObtenerDashboardUseCase:
             id_infraestructura=id_infraestructura,
             ids_fincas_permitidas=ids_fincas_permitidas,
         ))
+
+    def panel_alertas_activas(
+        self,
+        id_infraestructura: Optional[int],
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+        limite: int = 50,
+    ) -> tuple[list[AlertaActivaPanel], int]:
+        """RF-58 CU04 salida 2 / CA-11: alertas ACTIVA de RF-57, CRITICO primero, con su total."""
+        if self.indicadores_alertas is None:
+            return [], 0
+        return self.indicadores_alertas.listar_activas(FiltroIndicadoresAlertas(
+            id_infraestructura=id_infraestructura,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        ), limite)
 
     @staticmethod
     def _calcular_semaforo_efectivo(sensor: EstadoSensorActual | SemaforoBaseSensor) -> str:

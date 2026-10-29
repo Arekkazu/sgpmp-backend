@@ -1,12 +1,17 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: indicadores del sistema de alertas en SQL agregado |
+# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
 from __future__ import annotations
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.telemetry.domain.entities.indicadores_alertas import FiltroIndicadoresAlertas, IndicadoresAlertas
+from src.telemetry.domain.entities.indicadores_alertas import (
+    AlertaActivaPanel,
+    FiltroIndicadoresAlertas,
+    IndicadoresAlertas,
+)
 from src.telemetry.domain.repositories.indicadores_alertas_repository import IndicadoresAlertasRepository
 
 # Mismo alcance que GET /iot/alertas: operativas, del área pedida y de las fincas del
@@ -58,6 +63,23 @@ SELECT count(*) FROM cerradas WHERE estado_alerta::text = 'VENCIDA' AND fecha_at
 """)
 
 
+# RF-58 CA-11: solo ACTIVA; CRITICO > MODERADO > LEVE y, dentro de cada una, la más reciente.
+_SQL_ACTIVAS = text(_ALCANCE + """
+SELECT al.id_alerta, al.tipo_alerta::text AS tipo_alerta, al.severidad::text AS severidad,
+       al.tipo_variable, al.valor, al.unidad, al.fecha_generacion,
+       floor(extract(epoch FROM now() - al.fecha_generacion) / 60)::int AS minutos_transcurridos,
+       COALESCE(al.id_infraestructura, ab.id_infraestructura) AS id_infraestructura,
+       al.id_activo_biologico, ab.identificador AS identificador_activo,
+       count(*) OVER () AS total
+FROM alcance al
+LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = al.id_activo_biologico
+WHERE al.estado_alerta::text = 'ACTIVA'
+ORDER BY CASE al.severidad::text WHEN 'CRITICO' THEN 1 WHEN 'MODERADO' THEN 2 WHEN 'LEVE' THEN 3 ELSE 4 END,
+         al.fecha_generacion DESC
+LIMIT :limite
+""")
+
+
 class SqlAlchemyIndicadoresAlertasRepository(IndicadoresAlertasRepository):
 
     def __init__(self, db: Session) -> None:
@@ -91,3 +113,8 @@ class SqlAlchemyIndicadoresAlertasRepository(IndicadoresAlertasRepository):
 
     def contar_vencidas_sin_atencion(self, filtro: FiltroIndicadoresAlertas) -> int:
         return self.db.execute(_SQL_VENCIDAS, self._parametros(filtro)).scalar_one()
+
+    def listar_activas(self, filtro: FiltroIndicadoresAlertas, limite: int) -> tuple[list[AlertaActivaPanel], int]:
+        filas = self.db.execute(_SQL_ACTIVAS, {**self._parametros(filtro), 'limite': limite}).mappings().all()
+        total = filas[0]['total'] if filas else 0
+        return [AlertaActivaPanel(**{k: v for k, v in f.items() if k != 'total'}) for f in filas], total
