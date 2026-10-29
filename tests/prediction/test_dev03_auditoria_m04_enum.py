@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: probar fallo de persistencia con referencia valida y conservar E1. |
 """DEV-03 (RF-67/70/73): la auditoría M04 solo emite valores que existen en sus enums.
 
 Cinco use cases emitían ``tipo_evento`` fuera de ``enum_tipo_evento_auditoria_m04``
@@ -201,7 +202,7 @@ def test_flush_fallido_se_propaga_como_500():
     with pytest.raises(InfrastructureError) as exc:
         repo.registrar(
             tipo_evento="HISTORIAL_CONSULTADO", tipo_actor="USUARIO", id_usuario=1,
-            payload_evento={"consulta": "OTA_STATUS"},
+            id_referencia="consulta-ota", payload_evento={"consulta": "OTA_STATUS"},
         )
     assert exc.value.code == "AUDITORIA_M04_NO_PERSISTIDA"
     assert isinstance(exc.value.__cause__, RuntimeError)

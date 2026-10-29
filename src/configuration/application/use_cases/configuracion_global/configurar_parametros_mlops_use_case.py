@@ -3,11 +3,14 @@
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: valida los umbrales de tormenta (E8) |
 # | 2026-10-21 | Leandro | DEV-27 RF-60: valida parametros y siembra idempotente |
 # | 2026-10-22 | Leandro | DEV-28 RF-62: valida snapshot de pesos y tramos de vision |
+# | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: valida el umbral mínimo de confianza de IA |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: valida la ventana de reevaluación |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: valida la ventana de deduplicación y los plazos SLA |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
 from src.configuration.domain.entities.parametro_mlops import (
-    PARAMETROS_CALIDAD, RF57_CONFIANZA, RF57_TORMENTA_SISTEMA, RF57_TORMENTA_UNIDAD, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
+    PARAMETROS_CALIDAD, RF57_CONFIANZA, RF57_CONFIANZA_MINIMA, RF57_SLA_BASE, RF57_TORMENTA_SISTEMA, RF57_VENTANA_DEDUPLICACION, RF57_VENTANA_REEVALUACION, RF57_TORMENTA_UNIDAD, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
     RF72_VENTANA, ParametroMLOps, calidad_configurada, numero_configurado,
 )
 from src.shared.errors import ServiceUnavailableError, ValidationError
@@ -20,6 +23,10 @@ _LIMITES = {
     RF62_K: (0, None), RF62_M: (1, None), RF62_N: (2, None),
     RF62_DRIFT: (0, None), RF62_P: (1, None),
     RF57_CONFIANZA: (Decimal('0.70'), Decimal('0.95')),
+    RF57_CONFIANZA_MINIMA: (Decimal('0'), Decimal('1')),
+    RF57_VENTANA_REEVALUACION: (1, None),
+    RF57_VENTANA_DEDUPLICACION: (1, None),
+    **{nombre: (1, None) for nombre in RF57_SLA_BASE},
     RF57_TORMENTA_SISTEMA: (1, None), RF57_TORMENTA_UNIDAD: (1, None),
     RF72_VENTANA: (7, 365),
     **LIMITES_HEARTBEAT,
@@ -56,6 +63,13 @@ class ConfigurarParametrosMLOpsUseCase:
                 calidad_configurada(actuales | nuevos)
             if RF57_CONFIANZA in nuevos:
                 numero_configurado(nuevos, RF57_CONFIANZA, minimo='0.70', maximo='0.95')
+            if RF57_CONFIANZA_MINIMA in nuevos:
+                numero_configurado(nuevos, RF57_CONFIANZA_MINIMA, minimo=0, maximo=1)
+            if RF57_VENTANA_REEVALUACION in nuevos:
+                numero_configurado(nuevos, RF57_VENTANA_REEVALUACION, minimo=1, entero=True)
+            for nombre in (RF57_VENTANA_DEDUPLICACION, *RF57_SLA_BASE):
+                if nombre in nuevos:
+                    numero_configurado(nuevos, nombre, minimo=1, entero=True)
             for nombre in (RF57_TORMENTA_SISTEMA, RF57_TORMENTA_UNIDAD):
                 if nombre in nuevos:
                     numero_configurado(nuevos, nombre, minimo=1, entero=True)

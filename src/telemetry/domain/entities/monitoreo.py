@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones R12, varias variables, activo, alertas y series |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: distinguir calidad del valor operativo y momento de la condición actual. |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -47,6 +48,19 @@ class EstadoSensorActual:
     indicador_anomalia: bool = False    # FUERA_DE_RANGO / ERROR_CALIBRACION
     es_valor_operativo: bool = True     # Describe el valor mostrado, no la condición posterior.
     etiqueta_estado: Optional[str] = None  # "Sin umbral configurado", "Requiere calibración"...
+
+
+@dataclass(frozen=True)
+class SemaforoBaseSensor:
+    """G57B: lo que necesita el semáforo efectivo de un sensor, sin lecturas ni contexto.
+
+    El conteo del semáforo (M3-08) cubre todo el alcance; traer ``EstadoSensorActual``
+    completo de cada sensor solo para contar repetía la consulta pesada del dashboard.
+    """
+    estado_semaforo: Optional[str]
+    dato_desactualizado: bool
+    id_alerta: Optional[int]
+    severidad_alerta: Optional[str]
 
 
 @dataclass

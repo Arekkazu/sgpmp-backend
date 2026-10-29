@@ -1,7 +1,11 @@
-"""Caso de uso: aviso de buffer del Gateway Edge (RF-54 E1/E6 → RF-60 + RF-63, D10 de AIOT-DEV-03).
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-129-G27 RF-54/60/63: crear y escalar el aviso de capacidad bajo bloqueo conservando la alerta y sus contratos. |
+"""Caso de uso: aviso de buffer del Gateway Edge (RF-54 Fase 4/E1/E6 → RF-60 + RF-63, D10 de AIOT-DEV-03).
 
 El Edge avisa por MQTT (``status`` con ``tipo_mensaje = EVENTO_BUFFER``) que su
-buffer desbordó (``BUFFER_OVERFLOW``) o que aisló datos corruptos
+buffer alcanzó una ocupación de advertencia (``BUFFER_CAPACITY_WARNING``),
+desbordó (``BUFFER_OVERFLOW``) o que aisló datos corruptos
 (``BUFFER_DATA_CORRUPTION``). El broker reenvía el aviso y aquí se convierte en
 una alerta técnica de RF-60, que solo ven los roles con el recurso de alertas
 técnicas (el Ingeniero, no el Productor), y en un evento de auditoría de RF-63.
@@ -22,7 +26,7 @@ from src.shared.errors import NotFoundError
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
     RegistrarEventoAuditoriaIotUseCase,
 )
-from src.telemetry.domain.entities.alerta import Alerta
+from src.telemetry.domain.entities.alerta import Alerta, SeveridadAlerta
 from src.telemetry.domain.entities.evento_auditoria_iot import (
     ComponenteOrigen,
     EntidadAfectadaTipo,
@@ -36,9 +40,18 @@ from src.telemetry.infrastructure.dto.evento_buffer_dto import EventoBuffer, Rec
 
 # Un overflow pierde datos nuevos o sobrescribe viejos según la política; una
 # corrupción exige intervención técnica (RF-54 E6), por eso pesa más.
-_SEVERIDAD = {EventoBuffer.BUFFER_OVERFLOW: 'MODERADO', EventoBuffer.BUFFER_DATA_CORRUPTION: 'CRITICO'}
-_SEVERIDAD_LOG = {EventoBuffer.BUFFER_OVERFLOW: SeveridadLog.WARNING, EventoBuffer.BUFFER_DATA_CORRUPTION: SeveridadLog.ERROR}
+_SEVERIDAD = {
+    EventoBuffer.BUFFER_CAPACITY_WARNING: 'LEVE',
+    EventoBuffer.BUFFER_OVERFLOW: 'MODERADO',
+    EventoBuffer.BUFFER_DATA_CORRUPTION: 'CRITICO',
+}
+_SEVERIDAD_LOG = {
+    EventoBuffer.BUFFER_CAPACITY_WARNING: SeveridadLog.WARNING,
+    EventoBuffer.BUFFER_OVERFLOW: SeveridadLog.WARNING,
+    EventoBuffer.BUFFER_DATA_CORRUPTION: SeveridadLog.ERROR,
+}
 _ACCION_SUGERIDA = {
+    EventoBuffer.BUFFER_CAPACITY_WARNING: 'Revisar la conectividad y sincronizar el buffer antes de agotar su capacidad.',
     EventoBuffer.BUFFER_OVERFLOW: 'Revisar la conectividad del Gateway Edge y su capacidad de buffer.',
     EventoBuffer.BUFFER_DATA_CORRUPTION: 'Revisar el almacenamiento del Gateway Edge: los datos corruptos no se sincronizan.',
 }
@@ -82,6 +95,11 @@ class RegistrarEventoBufferUseCase:
         ahora = datetime.now(timezone.utc)
         fecha_evento = _utc(dto.timestamp_evento)
         tipo = dto.evento.value
+        es_capacidad = dto.evento == EventoBuffer.BUFFER_CAPACITY_WARNING
+        severidad = _SEVERIDAD[dto.evento]
+        # RF-54 permite configurar el aviso en Edge; no se impone otro mínimo al recibirlo.
+        if es_capacidad and dto.porcentaje_ocupacion >= 95:
+            severidad = 'CRITICO'
         detalle = {
             'serial': dto.serial,
             'evento': tipo,
@@ -92,14 +110,27 @@ class RegistrarEventoBufferUseCase:
         }
 
         try:
+            self.alerta_repo.bloquear_dispositivo(dispositivo.id_dispositivo_iot)
             abierta = self.alerta_repo.buscar_tecnica_abierta(dispositivo.id_dispositivo_iot, tipo)
             if abierta is not None:
-                self.alerta_repo.actualizar_deduplicacion(abierta.id_alerta, ultima_ocurrencia=fecha_evento)
+                ultima_ocurrencia = fecha_evento
+                nueva_severidad = None
+                if es_capacidad:
+                    if SeveridadAlerta(severidad) > SeveridadAlerta(abierta.severidad):
+                        nueva_severidad = severidad
+                    if abierta.ultima_ocurrencia is not None:
+                        ultima_ocurrencia = max(ultima_ocurrencia, _utc(abierta.ultima_ocurrencia))
+                if nueva_severidad is None:
+                    self.alerta_repo.actualizar_deduplicacion(abierta.id_alerta, ultima_ocurrencia=ultima_ocurrencia)
+                else:
+                    self.alerta_repo.actualizar_deduplicacion(abierta.id_alerta,
+                        ultima_ocurrencia=ultima_ocurrencia, nueva_severidad=nueva_severidad)
+                    abierta.severidad = nueva_severidad
                 alerta = abierta
             else:
                 alerta = self.alerta_repo.guardar(Alerta(
                     tipo_alerta='TECNICA',
-                    severidad=_SEVERIDAD[dto.evento],
+                    severidad=severidad,
                     estado_alerta='ACTIVA',
                     origen_evento='EDGE',
                     tipo_variable=tipo,
@@ -122,11 +153,13 @@ class RegistrarEventoBufferUseCase:
             tipo_evento=tipo,
             resultado=TipoResultado.ADVERTENCIA,
             componente_origen=ComponenteOrigen.RF54,
-            severidad_log=_SEVERIDAD_LOG[dto.evento],
+            severidad_log=(SeveridadLog.ERROR if es_capacidad and severidad == 'CRITICO'
+                           else _SEVERIDAD_LOG[dto.evento]),
             descripcion=self._diagnostico(dto),
             entidad_afectada_tipo=EntidadAfectadaTipo.BUFFER,
             entidad_afectada_id=str(dispositivo.id_dispositivo_iot),
-            accion_detallada={**detalle, 'id_alerta': alerta.id_alerta, 'es_duplicado': abierta is not None},
+            accion_detallada={**detalle, 'id_alerta': alerta.id_alerta, 'es_duplicado': abierta is not None,
+                             **({'severidad_alerta': alerta.severidad} if es_capacidad else {})},
         )
 
         return ResultadoEventoBuffer(

@@ -7,6 +7,9 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: contrato de bateria unica y recuperacion |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-06/M3-08 RF-57: ubicación con nombres y filtro por fecha de resolución |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: buscar y consolidar la compuesta abierta del área |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: alerta generada por reevaluación de otra |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,6 +20,23 @@ from src.telemetry.domain.entities.alerta import Alerta
 
 
 class AlertaRepository(ABC):
+    def buscar_compuesta_activa(self, tipo_alerta: str, id_infraestructura: int, ventana_min: int):
+        """E14: alerta compuesta abierta del mismo tipo en el área, bloqueada para consolidar."""
+        raise NotImplementedError
+
+    def consolidar_compuesta(self, id_alerta: int, ultima_ocurrencia, reglas_nuevas: list,
+                             nueva_severidad, correlacion: dict) -> None:
+        """E14: suma la ocurrencia y agrega las reglas simples nuevas a la alerta compuesta."""
+        raise NotImplementedError
+
+    def buscar_reevaluacion(self, id_alerta_original: int):
+        """E16: alerta ya generada por reevaluación de ``id_alerta_original`` (bloqueada), o ``None``."""
+        raise NotImplementedError
+
+    def contexto_incompleto_avisado_desde(self, id_sensor: int, desde: datetime, antes_de: datetime) -> bool:
+        """E6: otra alerta sin contexto del mismo sensor se notificó en [desde, antes_de)."""
+        raise NotImplementedError
+
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
         raise NotImplementedError

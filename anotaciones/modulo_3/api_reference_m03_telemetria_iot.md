@@ -140,6 +140,30 @@ del dispositivo, solo que con un mecanismo distinto al JWT humano. Visión tambi
 > SQL requiere DB-02. Ver [diagnóstico y validación DEV-05](dev05_ingesta_bplus_postcommit.md).
 
 
+> **INC-M03-130-G16 / #685 — RF-53 y RF-62.** La ingesta marca
+> `frecuencia_anomala` para un intervalo al vecino cronológico más cercano
+> menor que 0,5 o mayor que 2 veces el muestreo configurado en M09; la primera
+> lectura no se marca sin un vecino. Se conserva `frecuencia_muestreo_min`
+> como snapshot del valor aplicado al insertar. La marca no rechaza la lectura
+> ni modifica lecturas previas; `EVENTO_EDGE` no es periódico.
+> El drift se consulta en `flags_detectados.posible_drift` de la evaluación
+> vigente mediante `GET /iot/calidad/{id_telemetria}`. El campo inicial
+> `telemetrias.posible_drift` no representa el resultado posterior de RF-62.
+> Un `201` de ingesta puede preceder a la evaluación; no certifica ausencia
+> de drift. Sin cambios en DTOs, respuestas, credenciales ni RBAC.
+> Requiere la migración `c685130a0260`; ver el
+> [diagnóstico de #685](inc_m03_130_g16_rf53_marcas_calidad.md).
+
+> **INC-M03-131-G23 / #686 — Secuencia del buffer RF-54.**
+> `POST /iot/telemetria` y cada registro de `/iot/telemetria/batch` admiten
+> `buffer_sequence_id` opcional: entero JSON no negativo de 64 bits con signo.
+> Se conserva exactamente en `telemetrias.metadatos.buffer_sequence_id`.
+> Si se omite o llega null, no se genera ni se añade una secuencia.
+> No cambia la respuesta, la clave de deduplicación ni el orden cronológico
+> existente del batch. El broker debe reenviarla en `p_metadatos` de la función
+> común de 19 entradas. Ver el
+> [contrato de integración](inc_m03_131_g23_rf54_integracion_iot.md).
+
 | Método | Ruta | Auth | Use Case |
 |--------|------|------|----------|
 | `POST` | `/` | Broker (token de servicio) | `IngerirTelemetriaUseCase` |
@@ -192,6 +216,7 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `ventana_agregacion` | `int \| None` | `> 0` |
 | `latitud` / `longitud` | `Decimal \| None` | Opcional |
 | `estado_conectividad` | `bool \| None` | Opcional |
+| `reloj_sincronizado` | `bool \| None` | Opcional; booleano estricto. Señal del reloj al capturar; prevalece sobre el heartbeat (INC-M03-132-G30, 2026-10-27). |
 | `nivel_bateria` | `Decimal \| None` | `0–100` |
 | `calidad_senal_rssi` / `calidad_senal_snr` | `Decimal \| None` | Opcional |
 | `checksum` | `str \| None` | Opcional |
@@ -207,6 +232,17 @@ esta implementación como soporte completo de AIOT-SPEC-01; ver
 | `latencia_procesamiento_ms` | `int \| None` |
 
 ---
+
+**Reloj — RF-54 E9 / #687 (2026-10-27):** la función común de ingesta escribe
+`telemetrias.reloj_desincronizado` antes del INSERT. Si falta la señal por lectura
+o llega en null, utiliza el último heartbeat recibido del mismo dispositivo. El
+snapshot `metadatos.rf53_reloj` registra la fuente, el heartbeat usado y el código
+`TIME_DESYNC` cuando corresponde. En datos del buffer, el fallback acredita el
+estado conocido al ingerir; no reconstruye el reloj al capturar. Sin evidencia,
+la señal queda desconocida y no se inventa un estado sincronizado. Los rechazos
+existentes de timestamps futuros y buffer mayor de 72 horas se mantienen.
+La misma entrada opcional aplica a cada registro del lote. Ver
+[integración IoT de #687](inc_m03_132_g30_rf54_integracion_iot.md).
 
 #### `POST /iot/telemetria/batch` — Sincronización de buffer (RF-53 Flujo C, máx. 500)
 
@@ -395,6 +431,7 @@ GET histórico ni demuestra su generación en el firmware Edge.
 | Método | Ruta | Auth | Recurso RBAC | Roles autorizados | Use Case |
 |--------|------|------|--------------|--------------------|----------|
 | `POST` | `/heartbeat` | Broker (token de servicio) | — | — | `RecibirHeartbeatUseCase` |
+| `GET` | `/dispositivos/{id_dispositivo_iot}/buffer` | JWT + RBAC `(35, R)` | 35 | Según permisos vigentes y finca | `ConsultarEstadoBufferUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/estado` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | `ObtenerEstadoDispositivoUseCase` |
 | `GET` | `/dispositivos/{id_dispositivo_iot}/historial` | JWT + RBAC `(35, R)` | 35 | Admin, Prod, Vet, Ing | *(sin use case — llama al repositorio directo desde el router)* |
 | `PATCH` | `/dispositivos/{id_dispositivo_iot}/mantenimiento` | JWT + RBAC `(35, U)` | 35 | **Solo Admin, Ing** | `AplicarMantenimientoDispositivoUseCase` |
@@ -438,6 +475,7 @@ GET histórico ni demuestra su generación en el firmware Edge.
 | `calidad_senal_rssi` / `calidad_senal_snr` | `Decimal \| None` | Opcional |
 | `estado_local_buffer` | `str \| None` | Máx. 1 char — `'I'`=INACTIVO, `'A'`=ACTIVO, `'L'`=LLENO |
 | `datos_pendientes_buffer` | `int` | Default `0`, `≥ 0` |
+| `metricas_buffer` | `object \| None` | Opcional (#681, RF-54): capacidades total/utilizada en la misma unidad, último timestamp pendiente y política. Columna `json_metricas_buffer`, revisión `b68127f54a01` |
 | `version_firmware` | `str \| None` | Máx. 50 chars |
 | `coordenadas` | `Any \| None` | Opcional |
 | `fecha_registro` | `datetime` | — |
@@ -457,7 +495,53 @@ ficticia. Requiere desplegar previamente DB-03 `65541db23c71`.
 
 ---
 
+**INC-M03-127-G27 (#682):** `A`/`L` con pendientes prioriza `BUFFER_ACTIVO` sobre el contacto reciente. Un ciclo periódico o postcommit sin un reporte nuevo no acredita vaciado. Un reporte posterior con cero pendientes permite volver a `ACTIVO` si el contacto es reciente. `EN_MANTENIMIENTO` conserva su prioridad. Se requiere desplegar la aplicación y la revisión `c68227f60a01` que alinea el trigger y el procedimiento SQL; no cambia el contrato del heartbeat.
+
+[Diagnóstico, decisión RF-60 y pruebas](inc_m03_127_g27_rf60_buffer_activo.md).
+
+---
+
+#### `GET /iot/dispositivos/{id_dispositivo_iot}/buffer` — Último estado reportado del buffer (RF-54, #681)
+
+**Acceso:** JWT + `infraestructura_iot · Leer` (35/2), con alcance por finca.
+
+**Respuesta:** `capacidad_total`, `capacidad_utilizada`, `porcentaje_ocupacion`, `datos_pendientes`, `ultimo_timestamp_pendiente`, `estado_buffer` y `politica_buffer_activa`; además `id_dispositivo_iot`, `id_heartbeat`, `fecha_reporte`, `fecha_recepcion`, `estado_local_buffer` y `metricas_disponibles`.
+
+Clasificación: `NORMAL` <80 %, `WARNING` ≥80 %, `CRITICO` ≥95 %. Las métricas pertenecen al último heartbeat por recepción e ID; los datos desconocidos son `null`, sin representar un buffer vacío o normal. Un heartbeat legacy más reciente no hereda las métricas de uno anterior. Decimal se serializa como cadena.
+
+El bloque opcional `metricas_buffer` del heartbeat contiene capacidades, timestamp y política; la cantidad pendiente conserva su campo superior `datos_pendientes_buffer`. El broker debe ampliar su INSERT directo y el firmware debe medir y reportar el bloque. No se reconstruye el buffer Edge ni se restaura `modulo3.buffers`.
+
+**Errores:** 400 VAL_ENTRADA para entrada inválida, 401 sin JWT válido, 403 sin permiso y 404 DISPOSITIVO_NO_ENCONTRADO para inexistente/fuera de finca. Requiere migrar `b68127f54a01` antes de desplegar el código.
+
+[Contrato e integración IoT](inc_m03_126_g27_rf54_estado_buffer.md).
+
+---
+
+#### `POST /iot/eventos-buffer` — Aviso técnico de buffer (RF-54 → RF-60/RF-63)
+
+**Auth:** token de servicio del broker. El nodo publica `EVENTO_BUFFER` por `sgpmp/<serial>/status`; el broker añade el serial y reenvía el aviso.
+
+**Body:** `serial`, `evento`, `porcentaje_ocupacion` (finito, 0–100), `cantidad_datos_afectados` (≥0), `timestamp_evento`; `politica_aplicada` es opcional.
+
+| Evento | Severidad |
+|---|---|
+| `BUFFER_CAPACITY_WARNING` | `LEVE`; desde 95 % `CRITICO` |
+| `BUFFER_OVERFLOW` | `MODERADO` |
+| `BUFFER_DATA_CORRUPTION` | `CRITICO` |
+
+**#684, ampliación de D10 confirmada:** el aviso de capacidad se emite en Edge según su umbral configurable (ej. 80 %). Una alerta `ACTIVA`/`EN_ATENCION` del mismo tipo/dispositivo se consolida, incrementa su frecuencia y conserva la severidad máxima. Un reporte posterior al 95 % escala el mismo ID. Los metadatos de la alerta conservan la primera ocurrencia; RF-63 conserva el detalle de cada aviso bajo el comportamiento best-effort existente.
+
+**HTTP 201:** `id_alerta`, `es_duplicado`, `tipo_alerta_tecnica`, `severidad`. Se conservan los errores vigentes de autenticación, validación y serial no encontrado.
+
+La alerta se consulta mediante `GET /iot/alertas-tecnicas`, con JWT, permiso 36/Leer y alcance por finca. El Productor no accede a esa bandeja. La integración requiere que firmware/broker envíen el nuevo evento; un porcentaje aislado en el heartbeat no ejecuta este flujo.
+
+[Diagnóstico y pruebas](inc_m03_129_g27_rf54_alerta_capacidad.md) · [Contrato de integración IoT](inc_m03_129_g27_rf54_integracion_iot.md).
+
+---
+
 #### `GET /iot/dispositivos/{id_dispositivo_iot}/estado` — Estado actual + historial reciente
+
+**Acceso:** JWT, permiso `infraestructura_iot` · Leer y alcance por finca. Devuelve `404 ESTADO_DISPOSITIVO_NO_ENCONTRADO` si el dispositivo queda fuera del alcance, sin consultar su estado ni el historial incluido (#682).
 
 **Query:** `limite_historial: int` (1–100, default 20)
 
@@ -643,7 +727,7 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 
 **Response `ListaCalidadSchema`:** `total`, `pagina`, `por_pagina`, `items: list[TelemetriaCalidadSchema]`
 
-**`TelemetriaCalidadSchema`:** `id_evaluacion: UUID`, `id_telemetria`, `id_sensor`, `timestamp_evaluacion`, `indice_calidad: int \| None`, `clasificacion_calidad`, `apto_para_ia: bool`, `apto_para_nic41: bool`, `flags_detectados: dict`, `version_limites_fisicos_aplicada: str \| None`, `parametros_aplicados: dict`, `parametros_calibracion_aplicados: dict \| None`, `estado_evaluacion`, `motivo_reevaluacion: str \| None`, `id_evaluacion_superada: UUID \| None`, `version_evaluacion: int \| None`, `fecha_creacion: datetime \| None`
+**`TelemetriaCalidadSchema`:** `id_evaluacion: UUID`, `id_telemetria`, `id_sensor`, `timestamp_evaluacion`, `indice_calidad: int \| None`, `clasificacion_calidad`, `apto_para_ia: bool`, `apto_para_nic41: bool`, `flags_detectados: dict`, `version_limites_fisicos_aplicada: str \| None`, `parametros_aplicados: dict`, `parametros_calibracion_aplicados: dict \| None`, `estado_evaluacion`, `motivo_reevaluacion: str \| None`, `id_evaluacion_superada: UUID \| None`, `version_evaluacion: str \| None`, `fecha_creacion: datetime \| None`
 
 ---
 
@@ -657,6 +741,14 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 
 ---
 
+**Restricción temporal — #687:** la evaluación manual y la automática usan la
+marca original y su snapshot. Si hay TIME_DESYNC, ambas aptitudes oficiales en
+`telemetria_calidad` quedan en false, sin descuento adicional al índice ni cambio
+artificial de clasificación. Por ello una clasificación APTO puede coexistir
+con aptitudes false. La respuesta mantiene su estructura: el flag se encuentra
+en `flags_detectados.reloj_desincronizado` y la justificación en
+`parametros_aplicados.restriccion_temporal`. La lectura original no se actualiza.
+
 #### `POST /iot/calidad/reevaluar` — Solicitar reevaluación masiva (RF-62 FA-08)
 
 **Input `SolicitarReevaluacionDTO`:**
@@ -666,7 +758,7 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 | `id_sensor` | `int` | `> 0` |
 | `fecha_desde` / `fecha_hasta` | `datetime` | — |
 | `causa_documentada` | `str` | 10–1000 chars |
-| `parametros_correctos` | `dict \| None` | Opcional |
+| `parametros_correctos` | `dict \| None` | Opcional; correcciones locales de calibración o parámetros estadísticos admitidos |
 
 **Response `ReevaluacionResponseSchema`:** `evaluaciones_superadas: int`, `evaluaciones_creadas: int`
 
@@ -678,6 +770,17 @@ de `modulo3.telemetrias` están obsoletas y no deben consumirse.
 > `f"{nombre} {apellidos}"`) y lo pasa como `nombre_usuario` (fallback al
 > `id_usuario` si no hay detalle). El use case `SolicitarReevaluacionUseCase` no
 > cambió de firma.
+
+
+**INC-M03-133-G170 / #688 (2026-10-27):** requiere JWT, permiso de ejecución del recurso 38 y rol Administrador protegido. El permiso también usado por la evaluación individual no habilita por sí solo la reevaluación masiva. El lote crea las nuevas VIGENTE y supera las anteriores dentro de una sola transacción, con causa, enlace y versión. Si falla una lectura, su auditoría o el commit, el lote conserva las vigentes anteriores.
+
+Se mantiene HTTP 200 con ambos contadores finales. El rango continúa seleccionando por **timestamp_evaluacion** de las evaluaciones vigentes, con extremos inclusivos; no se cambia a timestamp_captura en esta corrección. Una lectura omitida por inactividad cancela el lote con 422, conservando las vigentes anteriores.
+
+Parámetros admitidos: `offset`, `ganancia`, `k`, `M`, `N`, `P`, `umbral_drift`, `umbral_drift_significativo` y `frecuencia_muestreo_min`. Los valores deben ser numéricos finitos; ganancia y k positivos; ventanas enteras válidas y M/P ≤ N. Una corrección parcial de calibración requiere que el otro componente exista en el snapshot original. No modifica la configuración global M09 ni las lecturas originales. Sin correcciones se utiliza la configuración vigente y el snapshot original. Los parámetros desconocidos o inválidos se rechazan con 422 PARAMETROS_REEVALUACION_INVALIDOS.
+
+La versión explícita usa la huella `rf62:<sha256>` de sus componentes persistidos en `parametros_aplicados.version_evaluacion_componentes`. Una versión de límites o calibración no disponible permanece null: no se atribuye una versión histórica inventada. Una versión repetida identifica los mismos componentes; el historial de ejecuciones se distingue por ID y cadena de sustitución.
+
+RF-63 registra usuario, causa, rango, parámetros anteriores/nuevos, IDs y evaluaciones_generadas. Los avisos a M04/M06 quedan auditados como pendientes de integración y el evento global es PARCIAL; no se afirma una entrega inexistente. El procesamiento asíncrono de RNF-08 queda pendiente separado, según el alcance confirmado. Auditoría no disponible devuelve 503 y revierte el lote.
 
 ---
 

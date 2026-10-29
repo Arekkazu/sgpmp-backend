@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
+# | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: preservar causas historicas y traducir errores al superar evaluaciones. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -125,13 +126,17 @@ class SqlAlchemyTelemetriaCalidadRepository(TelemetriaCalidadRepository):
         return [self._a_entidad(o) for o in items], total
 
     def marcar_superada(self, id_evaluacion: UUID, motivo: str) -> None:
-        orm = self.db.query(TelemetriaCalidadModel).filter(
-            TelemetriaCalidadModel.id_evaluacion == id_evaluacion
-        ).first()
-        if orm:
-            orm.estado_evaluacion = 'SUPERADA'
-            orm.motivo_reevaluacion = motivo
-            self.db.flush()
+        try:
+            orm = self.db.query(TelemetriaCalidadModel).filter(
+                TelemetriaCalidadModel.id_evaluacion == id_evaluacion
+            ).first()
+            if orm:
+                orm.estado_evaluacion = 'SUPERADA'
+                # La causa de creación de una reevaluación histórica no se sobrescribe.
+                orm.motivo_reevaluacion = orm.motivo_reevaluacion or motivo
+                self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def listar_vigentes_por_sensor_rango(
         self,

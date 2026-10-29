@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-27 RF-60: evalua umbrales y alerta INACTIVO critica |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: evalua diagnosticos aunque no cambie estado |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: conserva al trigger como fuente unica de transiciones |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: evaluar la cola reportada sin confundir contacto reciente con sincronización terminada. |
 """Evaluación periódica: parámetros reales y algoritmo único de RF-60."""
 from datetime import datetime, timezone
 
@@ -39,7 +40,8 @@ class EvaluarEstadoDispositivosUseCase:
                 parametros = self.parametros_port.obtener_comunicacion(estado.id_dispositivo_iot)
                 tiempo = int((ahora-estado.fecha_ultimo_contacto).total_seconds())
                 nuevo = estado.evaluar_transicion(tiempo, parametros.estado_local_buffer,
-                    parametros.umbral_activo, parametros.umbral_sin_senal, parametros.umbral_inactivo)
+                    parametros.umbral_activo, parametros.umbral_sin_senal, parametros.umbral_inactivo,
+                    datos_pendientes_buffer=parametros.datos_pendientes_buffer)
                 if nuevo is None:
                     completar_transicion_comunicacion(estado, parametros, tiempo, ahora,
                         self.alerta_repo, self.periodo_repo, 'EVALUACION_PERIODICA')

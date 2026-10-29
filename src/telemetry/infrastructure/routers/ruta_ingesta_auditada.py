@@ -2,8 +2,14 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: audita estructura individual y lote |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: audita estructura rechazada fuera de transaccion de ingesta |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: respaldar FALLA_PERSISTENCIA con correlación segura sin depender de la BD principal. |
 """Captura Pydantic antes del endpoint, limitada a las dos rutas escalares."""
 from uuid import UUID, uuid4
+from datetime import datetime, timezone
+import hashlib
+
+from src.telemetry.application.use_cases.auditoria.resguardar_falla_persistencia_use_case import ResguardarFallaPersistenciaUseCase
+from src.telemetry.infrastructure.adapters.respaldo_auditoria_iot_sqlite_adapter import RespaldoAuditoriaIotSqliteAdapter
 import logging
 
 from fastapi import Request
@@ -81,6 +87,13 @@ def registrar_rechazo_estructural(ruta, cantidad):
 
 
 def _registrar_error(ruta, tipo, detalle):
+    if tipo == 'FALLA_PERSISTENCIA':
+        try:
+            ResguardarFallaPersistenciaUseCase(RespaldoAuditoriaIotSqliteAdapter()).execute(ruta, detalle)
+        except Exception:
+            # Sin segundo medio durable no es posible garantizar la evidencia: hacerlo visible, sin alterar el 503.
+            logger.critical('RF-63: FALLA_PERSISTENCIA sin respaldo durable; revisar almacenamiento local.')
+        return
     try:
         with sesion_sistema() as db:
             registrar_evidencia(SqlAlchemyBitacoraAuditoriaIotRepository(db),
@@ -90,6 +103,40 @@ def _registrar_error(ruta, tipo, detalle):
             db.commit()
     except Exception:
         logger.error('RF-63: no se pudo persistir el rechazo de ingesta tipo=%s.', tipo)
+
+
+def _traza_lectura(valor):
+    traza = _identificadores(valor)
+    if isinstance(valor, dict) and isinstance(valor.get('timestamp_captura'), str):
+        ts = valor['timestamp_captura']
+        if len(ts) <= 64:
+            try:
+                fecha = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                traza['timestamp_captura'] = fecha.replace(tzinfo=fecha.tzinfo or timezone.utc).astimezone(timezone.utc).isoformat()
+            except (ValueError, OverflowError):
+                pass
+    return traza
+
+
+async def _contexto_falla(request: Request, ruta: str) -> dict:
+    try:
+        correlacion = str(UUID(str(getattr(request.state, 'request_id', ''))))
+    except ValueError:
+        correlacion = str(uuid4())
+    detalle = {'id_correlacion':correlacion}
+    try:
+        cuerpo = await request.body()
+        detalle['hash_solicitud'] = hashlib.sha256(cuerpo).hexdigest()
+        valor = await request.json()
+    except Exception:
+        # La obtención de contexto nunca debe sustituir el error original de persistencia.
+        return detalle
+    if isinstance(valor, dict) and isinstance(valor.get('registros'), list):
+        detalle['cantidad_registros'] = len(valor['registros'])
+        detalle['registros'] = [dict(indice=i, **_traza_lectura(v)) for i,v in enumerate(valor['registros'][:500])]
+    else:
+        detalle.update(_traza_lectura(valor))
+    return detalle
 
 
 class RutaIngestaAuditada(APIRoute):
@@ -110,7 +157,7 @@ class RutaIngestaAuditada(APIRoute):
             except Exception as exc:
                 origen = getattr(exc, 'original_error', exc)
                 if (not isinstance(exc, AppError) or exc.status_code >= 500) and isinstance(origen, (SQLAlchemyError, PostgreSQLError)):
-                    await run_in_threadpool(_registrar_error, self.path, 'FALLA_PERSISTENCIA', {})
+                    await run_in_threadpool(_registrar_error, self.path, 'FALLA_PERSISTENCIA', await _contexto_falla(request, self.path))
                 raise
 
         return handler
