@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: verifica hash incidentes y contrato HTTP |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente la retención es la de NIC41 |
+# | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: verificar clasificación de fallas con contexto seguro de solicitud. |
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timezone, timedelta
@@ -171,6 +172,9 @@ def test_error_de_negocio_no_se_reclasifica_como_fallo_de_persistencia(monkeypat
     with TestClient(app, raise_server_exceptions=False) as client:
         client.post('/iot/telemetria', json={})
     if esperado:
-        registro.assert_called_once_with('/iot/telemetria', esperado, {})
+        registro.assert_called_once()
+        ruta, tipo, detalle = registro.call_args.args
+        assert (ruta, tipo) == ('/iot/telemetria', esperado)
+        assert 'id_correlacion' in detalle and 'hash_solicitud' in detalle
     else:
         registro.assert_not_called()

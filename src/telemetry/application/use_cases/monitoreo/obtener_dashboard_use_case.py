@@ -3,14 +3,23 @@
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: conservar la referencia válida y adaptar la condición posterior al permiso técnico. |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 from __future__ import annotations
 
 import logging
 from collections import Counter
 from typing import Optional
 
-from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva, SemaforoCalculator
+from src.telemetry.domain.entities.monitoreo import (
+    EstadoSensorActual,
+    ResumenUnidadProductiva,
+    SemaforoBaseSensor,
+    SemaforoCalculator,
+)
+from src.telemetry.domain.entities.indicadores_alertas import FiltroIndicadoresAlertas
 from src.telemetry.domain.repositories.aviso_sin_umbral_port import AvisoSinUmbralPort
+from src.telemetry.domain.repositories.indicadores_alertas_repository import IndicadoresAlertasRepository
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
 
 logger = logging.getLogger(__name__)
@@ -35,9 +44,11 @@ class ObtenerDashboardUseCase:
         self,
         monitoreo_repo: MonitoreoRepository,
         aviso_sin_umbral: Optional[AvisoSinUmbralPort] = None,
+        indicadores_alertas: Optional[IndicadoresAlertasRepository] = None,
     ) -> None:
         self.monitoreo_repo = monitoreo_repo
         self.aviso_sin_umbral = aviso_sin_umbral
+        self.indicadores_alertas = indicadores_alertas
 
     def execute(
         self,
@@ -107,17 +118,30 @@ class ObtenerDashboardUseCase:
 
         La vista trae a lo sumo 50 sensores (FA-07) y el front contaba esa página:
         "50 sensores" en un área de 200. Mismo semáforo efectivo que la vista.
+        G57B: con el semáforo base de cada sensor, no con la consulta completa de estados.
         """
-        todos, _ = self.monitoreo_repo.obtener_estados_sensores(
-            id_infraestructura=id_infraestructura,
-            pagina=1,
-            por_pagina=None,
+        todos = self.monitoreo_repo.obtener_semaforos_sensores(
+            id_infraestructura,
             ids_fincas_permitidas=ids_fincas_permitidas,
         )
         return dict(Counter(self._calcular_semaforo_efectivo(s) for s in todos))
 
+    def contar_alertas_vencidas_sin_atencion(
+        self,
+        id_infraestructura: Optional[int],
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> int:
+        """G57B (RF-57 Salida 3): mismo indicador que GET /iot/alertas/indicadores, sin rango."""
+        if self.indicadores_alertas is None:
+            return 0
+        return self.indicadores_alertas.contar_vencidas_sin_atencion(FiltroIndicadoresAlertas(
+            id_infraestructura=id_infraestructura,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        ))
+
     @staticmethod
-    def _calcular_semaforo_efectivo(sensor: EstadoSensorActual) -> str:
+    def _calcular_semaforo_efectivo(sensor: EstadoSensorActual | SemaforoBaseSensor) -> str:
         # CA-5: sensor sin datos recientes → GRIS (FA-05)
         if sensor.dato_desactualizado:
             return 'GRIS'
@@ -159,6 +183,7 @@ class ObtenerDashboardUseCase:
             sensor.etiqueta_estado = ETIQUETA_SIN_UMBRAL
 
     def _avisar_sin_umbral(self, sensores: list[EstadoSensorActual]) -> None:
+        # G57B: el router inyecta el aviso en segundo plano; el GET no espera al SMTP.
         if not sensores or self.aviso_sin_umbral is None:
             return
         try:

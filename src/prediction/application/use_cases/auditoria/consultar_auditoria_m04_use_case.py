@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-209-G092 RF-73: filtro por correlacion_id |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 from __future__ import annotations
 
 import logging
@@ -61,11 +62,15 @@ class ConsultarAuditoriaM04UseCase:
         filtro_tipo_evento: Optional[str],
         pagina: int,
     ) -> None:
+        correlacion = uuid.uuid4()
         try:
             self._repo.registrar(
                 tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
+                id_referencia=str(correlacion),
+                correlacion_id=correlacion,
+                entidad_referencia="consulta_auditoria_m04",
                 severidad_evento="INFO",
                 resultado_operacion="EXITOSO",
                 payload_evento={

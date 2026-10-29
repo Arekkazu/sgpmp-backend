@@ -1,4 +1,9 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 from __future__ import annotations
+
+import uuid
 
 import csv
 import io
@@ -98,11 +103,15 @@ class ExportarAuditoriaM04UseCase:
         }
 
     def _emitir_evento_exportacion(self, id_usuario: int, total: int, formato: str) -> None:
+        correlacion = uuid.uuid4()
         try:
             self._repo.registrar(
                 tipo_evento="EXPORTACION_GENERADA",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
+                id_referencia=str(correlacion),
+                correlacion_id=correlacion,
+                entidad_referencia="consulta_auditoria_m04",
                 severidad_evento="INFO",
                 resultado_operacion="EXITOSO",
                 payload_evento={"exportacion": "AUDITORIA_M04", "total_registros": total, "formato": formato},

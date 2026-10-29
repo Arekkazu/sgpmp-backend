@@ -2,6 +2,7 @@
 # |------------|---------|-------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-30 RF-57: prueba autorizacion y transiciones REST  |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-30/49: recurso alertas_operativas e historial por trigger |
+# | 2026-10-28 | destroyerban | INC-M03-172-G79 RF-57 CA-11: estado no catalogado es 422 TRANSICION_INVALIDA, no 400 |
 """DEV-30: dominio y HTTP con repositorios/datos de permisos explícitos en memoria.
 
 Estas pruebas no demuestran el despliegue de DB-08 ni la autenticación JWT real.
@@ -60,10 +61,16 @@ def test_dto_delega_estados_manuales_al_dominio(estado):
     assert ActualizarEstadoAlertaDTO(nuevo_estado=estado).nuevo_estado == estado.upper()
 
 
-@pytest.mark.parametrize("valor", ["DESCONOCIDO", "", None, 12])
+@pytest.mark.parametrize("valor", [12, ["EN_ATENCION"]])
 def test_dto_conserva_validacion_estructural(valor):
     with pytest.raises(ValidationError):
         ActualizarEstadoAlertaDTO(nuevo_estado=valor)
+
+
+@pytest.mark.parametrize("valor", ["DESCONOCIDO", "", None])
+def test_dto_deja_el_estado_no_catalogado_al_dominio(valor):
+    # G79 (CA-11): no es un error de forma; el caso de uso responde 422 TRANSICION_INVALIDA.
+    assert ActualizarEstadoAlertaDTO(nuevo_estado=valor).nuevo_estado == (valor.upper() if valor is not None else None)
 
 
 @pytest.fixture
@@ -198,9 +205,9 @@ def test_transicion_valida_no_requiere_descarte(flujo):
     flujo[6].assert_not_called()
 
 
-def test_desconocido_conserva_http_400(flujo):
+def test_desconocido_es_422_transicion_invalida(flujo):
     respuesta = _patch(flujo, "DESCONOCIDO")
-    assert respuesta.status_code == 400
+    assert respuesta.status_code == 422 and respuesta.json()["error_code"] == "TRANSICION_INVALIDA"
     flujo[3].actualizar_estado.assert_not_called()
 
 

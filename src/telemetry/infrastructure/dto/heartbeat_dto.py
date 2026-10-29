@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: valida zona horaria y literales de buffer |
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: aceptar métricas de buffer opcionales preservando el contrato anterior. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +11,7 @@ from typing import Any, Optional
 from pydantic import ConfigDict, Field, StrictBool, StrictStr, field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.telemetry.infrastructure.dto.metricas_buffer_dto import MetricasBufferDTO
 
 
 class SensorOperativoDTO(BaseDTO):
@@ -48,6 +50,7 @@ class HeartbeatDTO(DiagnosticoHeartbeatDTO):
     # 'I'=INACTIVO, 'A'=ACTIVO, 'L'=LLENO
     estado_local_buffer: Optional[str] = Field(None, max_length=1)
     datos_pendientes_buffer: int = Field(0, ge=0)
+    metricas_buffer: Optional[MetricasBufferDTO] = None
     version_firmware: Optional[str] = Field(None, max_length=50)
     coordenadas: Optional[Any] = None
     fecha_registro: datetime

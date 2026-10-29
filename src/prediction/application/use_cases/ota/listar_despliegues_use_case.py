@@ -1,4 +1,9 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 from __future__ import annotations
+
+import uuid
 
 from typing import Optional
 
@@ -62,6 +67,7 @@ class ListarDesplieguesUseCase:
             offset=offset,
         )
 
+        correlacion = uuid.uuid4()
         try:
             self._auditoria_repo.registrar(
                 tipo_evento="HISTORIAL_CONSULTADO",
@@ -77,8 +83,9 @@ class ListarDesplieguesUseCase:
                 },
                 severidad_evento="INFO",
                 id_usuario=id_usuario,
-                id_referencia=str(id_version) if id_version else None,
-                entidad_referencia="version_modelo" if id_version else None,
+                id_referencia=str(id_version) if id_version is not None else str(correlacion),
+                correlacion_id=correlacion,
+                entidad_referencia="version_modelo" if id_version is not None else "consulta_despliegues_ota",
                 resultado_operacion="EXITOSO",
             )
             self._db.commit()

@@ -5,6 +5,9 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: GET /iot/dispositivos, listado con estado de las fincas del usuario |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: exponer consulta RF-54 con JWT, RBAC e identificación del último reporte. |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: aplicar el alcance por finca existente a la consulta de estado usada por G27. |
+# | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -23,14 +26,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
-from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -46,6 +48,7 @@ from src.telemetry.domain.entities.alerta import AmbitoAlerta
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
 from src.telemetry.infrastructure.dto.evento_buffer_dto import RecibirEventoBufferDTO
+from src.telemetry.infrastructure.dto.filtros_alerta_dto import FiltroEstadoAlerta, FiltroSeveridadAlerta
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
@@ -60,6 +63,10 @@ from src.telemetry.infrastructure.schema.estado_dispositivo_iot_schema import Di
 from src.telemetry.infrastructure.schema.heartbeat_schema import EventoBufferReciboSchema, HeartbeatReciboSchema
 from src.shared.fechas import FechaHoraUtc
 from src.telemetry.infrastructure.workers.postcommit_worker import recalcular_semaforo_sensor
+
+from src.telemetry.application.use_cases.infraestructura.consultar_estado_buffer_use_case import ConsultarEstadoBufferUseCase
+from src.telemetry.infrastructure.repositories.estado_buffer_repository import SqlAlchemyEstadoBufferRepository
+from src.telemetry.infrastructure.schema.estado_buffer_schema import EstadoBufferSchema
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
@@ -163,7 +170,13 @@ def obtener_estado_dispositivo(
         estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
         transicion_repo=SqlAlchemyHistoricoTransicionDispositivoRepository(db),
     )
-    resultado = use_case.execute(id_dispositivo_iot, limite_historial=limite_historial)
+    resultado = use_case.execute(
+        id_dispositivo_iot,
+        limite_historial=limite_historial,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return EstadoDispositivoDetalleSchema(
         estado=EstadoDispositivoIoTSchema.model_validate(resultado.estado),
         historial=[HistoricoTransicionSchema.model_validate(t) for t in resultado.historial],
@@ -241,8 +254,8 @@ def aplicar_mantenimiento_dispositivo(
     summary="Listar alertas técnicas de dispositivos IoT (RF-60) — solo admin e Ingeniero",
 )
 def listar_alertas_tecnicas(
-    estado: Optional[str] = Query(default=None),
-    severidad: Optional[str] = Query(default=None),
+    estado: Optional[FiltroEstadoAlerta] = Query(default=None),
+    severidad: Optional[FiltroSeveridadAlerta] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
@@ -309,3 +322,25 @@ def actualizar_estado_alerta_tecnica(
         id_usuario=usuario_actual.id_usuario,
     )
     return AlertaSchema.model_validate(alerta.__dict__)
+
+
+@router.get(
+    '/dispositivos/{id_dispositivo_iot}/buffer',
+    response_model=EstadoBufferSchema,
+    dependencies=[Depends(require_permission(35, 2))],
+    responses={400:{'model':ErrorResponse},401:{'model':ErrorResponse},403:{'model':ErrorResponse},404:{'model':ErrorResponse}},
+    summary='Consultar último estado reportado del buffer Edge (RF-54)',
+)
+def consultar_estado_buffer(
+    id_dispositivo_iot: int = Path(gt=0),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EstadoBufferSchema:
+    """Sin reporte o con heartbeat anterior a la ampliación, las métricas desconocidas son null.
+
+    JWT + infraestructura_iot · Leer. La fuente es el último heartbeat por recepción e ID;
+    los timestamps permiten identificar su antigüedad. No consulta la cola física del Edge.
+    """
+    fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario,usuario_actual.id_rol)
+    reporte = ConsultarEstadoBufferUseCase(SqlAlchemyEstadoBufferRepository(db)).execute(id_dispositivo_iot,fincas)
+    return EstadoBufferSchema.desde_reporte(reporte)

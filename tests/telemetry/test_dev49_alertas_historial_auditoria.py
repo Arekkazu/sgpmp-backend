@@ -2,6 +2,8 @@
 # |------------|---------|---------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica historial, 403 y eventos tecnicos |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: cada paquete deja PAQUETE_INFERENCIA_GENERADO |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: un intento no confirmado queda PENDIENTE y se reprograma |
+# | 2026-10-28 | destroyerban | INC-M03-172-G79 RF-57 CA-11: estado no catalogado es 422 TRANSICION_INVALIDA, no 400 |
 """Pruebas de aplicación y HTTP con dobles explícitos, sin simular PostgreSQL."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -133,7 +135,8 @@ def test_transicion_valida_no_insert_historial_desde_python(http, datos):
 
 def test_400_no_se_registra_como_rechazo_403(http, datos):
     http[1]["valor"] = True
-    respuesta = http[0].patch("/iot/alertas/71/estado", json={"nuevo_estado": "DESCONOCIDO"})
+    # G79: un estado no catalogado ya es 422 (CA-11); el 400 sigue siendo el cuerpo mal formado.
+    respuesta = http[0].patch("/iot/alertas/71/estado", json={"nuevo_estado": 12})
     assert respuesta.status_code == 400
     assert datos[4] == []
 
@@ -187,9 +190,10 @@ def motor_datos(datos):
 
 @pytest.mark.parametrize("resultado,tipo_evento,estado", [
     (True, None, "ENVIADO"),
-    (False, "ENVIO_INFERENCIA_NO_CONFIRMADO", "FALLIDO"),
-    (TimeoutError("NO_REGISTRAR_SECRETO"), "MOTOR_INFERENCIA_NO_DISPONIBLE", "FALLIDO"),
-    (RuntimeError("NO_REGISTRAR_SECRETO"), "ERROR_ENVIO_INFERENCIA", "FALLIDO"),
+    # INC-M03-113-G56: el intento 1 no confirmado queda PENDIENTE; el fallo se registra igual.
+    (False, "ENVIO_INFERENCIA_NO_CONFIRMADO", "PENDIENTE"),
+    (TimeoutError("NO_REGISTRAR_SECRETO"), "MOTOR_INFERENCIA_NO_DISPONIBLE", "PENDIENTE"),
+    (RuntimeError("NO_REGISTRAR_SECRETO"), "ERROR_ENVIO_INFERENCIA", "PENDIENTE"),
 ])
 def test_distingue_entrega_fallida_indisponibilidad_y_error(motor_datos, resultado, tipo_evento, estado):
     db, repo, auditoria, eventos, evento = motor_datos
@@ -207,7 +211,7 @@ def test_distingue_entrega_fallida_indisponibilidad_y_error(motor_datos, resulta
     else:
         registro, = fallos
         assert registro.tipo_evento == tipo_evento and registro.resultado == "FALLIDO"
-        assert registro.accion_detallada["estado_paquete"] == "FALLIDO"
+        assert registro.accion_detallada["estado_paquete"] == estado
         assert "NO_REGISTRAR_SECRETO" not in str(registro)
 
 

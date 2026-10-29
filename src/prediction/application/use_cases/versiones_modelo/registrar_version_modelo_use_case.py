@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo                                           |
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar los procesos reales en incidentes previos al registro. |
 from __future__ import annotations
 
 import hashlib
@@ -216,6 +217,8 @@ class RegistrarVersionModeloUseCase:
                 tipo_evento="INTENTO_CARGA_MODELO_EXTERNO",
                 tipo_actor="SISTEMA",
                 id_sistema="DESCONOCIDO",
+                id_referencia=str(id_proceso),
+                entidad_referencia="proceso_rf71",
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={
@@ -289,6 +292,8 @@ class RegistrarVersionModeloUseCase:
                 tipo_evento="HASH_INVALIDO_DETECTADO",
                 tipo_actor="SISTEMA",
                 id_sistema=str(id_proceso),
+                id_referencia=str(id_proceso),
+                entidad_referencia="proceso_rf71",
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={

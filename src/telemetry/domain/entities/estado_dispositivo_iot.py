@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-27 RF-60: algoritmo unico con umbrales dinamicos |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: restringe transiciones manuales       |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: priorizar buffer confirmado y conservarlo hasta reporte de vaciado. |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -37,8 +38,9 @@ class EstadoDispositivoIoT:
         umbral_activo: int,
         umbral_sin_senal: int,
         umbral_inactivo: int,
+        *, datos_pendientes_buffer: Optional[int] = None,
     ) -> Optional[str]:
-        """Algoritmo de 4 pasos RF-60 Restricción 12.
+        """RF-60: prioridad de buffer confirmada para #682 sobre contacto reciente.
         Retorna el nuevo estado si hay transición, None si no cambia.
         No evalúa EN_MANTENIMIENTO (estado manual).
         """
@@ -47,10 +49,16 @@ class EstadoDispositivoIoT:
 
         if not 0 < umbral_activo < umbral_sin_senal < umbral_inactivo:
             raise ValueError('Los umbrales de comunicación deben ser positivos y estar ordenados.')
-        if tiempo_sin_contacto_seg <= umbral_activo:
-            nuevo = 'ACTIVO'
-        elif estado_local_buffer == 'A':
+        # El contacto reciente acredita comunicación; no demuestra que se vació la cola.
+        if datos_pendientes_buffer is None:
+            buffer_activo = estado_local_buffer in ('A', 'L') or self.estado_actual == 'BUFFER_ACTIVO'
+        else:
+            buffer_activo = datos_pendientes_buffer > 0 and (
+                estado_local_buffer in ('A', 'L') or self.estado_actual == 'BUFFER_ACTIVO')
+        if buffer_activo:
             nuevo = 'BUFFER_ACTIVO'
+        elif tiempo_sin_contacto_seg <= umbral_activo:
+            nuevo = 'ACTIVO'
         elif tiempo_sin_contacto_seg > umbral_sin_senal:
             # Paso 4 refina el fallo del paso 3 al superar la inactividad:
             # intervalos excluyentes evitan volver INACTIVO inalcanzable.

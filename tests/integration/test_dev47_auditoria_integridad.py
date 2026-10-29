@@ -2,6 +2,7 @@
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-47 RF-63: prueba persistencia triggers recuperacion y concurrencia |
 # | 2026-10-25 | Arekkazu | INC-M03-135-G177 RF-63: verificar-integridad exige la ventana de fechas |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: un intento no confirmado queda PENDIENTE y se reprograma |
 """PostgreSQL real aislado. MQTT se representa por su función de persistencia."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
@@ -164,8 +165,9 @@ def test_rollback_de_alerta_no_deja_evidencia_huerfana(db_session, equipo):
     assert db_session.execute(text('SELECT count(*) FROM modulo3.alertas WHERE id_alerta=:id'), {'id': alerta.id_alerta}).scalar_one() == 0
 
 
+# INC-M03-113-G56: el intento 1 no confirmado queda PENDIENTE con el siguiente programado.
 @pytest.mark.parametrize('motor,estado,tipo', [('stub', 'PENDIENTE', None),
-    ('positivo', 'ENVIADO', 'PAQUETE_ENVIADO_IA'), ('negativo', 'FALLIDO', 'FALLO_ENVIO_PAQUETE')])
+    ('positivo', 'ENVIADO', 'PAQUETE_ENVIADO_IA'), ('negativo', 'PENDIENTE', 'REINTENTO_ENVIO_PAQUETE_PROGRAMADO')])
 def test_paquete_y_resultado_real_del_adaptador(db_session, equipo, motor, estado, tipo):
     ahora = datetime.now(timezone.utc)
     edge = SqlAlchemyEventoEdgeRepository(db_session).guardar(EventoEdgeComputing(
