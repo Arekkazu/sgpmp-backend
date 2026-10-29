@@ -1,3 +1,20 @@
+## [1.4.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.14...v1.4.0-rc.15) (2026-10-29)
+
+### Features
+
+* **rf54-telemetry:** GET /iot/buffer, panel del buffer Edge de todos los dispositivos (TC-DIS-148) ([f327eed](https://github.com/Arekkazu/sgpmp-backend/commit/f327eed279714a099d7fadc5980c97f32aa0a52a))
+* **rf66-rf68-prediction:** GET /prediccion/inferencias y GET /prediccion/riesgo-contagio para el monitor ([9bd759b](https://github.com/Arekkazu/sgpmp-backend/commit/9bd759b56dc12deaeb5693e5b81373d11f8e0222))
+* **rf68-prediction:** el listado de contagio trae el detalle del calculo ([3d3db0f](https://github.com/Arekkazu/sgpmp-backend/commit/3d3db0f653c7ad1014ebf92be788bc5e6a587234))
+
+### Bug Fixes
+
+* **rf65-prediction:** historial de configuracion del motor con nombres (CU02 H-04) ([0199abc](https://github.com/Arekkazu/sgpmp-backend/commit/0199abc6a32979808763d07fcdb8303634010688)), closes [#126](https://github.com/Arekkazu/sgpmp-backend/issues/126)
+* **rf69-prediction:** las versiones rechazadas y deprecadas no admiten notas de validacion (CU05 H-06) ([6e00e8f](https://github.com/Arekkazu/sgpmp-backend/commit/6e00e8fca33f7314c5f2f414fd4375772e539d5f))
+* **rf69-prediction:** una version POBLACIONAL sin componente no se activa (CU05 H-03) ([1584c22](https://github.com/Arekkazu/sgpmp-backend/commit/1584c2260d4959169a631a61c4e082e3f1c7ce9a))
+* **rf70-prediction:** los despliegues OTA traen el nombre de su version (CU06 H-02) ([073867a](https://github.com/Arekkazu/sgpmp-backend/commit/073867abc993c1e3d1f473cb1bf226fc0464ea5f))
+* **rf73-prediction:** eventos de la bitacora M04 con su tipo y campos minimos (CU09 H-01/H-02/H-03/H-04) ([1187cb1](https://github.com/Arekkazu/sgpmp-backend/commit/1187cb192ad0ef8d51e7a7090b44604a3fa06d98))
+* **sast:** SQL del monitor de prediccion como literales fijos (CWE-89) ([91e27da](https://github.com/Arekkazu/sgpmp-backend/commit/91e27da227052462254ef6cdec382b4990700826))
+
 ## [1.4.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.13...v1.4.0-rc.14) (2026-10-29)
 
 ### Features
