@@ -10,20 +10,9 @@ from src.prediction.domain.entities.monitor_prediccion import InferenciaMonitor,
 from src.prediction.domain.repositories.monitor_prediccion_repository import MonitorPrediccionRepository
 from src.shared.db_error_translator import raise_from_db_error
 
-# Dónde está el activo hoy: el área y la finca del activo biológico (M02).
-_UBICACION = """
-    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
-    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
-    JOIN modulo9.fincas f ON f.id_finca = i.id_finca
-    LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
-"""
-_FILTROS = """
-      (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
-  AND (CAST(:desde AS timestamptz) IS NULL OR {fecha} >= CAST(:desde AS timestamptz))
-  AND (CAST(:hasta AS timestamptz) IS NULL OR {fecha} <= CAST(:hasta AS timestamptz))
-"""
-
-_SQL_INFERENCIAS = text(f"""
+# Literales fijos (sin f-strings en text()): el SAST trata la interpolación como CWE-89.
+# El activo se ubica en su área y finca actuales (M02); los filtros van como parámetros.
+_SQL_INFERENCIAS = text("""
     SELECT r.id_resultado_inferencia, r.id_activo_biologico, ab.identificador AS identificador_activo,
            i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.tipo_modelo, r.id_version_modelo, v.nombre_version, r.nivel_riesgo, r.probabilidad_riesgo,
@@ -32,17 +21,22 @@ _SQL_INFERENCIAS = text(f"""
            r.fecha_inicio_ventana, r.fecha_fin_ventana, r.fecha_inferencia,
            r.tiene_alerta_generada, r.id_alerta_generada
     FROM modulo4.resultados_inferencia r
-    {_UBICACION}
+    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+    LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
     LEFT JOIN modulo4.versiones_modelos v ON v.id_version_modelo = r.id_version_modelo
     LEFT JOIN modulo9.patologias p ON p.id_patologia = r.id_patologia
-    WHERE {_FILTROS.format(fecha='r.fecha_inferencia')}
+    WHERE (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
+      AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_inferencia >= CAST(:desde AS timestamptz))
+      AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_inferencia <= CAST(:hasta AS timestamptz))
       AND (CAST(:tipo AS text) IS NULL OR r.tipo_modelo::text = CAST(:tipo AS text))
       AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo = CAST(:nivel AS int))
     ORDER BY r.fecha_inferencia DESC, r.id_resultado_inferencia
     LIMIT :limite
 """)
 
-_SQL_CONTAGIO = text(f"""
+_SQL_CONTAGIO = text("""
     SELECT r.id_resultado_contagio, r.id_activo_biologico, ab.identificador AS identificador_activo,
            i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.probabilidad_contagio, r.nivel_riesgo_contagio, r.factor_sanitario_fs, r.factor_ambiental_fa,
@@ -51,8 +45,13 @@ _SQL_CONTAGIO = text(f"""
            r.total_activos_lote, r.porcentaje_sensores_activos, r.fecha_calculo, r.id_alerta_generada,
            r.variables_ambientales_snap AS detalle_calculo
     FROM modulo4.resultados_riesgo_contagio r
-    {_UBICACION}
-    WHERE {_FILTROS.format(fecha='r.fecha_calculo')}
+    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+    LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
+    WHERE (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
+      AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_calculo >= CAST(:desde AS timestamptz))
+      AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_calculo <= CAST(:hasta AS timestamptz))
       AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo_contagio = CAST(:nivel AS int))
     ORDER BY r.fecha_calculo DESC, r.id_resultado_contagio DESC
     LIMIT :limite
