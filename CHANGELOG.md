@@ -1,3 +1,19 @@
+## [1.4.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.13...v1.4.0-rc.14) (2026-10-29)
+
+### Features
+
+* **rf58:** panel integrado de alertas activas en el dashboard de monitoreo ([cbde65a](https://github.com/Arekkazu/sgpmp-backend/commit/cbde65a9f515a6c47d665bf6712d3f0a9d35462e)), closes [#788](https://github.com/Arekkazu/sgpmp-backend/issues/788)
+* **rf62:** exponer la politica de vision en /configuracion/politica-vision ([23b9907](https://github.com/Arekkazu/sgpmp-backend/commit/23b9907f4ca3141697105403990e3c9875efed6b)), closes [#843](https://github.com/Arekkazu/sgpmp-backend/issues/843)
+* **rf73:** filtro de la bitacora M04 por tipo_modelo del evento ([80f2c65](https://github.com/Arekkazu/sgpmp-backend/commit/80f2c65591ac6ba7da5ac9897a21f7e6eee70f0b))
+
+### Bug Fixes
+
+* **rf60-rf53:** mantenimiento manual desde cualquier estado y rechazo de lecturas en mantenimiento ([ebbcc19](https://github.com/Arekkazu/sgpmp-backend/commit/ebbcc19fdc366ea39777929d9620a05287b3c8c7)), closes [#847](https://github.com/Arekkazu/sgpmp-backend/issues/847)
+* **rf63:** la exportacion de la bitacora IoT respeta los filtros y el alcance por finca ([38c9d26](https://github.com/Arekkazu/sgpmp-backend/commit/38c9d262c8aa210ec17135f346437fc5a55a3748))
+* **rf69-rf72:** validaciones de versiones y retroalimentacion responden 422 y SavedModel se detecta por estructura ([bd76cb2](https://github.com/Arekkazu/sgpmp-backend/commit/bd76cb264190b20f984cbff2ac79af00845bd08e)), closes [#819](https://github.com/Arekkazu/sgpmp-backend/issues/819) [#820](https://github.com/Arekkazu/sgpmp-backend/issues/820) [844/#845](https://github.com/844/sgpmp-backend/issues/845)
+* **rf73:** la exportacion de la bitacora M04 respeta el filtro tipo_modelo ([4eea3d8](https://github.com/Arekkazu/sgpmp-backend/commit/4eea3d8ad2872607c55c5b31a6067314b2e3e307))
+* **rfc020-rf58-rf60:** el dashboard refleja el estado operativo del dispositivo ([8d6e0f2](https://github.com/Arekkazu/sgpmp-backend/commit/8d6e0f2cadbda5f8f2945d62afee72080afcdb76)), closes [#794](https://github.com/Arekkazu/sgpmp-backend/issues/794)
+
 ## [1.4.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.12...v1.4.0-rc.13) (2026-10-29)
 
 ### Features
