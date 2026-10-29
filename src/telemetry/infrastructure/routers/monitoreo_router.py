@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: 422 en E2, varias variables, activo, alertas y series |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: aviso E7 en segundo plano; el dashboard no espera al SMTP |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -48,6 +49,7 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
     SqlAlchemyBitacoraAuditoriaIotRepository,
 )
 from src.telemetry.infrastructure.repositories.historial_telemetria_repository import SqlAlchemyHistorialTelemetriaRepository
+from src.telemetry.infrastructure.repositories.indicadores_alertas_repository import SqlAlchemyIndicadoresAlertasRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
 from src.telemetry.infrastructure.schema.monitoreo_schema import (
     DashboardResponseSchema,
@@ -102,6 +104,7 @@ def obtener_dashboard(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
         aviso_sin_umbral=AvisoSinUmbralBackgroundAdapter(background_tasks),
+        indicadores_alertas=SqlAlchemyIndicadoresAlertasRepository(db),
     )
     ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
@@ -119,6 +122,8 @@ def obtener_dashboard(
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
         conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
+        alertas_vencidas_sin_atencion=use_case.contar_alertas_vencidas_sin_atencion(
+            id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 
@@ -145,6 +150,7 @@ def obtener_dashboard_por_unidad(
         monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
         # G57B (CA-13): el aviso E7 (bitácora + SMTP) corre después de responder.
         aviso_sin_umbral=AvisoSinUmbralBackgroundAdapter(background_tasks),
+        indicadores_alertas=SqlAlchemyIndicadoresAlertasRepository(db),
     )
     ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
@@ -162,6 +168,8 @@ def obtener_dashboard_por_unidad(
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
         conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
+        alertas_vencidas_sin_atencion=use_case.contar_alertas_vencidas_sin_atencion(
+            id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 

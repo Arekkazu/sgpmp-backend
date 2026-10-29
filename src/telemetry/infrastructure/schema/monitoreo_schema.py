@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: unidad sin sensores, lote, desviación, alertas y series |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: exponer separadamente referencia válida y condición actual por rol. |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 from __future__ import annotations
 
 from datetime import datetime
@@ -80,6 +81,8 @@ class DashboardResponseSchema(BaseModel):
     sensores: list[EstadoSensorSchema]
     # M3-08: sensores por color de todo el alcance (VERDE/AMARILLO/ROJO/GRIS), no de la página.
     conteo_semaforo: dict[str, int] = {}
+    # G57B (RF-57 Salida 3): alertas VENCIDA sin reconocer del alcance (todas las fincas o el área).
+    alertas_vencidas_sin_atencion: int = 0
 
 
 class LecturaHistoricaSchema(BaseModel):

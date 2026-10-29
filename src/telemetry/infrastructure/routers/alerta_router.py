@@ -14,11 +14,13 @@
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3: inyecta el contexto del activo biológico |
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: inyecta la consulta de umbrales configurados |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: GET /iot/alertas/indicadores |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
   POST  /iot/alertas                   — Generar alerta desde evento de desviación
   GET   /iot/alertas                   — Listar alertas con filtros y paginación
+  GET   /iot/alertas/indicadores       — Indicadores de estado del sistema de alertas (Salida 3)
   GET   /iot/alertas/{id_alerta}       — Detalle de alerta con historial de estados
   PATCH /iot/alertas/{id_alerta}/estado — Transicionar estado de ciclo de vida
 
@@ -45,6 +47,10 @@ from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
+from src.telemetry.application.use_cases.alertas.consultar_indicadores_alertas_use_case import (
+    ConsultarIndicadoresAlertasUseCase,
+)
+from src.telemetry.domain.entities.indicadores_alertas import FiltroIndicadoresAlertas
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.domain.entities.alerta import AmbitoAlerta, EstadoAlerta
 from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
@@ -68,10 +74,12 @@ from src.telemetry.infrastructure.routers.ruta_alerta_auditada import RutaAlerta
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
+from src.telemetry.infrastructure.repositories.indicadores_alertas_repository import SqlAlchemyIndicadoresAlertasRepository
 from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 from src.telemetry.infrastructure.schema.alerta_schema import (
     AlertaDetalleSchema,
     AlertaSchema,
+    IndicadoresAlertasSchema,
     ListaAlertasSchema,
     ResultadoGeneracionAlertaSchema,
     ResultadoReevaluacionSchema,
@@ -237,6 +245,40 @@ def listar_alertas(
         por_pagina=por_pagina,
         items=[AlertaSchema.model_validate(a.__dict__) for a in alertas],
     )
+
+
+# Antes de /{id_alerta}: si no, "indicadores" se tomaría como un id de alerta.
+@router.get(
+    "/indicadores",
+    response_model=IndicadoresAlertasSchema,
+    status_code=200,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(capturar_contexto_alertas), Depends(require_permission(32, 2))],
+    summary="Indicadores de estado del sistema de alertas (RF-57 Salida 3)",
+)
+def consultar_indicadores_alertas(
+    id_infraestructura: Optional[int] = Query(default=None, description="Solo las alertas de esta área."),
+    fecha_desde: Optional[FechaHoraUtc] = Query(
+        default=None, description="Vencidas, resueltas y descartadas cerradas desde este instante."),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
+        default=None, description="Vencidas, resueltas y descartadas cerradas hasta este instante."),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> IndicadoresAlertasSchema:
+    filtro = FiltroIndicadoresAlertas(
+        id_infraestructura=id_infraestructura,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+    )
+    indicadores = ConsultarIndicadoresAlertasUseCase(SqlAlchemyIndicadoresAlertasRepository(db)).execute(filtro)
+    return IndicadoresAlertasSchema(**indicadores.__dict__, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
 
 
 @router.get(

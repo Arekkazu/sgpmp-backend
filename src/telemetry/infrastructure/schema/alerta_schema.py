@@ -3,6 +3,7 @@
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: respuesta de la reevaluación por IA |
+# | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: schema de indicadores del sistema de alertas |
 from __future__ import annotations
 
 from datetime import datetime
@@ -105,3 +106,17 @@ class ListaAlertasSchema(BaseModel):
     pagina: int
     por_pagina: int
     items: list[AlertaSchema]
+
+
+class IndicadoresAlertasSchema(BaseModel):
+    """RF-57 Salida 3: indicadores de estado del sistema de alertas (solo operativas)."""
+    alertas_activas_total: int
+    alertas_criticas_activas: int
+    alertas_por_tipo: dict[str, int]
+    alertas_vencidas_sin_atencion: int
+    alertas_resueltas: int
+    alertas_descartadas: int
+    tiempo_promedio_resolucion_min: Optional[float] = None
+    tasa_falsos_positivos: Optional[float] = None
+    fecha_desde: Optional[datetime] = None
+    fecha_hasta: Optional[datetime] = None
