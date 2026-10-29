@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
 # | 2026-10-26 | Arekkazu | INC-M04 G089/G092 RF-73: 422 en parámetros inválidos y filtro correlacion_id |
+# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -78,6 +79,7 @@ def listar_auditoria(
     correlacion_id: Optional[uuid.UUID] = Query(
         default=None, description="Cadena completa de un flujo (paquete → inferencia → alerta → retroalimentación)"
     ),
+    tipo_modelo: Optional[str] = Query(default=None, description="Filtrar por tipo de modelo del evento (RFC-009)"),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -96,6 +98,7 @@ def listar_auditoria(
         id_referencia=id_referencia,
         severidad_evento=severidad_evento,
         correlacion_id=correlacion_id,
+        tipo_modelo=tipo_modelo,
         pagina=pagina,
         por_pagina=por_pagina,
         id_usuario_consultor=usuario_actual.id_usuario,

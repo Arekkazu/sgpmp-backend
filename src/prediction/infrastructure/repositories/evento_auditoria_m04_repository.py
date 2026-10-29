@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu     | INC-M04-151-G081 RF-73: persiste origen_dato (EDGE/BACKEND/HIBRIDO) |
 # | 2026-10-26 | Arekkazu     | INC-M04 G088/G092/G099 RF-73: truncado conserva mínimos, filtro correlacion_id, E7 |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: rechazar eventos invalidos con evidencia E1 y resultado tipado. |
+# | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 from __future__ import annotations
 
 import hashlib
@@ -367,10 +368,14 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         id_referencia: Optional[str] = None,
         severidad_evento: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
+        tipo_modelo: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list[EventoAuditoriaM04], int]:
         q = select(EventoAuditoriaM04Model)
+        if tipo_modelo:
+            # El tipo de modelo viaja en el payload del evento (RF-73 §payload_evento).
+            q = q.where(EventoAuditoriaM04Model.payload_evento["tipo_modelo"].astext == tipo_modelo)
 
         if tipo_evento:
             q = q.where(EventoAuditoriaM04Model.tipo_evento == tipo_evento)
