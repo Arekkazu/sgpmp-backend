@@ -1,3 +1,14 @@
+## [1.4.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.12...v1.4.0-rc.13) (2026-10-29)
+
+### Features
+
+* **rls-mod4:** politicas rls de modulo4 (RF-64, RF-65, RF-66, RF-72, RF-73) ([42ce29e](https://github.com/Arekkazu/sgpmp-backend/commit/42ce29eb39ae6cceead0f6feb512921f4e671234))
+
+### Bug Fixes
+
+* **rf69-mod4:** el registro interno de versiones actua como usuario de servicio ([38be80d](https://github.com/Arekkazu/sgpmp-backend/commit/38be80d88755e0d95b1b41a781fb192cc3647df1))
+* **rls-mod4:** la RLS de modulo4 corre y usa los recursos reales de M04 (RF-64..RF-73) ([5553823](https://github.com/Arekkazu/sgpmp-backend/commit/55538238720e04027e558d40761d0159ae75d531)), closes [#831](https://github.com/Arekkazu/sgpmp-backend/issues/831) [#808](https://github.com/Arekkazu/sgpmp-backend/issues/808)
+
 ## [1.4.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.11...v1.4.0-rc.12) (2026-10-29)
 
 ### Bug Fixes
