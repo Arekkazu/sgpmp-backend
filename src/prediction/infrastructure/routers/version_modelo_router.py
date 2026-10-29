@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
+# | 2026-10-29 | Arekkazu     | RLS modulo4 RF-69/71: el registro interno actúa como usuario de servicio |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -35,7 +36,7 @@ from src.prediction.infrastructure.dto.registrar_version_modelo_dto import Regis
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
 from src.prediction.infrastructure.schema.version_modelo_schema import VersionModeloListResponse, VersionModeloResponse
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -60,7 +61,8 @@ _RECURSO = 43  # modulo1.recursos: 'version_modelo'
 async def registrar_version_modelo(
     response: Response,
     x_rf71_internal_key: Optional[str] = Header(None, alias="X-RF71-Internal-Key"),
-    db: Session = Depends(get_db),
+    # Sin JWT: con la RLS de modulo4 (FORCE) el INSERT solo pasa como usuario de servicio.
+    db: Session = Depends(get_db_sistema),
     dto: RegistrarVersionModeloDTO = Depends(),
 ) -> VersionModeloResponse:
     use_case = RegistrarVersionModeloUseCase(

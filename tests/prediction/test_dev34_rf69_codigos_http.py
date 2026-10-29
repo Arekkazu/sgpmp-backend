@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: notas registradas no se sobrescriben |
+# | 2026-10-29 | Arekkazu | RLS modulo4 RF-69: el registro interno usa get_db_sistema |
 """DEV-34 (RF-69 E2/E3/E4, G-03): códigos HTTP del ciclo de vida de versiones de modelo.
 
 E2: metricas_validacion o compatibilidad_variables que no son JSON válido → 422 (antes 500).
@@ -19,7 +20,7 @@ from fastapi.testclient import TestClient
 
 from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.infrastructure.routers import version_modelo_router as router_module
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema
 from src.shared.error_handlers import register_error_handlers
 from src.shared.errors import BusinessRuleError, ConflictError
 
@@ -45,6 +46,8 @@ def client(monkeypatch):
     register_error_handlers(app)
     app.include_router(router_module.router)
     app.dependency_overrides[get_db] = lambda: object()
+    # El registro interno de RF-71 usa la sesión de servicio (RLS de modulo4).
+    app.dependency_overrides[get_db_sistema] = lambda: object()
     return TestClient(app, raise_server_exceptions=False)
 
 
