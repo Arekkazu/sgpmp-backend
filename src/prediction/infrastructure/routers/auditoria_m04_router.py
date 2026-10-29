@@ -129,6 +129,7 @@ def exportar_auditoria(
     id_sistema: Optional[str] = Query(default=None),
     id_referencia: Optional[str] = Query(default=None),
     severidad_evento: Optional[str] = Query(default=None),
+    tipo_modelo: Optional[str] = Query(default=None),
     formato: str = Query(default="json", pattern="^(json|csv)$"),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
@@ -145,6 +146,7 @@ def exportar_auditoria(
         id_sistema=id_sistema,
         id_referencia=id_referencia,
         severidad_evento=severidad_evento,
+        tipo_modelo=tipo_modelo,
         formato=formato,
         id_usuario_exportador=usuario_actual.id_usuario,
     )
