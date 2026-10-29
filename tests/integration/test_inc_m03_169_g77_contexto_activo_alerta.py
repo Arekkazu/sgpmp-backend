@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: la alerta lleva el activo y su contexto |
 # | 2026-10-28 | Arekkazu | INC-M03-169-G77 RF-57: el evento trae el pH que exige G70 para RIESGO_HIDRICO |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: el área de la prueba tiene umbrales RF-17 |
 """INC-M03-169-G77 (RF-57 Fase 3, E6, CA-7): POST /iot/alertas asocia el activo biológico del sensor.
 
 Router real, adaptadores reales y PostgreSQL real. Reproduce el caso de QA: sensor asociado a un lote
@@ -22,6 +23,7 @@ from sqlalchemy import text
 from src.shared.database import get_db_sistema
 from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import alerta_router
+from tests.integration.conftest import sembrar_umbrales_rf17
 
 pytestmark = pytest.mark.integration
 
@@ -70,6 +72,7 @@ def escenario(db_session, crear_usuario_db):
     device = db_session.execute(text("""INSERT INTO modulo9.dispositivos_iot(serial,descripcion,es_activo,fecha_creacion,
         id_infraestructura,id_tipo_dispositivo) VALUES (:s,'G77',TRUE,now(),:a,3) RETURNING id_dispositivo_iot"""),
         {"s": serial, "a": area}).scalar_one()
+    sembrar_umbrales_rf17(db_session, area, id_especie=2)
     sensor = db_session.execute(text("""INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
         VALUES (:d,TRUE,'Oxigeno G77') RETURNING id_sensores"""), {"d": device}).scalar_one()
     db_session.execute(text("""INSERT INTO modulo2.estados_activos_biologicos (id_estado_activo_biologico, nombre)

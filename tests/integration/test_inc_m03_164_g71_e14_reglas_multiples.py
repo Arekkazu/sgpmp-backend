@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta con dos sensores del área y consolidación por HTTP |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: el área de la prueba tiene umbrales RF-17 |
 """INC-M03-164-G71 (RF-57 E14, TC-M03-G71): varias reglas simples activas a la vez.
 
 Router real, adaptadores reales y PostgreSQL real. Un dispositivo con dos sensores (temperatura y
@@ -12,6 +13,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
+from tests.integration.conftest import sembrar_umbrales_rf17
 from tests.integration.test_inc_m03_162_g68_severidad_alertas_rf57 import http, modelos  # noqa: F401
 
 pytestmark = pytest.mark.integration
@@ -34,6 +36,7 @@ def area(db_session):
             INSERT INTO modulo9.dispositivos_iot(serial,descripcion,es_activo,fecha_creacion,id_infraestructura,id_tipo_dispositivo)
             VALUES (:serial,'G71',true,now(),:area,3) RETURNING id_dispositivo_iot
         """), {"serial": tag, "area": id_area}).scalar_one()
+        sembrar_umbrales_rf17(db_session, id_area)
         sensores = {v: db_session.execute(text("""
             INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
             VALUES (:device,true,:nombre) RETURNING id_sensores

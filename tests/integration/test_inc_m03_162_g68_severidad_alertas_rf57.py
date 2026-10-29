@@ -3,6 +3,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: severidad por valor, FALLO_AMBIENTAL técnica y escalada THI por HTTP |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: los casos de severidad envían la condición mínima de su compuesta |
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: la lectura de prueba usa la variable del evento |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: el área de la prueba tiene umbrales RF-17 |
 """INC-M03-162-G68 (RF-57 Fase 5, TC-M03-G68/G69/G72): POST /iot/alertas evalúa el valor.
 
 Router real, adaptadores reales de M09 y PostgreSQL real. Reproduce los casos de QA:
@@ -26,6 +27,7 @@ from sqlalchemy import text
 from src.shared.database import get_db, get_db_sistema
 from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import alerta_router, infraestructura_iot_router
+from tests.integration.conftest import sembrar_umbrales_rf17
 
 pytestmark = pytest.mark.integration
 
@@ -59,6 +61,7 @@ def nuevo_sensor(db_session):
             INSERT INTO modulo9.dispositivos_iot(serial,descripcion,es_activo,fecha_creacion,id_infraestructura,id_tipo_dispositivo)
             VALUES (:serial,'G68',true,now(),:area,3) RETURNING id_dispositivo_iot
         """), {"serial": tag, "area": area}).scalar_one()
+        sembrar_umbrales_rf17(db_session, area)
         sensor = db_session.execute(text("""
             INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre)
             VALUES (:device,true,'Sensor G68') RETURNING id_sensores

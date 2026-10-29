@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: E12/E13 sin parámetro cargado y configuración por API |
 # | 2026-10-28 | Arekkazu | INC-M03-168-G76 RF-57: el evento trae el THI que exigen G68/G70 |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: el área de la prueba tiene umbrales RF-17 |
 """INC-M03-168-G76 (RF-57 E12/E13, TC-M03-142/143/N18).
 
 Sin `umbral_confianza_edge_ia` en la BD (como en TEST) los conflictos Edge/IA respondían 503. Ahora
@@ -22,6 +23,7 @@ from src.configuration.infrastructure.routers import parametros_alertas_router
 from src.shared.database import get_db, get_db_sistema
 from src.shared.error_handlers import register_error_handlers
 from src.telemetry.infrastructure.routers import alerta_router
+from tests.integration.conftest import sembrar_umbrales_rf17
 
 pytestmark = pytest.mark.integration
 
@@ -75,6 +77,7 @@ def _sensor(db):
     device = db.execute(text("""
         INSERT INTO modulo9.dispositivos_iot(serial,descripcion,es_activo,fecha_creacion,id_infraestructura,id_tipo_dispositivo)
         VALUES (:s,'G76',true,now(),:a,3) RETURNING id_dispositivo_iot"""), {"s": tag, "a": area}).scalar_one()
+    sembrar_umbrales_rf17(db, area)
     sensor = db.execute(text("INSERT INTO modulo9.sensores(id_dispositivo_iot,es_activo,nombre) VALUES (:d,true,'G76') "
                              "RETURNING id_sensores"), {"d": device}).scalar_one()
     db.commit()

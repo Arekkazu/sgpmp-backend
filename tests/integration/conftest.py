@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: aisla commits de pruebas concurrentes de vision |
+# | 2026-10-28 | Arekkazu | INC-M03-173-G85 RF-57 E9: helper para sembrar umbrales RF-17 del área |
 """Infraestructura compartida para pruebas de integración con PostgreSQL.
 
 Cada prueba usa una conexión propia con una transacción exterior. Los commits
@@ -48,6 +49,24 @@ TABLAS_MODULO1_REQUERIDAS = {
     "tokens",
     "usuarios",
 }
+
+
+def sembrar_umbrales_rf17(db: Session, id_infraestructura: int, id_especie: int | None = None) -> None:
+    """RF-57 E9 (#836): sin una especie del área con umbral RF-17 activo para la variable, el evento
+    sale como alerta técnica ERROR_CONFIGURACION_REGLA. Las pruebas de clasificación necesitan el caso
+    configurado: vincula una especie al área y le da un umbral activo por variable. Solo importa que exista:
+    E9 no mira sus valores (columna NUMERIC(5,2), por eso 0-1 y no el rango físico)."""
+    especie = id_especie or db.execute(text("SELECT min(id_especie) FROM modulo9.especies WHERE es_activo")).scalar_one()
+    db.execute(text("""INSERT INTO modulo9.infraestructuras_especies(id_infraestructura, id_especie)
+        VALUES (:a, :e) ON CONFLICT (id_infraestructura, id_especie) DO NOTHING"""), {"a": id_infraestructura, "e": especie})
+    db.execute(text("""INSERT INTO modulo9.umbrales_ambientales(nombre, unidad_medida, es_activo, id_especie,
+            id_variable_ambiental, valor_min, valor_max)
+        SELECT 'Prueba RF-57 E9', v.unidad, true, :e, v.id_variable_ambiental, 0, 1
+        FROM modulo9.variables_ambientales v
+        WHERE v.es_activo AND NOT EXISTS (
+            SELECT 1 FROM modulo9.umbrales_ambientales u
+            WHERE u.es_activo AND u.id_especie = :e AND u.id_variable_ambiental = v.id_variable_ambiental)"""),
+        {"e": especie})
 
 
 def _validar_url_pruebas(url: str) -> None:
