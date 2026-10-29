@@ -128,9 +128,8 @@ def test_consulta_http_con_jwt_y_rbac(client, db_session, crear_usuario_db, crea
     respuesta = client.get('/prediccion/auditoria', headers=crear_auth_headers(usuario))
     assert respuesta.status_code == codigo, respuesta.text
     if codigo == 200:
-        # La consulta global deja una referencia propia correlacionada.
-        registro = db_session.execute(text("SELECT correlacion_id,id_referencia FROM modulo4.eventos_auditoria_m04 WHERE id_usuario=:u AND tipo_evento='HISTORIAL_CONSULTADO' ORDER BY fecha_evento DESC LIMIT 1"), {'u':usuario['id_usuario']}).one()
-        assert str(registro.correlacion_id) == registro.id_referencia
+        # CU09 H-04: consultar la bitácora no deja HISTORIAL_CONSULTADO (es de RF-67).
+        assert db_session.execute(text("SELECT count(*) FROM modulo4.eventos_auditoria_m04 WHERE id_usuario=:u AND tipo_evento='HISTORIAL_CONSULTADO'"), {'u':usuario['id_usuario']}).scalar_one() == 0
 
 
 def test_http_exige_autenticacion(client):
