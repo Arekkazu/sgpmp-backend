@@ -12,6 +12,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: router de consulta de paquetes de inferencia |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57: registra /configuracion/parametros-alertas |
 # | 2026-10-26 | Leandro | INC-M03-125-G12 RF-53/63: iniciar recuperación periódica del respaldo de auditoría IoT. |
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
 import asyncio
 import logging
 import os
@@ -70,6 +71,7 @@ from src.telemetry.infrastructure.routers.calidad_router import router as calida
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
 from src.telemetry.infrastructure.routers.paquete_inferencia_router import router as paquete_inferencia_router
 from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
+from src.telemetry.infrastructure.routers.regla_alerta_router import router as regla_alerta_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
 from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
@@ -904,6 +906,7 @@ app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
 app.include_router(regla_alerta_edge_router)
+app.include_router(regla_alerta_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)

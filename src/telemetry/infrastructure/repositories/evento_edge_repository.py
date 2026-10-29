@@ -1,6 +1,9 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-28 | Arekkazu | BE-2 RF-55: persiste id_regla_alerta del evento Edge |
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -34,6 +37,7 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
                 valor_evaluado=entidad.valor_evaluado,
                 umbral_min_aplicado=entidad.umbral_min_aplicado,
                 umbral_max_aplicado=entidad.umbral_max_aplicado,
+                id_regla_alerta=entidad.id_regla_alerta,
                 enviado_backend=False,
                 almacendado_buffer=not entidad.estado_conectividad,
             )
@@ -64,4 +68,5 @@ class SqlAlchemyEventoEdgeRepository(EventoEdgeRepository):
             valor_evaluado=orm.valor_evaluado,
             umbral_min_aplicado=orm.umbral_min_aplicado,
             umbral_max_aplicado=orm.umbral_max_aplicado,
+            id_regla_alerta=orm.id_regla_alerta,
         )

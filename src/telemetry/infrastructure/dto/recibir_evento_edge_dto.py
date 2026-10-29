@@ -3,6 +3,7 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | destroyerban | INC-M03-111-G43 RF-55.1: guarda valor y umbrales aplicados por el Edge |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
+# | 2026-10-28 | Arekkazu | BE-1 RF-55: sensor, serial y sensor_id por variable involucrada |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -20,6 +21,11 @@ class VariableInvolucradaDTO(BaseDTO):
     valor: Decimal
     unidad: str
     timestamp_captura: Optional[FechaHoraUtc] = None
+    # BE-1: el firmware los manda por variable y el broker resuelve sensor_id; antes
+    # Pydantic los descartaba sin error. Se guardan con la variable.
+    sensor: Optional[str] = Field(default=None, max_length=100)
+    serial: Optional[str] = Field(default=None, max_length=100)
+    sensor_id: Optional[int] = Field(default=None, gt=0)
 
 
 class RecibirEventoEdgeDTO(BaseDTO):

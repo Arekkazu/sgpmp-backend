@@ -6,6 +6,7 @@
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: regla de umbral M09 con forma {id, nombre} |
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: tipo de alerta RIESGO_CONTAGIO |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-10-28 | Arekkazu | BE-0/BE-3 RF-55: conducta de ReglaAlerta y regla Edge {id, nombre} en la alerta |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -14,7 +15,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Optional
 
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import BusinessRuleError, ValidationError
 
 
 class TipoAlerta(str, Enum):
@@ -67,6 +68,32 @@ def regla_umbral(id_umbral, tipo_variable, estado_semaforo, version_umbral) -> d
         'id_umbral_ambiental': id_umbral,
         'version_umbral': version_umbral,
     }
+
+
+def regla_edge(
+    clasificacion_rf55: str, metadata_edge: Optional[dict], regla: Optional["ReglaAlerta"], tipo_variable: str,
+) -> str | dict:
+    """RF-55 BE-3: la regla que evaluó el Edge, con la forma {id, nombre} de las demás.
+
+    ``metadata_edge.regla_aplicada`` es un código del firmware (ESTRES_TERMICO,
+    VENTANA_CONFIRMACION, UMBRAL_AMBIENTAL), no el nombre: el nombre sale de la regla
+    en BD. Un umbral simple (RF-17) conserva sus datos con ``regla_umbral``. Sin
+    nada de eso queda la clasificación, como antes.
+    """
+    metadata = metadata_edge or {}
+    if regla is not None:
+        return {
+            'id': regla.id_regla_alertas,
+            'nombre': regla.nombre,
+            'tipo': 'REGLA_EDGE',
+            'codigo_edge': metadata.get('regla_aplicada'),
+            'clasificacion_rf55': clasificacion_rf55,
+            'version_regla': metadata.get('version_regla', regla.version_regla),
+        }
+    if metadata.get('id_umbral_ambiental') is not None:
+        return regla_umbral(metadata['id_umbral_ambiental'], tipo_variable,
+                            metadata.get('nivel_umbral'), metadata.get('version_umbral'))
+    return clasificacion_rf55
 
 
 class AmbitoAlerta(str, Enum):
@@ -215,17 +242,25 @@ class HistoricoEstadoAlerta:
     nombre_usuario: Optional[str] = None
 
 
+# Límites del evaluador RF-55 del firmware (EDGE-FIRMWARE-SGPMP).
+LECTURAS_MAX_EDGE = 100
+CLAVES_SEVERIDAD_EDGE = frozenset({"LEVE", "MODERADO", "CRITICO", "temperatura_corporal_max"})
+
+
 @dataclass
 class ReglaAlerta:
-    id_regla_alertas: int
     nombre: str
     tipo_sensor: str
     es_regla_compuesta: bool
     ventana_confirmacion_min: Decimal
     lectura_confirmacion_max: Decimal
     es_activa: bool
-    version_regla: int
-    fecha_creacion: datetime
+
+    # Los asigna la BD: id y fecha al insertar; version_regla la sube
+    # trg_aux_02_version_regla_alerta cuando cambia lo que recibe el Edge.
+    id_regla_alertas: Optional[int] = None
+    version_regla: int = 1
+    fecha_creacion: Optional[datetime] = None
 
     descripcion: Optional[str] = None
     categoria_variable: Optional[str] = None
@@ -238,6 +273,91 @@ class ReglaAlerta:
     id_especie: Optional[int] = None
     id_usuario: Optional[int] = None
     fecha_actualizacion: Optional[datetime] = None
+
+    @property
+    def se_propaga_al_edge(self) -> bool:
+        """Solo las compuestas marcadas para el Edge viajan con REGLA_COMPUESTA (DEV-08)."""
+        return self.es_regla_compuesta and self.tiene_ejecutar_edge
+
+    def validar(self) -> None:
+        if self.umbral_min is None and self.umbral_max is None and not self.umbrales_severidad:
+            raise ValidationError(
+                code="REGLA_SIN_UMBRAL",
+                message="La regla necesita umbral_min, umbral_max o umbrales_severidad.",
+                field="umbral_min",
+            )
+        if self.umbral_min is not None and self.umbral_max is not None and self.umbral_min >= self.umbral_max:
+            raise ValidationError(
+                code="RANGO_UMBRAL_INVALIDO",
+                message="umbral_min debe ser menor que umbral_max.",
+                field="umbral_min",
+            )
+        if self.se_propaga_al_edge:
+            self._validar_para_edge()
+        if self.tiene_ejecutar_edge and not self.es_regla_compuesta:
+            # Los umbrales simples llegan al Edge por RF-17 (origen "umbral"), no por esta tabla.
+            raise ValidationError(
+                code="REGLA_EDGE_NO_COMPUESTA",
+                message="Solo una regla compuesta puede marcarse para ejecutarse en el Gateway Edge.",
+                field="tiene_ejecutar_edge",
+            )
+
+    def _validar_para_edge(self) -> None:
+        # Lo que el firmware rechazaría con ACK_REGLA ERROR, y el broker vería como NO_CONF sin motivo.
+        lecturas = self.lectura_confirmacion_max
+        if lecturas != int(lecturas) or not 1 <= lecturas <= LECTURAS_MAX_EDGE:
+            raise ValidationError(
+                code="LECTURAS_CONFIRMACION_INVALIDAS",
+                message=f"En el Edge, lectura_confirmacion_max debe ser un entero entre 1 y {LECTURAS_MAX_EDGE}.",
+                field="lectura_confirmacion_max",
+            )
+        if lecturas > 1 and self.ventana_confirmacion_min <= 0:
+            raise ValidationError(
+                code="VENTANA_CONFIRMACION_INVALIDA",
+                message="Con más de una lectura de confirmación, ventana_confirmacion_min debe ser mayor que 0.",
+                field="ventana_confirmacion_min",
+            )
+        desconocidas = set(self.umbrales_severidad or {}) - CLAVES_SEVERIDAD_EDGE
+        if desconocidas:
+            # El firmware ignora otras claves sin error y usa sus cortes por defecto.
+            raise ValidationError(
+                code="UMBRALES_SEVERIDAD_INVALIDOS",
+                message=f"Claves no reconocidas por el Edge: {', '.join(sorted(desconocidas))}. "
+                        f"Válidas: {', '.join(sorted(CLAVES_SEVERIDAD_EDGE))}.",
+                field="umbrales_severidad",
+            )
+
+    def actualizar(self, *, id_usuario: int, **campos: Any) -> None:
+        if not self.es_activa:
+            raise BusinessRuleError(
+                code="REGLA_ALERTA_INACTIVA",
+                message="No se puede editar una regla inactiva. Reactívela primero.",
+            )
+        if self.se_propaga_al_edge and any(
+            nombre in campos and campos[nombre] != getattr(self, nombre) for nombre in ("id_finca", "id_especie")
+        ):
+            # Los Gateway que salen del alcance nunca recibirían es_activa=false y la seguirían evaluando.
+            raise BusinessRuleError(
+                code="ALCANCE_REGLA_EDGE_INMUTABLE",
+                message="No se puede cambiar la finca o especie de una regla del Edge. Desactívela y cree otra.",
+                field="id_finca",
+            )
+        for nombre, valor in campos.items():
+            setattr(self, nombre, valor)
+        self.id_usuario = id_usuario
+        self.validar()
+
+    def desactivar(self, id_usuario: int) -> None:
+        if not self.es_activa:
+            raise BusinessRuleError(code="REGLA_ALERTA_YA_INACTIVA", message="La regla ya está inactiva.")
+        self.es_activa = False
+        self.id_usuario = id_usuario
+
+    def reactivar(self, id_usuario: int) -> None:
+        if self.es_activa:
+            raise BusinessRuleError(code="REGLA_ALERTA_YA_ACTIVA", message="La regla ya está activa.")
+        self.es_activa = True
+        self.id_usuario = id_usuario
 
 
 @dataclass

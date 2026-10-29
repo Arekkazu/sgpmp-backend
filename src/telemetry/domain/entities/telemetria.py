@@ -8,6 +8,7 @@
 # | 2026-10-27 | destroyerban | INC-M03-117-G60 RF-56: huella SHA-256 del contenido del paquete para idempotencia |
 # | 2026-10-27 | destroyerban | INC-M03-118-G61 RF-55: latencia de deteccion medida en el Edge y SLA de 500 ms |
 # | 2026-10-28 | destroyerban | INC-M03-199-G54 RF-55: trazabilidad de la regla (regla_aplicada, nombre_regla, version_regla) |
+# | 2026-10-28 | Arekkazu | BE-2 RF-55: id_regla_alerta en el evento Edge |
 from __future__ import annotations
 
 import hashlib
@@ -239,6 +240,8 @@ class EventoEdgeComputing:
     valor_evaluado: Optional[Decimal] = None        # RF-55.1: valor que clasificó el Edge
     umbral_min_aplicado: Optional[Decimal] = None
     umbral_max_aplicado: Optional[Decimal] = None
+    # BE-2: regla de modulo3.reglas_alertas que evaluó el Edge (metadata_edge.id_regla_alerta).
+    id_regla_alerta: Optional[int] = None
 
 
 @dataclass
