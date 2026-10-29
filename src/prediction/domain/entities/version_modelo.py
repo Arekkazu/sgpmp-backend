@@ -2,7 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
-# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06 RF-69: rechazadas y deprecadas no reciben notas (409) |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06/H-03 RF-69: terminales sin notas; POBLACIONAL sin componente no se activa |
 from __future__ import annotations
 
 import uuid
@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Optional
 
 from src.shared.errors import BusinessRuleError, ConflictError
-from src.shared.tipo_modelo import es_poblacional, paradigma_de
+from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, es_poblacional, paradigma_de
 
 _UMBRAL_F1 = Decimal("0.80")
 _UMBRAL_RECALL = Decimal("0.85")
@@ -168,6 +168,17 @@ class VersionModelo:
                     f"Solo las versiones en estado APROBADO pueden activarse. "
                     f"Estado actual: {self.estado_version}."
                 ),
+            )
+        # CU05 H-03 (RF-69 R5 v2.0, RFC-009): la unicidad de ACTIVO es por (tipo_modelo,
+        # componente); una POBLACIONAL sin componente válido no tiene a quién reemplazar.
+        if es_poblacional(self.tipo_modelo) and self.componente not in COMPONENTES_POBLACIONAL:
+            raise BusinessRuleError(
+                code="COMPONENTE_INVALIDO",
+                message=(
+                    "Los modelos POBLACIONAL se activan por componente y esta versión no declara uno "
+                    f"válido ({sorted(COMPONENTES_POBLACIONAL)})."
+                ),
+                field="componente",
             )
         if not self.notas_validacion or not self.notas_validacion.strip():
             raise BusinessRuleError(
