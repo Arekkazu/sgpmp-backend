@@ -11,6 +11,9 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación (read-model) |
 # | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: filtro de alertas por área (id_infraestructura) |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: reglas_activas de alertas de umbral anteriores desde metadato_evento |
+# | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta abierta del área y consolidación de reglas |
+# | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: busca la reevaluación previa con lock |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -188,6 +191,57 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             .first()
         )
         return self._a_entidad(orm) if orm else None
+
+    def buscar_compuesta_activa(self, tipo_alerta, id_infraestructura, ventana_min):
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                            {'clave': f'rf57:compuesta:{id_infraestructura}:{tipo_alerta}'})
+            orm = (
+                self.db.query(AlertaModel)
+                .filter(
+                    AlertaModel.tipo_alerta == tipo_alerta,
+                    AlertaModel.id_infraestructura == id_infraestructura,
+                    AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+                    AlertaModel.fecha_generacion >= func.now() - ventana_min * literal_column("interval '1 minute'"),
+                )
+                .order_by(AlertaModel.fecha_generacion.desc())
+                .populate_existing()
+                .with_for_update()
+                .first()
+            )
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return self._a_entidad(orm) if orm else None
+
+    def buscar_reevaluacion(self, id_alerta_original):
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                            {'clave': f'rf57:reevaluacion:{id_alerta_original}'})
+            orm = (self.db.query(AlertaModel)
+                   .filter(AlertaModel.referencia_alerta_original == id_alerta_original,
+                           AlertaModel.tiene_generada_por_reevaluacion.is_(True))
+                   .order_by(AlertaModel.id_alerta).first())
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return self._a_entidad(orm) if orm else None
+
+    def consolidar_compuesta(self, id_alerta, ultima_ocurrencia, reglas_nuevas, nueva_severidad, correlacion):
+        try:
+            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).populate_existing().with_for_update().one()
+            vistas = {(r.get('id'), r.get('id_sensor')) for r in (orm.reglas_activas or []) if isinstance(r, dict)}
+            orm.reglas_activas = list(orm.reglas_activas or []) + [
+                r for r in reglas_nuevas if not isinstance(r, dict) or (r.get('id'), r.get('id_sensor')) not in vistas]
+            meta = dict(orm.metadato_evento or {})
+            meta['e14'] = {**meta.get('e14', {}), 'evento_correlacionado': True,
+                           'eventos_consolidados': meta.get('e14', {}).get('eventos_consolidados', []) + [correlacion]}
+            orm.metadato_evento = meta
+            orm.frecuencia_evento = (orm.frecuencia_evento or 1) + 1
+            orm.ultima_ocurrencia = ultima_ocurrencia
+            if nueva_severidad is not None:
+                orm.severidad = nueva_severidad
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         variable = variable_para_alerta(self.db, codigo=tipo_variable)
@@ -479,6 +533,17 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             return [self._a_entidad(orm) for orm in filas]
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def contexto_incompleto_avisado_desde(self, id_sensor, desde, antes_de):
+        return self.db.query(
+            self.db.query(AlertaModel.id_alerta).filter(
+                AlertaModel.id_sensor == id_sensor,
+                AlertaModel.tiene_contexto_incompleto.is_(True),
+                AlertaModel.tipo_alerta != TIPO_ALERTA_TECNICA,
+                AlertaModel.fecha_notificacion >= desde,
+                AlertaModel.fecha_notificacion < antes_de,
+            ).exists()
+        ).scalar()
 
     def contar_generadas_desde(self, desde: datetime) -> tuple[int, dict[int, int]]:
         filas = (

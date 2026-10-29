@@ -4,6 +4,7 @@
 # | 2026-10-22 | Leandro | DEV-42 RF-60: consulta actividad valida y heartbeat real |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-60: firmware con prefijo v (v2.0.1) se compara como 2.0.1 |
 # | 2026-10-26 | Arekkazu | FW-06 RF-60: firmware se compara con SemVer 2.0 (prerelease y +metadato) |
+# | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: leer estado y pendientes del último heartbeat con el mismo criterio temporal. |
 """P-1 provisional: lectura dinámica DEV-14; ningún umbral se inventa al leer."""
 import re
 
@@ -52,7 +53,10 @@ class ParametrosHeartbeatMLOpsAdapter:
                      AND l.estado_calidad='LECTURA_VALIDA') AS primera_telemetria,
                   (SELECT h.estado_local_buffer::text FROM modulo3.heartbeats h
                    WHERE h.id_dispositivo_iot=d.id_dispositivo_iot
-                   ORDER BY h.fecha_recepcion DESC,h.id_heartbeat DESC LIMIT 1) AS buffer
+                   ORDER BY h.fecha_recepcion DESC,h.id_heartbeat DESC LIMIT 1) AS buffer,
+                  (SELECT h.datos_pendientes_buffer FROM modulo3.heartbeats h
+                   WHERE h.id_dispositivo_iot=d.id_dispositivo_iot
+                   ORDER BY h.fecha_recepcion DESC,h.id_heartbeat DESC LIMIT 1) AS datos_pendientes_buffer
                 FROM modulo9.dispositivos_iot d
                 JOIN modulo9.tipos_dispositivo_iot t ON t.id_tipo_dispositivo=d.id_tipo_dispositivo
                 WHERE d.id_dispositivo_iot=:id
@@ -80,6 +84,7 @@ class ParametrosHeartbeatMLOpsAdapter:
             dispositivo['buffer'],
             dispositivo['ultima_telemetria'], dispositivo['ultimo_heartbeat'],
             dispositivo['primera_telemetria'], dispositivo['id_infraestructura'],
+            datos_pendientes_buffer=dispositivo['datos_pendientes_buffer'],
         )
 
 

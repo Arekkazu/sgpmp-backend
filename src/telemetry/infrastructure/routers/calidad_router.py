@@ -6,6 +6,8 @@
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evaluacion de calidad de vision bajo demanda |
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: validar enums y declarar errores de consulta HTTP 422. |
 # | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: pasar a RF62 el reloj de la lectura original sin consultar estado actual. |
+# | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: restringir lote al administrador e inyectar contexto y alertas reales. |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -27,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
-from src.shared.errors import NotFoundError
+from src.shared.errors import NotFoundError, AuthorizationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -185,7 +187,7 @@ def evaluar_calidad(
     row = db.execute(
         text(
             'SELECT id_sensor, id_variable, valor_crudo, valor_ajustado, '
-            'timestamp_captura, estado_calidad, parametros_calibracion '
+            'timestamp_captura, estado_calidad, parametros_calibracion, reloj_desincronizado, metadatos '
             'FROM modulo3.telemetrias WHERE id_telemetria = :id'
         ),
         {'id': id_telemetria},
@@ -212,6 +214,8 @@ def evaluar_calidad(
         timestamp_captura=row[4],
         estado_calidad_rf53=row[5],
         parametros_calibracion=row[6],
+        reloj_desincronizado=row[7],
+        evidencia_reloj=(row[8] or {}).get('rf53_reloj'),
     )
     if evaluacion is None:
         return JSONResponse(status_code=200,content={
@@ -227,6 +231,7 @@ def evaluar_calidad(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
     dependencies=[Depends(require_permission(38, 5))],
     summary="Re-evaluación explícita ante error de configuración (FA-08)",
@@ -236,12 +241,17 @@ def solicitar_reevaluacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ReevaluacionResponseSchema:
+    if not AlcanceFincaAdapter(db).es_global(usuario_actual.id_rol):
+        raise AuthorizationError(code='ACCESO_DENEGADO',
+            message='La re-evaluación masiva de calidad requiere un Administrador.')
     use_case = SolicitarReevaluacionUseCase(
         db=db,
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
         telemetria_repo=SqlAlchemyTelemetriaRepository(db),
         parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        contexto_port=ContextoCalidadM09RF60Adapter(db),
+        alertas_calidad=GenerarAlertaCalidadUseCase(SqlAlchemyAlertaRepository(db)),
     )
     detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)
     nombre_usuario = f"{detalle.nombre} {detalle.apellidos}" if detalle else str(usuario_actual.id_usuario)

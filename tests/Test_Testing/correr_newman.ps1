@@ -2,6 +2,7 @@
 #   .\correr_newman.ps1 -Caso G69                  (Modulo 3, RF-57 por defecto)
 #   .\correr_newman.ps1 -Caso G73 -Rf RF-59
 #   .\correr_newman.ps1 -Caso G12 -Modulo 4 -Rf RF-70
+#   .\correr_newman.ps1 -Caso G026 -Modulo 4 -Rf RF-68 -Version v2.0   (genera resultado_TC-M04-G026_v2.0.html)
 #
 # NO guarda nada en disco ni en el registro de Windows. Lee la coleccion, detecta que variables
 # usa y pide solo las que faltan (las claves y secretos se escriben ocultos). Lo que escribas
@@ -11,7 +12,8 @@ param(
   [Parameter(Mandatory=$true)][string]$Caso,
   [int]$Modulo = 3,
   [string]$Rf = 'RF-57',
-  [string]$Ruta = ''
+  [string]$Ruta = '',
+  [string]$Version = ''
 )
 
 $id = "TC-M0$Modulo-$Caso"
@@ -63,9 +65,11 @@ foreach ($k in $def.Keys) {
 }
 
 New-Item -ItemType Directory -Force -Path (Join-Path $Ruta 'resultados') | Out-Null
-$html = Join-Path $Ruta "resultados\resultado_$id.html"
+$sufijo = if ($Version) { "_$Version" } else { "" }
+$html = Join-Path $Ruta "resultados\resultado_$id$sufijo.html"
+$titulo = if ($Version) { "$id $Version" } else { $id }
 Push-Location $Ruta
-newman run $col -r "cli,htmlextra" --reporter-htmlextra-export $html @args2
+newman run $col -r "cli,htmlextra" --reporter-htmlextra-export $html --reporter-htmlextra-title $titulo @args2
 $rc = $LASTEXITCODE
 Pop-Location
 # Redacta secretos (JWT, Bearer, X-Sandbox-Secret, contrasena del login) del reporte para poder subirlo a Git

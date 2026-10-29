@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: prueba reloj, bateria y transiciones |
+# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60/RF-53: mantenimiento desde cualquier estado |
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -23,9 +24,10 @@ def estado(origen):
 
 @pytest.mark.parametrize('origen,destino,permitida', [
     ('INACTIVO','EN_MANTENIMIENTO',True),('EN_MANTENIMIENTO','ACTIVO',True),
-    ('ACTIVO','EN_MANTENIMIENTO',False),('SIN_SEÑAL','ACTIVO',False),
+    ('ACTIVO','EN_MANTENIMIENTO',True),('SIN_SEÑAL','ACTIVO',False),
     ('INACTIVO','ACTIVO',False),('EN_MANTENIMIENTO','INACTIVO',False),
-    ('BUFFER_ACTIVO','EN_MANTENIMIENTO',False),('ACTIVO','ACTIVO',False),
+    ('BUFFER_ACTIVO','EN_MANTENIMIENTO',True),('ACTIVO','ACTIVO',False),
+    ('EN_MANTENIMIENTO','EN_MANTENIMIENTO',False),
 ])
 def test_transiciones_manuales_no_alteran_automaticas(origen,destino,permitida):
     e = estado(origen)

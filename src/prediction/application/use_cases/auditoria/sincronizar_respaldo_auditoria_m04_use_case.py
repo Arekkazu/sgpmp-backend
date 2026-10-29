@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar el primer evento real de la contingencia sincronizada. |
 """RF-73 E8 / CA-14: al recuperarse la BD, el respaldo local vuelve a la bitácora de M04.
 
 Los eventos se insertan en orden FIFO con su ``id_evento`` y ``fecha_evento``
@@ -66,6 +67,8 @@ class SincronizarRespaldoAuditoriaM04UseCase:
                     tipo_evento="AUDITORIA_FALLBACK_ACTIVADO",
                     tipo_actor="SISTEMA",
                     id_sistema="DESARROLLO_M04",
+                    id_referencia=str(pendientes[0]["id_evento"]),
+                    entidad_referencia="evento_auditoria_m04",
                     severidad_evento="CRITICAL",
                     resultado_operacion="EXITOSO",
                     payload_evento=resumen,

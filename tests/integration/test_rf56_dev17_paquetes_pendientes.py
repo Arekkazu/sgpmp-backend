@@ -3,6 +3,7 @@
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: casos de dispositivo y sensor inactivos (401) |
 # | 2026-10-21 | Arekkazu | DEV-45 RF-56: E1 bitácora de rechazos, E3 evento individual, E6 límite por dispositivo, E7 intento no autorizado |
 # | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63: la bitácora RF-55 confirma antes que el paquete |
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: un intento no confirmado queda PENDIENTE y se reprograma |
 """RF-56 DEV-17: router, adaptadores y PostgreSQL reales, sin motor IA real."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -135,7 +136,8 @@ def test_eventos_sin_envio_conservan_flujo_actual(client, db_session, hardware, 
     assert _paquetes(db_session, hardware['device']) == []
 
 
-@pytest.mark.parametrize('resultado,estado', [(True,'ENVIADO'), (False,'FALLIDO'), (RuntimeError('sin conexion'),'FALLIDO')])
+# INC-M03-113-G56: RF-56 restricción 14, el intento 1 no confirmado queda PENDIENTE y se reprograma.
+@pytest.mark.parametrize('resultado,estado', [(True,'ENVIADO'), (False,'PENDIENTE'), (RuntimeError('sin conexion'),'PENDIENTE')])
 def test_doble_de_motor_conserva_confirmacion_y_fallo(client, db_session, hardware, monkeypatch, resultado, estado):
     motor = Mock(spec=MotorInferenciaPort)
     def enviar(paquete):

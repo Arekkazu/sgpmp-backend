@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: persistir e hidratar el snapshot opcional junto a su heartbeat. |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -32,6 +35,7 @@ class SqlAlchemyHeartbeatRepository(HeartbeatRepository):
                 reloj_sincronizado=heartbeat.reloj_sincronizado,
                 sensores_operativos=heartbeat.sensores_operativos,
                 temperatura_dispositivo=heartbeat.temperatura_dispositivo,
+                metricas_buffer=heartbeat.metricas_buffer,
             )
             self.db.add(orm)
             self.db.flush()
@@ -58,4 +62,5 @@ class SqlAlchemyHeartbeatRepository(HeartbeatRepository):
             reloj_sincronizado=orm.reloj_sincronizado,
             sensores_operativos=orm.sensores_operativos,
             temperatura_dispositivo=orm.temperatura_dispositivo,
+            metricas_buffer=orm.metricas_buffer,
         )

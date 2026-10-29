@@ -684,7 +684,10 @@
                   "pm.test('Historial de calibraciones responde 200', function () { pm.response.to.have.status(200); });",
                   "const b = pm.response.json();",
                   "const items = Array.isArray(b) ? b : (b.items || []);",
-                  "pm.test('Precondición: sensor C sin parámetros de calibración', function () { pm.expect(items.length).to.eql(0); });"
+                  "pm.test('Precondición: sensor C sin parámetros de calibración', function () { pm.expect(items.length).to.eql(0); });",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }
@@ -848,6 +851,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// La evaluación RF-62 la crea el worker postcommit unos segundos después de la ingesta: mientras responda 404",
+                  "// (EVALUACION_CALIDAD_NO_ENCONTRADA) se reintenta cada 5 s, hasta 12 veces; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 404 && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
                   "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
                   "const p = pm.response.json().parametros_calibracion_aplicados || {};",
                   "pm.test('TC-M03-022 (A): ganancia aplicada = 1.02', function () { pm.expect(Number(p.ganancia)).to.eql(1.02); });",
@@ -1009,6 +1023,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// La evaluación RF-62 la crea el worker postcommit unos segundos después de la ingesta: mientras responda 404",
+                  "// (EVALUACION_CALIDAD_NO_ENCONTRADA) se reintenta cada 5 s, hasta 12 veces; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 404 && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
                   "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
                   "const p = pm.response.json().parametros_calibracion_aplicados || {};",
                   "pm.test('TC-M03-022 (B): ganancia aplicada = 0.98', function () { pm.expect(Number(p.ganancia)).to.eql(0.98); });",
@@ -1175,6 +1200,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// La evaluación RF-62 la crea el worker postcommit unos segundos después de la ingesta: mientras responda 404",
+                  "// (EVALUACION_CALIDAD_NO_ENCONTRADA) se reintenta cada 5 s, hasta 12 veces; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 404 && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
                   "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('TC-M03-023: parametros_calibracion_aplicados vacío', function () {",
                   "  const p = pm.response.json().parametros_calibracion_aplicados;",

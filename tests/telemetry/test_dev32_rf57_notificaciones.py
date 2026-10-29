@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: notificación individual, tormenta (E8), contexto incompleto (E6), fallo (E7) y escalamiento |
+# | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto sale sin anti-spam |
 """DEV-32 (RF-57 Fase 8, E6, E7, E8, E10)."""
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ class _Alertas:
     def reclamar_pendientes_notificacion(self, ahora, ventana_min=10, limite=100): return self.pendientes
     def contar_generadas_desde(self, desde): return self.total, self.por_area
     def existe_tormenta_desde(self, desde): return self.tormenta_reciente
+    def contexto_incompleto_avisado_desde(self, id_sensor, desde, antes_de): return False
     def guardar(self, alerta):
         alerta.id_alerta = 900 + len(self.guardadas)
         self.guardadas.append(alerta)
@@ -102,7 +104,8 @@ def test_umbrales_sin_configurar_no_agrupan():
 def test_contexto_incompleto_avisa_al_administrador():
     notif = _Notificacion()
     _uc(_Alertas([_alerta(5, "LEVE", contexto_incompleto=True)]), notif).execute(AHORA)
-    assert (1, "Alerta sin contexto de activo biológico", True) in notif.enviadas
+    # G77: el aviso de E6 no pasa por el anti-spam (antes True: otra notificación de alerta lo descartaba).
+    assert (1, "Alerta sin contexto de activo biológico", False) in notif.enviadas
 
 
 def test_fallo_de_entrega_queda_como_notificacion_fallida():

@@ -177,6 +177,15 @@
                   "        pm.expect(item.clasificacion_registro).to.eql(\"NIC41\");",
                   "        pm.expect(item.retencion_aplicable).to.eql(5);",
                   "    });",
+                  "});",
+                  "",
+                  "pm.test(\"RF-63 Restricción 4.4: componente_origen no expuesto\", function () {",
+                  "    const body = pm.response.json();",
+                  "    if (body.items && body.items.length > 0) {",
+                  "        body.items.forEach(it => {",
+                  "            pm.expect(it).to.not.have.property(\"componente_origen\");",
+                  "        });",
+                  "    }",
                   "});"
                 ]
               }
@@ -233,7 +242,7 @@
           ]
         },
         {
-          "name": "10-TC-M03-342-Inyeccion-Evento-Ambiguo-Bloqueado",
+          "name": "10-TC-M03-342-Registro-Incompleto-E8",
           "request": {
             "method": "GET",
             "header": [
@@ -265,8 +274,25 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log(\"[BLOQUEADO] Subcaso Inyección Evento Ambiguo: No existe endpoint público para registrar eventos de auditoría sin componente_origen. Los use cases internos siempre asignan un componente canónico.\");",
-                  "console.log(\"[INFO G179] Status consulta:\", pm.response.code);"
+                  "pm.test(\"Status 200 - Eventos incompletos obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-342: existe al menos 1 evento incompleto NIC41/5 (E8 post-fix)\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.at.least(1,",
+                  "        \"debe haber al menos 1 evento con registro_incompleto=true\");",
+                  "    const nic41 = body.items.filter(it => it.clasificacion_registro === \"NIC41\");",
+                  "    pm.expect(nic41.length).to.be.at.least(1,",
+                  "        \"E8: al menos 1 evento incompleto debe ser NIC41 (post-fix)\");",
+                  "    nic41.forEach(it => pm.expect(it.retencion_aplicable).to.eql(5));",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-342: históricos pre-fix conservan TECNICO/1 (inmutabilidad)\", function () {",
+                  "    const body = pm.response.json();",
+                  "    const tecnicos = body.items.filter(it => it.clasificacion_registro === \"TECNICO\");",
+                  "    tecnicos.forEach(it => pm.expect(it.retencion_aplicable).to.eql(1));",
+                  "});"
                 ]
               }
             }
@@ -378,7 +404,7 @@
           ]
         },
         {
-          "name": "13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO-Bloqueado",
+          "name": "13-TC-M03-344-RF56-PAQUETE_INFERENCIA_GENERADO",
           "request": {
             "method": "GET",
             "header": [
@@ -410,14 +436,26 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log(\"[BLOQUEADO] Subcaso RF-56 PAQUETE_INFERENCIA_GENERADO: Emitido exclusivamente por motor de IA/M04 o worker de inferencia. No expone endpoint REST directo de generación síncrona en M03.\");"
+                  "pm.test(\"Status 200 - Eventos PAQUETE_INFERENCIA_GENERADO obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-344: PAQUETE_INFERENCIA_GENERADO (RF-56) → NIC41/5\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.at.least(1,",
+                  "        \"debe haber eventos de RF-56 emitidos\");",
+                  "    body.items.forEach(it => {",
+                  "        pm.expect(it.clasificacion_registro).to.eql(\"NIC41\");",
+                  "        pm.expect(it.retencion_aplicable).to.eql(5);",
+                  "    });",
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "14-TC-M03-344-RF61-VINCULACION_AUTOMATICA-Bloqueado",
+          "name": "14-TC-M03-344-RF61-VINCULACION_AUTOMATICA",
           "request": {
             "method": "GET",
             "header": [
@@ -449,7 +487,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log(\"[BLOQUEADO] Subcaso RF-61 VINCULACION_AUTOMATICA: Emitido por worker de vinculación edge/RFID en segundo plano. No emitible por endpoint síncrono API.\");"
+                  "pm.test(\"Status 200 - Eventos VINCULACION_AUTOMATICA obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-344: VINCULACION_AUTOMATICA (RF-61) → NIC41/5\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.at.least(1);",
+                  "    body.items.forEach(it => {",
+                  "        pm.expect(it.clasificacion_registro).to.eql(\"NIC41\");",
+                  "        pm.expect(it.retencion_aplicable).to.eql(5);",
+                  "    });",
+                  "});"
                 ]
               }
             }
@@ -460,6 +509,57 @@
     {
       "name": "05-TC-M03-345-Negativos-TECNICO",
       "item": [
+        {
+          "name": "14b-TC-M03-345-RF55-DESVIACION_DETECTADA",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?tipo_evento=DESVIACION_DETECTADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "tipo_evento",
+                  "value": "DESVIACION_DETECTADA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Eventos DESVIACION_DETECTADA obtenidos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"TC-M03-345: DESVIACION_DETECTADA (RF-55) → TECNICO/1\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.total).to.be.at.least(1,",
+                  "        \"RF-55 debe emitir DESVIACION_DETECTADA (38 eventos en TEST)\");",
+                  "    body.items.forEach(it => {",
+                  "        pm.expect(it.clasificacion_registro).to.eql(\"TECNICO\");",
+                  "        pm.expect(it.retencion_aplicable).to.eql(1);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "15-TC-M03-345-Verificar-RF60-TRANSICION_MANTENIMIENTO_MANUAL",
           "request": {

@@ -8,9 +8,8 @@ que los umbrales de RF-17. El veredicto de cada Gateway queda en
 `modulo3.sincronizaciones_reglas_edge` (migración `e3b8c1d9f702`, ver
 `dev08_gaps_bd_rf55_rf57.md`).
 
-Hoy no hay CRUD de reglas (se cargan por SQL): la propagación se dispara con el
-endpoint de sincronizar. Cuando exista el CRUD, su caso de uso debe llamar a
-`SincronizarReglaEdgeUseCase` después de su commit.
+El CRUD de reglas (`curls_m03_rf55_be0_crud_reglas_alertas.md`) propaga solo
+después de cada escritura; este endpoint queda para reintentar.
 
 ## Endpoints
 

@@ -1,12 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la OTA no emite HISTORIAL_CONSULTADO |
 from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from src.prediction.domain.entities.despliegue_ota import DespliegueOta
 from src.prediction.domain.repositories.despliegue_ota_repository import DespliegueOtaRepository
-from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.shared.errors import NotFoundError, ValidationError
 
@@ -17,14 +17,10 @@ class ConsultarOtaStatusUseCase:
     def __init__(
         self,
         *,
-        db: Session,
         repo: DespliegueOtaRepository,
-        auditoria_repo: EventoAuditoriaM04Repository,
         version_port: VersionModeloPort,
     ) -> None:
-        self._db = db
         self._repo = repo
-        self._auditoria_repo = auditoria_repo
         self._version_port = version_port
 
     def execute(
@@ -33,7 +29,6 @@ class ConsultarOtaStatusUseCase:
         id_version: int,
         id_dispositivo: Optional[int],
         estado: Optional[str],
-        id_usuario: int,
     ) -> tuple[int, list[DespliegueOta]]:
         if self._version_port.obtener_estado(id_version) is None:
             raise NotFoundError(
@@ -53,27 +48,5 @@ class ConsultarOtaStatusUseCase:
             id_dispositivo=id_dispositivo,
             estado=estado,
         )
-
-        try:
-            self._auditoria_repo.registrar(
-                tipo_evento="HISTORIAL_CONSULTADO",
-                tipo_actor="USUARIO",
-                payload_evento={
-                    "consulta": "OTA_STATUS",
-                    "id_version_modelo": id_version,
-                    "id_dispositivo": id_dispositivo,
-                    "estado_filtro": estado,
-                    "total_despliegues": len(despliegues),
-                },
-                severidad_evento="INFO",
-                id_usuario=id_usuario,
-                id_referencia=str(id_version),
-                entidad_referencia="version_modelo",
-                resultado_operacion="EXITOSO",
-            )
-            self._db.commit()
-        except Exception:
-            self._db.rollback()
-            raise
 
         return id_version, despliegues

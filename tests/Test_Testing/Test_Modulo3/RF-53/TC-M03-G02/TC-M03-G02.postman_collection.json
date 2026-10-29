@@ -377,7 +377,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-142-G004/139-G001 RF-64: variables repetidas no cuentan y versión del catálogo |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -116,7 +117,8 @@ class RegistrarPatologiaUseCase:
             id_referencia=str(entidad.id_patologia),
             entidad_referencia="patologia",
             resultado_operacion="EXITOSO",
-            payload_evento=entidad._snapshot(),
+            # CU09 H-01: sin id_patologia en la raíz el evento quedaba como AUDITORIA_EVENTO_INVALIDO.
+            payload_evento={"id_patologia": entidad.id_patologia, **entidad._snapshot()},
         )
         try:
             self._db.commit()

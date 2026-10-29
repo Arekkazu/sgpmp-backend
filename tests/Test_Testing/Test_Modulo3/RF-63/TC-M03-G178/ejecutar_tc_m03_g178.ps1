@@ -1,19 +1,28 @@
 <#
 .SYNOPSIS
-    Runner PowerShell para TC-M03-G178 (RF-63 Filtros de Auditoría IoT).
+    Runner PowerShell para TC-M03-G178 (RF-63 Filtros de Auditoría IoT) - Reintento 1.
 .DESCRIPTION
     Ejecuta la colección Newman de TC-M03-G178 bajo Sandbox transaccional con regla estricta de CERO DML.
-    Genera el reporte oficial en resultados/resultado_TC-M03-G178.html.
+    Genera el reporte oficial en resultados/resultado_TC-M03-G178_reintento1.{html,json,xml}.
 #>
 param (
-    [string]$BaseUrl = "https://api.inmero.co/back-sigab-test"
+    [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 )
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Cargar variables de entorno desde .env.test si existen
-$envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.testing"
+}
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = ".env.test"
+}
 if (Test-Path $envTestPath) {
     Get-Content $envTestPath | ForEach-Object {
         $line = $_.Trim()
@@ -57,7 +66,9 @@ if (-not (Test-Path $resultadosDir)) {
     New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
 }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G178.html"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G178_reintento1.html"
+$reportXml  = Join-Path $resultadosDir "resultado_TC-M03-G178_reintento1.xml"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G178_reintento1.json"
 
 $newmanArgs = @(
     "run", $collectionPath,
@@ -65,12 +76,13 @@ $newmanArgs = @(
     "--env-var", "run_id=$runId",
     "--env-var", "sandbox_secret=$sandboxSecret",
     "--env-var", "admin_password=$adminPassword",
-    "-r", "cli,htmlextra",
+    "-r", "cli,htmlextra,junit",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "Reporte TC-M03-G178 - Filtros y Combinaciones Auditoría IoT (RF-63)",
+    "--reporter-htmlextra-title", "Reporte TC-M03-G178 - Filtros y Combinaciones Auditoría IoT (RF-63) - Reintento 1",
     "--reporter-htmlextra-omitRequestBodies",
     "--reporter-htmlextra-hideRequestBody", "00-Login-ADMIN",
-    "--reporter-htmlextra-hideResponseBodies"
+    "--reporter-htmlextra-hideResponseBodies",
+    "--reporter-junit-export", $reportXml
 )
 
 Write-Host "Ejecutando Newman..." -ForegroundColor Yellow
@@ -80,6 +92,16 @@ try {
     Write-Warning "Newman completó con advertencias/fallos de aserción."
 }
 
-Write-Host "Reporte generado en: $reportHtml" -ForegroundColor Green
+# Generar JSON estructurado a partir del JUnit XML
+$generatorScript = Join-Path $scriptDir "generar_json_resultado.cjs"
+if (Test-Path $generatorScript) {
+    Write-Host "Generando JSON de checkpoints para el scanner..." -ForegroundColor Yellow
+    node $generatorScript $reportXml $reportJson "TC-M03-G178"
+}
+
+Write-Host "Reportes generados en:" -ForegroundColor Green
+Write-Host "  HTML: $reportHtml" -ForegroundColor Green
+Write-Host "  XML:  $reportXml" -ForegroundColor Green
+Write-Host "  JSON: $reportJson" -ForegroundColor Green
 Write-Host "Para verificar en scanner (ejecutar en carpeta qa-dashboard/):" -ForegroundColor Cyan
 Write-Host "cd ../../../qa-dashboard; python3 -c `"import scanner as s; print([c for c in s.scan()['casos'] if c['tc_id']=='TC-M03-G178'])`"" -ForegroundColor Green

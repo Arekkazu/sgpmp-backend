@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: el CRUD de reglas ya llama la propagación |
 """Propagar una regla compuesta a los Gateway Edge (DEV-08, RF-55 Restricción 4, RF-57 E14/E15).
 
 Mismo patrón que los umbrales de RF-17 (``sincronizar_umbral_edge``): se
@@ -11,9 +14,9 @@ la regla simple (RF-57 E14/E15). ``version_regla`` (la sube el trigger
 ``trg_aux_02_version_regla_alerta``) le deja descartar una versión vieja que
 llegue tarde, y ``es_activa = False`` le pide retirarla.
 
-Hoy no hay CRUD de reglas: las reglas se cargan por SQL, así que la
-propagación se dispara con ``POST /iot/reglas-alertas/{id}/sincronizar-edge``.
-Cuando exista el CRUD, su caso de uso debe llamar este después de su commit.
+El CRUD de reglas (RF-55 BE-0, ``regla_alerta_router``) llama este caso de uso
+después de su commit; ``POST /iot/reglas-alertas/{id}/sincronizar-edge`` queda
+para reintentar.
 
 Consolidación (un estado por regla, además del de cada Gateway):
 

@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: mapear el snapshot JSONB opcional reportado por Edge. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -35,3 +38,4 @@ class HeartbeatModel(Base):
     # física usa el prefijo json_ de la convención DBA.
     sensores_operativos: Mapped[Optional[Any]] = mapped_column('json_sensores_operativos', JSONB(none_as_null=True))
     temperatura_dispositivo: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
+    metricas_buffer: Mapped[Optional[Any]] = mapped_column('json_metricas_buffer', JSONB(none_as_null=True))

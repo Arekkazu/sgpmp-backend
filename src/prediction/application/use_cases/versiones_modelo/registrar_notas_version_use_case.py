@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                  |
+# |------------|----------|--------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02 RF-73: notas como NOTAS_REGISTRADAS   |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -40,7 +43,9 @@ class RegistrarNotasVersionUseCase:
             raise
 
         self._auditoria_repo.registrar(
-            tipo_evento="VERSION_APROBADA",
+            # CU09 H-02 / CU05 H-09: registrar notas no es aprobar; como VERSION_APROBADA
+            # el historial de la versión mostraba "Aprobada" a nombre del Veterinario.
+            tipo_evento="NOTAS_REGISTRADAS",
             tipo_actor="USUARIO",
             id_usuario=id_usuario,
             id_referencia=str(entidad.id_version_modelo),

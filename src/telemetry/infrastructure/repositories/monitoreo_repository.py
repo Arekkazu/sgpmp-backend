@@ -5,6 +5,8 @@
 # | 2026-10-26 | Arekkazu | INC-M03-205-G93 RF-58: unidades sin sensores en el resumen (GRIS, sin datos) |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: proyectar última lectura válida y condición más reciente de forma independiente. |
 # | 2026-10-26 | Arekkazu | Lote fixes M03 RF-58: resumen con unidades sin sensores (G93) y calidad actual (ISSUE-678) juntos |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
+# | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,6 +20,7 @@ from src.telemetry.domain.entities.monitoreo import (
     MENSAJE_UNIDAD_SIN_DATOS,
     EstadoSensorActual,
     ResumenUnidadProductiva,
+    SemaforoBaseSensor,
 )
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
 
@@ -49,7 +52,8 @@ SELECT
     eas.estado_conectividad::text   AS estado_conectividad,
     eas.tiempo_sin_reporte_min,
     eas.dato_desactualizado,
-    eas.id_alerta,
+    -- G98: la caché conserva id_alerta aunque la alerta ya no esté ACTIVA (severidad nula).
+    a.id_alerta,
     eas.tendencia,
     s.nombre                        AS nombre_sensor,
     va.nombre                       AS tipo_variable,
@@ -119,6 +123,25 @@ WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestr
   AND (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
 """)
 
+# G57B: mismo alcance que _SQL_ESTADOS (sensores visibles, área vigente, fincas), sin las
+# laterales sobre telemetrias: el conteo del semáforo solo usa la caché y la alerta activa.
+_SQL_SEMAFOROS = text("""
+SELECT eas.estado_semaforo, eas.dato_desactualizado, a.id_alerta, a.severidad AS severidad_alerta
+FROM modulo3.estados_actuales_sensores eas
+JOIN modulo9.sensores s ON s.id_sensores = eas.id_sensor
+LEFT JOIN LATERAL (
+    SELECT saa2.id_infraestructura
+    FROM modulo9.sensores_areas_asociadas saa2
+    WHERE saa2.id_sensor = eas.id_sensor AND saa2.fecha_finalizacion IS NULL
+    ORDER BY saa2.fecha_asociacion DESC
+    LIMIT 1
+) saa_lat ON true
+LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
+LEFT JOIN modulo3.alertas a ON a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA'
+WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestructura)
+  AND (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
+""")
+
 _SQL_RESUMEN = text("""
 WITH agg AS (
     SELECT
@@ -142,7 +165,8 @@ WITH agg AS (
             WHEN 1 THEN 'VERDE'
             ELSE 'SIN_DATOS'
         END                         AS estado_general,
-        COUNT(CASE WHEN eas.id_alerta IS NOT NULL THEN 1 END)
+        COUNT(CASE WHEN EXISTS (SELECT 1 FROM modulo3.alertas a
+                                WHERE a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA') THEN 1 END)
                                     AS alertas_activas_count,
         MAX(eas.ultimo_timestamp_captura)
                                     AS ultimo_dato_recibido
@@ -238,6 +262,27 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
             'ids_fincas': ids_fincas_permitidas or [],
         }).scalar_one()
         return [self._fila_a_entidad(f) for f in filas], total
+
+    def obtener_semaforos_sensores(
+        self,
+        id_infraestructura: Optional[int],
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[SemaforoBaseSensor]:
+        filas = self.db.execute(_SQL_SEMAFOROS, {
+            'id_infraestructura': id_infraestructura,
+            'filtro_finca': ids_fincas_permitidas is not None,
+            'ids_fincas': ids_fincas_permitidas or [],
+        }).mappings().all()
+        return [
+            SemaforoBaseSensor(
+                estado_semaforo=f['estado_semaforo'],
+                dato_desactualizado=bool(f['dato_desactualizado']),
+                id_alerta=f['id_alerta'],
+                severidad_alerta=f['severidad_alerta'],
+            )
+            for f in filas
+        ]
 
     def obtener_resumen_unidades(
         self,

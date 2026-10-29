@@ -899,7 +899,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "['device_id', 'sensor_lat', 'sensor_frec', 'sensor_drift', 'sensor_rssi'].forEach(k =>",
-                  "  pm.environment.set('g16_' + k, String(pm.collectionVariables.get(k))));"
+                  "  pm.environment.set('g16_' + k, String(pm.collectionVariables.get(k))));",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }
@@ -1208,6 +1211,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// La evaluación RF-62 la crea el worker postcommit unos segundos después de la ingesta: mientras responda 404",
+                  "// (EVALUACION_CALIDAD_NO_ENCONTRADA) se reintenta cada 5 s, hasta 12 veces; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 404 && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
                   "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
                   "const f = pm.response.json().flags_detectados || {};",
                   "console.log('TC-M03-068 flags_detectados:', JSON.stringify(f));",

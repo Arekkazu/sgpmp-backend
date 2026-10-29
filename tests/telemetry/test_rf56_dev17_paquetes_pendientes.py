@@ -1,6 +1,9 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: un intento no confirmado queda PENDIENTE y se reprograma |
 """RF-56 DEV-17: pendiente persistido, sin confirmación ficticia ni reenvío."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 
@@ -66,7 +69,8 @@ def test_stub_deja_pendiente_despues_del_commit(evento, repos, caplog):
     assert 'pendiente' in caplog.text
 
 
-@pytest.mark.parametrize('resultado,estado', [(True,'ENVIADO'), (False,'FALLIDO'), (RuntimeError('sin conexion'),'FALLIDO')])
+# INC-M03-113-G56: RF-56 restricción 14, un intento no confirmado deja PENDIENTE y se reprograma.
+@pytest.mark.parametrize('resultado,estado', [(True,'ENVIADO'), (False,'PENDIENTE'), (RuntimeError('sin conexion'),'PENDIENTE')])
 def test_conserva_semantica_del_puerto_con_doble_de_entrega(evento, repos, resultado, estado):
     db, repo = repos
     motor = Mock(spec=MotorInferenciaPort)
@@ -76,7 +80,7 @@ def test_conserva_semantica_del_puerto_con_doble_de_entrega(evento, repos, resul
         motor.enviar_paquete.return_value = resultado
     paquete = ConsolidarEnviarPaqueteUseCase(db, repo, motor).execute(evento)
     assert paquete.estado_paquete == estado and paquete.intento_envios == 1
-    repo.actualizar_estado.assert_called_once_with(11, estado, 1)
+    repo.actualizar_estado.assert_called_once_with(11, estado, 1, ANY)
     assert db.commit.call_count == 2
 
 

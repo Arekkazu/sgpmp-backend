@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: transportar el snapshot opcional de métricas del buffer sin ORM. |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,3 +26,4 @@ class Heartbeat:
     reloj_sincronizado: bool
     sensores_operativos: Optional[list[dict[str, Any]]] = None
     temperatura_dispositivo: Optional[Decimal] = None
+    metricas_buffer: Optional[dict[str, Any]] = None

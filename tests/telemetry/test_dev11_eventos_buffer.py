@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-27 | Leandro | INC-M03-129-G27 RF-54/60/63: preservar los casos previos y actualizar el catálogo inválido tras ampliar D10. |
 """DEV-11 (D10, AIOT-DEV-03): el aviso EVENTO_BUFFER que reenvía el broker se convierte
 en una alerta técnica de RF-60 y en un evento de auditoría de RF-63."""
 from __future__ import annotations
@@ -38,6 +41,9 @@ def _cuerpo(**extra) -> dict:
 class _Alertas:
     def __init__(self, abierta=None):
         self.guardadas, self.abierta, self.dedup = [], abierta, []
+
+    def bloquear_dispositivo(self, identificador):
+        pass
 
     def buscar_tecnica_abierta(self, id_dispositivo_ioit, tipo_variable):
         return self.abierta
@@ -134,7 +140,7 @@ def test_http_401_sin_token(cliente):
     assert cliente.post("/iot/eventos-buffer", json=_cuerpo()).status_code == 401
 
 
-@pytest.mark.parametrize("cambio", [{"evento": "BUFFER_CAPACITY_WARNING"}, {"porcentaje_ocupacion": 120},
+@pytest.mark.parametrize("cambio", [{"evento": "BUFFER_EVENTO_DESCONOCIDO"}, {"porcentaje_ocupacion": 120},
                                     {"cantidad_datos_afectados": -1}])
 def test_http_rechaza_sobre_invalido(cliente, cambio):
     r = cliente.post("/iot/eventos-buffer", json=_cuerpo(**cambio), headers={"Authorization": f"Bearer {TOKEN}"})

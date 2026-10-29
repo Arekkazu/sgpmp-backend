@@ -1,11 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
-from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva
+from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva, SemaforoBaseSensor
 
 
 class MonitoreoRepository(ABC):
@@ -34,6 +35,15 @@ class MonitoreoRepository(ABC):
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
         """Devuelve (sensores, total) del estado actual con contexto M09. ``por_pagina`` None = todos."""
+
+    @abstractmethod
+    def obtener_semaforos_sensores(
+        self,
+        id_infraestructura: Optional[int],
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[SemaforoBaseSensor]:
+        """Semáforo base de todos los sensores del alcance, sin lecturas (G57B, conteo M3-08)."""
 
     @abstractmethod
     def obtener_resumen_unidades(

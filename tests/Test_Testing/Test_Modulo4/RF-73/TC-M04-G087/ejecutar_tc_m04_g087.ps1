@@ -29,17 +29,18 @@ if (-not (Test-Path $ResultDir)) {
     New-Item -ItemType Directory -Path $ResultDir -Force | Out-Null
 }
 
-$JunitXml = Join-Path $ResultDir "_raw_pytest.xml"
+$JunitXml = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.xml"
+$HtmlReport = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.html"
 Push-Location $RepoRoot
 try {
-    .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --tb=short
+    .\.venv\Scripts\pytest.exe $TC -v --junitxml="$JunitXml" --html="$HtmlReport" --self-contained-html --tb=short
     $ExitPytest = $LASTEXITCODE
 }
 finally {
     Pop-Location
 }
 
-$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G087.json"
+$FinalJson = Join-Path $ResultDir "resultado_TC-M04-G087_reintento1.json"
 .\.venv\Scripts\python.exe (Join-Path $RepoRoot "$TC\consolidar_resultados.py") $JunitXml $FinalJson
 
 Write-Host ""

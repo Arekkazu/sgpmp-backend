@@ -292,6 +292,25 @@ curl -s -X GET "http://localhost:8000/iot/auditoria?entidad_afectada_id=42&tipo_
   -H "Authorization: Bearer $TOKEN"
 ```
 
+### Ciclo de vida de un paquete de inferencia (RF-56 CA-8, INC-M03-116-G59)
+
+`entidad_afectada_tipo` separa el id del paquete de los ids iguales de otras entidades
+(lecturas, alertas…). Valores: `LECTURA`, `HEARTBEAT`, `DISPOSITIVO`, `ALERTA`, `VINCULACION`,
+`BUFFER`, `PAQUETE_IA`, `CALIDAD_DATO`, `UMBRAL`.
+
+```bash
+curl -s -X GET "http://localhost:8000/iot/auditoria?entidad_afectada_tipo=PAQUETE_IA&entidad_afectada_id=11" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Respuesta esperada (200):** los eventos del paquete 11, del más reciente al más antiguo:
+`PAQUETE_INFERENCIA_GENERADO`, `CONTEXTO_INCOMPLETO` si aplica, y el resultado del envío
+(`PAQUETE_ENVIADO_IA` o `FALLO_ENVIO_PAQUETE`; con #656 también `REINTENTO_ENVIO_PAQUETE_PROGRAMADO`).
+Quien no tiene la acción E del recurso 39 solo ve los paquetes de los equipos de sus fincas.
+
+**Errores:**
+- `400 VAL_ENTRADA` — `entidad_afectada_tipo` fuera de la lista.
+
 ---
 
 ## GET /iot/auditoria/{id_evento} — Detalle de evento de auditoría (RF-63)

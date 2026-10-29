@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: solo RF-67 emite HISTORIAL_CONSULTADO |
 """DEV-03 contra Postgres real: las consultas M04 dejan su evento en eventos_auditoria_m04.
 
 Antes, los tres GET (historial, ota-status, despliegues) emitían un ``tipo_evento``
@@ -86,37 +89,24 @@ def test_historial_diagnostico_deja_su_evento(db_session: Session, id_usuario: i
     assert _eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", "HISTORIAL_DIAGNOSTICO") == 1
 
 
-def test_ota_status_deja_su_evento(db_session: Session, id_usuario: int):
-    ConsultarOtaStatusUseCase(
-        db=db_session,
-        repo=SqlAlchemyDespliegueOtaRepository(db_session),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db_session),
-        version_port=_VersionExiste(),
-    ).execute(id_version=-1, id_dispositivo=None, estado=None, id_usuario=id_usuario)
-    assert _eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", "OTA_STATUS") == 1
-
-
-def test_despliegues_deja_su_evento(db_session: Session, id_usuario: int):
-    ListarDesplieguesUseCase(
-        db=db_session,
-        repo=SqlAlchemyDespliegueOtaRepository(db_session),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db_session),
-        version_port=_VersionExiste(),
-    ).execute(id_version=None, id_dispositivo=None, estado=None, limit=20, offset=0, id_usuario=id_usuario)
-    assert _eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", "DESPLIEGUES_OTA") == 1
-
-
-def test_consultar_y_exportar_auditoria_dejan_su_evento(db_session: Session, id_usuario: int):
+def test_consultas_de_ota_y_bitacora_no_dejan_evento_y_exportar_si(db_session: Session, id_usuario: int):
+    """CU09 H-04: solo el historial diagnóstico (RF-67) emite HISTORIAL_CONSULTADO."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
+    consultas = ("OTA_STATUS", "DESPLIEGUES_OTA", "AUDITORIA_M04")
+    antes = [_eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", c) for c in consultas]
+    ConsultarOtaStatusUseCase(
+        repo=SqlAlchemyDespliegueOtaRepository(db_session), version_port=_VersionExiste(),
+    ).execute(id_version=-1, id_dispositivo=None, estado=None)
+    ListarDesplieguesUseCase(
+        repo=SqlAlchemyDespliegueOtaRepository(db_session), version_port=_VersionExiste(),
+    ).execute(id_version=None, id_dispositivo=None, estado=None, limit=20, offset=0)
     filtros = dict(
         tipo_evento=None, fecha_desde=None, fecha_hasta=None, id_usuario=None,
         id_sistema=None, id_referencia=None, severidad_evento=None,
     )
-    ConsultarAuditoriaM04UseCase(db_session, repo).listar(
-        **filtros, pagina=1, por_pagina=10, id_usuario_consultor=id_usuario,
-    )
+    ConsultarAuditoriaM04UseCase(repo).listar(**filtros, pagina=1, por_pagina=10)
     ExportarAuditoriaM04UseCase(db_session, repo).exportar(
         **filtros, formato="json", id_usuario_exportador=id_usuario,
     )
-    assert _eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", "AUDITORIA_M04") == 1
+    assert [_eventos(db_session, "HISTORIAL_CONSULTADO", "consulta", c) for c in consultas] == antes
     assert _eventos(db_session, "EXPORTACION_GENERADA", "exportacion", "AUDITORIA_M04") == 1

@@ -2,12 +2,14 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-40 RF-53: valida referencia y categoria escalar |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-27 | Leandro | INC-M03-131-G23 RF-53/54: recibir opcionalmente la secuencia original del Edge sin coerciones ni generacion. |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: recibir evidencia opcional y estricta del reloj al capturar la lectura. |
 from __future__ import annotations
 
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, StrictBool, field_validator
 
 from src.shared.base_dto import BaseDTO
 from src.telemetry.domain.entities.telemetria import CategoriaTelemetria
@@ -36,6 +38,13 @@ class IngerirTelemetriaDTO(BaseDTO):
     calidad_senal_rssi: Optional[Decimal] = None
     calidad_senal_snr: Optional[Decimal] = None
     checksum: Optional[str] = None
+    buffer_sequence_id: Optional[int] = Field(
+        default=None, strict=True, ge=0, le=2**63-1,
+        description='Secuencia original del buffer Edge; se conserva como metadato de trazabilidad.',
+    )
+    reloj_sincronizado: Optional[StrictBool] = Field(
+        default=None, description='Estado del reloj reportado al capturar; si falta se consulta el heartbeat.',
+    )
     categoria_variable: Optional[str] = None
     id_variable: Optional[int] = Field(default=None, gt=0)
 

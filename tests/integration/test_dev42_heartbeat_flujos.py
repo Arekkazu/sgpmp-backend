@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo |
 # |------------|---------|-------------|
 # | 2026-10-22 | Leandro | DEV-42 RF-60: verifica flujos HTTP y SQL postcommit en PostgreSQL |
+# | 2026-10-29 | Arekkazu | INC-M03-134-G03 RF-60/RF-53: mantenimiento desde cualquier estado |
 """SQL directo representa la frontera del broker; no es MQTT extremo a extremo."""
 from datetime import datetime, timedelta, timezone
 import importlib.util
@@ -144,7 +145,7 @@ def cliente_manual(db_session,monkeypatch):
 
 
 @pytest.mark.parametrize('origen,destino,http',[('INACTIVO','EN_MANTENIMIENTO',200),
-    ('EN_MANTENIMIENTO','ACTIVO',200),('ACTIVO','EN_MANTENIMIENTO',422),
+    ('EN_MANTENIMIENTO','ACTIVO',200),('ACTIVO','EN_MANTENIMIENTO',200),
     ('INACTIVO','ACTIVO',422),('SIN_SEÑAL','ACTIVO',422),('EN_MANTENIMIENTO','INACTIVO',400)])
 def test_fase5_http_respeta_transicion_historia_actor(cliente_manual,db_session,equipo,crear_usuario_db,crear_auth_headers,origen,destino,http):
     rol=db_session.execute(text('SELECT id_rol FROM modulo1.roles WHERE es_protegido')).scalar_one()

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: P0408 (fecha_entrenamiento futura) → 422        |
 """Traductor de errores de base de datos a errores de dominio.
 
 Los repositorios SQLAlchemy capturan ``IntegrityError``, ``DataError`` y
@@ -38,6 +41,10 @@ _RECHAZOS_TRIGGER = {
     ("P0002", "modulo3.fn_telemetrias_inmutable"): (
         BusinessRuleError, "TELEMETRIA_INMUTABLE",
         "Los registros de telemetría no pueden ser modificados ni eliminados.", None,
+    ),
+    ("P0408", "modulo4.trg_fn_versiones_modelos_fecha_entrenamiento"): (
+        BusinessRuleError, "FECHA_ENTRENAMIENTO_FUTURA",
+        "La fecha_entrenamiento no puede ser una fecha futura.", "fecha_entrenamiento",
     ),
     ("P0005", "modulo3.fn_alerta_validar_transicion"): (
         BusinessRuleError, "TRANSICION_INVALIDA",

@@ -100,7 +100,7 @@ class SandboxClient:
 
     def post(self, path: str, json: Optional[Any] = None, headers: Optional[dict] = None) -> requests.Response:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        return requests.post(url, json=json, headers=self._headers(headers), timeout=15)
+        return requests.post(url, json=json, headers=self._headers(headers), timeout=45)  # aumento desde 15s: contención de triggers tras 41 inserts (ver INC-M03-G166-LATENCY)
 
     def delete(self, path: str, headers: Optional[dict] = None) -> requests.Response:
         url = f"{self.base_url}/{path.lstrip('/')}"

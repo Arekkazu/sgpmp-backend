@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02/H-03 RF-73: NOTAS_REGISTRADAS e id_version_deprecada contra BD real |
 """RF-69 de punta a punta contra Postgres real, con los triggers de M04 activos.
 
 Fija cuatro defectos que hacían imposible registrar una versión desde RF-71:
@@ -111,3 +114,14 @@ def test_activar_solo_deprecia_la_version_activa_del_mismo_componente(cliente, d
     ).all())
     assert [estados[i] for i in ids] == ["DEPRECADO", "ACTIVO", "ACTIVO"]
     assert "AUDITORIA_EVENTO_INVALIDO" not in _eventos(db_session, ids[0])
+    # QA-M04-27-10 CU09 H-02/H-03: las notas tienen su propio tipo y la activación dice
+    # qué versión deprecó; ninguno de los dos queda como evento inválido.
+    assert _eventos(db_session, ids[1]) == [
+        "NOTAS_REGISTRADAS", "VERSION_ACTIVADA", "VERSION_APROBADA", "VERSION_REGISTRADA",
+    ]
+    deprecada = db_session.execute(
+        text("SELECT payload_evento ->> 'id_version_deprecada' FROM modulo4.eventos_auditoria_m04 "
+             "WHERE tipo_evento = 'VERSION_ACTIVADA' AND id_referencia = :id"),
+        {"id": str(ids[1])},
+    ).scalar_one()
+    assert deprecada == str(ids[0])

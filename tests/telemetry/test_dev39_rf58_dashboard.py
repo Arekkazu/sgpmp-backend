@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: el conteo del semáforo pide todos los sensores |
+# | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: el conteo pide el semáforo base de todos los sensores |
 """DEV-39 (RF-58, C-05): vista por permiso, GRIS sin umbral y anomalías visibles.
 
 CA-8: los datos técnicos dependen del permiso de DB-08, no de id_rol == 2.
@@ -181,9 +182,10 @@ def test_m3_08_conteo_del_semaforo_sobre_todos_los_sensores():
     pedidos = []
 
     class _RepoTodos(_Repo):
-        def obtener_estados_sensores(self, **kw):
-            pedidos.append(kw['por_pagina'])
-            return self.sensores, len(self.sensores)
+        # G57B: el conteo usa el semáforo base, no la consulta completa de estados.
+        def obtener_semaforos_sensores(self, id_infraestructura, **kw):
+            pedidos.append(id_infraestructura)
+            return self.sensores
 
     sensores = [_sensor(i) for i in range(60)] + [
         _sensor(61, id_alerta=9, severidad_alerta='CRITICO'),  # CA-4: alerta crítica activa → ROJO
@@ -191,5 +193,5 @@ def test_m3_08_conteo_del_semaforo_sobre_todos_los_sensores():
     ]
     conteo = ObtenerDashboardUseCase(_RepoTodos(sensores)).contar_semaforos(None)
 
-    assert pedidos == [None]  # sin límite de página
+    assert pedidos == [None]  # todo el alcance, sin página
     assert conteo == {'VERDE': 60, 'ROJO': 1, 'GRIS': 1}

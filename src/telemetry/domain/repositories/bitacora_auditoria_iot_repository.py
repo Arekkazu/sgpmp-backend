@@ -3,6 +3,7 @@
 # | 2026-10-22 | Leandro | DEV-47 RF-63: contrato de incidentes append-only |
 # | 2026-10-25 | Arekkazu | INC-M03-135/136/137 RF-63: filtros id_usuario, rf_origen, registro_incompleto y verificación acotada |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -37,6 +38,7 @@ class BitacoraAuditoriaIotRepository(ABC):
         id_usuario: Optional[int] = None,
         rf_origen: Optional[str] = None,
         registro_incompleto: Optional[bool] = None,
+        entidad_afectada_tipo: Optional[str] = None,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:

@@ -69,15 +69,22 @@ $evidenciasDir = Join-Path $scriptDir "evidencias"
 if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
 if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169.html"
-$consoleLog = Join-Path $evidenciasDir "console_run.log"
+$runDate = Get-Date -Format "yyyyMMdd"
+$runEvidenciasDir = Join-Path $evidenciasDir "run-$runDate"
+if (-not (Test-Path $runEvidenciasDir)) {
+    New-Item -ItemType Directory -Path $runEvidenciasDir -Force | Out-Null
+}
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169_reintento1.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G169_reintento1.json"
+$consoleLog = Join-Path $runEvidenciasDir "console_run.log"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "TC-M03-G169 - Estados heredados de RF-53 (RF-62)" -ForegroundColor Cyan
+Write-Host "TC-M03-G169 - Estados heredados de RF-53 (Reintento 1)" -ForegroundColor Cyan
 Write-Host "BaseUrl:    $BaseUrl"
 Write-Host "Run ID:     $runId"
 Write-Host "Coleccion:  $collectionPath"
 Write-Host "Reporte:    $reportHtml"
+Write-Host "Reporte JSON: $reportJson"
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $newmanArgs = @(
@@ -87,9 +94,10 @@ $newmanArgs = @(
     "--env-var", "sandbox_secret=$sandboxSecret",
     "--env-var", "admin_password=$adminPassword",
     "--env-var", "broker_token=$brokerToken",
-    "-r", "cli,htmlextra",
+    "-r", "cli,htmlextra,json",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53",
+    "--reporter-json-export", $reportJson,
+    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53 (Reintento 1)",
     "--reporter-htmlextra-omitRequestBodies",
     "--reporter-htmlextra-omitHeaders"
 )

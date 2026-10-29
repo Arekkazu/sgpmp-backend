@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | INC-M04-215/216 RF-72: validaciones de entrada responden 422       |
 """Router FastAPI para retroalimentación clínica M04 (`/prediccion/retroalimentacion`).
 
 RF-72 CU-08: registro de retroalimentación clínica sobre resultados de inferencia.
@@ -47,6 +50,7 @@ _RECURSO = 45
         500: {"model": ErrorResponse},
     },
     summary="Registrar retroalimentación clínica sobre un resultado de inferencia (RF-72)",
+    openapi_extra={"x-codigo-validacion": 422},
 )
 def registrar_retroalimentacion(
     dto: RegistrarRetroalimentacionDTO,

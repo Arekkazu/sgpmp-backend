@@ -1,7 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
-"""DTO del aviso de buffer del Gateway Edge (POST /iot/eventos-buffer, RF-54 E1/E6).
+# | 2026-10-27 | Leandro | INC-M03-129-G27 RF-54/60/63: admitir BUFFER_CAPACITY_WARNING mediante la ampliación de D10 confirmada. |
+"""DTO del aviso de buffer del Gateway Edge (POST /iot/eventos-buffer, RF-54 Fase 4/E1/E6).
 
 Sobre de D10 (AIOT-DEV-03): el nodo lo publica en ``sgpmp/<serial>/status`` con
 ``tipo_mensaje = EVENTO_BUFFER`` y el broker lo reenvía tal cual, más el
@@ -20,6 +21,7 @@ from src.shared.fechas import FechaHoraUtc
 
 
 class EventoBuffer(str, Enum):
+    BUFFER_CAPACITY_WARNING = "BUFFER_CAPACITY_WARNING"
     BUFFER_OVERFLOW = "BUFFER_OVERFLOW"
     BUFFER_DATA_CORRUPTION = "BUFFER_DATA_CORRUPTION"
 

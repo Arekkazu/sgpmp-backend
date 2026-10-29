@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU02 H-04 RF-65: historial con nombres de usuario y versión |
 from __future__ import annotations
 
 from datetime import datetime
@@ -112,6 +113,10 @@ class VersionConfiguracionMotorSchema(BaseModel):
     # Usuario que la reemplazó (null en la vigente y en DELETE).
     id_usuario_cambio: Optional[int] = None
     configuracion: dict
+    # CU02 H-04 (RF-65 CA-3): el historial se lee sin consultar la BD ("#126", "#43").
+    nombre_usuario_responsable: Optional[str] = None
+    nombre_usuario_cambio: Optional[str] = None
+    nombre_version_modelo_activa: Optional[str] = None
 
 
 class HistorialConfiguracionMotorSchema(BaseModel):

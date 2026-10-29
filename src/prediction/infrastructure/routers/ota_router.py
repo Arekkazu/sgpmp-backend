@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: DISTRIBUCION_POSPUESTA al crear fuera de ventana |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04/CU06 H-02 RF-70/73: consultar la OTA no deja evento; nombre de versión |
 """Router FastAPI para distribución OTA de modelos Edge (`/prediccion`).
 
 RF-70 CU-06: Consulta del estado OTA y listado de despliegues por dispositivo.
@@ -23,6 +24,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -39,6 +41,7 @@ from src.prediction.infrastructure.adapters.ota_edge_adapters import (
 )
 from src.prediction.infrastructure.adapters.version_modelo_adapter import VersionModeloAdapter
 from src.prediction.infrastructure.dto.ota_dto import CrearDistribucionOtaDTO, ReporteOtaDTO
+from src.prediction.infrastructure.models.version_modelo_model import VersionModeloModel
 from src.prediction.infrastructure.repositories.despliegue_ota_repository import SqlAlchemyDespliegueOtaRepository
 from src.prediction.infrastructure.repositories.distribucion_ota_repository import SqlAlchemyDistribucionOtaRepository
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
@@ -60,6 +63,22 @@ router = APIRouter(prefix="/prediccion", tags=["Predicción M04 - OTA"])
 _RECURSO = 44
 
 
+def _con_nombre_version(db: Session, despliegues: list[DespliegueOtaResponse]) -> list[DespliegueOtaResponse]:
+    """CU06 H-02: nombre de la versión desplegada y de la anterior, una consulta por página."""
+    ids = {d.id_version_modelo for d in despliegues} | {
+        d.id_version_modelo_anterior for d in despliegues if d.id_version_modelo_anterior is not None
+    }
+    if ids:
+        nombres = dict(db.execute(
+            select(VersionModeloModel.id_version_modelo, VersionModeloModel.nombre_version)
+            .where(VersionModeloModel.id_version_modelo.in_(ids))
+        ).all())
+        for d in despliegues:
+            d.nombre_version = nombres.get(d.id_version_modelo)
+            d.nombre_version_anterior = nombres.get(d.id_version_modelo_anterior)
+    return despliegues
+
+
 @router.get(
     "/modelos/{id_version}/ota-status",
     response_model=OtaStatusResponse,
@@ -76,23 +95,19 @@ def consultar_ota_status(
     id_dispositivo: Optional[int] = Query(None, description="Filtrar por ID de dispositivo IoT."),
     estado: Optional[str] = Query(None, description="Filtrar por estado: EXITOSO, FALLIDO, PENDIENTE, SIN_CAMBIOS, EN_PROCESO."),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> OtaStatusResponse:
     use_case = ConsultarOtaStatusUseCase(
-        db=db,
         repo=SqlAlchemyDespliegueOtaRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         version_port=VersionModeloAdapter(db),
     )
     id_version_resultado, despliegues = use_case.execute(
         id_version=id_version,
         id_dispositivo=id_dispositivo,
         estado=estado,
-        id_usuario=usuario_actual.id_usuario,
     )
     return OtaStatusResponse(
         id_version_modelo=id_version_resultado,
-        despliegues=[DespliegueOtaResponse.from_entity(d) for d in despliegues],
+        despliegues=_con_nombre_version(db, [DespliegueOtaResponse.from_entity(d) for d in despliegues]),
         total=len(despliegues),
     )
 
@@ -115,12 +130,9 @@ def listar_despliegues(
     limit: int = Query(20, ge=1, le=100, description="Registros por página (máx. 100)."),
     offset: int = Query(0, ge=0, description="Desplazamiento de la página."),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DespliegueOtaListResponse:
     use_case = ListarDesplieguesUseCase(
-        db=db,
         repo=SqlAlchemyDespliegueOtaRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         version_port=VersionModeloAdapter(db),
     )
     items, total = use_case.execute(
@@ -129,11 +141,10 @@ def listar_despliegues(
         estado=estado,
         limit=limit,
         offset=offset,
-        id_usuario=usuario_actual.id_usuario,
     )
     return DespliegueOtaListResponse(
         total=total,
-        items=[DespliegueOtaResponse.from_entity(d) for d in items],
+        items=_con_nombre_version(db, [DespliegueOtaResponse.from_entity(d) for d in items]),
     )
 
 

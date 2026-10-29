@@ -1,15 +1,19 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-29 | Arekkazu | PEND-456 RF-68: GET con los cálculos del alcance para la pestaña Contagio |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
+  GET  /prediccion/riesgo-contagio — Cálculos de las fincas del usuario, los más recientes primero
 
-Auth: JWT Bearer + RBAC sobre el recurso 41 (configuracion_motor_ia), acción 5 (Ejecutar).
+Auth: JWT Bearer + RBAC sobre el recurso 41 (configuracion_motor_ia): Ejecutar (5) / Leer (2).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -29,7 +33,14 @@ from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository 
 from src.prediction.infrastructure.repositories.resultado_riesgo_contagio_repository import (
     SqlAlchemyResultadoRiesgoContagioRepository,
 )
+from src.prediction.application.use_cases.monitor.listar_riesgo_contagio_use_case import ListarRiesgoContagioUseCase
+from src.prediction.infrastructure.repositories.monitor_prediccion_repository import (
+    SqlAlchemyMonitorPrediccionRepository,
+)
+from src.prediction.infrastructure.schema.monitor_prediccion_schema import RiesgoContagioMonitorResponse
 from src.prediction.infrastructure.schema.riesgo_contagio_schema import RiesgoContagioResponse
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
+from src.shared.fechas import FechaHoraUtc
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -77,3 +88,25 @@ def estimar_riesgo_contagio(
         content=RiesgoContagioResponse.from_resultado(resultado).model_dump(mode="json"),
         status_code=200 if resultado.desde_cache else 201,
     )
+
+
+@router.get(
+    "",
+    response_model=list[RiesgoContagioMonitorResponse],
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Cálculos de riesgo de contagio en las fincas del usuario (RF-68)",
+)
+def listar_riesgo_contagio(
+    nivel_riesgo: Optional[int] = Query(default=None, description="0 a 3"),
+    desde: Optional[FechaHoraUtc] = Query(default=None),
+    hasta: Optional[FechaHoraUtc] = Query(default=None),
+    limite: int = Query(default=50, description="Máximo 200; los más recientes primero."),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[RiesgoContagioMonitorResponse]:
+    fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+    items = ListarRiesgoContagioUseCase(SqlAlchemyMonitorPrediccionRepository(db)).execute(
+        ids_fincas=fincas, nivel_riesgo=nivel_riesgo, desde=desde, hasta=hasta, limite=limite,
+    )
+    return [RiesgoContagioMonitorResponse.model_validate(i) for i in items]

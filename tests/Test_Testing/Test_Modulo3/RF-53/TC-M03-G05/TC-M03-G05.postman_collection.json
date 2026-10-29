@@ -731,7 +731,10 @@
                   "const nombres = (pm.response.json().items || []).map(v => v.nombre.toLowerCase());",
                   "pm.test('Precondición: no existe una variable de temperatura del suelo en el catálogo', function () {",
                   "  pm.expect(nombres.filter(n => n.includes('suelo'))).to.eql([]);",
-                  "});"
+                  "});",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }

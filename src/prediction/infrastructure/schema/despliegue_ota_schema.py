@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU06 H-02 RF-70: nombre de la versión desplegada |
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,6 +16,8 @@ from src.shared.tipo_modelo import paradigma_de
 class DespliegueOtaResponse(BaseModel):
     id_despliegue_ota: int
     id_version_modelo: int
+    # CU06 H-02: sin el nombre, la pantalla mostraba "v43" y no se sabía qué modelo se desplegó.
+    nombre_version: Optional[str] = None
     id_dispositivo_iot: int
     tipo_modelo: str
     paradigma: Optional[str] = None
@@ -22,6 +27,7 @@ class DespliegueOtaResponse(BaseModel):
     hash_modelo_sha256: str
     resultado_validacion_hash: Optional[bool]
     id_version_modelo_anterior: Optional[int]
+    nombre_version_anterior: Optional[str] = None
     rollback_ejecutado: bool
     intentos_descarga: int
     max_reintentos: int

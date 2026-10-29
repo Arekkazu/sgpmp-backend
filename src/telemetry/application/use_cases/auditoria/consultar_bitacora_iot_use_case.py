@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M03-136/137 RF-63: filtros id_usuario, rf_origen y registro_incompleto |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
+# | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 from __future__ import annotations
 
 from datetime import datetime
@@ -39,6 +40,7 @@ class ConsultarBitacoraIotUseCase:
         id_usuario: Optional[int] = None,
         rf_origen: Optional[str] = None,
         registro_incompleto: Optional[bool] = None,
+        entidad_afectada_tipo: Optional[str] = None,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoriaIot], int]:
@@ -47,6 +49,7 @@ class ConsultarBitacoraIotUseCase:
             id_usuario=id_usuario,
             rf_origen=rf_origen,
             registro_incompleto=registro_incompleto,
+            entidad_afectada_tipo=entidad_afectada_tipo,
             fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta,
             tipo_evento=tipo_evento,

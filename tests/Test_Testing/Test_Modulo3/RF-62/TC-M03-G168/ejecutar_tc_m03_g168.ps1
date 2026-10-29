@@ -69,8 +69,11 @@ $evidenciasDir = Join-Path $scriptDir "evidencias"
 if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
 if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G168.html"
-$consoleLog = Join-Path $evidenciasDir "console_run.log"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G168_reintento1.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G168_reintento1.json"
+$runDir     = Join-Path $evidenciasDir "run-20261028"
+if (-not (Test-Path $runDir)) { New-Item -ItemType Directory -Path $runDir -Force | Out-Null }
+$consoleLog = Join-Path $runDir "console_execution.log"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "TC-M03-G168 - Flags individuales sin severidad (RF-62)" -ForegroundColor Cyan
@@ -78,6 +81,7 @@ Write-Host "BaseUrl:    $BaseUrl"
 Write-Host "Run ID:     $runId"
 Write-Host "Coleccion:  $collectionPath"
 Write-Host "Reporte:    $reportHtml"
+Write-Host "JSON:       $reportJson"
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 $newmanArgs = @(
@@ -87,16 +91,17 @@ $newmanArgs = @(
     "--env-var", "sandbox_secret=$sandboxSecret",
     "--env-var", "admin_password=$adminPassword",
     "--env-var", "broker_token=$brokerToken",
-    "-r", "cli,htmlextra",
+    "-r", "cli,htmlextra,json",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "TC-M03-G168 - Flags individuales sin severidad",
+    "--reporter-htmlextra-title", "TC-M03-G168 - Flags individuales sin severidad (Reintento 1)",
     "--reporter-htmlextra-omitRequestBodies",
-    "--reporter-htmlextra-omitHeaders"
+    "--reporter-htmlextra-omitHeaders",
+    "--reporter-json-export", $reportJson
 )
 
 $exitCode = 0
 try {
-    & npx -y newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
+    & newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
     $exitCode = $LASTEXITCODE
 } catch {
     Write-Warning "Fallo durante la ejecucion de Newman: $_"

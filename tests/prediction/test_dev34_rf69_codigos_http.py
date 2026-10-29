@@ -2,6 +2,8 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: notas registradas no se sobrescriben |
+# | 2026-10-29 | Arekkazu | RLS modulo4 RF-69: el registro interno usa get_db_sistema |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU05 H-06 RF-69: rechazadas y deprecadas no reciben notas |
 """DEV-34 (RF-69 E2/E3/E4, G-03): códigos HTTP del ciclo de vida de versiones de modelo.
 
 E2: metricas_validacion o compatibilidad_variables que no son JSON válido → 422 (antes 500).
@@ -19,7 +21,7 @@ from fastapi.testclient import TestClient
 
 from src.prediction.domain.entities.version_modelo import VersionModelo
 from src.prediction.infrastructure.routers import version_modelo_router as router_module
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema
 from src.shared.error_handlers import register_error_handlers
 from src.shared.errors import BusinessRuleError, ConflictError
 
@@ -45,6 +47,8 @@ def client(monkeypatch):
     register_error_handlers(app)
     app.include_router(router_module.router)
     app.dependency_overrides[get_db] = lambda: object()
+    # El registro interno de RF-71 usa la sesión de servicio (RLS de modulo4).
+    app.dependency_overrides[get_db_sistema] = lambda: object()
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -147,3 +151,14 @@ def test_m406_las_notas_registradas_no_se_sobrescriben():
     sin_notas = _version("APROBADO", notas=None)
     sin_notas.registrar_notas("  Primera nota  ")
     assert sin_notas.notas_validacion == "Primera nota"
+
+
+@pytest.mark.parametrize("estado", ["RECHAZADO", "DEPRECADO"])
+def test_cu05_h06_version_terminal_no_recibe_notas(estado):
+    """CU05 H-06 (RF-69 fase 4): una versión rechazada o deprecada solo se consulta."""
+    version = _version(estado, notas=None)
+    with pytest.raises(ConflictError) as exc:
+        version.registrar_notas("QA SG prueba notas en rechazado")
+    assert exc.value.code == "VERSION_SOLO_LECTURA"
+    assert exc.value.status_code == 409
+    assert version.notas_validacion is None

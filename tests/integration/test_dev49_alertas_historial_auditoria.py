@@ -2,6 +2,9 @@
 # |------------|---------|------------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-49 RF-57: verifica flujos HTTP y triggers reales  |
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-27/42: evaluador con parametros y lectura con lock |
+# | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: ERROR_CALIBRACION genera alerta técnica FALLO_AMBIENTAL |
+# | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: el evento de temperatura lleva la humedad de su compuesta |
+# | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: el caso de alerta operativa siembra su umbral RF-17 |
 """DEV-49 con JWT, broker, repositorios y PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -120,6 +123,17 @@ def _fila_alerta(db, id_alerta):
     return db.execute(text("SELECT to_jsonb(a) FROM modulo3.alertas a WHERE id_alerta=:id"), {"id": id_alerta}).scalar_one()
 
 
+def _con_umbral_temperatura(db, area):
+    especie = db.execute(text("SELECT min(id_especie) FROM modulo9.especies WHERE es_activo")).scalar_one()
+    db.execute(text("INSERT INTO modulo9.infraestructuras_especies(id_infraestructura,id_especie) VALUES (:a,:e) "
+                    "ON CONFLICT DO NOTHING"), {"a": area, "e": especie})
+    if not db.execute(text("SELECT 1 FROM modulo9.umbrales_ambientales WHERE es_activo AND id_especie=:e "
+                           "AND id_variable_ambiental=9"), {"e": especie}).first():
+        db.execute(text("INSERT INTO modulo9.umbrales_ambientales(nombre,unidad_medida,es_activo,id_especie,"
+                        "id_variable_ambiental,valor_min,valor_max) VALUES ('G85 temperatura','°C',true,:e,9,20,30)"),
+                   {"e": especie})
+
+
 def _lectura(db, hardware, calidad="LECTURA_VALIDA"):
     return db.execute(text("""
         INSERT INTO modulo3.telemetrias(id_sensor,id_variable,id_dispositivo_iot,valor_crudo,
@@ -133,10 +147,14 @@ def _payload(hardware, id_lectura, calidad="LECTURA_VALIDA"):
     return {"device_id": hardware["device"], "sensor_id": hardware["sensor"], "serial": hardware["serial"],
             "tipo_variable": "TEMPERATURA_AMBIENTAL", "valor": "38.5", "unidad": "°C",
             "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
-            "estado_dato": calidad, "severidad_edge": "MODERADO", "origen_evento": "EDGE", "id_telemetria": id_lectura}
+            "estado_dato": calidad, "severidad_edge": "MODERADO", "origen_evento": "EDGE", "id_telemetria": id_lectura,
+            # G70: ESTRES_TERMICO exige temperatura y humedad (THI ≥ 72); 38.5 °C y 60 % → THI 91.77.
+            "correlacion_variables": {"HUMEDAD_RELATIVA": 60}}
 
 
 def test_generacion_http_y_transiciones_generan_una_fila_cada_una(db_session, hardware49, http49):
+    # G85 (RF-57 E9): sin umbral RF-17 para la variable en el área no hay alerta operativa.
+    _con_umbral_temperatura(db_session, hardware49["area"])
     id_lectura = _lectura(db_session, hardware49)
     db_session.commit()
     client, headers, usuarios, broker = http49
@@ -239,10 +257,17 @@ def test_calidad_no_valida_conserva_lectura_y_registro_tecnico(db_session, hardw
     consulta = text("SELECT to_jsonb(t) FROM modulo3.telemetrias t WHERE id_telemetria=:id")
     previo = db_session.execute(consulta, {"id": id_lectura}).scalar_one()
     response = http49[0].post("/iot/alertas", headers=http49[3], json=_payload(hardware49, id_lectura, calidad))
-    assert response.status_code == 201, response.text  # Contrato previo: resultado sin alerta.
-    assert response.json()["id_alerta"] is None
+    assert response.status_code == 201, response.text
     assert db_session.execute(consulta, {"id": id_lectura}).scalar_one() == previo
-    assert db_session.execute(text("SELECT count(*) FROM modulo3.alertas WHERE id_telemetria=:id"), {"id": id_lectura}).scalar_one() == 0
+    alertas = db_session.execute(text(
+        "SELECT tipo_alerta, tipo_variable FROM modulo3.alertas WHERE id_telemetria=:id"), {"id": id_lectura}).all()
+    if calidad == "ERROR_CALIBRACION":
+        # INC-M03-162-G68: RF-57 FALLO_AMBIENTAL. No hay alerta operativa, pero sí la técnica para el ingeniero.
+        assert response.json()["tipo_alerta"] == "TECNICA"
+        assert [tuple(a) for a in alertas] == [("TECNICA", "FALLO_AMBIENTAL")]
+    else:
+        assert response.json()["id_alerta"] is None
+        assert alertas == []
     evento, = db_session.execute(text("""
         SELECT clasificacion_registro,accion_detallada FROM modulo3.bitacora_auditoria_iot
         WHERE tipo_evento='LECTURA_EXCLUIDA_RF57' AND entidad_afectada_id=:id

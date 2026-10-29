@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-29 RF-56: el doble del dispositivo trae es_activo |
+# | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: sin conflicto IA no se consulta la confianza (sí ventana y SLA) |
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -138,11 +139,17 @@ def test_confianza_modifica_tipo_y_compromiso_sin_cambiar_bandas_de_severidad():
     assert segundo.tipo_alerta=='SINDROME_RESPIRATORIO' and segundo.severidad=='MODERADO'
 
 
+def _sin_consultar_confianza(repo):
+    # G57A: la alerta lee ventana de deduplicación y SLA; el umbral de confianza no debe consultarse.
+    pedidos = [nombre for llamada in repo.obtener.call_args_list for nombre in llamada.args[0]]
+    assert RF57_CONFIANZA not in pedidos
+
+
 def test_sin_ia_no_se_consume_un_umbral_que_no_interviene():
     repo=repositorio({})
     uc=alerta_use_case(Mock(),repo)
     assert uc.execute(evento_alerta(probabilidad_ia=None,severidad_ia=None)).severidad=='LEVE'
-    repo.obtener.assert_not_called()
+    _sin_consultar_confianza(repo)
 
 
 def test_ventana_rf72_modifica_aceptacion_en_el_mismo_consumidor():
@@ -168,7 +175,7 @@ def test_sin_conflicto_ia_no_se_consume_un_umbral_innecesario():
     uc=alerta_use_case(Mock(),repo)
     resultado=uc.execute(evento_alerta(tipo_alerta_ia='SINDROME_RESPIRATORIO',severidad_ia='LEVE'))
     assert resultado.tipo_alerta=='SINDROME_RESPIRATORIO'
-    repo.obtener.assert_not_called()
+    _sin_consultar_confianza(repo)
 
 
 def test_falta_configuracion_m09_no_se_reemplaza_por_cinco_minutos():

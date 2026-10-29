@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-48 RF-72 E8: incidente de persistencia en RF-73   |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M04-154-G085 RF-73: payload mínimo de CONFLICTO_RETROALIMENTACION |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: respetar la identidad exclusiva del actor del conflicto clinico. |
 from __future__ import annotations
 
 import logging
@@ -171,7 +172,7 @@ class RegistrarRetroalimentacionUseCase:
         if hay_conflicto:
             self._auditoria_repo.registrar(
                 tipo_evento="CONFLICTO_RETROALIMENTACION",
-                tipo_actor="SISTEMA",
+                tipo_actor="USUARIO",
                 id_usuario=id_usuario_veterinario,
                 id_referencia=str(dto.id_resultado_inferencia),
                 entidad_referencia="resultado_inferencia",

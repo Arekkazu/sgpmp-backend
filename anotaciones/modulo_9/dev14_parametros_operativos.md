@@ -61,7 +61,9 @@ Las rutas de esta matriz son relativas a la raíz del repositorio.
 | RF-60 | Batería 30 %, crítica 10 %, RSSI −100 dBm | `src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py` | M09 global | Sí | Solicitud técnica preparada; comparaciones originales conservadas |
 | RF-53 | Latencia HTTP 30000 ms | `src/telemetry/application/use_cases/ingesta/ingerir_telemetria_use_case.py` | M09 global | Sí | Pendiente de esquema; no se confunde con antigüedad ni reglas SQL |
 | RF-57 | Deduplicación 30 min | `src/telemetry/application/use_cases/alertas/generar_alerta_use_case.py` | M09 global | Sí | Pendiente de esquema; idempotencia conservada |
-| RF-57 | Confianza Edge/IA 0.85 | El mismo caso de uso, `_clasificar` | M04 `parametros_mlops` | No | Dinámico: `umbral_confianza_edge_ia` |
+| RF-57 | Confianza Edge/IA 0.85 | El mismo caso de uso, `_clasificar` | M04 `parametros_mlops` | No | Dinámico: `umbral_confianza_edge_ia`; sin configurar, valor base 0.85 (G76) |
+| RF-57 | Ventana de reevaluación 60 min (E16) | `reevaluar_alerta_use_case.py` | M04 `parametros_mlops` | No | Dinámico: `rf57_ventana_reevaluacion_min`; sin configurar, valor base 60 (G75) |
+| RF-57 | Confianza mínima de IA 0.75 (CA-2) | El mismo caso de uso, antes de la deduplicación | M04 `parametros_mlops` | No | Dinámico: `rf57_umbral_confianza_minimo`; sin configurar, valor base 0.75 (G73) |
 | RF-62 | k=3, M=5, N=20, drift=5 %, P=3 | `src/telemetry/infrastructure/adapters/parametros_calidad_stub_adapter.py` | M04 `parametros_mlops` | No | Adaptador real e inyección en las tres composiciones presentes en esta base |
 | RF-62 | Frecuencia 5 min del stub | El mismo adaptador | Configuración activa M09 existente | No | Adaptador obtiene frecuencia real; se registra en la evaluación |
 | RF-72 | Ventana 90 días | `src/prediction/application/use_cases/retroalimentacion/registrar_retroalimentacion_use_case.py` | M04, clave existente `ventana_retroalimentacion_dias` | No | Dinámica, conserva comparación por `.days` |
@@ -103,7 +105,11 @@ explícitamente antes de habilitar los consumidores en un entorno compartido.
 | `rf62_n` | Entero; tamaño de serie | N ≥ 2, requerido por desviación estándar |
 | `rf62_umbral_drift` | Número; porcentaje | Finito, ≥ 0, representable por el cálculo float |
 | `rf62_p` | Entero; lecturas consecutivas | 1 ≤ P ≤ N |
-| `umbral_confianza_edge_ia` | Número; probabilidad | 0.70–0.95 |
+| `umbral_confianza_edge_ia` | Número; probabilidad | 0.70–0.95. **Excepción (INC-M03-168-G76):** si falta, se usa el valor base del RF (0.85); un valor inválido sigue respondiendo 503 |
+| `rf57_ventana_reevaluacion_min` | Entero; minutos | ≥ 1. RF-57 E16 (INC-M03-167-G75): ventana de reevaluación por IA desde la generación de la alerta. Si falta, se usa el valor base del RF (60); un valor inválido responde 503 |
+| `rf57_ventana_deduplicacion_min` | Entero; minutos | ≥ 1. RF-57 E4 (INC-M03-176-G57A). Si falta, valor base 30 |
+| `rf57_sla_critico_min` / `rf57_sla_moderado_min` / `rf57_sla_leve_min` | Entero; minutos | ≥ 1. SLA por severidad (G57A). Si faltan, valores base 5 / 30 / 120 |
+| `rf57_umbral_confianza_minimo` | Número; probabilidad | 0–1. RF-57 CA-2 (INC-M03-166-G73): mínimo para generar PREDICCION_PATOLOGIA. **Excepción:** si falta, se usa el valor base que publica el RF (0.75); un valor inválido sí responde 503 |
 | `ventana_retroalimentacion_dias` | Entero; días | 7–365 |
 
 Los límites almacenados pueden restringir estos dominios, nunca ampliarlos.
@@ -281,3 +287,7 @@ una ejecución satisfactoria de toda la aplicación en Windows.
 El alcance comprobado permite configurar dinámicamente la calidad, confianza
 y ventana MLOps sin redespliegue. No se declara completada toda #3520 ni se
 resuelven por suposición las decisiones pendientes de Análisis.
+
+## Parámetros de RF-57 por API (INC-M03-168-G76)
+
+Además del script offline, los parámetros de RF-57 (`umbral_confianza_edge_ia`, `rf57_umbral_confianza_minimo`, `rf57_ventana_reevaluacion_min` y los de tormenta) se consultan con `GET /configuracion/parametros-alertas` y se cambian con `PATCH /configuracion/parametros-alertas` (`{"parametros": {...}}`), con el recurso 21 (`configuraciones_globales`), R y U. La escritura reutiliza `ConfigurarParametrosMLOpsUseCase.execute`: mismo lock, misma validación y el autor queda en `id_usuario_modificador`.

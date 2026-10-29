@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: elimina el historial redundante     |
 # | 2026-10-22 | Leandro | DEV-42 RF-60: resuelve conectividad en transaccion externa |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcula el semáforo al resolver o descartar |
+# | 2026-10-28 | destroyerban | INC-M03-172-G79 RF-57 CA-11: estado no catalogado (FINALIZADA, vacío, null) → 422 TRANSICION_INVALIDA |
 from __future__ import annotations
 
 import logging
@@ -24,6 +25,7 @@ from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import Actual
 logger = logging.getLogger(__name__)
 
 _TERMINALES = (EstadoAlerta.RESUELTA, EstadoAlerta.DESCARTADA)
+_ESTADOS_CATALOGO = {e.value for e in EstadoAlerta}
 
 
 class ActualizarEstadoAlertaUseCase:
@@ -74,6 +76,14 @@ class ActualizarEstadoAlertaUseCase:
             raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
 
         try:
+            # CA-11: un estado fuera del catálogo (CERRADA, FINALIZADA, vacío o null) es una transición inválida.
+            if dto.nuevo_estado not in _ESTADOS_CATALOGO:
+                raise BusinessRuleError(
+                    code="TRANSICION_INVALIDA",
+                    message=f"El estado '{dto.nuevo_estado or ''}' no pertenece al catálogo de RF-57; "
+                            "los estados de destino son EN_ATENCION, RESUELTA y DESCARTADA.",
+                    field="nuevo_estado",
+                )
             # El vencimiento pertenece al procesamiento interno por SLA.
             # La entidad conserva esa transición para DEV-31, no para REST.
             if dto.nuevo_estado == EstadoAlerta.VENCIDA:

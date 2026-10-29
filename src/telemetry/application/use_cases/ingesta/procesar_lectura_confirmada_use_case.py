@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
 # | 2026-10-22 | Leandro | DEV-44 RF-61: clasifica capturas con su contexto historico cerrado |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: propagar snapshot inmutable de reloj a la evaluacion postcommit. |
 from src.shared.errors import ServiceUnavailableError
 
 
@@ -26,6 +27,8 @@ class ProcesarLecturaConfirmadaUseCase:
             id_variable=lectura.id_variable, valor=lectura.valor_crudo,
             valor_ajustado=lectura.valor_ajustado, timestamp_captura=lectura.timestamp_captura,
             estado_calidad_rf53=lectura.estado_calidad, parametros_calibracion=lectura.parametros_calibracion,
+            reloj_desincronizado=lectura.reloj_desincronizado,
+            evidencia_reloj=(lectura.metadatos or {}).get('rf53_reloj'),
         )
         if resultado is None and self.lecturas.evaluacion_omitida(identificador):
             return

@@ -6,7 +6,7 @@
     Genera el reporte oficial en resultados/resultado_TC-M04-G083.html y .json.
 #>
 param (
-    [string]$BaseUrl = "https://api.inmero.co/api-sgpmp-test",
+    [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test",
     [string]$AdminPassword = "",
     [string]$BrokerToken = "",
     [string]$SandboxSecret = ""
@@ -16,7 +16,10 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Cargar variables de entorno desde .env.test si existen
-$envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
 if (Test-Path $envTestPath) {
     Get-Content $envTestPath | ForEach-Object {
         $line = $_.Trim()
@@ -75,8 +78,10 @@ if (-not (Test-Path $resultadosDir)) {
     New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
 }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G083.html"
-$reportRawJson = Join-Path $resultadosDir "_raw_newman.json"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M04-G083_reintento1.html"
+$reportXml  = Join-Path $resultadosDir "resultado_TC-M04-G083_reintento1.xml"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M04-G083_reintento1.json"
+$reportRawJson = Join-Path $resultadosDir "_raw_newman_reintento1.json"
 
 $newmanArgs = @(
     "run", $collectionPath,
@@ -86,11 +91,12 @@ $newmanArgs = @(
     "--env-var", "admin_password=$AdminPassword",
     "--env-var", "broker_token=$BrokerToken",
     "--env-var", "sandbox_secret=$SandboxSecret",
-    "-r", "cli,htmlextra,json",
+    "-r", "cli,htmlextra,json,junit",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "Reporte TC-M04-G083 - Distribucion OTA e Integridad (RF-73)",
+    "--reporter-htmlextra-title", "Reporte TC-M04-G083 - Distribucion OTA e Integridad (RF-73) - Reintento 1",
     "--reporter-htmlextra-hideRequestBody", "01-Login-ADMIN",
-    "--reporter-json-export", $reportRawJson
+    "--reporter-json-export", $reportRawJson,
+    "--reporter-junit-export", $reportXml
 )
 
 Write-Host "Ejecutando Newman..." -ForegroundColor Yellow
@@ -106,10 +112,13 @@ try {
 # Consolidar resultados en JSON
 $consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
 if (Test-Path $consolidarScript) {
-    node $consolidarScript
+    node $consolidarScript $reportRawJson $reportJson
 }
 
-Write-Host "Reporte HTML generado en: $reportHtml" -ForegroundColor Green
+Write-Host "Reportes generados en:" -ForegroundColor Green
+Write-Host "  HTML: $reportHtml" -ForegroundColor Green
+Write-Host "  XML:  $reportXml" -ForegroundColor Green
+Write-Host "  JSON: $reportJson" -ForegroundColor Green
 Write-Host "Para verificar en scanner (ejecutar en carpeta qa-dashboard/):" -ForegroundColor Cyan
 Write-Host "cd ../../../qa-dashboard; python3 -c `"import scanner as s; print([c for c in s.scan()['casos'] if c['tc_id']=='TC-M04-G083'])`"" -ForegroundColor Green
 

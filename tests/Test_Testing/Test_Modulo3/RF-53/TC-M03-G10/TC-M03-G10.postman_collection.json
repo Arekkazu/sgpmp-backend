@@ -376,7 +376,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });"
+                  "pm.test('Calibración registrada (201)', function () { pm.response.to.have.status(201); });",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }
@@ -623,7 +626,7 @@
                   "  pm.test('TC-M03-059: origen EDGE_AGREGADO conservado', function () { pm.expect(it.origen_dato).to.eql('EDGE_AGREGADO'); });",
                   "  pm.test('TC-M03-059: estado LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
                   "  pm.test('TC-M03-059: valor 22 rpm de FRECUENCIA_RESPIRATORIA', function () {",
-                  "    pm.expect(Number(it.valor)).to.eql(22); pm.expect(it.tipo_variable).to.eql('FRECUENCIA_RESPIRATORIA'); pm.expect(it.unidad_medida).to.eql('rpm');",
+                  "    pm.expect(Number(it.valor)).to.eql(22); pm.expect(it.tipo_variable).to.eql('Frecuencia Respiratoria');  /* el historial expone el nombre del catálogo M09 */ pm.expect(it.unidad_medida).to.eql('rpm');",
                   "  });",
                   "  pm.test('TC-M03-059: se expone tipo_dato=AGREGADO', function () { pm.expect(it.tipo_dato).to.eql('AGREGADO'); });",
                   "  pm.test('TC-M03-059: se expone la ventana_agregacion (5)', function () { pm.expect(Number(it.ventana_agregacion_min ?? it.ventana_agregacion)).to.eql(5); });",
