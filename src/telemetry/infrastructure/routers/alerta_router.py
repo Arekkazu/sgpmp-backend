@@ -13,6 +13,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: POST /iot/alertas/{id}/reevaluacion |
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3: inyecta el contexto del activo biológico |
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
+# | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: inyecta la consulta de umbrales configurados |
 """Router FastAPI para gestión de alertas de monitoreo IoT (`/iot/alertas`).
 
 RF-57 — CU03 Dev scope:
@@ -52,6 +53,7 @@ from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import Dispos
 from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import VariableAlertaM09Adapter
 from src.telemetry.infrastructure.adapters.lectura_companera_m03_adapter import LecturaCompaneraM03Adapter
 from src.telemetry.infrastructure.adapters.contexto_activo_alerta_m02_adapter import ContextoActivoAlertaM02Adapter
+from src.telemetry.infrastructure.adapters.umbral_configurado_m09_adapter import UmbralConfiguradoM09Adapter
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import EventoAlertaExternoDTO
 from src.telemetry.infrastructure.dto.reevaluar_alerta_dto import ReevaluarAlertaDTO
@@ -94,6 +96,8 @@ def _build_generar_use_case(db: Session) -> GenararAlertaUseCase:
         lectura_port=LecturaCompaneraM03Adapter(db),
         # G77: el activo y su contexto se resuelven desde RF-61 o la asociación del sensor (M02).
         contexto_port=ContextoActivoAlertaM02Adapter(db),
+        # G85 (E9): el evento externo se contrasta con los umbrales RF-17 de las especies del área.
+        umbral_port=UmbralConfiguradoM09Adapter(db),
     )
 
 

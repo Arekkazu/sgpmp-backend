@@ -4,6 +4,7 @@
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 DEV-27/42: evaluador con parametros y lectura con lock |
 # | 2026-10-28 | destroyerban | INC-M03-162-G68 RF-57: ERROR_CALIBRACION genera alerta técnica FALLO_AMBIENTAL |
 # | 2026-10-28 | destroyerban | INC-M03-163-G70 RF-57: el evento de temperatura lleva la humedad de su compuesta |
+# | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: el caso de alerta operativa siembra su umbral RF-17 |
 """DEV-49 con JWT, broker, repositorios y PostgreSQL exclusivo de pruebas."""
 from datetime import datetime, timedelta, timezone
 import importlib
@@ -122,6 +123,17 @@ def _fila_alerta(db, id_alerta):
     return db.execute(text("SELECT to_jsonb(a) FROM modulo3.alertas a WHERE id_alerta=:id"), {"id": id_alerta}).scalar_one()
 
 
+def _con_umbral_temperatura(db, area):
+    especie = db.execute(text("SELECT min(id_especie) FROM modulo9.especies WHERE es_activo")).scalar_one()
+    db.execute(text("INSERT INTO modulo9.infraestructuras_especies(id_infraestructura,id_especie) VALUES (:a,:e) "
+                    "ON CONFLICT DO NOTHING"), {"a": area, "e": especie})
+    if not db.execute(text("SELECT 1 FROM modulo9.umbrales_ambientales WHERE es_activo AND id_especie=:e "
+                           "AND id_variable_ambiental=9"), {"e": especie}).first():
+        db.execute(text("INSERT INTO modulo9.umbrales_ambientales(nombre,unidad_medida,es_activo,id_especie,"
+                        "id_variable_ambiental,valor_min,valor_max) VALUES ('G85 temperatura','°C',true,:e,9,20,30)"),
+                   {"e": especie})
+
+
 def _lectura(db, hardware, calidad="LECTURA_VALIDA"):
     return db.execute(text("""
         INSERT INTO modulo3.telemetrias(id_sensor,id_variable,id_dispositivo_iot,valor_crudo,
@@ -141,6 +153,8 @@ def _payload(hardware, id_lectura, calidad="LECTURA_VALIDA"):
 
 
 def test_generacion_http_y_transiciones_generan_una_fila_cada_una(db_session, hardware49, http49):
+    # G85 (RF-57 E9): sin umbral RF-17 para la variable en el área no hay alerta operativa.
+    _con_umbral_temperatura(db_session, hardware49["area"])
     id_lectura = _lectura(db_session, hardware49)
     db_session.commit()
     client, headers, usuarios, broker = http49
