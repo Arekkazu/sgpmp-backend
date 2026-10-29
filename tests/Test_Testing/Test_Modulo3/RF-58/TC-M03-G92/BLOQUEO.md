@@ -1,0 +1,1 @@
+ACTUALMENTE EL CASO SE ENCUENTRA BLOQUEADO POR EL ISSUE [INC-M03-150-G92][RLS] Política SELECT de sensores bloquea creación autorizada por la API

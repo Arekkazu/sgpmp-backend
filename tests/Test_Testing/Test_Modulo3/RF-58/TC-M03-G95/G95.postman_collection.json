@@ -1,0 +1,28 @@
+{
+  "info": { "name": "G95 RF-58 TC-M03-186", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+    "if(pm.environment.get('qa_autorizado')!=='SI') throw new Error('LANZADOR_NO_AUTORIZADO');"
+  ] } }],
+  "item": [
+    {
+      "name": "[TC-M03-186][ASSERT][API-186-01-DASHBOARD] Token anterior",
+      "request": { "method": "GET", "header": [
+        { "key": "Accept", "value": "application/json" },
+        { "key": "Authorization", "value": "Bearer {{token_anterior}}" }
+      ], "url": "{{base_url}}/iot/monitoreo/dashboard?pagina=1&por_pagina=50" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('[TC-M03-186][ASSERT][API-186-01-DASHBOARD]',()=>pm.expect(pm.response.code).to.eql(401));"
+      ] } }]
+    },
+    {
+      "name": "[TC-M03-186][ASSERT][API-186-01-REFRESH] Cookie anterior",
+      "request": { "method": "POST", "header": [
+        { "key": "Accept", "value": "application/json" },
+        { "key": "Cookie", "value": "refresh_token={{cookie_anterior}}" }
+      ], "url": "{{base_url}}/sesiones/refresh" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('[TC-M03-186][ASSERT][API-186-01-REFRESH]',()=>pm.expect([401,410]).to.include(pm.response.code));"
+      ] } }]
+    }
+  ]
+}

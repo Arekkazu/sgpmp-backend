@@ -71,6 +71,9 @@ def send_push(token: str, titulo: str, cuerpo: str) -> bool:
         from firebase_admin import messaging
         message = messaging.Message(
             notification=messaging.Notification(title=titulo, body=cuerpo),
+            # Sin Urgency, el web push sale con prioridad normal y el navegador
+            # o el SO pueden diferir la entrega en segundo plano.
+            webpush=messaging.WebpushConfig(headers={"Urgency": "high"}),
             token=token,
         )
         messaging.send(message)

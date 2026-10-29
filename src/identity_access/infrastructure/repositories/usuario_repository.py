@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session, joinedload
 
 from src.identity_access.domain.entities.usuario import Usuario
@@ -23,6 +23,7 @@ from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGe
 from src.identity_access.infrastructure.models.estados_cuentas_model import EstadosCuentas
 from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from src.shared.database import declarar_identidad_si_anonima
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import PreconditionFailedError
 
@@ -87,12 +88,15 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             tipo_identificacion=orm.tipo_identificacion,
             numero_identificacion=orm.numero_identificacion,
             fecha_nacimiento=orm.fecha_nacimiento,
+            telefono=orm.telefono,
+            direccion=orm.direccion,
             fecha_registro=orm.fecha_registro,
             nombre_rol=orm.roles.nombre_rol,
             version=orm.version,
             estado_cuenta=(
                 orm.cuentas_usuarios.estados_cuentas.nombre if orm.cuentas_usuarios else None
             ),
+            ultimo_acceso=orm.cuentas_usuarios.ultimo_acceso if orm.cuentas_usuarios else None,
             ultima_modificacion=max(candidatos_modificacion) if candidatos_modificacion else None,
         )
 
@@ -102,11 +106,17 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_correo(self, correo: Email) -> Optional[Usuario]:
-        orm = (
-            self.db.query(Usuarios)
-            .filter(Usuarios.correo_electronico == str(correo))
-            .first()
-        )
+        # Lo usan flujos sin identidad todavía (login, SSO, recuperación,
+        # reenvío de activación): bajo RLS la fila solo la ve su dueño. La
+        # función SECURITY DEFINER resuelve quién es y el resto del flujo actúa
+        # como ese usuario (migración a7380032a23b).
+        id_usuario = self.db.execute(
+            text("SELECT modulo1.fn_id_usuario_por_correo(:correo)"), {"correo": str(correo)}
+        ).scalar()
+        if id_usuario is None:
+            return None
+        declarar_identidad_si_anonima(self.db, id_usuario)
+        orm = self.db.get(Usuarios, id_usuario)
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, usuario: Usuario) -> Usuario:
@@ -116,6 +126,9 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         try:
             self.db.add(orm)
             self.db.flush()
+            # Registro y alta por SSO son anónimos hasta aquí: el resto del
+            # flujo (releer la fila, crear la cuenta) actúa como el usuario nuevo.
+            declarar_identidad_si_anonima(self.db, orm.id_usuario)
             self.db.refresh(orm)
         except Exception as e:
             raise_from_db_error(e, conflict_messages={
@@ -133,7 +146,9 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             raise_from_db_error(e, conflict_messages={})
 
     def actualizar(self, usuario: Usuario, version_cliente: int) -> Usuario:
-        orm = self.db.get(Usuarios, usuario.id_usuario)
+        # #498: releer bloqueando, no la copia del identity map; si no, dos ediciones
+        # simultáneas comparan contra la misma versión y la segunda pisa a la primera.
+        orm = self.db.get(Usuarios, usuario.id_usuario, with_for_update=True, populate_existing=True)
         if orm.version != version_cliente:
             raise PreconditionFailedError(
                 code="CONFLICTO_CONCURRENCIA",

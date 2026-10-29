@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/transferencias`` (RF-48)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -8,6 +10,9 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarTransferenciaDTO(BaseDTO):
+    """Traslado del activo; ``infraestructura_origen_id`` debe ser la infraestructura
+    actual del activo.
+    """
     infraestructura_origen_id: int
     infraestructura_destino_id: int
     fecha_transferencia: date

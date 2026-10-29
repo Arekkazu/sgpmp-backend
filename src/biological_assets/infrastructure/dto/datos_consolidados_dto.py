@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Filtros de ``GET /activos-biologicos/{id_activo}/datos-consolidados`` (RF-50)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -6,11 +11,16 @@ from typing import Optional
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import hoy_usuario
 
 _TIPOS_DATO = {'eventos', 'fases', 'estado', 'metricas', 'todos'}
 
 
 class DatosConsolidadosDTO(BaseDTO):
+    """Qué secciones pedir y en qué rango.
+
+    ``tipo_dato``: ``eventos`` | ``fases`` | ``estado`` | ``metricas`` | ``todos``.
+    """
     tipo_dato: str = 'todos'
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
@@ -50,7 +60,7 @@ class DatosConsolidadosDTO(BaseDTO):
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '
                 f'a la fecha de fin ({self.fecha_fin}).'
             )
-        if self.fecha_inicio and self.fecha_inicio > date.today():
+        if self.fecha_inicio and self.fecha_inicio > hoy_usuario():
             raise ValueError(
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser una fecha futura: '
                 'los datos consolidados son sobre eventos ya ocurridos.'

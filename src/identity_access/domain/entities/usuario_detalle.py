@@ -35,7 +35,11 @@ class UsuarioDetalle:
             decide si lo enmascara según los permisos del actor). Mismo caso
             ``None`` que ``nombre``.
         fecha_nacimiento: Fecha de nacimiento. Mismo caso ``None`` que ``nombre``.
+        telefono: Teléfono de contacto (opcional).
+        direccion: Dirección de residencia (opcional).
         estado_cuenta: Nombre del estado de la cuenta, o ``None`` si no tiene cuenta.
+        ultimo_acceso: Último inicio de sesión exitoso (``cuentas_usuarios``), o
+            ``None`` si nunca ha iniciado sesión o no tiene cuenta.
         ultima_modificacion: Máximo entre ``fecha_actualizacion`` del usuario y
             ``fecha_cambio_estado`` de su cuenta. Usado por el mecanismo de
             refresco de ``GET /usuarios/admin`` para que el frontend detecte
@@ -53,5 +57,8 @@ class UsuarioDetalle:
     tipo_identificacion: Optional[str] = None
     numero_identificacion: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
     estado_cuenta: Optional[str] = None
+    ultimo_acceso: Optional[datetime] = None
     ultima_modificacion: Optional[datetime] = None

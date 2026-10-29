@@ -9,6 +9,7 @@ from src.shared.errors import ValidationError
 
 @dataclass(frozen=True)
 class TamanoH:
+    """Tamaño en hectáreas; decimal mayor que cero."""
     valor: Decimal
 
     def __post_init__(self) -> None:

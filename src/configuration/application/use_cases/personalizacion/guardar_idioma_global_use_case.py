@@ -11,6 +11,7 @@ from src.shared.errors import AppError, ConflictError, InfrastructureError
 
 
 class GuardarIdiomaGlobalUseCase:
+    """Guarda el idioma por defecto del sistema."""
 
     def __init__(self, db: Session, idioma_repo: PreferenciaIdiomaRepository) -> None:
         self.db = db

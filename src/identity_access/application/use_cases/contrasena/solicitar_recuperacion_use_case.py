@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: solicitud de recuperación de contraseña.
 
 Aplica rate limiting por IP (máx 3 por hora), genera un token de recuperación
@@ -22,6 +25,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
 from src.shared.errors import TooManyRequestsError
+from src.shared.fechas import en_zona_usuario
 
 MAX_SOLICITUDES_POR_HORA = 3
 TIPO_SOLICITUD_RECUPERACION = 7
@@ -114,7 +118,7 @@ class SolicitarRecuperacionUseCase:
                 message=(
                     f"Límite de solicitudes excedido para su conexión. Por seguridad, solo se "
                     f"permiten {MAX_SOLICITUDES_POR_HORA} intentos de recuperación por hora. "
-                    f"Podrá intentarlo de nuevo a las {proxima_vez.strftime('%H:%M:%S')}."
+                    f"Podrá intentarlo de nuevo a las {en_zona_usuario(proxima_vez).strftime('%H:%M:%S')}."
                 ),
             )
 

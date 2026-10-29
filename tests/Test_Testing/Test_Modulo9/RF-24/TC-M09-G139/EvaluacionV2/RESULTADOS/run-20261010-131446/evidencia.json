@@ -1,0 +1,1286 @@
+{
+  "run_id": "run-20261010-131446",
+  "grupo": "TC-M09-G139",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "herramienta": "Pytest + requests (HTTP real) + BD TEST por SELECT",
+  "newman": "NO APLICA",
+  "generado": "2026-10-11T00:17:56.694312+00:00",
+  "execution_number": 2,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX",
+  "nuevo_run_creado": "NO",
+  "grupo_completo_reejecutado": "SÍ",
+  "autorizado_por": "LIDER_DESARROLLO",
+  "correccion": {
+    "pr": 550,
+    "fix": "JSONB(none_as_null=True)",
+    "archivo": "src/configuration/infrastructure/models/calibracion_vision_model.py",
+    "origin_test_sha": "c4612dae6d8f0601488b94a3635f6592aa640686",
+    "linea_en_origin_test": "json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))",
+    "fix_presente_en_origin_test": "SÍ",
+    "metodo": "git show origin/test:src/configuration/infrastructure/models/calibracion_vision_model.py (lectura; sin checkout/switch/merge)",
+    "advertencia": "la presencia en Git no prueba el despliegue; el veredicto es la ejecución HTTP real contra TEST"
+  },
+  "historial_ejecuciones": [
+    {
+      "ejecucion": 1,
+      "fecha": "2026-10-10T13:15:00-05:00",
+      "tipo": "SEGUNDA_EVALUACION_INICIAL",
+      "resultado_g139": "RECHAZADO",
+      "resultados": {
+        "TC-M09-282": "APROBADO",
+        "TC-M09-283-N": "APROBADO",
+        "TC-M09-283-N-1": "RECHAZADO",
+        "TC-M09-283": "RECHAZADO"
+      },
+      "motivo": "TC-M09-283 N−1 devolvió 400 VALOR_NO_PERMITIDO (field calibracion_vision_resultado_coherente) en lugar del 422 LINEA_BASE_NO_CALCULADA; no quedó la calibración FALLIDA en el historial ni el evento RF-10 del intento",
+      "fixture": {
+        "area_id": 279,
+        "camara_id": 222,
+        "ventanas": [
+          "2026-09-01",
+          "2026-09-02",
+          "2026-09-03"
+        ]
+      },
+      "hitos": {
+        "baseline_PRE": 7,
+        "CAL_N": 8,
+        "baseline_tras_N": 8,
+        "CAL_N_MINUS_1": null,
+        "linea_base_sustituida": "NO"
+      },
+      "pytest": {
+        "collected": 22,
+        "passed": 17,
+        "failed": 1,
+        "skipped": 4,
+        "errors": 0
+      }
+    },
+    {
+      "ejecucion": 2,
+      "fecha": "2026-10-11T00:21:29.674433+00:00",
+      "tipo": "REEJECUCION_COMPLETA_POST_FIX",
+      "autorizado_por": "LIDER_DESARROLLO",
+      "pr": 550,
+      "resultado_g139": "APROBADO",
+      "resultados": {
+        "TC-M09-282": "APROBADO",
+        "TC-M09-283-N": "APROBADO",
+        "TC-M09-283-N-1": "APROBADO",
+        "TC-M09-283": "APROBADO"
+      },
+      "motivo": "la corrida N-1 devuelve el 422 LINEA_BASE_NO_CALCULADA del contrato, persiste la calibracion FALLIDA en etapa FILTRADO, deja el evento RF-10 y conserva la linea base de N",
+      "fixture": {
+        "area_id": 279,
+        "camara_id": 245,
+        "ventanas": [
+          "2026-09-11",
+          "2026-09-12",
+          "2026-09-13"
+        ]
+      },
+      "hitos": {
+        "CAL_N": 14,
+        "baseline_tras_N": 14,
+        "CAL_N_MINUS_1": 15,
+        "baseline_final": 14
+      },
+      "pytest": "ver pytest.xml del RUN"
+    },
+    {
+      "ejecucion": 2,
+      "fecha": "2026-10-11T00:22:05.008210+00:00",
+      "tipo": "REEJECUCION_COMPLETA_POST_FIX",
+      "autorizado_por": "LIDER_DESARROLLO",
+      "pr": 550,
+      "resultado_g139": "APROBADO",
+      "resultados": {
+        "TC-M09-282": "APROBADO",
+        "TC-M09-283-N": "APROBADO",
+        "TC-M09-283-N-1": "APROBADO",
+        "TC-M09-283": "APROBADO"
+      },
+      "motivo": "la corrida N-1 devuelve el 422 LINEA_BASE_NO_CALCULADA del contrato, persiste la calibracion FALLIDA en etapa FILTRADO, deja el evento RF-10 y conserva la linea base de N",
+      "fixture": {
+        "area_id": 279,
+        "camara_id": 245,
+        "ventanas": [
+          "2026-09-11",
+          "2026-09-12",
+          "2026-09-13"
+        ]
+      },
+      "hitos": {
+        "CAL_N": 14,
+        "baseline_tras_N": 14,
+        "CAL_N_MINUS_1": 15,
+        "baseline_final": 14
+      },
+      "pytest": "ver pytest.xml del RUN"
+    }
+  ],
+  "presupuesto": {
+    "post_calibracion": 3,
+    "post_vision": 3,
+    "reintentos": 0
+  },
+  "ventanas": {
+    "WINDOW_282": {
+      "inicio": "2026-09-11T00:00:00Z",
+      "fin": "2026-09-11T02:00:00Z"
+    },
+    "WINDOW_283_N": {
+      "inicio": "2026-09-12T00:00:00Z",
+      "fin": "2026-09-12T04:00:00Z"
+    },
+    "WINDOW_283_N_MINUS_1": {
+      "inicio": "2026-09-13T00:00:00Z",
+      "fin": "2026-09-13T04:00:00Z"
+    }
+  },
+  "casos": {
+    "TC-M09-282": {
+      "ventana": {
+        "etiqueta": "WINDOW_282",
+        "inicio": "2026-09-11T00:00:00Z",
+        "fin": "2026-09-11T02:00:00Z"
+      },
+      "lote": {
+        "http": 201,
+        "total": 10,
+        "aceptadas": 10,
+        "duplicadas": 0,
+        "observaciones": [
+          {
+            "id": 470,
+            "ts": "2026-09-11T00:00:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 471,
+            "ts": "2026-09-11T00:06:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 472,
+            "ts": "2026-09-11T00:12:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 473,
+            "ts": "2026-09-11T00:18:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 474,
+            "ts": "2026-09-11T00:24:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 475,
+            "ts": "2026-09-11T00:30:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 476,
+            "ts": "2026-09-11T00:36:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 477,
+            "ts": "2026-09-11T00:42:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 478,
+            "ts": "2026-09-11T00:48:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          },
+          {
+            "id": 479,
+            "ts": "2026-09-11T00:54:00Z",
+            "indice_calidad": 3,
+            "clasificacion": "NO_APTO",
+            "apto_para_ia": false
+          }
+        ]
+      },
+      "conteos": {
+        "total": 10,
+        "aptas": 0,
+        "no_aptas": 10
+      },
+      "baseline_PRE": {
+        "http": 200,
+        "id_calibracion_vision": 8,
+        "detalle": {
+          "area_id": 279,
+          "especie_id": 41,
+          "id_calibracion_vision": 8,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 0.81,
+              "densidad_actividad": 12.01
+            },
+            "componentes_no_calibrables": []
+          },
+          "fecha_publicacion": "2026-10-10T18:15:07.067140Z"
+        },
+        "historial_ids": [
+          8,
+          7,
+          6,
+          4
+        ],
+        "nota": "no se borró ninguna línea base previa"
+      },
+      "request": {
+        "modo_calibracion": "VISION",
+        "area_id": 279,
+        "ventana_observacion": {
+          "inicio": "2026-09-11T00:00:00Z",
+          "fin": "2026-09-11T02:00:00Z"
+        },
+        "observaciones": "QA TC-M09-282",
+        "fecha_calibracion": "2026-10-11T00:18:02.620360+00:00"
+      },
+      "response": {
+        "http": 422,
+        "body": {
+          "error_code": "VISION_NO_DISPONIBLE",
+          "message": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+          "fields": [
+            {
+              "field": "area_id",
+              "message": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20)."
+            }
+          ],
+          "timestamp": "2026-10-11T00:18:02.066956+00:00"
+        }
+      },
+      "http_esperado": 422,
+      "error_code": "VISION_NO_DISPONIBLE",
+      "message": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+      "baseline_POST": {
+        "http": 200,
+        "id_calibracion_vision": 8,
+        "historial_ids": [
+          8,
+          7,
+          6,
+          4
+        ]
+      },
+      "linea_base_nueva": "NO",
+      "calibracion_nueva_en_historial": "NO",
+      "nota_calibracion": "el rechazo ocurre en precondiciones (VISION_NO_DISPONIBLE), antes de crear calibración: el historial no cambia. La matriz no exige persistir una FALLIDA aquí.",
+      "resultado": "APROBADO",
+      "auditoria": {
+        "id_evento": 48975,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "codigo_http": 422,
+        "codigo_error": "VISION_NO_DISPONIBLE",
+        "motivo": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+        "direccion_ip": "PRESENTE",
+        "integridad_ok": true,
+        "fecha_evento": "2026-10-11T00:18:02.063028Z"
+      }
+    },
+    "TC-M09-283-N": {
+      "N": 30,
+      "ventana": {
+        "etiqueta": "WINDOW_283_N",
+        "inicio": "2026-09-12T00:00:00Z",
+        "fin": "2026-09-12T04:00:00Z"
+      },
+      "lote": {
+        "http": 201,
+        "total": 30,
+        "aceptadas": 30,
+        "duplicadas": 0,
+        "indices_distintos": [
+          100
+        ],
+        "primeras_observaciones": [
+          {
+            "id": 480,
+            "ts": "2026-09-12T00:00:00Z",
+            "indice_calidad": 100,
+            "apto_para_ia": true
+          },
+          {
+            "id": 481,
+            "ts": "2026-09-12T00:05:00Z",
+            "indice_calidad": 100,
+            "apto_para_ia": true
+          },
+          {
+            "id": 482,
+            "ts": "2026-09-12T00:10:00Z",
+            "indice_calidad": 100,
+            "apto_para_ia": true
+          }
+        ],
+        "ids": [
+          480,
+          481,
+          482,
+          483,
+          484,
+          485,
+          486,
+          487,
+          488,
+          489,
+          490,
+          491,
+          492,
+          493,
+          494,
+          495,
+          496,
+          497,
+          498,
+          499,
+          500,
+          501,
+          502,
+          503,
+          504,
+          505,
+          506,
+          507,
+          508,
+          509
+        ]
+      },
+      "conteos": {
+        "total": 30,
+        "aptas": 30,
+        "no_aptas": 0
+      },
+      "filtro_etapa_1": {
+        "cobertura_ventana": 1.0,
+        "n_tracks": 20,
+        "cumple_cobertura_minima_0_5": true,
+        "cumple_tracks_minimos_1": true
+      },
+      "baseline_PRE": {
+        "http": 200,
+        "id_calibracion_vision": 8,
+        "historial_ids": [
+          8,
+          7,
+          6,
+          4
+        ]
+      },
+      "request": {
+        "modo_calibracion": "VISION",
+        "area_id": 279,
+        "ventana_observacion": {
+          "inicio": "2026-09-12T00:00:00Z",
+          "fin": "2026-09-12T04:00:00Z"
+        },
+        "observaciones": "QA TC-M09-283 N",
+        "fecha_calibracion": "2026-10-11T00:18:03.315095+00:00"
+      },
+      "response": {
+        "http": 201,
+        "body": {
+          "id_calibracion_vision": 14,
+          "modo_calibracion": "VISION",
+          "area_id": 279,
+          "especie_id": 41,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4,
+          "ventana_observacion": {
+            "fin": "2026-09-12T04:00:00Z",
+            "inicio": "2026-09-12T00:00:00Z"
+          },
+          "fecha_calibracion": "2026-10-11T00:18:03.315095Z",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 0.81,
+              "densidad_actividad": 12.01
+            },
+            "componentes_no_calibrables": []
+          },
+          "n_observaciones": 30,
+          "n_observaciones_validas": 30,
+          "iteraciones": 1,
+          "observaciones": "QA TC-M09-283 N"
+        }
+      },
+      "id_calibracion_vision": 14,
+      "estado": "EXITOSA",
+      "n_observaciones_validas": 30,
+      "linea_base": {
+        "valores": {
+          "tasa_movimiento": 0.81,
+          "densidad_actividad": 12.01
+        },
+        "componentes_no_calibrables": []
+      },
+      "iteraciones": 1,
+      "baseline_POST": {
+        "http": 200,
+        "id_calibracion_vision": 14,
+        "linea_base": {
+          "valores": {
+            "tasa_movimiento": 0.81,
+            "densidad_actividad": 12.01
+          },
+          "componentes_no_calibrables": []
+        },
+        "fecha_publicacion": "2026-10-11T00:18:03.315095Z"
+      },
+      "historial_POST_ids": [
+        14,
+        8,
+        7,
+        6,
+        4
+      ],
+      "en_historial": {
+        "id_calibracion_vision": 14,
+        "estado": "EXITOSA",
+        "n_observaciones": 30,
+        "n_observaciones_validas": 30,
+        "origen_disparo": "MANUAL",
+        "id_usuario": 4
+      },
+      "verificacion_bd": {
+        "calibracion_N": {
+          "error": "permission denied for table calibraciones_vision"
+        },
+        "linea_base_vigente": {
+          "error": "permission denied for table lineas_base_vision"
+        }
+      },
+      "resultado": "APROBADO",
+      "auditoria": {
+        "id_evento": 48976,
+        "tipo_evento": 30,
+        "resultado": "exitoso",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "nombre_usuario": "Valentina López Herrera",
+        "direccion_ip": "PRESENTE",
+        "integridad_ok": true,
+        "operacion": "CALIBRACION_VISION",
+        "id_calibracion_vision": 14,
+        "estado": "EXITOSA",
+        "etapa_fallo": null,
+        "n_observaciones_validas": 30
+      }
+    },
+    "TC-M09-283-N-1": {
+      "N_menos_1": 29,
+      "ventana": {
+        "etiqueta": "WINDOW_283_N_MINUS_1",
+        "inicio": "2026-09-13T00:00:00Z",
+        "fin": "2026-09-13T04:00:00Z"
+      },
+      "lote": {
+        "http": 201,
+        "total": 29,
+        "aceptadas": 29,
+        "duplicadas": 0,
+        "indices_distintos": [
+          100
+        ],
+        "ids": [
+          510,
+          511,
+          512,
+          513,
+          514,
+          515,
+          516,
+          517,
+          518,
+          519,
+          520,
+          521,
+          522,
+          523,
+          524,
+          525,
+          526,
+          527,
+          528,
+          529,
+          530,
+          531,
+          532,
+          533,
+          534,
+          535,
+          536,
+          537,
+          538
+        ]
+      },
+      "conteos": {
+        "total": 29,
+        "aptas": 29,
+        "no_aptas": 0
+      },
+      "baseline_PRE": {
+        "http": 200,
+        "id_calibracion_vision": 14,
+        "historial_ids": [
+          14,
+          8,
+          7,
+          6,
+          4
+        ],
+        "T_BEFORE": "2026-10-11T00:18:04.642663+00:00"
+      },
+      "request": {
+        "modo_calibracion": "VISION",
+        "area_id": 279,
+        "ventana_observacion": {
+          "inicio": "2026-09-13T00:00:00Z",
+          "fin": "2026-09-13T04:00:00Z"
+        },
+        "observaciones": "QA TC-M09-283 N-1",
+        "fecha_calibracion": "2026-10-11T00:18:04.854062+00:00"
+      },
+      "response": {
+        "http": 422,
+        "body": {
+          "error_code": "LINEA_BASE_NO_CALCULADA",
+          "message": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+          "fields": [],
+          "timestamp": "2026-10-11T00:18:04.294834+00:00"
+        }
+      },
+      "error_code": "LINEA_BASE_NO_CALCULADA",
+      "message_obtenido": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+      "message_esperado": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+      "mensaje_exacto": "SÍ",
+      "T_AFTER": "2026-10-11T00:18:04.970661+00:00",
+      "historial_POST_ids": [
+        15,
+        14,
+        8,
+        7,
+        6,
+        4
+      ],
+      "calibraciones_nuevas": [
+        {
+          "id_calibracion_vision": 15,
+          "modo_calibracion": "VISION",
+          "area_id": 279,
+          "especie_id": 41,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4,
+          "ventana_observacion": {
+            "fin": "2026-09-13T04:00:00Z",
+            "inicio": "2026-09-13T00:00:00Z"
+          },
+          "fecha_calibracion": "2026-10-11T00:18:04.854062Z",
+          "estado": "FALLIDA",
+          "etapa_fallo": "FILTRADO",
+          "motivo": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+          "linea_base": null,
+          "n_observaciones": 29,
+          "n_observaciones_validas": 29,
+          "iteraciones": null,
+          "observaciones": "QA TC-M09-283 N-1"
+        }
+      ],
+      "calibracion_fallida": {
+        "id_calibracion_vision": 15,
+        "estado": "FALLIDA",
+        "etapa_fallo": "FILTRADO",
+        "n_observaciones": 29,
+        "n_observaciones_validas": 29,
+        "motivo": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+        "origen_disparo": "MANUAL",
+        "id_usuario": 4,
+        "ventana_observacion": {
+          "fin": "2026-09-13T04:00:00Z",
+          "inicio": "2026-09-13T00:00:00Z"
+        },
+        "linea_base": null
+      },
+      "verificacion_bd": {
+        "calibracion_fallida": {
+          "error": "permission denied for table calibraciones_vision"
+        }
+      },
+      "baseline_POST": {
+        "http": 200,
+        "id_calibracion_vision": 14,
+        "linea_base": {
+          "valores": {
+            "tasa_movimiento": 0.81,
+            "densidad_actividad": 12.01
+          },
+          "componentes_no_calibrables": []
+        }
+      },
+      "baseline_N_conservada": "SÍ",
+      "verificacion_bd_linea_base": {
+        "linea_base_vigente": {
+          "error": "permission denied for table lineas_base_vision"
+        }
+      },
+      "auditoria": {
+        "id_evento": 48977,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "nombre_usuario": "Valentina López Herrera",
+        "direccion_ip": "PRESENTE",
+        "user_agent": "PRESENTE",
+        "fecha_evento": "2026-10-11T00:18:04.292213Z",
+        "integridad_ok": true,
+        "operacion": "CALIBRACION_VISION",
+        "codigo_http": 422,
+        "codigo_error": "LINEA_BASE_NO_CALCULADA",
+        "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+        "id_calibracion_vision": 15,
+        "estado": "FALLIDA",
+        "etapa_fallo": "FILTRADO",
+        "motivo_etapa": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+        "id_infraestructura": 279,
+        "id_especie": 41,
+        "en_ventana_del_intento": "SI"
+      },
+      "resultado": "APROBADO"
+    }
+  },
+  "limitaciones": [
+    {
+      "tema": "contadores de BD (§47 del paquete)",
+      "detalle": "Las credenciales de QA (member_qa) no tienen privilegio SELECT sobre modulo3.observaciones_vision, modulo9.calibraciones_vision, modulo9.lineas_base_vision: has_table_privilege devuelve false y information_schema.role_table_grants no muestra ningún grant. Los conteos de observaciones por ventana NO pueden obtenerse por SELECT en este RUN.",
+      "sustituto": "Los conteos se obtienen del propio producto, con trazabilidad equivalente: (a) la cámara es nueva, así que ninguna observación previa puede existir para ella y es la única cámara activa del área, que es de donde el caso de uso reúne observaciones; (b) la respuesta de POST /iot/telemetria/vision declara total/aceptadas/duplicadas y el apto_para_ia e indice_calidad de cada observación creada; (c) la respuesta de la calibración declara n_observaciones y n_observaciones_validas, que es el conteo que el backend ve en la ventana; (d) en TC-282, VISION_NO_DISPONIBLE solo se produce cuando hay observaciones y ninguna es apta, lo que distingue la ventana con 0 aptas de una ventana vacía."
+    }
+  ],
+  "git": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "status_short": [
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G143/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/"
+    ],
+    "head": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8"
+  },
+  "baseline_primera_evaluacion": {
+    "run_id": "run-20261007-101924",
+    "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/RESULTADOS/run-20261007-101924",
+    "solo_lectura": true,
+    "archivos": [
+      "TC-M09-G139_resultado.md",
+      "evidencia.json",
+      "newman.html",
+      "pytest.xml"
+    ]
+  },
+  "openapi": {
+    "POST /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision/linea-base": "PRESENTE",
+    "POST /iot/telemetria/vision": "PRESENTE",
+    "GET /auditoria/": "PRESENTE"
+  },
+  "actores": {
+    "ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "login": "PASS"
+    },
+    "administrador": {
+      "correo": "administador.dev@gmail.com",
+      "login": "PASS",
+      "uso": "discovery y auditoría RF-10"
+    }
+  },
+  "fixture": {
+    "modo": "AREA REUTILIZADA + CAMARA NUEVA DE ESTA EJECUCION",
+    "camara_de_la_ejecucion_1_no_reutilizada": 222,
+    "finca_id": 163,
+    "area_id": 279,
+    "area_nombre": "QA-G137-AREA-20261010-105849",
+    "especie_id": 41,
+    "tipo_modelo_asignado": "MODELO_AVES",
+    "paradigma": "POBLACIONAL",
+    "camaras_preexistentes": [
+      {
+        "id": 214,
+        "categoria": "CAMARA",
+        "es_activo": false,
+        "fps": 30
+      },
+      {
+        "id": 221,
+        "categoria": "CAMARA",
+        "es_activo": false,
+        "fps": 30
+      },
+      {
+        "id": 222,
+        "categoria": "CAMARA",
+        "es_activo": false,
+        "fps": 30
+      }
+    ],
+    "camaras_activas_preexistentes": [],
+    "camara_creada": {
+      "id": 245,
+      "serial": "[REDACTED]",
+      "fps_nominal": 30,
+      "resolucion": "1920x1080",
+      "es_activo": true,
+      "id_infraestructura": 279,
+      "motivo": "las dos cámaras del fixture G137 (214 y 221) quedaron inactivas en su restauración y RF-21 no publica reactivación de dispositivos"
+    },
+    "unica_camara_activa_del_area": 245
+  },
+  "valor_N": {
+    "N": 30,
+    "N_menos_1": 29,
+    "fuente": "ParametrosLineaBase.min_observaciones (src/configuration/domain/entities/linea_base_vision.py)",
+    "inyeccion": "CalibrarVisionUseCase(parametros=ParametrosLineaBase()) — valores por defecto",
+    "otros_umbrales": {
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 10
+    },
+    "confirmacion_en_runtime": {
+      "fuente": "motivo de la calibración FALLIDA de la corrida N−1",
+      "motivo": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+      "N_declarado_por_el_backend": 30
+    }
+  },
+  "bd": {
+    "host": "158.69.200.27",
+    "puerto": "5448",
+    "base": "sgpmp_test",
+    "usuario": "member_qa",
+    "sesion": "READ ONLY — solo SELECT, 0 DML",
+    "rol": [
+      {
+        "current_user": "member_qa",
+        "version": "PostgreSQL 18.4 (Debian 18.4-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+      }
+    ],
+    "privilegios_select": {
+      "modulo1.eventos": true,
+      "modulo3.observaciones_vision": false,
+      "modulo9.calibraciones_vision": false,
+      "modulo9.dispositivos_iot": true,
+      "modulo9.infraestructuras": true,
+      "modulo9.lineas_base_vision": false
+    },
+    "grants_visibles_observaciones_vision": [],
+    "conteo_ventanas": {
+      "error": "permission denied for table observaciones_vision"
+    },
+    "conteos_por_select": "NO VERIFICABLE — sin grant SELECT para member_qa"
+  },
+  "ventanas_control": {
+    "disjuntas": true,
+    "en_el_pasado": true,
+    "disjuntas_de_la_ejecucion_1": true,
+    "ventanas_ejecucion_1": {
+      "WINDOW_282": {
+        "inicio": "2026-09-01T00:00:00Z",
+        "fin": "2026-09-01T02:00:00Z"
+      },
+      "WINDOW_283_N": {
+        "inicio": "2026-09-02T00:00:00Z",
+        "fin": "2026-09-02T04:00:00Z"
+      },
+      "WINDOW_283_N_MINUS_1": {
+        "inicio": "2026-09-03T00:00:00Z",
+        "fin": "2026-09-03T04:00:00Z"
+      }
+    },
+    "min_max_por_select": {
+      "error": "permission denied for table observaciones_vision"
+    },
+    "argumento_de_vacuidad": "la cámara 245 se registró en este RUN, así que no puede tener observaciones anteriores, y es la única cámara activa del área 279 (las de G137, 214 y 221, están inactivas), que es la fuente que POST /configuracion/calibraciones-vision consulta."
+  },
+  "restauracion": {
+    "camara_desactivada": {
+      "id": 245,
+      "http": 200
+    },
+    "pendientes": [],
+    "verificacion": {
+      "http": 200,
+      "es_activo": false
+    }
+  },
+  "nota_calibraciones": "No se borró ninguna calibración ni observación: la EXITOSA de N y la FALLIDA de N−1 son evidencia esperada del grupo (§56 del paquete).",
+  "auditoria_rf10": {
+    "contrato": "resultado ('exitoso'/'fallido'), modulo, id_usuario, nombre_usuario, direccion_ip, user_agent, detalle, integridad_ok; no existe `exitoso`",
+    "tipos_resueltos": {
+      "CALIBRACION_RECHAZADA": 29,
+      "CALIBRACION_EXITOSA": 30
+    },
+    "ventana_consulta": {
+      "desde": "2026-10-11T00:12:04",
+      "hasta": "2026-10-11T00:23:04"
+    },
+    "TC282": {
+      "encontrada": "SI",
+      "eventos": [
+        {
+          "id_evento": 48975,
+          "tipo_evento": 29,
+          "resultado": "fallido",
+          "modulo": "MODULO9",
+          "id_usuario": 4,
+          "nombre_usuario": "Valentina López Herrera",
+          "direccion_ip": "PRESENTE",
+          "user_agent": "PRESENTE",
+          "fecha_evento": "2026-10-11T00:18:02.063028Z",
+          "integridad_ok": true,
+          "detalle": {
+            "ip": "200.118.62.237",
+            "motivo": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+            "operacion": "CALIBRACION_VISION",
+            "id_especie": null,
+            "user_agent": "python-requests/2.34.2",
+            "codigo_http": 422,
+            "codigo_error": "VISION_NO_DISPONIBLE",
+            "id_infraestructura": 279
+          }
+        }
+      ],
+      "verificado": {
+        "id_evento": 48975,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "codigo_http": 422,
+        "codigo_error": "VISION_NO_DISPONIBLE",
+        "motivo": "Calibración por visión no disponible: El área 279 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+        "direccion_ip": "PRESENTE",
+        "integridad_ok": true,
+        "fecha_evento": "2026-10-11T00:18:02.063028Z"
+      }
+    },
+    "TC283_N": {
+      "encontrada": "SI",
+      "eventos": [
+        {
+          "id_evento": 48976,
+          "tipo_evento": 30,
+          "resultado": "exitoso",
+          "modulo": "MODULO9",
+          "id_usuario": 4,
+          "nombre_usuario": "Valentina López Herrera",
+          "direccion_ip": "PRESENTE",
+          "user_agent": "PRESENTE",
+          "fecha_evento": "2026-10-11T00:18:02.763292Z",
+          "integridad_ok": true,
+          "detalle": {
+            "ip": "200.118.62.237",
+            "estado": "EXITOSA",
+            "motivo": null,
+            "operacion": "CALIBRACION_VISION",
+            "id_especie": 41,
+            "linea_base": {
+              "valores": {
+                "tasa_movimiento": 0.81,
+                "densidad_actividad": 12.01
+              },
+              "componentes_no_calibrables": []
+            },
+            "user_agent": "python-requests/2.34.2",
+            "etapa_fallo": null,
+            "iteraciones": 1,
+            "origen_disparo": "MANUAL",
+            "n_observaciones": 30,
+            "id_infraestructura": 279,
+            "ventana_observacion": {
+              "fin": "2026-09-12T04:00:00Z",
+              "inicio": "2026-09-12T00:00:00Z"
+            },
+            "id_calibracion_vision": 14,
+            "n_observaciones_validas": 30
+          }
+        }
+      ]
+    },
+    "TC283_N_MINUS_1": {
+      "encontrada": "SI",
+      "eventos": [
+        {
+          "id_evento": 48977,
+          "tipo_evento": 29,
+          "resultado": "fallido",
+          "modulo": "MODULO9",
+          "id_usuario": 4,
+          "nombre_usuario": "Valentina López Herrera",
+          "direccion_ip": "PRESENTE",
+          "user_agent": "PRESENTE",
+          "fecha_evento": "2026-10-11T00:18:04.292213Z",
+          "integridad_ok": true,
+          "detalle": {
+            "ip": "200.118.62.237",
+            "estado": "FALLIDA",
+            "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+            "operacion": "CALIBRACION_VISION",
+            "id_especie": 41,
+            "user_agent": "python-requests/2.34.2",
+            "codigo_http": 422,
+            "etapa_fallo": "FILTRADO",
+            "codigo_error": "LINEA_BASE_NO_CALCULADA",
+            "motivo_etapa": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+            "id_infraestructura": 279,
+            "id_calibracion_vision": 15
+          }
+        }
+      ],
+      "verificado": {
+        "id_evento": 48977,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "nombre_usuario": "Valentina López Herrera",
+        "direccion_ip": "PRESENTE",
+        "user_agent": "PRESENTE",
+        "fecha_evento": "2026-10-11T00:18:04.292213Z",
+        "integridad_ok": true,
+        "operacion": "CALIBRACION_VISION",
+        "codigo_http": 422,
+        "codigo_error": "LINEA_BASE_NO_CALCULADA",
+        "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 279 y especie 41. Se conserva la línea base vigente anterior.",
+        "id_calibracion_vision": 15,
+        "estado": "FALLIDA",
+        "etapa_fallo": "FILTRADO",
+        "motivo_etapa": "29 observaciones válidas de 29 en la ventana; el mínimo es 30.",
+        "id_infraestructura": 279,
+        "id_especie": 41,
+        "en_ventana_del_intento": "SI"
+      }
+    }
+  },
+  "cuadro_valores_limite": [
+    {
+      "criterio": "Total observaciones",
+      "TC282": 10,
+      "N": 30,
+      "N_menos_1": 29
+    },
+    {
+      "criterio": "Aptas",
+      "TC282": 0,
+      "N": 30,
+      "N_menos_1": 29
+    },
+    {
+      "criterio": "No aptas",
+      "TC282": 10,
+      "N": 0,
+      "N_menos_1": 0
+    },
+    {
+      "criterio": "HTTP esperado",
+      "TC282": 422,
+      "N": "2xx",
+      "N_menos_1": 422
+    },
+    {
+      "criterio": "HTTP obtenido",
+      "TC282": 422,
+      "N": 201,
+      "N_menos_1": 422
+    },
+    {
+      "criterio": "error_code",
+      "TC282": "VISION_NO_DISPONIBLE",
+      "N": null,
+      "N_menos_1": "LINEA_BASE_NO_CALCULADA"
+    },
+    {
+      "criterio": "Estado calibracion",
+      "TC282": "N/A (rechazo en precondiciones)",
+      "N": "EXITOSA",
+      "N_menos_1": "FALLIDA"
+    },
+    {
+      "criterio": "Etapa fallo",
+      "TC282": "N/A",
+      "N": "N/A",
+      "N_menos_1": "FILTRADO"
+    },
+    {
+      "criterio": "Calibracion en historial",
+      "TC282": "NO",
+      "N": "SI (14)",
+      "N_menos_1": "SI (15)"
+    },
+    {
+      "criterio": "Linea nueva",
+      "TC282": "NO",
+      "N": "SI",
+      "N_menos_1": "NO"
+    },
+    {
+      "criterio": "Linea vigente final",
+      "TC282": 8,
+      "N": 14,
+      "N_menos_1": 14
+    },
+    {
+      "criterio": "Auditoria RF-10",
+      "TC282": "SI (fallido)",
+      "N": "SI (exitoso)",
+      "N_menos_1": "SI (fallido)"
+    },
+    {
+      "criterio": "Resultado",
+      "TC282": "APROBADO",
+      "N": "APROBADO",
+      "N_menos_1": "APROBADO"
+    }
+  ],
+  "comparacion_prefix_postfix": [
+    {
+      "criterio": "TC-M09-282",
+      "ejecucion_1_pre_fix": "APROBADO",
+      "ejecucion_2_post_fix": "APROBADO"
+    },
+    {
+      "criterio": "N",
+      "ejecucion_1_pre_fix": 30,
+      "ejecucion_2_post_fix": 30
+    },
+    {
+      "criterio": "N HTTP",
+      "ejecucion_1_pre_fix": 201,
+      "ejecucion_2_post_fix": 201
+    },
+    {
+      "criterio": "N estado",
+      "ejecucion_1_pre_fix": "EXITOSA",
+      "ejecucion_2_post_fix": "EXITOSA"
+    },
+    {
+      "criterio": "N baseline",
+      "ejecucion_1_pre_fix": "Publicada (id 8)",
+      "ejecucion_2_post_fix": "Publicada (id 14)"
+    },
+    {
+      "criterio": "N-1 HTTP",
+      "ejecucion_1_pre_fix": 400,
+      "ejecucion_2_post_fix": 422
+    },
+    {
+      "criterio": "N-1 error",
+      "ejecucion_1_pre_fix": "VALOR_NO_PERMITIDO",
+      "ejecucion_2_post_fix": "LINEA_BASE_NO_CALCULADA"
+    },
+    {
+      "criterio": "N-1 mensaje contractual literal",
+      "ejecucion_1_pre_fix": "NO",
+      "ejecucion_2_post_fix": "SÍ"
+    },
+    {
+      "criterio": "N-1 historial FALLIDA",
+      "ejecucion_1_pre_fix": "NO",
+      "ejecucion_2_post_fix": "SI (id 15)"
+    },
+    {
+      "criterio": "N-1 etapa FILTRADO",
+      "ejecucion_1_pre_fix": "NO",
+      "ejecucion_2_post_fix": "FILTRADO"
+    },
+    {
+      "criterio": "N-1 json_linea_base",
+      "ejecucion_1_pre_fix": "JSON 'null' (rechazado por el CHECK)",
+      "ejecucion_2_post_fix": "SQL NULL (fila aceptada; linea_base null por API)"
+    },
+    {
+      "criterio": "N-1 auditoria FALLIDO",
+      "ejecucion_1_pre_fix": "NO",
+      "ejecucion_2_post_fix": "SI"
+    },
+    {
+      "criterio": "Baseline N conservada",
+      "ejecucion_1_pre_fix": "SI",
+      "ejecucion_2_post_fix": "SÍ"
+    },
+    {
+      "criterio": "Pytest failed por el producto",
+      "ejecucion_1_pre_fix": "1 (test_18: 400 en vez de 422)",
+      "ejecucion_2_post_fix": 0
+    },
+    {
+      "criterio": "Pytest failed por la automatizacion",
+      "ejecucion_1_pre_fix": 0,
+      "ejecucion_2_post_fix": "1 (test_21: la consulta de auditoria pedia tamano=100 y GET /auditoria/ admite 50; corregido y completado por GET en el cierre de solo lectura)"
+    },
+    {
+      "criterio": "TC-M09-G139",
+      "ejecucion_1_pre_fix": "RECHAZADO",
+      "ejecucion_2_post_fix": "APROBADO"
+    },
+    {
+      "criterio": "Incidencia",
+      "ejecucion_1_pre_fix": "ABIERTA",
+      "ejecucion_2_post_fix": "CORREGIDA"
+    }
+  ],
+  "objetivo_del_fix": {
+    "pre_fix": "Python None -> JSON 'null'::jsonb -> ck_calibracion_vision_resultado_coherente falla -> HTTP 400 VALOR_NO_PERMITIDO -> sin historial y sin auditoria",
+    "post_fix": "Python None -> SQL NULL -> el CHECK acepta -> la calibracion FALLIDA persiste -> HTTP 422 LINEA_BASE_NO_CALCULADA -> historial y auditoria disponibles",
+    "verificado_funcionalmente": "SI",
+    "evidencia": {
+      "http_n_menos_1": 422,
+      "error_code": "LINEA_BASE_NO_CALCULADA",
+      "calibracion_persistida": 15,
+      "estado": "FALLIDA",
+      "etapa_fallo": "FILTRADO",
+      "linea_base_en_api": null,
+      "evento_rf10": 48977
+    }
+  },
+  "comparacion_primera_segunda": {
+    "casos": [
+      {
+        "caso": "TC-M09-282",
+        "primera": "BLOQUEADO / NO VERIFICABLE",
+        "segunda_ej1": "APROBADO",
+        "segunda_ej2": "APROBADO"
+      },
+      {
+        "caso": "TC-M09-283 N",
+        "primera": "BLOQUEADO / NO VERIFICABLE",
+        "segunda_ej1": "APROBADO",
+        "segunda_ej2": "APROBADO"
+      },
+      {
+        "caso": "TC-M09-283 N-1",
+        "primera": "BLOQUEADO / NO VERIFICABLE",
+        "segunda_ej1": "RECHAZADO",
+        "segunda_ej2": "APROBADO"
+      },
+      {
+        "caso": "TC-M09-G139",
+        "primera": "BLOQUEADO / NO VERIFICABLE",
+        "segunda_ej1": "RECHAZADO",
+        "segunda_ej2": "APROBADO"
+      }
+    ],
+    "evolucion": "BLOQUEADO -> RECHAZADO -> APROBADO",
+    "dimensiones": [
+      {
+        "dimension": "Endpoint VISION",
+        "primera": "Ausente",
+        "segunda": "Presente (POST/GET y linea-base)"
+      },
+      {
+        "dimension": "Fuente M03 VISION",
+        "primera": "No evaluada",
+        "segunda": "POST /iot/telemetria/vision - 69 observaciones en 3 lotes"
+      },
+      {
+        "dimension": "N",
+        "primera": "No leido",
+        "segunda": "30 (ParametrosLineaBase.min_observaciones, confirmado en runtime)"
+      },
+      {
+        "dimension": "Persistencia de la calibracion no exitosa",
+        "primera": "No evaluada",
+        "segunda": "Defectuosa en la ejecucion 1 (400) y correcta en la ejecucion 2 (422)"
+      }
+    ]
+  },
+  "resultado": {
+    "TC-M09-282": "APROBADO",
+    "TC-M09-283": "APROBADO",
+    "TC-M09-G139": "APROBADO",
+    "evolucion": "BLOQUEADO -> RECHAZADO -> APROBADO",
+    "incidencia_original": "CORREGIDA",
+    "incidencia_nueva": "NO",
+    "pr_que_corrige": 550,
+    "nota_historial": "el resultado anterior RECHAZADO se conserva en el historial de ejecuciones y no fue eliminado",
+    "regresiones": "NINGUNA: TC-M09-282 y la corrida N mantienen su resultado APROBADO"
+  },
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO - redactado por patron, solo en memoria",
+    "sql_dml": 0,
+    "sesion_bd": "READ ONLY",
+    "archivos_primera_evaluacion_modificados": "NINGUNO",
+    "nuevo_run_creado": "NO",
+    "artefactos_post_fix_adicionales": "NINGUNO"
+  },
+  "cierre_lectura": {
+    "script": "EvaluacionV2/automation/cierre_lectura_g139.py",
+    "ejecutado": "2026-10-11T00:22:05.010316+00:00",
+    "motivo": "completar §45 (auditoría RF-10) tras un defecto de automatización en la consulta: se pedía tamano=100 y GET /auditoria/ admite 50 como máximo, así que devolvió 400 VAL_ENTRADA sin leer eventos. El límite ya está corregido en test_g139_v2.py.",
+    "oraculos_reutilizados": [
+      "test_21_auditoria_rf10",
+      "test_22_cuadro_y_cierre"
+    ],
+    "post_funcionales_adicionales": 0,
+    "lotes_m03_adicionales": 0,
+    "dml": 0,
+    "presupuesto_sin_cambios": {
+      "post_calibracion": 3,
+      "post_vision": 3,
+      "reintentos": 0
+    }
+  },
+  "defecto_de_automatizacion_ejecucion_2": {
+    "donde": "test_21_auditoria_rf10 — consulta GET /auditoria/",
+    "sintoma": "HTTP 400 VAL_ENTRADA, field `tamano`: «Input should be less than or equal to 50»",
+    "naturaleza": "AUTOMATIZACIÓN (QA). No es un defecto del producto.",
+    "impacto_en_el_producto": "NINGUNO: no se emitió ningún POST por este fallo.",
+    "pytest_xml": "refleja la ejecución real de la suite: 22 collected, 20 passed, 1 failed (este control) y 1 skipped (el cierre, que dependía de él). No se maquilla; la verificación se completó por GET en este cierre.",
+    "correccion": "tamano=50 en test_g139_v2.py"
+  }
+}

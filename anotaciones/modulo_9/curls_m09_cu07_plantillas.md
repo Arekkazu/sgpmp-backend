@@ -423,14 +423,16 @@ Errores posibles:
 - `401` — token ausente o inválido
 - `403` — rol sin permiso E sobre recurso 28 (FA-05)
 - `404` — plantilla no existe
-- `404` — especie destino no existe (FA-03)
+- `404` — especie destino no existe (FA-03) — `ESPECIE_DESTINO_NO_ENCONTRADA`
+- `404` — especie destino inactiva (FA-03, INC-M09-67-G118 #501: antes `422`) —
+  `ESPECIE_DESTINO_INACTIVA`. RF-32 agrupa "no existe o se encuentra inactiva"
+  en un mismo flujo alterno con 404; el `error_code` sigue distinguiendo ambos casos
 - `422` — schema_version del snapshot incompatible con la versión actual (FA-02) — `VERSION_SNAPSHOT_INCOMPATIBLE`
 - `409` — `fecha_actualizacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11) — `CONFLICTO_CONCURRENCIA`
 - `400` — el snapshot referencia una variable ambiental que ya no existe o fue
   desactivada (FA-07, referencias huérfanas) — `REFERENCIAS_HUERFANAS`. Se
   verifica **antes** de desactivar nada de la especie destino, así que la
   configuración anterior queda intacta
-- `422` — especie destino inactiva
 - `422` — `PLANTILLA_VERSION_NO_VIGENTE` (INC-M09-03-122, #317): el `id_plantilla`
   de la URL ya no es la última versión de su `template_name` (existe una
   versión posterior generada por Flujo G). El mensaje incluye el id de la

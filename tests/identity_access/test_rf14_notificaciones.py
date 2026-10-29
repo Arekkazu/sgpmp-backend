@@ -98,6 +98,8 @@ def test_servicio_central_no_persiste_token_y_aplica_anti_spam(monkeypatch) -> N
             "to": "ana@example.com",
             "subject": "Activa tu cuenta",
             "html_body": "<a>token-super-secreto</a>",
+            # RF-14: sin reintentos automáticos (un solo intento SMTP).
+            "intentos": 1,
         }
     ]
     assert port.estados == {1: "enviado", 2: "enviado"}
@@ -118,6 +120,23 @@ def test_bandeja_interna_sigue_entregada_si_firebase_falla(monkeypatch) -> None:
 
     assert port.estados == {1: "enviado", 2: "enviado"}
 
+
+
+def test_push_se_despacha_antes_que_el_correo(monkeypatch) -> None:
+    """El SMTP puede tardar hasta su timeout de conexión; el push no debe esperarlo."""
+    port = PortServicioFake()
+    port.fcm_tokens = ["dispositivo"]
+    orden = []
+    monkeypatch.setattr(service_module, "send_email", lambda **_datos: orden.append("email"))
+    monkeypatch.setattr(service_module, "send_push", lambda **_datos: orden.append("push"))
+
+    NotificacionService(port=port, db=DbFake()).notificar(
+        tipo_evento=3,
+        id_usuario=7,
+        correo_destino="ana@example.com",
+    )
+
+    assert orden == ["push", "email"]
 
 class BandejaRepoFake:
     def __init__(self, notificaciones: list[Notificacion]) -> None:

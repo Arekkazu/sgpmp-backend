@@ -1,0 +1,57 @@
+{
+  "grupo": "TC-M09-G75-v2.0",
+  "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+  "endpoints": {
+    "POST /configuracion/sensores/{id_sensor}/calibrar": {
+      "presente": true,
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "codigosDeclarados": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    },
+    "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+      "presente": true,
+      "summary": "Historial de calibraciones de sensor (RF-24)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    },
+    "GET /configuracion/sensores/rangos-calibracion": {
+      "presente": true,
+      "summary": "Listar rangos de seguridad de calibración por tipo de sensor (RF-24)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    }
+  },
+  "requestSchemaDelPost": {
+    "properties": [
+      "id_dispositivo_iot",
+      "id_infraestructura",
+      "valor_referencia",
+      "ganancia",
+      "offset",
+      "fecha_calibracion",
+      "observaciones"
+    ],
+    "required": [
+      "id_dispositivo_iot",
+      "id_infraestructura",
+      "fecha_calibracion"
+    ]
+  },
+  "modo_calibracion_declarado_en_openapi": false,
+  "nota": "modo_calibracion se envía como exige el caso aunque OpenAPI no lo declare. El oráculo de G75 son los límites y el formato de valor_referencia."
+}

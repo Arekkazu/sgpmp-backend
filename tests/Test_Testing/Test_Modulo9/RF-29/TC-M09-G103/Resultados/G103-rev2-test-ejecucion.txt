@@ -1,0 +1,61 @@
+TC-M09-G103 / TC-M09-197 / RF-29 — ejecución rev2 TEST
+Fecha: 2026-09-25
+Ambiente: TEST
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co (id_usuario=1, Administrador)
+Motivo de no usar productor@pecuaria.co: GET /auditoria/ exige recurso 6 (eventos); Productor no tiene ese permiso. El caso exige trazabilidad consultable vía API.
+Herramienta: Newman  (htmlextra + json), --insecure (sslip.io)
+Logins en esta corrida oficial: 1 (POST /sesiones/). Sin refresh. Sin idioma global.
+Password: no se documenta (env-var Newman).
+
+Resultado general: APROBADO
+TC-M09-197: APROBADO
+
+Rama laura vs origin/test (informativo, SIN merge):
+- laura: GuardarIdiomaPersonalUseCase NO llama EventoRepository.registrar().
+- origin/test commit d3761ee3 (2026-09-18) "fix(rf29): auditar el cambio de idioma personal (TC-M09-G103)"
+  archivos: guardar_idioma_personal_use_case.py, preferencia_idioma_router.py, migracion tipo 27, evento_categoria.py, tests.
+- TEST desplegado + BD TEST (tipos_eventos id=27 CAMBIO_IDIOMA_PERSONAL) coinciden con origin/test, no con el código de laura.
+- OpenAPI TEST: GET/PATCH /configuracion/personalizacion/idioma; NO existe .../idioma/auditoria (probe 404).
+- Consulta de auditoría: GET /auditoria/?pagina=&tamano=&tipo_evento=&id_usuario=
+
+Colección histórica tc_m09_g103.json: usaba page/size (contrato real pagina/tamano), admin con password en claro, GET /auditoria/ sin tipo_evento=27. Rev2 corrige construcción; no cambia el objetivo del caso.
+
+PRECHECK:
+- GET idioma HTTP 200; locale_code=es-CO; fuente=personal; id_preferencia_idioma=6; version_perfil=7
+- Probe GET .../idioma/auditoria HTTP 404
+- GET /auditoria/catalogo/tipos-evento HTTP 200; incluye tipo 27 CAMBIO_IDIOMA_PERSONAL
+- PREP PATCH es-CO HTTP 200 (estado inicial garantizado)
+- GET confirma es-CO HTTP 200
+- GET /auditoria/?tipo_evento=27&id_usuario=1 baseline HTTP 200
+
+EJECUCIÓN TC-M09-197:
+- PATCH /configuracion/personalizacion/idioma {locale_code:en-US, version_perfil} HTTP 200
+- locale_code respuesta=en-US; es_por_defecto=false (personal)
+
+VALIDACIÓN persistencia:
+- GET idioma HTTP 200; locale_code=en-US
+
+VALIDACIÓN auditoría (GET /auditoria/?pagina=1&tamano=50&tipo_evento=27&id_usuario=1) HTTP 200:
+- id_evento=14313 (posterior al max id del baseline)
+- tipo_evento=27
+- descripcion=CAMBIO_IDIOMA_PERSONAL
+- categoria=MODIFICACION
+- modulo=MODULO1
+- id_usuario=1
+- nombre_usuario=Carlos Rodríguez Pérez
+- id_sesion=5262
+- fecha_evento=2026-09-25T07:51:14.880445Z
+- detalle.locale_anterior=es-CO
+- detalle.locale_nuevo=en-US
+
+RESTAURACIÓN:
+- PATCH locale original es-CO HTTP 200
+- GET confirma locale_code=es-CO HTTP 200
+- El PATCH de restore genera un segundo evento tipo 27 (en-US → es-CO); no se borra.
+
+Newman oficial (tras corrección id_usuario desde JWT sub):
+- 12 requests, 24 assertions, 0 failed
+- Primera corrida rev2: 2 fallos GET /auditoria/ HTTP 400 porque id_usuario quedó vacío (LoginResponse no trae id_usuario; ERROR DE PRUEBA de construcción, corregido sin cambiar assertions de negocio)
+
+No se incluye password, JWT ni cookies.

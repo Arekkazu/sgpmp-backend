@@ -49,12 +49,15 @@ def especie_e_infra_500m2(db_session: Session, crear_usuario_db) -> tuple[int, i
     dueno = crear_usuario_db()
     id_finca = db_session.execute(
         text(
-            "INSERT INTO modulo9.fincas (nombre, ubicacion, tamano_h, fecha_actualizacion, fecha_creacion, id_usuario, es_activo) "
-            "VALUES ('Finca Prueba Densidad', '{}'::jsonb, 10, now(), now(), :id_usuario, true) "
+            "INSERT INTO modulo9.fincas (nombre, ubicacion, tamano_h, fecha_actualizacion, fecha_creacion, es_activo) "
+            "VALUES ('Finca Prueba Densidad', '{}'::jsonb, 10, now(), now(), true) "
             "RETURNING id_finca"
         ),
-        {"id_usuario": dueno["id_usuario"]},
     ).scalar_one()
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": dueno["id_usuario"], "f": id_finca},
+    )
     id_infra = db_session.execute(
         text(
             "INSERT INTO modulo9.infraestructuras (nombre, id_finca, superficie, es_activo, tipo) "

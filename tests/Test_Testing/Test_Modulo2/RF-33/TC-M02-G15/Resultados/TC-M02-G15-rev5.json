@@ -1,0 +1,360 @@
+{
+  "caso": "TC-M02-G15",
+  "revision": 5,
+  "rf": [
+    "RF-33",
+    "RF-34"
+  ],
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-26T17:46:40.289218+00:00",
+  "alcance": "Solo TC-M02-031. 027 y 028 no reejecutados (APROBADO rev4).",
+  "contrato_dto": "ActivoBiologicoResponse incluye origen_financiero, costo_adquisicion y soporte_documental. No existe soporte_documental_costo. origen_financiero es clasificacion de origen, no el monto/soporte.",
+  "endpoint_oficial": "GET /activos-biologicos/{id_activo}",
+  "subcasos": {
+    "TC-M02-027": {
+      "resultado": "APROBADO",
+      "origen": "rev4",
+      "nota": "No reejecutado. GET/PATCH 404, sin persistencia."
+    },
+    "TC-M02-028": {
+      "resultado": "APROBADO",
+      "origen": "rev4",
+      "nota": "No reejecutado. Mass assignment ignorado."
+    },
+    "TC-M02-031": {
+      "resultado": "RECHAZADO",
+      "usuario": "ingeniero@pecuaria.co",
+      "login": "HTTP 200",
+      "rol_confirmado": "Ingeniero de Campo",
+      "estado_cuenta": "Activo",
+      "permiso_financiero": false,
+      "activo_consultado": 350,
+      "endpoint": "GET /activos-biologicos/{id_activo}",
+      "http_status": 200,
+      "campos_financieros_presentes": [
+        "costo_adquisicion",
+        "soporte_documental"
+      ],
+      "campos_financieros_con_valor": [
+        {
+          "path": "costo_adquisicion",
+          "valor": "1500000.0000"
+        },
+        {
+          "path": "soporte_documental",
+          "valor": "soporte_TC-M02-031.pdf"
+        }
+      ],
+      "criterio": "Ingeniero sin permiso financiero no debe ver costo_adquisicion ni soporte_documental con valor.",
+      "conclusion_exceso": "RECHAZADO / API3: Ingeniero de Campo sin permiso financiero recibio costo_adquisicion y/o soporte_documental con valor en GET /activos-biologicos/350.",
+      "login_ingeniero": {
+        "correo": "ingeniero@pecuaria.co",
+        "http": 200,
+        "ok": true,
+        "error_code": null,
+        "intentos": 1
+      },
+      "me_http": 200,
+      "me": "{\"id_usuario\": 4, \"nombre\": \"Valentina\", \"apellidos\": \"López Herrera\", \"correo_electronico\": \"ingeniero@pecuaria.co\", \"tipo_identificacion\": \"CC\", \"numero_identificacion\": \"1075****\", \"fecha_nacimiento\": \"1993-04-18\", \"fecha_registro\": \"2026-04-28T09:39:56.759176\", \"nombre_rol\": \"Ingeniero de Campo\", \"estado_cuenta\": \"Activo\", \"version\": 8, \"fincas\": []}",
+      "fincas_me": "[]",
+      "permisos_http": 200,
+      "permisos": "{\"permisos\": [{\"id_recurso\": 8, \"id_accion\": 2}, {\"id_recurso\": 8, \"id_accion\": 3}, {\"id_recurso\": 9, \"id_accion\": 2}, {\"id_recurso\": 10, \"id_accion\": 2}, {\"id_recurso\": 11, \"id_accion\": 1}, {\"id_recurso\": 11, \"id_accion\": 2}, {\"id_recurso\": 11, \"id_accion\": 3}, {\"id_recurso\": 11, \"id_accion\": 4}, {\"id_recurso\": 12, \"id_accion\": 1}, {\"id_recurso\": 12, \"id_accion\": 2}, {\"id_recurso\": 12, \"id_accion\": 3}, {\"id_recurso\": 22, \"id_accion\": 2}, {\"id_recurso\": 24, \"id_accion\": 2}, {\"id_recurso\": 24, \"id_accion\": 3}, {\"id_recurso\": 25, \"id_accion\": 2}, {\"id_recurso\": 25, \"id_accion\": 3}, {\"id_recurso\": 26, \"id_accion\": 2}, {\"id_recurso\": 26, \"id_accion\": 3}, {\"id_recurso\": 28, \"id_accion\": 1}, {\"id_recurso\": 28, \"id_accion\": 2}, {\"id_recurso\": 28, \"id_accion\": 5}, {\"id_recurso\": 29, \"id_accion\": 1}, {\"id_recurso\": 29, \"id_accion\": 2}, {\"id_recurso\": 29, \"id_accion\": 3}, {\"id_recurso\": 29, \"id_accion\": 5}, {\"id_recurso\": 30, \"id_accion\": 1}, {\"id_recurso\": 30, \"id_accion\": 2}, {\"id_recurso\": 30, \"id_accion\": 3}, {\"id_recurso\": 32, \"id_accion\": 2}, {\"id_recurso\": 33, \"id_accion\": 2}, {\"id_recurso\": 34, \"id_accion\": 2}, {\"id_recurso\": 35, \"id_accion\": 2}, {\"id_recurso\": 35, \"id_accion\": 3}, {...[TRUNCATED]",
+      "catalogo_recursos_http": 403,
+      "catalogo_recursos_nota": "GET /roles/catalogo/recursos HTTP 403; se evalua por ids y nombres disponibles.",
+      "permisos_resueltos": [
+        {
+          "id_recurso": 8,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 8,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 9,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 10,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 11,
+          "id_accion": 1,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 11,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 11,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 11,
+          "id_accion": 4,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 12,
+          "id_accion": 1,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 12,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 12,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 22,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 24,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 24,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 25,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 25,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 26,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 26,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 28,
+          "id_accion": 1,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 28,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 28,
+          "id_accion": 5,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 29,
+          "id_accion": 1,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 29,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 29,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 29,
+          "id_accion": 5,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 30,
+          "id_accion": 1,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 30,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 30,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 32,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 33,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 34,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 35,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 35,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 36,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 36,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 37,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 37,
+          "id_accion": 3,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 38,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 38,
+          "id_accion": 5,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 39,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 40,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 41,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 44,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 60,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 61,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 62,
+          "id_accion": 2,
+          "nombre_recurso": null
+        },
+        {
+          "id_recurso": 63,
+          "id_accion": 2,
+          "nombre_recurso": null
+        }
+      ],
+      "recursos_financieros_asignados": [],
+      "listado_http": 200,
+      "listado_total": 9,
+      "listado_muestra": 9,
+      "ids_accesibles_pagina1": [
+        452,
+        350,
+        336,
+        335,
+        334,
+        333,
+        332,
+        331,
+        312
+      ],
+      "ids_con_valor_financiero_en_listado": [
+        350
+      ],
+      "precondicion_datos": "Listado del Ingeniero ya incluye valor financiero almacenado/expuesto.",
+      "respuesta_ingeniero": "{\"id_activo_biologico\": 350, \"id_especie\": 41, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"TCM02-G15-031-1789176563\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"compra\", \"costo_adquisicion\": \"1500000.0000\", \"soporte_documental\": \"soporte_TC-M02-031.pdf\", \"descripcion\": null, \"id_infraestructura\": 61, \"atributos_dinamicos\": {}, \"id_estado\": 6, \"nombre_estado\": \"BAJA\", \"id_usuario\": 1, \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 225, \"raza\": \"Cachama\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-12T01:29:23.251704Z\"}, \"detalle_poblacional\": null}",
+      "costo_adquisicion": "1500000.0000",
+      "soporte_documental": "soporte_TC-M02-031.pdf",
+      "soporte_documental_costo": null,
+      "origen_financiero": "compra",
+      "claves_respuesta": [
+        "atributos_dinamicos",
+        "costo_adquisicion",
+        "descripcion",
+        "detalle_individual",
+        "detalle_poblacional",
+        "detalles_procedencia",
+        "fecha_actualizacion",
+        "fecha_creacion",
+        "fecha_inicio_ciclo",
+        "id_activo_biologico",
+        "id_especie",
+        "id_estado",
+        "id_infraestructura",
+        "id_usuario",
+        "identificador",
+        "nombre_estado",
+        "origen_financiero",
+        "soporte_documental",
+        "tipo"
+      ]
+    }
+  },
+  "estado_global": "RECHAZADO",
+  "auditoria": "Rev4 intacta. Sin DML. Sin cambios productivos. Sin commit/push. Un intento de login por usuario Ingeniero. Admin solo lectura de confirmacion.",
+  "logins": {
+    "ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "http": 200,
+      "ok": true,
+      "error_code": null,
+      "intentos": 1
+    }
+  }
+}

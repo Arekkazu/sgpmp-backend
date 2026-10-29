@@ -1,3 +1,5 @@
+"""Caso de uso: registro de eventos sanitarios (RF-41)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -27,6 +29,11 @@ _MAPA_ESTADO = {'EN_TRATAMIENTO': 3, 'AISLADO': 4}
 
 
 class RegistrarEventoSanitarioUseCase:
+    """Registra diagnóstico, tratamiento o vacunación del activo.
+
+    Tratamiento y vacunación exigen un diagnóstico previo registrado. El evento
+    puede llevar el activo a EN_TRATAMIENTO o AISLADO.
+    """
 
     def __init__(
         self,

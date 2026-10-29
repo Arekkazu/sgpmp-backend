@@ -14,6 +14,7 @@ _MAX = 60
 
 @dataclass(frozen=True)
 class NombreMetrica:
+    """Nombre de métrica: 3 a 60 caracteres, empieza por letra."""
     valor: str
 
     def __post_init__(self) -> None:

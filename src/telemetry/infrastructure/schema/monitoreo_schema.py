@@ -1,3 +1,10 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: unidad sin sensores, lote, desviación, alertas y series |
+# | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: exponer separadamente referencia válida y condición actual por rol. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,6 +26,8 @@ class EstadoSensorSchema(BaseModel):
     ultimo_timestamp_captura: Optional[datetime] = None
     estado_semaforo: str
     estado_calidad: Optional[str] = None
+    estado_calidad_valor_operativo: Optional[str] = None
+    timestamp_estado_actual: Optional[datetime] = None
     estado_desviacion: Optional[str] = None
     estado_conectividad: Optional[str] = None
     tiempo_sin_reporte_min: Optional[int] = None
@@ -30,10 +39,15 @@ class EstadoSensorSchema(BaseModel):
     nombre_infraestructura: Optional[str] = None
     id_finca: Optional[int] = None
     nombre_finca: Optional[str] = None
-    # técnicos — solo Ingeniero de Campo (Productor recibe None)
+    # técnicos — solo con R sobre datos_tecnicos_dashboard (DB-08); si no, None
     nivel_bateria_pct: Optional[Decimal] = None
     calidad_senal_rssi: Optional[Decimal] = None
     calidad_senal_snr: Optional[Decimal] = None
+    # DEV-39: E7 (GRIS sin umbral), R2/E2 (anomalía visible) y su etiqueta para la UI
+    sin_umbral: bool = False
+    indicador_anomalia: bool = False
+    es_valor_operativo: bool = True
+    etiqueta_estado: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -51,6 +65,8 @@ class ResumenUnidadSchema(BaseModel):
     estado_general: str
     alertas_activas_count: int
     ultimo_dato_recibido: Optional[datetime] = None
+    # CU04 E1: "Sin datos disponibles" cuando la unidad no tiene sensores (estado GRIS).
+    mensaje_estado: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -62,6 +78,8 @@ class DashboardResponseSchema(BaseModel):
     por_pagina: int
     resumen_unidades: list[ResumenUnidadSchema]
     sensores: list[EstadoSensorSchema]
+    # M3-08: sensores por color de todo el alcance (VERDE/AMARILLO/ROJO/GRIS), no de la página.
+    conteo_semaforo: dict[str, int] = {}
 
 
 class LecturaHistoricaSchema(BaseModel):
@@ -94,6 +112,9 @@ class LecturaHistoricaSchema(BaseModel):
     valor_min_umbral: Optional[Decimal] = None
     valor_max_umbral: Optional[Decimal] = None
     version_umbral: Optional[datetime] = None
+    # Contexto del activo (Fase 4): identificador del lote o individuo y su tipo.
+    identificador_activo: Optional[str] = None
+    tipo_activo: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -108,13 +129,58 @@ class ResumenEstadisticoSchema(BaseModel):
     pct_dentro_rango: Optional[float] = None
     pct_fuera_rango: Optional[float] = None
     total_alertas_en_periodo: int = 0
+    desviacion_estandar: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}
 
 
+class AlertaCorrelacionadaSchema(BaseModel):
+    """RF-59 Salida 5 — alerta de RF-57 del periodo (con ``incluir_alertas=true``)."""
+    id_alerta: int
+    tipo_alerta: str
+    severidad: str
+    timestamp_generacion: Optional[datetime] = None
+    variable_afectada: Optional[str] = None
+    estado_final: str
+
+
+class PuntoSerieSchema(BaseModel):
+    timestamp_captura: datetime
+    valor: Optional[Decimal] = None
+    estado_semaforo_historico: str
+    id_sensor: int
+
+
+class SerieTemporalSchema(BaseModel):
+    """RF-59 Salida 3 / CA-9 — serie de una variable (sobre las lecturas de la página)."""
+    tipo_variable: str
+    unidad_medida: str
+    umbral_min: Optional[Decimal] = None
+    umbral_max: Optional[Decimal] = None
+    puntos: list[PuntoSerieSchema]
+
+
+class VacioTemporalSchema(BaseModel):
+    """RF-59 E7 / CA-17 — intervalo sin lecturas mayor que 3 × la frecuencia de muestreo."""
+    sensor_id: int
+    tipo_variable: str
+    desde: datetime
+    hasta: datetime
+    duracion_min: int
+    frecuencia_esperada_min: int
+
+
 class HistorialPageSchema(BaseModel):
-    """RF-59 — respuesta paginada del historial."""
+    """RF-59 — respuesta paginada del historial.
+
+    ``total`` son los registros navegables (como mucho 10 000, CA-19); ``total_encontrado``
+    los que cumplen los filtros. Si los supera, ``truncado`` y ``aviso`` lo explican (E6);
+    sin resultados, ``aviso`` trae el mensaje de estado vacío (E3).
+    """
     total: int
+    total_encontrado: int
+    truncado: bool = False
+    aviso: Optional[str] = None
     pagina: int
     por_pagina: int
     paginas_totales: int
@@ -122,3 +188,6 @@ class HistorialPageSchema(BaseModel):
     rango_real_datos: dict[str, Any]
     items: list[LecturaHistoricaSchema]
     estadisticas: list[ResumenEstadisticoSchema]
+    vacios_temporales: list[VacioTemporalSchema] = []
+    series: list[SerieTemporalSchema] = []
+    alertas_correlacionadas: list[AlertaCorrelacionadaSchema] = []

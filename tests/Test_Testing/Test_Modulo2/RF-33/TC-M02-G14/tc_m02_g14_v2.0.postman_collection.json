@@ -1,0 +1,377 @@
+{
+  "info": {
+    "name": "TC-M02-G14 v2.0 - COMPRA/DONACION: costo > 0 y soporte obligatorios; ausencia de cualquiera = HTTP 422 (RF-33 v1.2)",
+    "description": "RF-33: si origen_financiero_activo = COMPRA o DONACION, costo_adquisicion > 0 y soporte documental obligatorios; en ausencia de cualquiera el sistema rechaza con HTTP 422. Complementa la v1 (que aceptaba 400/422).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()));",
+              "pm.collectionVariables.set('fecha_inicio', new Date(Date.now() - 0*86400000).toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()).slice(-8));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016a - COMPRA sin costo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016a - COMPRA sin costo: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016a - COMPRA sin costo: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-a-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"soporte_documental\": \"factura-qa.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016b - COMPRA con costo = 0",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016b - COMPRA con costo 0: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016b - COMPRA con costo 0: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-b-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"costo_adquisicion\": 0,\n  \"soporte_documental\": \"factura-qa.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016c - COMPRA con costo negativo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016c] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016c - COMPRA con costo negativo: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016c - COMPRA con costo negativo: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-c-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"costo_adquisicion\": -5,\n  \"soporte_documental\": \"factura-qa.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016d - COMPRA sin soporte documental",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016d] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016d - COMPRA sin soporte: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016d - COMPRA sin soporte: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-d-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"costo_adquisicion\": 500000\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016e - DONACION sin costo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016e] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016e - DONACION sin costo: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016e - DONACION sin costo: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"donacion\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-e-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"soporte_documental\": \"acta-qa.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016f - DONACION con costo = 0",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016f] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016f - DONACION con costo 0: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016f - DONACION con costo 0: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"donacion\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-f-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"costo_adquisicion\": 0,\n  \"soporte_documental\": \"acta-qa.pdf\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-016g - DONACION sin soporte documental",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-016g] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-016g - DONACION sin soporte: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-016g - DONACION sin soporte: no se crea el activo', function () { pm.expect(b.id_activo_biologico === undefined || b.id_activo_biologico === null).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"donacion\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"QA-G14-g-{{rid}}\",\n  \"raza\": \"QA G14\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"costo_adquisicion\": 500000\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "3"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "6"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "2"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    },
+    {
+      "key": "fecha_inicio",
+      "value": ""
+    }
+  ]
+}

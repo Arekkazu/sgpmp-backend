@@ -1,0 +1,94 @@
+TC-M09-169 / G89 rev3 TEST
+Ambiente: TEST https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Fecha/hora (UTC): 2026-09-25T06:09:49Z (PATCH QA) / 2026-09-25T06:09:50Z (RESTORE)
+Historico NO modificado: tc_m09_g89.json, TC-M09-G89-Newman.html, rev1_dev.*, rev2.*
+
+PASO 1 — codigo local (rama laura HEAD f6f51ea7)
+- identidad_visual_router.py: GET /{id_finca}, POST, PATCH. NO declara GET /{id_finca}/auditoria.
+- AuditoriaIdentidadVisualRepository local: solo registrar().
+- No hay consultar_auditoria_identidad_visual_use_case.py en laura.
+
+origin/test (no mergeado a laura):
+- GET /configuracion/identidad-visual/{id_finca}/auditoria
+- ConsultarAuditoriaIdentidadVisualUseCase
+- SqlAlchemyAuditoriaIdentidadVisualRepository.listar_por_finca -> modulo9.auditorias_visuales
+- Respuesta: id_auditoria_visual, id_finca, id_usuario, usuario, fecha_creacion, tipo_operacion, valor_anterior, valor_nuevo
+
+PASO 2 — TEST OpenAPI
+- Path presente: GET /configuracion/identidad-visual/{id_finca}/auditoria
+- Schema HistorialAuditoriaIdentidadVisualResponse
+- Diferencia laura vs TEST: el endpoint YA esta desplegado en TEST aunque laura no lo tiene.
+
+PASO 3 — finca
+- No se uso finca 6 (GET identidad 200 null).
+- Finca utilizada: id_finca=4, org_display_name Granja La Esperanza, identidad id=4.
+- GET /fincas/4 -> 404 (ruta de finca no usada; la identidad 200 confirma existencia).
+- Usuario: id_usuario=1 correo=admin@pecuaria.co (Administrador, JWT rol=1). GET identidad 200 y PATCH 200 = autorizado.
+
+PASO 4 — snapshot original (Newman 01, GET 200)
+- id_finca=4
+- org_display_name=Granja La Esperanza
+- primary_color=#4A7C2F
+- secondary_color=#B4D49A
+- logo_path=/assets/logos/esperanza.png
+- version=5 (incremento automatico previo; no se forzo baja)
+- Logo no se modifico: no habia archivo de logo valido del ambiente para enviar.
+
+PASO 5 — PATCH QA (Newman 02)
+- PATCH /configuracion/identidad-visual/4
+- form: org_display_name=QA-G89-REV3-TEST primary=#112233 secondary=#445566 version=5
+- HTTP 200
+- Respuesta: nombre QA, colores QA, logo sin cambio, version=6
+
+PASO 6 — GET auditoria post-PATCH (Newman 03)
+- GET /configuracion/identidad-visual/4/auditoria HTTP 200
+- Registro de ESTA modificacion: id_auditoria_visual=16
+  id_usuario=1 usuario=Carlos Rodriguez Perez
+  fecha_creacion=2026-09-25T06:09:49.916507Z
+  tipo_operacion=UPDATE
+  valor_anterior: Granja La Esperanza / #4A7C2F / #B4D49A / version 5
+  valor_nuevo: QA-G89-REV3-TEST / #112233 / #445566 / version 6
+- Coincide con el PATCH de esta ejecucion (no solo "hay un registro").
+
+PASO 7 — trazabilidad RF-26 / TC-M09-169
+- Generacion: si (UPDATE al PATCH)
+- Persistencia: si (modulo9.auditorias_visuales via API)
+- Consulta API: si (endpoint especifico 200)
+- Integridad: valores anterior/nuevo coinciden con snapshot y PATCH
+- Usuario/fecha/operacion: presentes
+- Observacion secundaria: ids 14 y 15 (06:09:35-36Z) son un PATCH+RESTORE extra de un primer intento Newman que fallo el reporter HTML (no el API). No se clasifica como defecto de producto.
+
+PASO 8 — restauracion (Newman 04+05)
+- PATCH restore 200: Granja La Esperanza / #4A7C2F / #B4D49A / logo original / version=7
+- GET identidad 200: mismos valores. Restauracion exitosa.
+- Version 7 es incremento automatico; no se intento disminuir.
+
+PASO 9 — auditoria de restauracion (Newman 06)
+- GET auditoria 200 total=6
+- id_auditoria_visual=17 UPDATE 2026-09-25T06:09:50.414032Z
+  valor_anterior=QA-G89-REV3-TEST / #112233 / #445566
+  valor_nuevo=Granja La Esperanza / #4A7C2F / #B4D49A
+  id_usuario=1
+
+Newman: 7 requests, 16 assertions, 0 failed.
+
+DIAGNOSTICO 1-14
+1. Endpoint auditoria en codigo local laura: NO
+2. Existe en TEST: SI (OpenAPI + GET 200)
+3. PATCH identidad visual: SI (200)
+4. Se genera registro: SI
+5. Consultable via API: SI
+6. Identifica usuario: SI (id_usuario=1, nombre)
+7. Fecha/hora: SI
+8. Operacion: SI (UPDATE)
+9. Valor anterior: SI
+10. Valor nuevo: SI
+11. Restauracion exitosa: SI
+12. Restauracion auditada: SI
+13. Defecto reproducible de producto en TEST: NO
+14. Diferencia local vs TEST: laura no tiene el GET; TEST si. La evaluacion es sobre TEST desplegado; no invalida el APROBADO.
+
+Clasificacion: APROBADO
+Causa: no aplica (incidente de consulta resuelto en TEST)
+INC-M09-G89-169: evidencia suficiente para CERRAR (retest TEST APROBADO)
+Password/JWT/Bearer: [REDACTED]

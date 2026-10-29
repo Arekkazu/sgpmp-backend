@@ -1,3 +1,7 @@
+"""Caso de uso: asociación ambiental de un sensor a una infraestructura completa (RF-49
+Tipo B).
+"""
+
 from __future__ import annotations
 
 import datetime

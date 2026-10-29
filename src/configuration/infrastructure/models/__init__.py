@@ -16,6 +16,7 @@ from .sensor_model import SensorModel
 from .compatibilidad_sensor_especie_model import CompatibilidadSensorEspecieModel
 from .sensor_area_model import SensorAreaModel
 from .calibracion_model import CalibracionModel
+from .calibracion_vision_model import CalibracionVisionModel, LineaBaseVisionModel
 from .configuracion_remota_model import ConfiguracionRemotaModel
 from .auditoria_dispositivo_iot_model import AuditoriaDispositivoIotModel
 from .auditoria_sensor_area_model import AuditoriaSensorAreaModel

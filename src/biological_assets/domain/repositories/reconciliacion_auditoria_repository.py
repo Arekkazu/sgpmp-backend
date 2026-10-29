@@ -1,3 +1,6 @@
+"""Puerto de la reconciliación entre el historial RF-46 y la bitácora RF-52 (RF-52 E5).
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

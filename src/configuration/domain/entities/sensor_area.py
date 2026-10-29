@@ -14,6 +14,10 @@ from src.configuration.domain.value_objects.punto_instalacion import PuntoInstal
 
 @dataclass(eq=False)
 class SensorArea:
+    """Asociación de un sensor a un área productiva con su punto de instalación (RF-22).
+
+    Reasignar un sensor termina la asociación vigente y crea otra.
+    """
     id_sensor: int
     id_dispositivo_iot: int
     id_infraestructura: int

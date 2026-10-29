@@ -1,3 +1,5 @@
+"""Puerto de cálculo de indicadores zootécnicos (RF-51) y datos consolidados (RF-50)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +10,7 @@ from src.biological_assets.domain.entities.activo_biologico import DatosConsolid
 
 
 class IndicadoresRepository(ABC):
+    """Contrato de las consultas analíticas sobre un activo."""
 
     @abstractmethod
     def calcular_indicadores(
@@ -17,7 +20,12 @@ class IndicadoresRepository(ABC):
         fecha_inicio: Optional[date],
         fecha_fin: Optional[date],
         tipo_indicador: str,
-    ) -> ResultadoIndicadores: ...
+    ) -> ResultadoIndicadores:
+        """Calcula los indicadores del activo en el rango dado (RF-51).
+
+        ``tipo_indicador`` filtra uno concreto; un indicador sin datos suficientes se
+        devuelve con ``disponible=False`` y su causa.
+        """
 
     @abstractmethod
     def obtener_datos_consolidados(
@@ -28,7 +36,11 @@ class IndicadoresRepository(ABC):
         fecha_fin: Optional[date],
         pagina: int,
         page_size: int,
-    ) -> DatosConsolidados: ...
+    ) -> DatosConsolidados:
+        """Arma la vista consolidada del activo para módulos analíticos (RF-50).
+
+        ``tipo_dato`` elige qué secciones se llenan; los historiales se paginan.
+        """
 
     @abstractmethod
     def contar_metricas_peso_en_rango(

@@ -10,6 +10,7 @@ _NOMBRE_ETAPA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚ�
 
 
 class RegistrarCicloDTO(BaseDTO):
+    """Etapa nueva del ciclo de una especie, con su duración en días."""
     id_especie: int
     nombre: str
     descripcion: Optional[str] = None

@@ -1,3 +1,7 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-05/M3-06 RF-57: nombres de ubicación y autor del cambio |
+# | 2026-10-25 | Arekkazu | USAB-M03 T-18 RF-57: nombre del activo además de la ubicación |
 from __future__ import annotations
 
 from datetime import datetime
@@ -47,6 +51,11 @@ class AlertaSchema(BaseModel):
     id_usuario_atencion: Optional[int] = None
     id_usuario_resolucion: Optional[int] = None
     referencia_alerta_original: Optional[int] = None
+    # M3-06: ubicación legible (finca › área › sensor).
+    nombre_sensor: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+    nombre_finca: Optional[str] = None
+    nombre_activo: Optional[str] = None  # T-18: identificador o especie
 
     model_config = {"from_attributes": True}
 
@@ -58,6 +67,7 @@ class HistoricoEstadoAlertaSchema(BaseModel):
     estado_nuevo: str
     fecha_cambio: datetime
     id_usuario: Optional[int] = None
+    nombre_usuario: Optional[str] = None
     motivo: Optional[str] = None
 
     model_config = {"from_attributes": True}

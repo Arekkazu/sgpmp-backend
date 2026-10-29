@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones y E11                |
 """Schemas de respuesta para los endpoints de aplicación de medicamento (RF-76)."""
 from __future__ import annotations
 
@@ -27,6 +30,7 @@ class MedicamentoResponse(BaseModel):
     motivo_aplicacion: Optional[str]
     id_evento_sanitario: Optional[int]
     nombre_veterinario: Optional[str]
+    observaciones: Optional[str] = None
     id_usuario: int
     id_usuario_veterinario: Optional[int]
     estado_registro: str
@@ -42,6 +46,7 @@ class RegistroMedicamentoResponse(BaseModel):
 
     medicamento: MedicamentoResponse
     fecha_fin_retiro_vigente: Optional[datetime.date]
+    tratamientos_activos: int = 0
     mensaje: str
 
 

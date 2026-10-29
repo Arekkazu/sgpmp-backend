@@ -12,6 +12,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class ObtenerDashboardUseCase:
+    """Dashboard del usuario, o el predeterminado de su rol si nunca lo personalizó."""
 
     def __init__(self, dashboard_repo: DashboardLayoutRepository) -> None:
         self.dashboard_repo = dashboard_repo

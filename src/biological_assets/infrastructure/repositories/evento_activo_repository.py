@@ -1,11 +1,14 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Implementación SQLAlchemy de ``EventoActivoRepository`` (RF-39 a RF-45)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func
-
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import src.biological_assets.infrastructure.models  # noqa: F401
@@ -28,9 +31,13 @@ from src.biological_assets.infrastructure.models.evento_productivo_model import 
 from src.biological_assets.infrastructure.models.evento_reproductivo_model import EventoReproductivoModel
 from src.biological_assets.infrastructure.models.evento_sanitario_model import EventoSanitarioModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.fechas import nombre_zona_usuario
 
 
 class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
+    """Persiste la cabecera del evento y su fila de subtipo, y resuelve las consultas de
+    secuencia.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -125,7 +132,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
     def guardar(self, evento: EventoActivo) -> EventoActivo:
         ahora = evento.fecha or datetime.now(timezone.utc)
         try:
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': evento.id_usuario})
+            # F2: `app.usuario_id` ya lo setea get_current_user una vez por
+            # request (src/identity_access/infrastructure/dependencies.py).
             orm = EventoActivoModel(
                 id_activo_biologico=evento.id_activo_biologico,
                 fecha=ahora,
@@ -259,7 +267,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             .filter(
                 EventoActivoModel.id_activo_biologico == id_activo,
                 EventoProductivoModel.id_metrica_produccion == id_metrica_produccion,
-                func.date(EventoActivoModel.fecha) == fecha,
+                func.date(func.timezone(nombre_zona_usuario(), EventoActivoModel.fecha)) == fecha,
             )
             .first()
         ) is not None

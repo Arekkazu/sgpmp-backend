@@ -82,8 +82,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
-              "host": ["{{baseUrl}}"],
-              "path": ["sesiones", ""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
             }
           }
         },
@@ -130,8 +135,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores"
+              ]
             }
           }
         },
@@ -154,7 +165,32 @@
                   "});",
                   "if (data && data.id_asociacion_activo_sensor) {",
                   "    pm.collectionVariables.set('id_asociacion_B', data.id_asociacion_activo_sensor);",
-                  "}"
+                  "}",
+                  "",
+                  "pm.test('Paso 02: Asociación A transitó a SUPERADA (RF-49 R5)', function () {",
+                  "    const baseUrl = pm.collectionVariables.get('baseUrl');",
+                  "    const token = pm.collectionVariables.get('bearerToken') || pm.collectionVariables.get('jwt_token');",
+                  "    const idA = pm.collectionVariables.get('id_asociacion_A');",
+                  "    const idActivo = 112;",
+                  "    pm.sendRequest({",
+                  "        url: baseUrl + '/activos-biologicos/' + idActivo + '/sensores?tipo_consulta=HISTORIAL',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Authorization': 'Bearer ' + token,",
+                  "            'Accept': 'application/json'",
+                  "        }",
+                  "    }, function (err, res) {",
+                  "        pm.expect(err).to.be.null;",
+                  "        pm.expect(res.code).to.eql(200);",
+                  "        const asocs = res.json().asociaciones || res.json();",
+                  "        const asocA = Array.isArray(asocs)",
+                  "            ? asocs.find(function(a) { return (a.id_asociacion_activo_sensor === idA || a.id === idA); })",
+                  "            : null;",
+                  "        pm.expect(asocA, 'No se encontró Asociación A en la lista').to.not.be.null;",
+                  "        pm.expect(asocA.estado_asociacion).to.eql('SUPERADA');",
+                  "        pm.expect(asocA.fecha_fin).to.not.be.null;",
+                  "    });",
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -178,8 +214,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores"
+              ]
             }
           }
         }
@@ -219,8 +261,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
-              "host": ["{{baseUrl}}"],
-              "path": ["sesiones", ""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
             }
           }
         },
@@ -264,8 +311,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores",
+                "{{id_asociacion_B}}"
+              ]
             }
           }
         }
@@ -305,8 +359,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
-              "host": ["{{baseUrl}}"],
-              "path": ["sesiones", ""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
             }
           }
         },
@@ -350,8 +409,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores",
+                "{{id_asociacion_B}}"
+              ]
             }
           }
         }
@@ -391,8 +457,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
-              "host": ["{{baseUrl}}"],
-              "path": ["sesiones", ""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
             }
           }
         },
@@ -431,8 +502,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores",
+                "{{id_asociacion_B}}"
+              ]
             }
           }
         }
@@ -448,6 +526,24 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('[Teardown] Guardián: id_asociacion_B debe estar definida', function () {",
+                  "    const idB = pm.collectionVariables.get('id_asociacion_B');",
+                  "    pm.expect(idB, 'Variable faltante: id_asociacion_B').to.not.be.undefined;",
+                  "    pm.expect(String(idB)).to.match(/^\\d+$/);",
+                  "});",
+                  "",
+                  "pm.test('[Teardown] PATCH de cleanup NO debe devolver 403 ni 404', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(403);",
+                  "    pm.expect(pm.response.code).to.not.eql(404);",
+                  "});",
+                  "",
+                  "pm.test('[Teardown] Estado final de la asociación debe ser INACTIVA', function () {",
+                  "    if (pm.response.code === 200) {",
+                  "        const data = pm.response.json();",
+                  "        pm.expect(data.estado_asociacion).to.eql('INACTIVA');",
+                  "    }",
+                  "});",
+                  "",
                   "// Operacion logica append-only (no destructiva) para garantizar la inocuidad del entorno de pruebas",
                   "console.log('[TC-M02-G89] [INFO] Teardown HTTP Status:', pm.response.code);",
                   "if (pm.response.code === 200) {",
@@ -480,8 +576,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "112",
+                "sensores",
+                "{{id_asociacion_B}}"
+              ]
             }
           }
         }

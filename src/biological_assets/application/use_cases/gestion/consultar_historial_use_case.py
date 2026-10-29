@@ -1,3 +1,5 @@
+"""Caso de uso: historial consolidado del activo biológico (RF-46)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -16,6 +18,12 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class ConsultarHistorialUseCase:
+    """Historial paginado de eventos, estados, fases y movimientos del activo.
+
+    Filtra por rango de fechas y categoría; un rango invertido se rechaza antes de
+    consultar la BD. Si los filtros no devuelven nada, la respuesta trae un
+    mensaje orientativo. La consulta queda registrada en RF-52.
+    """
 
     def __init__(
         self,

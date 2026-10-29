@@ -17,6 +17,7 @@ from src.shared.errors import ConflictError, NotFoundError, PreconditionFailedEr
 
 
 class EditarFincaUseCase:
+    """Edita una finca con concurrencia optimista (412) y nombre único (409)."""
 
     def __init__(
         self,
@@ -29,7 +30,7 @@ class EditarFincaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_finca: int, dto: EditarFincaDTO, usuario_actual: UsuarioActual) -> Finca:
-        finca = self.finca_repo.obtener_por_id(id_finca)
+        finca = self.finca_repo.obtener_por_id(id_finca, bloquear=True)
         if finca is None:
             raise NotFoundError(code="FINCA_NO_ENCONTRADA", message=f"No existe una finca con ID {id_finca}.")
 

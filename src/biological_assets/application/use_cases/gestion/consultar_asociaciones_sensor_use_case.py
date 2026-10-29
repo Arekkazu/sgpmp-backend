@@ -1,3 +1,5 @@
+"""Caso de uso: consulta de los sensores asociados a un activo (RF-49)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

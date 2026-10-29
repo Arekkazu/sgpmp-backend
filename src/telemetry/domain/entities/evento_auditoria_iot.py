@@ -1,3 +1,7 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-47 RF-63: expone marca externa sin editar evidencia |
+# | 2026-10-25 | Arekkazu | INC-M03-137-G179 RF-63 E8: sin componente identificable se clasifica NIC41 |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,12 +21,14 @@ class TipoResultado(str, Enum):
 
 class EntidadAfectadaTipo(str, Enum):
     LECTURA = 'LECTURA'
+    HEARTBEAT = 'HEARTBEAT'
     DISPOSITIVO = 'DISPOSITIVO'
     ALERTA = 'ALERTA'
     VINCULACION = 'VINCULACION'
     BUFFER = 'BUFFER'
     PAQUETE_IA = 'PAQUETE_IA'
     CALIDAD_DATO = 'CALIDAD_DATO'
+    UMBRAL = 'UMBRAL'  # umbral ambiental de RF-17 (INC-M09-70-G29)
 
 
 class SeveridadLog(str, Enum):
@@ -39,6 +45,9 @@ class ClasificacionRegistro(str, Enum):
 
 
 class ComponenteOrigen(str, Enum):
+    RF17 = 'RF17'  # propagación de umbrales ambientales al Nodo Edge (INC-M09-70-G29)
+    RF20 = 'RF20'  # propagación del tipo_modelo_asignado de un área al Gateway Edge (DEV-10)
+    RF23 = 'RF23'  # credencial MQTT y Gateway Edge de los dispositivos (TC-M09-250/251)
     RF53 = 'RF53'
     RF54 = 'RF54'
     RF55 = 'RF55'
@@ -56,8 +65,12 @@ _COMPONENTES_NIC41 = {ComponenteOrigen.RF53, ComponenteOrigen.RF56, ComponenteOr
 
 
 def clasificar_componente(componente: Optional[ComponenteOrigen]) -> tuple[ClasificacionRegistro, int]:
-    """Retorna (clasificacion, retencion_anios)."""
-    if componente in _COMPONENTES_NIC41:
+    """Retorna (clasificacion, retencion_anios).
+
+    RF-63 E8: si no se puede saber qué RF lo emitió la clasificación es ambigua, y
+    lo ambiguo va como NIC41 con la retención más larga.
+    """
+    if componente is None or componente in _COMPONENTES_NIC41:
         return ClasificacionRegistro.NIC41, 5
     return ClasificacionRegistro.TECNICO, 1
 
@@ -87,3 +100,4 @@ class EventoAuditoriaIot:
     registro_incompleto: bool = False
     componente_origen: Optional[ComponenteOrigen] = None
     timestamp_registro: Optional[datetime] = None
+    integridad_comprometida: bool = False  # Proyección externa; no forma parte del hash.

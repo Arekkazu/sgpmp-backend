@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | RF-63: keepalives TCP para que un CREATE INDEX CONCURRENTLY largo no pierda la conexión en CI |
 """Configuración de entorno de Alembic.
 
 target_metadata apunta a la única Base declarativa compartida
@@ -30,7 +33,15 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 load_dotenv()
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+# Control de acceso por BD (F1): las migraciones deben correr como
+# `sgpmp_owner` (dueño de los objetos), no como `sgpmp_app` (la conexión de
+# la API, sujeta a RLS). ALEMBIC_DATABASE_URL es opcional -- si no está
+# definida, se usa DATABASE_URL tal como antes (compatibilidad hacia atrás
+# mientras ningún entorno la define todavía; ver .env.example).
+config.set_main_option(
+    "sqlalchemy.url",
+    os.environ.get("ALEMBIC_DATABASE_URL") or os.environ["DATABASE_URL"],
+)
 
 SRC_ROOT = Path(__file__).resolve().parents[1] / "src"
 
@@ -69,6 +80,15 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        # Un CREATE INDEX CONCURRENTLY espera en silencio a que terminen las
+        # transacciones abiertas; sin tráfico, la red del runner de GitHub
+        # (Azure, ~4 min de inactividad) corta la conexión TCP a mitad.
+        connect_args={
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        },
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

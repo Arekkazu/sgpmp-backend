@@ -187,7 +187,7 @@ def test_auditoria_registra_creacion_fallida_por_especie_inactiva(
         headers=headers,
     )
     assert resp.status_code == 422, resp.text
-    assert resp.json()["error_code"] == "ESPECIE_INACTIVA"
+    assert resp.json()["error_code"] == "ESPECIE_NO_DISPONIBLE"
 
     auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
     fallidos = [

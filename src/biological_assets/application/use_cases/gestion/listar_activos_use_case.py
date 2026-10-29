@@ -1,3 +1,5 @@
+"""Caso de uso: listado paginado de activos biológicos (RF-35 / RF-36)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -10,6 +12,9 @@ from src.biological_assets.infrastructure.dto.listar_activos_dto import ListarAc
 
 
 class ListarActivosUseCase:
+    """Lista activos con filtros por especie, tipo, estado e infraestructura, limitado a
+    las fincas del usuario.
+    """
 
     def __init__(self, db: Session, repo: ActivoBiologicoRepository) -> None:
         self.db = db

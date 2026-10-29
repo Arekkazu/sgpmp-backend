@@ -1,0 +1,19 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0
+rootdir: C:\Users\Juansegutt\Integrador\sgpmp-backend
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1
+collected 1 item
+
+tests/integration/test_inc_m09_06_g15_metricas_legacy.py F [100%]
+
+=================================== FAILURES ===================================
+_ test_migracion_normaliza_manual_y_endpoint_evalua_dependencias _
+psycopg2.errors.InsufficientPrivilege: must be owner of table metricas_produccion
+[SQL: ALTER TABLE modulo9.metricas_produccion DROP CONSTRAINT IF EXISTS chk_metricas_tipo_medicion]
+
+Nota tecnica: Conforme a lo documentado en anotaciones/modulo_9/inc_m09_06_g15_metricas_legacy.md:71,
+el rol de prueba 'member_qa' no posee privilegios DDL de propietario (owner=dba) sobre la tabla
+modulo9.metricas_produccion en el servidor remoto de TEST, impidiendo la ejecucion de ALTER TABLE DROP CONSTRAINT.
+La verificacion E2E oficial del caso se satisface al 100% mediante la suite Newman HTTP.
+======================== 1 failed, 1 warning in 4.49s =========================

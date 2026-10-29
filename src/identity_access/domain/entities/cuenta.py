@@ -141,8 +141,29 @@ class Cuenta:
         self.bloqueado_hasta = ahora + timedelta(minutes=minutos)
 
     def desbloquear(self) -> None:
-        """Reactiva una cuenta cuyo bloqueo temporal ya expiró."""
+        """Reactiva una cuenta cuyo bloqueo temporal ya expiró.
+
+        Reinicia el contador: sin esto la entidad seguía con 5 intentos y el
+        primer fallo tras el desbloqueo (6 >= 5) volvía a bloquear la cuenta
+        otros 15 minutos, en vez de dar 5 intentos nuevos.
+        """
         self.id_estado_cuenta = self.ESTADO_ACTIVO
+        self.bloqueado_hasta = None
+        self.resetear_intentos()
+
+    def bloqueo_temporal_vencido(self, ahora: datetime) -> bool:
+        """Indica si la cuenta está bloqueada por intentos fallidos y ya venció.
+
+        Solo el bloqueo automático del login (``bloquear``) tiene
+        ``bloqueado_hasta``. El bloqueo administrativo (RF-06) no lo tiene: es
+        indefinido hasta que un administrador active la cuenta, y nunca vence.
+        """
+        if not self.esta_bloqueada() or self.bloqueado_hasta is None:
+            return False
+        hasta = self.bloqueado_hasta
+        if hasta.tzinfo is None:
+            hasta = hasta.replace(tzinfo=timezone.utc)
+        return hasta <= ahora
 
     def resetear_intentos(self) -> None:
         self.intentos_fallidos = 0
@@ -172,6 +193,10 @@ class Cuenta:
                 el estado sin registrar un motivo).
         """
         self.id_estado_cuenta = nuevo_estado
+        # Un cambio administrativo reemplaza cualquier bloqueo temporal previo:
+        # un `bloqueado_hasta` viejo hacía que el bloqueo del administrador se
+        # tomara como vencido y el siguiente login reactivara la cuenta.
+        self.bloqueado_hasta = None
         if motivo is not None:
             self.motivo_ultimo_cambio = motivo
 

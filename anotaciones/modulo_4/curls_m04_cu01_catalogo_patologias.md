@@ -132,7 +132,7 @@ curl -s -X PATCH http://localhost:8000/prediccion/patologias/15 \
 
 | FA | HTTP | code | Condición |
 |----|------|------|-----------|
-| FA-06 | 422 | `PATOLOGIA_BASE_INMUTABLE` | `es_base = true` (E2) |
+| FA-06 | 405 | `PATOLOGIA_BASE_INMUTABLE` | `es_base = true` (E2; antes 422, DEV-35) |
 | FA-07 | 409 | `PATOLOGIA_EN_USO_POR_MODELO` | Modelo en EN_VALIDACION o ACTIVO usa la patología (E7) |
 | — | 412 | `CONFLICTO_CONCURRENCIA` | `fecha_actualizacion` no coincide con la BD |
 | FA-03 | 422 | `VARIABLE_NO_EN_I3P1` | Variable inválida |
@@ -159,8 +159,8 @@ curl -s -X PATCH http://localhost:8000/prediccion/patologias/15/desactivar \
 
 | FA | HTTP | code | Condición |
 |----|------|------|-----------|
-| FA-07 | 409 | `PATOLOGIA_EN_USO_POR_MODELO` | Modelo activo usa la patología (E3) |
-| FA-08 | 409 | `PATOLOGIA_EN_USO_POR_MODELO` | Patología base con modelo entrenado |
+| CA-3 | 405 | `PATOLOGIA_BASE_INMUTABLE` | `es_base = true`: una base nunca se inactiva, tenga o no modelos (DEV-35, propuesta de P-7). Se revisa antes que FA-07/FA-08 |
+| FA-07 | 409 | `PATOLOGIA_EN_USO_POR_MODELO` | Modelo activo usa una patología no base (E3) |
 | — | 404 | `PATOLOGIA_NO_ENCONTRADA` | ID no existe |
 
 ---

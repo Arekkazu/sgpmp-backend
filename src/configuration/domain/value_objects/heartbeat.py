@@ -8,6 +8,9 @@ from src.shared.errors import ValidationError
 
 @dataclass(frozen=True)
 class Heartbeat:
+    """Minutos máximos sin datos antes de considerar un dispositivo inactivo; entero
+    mayor que cero.
+    """
     valor: int
 
     def __post_init__(self) -> None:

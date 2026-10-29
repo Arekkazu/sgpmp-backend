@@ -1,6 +1,49 @@
-# TC-M09-G52 (TC-M09-103, TC-M09-104) — Reglas de desactivación de área productiva
+# TC-M09-G52 (TC-M09-103, TC-M09-104, TC-M09-260) — Activación y desactivación de área productiva
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
+
+## Estado vigente — reevaluación 2026-10-06 (RF-20 v1.1, RFC-009)
+
+**Resultado: PASA**: 20 requests, 40 assertions, 0 failed. Un sub-escenario del 260 queda
+**pendiente de aclarar con Análisis**, como indica la ficha. Se registra lo observado sin darlo
+por fallido.
+
+| Sub-caso | Antes → operación → después | Resultado |
+|---|---|---|
+| TC-M09-103 | Área 166 sin dependencias: activa → `PATCH /desactivar` `200` → relectura `es_activo: false` | ✅ PASA |
+| TC-M09-104 | Área 167 con un lote ACTIVO de 25 animales alojado (M02): activa → `422 INFRAESTRUCTURA_CON_DEPENDENCIAS` (*"…tiene dispositivos y/o activos biológicos asociados. Debe desvincular o trasladar los recursos antes de desactivar la infraestructura."*) → relectura sigue activa | ✅ PASA |
+| TC-M09-260 (especie activa, modelo coherente) | Área 166 (inactiva tras el 103, especie A + `MODELO_AVES`) → `PATCH /reactivar` `200` → relectura activa, conserva especie A y `MODELO_AVES` | ✅ PASA |
+| TC-M09-260 (especie inactivada después) | Área 168 (especie B + `MODELO_PORCINOS`) desactivada; luego especie B desactivada en RF-15 → `PATCH /reactivar` **`200`** → relectura: área **activa** con la especie B inactiva | ⏸️ PENDIENTE DE ACLARAR |
+
+**Lo observado en el escenario pendiente:** `ReactivarInfraestructuraUseCase` solo valida que el
+área exista, que esté inactiva y que su finca esté activa. No revalida la especie ni la coherencia
+especie↔modelo, así que el área vuelve a quedar activa apuntando a una especie inactiva. Para
+comparar, al registrar y al editar un área con cambio de especie, el sistema sí rechaza una
+especie inactiva (`422 ESPECIE_INVALIDA`, ver G49). Si Análisis define que la reactivación debe
+rechazarse en este caso, esto pasa a ser un defecto.
+
+Sobre "respetar la coherencia y las dependencias" en la reactivación: las dependencias no aplican,
+porque un área solo puede estar inactiva si se desactivó sin dependencias (TC-M09-104). La
+coherencia del modelo tampoco se puede romper mientras el área está inactiva: el fix `258ceca2`
+impide cambiar el `tipo_modelo` de una especie si deja áreas incoherentes, activas o inactivas.
+El único hueco es el de la especie inactiva.
+
+Cambios en la colección (reescrita):
+- La versión anterior usaba áreas compartidas de TEST (`id=10`, que esa misma corrida dejó
+  desactivada, así que no era repetible; e `id=1` como área con dependencias). Ahora crea su
+  propia finca, dos especies, tres áreas y un lote de activos biológicos como dependencia
+  operativa. No usa dispositivos IoT: el lote basta para disparar la regla, que revisa
+  dispositivos **o** activos.
+- Se agregaron los dos escenarios del TC-M09-260.
+
+La auditoría de la reactivación como `UPDATE` se verifica en TC-M09-G53, según la ficha.
+
+Evidencia: `Resultados/reporte-TC-M09-G52.html` (Newman htmlextra, 2026-10-06).
+
+---
+
+## Evaluación anterior (RF-20 v1.0): histórico
+
 **Estado del caso: PASA** (7 requests, 13 assertions, 0 failed) — pero en el camino de
 seleccionar los datos de prueba se encontró un **bug real**, documentado abajo.
 

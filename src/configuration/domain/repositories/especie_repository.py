@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-21 RF-15: puerto listar_areas_ocupadas (RFC-012) |
 """Puerto de persistencia del agregado ``Especie`` (capa de dominio).
 
 Define el contrato que la capa de aplicación usa para leer y guardar especies,
@@ -13,6 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from src.configuration.domain.entities.especie import Especie
+from src.configuration.domain.services.capacidad_area import AreaOcupada
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 
 
@@ -20,11 +24,13 @@ class EspecieRepository(ABC):
     """Contrato de acceso a datos para el agregado :class:`Especie`."""
 
     @abstractmethod
-    def obtener_por_id(self, id_especie: int) -> Optional[Especie]:
+    def obtener_por_id(self, id_especie: int, *, bloquear: bool = False) -> Optional[Especie]:
         """Obtiene una especie por su identidad.
 
         Args:
             id_especie: PK de la especie.
+            bloquear: toma la fila con ``SELECT ... FOR UPDATE`` (edición con
+                concurrencia optimista, #498).
 
         Returns:
             La entidad :class:`Especie` o ``None`` si no existe.
@@ -91,4 +97,23 @@ class EspecieRepository(ABC):
         Returns:
             Lista de entidades :class:`Especie` ordenadas por nombre.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_areas_con_modelo_distinto(self, id_especie: int, tipo_modelo: Optional[str]) -> int:
+        """RF-20 v1.1 (RFC-009): áreas de la especie con un modelo de IA asignado que no es ``tipo_modelo``.
+
+        Con ``tipo_modelo=None`` cuenta todas las que tengan modelo asignado: sin familia,
+        ninguno es coherente. Incluye áreas inactivas, que pueden reactivarse.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_activos_alojados(self, id_especie: int) -> int:
+        """RF-15 v1.1: activos biológicos de la especie alojados en un área y operativos."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_areas_ocupadas(self, id_especie: int) -> list[AreaOcupada]:
+        """RFC-012: áreas activas donde está la especie y que alojan individuos."""
         raise NotImplementedError

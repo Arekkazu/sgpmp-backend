@@ -23,6 +23,7 @@ _MAX_COLUMNAS = 4
 
 @dataclass
 class WidgetConfig:
+    """Posición y tamaño de un widget dentro de la grilla 4×3 del dashboard."""
     id_widget: int
     posicion_fila: int
     posicion_columna: int
@@ -54,6 +55,9 @@ class WidgetConfig:
 
 @dataclass(eq=False)
 class DashboardLayout:
+    """Dashboard de un usuario (RF-28): grilla 4×3 con hasta 12 widgets activos sin
+    solapamientos.
+    """
     id_usuario: int
     grid: list[WidgetConfig]
     active_widget: list[str]

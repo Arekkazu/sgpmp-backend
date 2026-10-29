@@ -1,6 +1,10 @@
+"""Helper compartido: única vía para cambiar el estado de un activo y dejar su histórico
+(RF-44).
+"""
+
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistoricoEstado
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
@@ -28,6 +32,15 @@ def aplicar_cambio_estado(
     """
     id_estado_anterior = activo.id_estado
     activo.cambiar_estado(id_estado_nuevo)
+    # INC-M02-78-G49 (#573): trg_fn_estado_activo_unico_vigente toma como
+    # "último estado" el de mayor fecha_cambio. Un cambio cuya fecha es solo
+    # día (medianoche o fin de día UTC) quedaba antes de otro cambio del mismo
+    # día guardado con la hora real (p. ej. un evento sanitario) y el
+    # siguiente cambio respondía 409 ESTADO_ACTIVO_INCONSISTENTE. El
+    # histórico debe seguir el orden real de los cambios.
+    ultimo = historico_repo.obtener_ultimo_cambio(activo.id_activo_biologico)
+    if ultimo is not None and fecha <= ultimo.fecha_cambio:
+        fecha = ultimo.fecha_cambio + timedelta(microseconds=1)
     return historico_repo.registrar(
         id_activo=activo.id_activo_biologico,
         id_estado_anterior=id_estado_anterior,

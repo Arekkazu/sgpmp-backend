@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class PreferenciaIdiomaResponse(BaseModel):
+    """Preferencia de idioma guardada (personal o global)."""
     id_preferencia_idioma: int
     id_usuario: int
     locale_code: str
@@ -33,6 +34,9 @@ class PreferenciaIdiomaResponse(BaseModel):
 
 
 class IdiomaResueltoResponse(BaseModel):
+    """Idioma efectivo del usuario; ``fuente`` indica de dónde salió (personal, global o
+    defecto).
+    """
     locale_code: str
     fuente: str
     id_preferencia_idioma: Optional[int]

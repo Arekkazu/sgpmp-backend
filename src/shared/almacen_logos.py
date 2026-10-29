@@ -27,6 +27,8 @@ import uuid
 from typing import Optional
 from xml.etree import ElementTree
 
+from defusedxml import ElementTree as DefusedElementTree
+from defusedxml.common import DefusedXmlException
 from PIL import Image, UnidentifiedImageError
 
 from src.shared.errors import InfrastructureError, UnsupportedMediaTypeError, ValidationError
@@ -47,8 +49,10 @@ _FORMATOS_PIL = {"image/png": "PNG", "image/jpeg": "JPEG"}
 
 # Rechazo simple de SVG con contenido ejecutable (RF-26 pide imagen, no vector con
 # script embebido). No es un sanitizador completo — cubre los vectores de XSS
-# habituales sin sumar una dependencia nueva solo para esto.
-_SVG_PATRON_PELIGROSO = re.compile(r"<script|javascript:|on\w+\s*=", re.IGNORECASE)
+# habituales sin sumar una dependencia nueva solo para esto. Se aplica al árbol
+# ya parseado y reserializado (de ahí el prefijo opcional ``ns0:``), no a los
+# bytes: un SVG en UTF-16 esquivaba el patrón y el parser lo aceptaba igual.
+_SVG_PATRON_PELIGROSO = re.compile(r"<(?:\w+:)?script|javascript:|on\w+\s*=", re.IGNORECASE)
 
 
 def guardar_logo(contenido: bytes, content_type: Optional[str]) -> str:
@@ -142,16 +146,11 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
 
 
 def _validar_svg(contenido: bytes) -> bytes:
-    texto = contenido.decode("utf-8", errors="ignore")
-    if _SVG_PATRON_PELIGROSO.search(texto):
-        raise UnsupportedMediaTypeError(
-            code="FORMATO_IMAGEN_NO_PERMITIDO",
-            message="El SVG contiene contenido no permitido.",
-            field="logo",
-        )
+    # SEG-SAST-02: defusedxml rechaza las declaraciones <!ENTITY> (billion laughs)
+    # y las entidades externas sin depender de la versión de expat instalada.
     try:
-        raiz = ElementTree.fromstring(contenido)
-    except ElementTree.ParseError:
+        raiz = DefusedElementTree.fromstring(contenido)
+    except (ElementTree.ParseError, DefusedXmlException):
         raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
@@ -161,6 +160,12 @@ def _validar_svg(contenido: bytes) -> bytes:
         raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
+            field="logo",
+        )
+    if _SVG_PATRON_PELIGROSO.search(ElementTree.tostring(raiz, encoding="unicode")):
+        raise UnsupportedMediaTypeError(
+            code="FORMATO_IMAGEN_NO_PERMITIDO",
+            message="El SVG contiene contenido no permitido.",
             field="logo",
         )
     return contenido

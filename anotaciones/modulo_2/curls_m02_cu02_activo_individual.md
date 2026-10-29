@@ -41,6 +41,20 @@ Respuesta esperada `200`:
 }
 ```
 
+Los valores de `costo_adquisicion` y `soporte_documental` solo aparecen si el
+rol tiene lectura sobre el recurso RBAC `datos_financieros_activo`. Por
+ejemplo, el mismo activo consultado por un Ingeniero de Campo conserva `200` y
+los datos operativos, pero enmascara ambos campos:
+
+```json
+{
+  "id_activo_biologico": 51,
+  "identificador": "TRU-002",
+  "costo_adquisicion": null,
+  "soporte_documental": null
+}
+```
+
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe, **o pertenece a
   una finca fuera del alcance del usuario** (RF-25, INC-M02-39-G27: se
@@ -174,7 +188,41 @@ Respuesta esperada `422`: `Al menos un campo debe estar presente para actualizar
 
 ## RF-37 — Gestión de Fases del Ciclo Productivo
 
+### GET /activos-biologicos/{id}/ciclos-productivos — Ciclos asignables
+
+Lista los ciclos productivos de la especie del activo, con sus fases en orden.
+Es la fuente del `id_ciclo_productiva` que espera el `POST /fases` de abajo
+(Arekkazu/SGPMP-FRONT-END-PWA#288: el front usaba IDs de ciclos biológicos).
+
+```bash
+curl http://localhost:8000/activos-biologicos/750/ciclos-productivos \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "id_activo_biologico": 750,
+  "total": 1,
+  "items": [
+    {
+      "id_ciclo_productivo": 4,
+      "nombre": "Ciclo completo cachama 2025-A",
+      "fases": [
+        {"id_ciclos_productivo_biologico": 10, "id_ciclo_biologico": 12, "nombre_fase": "Alevinaje cachama", "duracion_dias": 30},
+        {"id_ciclos_productivo_biologico": 11, "id_ciclo_biologico": 13, "nombre_fase": "Engorde cachama", "duracion_dias": 120}
+      ]
+    }
+  ]
+}
+```
+
+Errores: `404 ACTIVO_NO_ENCONTRADO` (no existe o está fuera de las fincas del usuario), `403` sin permiso R sobre activos.
+
 ### POST /activos-biologicos/{id}/fases — Cambiar fase
+
+Un `id_ciclo_productiva` de otra especie se rechaza con `422 CICLO_ESPECIE_INCOMPATIBLE`
+(#288; antes se asignaba sin aviso).
 
 `fase_destino_id` (opcional, tarea Taiga fase_destino/confirmacion_no_estandar):
 `id_ciclos_productivo_biologico` de la fase a la que se quiere transicionar.
@@ -280,6 +328,12 @@ curl -X POST http://localhost:8000/activos-biologicos/51/fases \
 ```
 
 Respuesta esperada `201` con `"es_transicion_no_estandar": true`.
+
+**INC-M02-37-G33 (#462):** ese valor queda **persistido** en `modulo2.gestiones_fases`
+(columna `es_transicion_no_estandar`). `GET /activos-biologicos/51/fases` devuelve la misma gestión
+(mismo `id_gestion_fases`) con `"es_transicion_no_estandar": true`; antes el historial la mostraba
+siempre `false` y solo quedaba el rastro en la bitácora (`FASE_CAMBIADA`). Las gestiones anteriores a la
+migración se recuperan desde esa bitácora cuando el evento trae la llave `registros_rf46`.
 
 #### Caso FA: fase_destino_id inexistente en el ciclo → 400
 

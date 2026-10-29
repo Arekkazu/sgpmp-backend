@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para el módulo de auditoría (`/auditoria`).
 
 Expone la consulta paginada del log de eventos con filtros por usuario,
@@ -51,8 +54,10 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 )
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError, MethodNotAllowedError
+from src.shared.fechas import hoy_usuario
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
 
@@ -179,10 +184,12 @@ def _consultar(
 
 @router.get(
     "/",
+    summary="Consultar el historial de auditoría (RF-10)",
     response_model=AuditoriaPaginadaResponse,
     responses={
         206: {"model": AuditoriaPaginadaResponse, "description": "Consulta extensa: respuesta parcial."},
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         500: {"model": ErrorResponse, "description": "Violación de integridad detectada."},
     },
@@ -192,8 +199,8 @@ def consultar_auditoria(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
         None,
         description=(
             "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
@@ -209,6 +216,15 @@ def consultar_auditoria(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
 ):
+    """Consulta paginada del log de eventos con filtros por usuario, tipo, categoría y fechas.
+
+    **Acceso:** permiso `eventos` · Leer (6·R). Un acceso denegado también queda
+    registrado en auditoría.
+
+    Cada registro trae el resultado de la verificación de integridad (hash
+    SHA-256). Una consulta muy extensa responde 206 con resultado parcial; si se
+    detecta un registro manipulado responde 500.
+    """
     return _consultar(
         response=response,
         db=db,
@@ -230,6 +246,7 @@ def consultar_auditoria(
     responses={
         206: {"model": AuditoriaPaginadaResponse, "description": "Consulta extensa: respuesta parcial."},
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         500: {"model": ErrorResponse, "description": "Violación de integridad detectada."},
     },
@@ -240,8 +257,8 @@ def consultar_auditoria_archivada(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(
         None,
         description=(
             "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
@@ -257,6 +274,11 @@ def consultar_auditoria_archivada(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
 ):
+    """Igual que `GET /auditoria/` pero sobre `modulo1.eventos_archivados`
+    (eventos con más de 12 meses).
+
+    **Acceso:** permiso `eventos` · Leer (6·R).
+    """
     return _consultar(
         response=response,
         db=db,
@@ -276,7 +298,7 @@ def consultar_auditoria_archivada(
     "/catalogo/tipos-evento",
     response_model=list[TipoEventoResponse],
     dependencies=[Depends(require_permission(ID_RECURSO_AUDITORIA, ID_ACCION_LEER))],
-    responses={403: {"model": ErrorResponse}},
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
     summary="Catálogo de tipos de evento para etiquetar la auditoría",
 )
 def listar_tipos_evento(db: Session = Depends(get_db)) -> list[TipoEventoResponse]:
@@ -311,6 +333,7 @@ def _categoria_o_none(id_tipo_evento: int) -> Optional[str]:
     "/exportar",
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         500: {"model": ErrorResponse, "description": "Violación de integridad detectada."},
     },
@@ -320,8 +343,8 @@ def exportar_auditoria(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(None),
     archivados: bool = Query(False, description="Exportar el archivo histórico en vez del log activo."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
@@ -348,7 +371,7 @@ def exportar_auditoria(
         archivados=archivados,
     )
 
-    nombre = f"auditoria-{datetime.now().date().isoformat()}.csv"
+    nombre = f"auditoria-{hoy_usuario().isoformat()}.csv"
     return StreamingResponse(
         lineas,
         media_type="text/csv; charset=utf-8",
@@ -367,6 +390,7 @@ def exportar_auditoria(
     status_code=202,
     response_model=ExportacionEncoladaResponse,
     responses={
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         429: {"model": ErrorResponse, "description": "Demasiadas exportaciones simultáneas."},
     },
@@ -376,8 +400,8 @@ def solicitar_exportacion(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
-    fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(None),
     archivados: bool = Query(False),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
@@ -410,7 +434,7 @@ def solicitar_exportacion(
 @router.get(
     "/exportaciones/{id_cola}",
     response_model=EstadoExportacionResponse,
-    responses={403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
     summary="Estado de una exportación diferida",
 )
 def consultar_exportacion(
@@ -418,6 +442,11 @@ def consultar_exportacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
 ) -> EstadoExportacionResponse:
+    """Estado de un trabajo de exportación encolado con `POST /auditoria/exportaciones`.
+
+    **Acceso:** permiso `eventos` · Leer (6·R). Cuando `descargable` es `true`, el
+    CSV se obtiene en `/descargar`.
+    """
     use_case = ConsultarExportacionAuditoriaUseCase(
         cola_repo=SqlAlchemyExportacionAuditoriaRepository(db)
     )
@@ -438,6 +467,7 @@ def consultar_exportacion(
 @router.get(
     "/exportaciones/{id_cola}/descargar",
     responses={
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         422: {"model": ErrorResponse, "description": "La exportación aún no está lista."},
@@ -449,6 +479,10 @@ def descargar_exportacion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
 ) -> StreamingResponse:
+    """Descarga el CSV de una exportación diferida ya completada.
+
+    **Acceso:** permiso `eventos` · Leer (6·R). Si aún no está lista responde 422.
+    """
     use_case = DescargarExportacionAuditoriaUseCase(
         cola_repo=SqlAlchemyExportacionAuditoriaRepository(db)
     )
@@ -469,12 +503,11 @@ def descargar_exportacion(
     methods=["PUT", "PATCH", "DELETE"],
     include_in_schema=False,
 )
-@router.api_route(
-    "/",
-    methods=["PUT", "PATCH", "DELETE"],
-    responses={405: {"model": ErrorResponse}},
-    summary="Bloqueado: los registros de auditoría son inmutables",
-)
+# Un registro por método: con `methods=[...]` FastAPI repite el mismo
+# operationId para los tres y el OpenAPI queda inválido.
+@router.put("/", responses={405: {"model": ErrorResponse}}, summary="Bloqueado: los registros de auditoría son inmutables")
+@router.patch("/", responses={405: {"model": ErrorResponse}}, summary="Bloqueado: los registros de auditoría son inmutables")
+@router.delete("/", responses={405: {"model": ErrorResponse}}, summary="Bloqueado: los registros de auditoría son inmutables")
 def rechazar_modificacion_auditoria() -> None:
     """FA de inmutabilidad: PUT/PATCH/DELETE quedan bloqueados en la API.
 

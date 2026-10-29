@@ -1,0 +1,156 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G88",
+  "run_id": "RUN-G88-V1-20261025-020636",
+  "casos": [
+    {
+      "id": "TC-M03-169",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    },
+    {
+      "id": "TC-M03-170",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    },
+    {
+      "id": "TC-M03-171",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    },
+    {
+      "id": "TC-M03-172",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    },
+    {
+      "id": "TC-M03-180",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    },
+    {
+      "id": "TC-M03-266",
+      "ejecutable": true,
+      "motivos": [],
+      "variables_privadas_ausentes": []
+    }
+  ],
+  "ejecutables": [
+    "TC-M03-169",
+    "TC-M03-170",
+    "TC-M03-171",
+    "TC-M03-172",
+    "TC-M03-180",
+    "TC-M03-266"
+  ],
+  "variables": [
+    {
+      "nombre": "QA_AUTORIZADO",
+      "fuente": "proceso"
+    },
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "BROKER_SERVICE_TOKEN",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_169_171_SERIAL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "SIGAB_FRONT_TEST_URL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_180_SENSOR_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_180_SERIAL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_PROD_UI_EMAIL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_PROD_UI_PASSWORD",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_SERIAL",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_ESPECIE_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_AREA_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_ACTIVO_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_DISPOSITIVO_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_SENSOR_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_ASOCIACION_ID",
+      "fuente": ".env.qa"
+    },
+    {
+      "nombre": "QA_G88_266_CALIBRACION_ID",
+      "fuente": ".env.qa"
+    }
+  ],
+  "archivo_env_qa_existe": true,
+  "variables_ausentes": [],
+  "barreras_ambiente": [],
+  "motivos_globales": [],
+  "semillas_registradas_coherentes": {
+    "180": true,
+    "266": true,
+    "169_171": true
+  },
+  "verificaciones_pendientes_en_run": [
+    "169-171: umbral y calibración por GET",
+    "180: calibración y ausencia de umbral NH3 por GET; asociación 522 como diagnóstico posterior no bloqueante",
+    "266: siete IDs y relaciones por GET; auditoría de propagación tras cada escritura M09"
+  ],
+  "ok": true
+}

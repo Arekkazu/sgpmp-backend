@@ -1,0 +1,13 @@
+# TC-M03-G94 — BLOQUEADO — [informe consolidado](Resultados/RUN-G94-V1-20261026-043704/TC-M03-G94_resultado.md)
+
+**Caso:** TC-M03-185, RF-58/CU04 E4. Oráculo literal de la matriz: «HTTP 200 con arreglos vacíos. La interfaz muestra "No tiene unidades productivas asignadas" y sugiere contactar al administrador; no se devuelve ningún dato de otras granjas ni error interno». La UI es obligatoria.
+
+**Historial V1:** el intento 1 (RUN-G94-V1-20261026-041954, AUT-G94-V1-20261026) aprobó API-185-01/02; UI-185-01 quedó BLOQUEADA por HTTP 500 de perfil y permisos en el sandbox. Su evidencia nativa se eliminó por decisión del responsable QA el 2026-10-26, después de transcribir los datos relevantes al informe consolidado. El intento 2 (RUN-G94-V1-20261026-043704, AUT-G94-V1-R2-20261026) aprobó API-185-01/02; UI-185-01 quedó NO_CONCLUYENTE porque la sesión no permitió solicitar el dashboard. Es el único RUN conservado. La decisión consolidada es BLOQUEADO; ningún intento verifica el oráculo visual.
+
+**Automatización vigente:** `g94.mjs` es el ejecutor canónico; `G94.postman_collection.json` verifica las dos API y `g94.cy.js` con `g94.cypress.config.cjs` verifica la UI. `lib/` contiene `contrato_ejecutor.mjs`, `g94_escenario.mjs` y `seguridad.mjs`; `pruebas/` contiene `g94.test.mjs`, `g94_arranque_local.mjs` y `g94_ensayo_spec_real.mjs`. `Resultados/` contiene solo `RUN-G94-V1-20261026-043704/`, con `resultado.json`, `preflight.json`, `contexto_operacion.json`, un Markdown oficial y los artefactos Newman/Cypress reales.
+
+**Método:** el Productor se deja temporalmente sin asignaciones dentro del sandbox y se verifican API-185-01, API-185-02 y UI-185-01. Solo POST `/sesiones/refresh`, GET `/usuarios/me` y GET `/sesiones/me/permisos` del navegador viajan fuera del sandbox por decisión QA del 2026-10-26; el resto exige cabeceras y eco RUN. El ejecutor cierra con DELETE y compara el conjunto de fincas por lectura pública. Login, auditoría y rotación de sesión fuera del RUN no se presumen revertidos.
+
+**Validación local:** `node g94.mjs --comprobar`, `node pruebas/g94.test.mjs` y `node pruebas/g94_ensayo_spec_real.mjs` (este último usa solo `127.0.0.1` y temporales). Ninguno debe usar TEST. La evaluación en TEST corresponde exclusivamente al lanzador externo con autorización particular.
+
+**Reevaluación:** DBA debe acreditar la corrección de INC-M03-184-G93-02 para que perfil y permisos permitan cargar la UI. Luego el responsable QA autoriza un único RUN de UI y verifica el mensaje literal, el contacto al administrador, la ausencia de datos ajenos y de error interno, y el cierre. El texto distinto visto en código local es `DEFECTO_FUNCIONAL_CANDIDATO`; requiere comprobación en la UI pública antes de emitir veredicto.

@@ -17,6 +17,8 @@ on:
       - "requirements*.txt"
       - ".github/workflows/sast.yml"
       - ".semgrepignore"
+      - "bearer.yml"
+      - "bearer.ignore"
   workflow_dispatch:
 
 permissions:
@@ -102,3 +104,51 @@ jobs:
           name: bandit-report
           path: bandit-report.txt
           retention-days: 14
+
+  bearer-sast:
+    name: Bearer SAST & Taint Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout del código fuente
+        uses: actions/checkout@v4
+
+      - name: Instalar Bearer CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          bearer --version
+
+      - name: Ejecutar Bearer SAST Scan y Control de Bloqueo
+        run: |
+          echo "Ejecutando análisis de flujo de datos y control de severidad con Bearer sobre src/..."
+          set -o pipefail
+          bearer scan src \
+            --config-file bearer.yml \
+            --ignore-file bearer.ignore \
+            --fail-on-severity critical,high \
+            --no-color \
+            --hide-progress-bar | tee bearer-report.txt
+
+      - name: Generar Reporte SARIF
+        if: always()
+        run: |
+          bearer scan src \
+            --config-file bearer.yml \
+            --ignore-file bearer.ignore \
+            --format sarif \
+            --output bearer.sarif \
+            --exit-code 0 \
+            --hide-progress-bar || true
+
+      - name: Subir reporte Bearer como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bearer-report
+          path: |
+            bearer-report.txt
+            bearer.sarif
+          retention-days: 14
+
+

@@ -36,12 +36,21 @@ _MARGEN_BITACORA = timedelta(hours=1)
 
 @dataclass
 class ResultadoReconciliacion:
+    """Resumen de una corrida: rango revisado y registros RF-46 sin bitácora
+    encontrados.
+    """
     turno_adquirido: bool
     ventana_revisada: bool = False
     inconsistencias: list[RegistroRf46] = field(default_factory=list)
 
 
 class ReconciliarBitacoraHistorialUseCase:
+    """Job diario: busca filas del historial RF-46 que no tienen su entrada en la bitácora RF-52.
+
+    Revisa solo lo nuevo desde la última marca, toma un candado para que una sola
+    réplica corra a la vez y registra cada inconsistencia como evento CRITICAL.
+    Lo lanza ``main.py`` (no tiene endpoint).
+    """
 
     def __init__(
         self,

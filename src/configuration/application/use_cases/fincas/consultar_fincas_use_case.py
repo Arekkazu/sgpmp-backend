@@ -9,6 +9,7 @@ from src.shared.errors import AuthorizationError, NotFoundError
 
 
 class ConsultarFincasUseCase:
+    """Lista u obtiene fincas; fuera del alcance del usuario responde 403."""
 
     def __init__(self, finca_repo: FincaRepository) -> None:
         self.finca_repo = finca_repo

@@ -61,7 +61,7 @@ import requests
 
 BASE_URL = os.environ.get(
     "BASE_URL",
-    "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "https://api.inmero.co/back-sigab-test",
 )
 DB_HOST = os.environ.get("DB_HOST", "158.69.200.27")
 DB_PORT = os.environ.get("DB_PORT", "5448")

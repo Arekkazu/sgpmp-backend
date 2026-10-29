@@ -6,6 +6,7 @@ from typing import Optional
 
 
 class AuditoriaCalibracionRepository(ABC):
+    """Contrato de la auditoría inmutable de calibraciones."""
 
     @abstractmethod
     def registrar(
@@ -17,4 +18,7 @@ class AuditoriaCalibracionRepository(ABC):
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la calibración con los
+        valores antes/después.
+        """
         ...

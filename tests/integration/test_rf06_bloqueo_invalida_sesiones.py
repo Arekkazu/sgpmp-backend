@@ -56,7 +56,11 @@ def test_bloqueo_por_intentos_fallidos_revoca_la_sesion_ya_abierta(
     # El JWT que ya tenia la victima deja de servir.
     revocado = client.get("/usuarios/me", headers=jwt_victima)
     assert revocado.status_code == 401, revocado.text
-    assert revocado.json()["error_code"] == "TOKEN_REVOCADO"
+    # RF-06: el usuario ve que la sesión terminó por el cambio de estado.
+    assert revocado.json()["error_code"] == "SESION_FINALIZADA_CAMBIO_ESTADO"
+    assert revocado.json()["message"] == (
+        "Su sesión ha sido finalizada debido a un cambio en el estado de su cuenta."
+    )
 
     # Y en base el token quedo marcado como usado, no solo la sesion inactiva.
     fila = db_session.execute(
@@ -101,7 +105,11 @@ def test_el_trigger_revoca_tokens_ante_un_cambio_de_estado_por_sql_directo(
 
     revocado = client.get("/usuarios/me", headers=headers)
     assert revocado.status_code == 401, revocado.text
-    assert revocado.json()["error_code"] == "TOKEN_REVOCADO"
+    # RF-06: el usuario ve que la sesión terminó por el cambio de estado.
+    assert revocado.json()["error_code"] == "SESION_FINALIZADA_CAMBIO_ESTADO"
+    assert revocado.json()["message"] == (
+        "Su sesión ha sido finalizada debido a un cambio en el estado de su cuenta."
+    )
 
 
 def test_activar_una_cuenta_no_revoca_la_sesion_del_propio_usuario(

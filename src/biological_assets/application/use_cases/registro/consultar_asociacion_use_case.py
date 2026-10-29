@@ -1,3 +1,8 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+"""Caso de uso: consulta de la infraestructura del activo (RF-34)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -34,6 +39,12 @@ def _detectar_solapamiento(historial: list[HistorialInfraestructura]) -> Optiona
 
 
 class ConsultarAsociacionUseCase:
+    """Devuelve la asociación vigente, la vigente en una fecha pasada o el historial completo.
+
+    ``tipo_consulta`` elige el modo. Añade los sensores activos de la
+    infraestructura y advierte si detecta periodos solapados o una asociación
+    vigente hacia una infraestructura inactiva.
+    """
 
     def __init__(
         self,
@@ -83,6 +94,7 @@ class ConsultarAsociacionUseCase:
         asociacion_activa: Optional[HistorialInfraestructura] = None
         historial_resultado: Optional[list[HistorialInfraestructura]] = None
         sensores = []
+        capacidad_maxima: Optional[int] = None
 
         if tipo_consulta == 'ACTIVA':
             if fecha_referencia is not None:
@@ -106,6 +118,11 @@ class ConsultarAsociacionUseCase:
 
             if self.infra_port:
                 sensores = self.infra_port.listar_sensores_activos(asociacion_activa.id_infraestructura)
+                # RFC-012 (H-12.2): capacidad derivada del área. Solo para la vigente de hoy:
+                # la de una fecha pasada no se reconstruye (depende de las especies de entonces).
+                if fecha_referencia is None:
+                    infra = self.infra_port.obtener_activa(asociacion_activa.id_infraestructura)
+                    capacidad_maxima = infra.capacidad_maxima if infra is not None else None
         else:
             historial_resultado = historial_completo
 
@@ -128,4 +145,5 @@ class ConsultarAsociacionUseCase:
             historial=historial_resultado,
             sensores_en_infraestructura=sensores,
             advertencia_integridad=advertencia_integridad,
+            capacidad_maxima=capacidad_maxima,
         )

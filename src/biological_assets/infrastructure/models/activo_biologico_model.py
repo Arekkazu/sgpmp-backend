@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.activos_biologicos``: cabecera común de todo activo
+(individual o lote).
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime

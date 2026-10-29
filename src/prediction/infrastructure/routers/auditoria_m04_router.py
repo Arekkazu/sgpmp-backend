@@ -1,3 +1,9 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
+# | 2026-10-26 | Arekkazu | INC-M04 G089/G092 RF-73: 422 en parámetros inválidos y filtro correlacion_id |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -7,16 +13,16 @@ RF-73 CU-09 Dev scope:
 
 Autorización RBAC:
   recurso auditoria_m04 = id_recurso 46
-  R=2 (Admin), E=5 (Admin)
+  R=2 (Administrador; Veterinario desde DB-08, DEV-37: RF-73 actores), E=5 (Administrador)
 """
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -27,10 +33,24 @@ from src.prediction.infrastructure.schema.evento_auditoria_m04_schema import Aud
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/prediccion/auditoria", tags=["Predicción M04 - Auditoría RF-73"])
 
 _RECURSO = 46  # modulo1.recursos: 'auditoria_m04'
+
+
+def _con_nombre_usuario(db: Session, eventos: list[EventoAuditoriaM04Response]) -> list[EventoAuditoriaM04Response]:
+    """T-18: nombre de quien hizo cada evento, una consulta por página."""
+    ids = list({e.id_usuario for e in eventos if e.id_usuario is not None})
+    if ids:
+        nombres = dict(db.execute(text(
+            "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+            "WHERE id_usuario = ANY(:ids)"
+        ), {"ids": ids}).all())
+        for evento in eventos:
+            evento.nombre_usuario = nombres.get(evento.id_usuario)
+    return eventos
 
 
 @router.get(
@@ -41,17 +61,23 @@ _RECURSO = 46  # modulo1.recursos: 'auditoria_m04'
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        422: {"model": ErrorResponse, "description": "Parámetros inválidos (p. ej. por_pagina fuera de 1–200)"},
     },
+    # INC-M04-208-G089: el contrato publica 422 para parámetros inválidos; el runtime lo cumple.
+    openapi_extra={"x-codigo-validacion": 422},
     summary="Listar bitácora de auditoría M04 con filtros (RF-73)",
 )
 def listar_auditoria(
     tipo_evento: Optional[str] = Query(default=None, description="Filtrar por tipo de evento"),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None, description="Filtrar por id de usuario actor"),
     id_sistema: Optional[str] = Query(default=None, description="Filtrar por sistema actor"),
     id_referencia: Optional[str] = Query(default=None, description="Filtrar por id de entidad referenciada"),
     severidad_evento: Optional[str] = Query(default=None, description="INFO | WARNING | ERROR | CRITICAL"),
+    correlacion_id: Optional[uuid.UUID] = Query(
+        default=None, description="Cadena completa de un flujo (paquete → inferencia → alerta → retroalimentación)"
+    ),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -69,6 +95,7 @@ def listar_auditoria(
         id_sistema=id_sistema,
         id_referencia=id_referencia,
         severidad_evento=severidad_evento,
+        correlacion_id=correlacion_id,
         pagina=pagina,
         por_pagina=por_pagina,
         id_usuario_consultor=usuario_actual.id_usuario,
@@ -77,7 +104,7 @@ def listar_auditoria(
         total=total,
         pagina=pagina,
         por_pagina=por_pagina,
-        items=[EventoAuditoriaM04Response.model_validate(e) for e in items],
+        items=_con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(e) for e in items]),
     )
 
 
@@ -93,8 +120,8 @@ def listar_auditoria(
 )
 def exportar_auditoria(
     tipo_evento: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None),
     id_sistema: Optional[str] = Query(default=None),
     id_referencia: Optional[str] = Query(default=None),
@@ -147,4 +174,4 @@ def obtener_evento(
         repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.obtener_por_id(id_evento, id_usuario_consultor=usuario_actual.id_usuario)
-    return EventoAuditoriaM04Response.model_validate(entidad)
+    return _con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(entidad)])[0]

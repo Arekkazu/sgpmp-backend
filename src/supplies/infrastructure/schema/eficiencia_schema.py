@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74: mensaje de la causa (E2-E6)        |
 """Schemas de respuesta del CU-02 — Eficiencia Alimenticia (ICA, RF-74)."""
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ class ResultadoICAResponse(BaseModel):
     clasificacion_ca: Optional[str]
     data_quality_score: int
     causa_no_calculo: Optional[str]
+    mensaje: Optional[str] = None
     tipo_calculo: str
     id_usuario: Optional[int]
     fecha_calculo: Optional[datetime.datetime]
@@ -51,6 +55,7 @@ class ResultadoICAResponse(BaseModel):
             clasificacion_ca=r.clasificacion_ca.value if r.clasificacion_ca else None,
             data_quality_score=r.data_quality_score,
             causa_no_calculo=r.causa_no_calculo.value if r.causa_no_calculo else None,
+            mensaje=r.mensaje,
             tipo_calculo=r.tipo_calculo.value,
             id_usuario=r.id_usuario,
             fecha_calculo=r.fecha_calculo,

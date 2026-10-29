@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="6.071" timestamp="2026-10-07T10:26:19.412078-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G143.test_tc_m09_292_local" name="test_compuerta_previa_al_laboratorio_local" time="5.850"><failure message="AssertionError: TC-M09-292 queda BLOQUEADO / NO VERIFICABLE.&#10;  El artefacto de la rama no implementa la publicación VISION: faltan operacion_vision, modo_calibracion, fuente_observaciones_vision, calculo_de_linea_base, persistencia_de_linea_base, auditoria_de_publicacion_vision. Sin publicación VISION no puede producirse L1, no puede construirse W2, no puede identificarse la auditoría obligatoria cuya falla debería revertir la línea base y, por tanto, el fault injection no tiene objeto legítimo. Los eslabones del oráculo (L1 vigente, INSERT antes/durante/después, respuesta de trazabilidad, ausencia de L2) son inalcanzables, no incumplidos.&#10;  Piezas presentes: 0/6&#10;  Tabla de auditoría VISION objetivo: no identificada.&#10;assert (False)">def test_compuerta_previa_al_laboratorio_local():
+        raiz = repo_root()
+    
+        # -------------------------------------------- §28: piezas esenciales del artefacto
+        piezas = {
+            "operacion_vision": rf"(?&lt;!{BORDE})VISION(?!{BORDE})",
+            "modo_calibracion": r"modo_calibracion",
+            "fuente_observaciones_vision": r"vector_comportamiento|ventana_observacion|observacion_vision",
+            "calculo_de_linea_base": r"winsoriz|percentil|p95|refinamiento|convergencia|mediana_iterativa",
+            "persistencia_de_linea_base": r"linea[_ ]?base|lineas_base",
+            # 'VISION' debe exigirse como palabra también aquí: un patrón laxo como `auditoria.*vision`
+            # casa con `EventoAuditoriaSuministro(... PROVISION_INCREMENTAL_ENTREGADA ...)`, que es la
+            # auditoría de suministros NIC-41 y no acredita nada de VISION.
+            "auditoria_de_publicacion_vision":
+                rf"(auditor\w*.*(?&lt;!{BORDE})VISION(?!{BORDE})"
+                rf"|(?&lt;!{BORDE})VISION(?!{BORDE}).*auditor\w*"
+                rf"|publicacion_linea_base)",
+            # Esta pieza es infraestructura GENÉRICA de transacción, no específica de VISION: el
+            # artefacto sí tiene rollback y transacciones, y se cuenta como presente porque lo está.
+            # No implica que exista una transacción de publicación VISION que se pueda revertir.
+            "transaccion_rollback_generica": r"rollback|begin_nested|transaction\(",
+        }
+        hallazgos = {n: buscar(p) for n, p in piezas.items()}
+        presentes = {n: bool(v) for n, v in hallazgos.items()}
+        # `transaccion_rollback_generica` no es una pieza VISION: cuenta como contexto, no como
+        # evidencia de ejecutabilidad. Si se dejara en el denominador, un artefacto sin VISION pero con
+        # transacciones parecería estar más cerca de ser ejecutable de lo que está.
+        piezas_vision = {n: v for n, v in presentes.items() if n != "transaccion_rollback_generica"}
+    
+        # -------------------------------------------- falsos positivos, documentados en lugar de ocultos
+        falsos = {
+            "camara_vision_y_sus_atributos": buscar(r"CAMARA_VISION|ATRIBUTOS_VISION|_atributos_vision",
+                                                    filtrar=False),
+            "auditorias_visuales_rf26_identidad_visual": buscar(
+                r"auditorias_visuales|AuditoriaIdentidadVisual", filtrar=False),
+            "linea_base_de_integridad_rf10": buscar(r"integridad_baseline|linea[_ ]?base de integridad",
+                                                    filtrar=False),
+        }
+    
+        # -------------------------------------------- §31/§32: identificar la auditoría REAL de VISION
+        tablas = tablas_declaradas()
+        candidatas_auditoria = [t for t in tablas if "auditor" in t or "eventos" in t or "bitacora" in t]
+        examen = {}
+        for t in ("calibraciones", "auditorias_calibraciones", "auditorias_visuales"):
+            det = columnas_de(t)
+            if not det:
+                continue
+            cols = det["columnas"]
+            examen[t] = {
+                "archivo": det["archivo"],
+                "columnas": sorted(cols),
+                "id_sensor_nullable": cols.get("id_sensor", {}).get("nullable"),
+                "id_usuario_nullable": cols.get("id_usuario", {}).get("nullable"),
+                "tiene_area_o_especie": any(k in cols for k in
+                                            ("id_infraestructura", "id_area", "id_especie")),
+                "tiene_vigencia": any("vigen" in k for k in cols),
+                "tiene_origen_disparo": any("origen" in k for k in cols),
+            }
+    
+        objetivo = {
+            "schema": None,
+            "table": None,
+            "reason": ("No identificable. La publicación VISION no existe en el artefacto, de modo que "
+                       "no hay una escritura que el proceso considere obligatoria para garantizar "
+                       "trazabilidad. Ninguna de las superficies existentes sirve de sustituto: "
+                       "modulo9.calibraciones es de SENSOR (id_sensor e id_usuario NOT NULL, sin área, "
+                       "especie, vigencia ni origen de disparo), modulo9.auditorias_calibraciones "
+                       "depende de un id_calibracion de sensor con id_usuario NOT NULL, "
+                       "modulo9.auditorias_visuales es la identidad visual de RF-26 y "
+                       "modulo1.integridad_baseline es el baseline de RF-10. Revocar INSERT sobre "
+                       "cualquiera de ellas sería revocar una tabla al azar y el resultado no "
+                       "demostraría nada sobre VISION."),
+            "control_positivo_posible": False,
+            "nota_control_positivo": ("§31 exige una publicación VISION positiva de control para "
+                                     "correlacionar escrituras antes de elegir la tabla. Sin operación "
+                                     "VISION esa publicación de control no puede ejecutarse, así que la "
+                                     "tabla objetivo no puede derivarse empíricamente."),
+            "candidatas_descartadas": candidatas_auditoria,
+            "examen_de_superficies": examen,
+        }
+    
+        ejecutable = all(piezas_vision.values())
+        identificable = bool(objetivo["table"])
+    
+        ev = {
+            "grupo": GRUPO, "caso": CASO, "requisito": RF,
+            "ambiente": "LOCAL_AISLADO", "prueba_local": True, "run_id": RUN_ID,
+            "fecha": datetime.now(timezone.utc).isoformat(),
+            "git": {
+                "rama": git("branch", "--show-current"),
+                "status_short": git("status", "--short"),
+                "diff_stat": git("diff", "--stat"),
+                "diff_cached_stat": git("diff", "--cached", "--stat"),
+                "head": git("rev-parse", "HEAD"),
+                "origin_test": git("rev-parse", "origin/test"),
+                "divergencia": git("rev-list", "--left-right", "--count", "HEAD...origin/test"),
+            },
+            "lab_guard": {
+                "levantado": False,
+                "nombres_reservados": LAB,
+                "reutiliza_bd_desarrollo": False,
+                "reutiliza_laboratorio_g79": False,
+                "reutiliza_laboratorio_g136": False,
+                "motivo": ("No se construye un laboratorio para una función inexistente y no se "
+                           "mockea VISION para volverla ejecutable (§28). No se creó compose, base, "
+                           "migraciones, roles ni semillas."),
+            },
+            "artefacto_evaluado": {"repositorio": raiz.name, "carpetas": ["src", "alembic"]},
+            "compuerta_previa": {
+                "piezas_requeridas": piezas_vision,
+                "lineas_por_pieza": hallazgos,
+                "cumplidas": sum(1 for v in piezas_vision.values() if v),
+                "total": len(piezas_vision),
+                "contexto_no_computado": {
+                    "transaccion_rollback_generica": presentes["transaccion_rollback_generica"],
+                    "coincidencias": len(hallazgos["transaccion_rollback_generica"]),
+                    "nota": ("El artefacto sí tiene transacciones y rollback, pero son genéricos. No "
+                             "se cuentan como pieza VISION: tener rollback no acerca el caso a ser "
+                             "ejecutable si no hay una publicación VISION que revertir."),
+                },
+            },
+            "falsos_positivos_descartados": {
+                "coincidencias": falsos,
+                "nota": ("Las 7 apariciones de VISION como palabra en el artefacto son CAMARA_VISION y "
+                         "ATRIBUTOS_VISION: el tipo de dispositivo cámara y sus atributos. "
+                         "auditorias_visuales es identidad visual de RF-26. Ninguna acredita una "
+                         "operación de calibración por visión."),
+            },
+            "audit_target": objetivo,
+            "privileges": {
+                "insert_before": None, "insert_during": None, "insert_restored": None,
+                "nota": ("No se ejecutó ningún REVOKE ni GRANT: sin tabla objetivo identificada, "
+                         "revocar sería arbitrario y el laboratorio quedaría inválido (§32)."),
+            },
+            "roles_postgres": {"owner": None, "app_user": None,
+                               "nota": "No se crearon: el laboratorio no se levantó."},
+            "L1": None, "W2": None, "request": None, "response": None,
+            "audit_failure": None, "baseline_post": None,
+            "presupuesto": {"postVisionSetupPlanificados": 1, "postVisionObjetivoPlanificados": 1,
+                            "postVisionEjecutados": 0, "revokes_ejecutados": 0},
+            "seguridad": {"limpio": True,
+                          "criterio": ("La compuerta solo lee archivos del repositorio. No hay "
+                                       "connection string, password ni token en la evidencia.")},
+        }
+    
+        faltantes = [n for n, v in piezas_vision.items() if not v]
+        ev["resultado"] = "APROBADO" if (ejecutable and identificable) else "BLOQUEADO / NO VERIFICABLE"
+        ev["motivo"] = None if (ejecutable and identificable) else (
+            "El artefacto de la rama no implementa la publicación VISION: faltan "
+            + ", ".join(faltantes)
+            + ". Sin publicación VISION no puede producirse L1, no puede construirse W2, no puede "
+              "identificarse la auditoría obligatoria cuya falla debería revertir la línea base y, por "
+              "tanto, el fault injection no tiene objeto legítimo. Los eslabones del oráculo (L1 "
+              "vigente, INSERT antes/durante/después, respuesta de trazabilidad, ausencia de L2) son "
+              "inalcanzables, no incumplidos."
+        )
+    
+        (OUT_DIR / "evidencia.json").write_text(
+            json.dumps(ev, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    
+&gt;       assert ejecutable and identificable, (
+            "TC-M09-292 queda BLOQUEADO / NO VERIFICABLE.\n" + ev["motivo"] +
+            f"\nPiezas presentes: {ev['compuerta_previa']['cumplidas']}"
+            f"/{ev['compuerta_previa']['total']}"
+            f"\nTabla de auditoría VISION objetivo: no identificada."
+        )
+E       AssertionError: TC-M09-292 queda BLOQUEADO / NO VERIFICABLE.
+E         El artefacto de la rama no implementa la publicación VISION: faltan operacion_vision, modo_calibracion, fuente_observaciones_vision, calculo_de_linea_base, persistencia_de_linea_base, auditoria_de_publicacion_vision. Sin publicación VISION no puede producirse L1, no puede construirse W2, no puede identificarse la auditoría obligatoria cuya falla debería revertir la línea base y, por tanto, el fault injection no tiene objeto legítimo. Los eslabones del oráculo (L1 vigente, INSERT antes/durante/después, respuesta de trazabilidad, ausencia de L2) son inalcanzables, no incumplidos.
+E         Piezas presentes: 0/6
+E         Tabla de auditoría VISION objetivo: no identificada.
+E       assert (False)
+
+test_tc_m09_292_local.py:314: AssertionError</failure></testcase></testsuite></testsuites>

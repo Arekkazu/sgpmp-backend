@@ -14,6 +14,9 @@ TIPO_CAMBIO_IDIOMA_PERSONAL = 27
 
 
 class GuardarIdiomaPersonalUseCase:
+    """Guarda el idioma preferido del usuario; si el perfil cambió desde la última
+    lectura responde 409.
+    """
 
     def __init__(
         self, db: Session, idioma_repo: PreferenciaIdiomaRepository, eventos_repo: EventoRepository

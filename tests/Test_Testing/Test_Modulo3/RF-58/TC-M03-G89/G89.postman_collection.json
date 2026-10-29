@@ -1,0 +1,21 @@
+{
+  "info": {"name": "G89 RF-58 dashboard", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": [
+    "if (pm.environment.get('qa_autorizado') !== 'SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+    "pm.request.headers.upsert({key:'Authorization', value:'Bearer ' + pm.environment.get('token_productor')});",
+    "pm.request.headers.upsert({key:'X-Test-Run-Id', value:pm.environment.get('run_id')});",
+    "pm.request.headers.upsert({key:'X-Sandbox-Secret', value:pm.environment.get('sandbox_secret')});"
+  ]}}],
+  "item": [{"name": "Dashboard G89", "request": {"method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{area_id}}&por_pagina=50"},
+    "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+      "const caso = pm.environment.get('caso'); const id = pm.environment.get('check_id');",
+      "pm.test('['+caso+'][ASSERT]['+id+'] Dashboard HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+      "pm.test('['+caso+'][PRE]['+id+'-RUN] Eco RUN', () => pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+      "if (pm.response.code === 200) {",
+      "  const sensores = pm.response.json().sensores || [];",
+      "  const sensor = sensores.find(s => String(s.id_sensor) === pm.environment.get('sensor_id'));",
+      "  pm.test('['+caso+'][ASSERT]['+id+'-ESTADO] Semáforo esperado', () => { pm.expect(sensor).to.be.an('object'); pm.expect(sensor.estado_semaforo).to.eql(pm.environment.get('esperado_estado')); });",
+      "  if (pm.environment.get('esperado_alerta')) pm.test('['+caso+'][ASSERT]['+id+'-ALERTA] id_alerta asociado', () => pm.expect(String(sensor && sensor.id_alerta)).to.eql(pm.environment.get('esperado_alerta')));",
+      "}"
+    ]}}] }]
+}

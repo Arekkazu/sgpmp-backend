@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
@@ -17,6 +18,8 @@ class MetricaProduccionResponse(BaseModel):
     aplica_a_tipo_activo: str
     tipo_dato: str
     es_obligatorio: bool
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
     id_especie: Optional[int]
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
@@ -53,5 +56,20 @@ class MetricaProduccionResponse(BaseModel):
 
 
 class MetricasPorEspecieResponse(BaseModel):
+    """Métricas de producción de una especie."""
     total: int
     items: list[MetricaProduccionResponse]
+
+
+class CicloMetricaResponse(BaseModel):
+    """Ciclo productivo de la especie y si la métrica es producto en él (RF-43 E-04)."""
+    id_ciclo_productivo: int
+    nombre: str
+    habilitada: bool
+
+    model_config = {"from_attributes": True}
+
+
+class CiclosMetricaResponse(BaseModel):
+    id_metrica_produccion: int
+    items: list[CicloMetricaResponse]

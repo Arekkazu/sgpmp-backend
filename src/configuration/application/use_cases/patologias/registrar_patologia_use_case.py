@@ -19,6 +19,9 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class RegistrarPatologiaUseCase:
+    """Registra una patología para una especie activa; el nombre es único por especie
+    (409).
+    """
 
     def __init__(
         self,

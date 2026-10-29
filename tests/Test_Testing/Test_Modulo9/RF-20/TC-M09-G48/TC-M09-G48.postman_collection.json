@@ -1,19 +1,34 @@
 {
   "info": {
     "name": "RF-20 - TC-M09-G48 Registro exitoso de area productiva (camino feliz)",
-    "description": "Automatiza TC-M09-96: registra una finca activa y luego un area productiva valida asociada a ella (nombre valido, tipo_area permitido, superficie positiva), y confirma que la respuesta refleja exactamente esos datos y la asociacion con la finca (creacion validada por API).",
+    "description": "RF-20 v1.1 (RFC-009). Registra una finca activa y una especie activa con tipo_modelo = MODELO_AVES, y luego: TC-M09-96 registra un area con especie_id y tipo_modelo_asignado coherente con la especie; TC-M09-256 registra un area con el mismo payload pero sin tipo_modelo_asignado (campo opcional) y confirma que queda nulo. Cada registro se confirma con una relectura independiente.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
     { "key": "token_admin", "value": "" },
+    { "key": "sufijo_unico", "value": "" },
     { "key": "id_finca", "value": "" },
-    { "key": "id_infraestructura", "value": "" }
+    { "key": "id_especie", "value": "" },
+    { "key": "id_area_con_modelo", "value": "" },
+    { "key": "id_area_sin_modelo", "value": "" }
   ],
   "item": [
     {
       "name": "Paso 1 - Login Administrador",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -39,20 +54,8 @@
       "response": []
     },
     {
-      "name": "Paso 2 - Registrar finca activa para asociar el area",
+      "name": "Paso 2 - Registrar finca activa para asociar las areas",
       "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
-              "let sufijo = '';",
-              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
-              "pm.collectionVariables.set('sufijo_unico', sufijo);"
-            ]
-          }
-        },
         {
           "listen": "test",
           "script": {
@@ -82,7 +85,41 @@
       "response": []
     },
     {
-      "name": "TC-M09-96 - Registrar area productiva valida asociada a la finca (camino feliz)",
+      "name": "Paso 3 - Registrar especie activa con tipo_modelo MODELO_AVES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie nace activa con tipo_modelo MODELO_AVES', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "    pm.expect(json.tipo_modelo).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_especie', json.id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves Prueba {{sufijo_unico}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G48\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/especies", "host": ["{{base_url}}"], "path": ["configuracion", "especies"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-96 - Registrar area con especie activa y tipo_modelo_asignado coherente",
       "event": [
         {
           "listen": "test",
@@ -97,23 +134,25 @@
               "pm.test('id_infraestructura generado', function () {",
               "    pm.expect(json.id_infraestructura).to.be.a('number');",
               "});",
-              "pm.test('nombre_infraestructura almacenado tal cual', function () {",
+              "pm.test('nombre, tipo_area y superficie almacenados tal cual', function () {",
               "    pm.expect(json.nombre_infraestructura).to.eql('Galpon Principal ' + pm.collectionVariables.get('sufijo_unico'));",
-              "});",
-              "pm.test('tipo_area almacenado tal cual', function () {",
-              "    pm.expect(json.tipo_area).to.eql('galpon');",
-              "});",
-              "pm.test('superficie positiva almacenada correctamente', function () {",
+              "    pm.expect(json.tipo_area).to.eql('Galpón');",
               "    pm.expect(parseFloat(json.superficie)).to.eql(2500);",
               "});",
               "pm.test('queda asociada a la finca correcta', function () {",
               "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
               "});",
+              "pm.test('queda asociada a la especie enviada', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie'));",
+              "});",
+              "pm.test('tipo_modelo_asignado = MODELO_AVES', function () {",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});",
               "pm.test('el area queda activa por defecto', function () {",
               "    pm.expect(json.es_activo).to.eql(true);",
               "});",
               "",
-              "pm.collectionVariables.set('id_infraestructura', json.id_infraestructura);"
+              "pm.collectionVariables.set('id_area_con_modelo', json.id_infraestructura);"
             ]
           }
         }
@@ -126,7 +165,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Principal {{sufijo_unico}}\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\"\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Principal {{sufijo_unico}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\",\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -134,7 +173,7 @@
       "response": []
     },
     {
-      "name": "Paso 4 - Confirmar almacenamiento con una relectura independiente",
+      "name": "TC-M09-96 - Relectura independiente del area con modelo",
       "event": [
         {
           "listen": "test",
@@ -143,9 +182,11 @@
             "exec": [
               "pm.test('Detalle de area disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "pm.test('Los datos y la asociacion a la finca persisten identicos tras un GET independiente', function () {",
-              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_infraestructura'));",
+              "pm.test('Finca, especie y modelo persisten identicos tras un GET independiente', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_area_con_modelo'));",
               "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
               "    pm.expect(parseFloat(json.superficie)).to.eql(2500);",
               "    pm.expect(json.es_activo).to.eql(true);",
               "});"
@@ -157,9 +198,88 @@
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_modelo}}",
           "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+          "path": ["configuracion", "infraestructuras", "{{id_area_con_modelo}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-256 - Registrar area omitiendo tipo_modelo_asignado (opcional)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada sin modelo (201)', function () { pm.response.to.have.status(201); });",
+              "",
+              "const json = pm.response.json();",
+              "console.log('Respuesta completa: ' + JSON.stringify(json));",
+              "",
+              "pm.test('id_infraestructura generado y distinto al del 96', function () {",
+              "    pm.expect(json.id_infraestructura).to.be.a('number');",
+              "    pm.expect(json.id_infraestructura).to.not.eql(pm.collectionVariables.get('id_area_con_modelo'));",
+              "});",
+              "pm.test('queda asociada a la finca y a la especie enviadas', function () {",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie'));",
+              "});",
+              "pm.test('tipo_modelo_asignado queda nulo', function () {",
+              "    pm.expect(json.tipo_modelo_asignado).to.be.null;",
+              "});",
+              "pm.test('el area queda activa por defecto', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});",
+              "",
+              "pm.collectionVariables.set('id_area_sin_modelo', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Sin Modelo {{sufijo_unico}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\",\n  \"especie_id\": {{id_especie}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-256 - Relectura independiente del area sin modelo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle de area disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('El area persiste con especie y sin modelo asignado', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_area_sin_modelo'));",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.be.null;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_modelo}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_sin_modelo}}"]
         }
       },
       "response": []

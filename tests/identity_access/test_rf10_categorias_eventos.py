@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: el tipo 31 CAMBIO_VARIABLE_CRITICA es MODIFICACION |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: el tipo 32 NOTIFICACION_ALERTA es MODIFICACION |
+# | 2026-10-23 | Arekkazu | M05: los tipos 33-38 son MODIFICACION |
 """Pruebas de regresión para las categorías de auditoría de RF-10."""
 from __future__ import annotations
 
@@ -28,7 +33,13 @@ TIPOS_POR_CATEGORIA = {
     # propia del usuario, misma clasificación que ACTUALIZACION_PERFIL (9).
     # 28 = INCONSISTENCIA_AUDITORIA_M02 (RF-52 E5): alerta de un proceso
     # automático sobre auditoría, misma clasificación que el 25.
-    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28),
+    # 29 = CALIBRACION_RECHAZADA (RF-24 v1.1, RFC-006): intento rechazado de
+    # modificar la calibración de un sensor de M09.
+    # 30 = CALIBRACION_EXITOSA (RF-24/RF-10): cambio de configuración técnica.
+    # 31 = CAMBIO_VARIABLE_CRITICA (RFC-016 B.7): cambio de configuración del catálogo.
+    # 32 = NOTIFICACION_ALERTA (RF-57, DEV-32): notificación de una alerta.
+    # 33-38 = notificaciones internas de M05 (reportes, historial, provisión, ICA).
+    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30, 31, 32, *range(33, 39)),
     EventoCategoria.CONSULTA: (*range(16, 20), 26),
 }
 
@@ -101,7 +112,7 @@ def test_catalogo_cubre_todos_los_tipos_actuales_sin_duplicados() -> None:
         for tipo in tipos_categoria
     ]
 
-    assert sorted(tipos) == list(range(1, 29))
+    assert sorted(tipos) == list(range(1, 39))
     assert len(tipos) == len(set(tipos))
 
 
@@ -118,6 +129,7 @@ def test_tipo_sin_categoria_no_usa_un_valor_por_defecto() -> None:
         (17, EventoCategoria.CONSULTA),
         (20, EventoCategoria.AUTENTICACION),
         (24, EventoCategoria.AUTENTICACION),
+        (30, EventoCategoria.MODIFICACION),
     ],
 )
 def test_repositorio_guarda_la_categoria_real(

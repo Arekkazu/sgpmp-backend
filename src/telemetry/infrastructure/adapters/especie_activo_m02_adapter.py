@@ -9,8 +9,8 @@ from src.telemetry.domain.repositories.especie_activo_port import EspecieActivoP
 class EspecieActivoM02Adapter(EspecieActivoPort):
     """Lee `modulo2.activos_biologicos.id_especie` para un activo ya vinculado a una lectura.
 
-    No resuelve *qué* activo corresponde a un sensor/dispositivo (eso sigue siendo
-    ActivoBiologicoDependencyPort, hoy stub) — solo consulta la especie de un
+    No resuelve *qué* activo corresponde a un sensor/dispositivo (eso es
+    ActivoBiologicoDependencyPort) — solo consulta la especie de un
     `id_activo_biologico` que la vinculación (automática o manual) ya identificó.
     """
 

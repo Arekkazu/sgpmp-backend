@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -21,6 +24,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             tipo_modelo=orm.tipo_modelo,
             umbral_riesgo_alto=orm.umbral_riesgo_alto,
             umbral_alerta_critica=orm.umbral_alerta_critica,
+            umbral_score_anomalia=orm.umbral_score_anomalia,
+            versiones_activas_por_componente=orm.versiones_activas_por_componente,
             ventana_temporal_min=orm.ventana_temporal_min,
             id_version_modelo_activa=orm.id_version_modelo_activa,
             modo_ejecucion=orm.modo_ejecucion,
@@ -38,12 +43,15 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_tipo(self, tipo_modelo: str) -> Optional[ConfiguracionMotorIA]:
-        orm = (
-            self._db.query(ConfiguracionMotorIAModel)
-            .filter(ConfiguracionMotorIAModel.tipo_modelo == tipo_modelo)
-            .first()
+    def obtener_por_tipo(self, tipo_modelo: str, *, bloquear: bool = False) -> Optional[ConfiguracionMotorIA]:
+        consulta = self._db.query(ConfiguracionMotorIAModel).filter(
+            ConfiguracionMotorIAModel.tipo_modelo == tipo_modelo
         )
+        if bloquear:
+            # RF-65 CA-9: la segunda edición espera al commit de la primera y
+            # lee la config_version nueva, así que no pisa el cambio.
+            consulta = consulta.with_for_update().populate_existing()
+        orm = consulta.first()
         return self._a_entidad(orm) if orm else None
 
     def listar(self) -> list[ConfiguracionMotorIA]:
@@ -60,6 +68,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
                 tipo_modelo=entidad.tipo_modelo,
                 umbral_riesgo_alto=entidad.umbral_riesgo_alto,
                 umbral_alerta_critica=entidad.umbral_alerta_critica,
+                umbral_score_anomalia=entidad.umbral_score_anomalia,
+                versiones_activas_por_componente=entidad.versiones_activas_por_componente,
                 ventana_temporal_min=entidad.ventana_temporal_min,
                 id_version_modelo_activa=entidad.id_version_modelo_activa,
                 modo_ejecucion=entidad.modo_ejecucion,
@@ -87,6 +97,8 @@ class SqlAlchemyConfiguracionMotorIARepository(ConfiguracionMotorIARepository):
             orm = self._db.get(ConfiguracionMotorIAModel, entidad.id_configuracion_motor)
             orm.umbral_riesgo_alto = entidad.umbral_riesgo_alto
             orm.umbral_alerta_critica = entidad.umbral_alerta_critica
+            orm.umbral_score_anomalia = entidad.umbral_score_anomalia
+            orm.versiones_activas_por_componente = entidad.versiones_activas_por_componente
             orm.ventana_temporal_min = entidad.ventana_temporal_min
             orm.id_version_modelo_activa = entidad.id_version_modelo_activa
             orm.modo_ejecucion = entidad.modo_ejecucion

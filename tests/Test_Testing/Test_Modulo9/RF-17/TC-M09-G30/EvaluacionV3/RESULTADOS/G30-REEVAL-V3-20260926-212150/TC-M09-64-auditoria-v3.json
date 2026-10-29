@@ -1,0 +1,341 @@
+{
+  "grupo": "TC-M09-G30",
+  "caso": "TC-M09-64",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V3",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G30-REEVAL-V3-20260926-212150",
+  "fecha": "2026-09-27T02:26:40.412Z",
+  "environment": "TEST",
+  "actor": {
+    "correo_electronico": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "nombre_rol": "Administrador",
+    "estado_cuenta": "Activo",
+    "permisosRecurso20": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "permisosRecurso6_D09": [
+      2
+    ]
+  },
+  "resource_id": 56,
+  "species": {
+    "id": 43,
+    "nombre": "Equina"
+  },
+  "variable": {
+    "id": 13,
+    "nombre": "Temperatura Corporal",
+    "unidad": "°C",
+    "fisico": [
+      "30",
+      "50"
+    ]
+  },
+  "create_timestamp": {
+    "t0": "2026-09-27T02:25:53.186Z",
+    "t1": "2026-09-27T02:25:56.896Z"
+  },
+  "create_status": 500,
+  "create_values": {
+    "id_especie": 43,
+    "id_variable_ambiental": 13,
+    "valor_min": "38.00",
+    "valor_max": "42.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "38.00",
+        "limite_superior": "39.33"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.33",
+        "limite_superior": "40.66"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "40.66",
+        "limite_superior": "42.00"
+      }
+    ]
+  },
+  "create_audit_event": {
+    "id_auditoria_umbral": 21,
+    "id_umbral_ambiental": 56,
+    "id_usuario": 104,
+    "tipo_operacion": "CREATE",
+    "valores_anteriores": null,
+    "valores_nuevos": {
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "38.00",
+          "limite_superior": "39.33"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "39.33",
+          "limite_superior": "40.66"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "40.66",
+          "limite_superior": "42.00"
+        }
+      ],
+      "es_activo": true,
+      "valor_max": "42.00",
+      "valor_min": "38.00",
+      "id_especie": 43,
+      "unidad_medida": "°C",
+      "fecha_actualizacion": null,
+      "id_umbral_ambiental": 56,
+      "id_variable_ambiental": 13
+    },
+    "fecha_gestion": "2026-09-27T02:25:55.930967Z"
+  },
+  "update_timestamp": {
+    "t0": "2026-09-27T02:26:24.963Z",
+    "t1": "2026-09-27T02:26:27.369Z"
+  },
+  "update_status": 500,
+  "before_values": {
+    "id_umbral_ambiental": 56,
+    "id_especie": 43,
+    "id_variable_ambiental": 13,
+    "unidad_medida": "°C",
+    "valor_min": "38.00",
+    "valor_max": "42.00",
+    "es_activo": true,
+    "fecha_actualizacion": null,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "38.00",
+        "limite_superior": "39.33"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.33",
+        "limite_superior": "40.66"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "40.66",
+        "limite_superior": "42.00"
+      }
+    ],
+    "estado_sincronizacion": "PENDIENTE",
+    "fecha_ultima_sincronizacion": null,
+    "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+  },
+  "after_values": {
+    "id_umbral_ambiental": 56,
+    "id_especie": 43,
+    "id_variable_ambiental": 13,
+    "unidad_medida": "°C",
+    "valor_min": "37.00",
+    "valor_max": "43.00",
+    "es_activo": true,
+    "fecha_actualizacion": "2026-09-27T02:26:26.338421Z",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "37.00",
+        "limite_superior": "39.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.00",
+        "limite_superior": "41.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "41.00",
+        "limite_superior": "43.00"
+      }
+    ],
+    "estado_sincronizacion": "PENDIENTE",
+    "fecha_ultima_sincronizacion": null,
+    "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+  },
+  "update_request": {
+    "valor_min": "37.00",
+    "valor_max": "43.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "37.00",
+        "limite_superior": "39.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.00",
+        "limite_superior": "41.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "41.00",
+        "limite_superior": "43.00"
+      }
+    ],
+    "fecha_actualizacion": null
+  },
+  "update_audit_event": {
+    "id_auditoria_umbral": 22,
+    "id_umbral_ambiental": 56,
+    "id_usuario": 104,
+    "tipo_operacion": "UPDATE",
+    "valores_anteriores": {
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "38.00",
+          "limite_superior": "39.33"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "39.33",
+          "limite_superior": "40.66"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "40.66",
+          "limite_superior": "42.00"
+        }
+      ],
+      "es_activo": true,
+      "valor_max": "42.00",
+      "valor_min": "38.00",
+      "id_especie": 43,
+      "unidad_medida": "°C",
+      "fecha_actualizacion": null,
+      "id_umbral_ambiental": 56,
+      "id_variable_ambiental": 13
+    },
+    "valores_nuevos": {
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": "37.00",
+          "limite_superior": "39.00"
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": "39.00",
+          "limite_superior": "41.00"
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": "41.00",
+          "limite_superior": "43.00"
+        }
+      ],
+      "es_activo": true,
+      "valor_max": "43.00",
+      "valor_min": "37.00",
+      "id_especie": 43,
+      "unidad_medida": "°C",
+      "fecha_actualizacion": "2026-09-27T02:26:26.338421+00:00",
+      "id_umbral_ambiental": 56,
+      "id_variable_ambiental": 13
+    },
+    "fecha_gestion": "2026-09-27T02:26:26.329269Z"
+  },
+  "audit_final": {
+    "total": 2,
+    "eventos": [
+      {
+        "id_auditoria_umbral": 22,
+        "tipo_operacion": "UPDATE",
+        "id_usuario": 104,
+        "fecha_gestion": "2026-09-27T02:26:26.329269Z"
+      },
+      {
+        "id_auditoria_umbral": 21,
+        "tipo_operacion": "CREATE",
+        "id_usuario": 104,
+        "fecha_gestion": "2026-09-27T02:25:55.930967Z"
+      }
+    ]
+  },
+  "oraculo": {
+    "endpoint": "GET /configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+    "nota": "GET /auditoria/ global NO forma parte del oraculo de TC-M09-64 y no se consulto en esta corrida."
+  },
+  "assertions": {
+    "create": {
+      "total": 6,
+      "pending": 0,
+      "failed": 5
+    },
+    "auditCreate": {
+      "total": 8,
+      "pending": 0,
+      "failed": 0
+    },
+    "update": {
+      "total": 5,
+      "pending": 0,
+      "failed": 3
+    },
+    "audit": {
+      "total": 11,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": {
+    "create": [
+      {
+        "test": "CREATE HTTP 201 segun contrato",
+        "message": "expected response to have status code 201 but got 500"
+      },
+      {
+        "test": "ID de umbral creado",
+        "message": "expected undefined to be a number"
+      },
+      {
+        "test": "Especie y variable del CREATE",
+        "message": "expected undefined to deeply equal 43"
+      },
+      {
+        "test": "Valores CREATE almacenados",
+        "message": "expected NaN to deeply equal 38"
+      },
+      {
+        "test": "Umbral creado persistido una vez con valores CREATE",
+        "message": "expected [] to have a length of 1 but got +0"
+      }
+    ],
+    "auditCreate": [],
+    "update": [
+      {
+        "test": "UPDATE HTTP 200 segun contrato",
+        "message": "expected response to have status code 200 but got 500"
+      },
+      {
+        "test": "UPDATE sobre el mismo ID",
+        "message": "expected undefined to deeply equal 56"
+      },
+      {
+        "test": "Valores UPDATE aplicados",
+        "message": "expected NaN to deeply equal 37"
+      }
+    ],
+    "audit": []
+  },
+  "escrituras": {
+    "create": 1,
+    "update": 1
+  },
+  "result": "NO_APROBADO"
+}

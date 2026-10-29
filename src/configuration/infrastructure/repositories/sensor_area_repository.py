@@ -10,6 +10,7 @@ from src.configuration.domain.repositories.sensor_area_repository import SensorA
 from src.configuration.domain.value_objects.punto_instalacion import PuntoInstalacion
 from src.configuration.infrastructure.models.sensor_area_model import SensorAreaModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemySensorAreaRepository(SensorAreaRepository):
@@ -24,7 +25,7 @@ class SqlAlchemySensorAreaRepository(SensorAreaRepository):
             id_sensor=orm.id_sensor,
             id_dispositivo_iot=orm.id_dispositivo_iot,
             id_infraestructura=orm.id_infraestructura,
-            punto_instalacion=PuntoInstalacion(orm.punto_instalacion),
+            punto_instalacion=rehidratar(PuntoInstalacion, orm.punto_instalacion),
             tiene_estado=orm.tiene_estado,
             fecha_asociacion=orm.fecha_asociacion,
             fecha_finalizacion=orm.fecha_finalizacion,

@@ -1,45 +1,308 @@
 {
   "info": {
-    "name": "RF-20 - TC-M09-G52 Reglas de desactivacion de area productiva (con y sin dependencias)",
-    "description": "Automatiza TC-M09-103 (area sin dependencias se desactiva correctamente) y TC-M09-104 (area con dependencias operativas activas -dispositivos IoT y/o activos biologicos- se rechaza con 422). DesactivarInfraestructuraUseCase no depende de modulo9.tipos_area (a diferencia de registrar/editar, ver TC-M09-G48/NOTA_BLOQUEO.md), asi que este caso NO esta bloqueado por ese gap. Usa infraestructuras reales del entorno de test: id=10 (Invernadero Norte, sin ninguna asociacion sensor-area vigente ni activos biologicos) e id=1 (Estanque-01, con dispositivos IoT y activos biologicos activos), en vez de construir la cadena completa desde cero -registrar un area nueva esta bloqueado por el gap de tipos_area-. NOTA (bug encontrado durante la seleccion de datos, ver TC-M09-G52-resultados.md): el primer candidato para 'sin dependencias' (id=6) parecia libre segun el chequeo de la aplicacion (InfraestructuraDependencyAdapter, que solo cuenta dispositivos con es_activo=true) pero SI tenia 3 asociaciones sensor-area vigentes a dispositivos inactivos; el trigger de BD trg_fn_infraestructura_no_desactivar_en_uso usa un criterio mas estricto (cualquier asociacion vigente, sin mirar si el dispositivo esta activo) y bloqueo la operacion con una excepcion no controlada -> 500 generico en vez del 422 INFRAESTRUCTURA_CON_DEPENDENCIAS que la app da para los otros casos de dependencia.",
+    "name": "RF-20 - TC-M09-G52 Desactivacion y reactivacion de areas productivas",
+    "description": "RF-20 v1.1 (RFC-009). TC-M09-103: un area propia sin dependencias se desactiva (200, es_activo false). TC-M09-104: un area con un lote de activos biologicos alojado (M02) rechaza la desactivacion con 422 INFRAESTRUCTURA_CON_DEPENDENCIAS y sigue activa. TC-M09-260: el Administrador reactiva el area del 103 (especie activa y modelo coherente, 200); y se registra, sin darlo por fallido, que pasa al reactivar un area cuya especie se desactivo en RF-15 despues de desactivar el area (pendiente de aclarar con Analisis). La coleccion crea su propia finca, especies, areas y lote; no toca areas compartidas de TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
-    { "key": "token_admin", "value": "" },
-    { "key": "id_area_sin_dependencias", "value": "10" },
-    { "key": "id_area_con_dependencias", "value": "1" }
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie_a",
+      "value": ""
+    },
+    {
+      "key": "id_especie_b",
+      "value": ""
+    },
+    {
+      "key": "id_area_sin_dep",
+      "value": ""
+    },
+    {
+      "key": "id_area_con_dep",
+      "value": ""
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "id_area_esp_b",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Paso 1 - Login Administrador",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo', sufijo);"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
-              "const json = pm.response.json();",
-              "pm.collectionVariables.set('token_admin', json.token);"
+              "pm.collectionVariables.set('token_admin', pm.response.json().token);"
             ]
           }
         }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
-          "options": { "raw": { "language": "json" } }
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
       },
       "response": []
     },
     {
-      "name": "Paso 2 - Confirmar estado 'antes' del area sin dependencias",
+      "name": "Paso 2 - Registrar finca activa propia",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Activacion Areas {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Registrar especie A (MODELO_AVES)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_especie_a', json.id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves Activacion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G52\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Registrar especie B (MODELO_PORCINOS), que luego se desactiva en RF-15",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_especie_b', json.id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Porcinos Activacion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G52\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"tipo_modelo\": \"MODELO_PORCINOS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-103 - Paso 1 - Registrar area sin dependencias",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_area_sin_dep', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Sin Dependencias\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-103 - Paso 2 - Estado ANTES",
       "event": [
         {
           "listen": "test",
@@ -48,25 +311,36 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "console.log('Estado ANTES: ' + JSON.stringify(json));",
-              "pm.test('Esta activa antes del intento', function () { pm.expect(json.es_activo).to.eql(true); });"
+              "console.log('Estado: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('es_activo = true', function () { pm.expect(json.es_activo).to.eql(true); });"
             ]
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dep}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_dep}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-103 - Desactiva correctamente un area sin dependencias activas",
+      "name": "TC-M09-103 - Desactivar area sin dependencias -> 200",
       "event": [
         {
           "listen": "test",
@@ -75,25 +349,37 @@
             "exec": [
               "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "console.log('Estado DESPUES: ' + JSON.stringify(json));",
-              "pm.test('Cambio a estado inactivo', function () { pm.expect(json.es_activo).to.eql(false); });"
+              "console.log('Respuesta: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('Queda inactiva', function () { pm.expect(json.es_activo).to.eql(false); });"
             ]
           }
         }
       ],
       "request": {
         "method": "PATCH",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}/desactivar",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}", "desactivar"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dep}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_dep}}",
+            "desactivar"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "Paso 4 - Confirmar con relectura independiente que quedo inactiva",
+      "name": "TC-M09-103 - Estado DESPUES (relectura independiente)",
       "event": [
         {
           "listen": "test",
@@ -102,26 +388,139 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "pm.test('es_activo=false persiste tras una relectura independiente', function () {",
-              "    pm.expect(json.es_activo).to.eql(false);",
-              "});"
+              "console.log('Estado: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('es_activo = false', function () { pm.expect(json.es_activo).to.eql(false); });"
             ]
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dep}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_dep}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "Paso 5 - Confirmar que el area de control SI tiene dependencias activas",
+      "name": "TC-M09-104 - Paso 1 - Registrar area que tendra dependencias",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_area_con_dep', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Con Dependencias\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-104 - Paso 2 - Alojar un lote de la especie A en el area (dependencia operativa, M02)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo registrado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Activo: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('Activo ACTIVO alojado en el area', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_area_con_dep'));",
+              "    pm.expect(json.nombre_estado).to.eql('ACTIVO');",
+              "});",
+              "pm.collectionVariables.set('id_activo', json.id_activo_biologico);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie_a}},\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_area_con_dep}},\n  \"cantidad_inicial\": 25,\n  \"detalles_procedencia\": \"Lote de prueba TC-M09-104\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-104 - Paso 3 - Estado ANTES",
       "event": [
         {
           "listen": "test",
@@ -130,38 +529,127 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "console.log('Area de control (con dependencias): ' + JSON.stringify(json));",
-              "pm.test('Esta activa antes del intento de desactivacion', function () {",
-              "    pm.expect(json.es_activo).to.eql(true);",
-              "});"
+              "console.log('Estado: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('es_activo = true', function () { pm.expect(json.es_activo).to.eql(true); });"
             ]
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dep}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_dep}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-104 - Rechaza desactivar un area con dependencias operativas activas",
+      "name": "TC-M09-104 - Rechaza desactivar area con dependencias -> 422",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
               "const json = pm.response.json();",
-              "console.log('Respuesta: ' + JSON.stringify(json));",
-              "pm.test('Codigo INFRAESTRUCTURA_CON_DEPENDENCIAS', function () {",
-              "    pm.expect(json.error_code).to.eql('INFRAESTRUCTURA_CON_DEPENDENCIAS');",
+              "console.log('Respuesta: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('Codigo INFRAESTRUCTURA_CON_DEPENDENCIAS', function () { pm.expect(json.error_code).to.eql('INFRAESTRUCTURA_CON_DEPENDENCIAS'); });",
+              "pm.test('El mensaje indica desvincular o trasladar los recursos', function () { pm.expect(json.message).to.include('Debe desvincular o trasladar'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dep}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_dep}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-104 - Estado DESPUES: sigue activa (la operacion no se completo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('es_activo = true', function () { pm.expect(json.es_activo).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dep}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_dep}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260a - Reactivar el area inactiva del 103 (especie A activa, modelo coherente) -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('Queda activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.test('Conserva especie A y MODELO_AVES', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
               "});"
             ]
           }
@@ -169,17 +657,29 @@
       ],
       "request": {
         "method": "PATCH",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}/desactivar",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}", "desactivar"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dep}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_dep}}",
+            "reactivar"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "Paso 7 - Confirmar que el area de control sigue activa (la operacion rechazada no la altero)",
+      "name": "TC-M09-260a - Estado DESPUES (relectura independiente)",
       "event": [
         {
           "listen": "test",
@@ -188,8 +688,11 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "pm.test('Sigue activa: el intento rechazado no cambio nada', function () {",
-              "    pm.expect(json.es_activo).to.eql(true);",
+              "console.log('Estado: ' + JSON.stringify(pm.response.json()));",
+              "pm.test('es_activo = true', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.test('Conserva especie A y MODELO_AVES', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
               "});"
             ]
           }
@@ -197,11 +700,228 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dep}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_dep}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260b - Paso 1 - Registrar area de la especie B",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_area_esp_b', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Especie Inactivada\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_b}},\n  \"tipo_modelo_asignado\": \"MODELO_PORCINOS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260b - Paso 2 - Desactivar el area",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_esp_b}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_esp_b}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260b - Paso 3 - Desactivar la especie B en RF-15 (despues de desactivar el area)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Especie inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies/{{id_especie_b}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies",
+            "{{id_especie_b}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260b - Reactivar el area cuya especie quedo inactiva (PENDIENTE DE ACLARAR con Analisis)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// La especificacion no define la respuesta para este escenario: se registra lo observado, sin dar el caso por fallido.",
+              "const json = pm.response.json();",
+              "console.log('OBSERVADO 260b: HTTP ' + pm.response.code + ' -> ' + JSON.stringify(json));",
+              "pm.test('Respuesta controlada (no 5xx); observado HTTP ' + pm.response.code + (json.error_code ? ' ' + json.error_code : ''), function () {",
+              "    pm.expect(pm.response.code).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_esp_b}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_esp_b}}",
+            "reactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-260b - Estado DESPUES (relectura independiente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('OBSERVADO 260b relectura: es_activo=' + json.es_activo + ', especie_id=' + json.especie_id + ', tipo_modelo_asignado=' + json.tipo_modelo_asignado);",
+              "pm.test('Conserva especie B y MODELO_PORCINOS', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_b'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_PORCINOS');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_esp_b}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_esp_b}}"
+          ]
         }
       },
       "response": []

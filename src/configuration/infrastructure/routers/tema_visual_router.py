@@ -46,6 +46,10 @@ def obtener_tema(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TemaResueltoResponse:
+    """Tema efectivo del usuario: personal, si no el global, si no claro (RF-27).
+
+    **Acceso:** `tema_visual` · Leer.
+    """
     use_case = ObtenerTemaResueltoUseCase(tema_repo=SqlAlchemyTemaVisualRepository(db))
     resultado = use_case.execute(usuario_actual)
     return TemaResueltoResponse(**resultado)
@@ -67,6 +71,10 @@ def guardar_tema_personal(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TemaVisualResponse:
+    """Guarda el tema preferido del usuario: 1 claro, 2 oscuro, 3 sistema (RF-27).
+
+    **Acceso:** `tema_visual` · Actualizar.
+    """
     use_case = GuardarTemaPersonalUseCase(db=db, tema_repo=SqlAlchemyTemaVisualRepository(db))
     entidad = use_case.execute(dto, usuario_actual)
     return TemaVisualResponse.from_entity(entidad)
@@ -85,6 +93,10 @@ def guardar_tema_personal(
 def obtener_tema_global(
     db: Session = Depends(get_db),
 ) -> Optional[TemaVisualResponse]:
+    """Tema por defecto del sistema (RF-27).
+
+    **Acceso:** `configuracion_ui_global` · Leer.
+    """
     repo = SqlAlchemyTemaVisualRepository(db)
     entidad = repo.obtener_global()
     if entidad is None:
@@ -108,6 +120,10 @@ def guardar_tema_global(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> TemaVisualResponse:
+    """Cambia el tema por defecto del sistema (RF-27).
+
+    **Acceso:** `configuracion_ui_global` · Actualizar.
+    """
     use_case = GuardarTemaGlobalUseCase(db=db, tema_repo=SqlAlchemyTemaVisualRepository(db))
     entidad = use_case.execute(dto, usuario_actual)
     return TemaVisualResponse.from_entity(entidad)

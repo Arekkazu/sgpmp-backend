@@ -16,6 +16,10 @@ LOCALE_DEFAULT = "es-CO"
 
 @dataclass(eq=False)
 class PreferenciaIdioma:
+    """Idioma de la interfaz de un usuario o el global del sistema (RF-29).
+
+    Locales admitidos: ``es-CO`` y ``en-US``.
+    """
     id_usuario: int
     locale_code: str
     es_por_defecto: bool

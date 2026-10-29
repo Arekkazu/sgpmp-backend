@@ -25,6 +25,11 @@ ACCION_CREAR = 1
 
 
 class NotificarInconsistenciaAuditoriaUseCase:
+    """Avisa a quienes pueden crear registros correctivos que la reconciliación encontró huecos.
+
+    Los destinatarios se resuelven por permiso (recurso 31, acción C) en
+    ``modulo1.permisos``, no por un rol fijo.
+    """
 
     def __init__(
         self,

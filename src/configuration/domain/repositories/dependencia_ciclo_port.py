@@ -12,6 +12,8 @@ from abc import ABC, abstractmethod
 
 
 class DependenciaCicloPort(ABC):
+    """Puerto que indica si una etapa tiene activos en curso (bloquea su desactivación).
+    """
 
     @abstractmethod
     def tiene_dependencias_activas(self, id_ciclo_biologico: int) -> bool:

@@ -10,6 +10,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class ObtenerTemaResueltoUseCase:
+    """Tema efectivo del usuario: personal, si no el global, si no claro."""
 
     def __init__(self, tema_repo: TemaVisualRepository) -> None:
         self.tema_repo = tema_repo

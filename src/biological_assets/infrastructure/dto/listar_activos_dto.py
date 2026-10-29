@@ -1,3 +1,5 @@
+"""Filtros de ``GET /activos-biologicos`` (RF-35 / RF-36)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -11,6 +13,7 @@ _TIPOS_VALIDOS = {t.value for t in TipoActivo}
 
 
 class ListarActivosDTO(BaseDTO):
+    """Filtros y paginación del listado; ``tipo``: ``INDIVIDUAL`` | ``POBLACIONAL``."""
     tipo: Optional[str] = None
     id_especie: Optional[int] = None
     id_estado: Optional[int] = None

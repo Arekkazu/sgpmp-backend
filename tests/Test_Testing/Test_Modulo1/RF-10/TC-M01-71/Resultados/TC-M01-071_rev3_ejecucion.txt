@@ -1,0 +1,24 @@
+TC-M01-071 / RF-10 — reevaluación rev3 TEST
+Fecha: 2026-09-25
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario del caso: admin.dev@gmail.com (id_usuario=100, rol Administrador, estado Activo)
+Logins esta corrida: 1. No reintento. No cambio de usuario.
+
+BD TEST (SELECT read-only, member_qa, sgpmp_test):
+- admin.dev@gmail.com existe, id_rol=1 Administrador, estado Activo
+- intentos_fallidos antes de rev3 = 2 (coincide con 401 rev2 "Intento 2 de 5")
+- bloqueado_hasta histórico 2026-09-16 (ya vencido; no 423)
+- admin@pecuaria.co también es Administrador Activo (id=1) y es el actor que usan las pruebas TEST recientes de M09; NO se usó (regla: no cambiar de usuario)
+
+POST /sesiones/ cuerpo: correo_electronico + contrasena (mismo formato que colecciones TEST que sí autentican).
+Resultado: HTTP 401 CREDENCIALES_INVALIDAS "Intento 3 de 5".
+Causa del 401: el usuario existe y está activo; el secreto documentado no coincide con el hash en TEST. No es error de endpoint ni de formato de login.
+
+Paginación NO ejecutada. No hay datos de páginas 1-3 ni tamano=51 en esta corrida.
+
+Contrato OpenAPI TEST (verificado): GET /auditoria/ pagina default 1, tamano default 20 max 50, fecha_hasta ancla INC-M01-71.
+laura NO contiene fad57c32. origin/test sí.
+
+Newman rev3: 1 request, 2 assertions, 2 failed (login).
+Cypress TC-M01-071: no existe spec.
+Histórico TC-M01-71.html no se modificó.

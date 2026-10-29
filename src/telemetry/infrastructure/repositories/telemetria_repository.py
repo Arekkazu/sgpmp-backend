@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.telemetria import Telemetria
+from src.telemetry.domain.entities.telemetria_calidad import TelemetriaCalidad
 from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRepository
 from src.telemetry.infrastructure.models.telemetria_model import TelemetriaModel
+from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
 
 
 class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
@@ -66,7 +68,10 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
 
     def obtener_por_id(self, id_telemetria: int) -> Optional[Telemetria]:
         orm = self.db.get(TelemetriaModel, id_telemetria)
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        calidad = SqlAlchemyTelemetriaCalidadRepository(self.db).obtener_por_lectura(id_telemetria)
+        return self._a_entidad(orm, calidad)
 
     def existe_duplicado(
         self,
@@ -128,23 +133,8 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
         ).fetchall()
         return [Decimal(str(r[0])) for r in rows]
 
-    def actualizar_flags_aptitud(
-        self,
-        id_telemetria: int,
-        apto_para_ia: bool,
-        apto_para_nic41: bool,
-    ) -> None:
-        self.db.execute(
-            text(
-                'UPDATE modulo3.telemetrias '
-                'SET apto_para_ia = :ia, apto_para_nic41 = :nic41 '
-                'WHERE id_telemetria = :id'
-            ),
-            {'ia': apto_para_ia, 'nic41': apto_para_nic41, 'id': id_telemetria},
-        )
-
     @staticmethod
-    def _a_entidad(orm: TelemetriaModel) -> Telemetria:
+    def _a_entidad(orm: TelemetriaModel, calidad: Optional[TelemetriaCalidad] = None) -> Telemetria:
         return Telemetria(
             id_telemetria=orm.id_telemetria,
             id_sensor=orm.id_sensor,
@@ -180,6 +170,6 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
             calidad_senal_snr=orm.calidad_senal_snr,
             frecuencia_muestreo_min=orm.frecuencia_muestreo_min,
             estado_conectividad=orm.estado_conectividad,
-            apto_para_ia=orm.apto_para_ia,
-            apto_para_nic41=orm.apto_para_nic41,
+            apto_para_ia=calidad.apto_para_ia if calidad is not None else False,
+            apto_para_nic41=calidad.apto_para_nic41 if calidad is not None else False,
         )

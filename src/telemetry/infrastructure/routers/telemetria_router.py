@@ -1,11 +1,19 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-40 RF-53: conecta catalogo M09 y bitacora      |
+# | 2026-10-22 | Leandro | DEV-28 RF-53/62: publica sobre normativo sin ocultar DB-09 |
+# | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta de vision responde la calidad pendiente |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
   POST  /iot/telemetria        — Ingesta individual (Flujo A TIEMPO_REAL + Flujo B EDGE_AGREGADO)
   POST  /iot/telemetria/batch  — Ingesta en lote    (Flujo C sincronización BUFFER_LOCAL, max 500)
+  POST  /iot/telemetria/vision — Observaciones de visión por área (RF-53/56/62 v2.0, max 500)
 
-Auth: los dispositivos IoT no usan JWT Bearer. La identidad se verifica dentro del use case
-      mediante `access_key` (serial del dispositivo en M09) y `device_id` / `sensor_id` en el body.
+Auth: los llama el broker MQTT, no el nodo (D3, AIOT-DEV-03). Exigen su token de servicio
+      (`Authorization: Bearer`, `BROKER_SERVICE_TOKEN`); el `serial` del body es la identidad
+      del nodo que el broker ya autenticó por MQTT, y `device_id` / `sensor_id` deben pertenecerle.
       El header opcional `X-Gateway-Id` se registra en la bitácora para trazabilidad de gateway LoRaWAN.
 """
 from __future__ import annotations
@@ -13,64 +21,47 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header
+from src.telemetry.infrastructure.routers.ruta_ingesta_auditada import RutaIngestaAuditada
 from sqlalchemy.orm import Session
 
-from src.shared.database import get_db
+from src.shared.broker_auth import require_token_servicio_broker
+from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
+from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
+    IngerirObservacionesVisionUseCase,
+)
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import (
     IngerirTelemetriaUseCase,
     SincronizarBufferUseCase,
 )
-from src.telemetry.infrastructure.adapters.calibracion_m09_adapter import CalibracionM09Adapter
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
+from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
+from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
-from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
-from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
-from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
-from src.telemetry.infrastructure.adapters.activo_biologico_stub_adapter import ActivoBiologicoStubAdapter
-from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
-from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
-from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
-from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
-from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
-from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
-from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
-from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
-from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
-from src.telemetry.infrastructure.schema.telemetria_schema import IngestaBatchResponse, ItemBatchResponse, TelemetriaResponse
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
+from src.telemetry.infrastructure.schema.telemetria_schema import (
+    IngestaBatchResponse,
+    IngestaVisionResponse,
+    ItemBatchResponse,
+    ObservacionVisionResponse,
+    TelemetriaResponse,
+)
 
-router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
+from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
+from src.telemetry.infrastructure.repositories.ingesta_telemetria_repository import SqlAlchemyIngestaTelemetriaRepository
+from src.telemetry.infrastructure.routers.ruta_ingesta_auditada import RutaIngestaAuditada
+
+router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"], route_class=RutaIngestaAuditada)
 
 
 def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
-    telemetria_repo = SqlAlchemyTelemetriaRepository(db)
     return IngerirTelemetriaUseCase(
         db=db,
-        repo=telemetria_repo,
+        ingesta_port=SqlAlchemyIngestaTelemetriaRepository(db),
         bitacora_repo=SqlAlchemyBitacoraIngestRepository(db),
         dispositivo_port=DispositivoM09Adapter(db),
-        variable_port=VariableCatalogoM09Adapter(db),
-        calibracion_port=CalibracionM09Adapter(db),
-        vincular_use_case=VincularLecturaActivoUseCase(
-            db=db,
-            vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
-            activo_port=ActivoBiologicoStubAdapter(),
-        ),
-        evaluar_calidad_use_case=EvaluarCalidadTelemetriaUseCase(
-            db=db,
-            telemetria_repo=telemetria_repo,
-            calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
-            parametros_port=ParametrosCalidadStubAdapter(),
-            auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
-        ),
-        reclasificar_semaforo_use_case=ReclasificarSemaforoUseCase(
-            db=db,
-            telemetria_repo=telemetria_repo,
-            especie_port=EspecieActivoM02Adapter(db),
-            umbral_port=UmbralHistoricoM09Adapter(db),
-            monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
-        ),
+        catalogo_port=VariableCatalogoM09Adapter(db),
     )
 
 
@@ -83,12 +74,14 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
         401: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Ingerir lectura de sensor IoT (RF-53 Flujo A/B)",
 )
 def ingerir_telemetria(
     dto: IngerirTelemetriaDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> TelemetriaResponse:
     resultado = _build_use_case(db).execute(dto, gateway_id=x_gateway_id)
@@ -106,13 +99,16 @@ def ingerir_telemetria(
     status_code=200,
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
+    dependencies=[Depends(require_token_servicio_broker)],
     summary="Sincronización de buffer IoT (RF-53 Flujo C — lote hasta 500 lecturas)",
 )
 def sincronizar_buffer(
     dto: IngerirTelemetriaBatchDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> IngestaBatchResponse:
     use_case = SincronizarBufferUseCase(
@@ -134,5 +130,38 @@ def sincronizar_buffer(
                 error=item.error,
             )
             for item in resultado['detalle']
+        ],
+    )
+
+
+@router.post(
+    "/vision",
+    response_model=IngestaVisionResponse,
+    status_code=201,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Ingerir sobre D4 de visión o lote compatible (RF-53/56/62)",
+)
+def ingerir_observaciones_vision(
+    dto: ObservacionVisionD4DTO | ObservacionVisionD4LegadoDTO | IngerirObservacionesVisionDTO,
+    db: Session = Depends(get_db_sistema),
+) -> IngestaVisionResponse:
+    resultado = IngerirObservacionesVisionUseCase(
+        db=db,
+        repo=SqlAlchemyObservacionVisionRepository(db),
+        dispositivo_port=DispositivoM09Adapter(db),
+    ).execute(dto)
+    return IngestaVisionResponse(
+        total=resultado.total,
+        aceptadas=len(resultado.observaciones),
+        duplicadas=resultado.duplicados,
+        observaciones=[
+            ObservacionVisionResponse.desde(o)
+            for o in resultado.observaciones
         ],
     )

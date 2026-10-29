@@ -81,7 +81,7 @@ import requests
 
 BASE_URL = os.getenv(
     "BASE_URL",
-    "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "https://api.inmero.co/back-sigab-test",
 )
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@pecuaria.co")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Test1234!")

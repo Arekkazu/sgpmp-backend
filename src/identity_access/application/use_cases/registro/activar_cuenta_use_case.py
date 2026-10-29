@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: activación de cuenta mediante token de correo electrónico.
 
 El token fue generado al crear la cuenta o al reenviar el correo de activación.
@@ -12,6 +15,7 @@ from src.identity_access.domain.repositories.cuenta_repository import CuentaRepo
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.shared.errors import GoneError, ValidationError
+from src.shared.fechas import en_zona_usuario
 
 TIPO_ACTIVACION_CUENTA = 2
 
@@ -71,7 +75,7 @@ class ActivarCuentaUseCase:
             expiracion = cuenta.expiracion_token()
             raise GoneError(
                 code="TOKEN_EXPIRADO",
-                message=f"El token de activación expiró el {expiracion.strftime('%d/%m/%Y')} a las {expiracion.strftime('%H:%M:%S')}. Solicita uno nuevo.",
+                message=f"El token de activación expiró el {en_zona_usuario(expiracion).strftime('%d/%m/%Y')} a las {en_zona_usuario(expiracion).strftime('%H:%M:%S')}. Solicita uno nuevo.",
             )
 
         # RF-01 agrupa "token inexistente" y "token ya utilizado" en el mismo

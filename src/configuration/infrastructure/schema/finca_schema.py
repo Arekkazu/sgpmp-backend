@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 
 class UbicacionFincaResponse(BaseModel):
+    """Ubicación geográfica de la finca."""
     departamento: str
     municipio: str
     vereda: str
@@ -17,6 +18,7 @@ class UbicacionFincaResponse(BaseModel):
 
 
 class FincaResponse(BaseModel):
+    """Finca registrada."""
     id_finca: int
     nombre: str
     ubicacion: UbicacionFincaResponse
@@ -25,11 +27,13 @@ class FincaResponse(BaseModel):
     fecha_creacion: datetime.datetime
     fecha_actualizacion: datetime.datetime
     id_usuario: Optional[int]
+    #: Nombre del productor, para no mostrar "#12" en el listado.
+    nombre_usuario: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
     @classmethod
-    def from_entity(cls, finca) -> FincaResponse:
+    def from_entity(cls, finca, nombre_usuario: Optional[str] = None) -> FincaResponse:
         return cls(
             id_finca=finca.id_finca,
             nombre=finca.nombre.valor,
@@ -45,9 +49,11 @@ class FincaResponse(BaseModel):
             fecha_creacion=finca.fecha_creacion,
             fecha_actualizacion=finca.fecha_actualizacion,
             id_usuario=finca.id_usuario,
+            nombre_usuario=nombre_usuario,
         )
 
 
 class ListaFincasResponse(BaseModel):
+    """Fincas visibles para el usuario."""
     total: int
     items: list[FincaResponse]

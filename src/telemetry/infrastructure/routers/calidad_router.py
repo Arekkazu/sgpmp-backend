@@ -1,3 +1,11 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: integra calidad temporal y alertas tecnicas |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-24 | Arekkazu | USAB-M03 M3-14 RF-62: calidad limitada a las fincas del usuario |
+# | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: evaluacion de calidad de vision bajo demanda |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: validar enums y declarar errores de consulta HTTP 422. |
+# | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -5,17 +13,19 @@ RF-62 — CU06 Dev scope:
   GET  /iot/calidad/{id_telemetria}         — Calidad de una lectura específica
   POST /iot/calidad/{id_telemetria}/evaluar — Disparar evaluación puntual
   POST /iot/calidad/reevaluar               — Re-evaluación explícita admin (FA-08)
+  POST /iot/calidad/vision/{id}/evaluar     — Calidad de una observación de visión (AIOT-SPEC-01)
 
 Auth: JWT Bearer + RBAC recurso 38 (calidad_telemetria).
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import NotFoundError
 from src.shared.rbac import require_permission
@@ -24,8 +34,19 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.telemetry.application.use_cases.calidad.consultar_calidad_use_case import ConsultarCalidadUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
+from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.adapters.parametros_vision_mlops_adapter import ParametrosVisionMLOpsAdapter
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
+from src.telemetry.infrastructure.schema.telemetria_schema import ObservacionVisionResponse
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
-from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
+from src.telemetry.domain.entities.telemetria_calidad import ClasificacionCalidad, EstadoEvaluacion
+from src.telemetry.infrastructure.adapters.parametros_calidad_mlops_adapter import ParametrosCalidadMLOpsAdapter
+from src.telemetry.infrastructure.adapters.contexto_calidad_m09_rf60_adapter import ContextoCalidadM09RF60Adapter
+from src.telemetry.application.use_cases.calidad.generar_alerta_calidad_use_case import GenerarAlertaCalidadUseCase
+from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
 from src.telemetry.infrastructure.dto.solicitar_reevaluacion_dto import SolicitarReevaluacionDTO
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
@@ -35,6 +56,7 @@ from src.telemetry.infrastructure.schema.telemetria_calidad_schema import (
     ReevaluacionResponseSchema,
     TelemetriaCalidadSchema,
 )
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62"])
 
@@ -43,16 +65,17 @@ router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62
     "",
     response_model=ListaCalidadSchema,
     status_code=200,
-    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    openapi_extra={"x-codigo-validacion": 422},
     dependencies=[Depends(require_permission(38, 2))],
     summary="Listar evaluaciones de calidad (RF-62)",
 )
 def listar_calidad(
     id_sensor: Optional[int] = Query(default=None),
-    clasificacion: Optional[str] = Query(default=None),
-    fecha_desde: Optional[datetime] = Query(default=None),
-    fecha_hasta: Optional[datetime] = Query(default=None),
-    estado_evaluacion: Optional[str] = Query(default=None),
+    clasificacion: Optional[ClasificacionCalidad] = Query(default=None),
+    fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
+    fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
+    estado_evaluacion: Optional[EstadoEvaluacion] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -69,6 +92,9 @@ def listar_calidad(
         estado_evaluacion=estado_evaluacion,
         pagina=pagina,
         por_pagina=por_pagina,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return ListaCalidadSchema(
         total=total,
@@ -102,10 +128,47 @@ def obtener_calidad(
 
 
 @router.post(
+    "/vision/{id_observacion_vision}/evaluar",
+    response_model=ObservacionVisionResponse,
+    status_code=200,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_permission(38, 5))],
+    summary="Evaluar la calidad de una observación de visión (RF-62)",
+)
+def evaluar_calidad_vision(
+    id_observacion_vision: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ObservacionVisionResponse:
+    """Calcula el índice ponderado de RF-62 (AIOT-SPEC-01) de una observación ya ingerida.
+
+    **Acceso:** `calidad_telemetria` · Ejecutar.
+
+    El worker post-commit evalúa cada observación por su cuenta; este endpoint
+    lo adelanta. Es idempotente: si ya estaba evaluada devuelve esa evaluación
+    sin recalcular. 503 `PARAMETRO_CONFIGURACION_AUSENTE` si faltan los pesos en
+    M09 y 503 `PARAMETRO_CONFIGURACION_INVALIDO` si la cámara no tiene fps (RF-23).
+    """
+    observacion = EvaluarCalidadVisionUseCase(
+        db,
+        SqlAlchemyObservacionVisionRepository(db),
+        ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        DispositivoM09Adapter(db),
+    ).execute(id_observacion_vision)
+    return ObservacionVisionResponse.desde(observacion)
+
+
+@router.post(
     "/{id_telemetria}/evaluar",
     response_model=TelemetriaCalidadSchema,
     status_code=201,
     responses={
+        200: {"description":"Evaluación omitida por inactividad RF-60; no se crea evaluación."},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -135,19 +198,24 @@ def evaluar_calidad(
         db=db,
         telemetria_repo=SqlAlchemyTelemetriaRepository(db),
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
-        parametros_port=ParametrosCalidadStubAdapter(),
+        parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        contexto_port=ContextoCalidadM09RF60Adapter(db),
+        alertas_calidad=GenerarAlertaCalidadUseCase(SqlAlchemyAlertaRepository(db)),
     )
     evaluacion = use_case.execute(
         id_telemetria=id_telemetria,
         id_sensor=row[0],
         id_variable=row[1],
         valor=Decimal(str(row[2])),
-        valor_ajustado=Decimal(str(row[3])) if row[3] else None,
+        valor_ajustado=Decimal(str(row[3])) if row[3] is not None else None,
         timestamp_captura=row[4],
         estado_calidad_rf53=row[5],
         parametros_calibracion=row[6],
     )
+    if evaluacion is None:
+        return JSONResponse(status_code=200,content={
+            "id_telemetria":id_telemetria,"resultado":"EVALUACION_OMITIDA_POR_INACTIVIDAD"})
     return TelemetriaCalidadSchema.model_validate(evaluacion)
 
 
@@ -172,7 +240,7 @@ def solicitar_reevaluacion(
         db=db,
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
         telemetria_repo=SqlAlchemyTelemetriaRepository(db),
-        parametros_port=ParametrosCalidadStubAdapter(),
+        parametros_port=ParametrosCalidadMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db), SqlAlchemyConfiguracionGlobalRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
     detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)

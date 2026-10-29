@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-26 | Leandro | INC-M03-110-G42 RF-55/RF-56: exponer ambos timestamps originales en la respuesta del evento. |
 from datetime import datetime
 from typing import Optional
 
@@ -9,6 +12,7 @@ class EventoEdgeResponse(BaseModel):
     clasificacion_rf55: str
     severidad: Optional[str]
     estado_conectividad: bool
+    fecha_captura: datetime
     fecha_procesamiento: datetime
     paquete_inferencia_estado: Optional[str]
 

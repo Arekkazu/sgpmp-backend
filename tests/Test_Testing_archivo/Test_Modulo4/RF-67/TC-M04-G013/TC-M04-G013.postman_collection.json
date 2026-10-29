@@ -1,0 +1,921 @@
+{
+  "info": {
+    "name": "RF-67 - TC-M04-G013 Control de acceso y validación de parámetros del historial",
+    "description": "Automatiza TC-M04-024/025/026 (RF-67; OWASP API1, E3, E1/E2) sobre GET /prediccion/historial/{id}. 024: el Productor (granja A) consulta el activo propio de una granja B no asignada y un id vecino (IDOR) -> 403/404 sin datos; veterinario que no supervisa el activo (token_vet_ajeno: configurar; TEST no tiene usuario veterinario); y el intento debe quedar auditado en RF-73. 025: inicio > fin, rango futuro y formato inválido -> 400. 026: activo inexistente -> 404; activo eliminado (configurar id_activo_eliminado) -> 404; activo válido sin inferencias -> 200 con arreglo vacío. Notas del código: un activo fuera del alcance de fincas responde 404 ACTIVO_NO_ENCONTRADO antes de auditar (el intento denegado no queda en RF-73); el formato inválido lo rechaza la validación de entrada (400 VAL_ENTRADA).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones",
+      "item": [
+        {
+          "name": "Login Administrador",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const l = 'abcdefghijklmnopqrstuvwxyz'; let s = ''; for (let i = 0; i < 8; i++) s += l.charAt(Math.floor(Math.random() * 26));",
+                  "pm.collectionVariables.set('sufijo', s);",
+                  "const d = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set('hoy', d(0)); pm.collectionVariables.set('desde', d(-30));",
+                  "pm.collectionVariables.set('ayer', d(-1)); pm.collectionVariables.set('manana', d(1)); pm.collectionVariables.set('futuro', d(30));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Productor (granja A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Productor (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('token_productor', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_productor}}\",\n  \"contrasena\": \"{{contrasena_productor}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Granja B (no asignada al Productor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Finca B creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/fincas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca Segregacion Historial {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Huila\", \"municipio\": \"Neiva\", \"vereda\": \"El Caguan\", \"latitud\": \"2.93\", \"longitud\": \"-75.28\"},\n  \"tamano_h\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Especie",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Porcinos Segregacion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G013\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"grupo_manejo\": \"PORCINOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Corral en la granja B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Corral creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_area', pm.response.json().id_infraestructura);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/infraestructuras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Corral Segregacion {{sufijo}}\",\n  \"tipo_area\": \"Corral\",\n  \"superficie\": \"500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activo de la granja B (sin inferencias)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_activo', pm.response.json().id_activo_biologico);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/activos-biologicos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "activos-biologicos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_area}},\n  \"identificador\": \"CERDO-{{sufijo}}\",\n  \"raza\": \"Landrace\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2026-05-01T00:00:00\",\n  \"peso_inicial\": \"30.0\",\n  \"detalles_procedencia\": \"Activo de prueba TC-M04-G013\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-024 Segregación por granja",
+      "item": [
+        {
+          "name": "TC-M04-024 - Productor de la granja A consulta el activo de la granja B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-024 (granja ajena): acceso denegado (403/404)', function () { pm.expect(pm.response.code).to.be.oneOf([403, 404]); });",
+                  "pm.test('TC-M04-024 (granja ajena): no expone datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); pm.expect(pm.response.text()).to.not.include('nivel_riesgo'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-024 - IDOR: ids vecinos al del activo (id-1, id+1)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('id_vecino', String(Number(pm.collectionVariables.get('id_activo')) - 1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-024 (IDOR): el Productor no ve historiales de activos ajenos por id incremental', function () {",
+                  "  pm.expect(pm.response.code === 403 || pm.response.code === 404 || (pm.response.json().eventos || []).length === 0).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_vecino}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_vecino}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-024 - Veterinario que no supervisa el activo (configurar correo_veterinario)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('correo_veterinario')) { console.log('TC-M04-024: sin usuario veterinario configurado; se usa el Productor'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-024 (veterinario ajeno): acceso denegado (403/404)', function () { pm.expect(pm.response.code).to.be.oneOf([403, 404]); });",
+                  "pm.test('TC-M04-024 (veterinario ajeno): no expone datos clínicos', function () { pm.expect(pm.response.text()).to.not.include('eventos'); pm.expect(pm.response.text()).to.not.include('nivel_riesgo'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet_ajeno}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-024 - El intento denegado queda auditado (RF-73)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoría responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-024: el acceso denegado al historial quedó auditado', function () {",
+                  "  pm.expect((pm.response.json().items || []).some(e => /HISTORIAL/i.test(e.tipo_evento) && e.resultado_operacion !== 'EXITOSO')).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/auditoria?id_referencia={{id_activo}}&fecha_desde={{ayer}}&por_pagina=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "id_referencia",
+                  "value": "{{id_activo}}"
+                },
+                {
+                  "key": "fecha_desde",
+                  "value": "{{ayer}}"
+                },
+                {
+                  "key": "por_pagina",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-025 Rangos de fecha",
+      "item": [
+        {
+          "name": "TC-M04-025 - fecha_inicio posterior a fecha_fin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-025 (inicio > fin): HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('TC-M04-025 (inicio > fin): mensaje de rango inválido', function () { pm.expect(pm.response.text()).to.match(/RANGO_FECHAS_INVALIDO|VAL_ENTRADA|fecha/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{hoy}}&fecha_fin={{desde}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{desde}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-025 - Rango completamente futuro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-025 (futuro): HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('TC-M04-025 (futuro): mensaje de rango inválido', function () { pm.expect(pm.response.text()).to.match(/RANGO_FECHAS_INVALIDO|VAL_ENTRADA|fecha/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{manana}}&fecha_fin={{futuro}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{manana}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{futuro}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-025 - Formato de fecha inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-025 (formato): HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('TC-M04-025 (formato): mensaje de rango inválido', function () { pm.expect(pm.response.text()).to.match(/RANGO_FECHAS_INVALIDO|VAL_ENTRADA|fecha/i); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio=15-09-2026&fecha_fin=2026-13-45",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "15-09-2026"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "2026-13-45"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-026 Activo inexistente y rango vacío",
+      "item": [
+        {
+          "name": "TC-M04-026 - Activo inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-026 (inexistente): HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/999999999?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "999999999"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-026 - Activo eliminado (configurar id_activo_eliminado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-026 (eliminado): HTTP 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo_eliminado}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo_eliminado}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-026 - Activo válido en un rango sin inferencias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-026 (sin datos): HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-026 (sin datos): arreglo de eventos vacío', function () { pm.expect(pm.response.json().eventos).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/historial/{{id_activo}}?fecha_inicio={{desde}}&fecha_fin={{hoy}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "historial",
+                "{{id_activo}}"
+              ],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "{{hoy}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_productor",
+      "value": "productor@pecuaria.co"
+    },
+    {
+      "key": "contrasena_productor",
+      "value": "Test1234!"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": ""
+    },
+    {
+      "key": "token_vet_ajeno",
+      "value": ""
+    },
+    {
+      "key": "id_activo_eliminado",
+      "value": "0"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "hoy",
+      "value": ""
+    },
+    {
+      "key": "desde",
+      "value": ""
+    },
+    {
+      "key": "ayer",
+      "value": ""
+    },
+    {
+      "key": "manana",
+      "value": ""
+    },
+    {
+      "key": "futuro",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area",
+      "value": ""
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "id_vecino",
+      "value": ""
+    }
+  ]
+}

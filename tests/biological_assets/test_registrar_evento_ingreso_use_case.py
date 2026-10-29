@@ -1,20 +1,25 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima, ingreso de
 individuos"): no existía ningún mecanismo de alta de individuos a un lote --
 solo el flujo de BAJA. `RegistrarEventoIngresoUseCase` es la contraparte,
 mismo patrón estructural que `RegistrarEventoBajaUseCase` (RF-45), con una
-validación adicional que RF-45 no necesita: la densidad resultante no puede
-superar `capacidad_maxima / superficie` de la infraestructura (mismo cálculo
-que INC-M02-38-G25 ya usa para eventos de crecimiento, pero evaluado aquí
-ANTES de aplicar el cambio, porque este es el flujo que realmente incrementa
-`cantidad_actual`).
+validación adicional que RF-45 no necesita: la carga resultante del área no puede
+superar su capacidad efectiva (RFC-012, DEV-23: Σ individuos del área + ingresados ≤
+floor(MIN densidad × superficie)), evaluada ANTES de aplicar el cambio, porque este es
+el flujo que realmente incrementa `cantidad_actual`.
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
 import pytest
+
+import src.shared.fechas as fechas
 
 from src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case import (
     RegistrarEventoIngresoUseCase,
@@ -25,10 +30,11 @@ from src.biological_assets.domain.entities.activo_biologico import (
     EventoActivo,
 )
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError, ValidationError
+from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 
 class DbFake:
@@ -72,23 +78,30 @@ class EventoRepoFake:
 
 
 class InfraPortFake:
+    """Área con la especie del lote asociada (RFC-012, DEV-23). ``ocupacion`` es la carga
+    actual del área (por defecto, solo el lote de 5)."""
+
     def __init__(
         self,
-        superficie: Optional[Decimal] = None,
-        capacidad_maxima: Optional[int] = None,
+        superficie: Optional[Decimal] = Decimal('100'),
+        densidad: Optional[Decimal] = Decimal('10'),
+        ocupacion: int = 5,
     ) -> None:
         self.superficie = superficie
-        self.capacidad_maxima = capacidad_maxima
+        self.densidad = densidad
+        self.ocupacion = ocupacion
 
     def obtener_activa(self, _id_infraestructura: int) -> Optional[InfraestructuraConsulta]:
-        if self.superficie is None and self.capacidad_maxima is None:
-            return InfraestructuraConsulta(
-                id_infraestructura=1, nombre='Corral-01', tipo='Corral', es_activo=True,
-            )
         return InfraestructuraConsulta(
             id_infraestructura=1, nombre='Corral-01', tipo='Corral', es_activo=True,
-            superficie=self.superficie, capacidad_maxima=self.capacidad_maxima,
+            superficie=self.superficie, especies=[EspecieDelArea(1, 'Tilapia', 'PECES', self.densidad)],
         )
+
+    def calcular_ocupacion(self, _id_infraestructura: int) -> int:
+        return self.ocupacion
+
+    def bloquear_capacidad(self, _id_infraestructura: int) -> None:
+        pass
 
 
 def _activo_lote(id_estado: int = EstadoActivo.ACTIVO, cantidad_actual: int = 5, peso_promedio=None) -> ActivoBiologico:
@@ -206,27 +219,62 @@ def test_ingreso_fecha_futura_lanza_validation_error() -> None:
     assert exc.value.code == 'FECHA_INGRESO_FUTURA'
 
 
-def test_ingreso_densidad_resultante_supera_maximo_lanza_409() -> None:
+@pytest.fixture
+def noche_en_colombia(monkeypatch, en_colombia) -> None:
+    # 2026-10-11 22:25 en Colombia == 2026-10-12 03:25 UTC
+    monkeypatch.setattr(
+        fechas, '_ahora', lambda: datetime(2026, 10, 12, 3, 25, tzinfo=timezone.utc).astimezone(en_colombia),
+    )
+
+
+@pytest.mark.usefixtures('noche_en_colombia')
+def test_ingreso_fecha_de_manana_en_colombia_es_futura_aunque_en_utc_ya_sea_hoy() -> None:
+    uc = _uc(DbFake(), _activo_lote(), EventoRepoFake(), InfraPortFake())
+
+    with pytest.raises(ValidationError) as exc:
+        uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 12)), _usuario())
+    assert exc.value.code == 'FECHA_INGRESO_FUTURA'
+
+    uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 11)), _usuario())
+
+
+@pytest.mark.usefixtures('noche_en_colombia')
+def test_ingreso_del_dia_de_creacion_no_queda_antes_de_la_creacion() -> None:
+    # trg_fn_evento_fecha_coherente exige fecha >= fecha_creacion: medianoche
+    # UTC del 11 caería antes de un lote creado el 11 a las 20:00 (Colombia).
+    creacion = datetime(2026, 10, 12, 1, 0, tzinfo=timezone.utc)
+    activo = _activo_lote()
+    activo.fecha_creacion = creacion
+    repo = EventoRepoFake()
+    uc = _uc(DbFake(), activo, repo, InfraPortFake())
+
+    uc.execute(10, _dto(fecha_ingreso=date(2026, 10, 11)), _usuario())
+
+    assert repo.guardado.fecha == creacion
+
+
+def test_ingreso_que_supera_la_capacidad_efectiva_es_422_sin_incrementar() -> None:
     db = DbFake()
-    # capacidad_maxima=10 individuos, superficie=10 m² -> densidad_maxima=1 ind/m².
-    # 5 actuales + 6 nuevos = 11 -> densidad 1.1, supera el máximo.
+    # DEV-23: capacidad = floor(1 ind/m² × 10 m²) = 10. 5 en el área + 6 = 11 → 422 (antes 409).
     activo = _activo_lote(cantidad_actual=5)
-    infra = InfraPortFake(superficie=Decimal('10'), capacidad_maxima=10)
+    infra = InfraPortFake(superficie=Decimal('10'), densidad=Decimal('1'))
     uc = _uc(db, activo, EventoRepoFake(), infra)
 
-    with pytest.raises(ConflictError) as exc:
+    with pytest.raises(BusinessRuleError) as exc:
         uc.execute(10, _dto(cantidad_ingresada=6), _usuario())
 
-    assert exc.value.code == 'DENSIDAD_MAXIMA_SUPERADA'
+    assert exc.value.status_code == 422
+    assert exc.value.code == 'CAPACIDAD_EXCEDIDA'
+    assert exc.value.field == 'cantidad_ingresada'
     assert activo.detalle_poblacional.cantidad_actual == 5  # sin mutar
     assert db.commits == 0
 
 
-def test_ingreso_densidad_resultante_exactamente_en_el_maximo_se_acepta() -> None:
+def test_ingreso_exactamente_en_la_capacidad_se_acepta() -> None:
     db = DbFake()
-    # 5 actuales + 5 nuevos = 10 -> densidad exactamente 1.0 == máximo, borde aceptado.
+    # 5 actuales + 5 nuevos = 10 == capacidad: el límite cabe.
     activo = _activo_lote(cantidad_actual=5)
-    infra = InfraPortFake(superficie=Decimal('10'), capacidad_maxima=10)
+    infra = InfraPortFake(superficie=Decimal('10'), densidad=Decimal('1'))
     uc = _uc(db, activo, EventoRepoFake(), infra)
 
     resultado = uc.execute(10, _dto(cantidad_ingresada=5), _usuario())
@@ -235,15 +283,28 @@ def test_ingreso_densidad_resultante_exactamente_en_el_maximo_se_acepta() -> Non
     assert resultado is not None
 
 
-def test_ingreso_sin_capacidad_maxima_configurada_no_bloquea() -> None:
-    db = DbFake()
+def test_ingreso_cuenta_a_todo_el_area_y_no_solo_al_lote() -> None:
+    # DEV-23: el área aloja el lote (5) y otros 3 individuos; capacidad 10. +3 → 11 → 422,
+    # aunque el lote solo (5 + 3 = 8) cabría. Antes se miraba solo el lote.
     activo = _activo_lote(cantidad_actual=5)
-    infra = InfraPortFake(superficie=Decimal('10'), capacidad_maxima=None)
-    uc = _uc(db, activo, EventoRepoFake(), infra)
+    infra = InfraPortFake(superficie=Decimal('10'), densidad=Decimal('1'), ocupacion=8)
 
-    uc.execute(10, _dto(cantidad_ingresada=1000), _usuario())
+    with pytest.raises(BusinessRuleError) as exc:
+        _uc(DbFake(), activo, EventoRepoFake(), infra).execute(10, _dto(cantidad_ingresada=3), _usuario())
 
-    assert activo.detalle_poblacional.cantidad_actual == 1005
+    assert exc.value.code == 'CAPACIDAD_EXCEDIDA'
+
+
+def test_ingreso_con_especie_sin_densidad_es_422() -> None:
+    # DEV-23 (H-12.4): antes, sin capacidad configurada no se validaba nada.
+    activo = _activo_lote(cantidad_actual=5)
+    infra = InfraPortFake(superficie=Decimal('10'), densidad=None)
+
+    with pytest.raises(BusinessRuleError) as exc:
+        _uc(DbFake(), activo, EventoRepoFake(), infra).execute(10, _dto(cantidad_ingresada=1000), _usuario())
+
+    assert exc.value.code == 'ESPECIE_SIN_DENSIDAD'
+    assert activo.detalle_poblacional.cantidad_actual == 5
 
 
 def test_fallo_al_guardar_evento_revierte_la_transaccion() -> None:

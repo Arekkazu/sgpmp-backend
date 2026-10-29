@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                         |
+# |------------|---------|-----------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-30 RF-57: deriva CERRADA a validacion de dominio  |
 from __future__ import annotations
 
 from typing import Optional
@@ -14,7 +17,9 @@ class ActualizarEstadoAlertaDTO(BaseDTO):
     @field_validator('nuevo_estado')
     @classmethod
     def validar_estado(cls, v: str) -> str:
-        validos = {'EN_ATENCION', 'RESUELTA', 'DESCARTADA', 'VENCIDA'}
+        # CERRADA se reconoce como solicitud, pero no pertenece al catálogo:
+        # el dominio la rechaza con TRANSICION_INVALIDA (422).
+        validos = {'EN_ATENCION', 'RESUELTA', 'DESCARTADA', 'VENCIDA', 'CERRADA'}
         v = v.upper()
         if v not in validos:
             raise ValueError(f"nuevo_estado debe ser uno de: {', '.join(validos)}")

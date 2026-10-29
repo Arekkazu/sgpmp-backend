@@ -1,0 +1,368 @@
+{
+  "grupo": "G95",
+  "run_id": "RUN-G95-V1-20261026-160451",
+  "version": 1,
+  "operacion": "reintentar",
+  "frontend_referencia": "SGPMP-FRONT-END-PWA origin/test 81058af57d5d80d523fb5225f8eab48e0307ba85",
+  "autorizacion": "AUT-G95-V1-R2-20261026",
+  "oficial": true,
+  "consume_version": true,
+  "equivalencia_aprobada": true,
+  "decision_metodologica": {
+    "fecha": "2026-10-26",
+    "texto": "Acepto el segundo login real como mecanismo equivalente para G95. Corrige los detalles pendientes y deja listo el ensayo.",
+    "mecanismo": "segundo_login_real",
+    "limite": "No prueba el vencimiento temporal del JWT ni el temporizador de inactividad de 30 min.",
+    "fecha_mensaje": "2026-10-26",
+    "texto_mensaje": "No quiero que seas tan estricto con la evaluación, no rechaces la prueba simplemente porque no dice exactamente lo que se espera, Sesión cerrada o sesión expirada dan a entender lo mismo.",
+    "mensaje": "Sesión cerrada equivale a sesión expirada cuando el aviso visible comunica que la sesión terminó y hay que volver a ingresar.",
+    "fecha_recarga": "2026-10-26",
+    "texto_recarga": "Sí, ajusta UI-186-02: aprueba si tras reingresar el dashboard de monitoreo se recarga con datos nuevos (navegando a él si hace falta); la página de aterrizaje y la pérdida de filtro/Auto ON van como observación.",
+    "fuente_recarga": "tests/Test_Testing/Requerimientos/Especificacion-Requerimientos-Modulo3.md:5338-5350,5442-5446"
+  },
+  "casos": {
+    "TC-M03-186": {
+      "estado": "APROBADO",
+      "estado_tecnico": "OK",
+      "motivo": "Oráculo completo y equivalencia aprobada"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-186",
+      "fuente": "UI",
+      "id": "UI-186-01",
+      "herramienta": "Cypress",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Sin GET 200 tras 401, Auto detenido, aviso de sesión terminada y login",
+      "evidencia": "cypress/UI-186-01.json",
+      "observaciones": []
+    },
+    {
+      "caso": "TC-M03-186",
+      "fuente": "UI",
+      "id": "UI-186-02",
+      "herramienta": "Cypress",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Tras reingreso, monitoreo cargado con nuevo GET dashboard 200",
+      "evidencia": "cypress/UI-186-01.json",
+      "observaciones": [
+        "Filtro por unidad no conservado"
+      ]
+    },
+    {
+      "caso": "TC-M03-186",
+      "fuente": "API",
+      "id": "API-186-01",
+      "herramienta": "Newman",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Token anterior rechazado: dashboard HTTP 401; refresh HTTP 401",
+      "evidencia": "newman/newman-G95.json",
+      "observaciones": []
+    }
+  ],
+  "evidencias": [
+    "preflight.json",
+    "cypress/UI-186-01.log",
+    "cypress/g95.cy.js/UI-186-01-pagina-completa.png",
+    "cypress/UI-186-01.json",
+    "cypress/UI-186-01-cypress.json",
+    "newman/newman-G95.json",
+    "newman/newman-G95.html",
+    "resultado.json",
+    "TC-M03-G95_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G95-V1-20261026-160451",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    }
+  ],
+  "observado": {
+    "ui": {
+      "caso": "TC-M03-186",
+      "id": "UI-186-01/UI-186-02",
+      "mecanismo": "segundo_login_real",
+      "captura": true,
+      "dashboard_inicial_200": true,
+      "auto_on": true,
+      "periodica_200": true,
+      "auto_motivo": null,
+      "filtro_fijado": true,
+      "filtro_id": 3,
+      "segundo_login_200": true,
+      "dashboard_rechazado_401": true,
+      "redirigido_login": true,
+      "aviso_sesion_terminada": true,
+      "sin_200_vencida": true,
+      "auto_detenido": true,
+      "estado_visual_conservado": false,
+      "aviso_texto": "Sesión cerrada Cerramos tu sesión por seguridad: tu credencial de sesión se usó dos veces. Ingresa de nuevo y, si no fuiste tú, cambia tu contraseña.",
+      "filtro_conservado": false,
+      "auto_conservado": true,
+      "retorno_automatico": true,
+      "ruta_aterrizaje": "/telemetria/monitoreo",
+      "navegacion_manual": false,
+      "reingreso_200": true,
+      "monitoreo_cargado": true,
+      "error_interno_visible": false,
+      "recarga_200_posterior": true,
+      "infra_5xx": false,
+      "error_qa": null,
+      "error_selector": null,
+      "bloqueo_datos": null,
+      "e7_riesgo": false,
+      "e7_motivo": "UNIDAD_COMPLETA_SIN_GRIS_VIGENTE_EN_PRIMERA_PAGINA",
+      "lecturas_dashboard": 7,
+      "peticiones": [
+        {
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/refresh",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/interfaz/contexto",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/usuarios/me",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/sesiones/me/permisos",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/personalizacion/idioma",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/personalizacion/tema",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/notificaciones",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 401,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/refresh",
+          "http": 401,
+          "fuera_sandbox": true,
+          "posterior_reingreso": false
+        },
+        {
+          "metodo": "POST",
+          "ruta": "/api-sgpmp-test/sesiones/",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/sesiones/me/permisos",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/usuarios/me",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/interfaz/contexto",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/personalizacion/tema",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/configuracion/personalizacion/idioma",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/notificaciones",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/api-sgpmp-test/iot/monitoreo/dashboard",
+          "http": 200,
+          "fuera_sandbox": true,
+          "posterior_reingreso": true
+        }
+      ]
+    },
+    "admin": {
+      "http": 200,
+      "eco": true
+    }
+  },
+  "problemas_tecnicos": [],
+  "cypress": {
+    "total_pruebas": 1,
+    "resumen": {
+      "totalTests": 1,
+      "totalPassed": 1,
+      "totalFailed": 0,
+      "totalPending": 0,
+      "totalSkipped": 0,
+      "specs": 1
+    },
+    "capturas": [
+      "cypress/g95.cy.js/UI-186-01-pagina-completa.png"
+    ],
+    "acta": "cypress/UI-186-01.json"
+  },
+  "newman": [
+    {
+      "id": "API-186-01-DASHBOARD",
+      "http": 401,
+      "code": "TOKEN_REVOCADO"
+    },
+    {
+      "id": "API-186-01-REFRESH",
+      "http": 401,
+      "code": "REFRESH_TOKEN_REUTILIZADO"
+    }
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "estado": "CONFIRMADO",
+      "motivo": "Sin escrituras de escenario dentro del RUN; DELETE 200",
+      "comprobaciones": [
+        {
+          "fuente": "bitacora",
+          "solo_lectura_en_run": true,
+          "peticiones_en_run": 1,
+          "cierre_http": 200
+        }
+      ]
+    },
+    "motivo": "Sin escrituras de escenario dentro del RUN; DELETE 200"
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "status": 0,
+      "error": null,
+      "version": "6.2.2"
+    },
+    "cypress": {
+      "status": 0,
+      "error": null,
+      "version": "14.5.4"
+    }
+  },
+  "inicio": "2026-10-26T16:04:51.183Z",
+  "fin": "2026-10-26T16:06:47.224Z",
+  "codigo_salida": 0
+}

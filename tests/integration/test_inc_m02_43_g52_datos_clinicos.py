@@ -106,11 +106,11 @@ def _crear_contexto_con_evento_sanitario(db_session: Session, id_usuario_dueno: 
         text(
             """
             INSERT INTO modulo9.fincas (
-                id_finca, nombre, ubicacion, tamano_h, fecha_actualizacion, fecha_creacion, es_activo, id_usuario
-            ) VALUES (:id, :nombre, '{}', 10, now(), now(), true, :id_usuario)
+                id_finca, nombre, ubicacion, tamano_h, fecha_actualizacion, fecha_creacion, es_activo
+            ) VALUES (:id, :nombre, '{}', 10, now(), now(), true)
             """
         ),
-        {"id": sid, "nombre": _nombre_temporal("Finca Prueba Clinica"), "id_usuario": id_usuario_dueno},
+        {"id": sid, "nombre": _nombre_temporal("Finca Prueba Clinica")},
     )
     db_session.execute(
         text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),

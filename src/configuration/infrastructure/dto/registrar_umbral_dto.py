@@ -13,6 +13,9 @@ _NIVELES_REQUERIDOS = {'normal', 'precaucion', 'critico'}
 
 
 class RegistrarUmbralDTO(BaseDTO):
+    """Umbral de una variable para una especie con sus niveles; los niveles no pueden
+    solaparse ni salir del rango.
+    """
     id_especie: int
     id_variable_ambiental: int
     valor_min: Decimal

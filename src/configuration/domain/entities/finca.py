@@ -12,6 +12,8 @@ from src.configuration.domain.value_objects.ubicacion_finca import UbicacionFinc
 
 @dataclass(eq=False)
 class Finca:
+    """Finca productiva (RF-19) con nombre, ubicación geográfica y tamaño en hectáreas.
+    """
     nombre: NombreFinca
     ubicacion: UbicacionFinca
     tamano_h: TamanoH

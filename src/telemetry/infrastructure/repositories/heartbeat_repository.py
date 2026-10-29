@@ -30,6 +30,8 @@ class SqlAlchemyHeartbeatRepository(HeartbeatRepository):
                 fecha_registro=heartbeat.fecha_registro,
                 fecha_recepcion=heartbeat.fecha_recepcion,
                 reloj_sincronizado=heartbeat.reloj_sincronizado,
+                sensores_operativos=heartbeat.sensores_operativos,
+                temperatura_dispositivo=heartbeat.temperatura_dispositivo,
             )
             self.db.add(orm)
             self.db.flush()
@@ -54,4 +56,6 @@ class SqlAlchemyHeartbeatRepository(HeartbeatRepository):
             fecha_registro=orm.fecha_registro,
             fecha_recepcion=orm.fecha_recepcion,
             reloj_sincronizado=orm.reloj_sincronizado,
+            sensores_operativos=orm.sensores_operativos,
+            temperatura_dispositivo=orm.temperatura_dispositivo,
         )

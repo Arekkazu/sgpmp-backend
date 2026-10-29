@@ -1,0 +1,2513 @@
+{
+ "info": {
+  "name": "TC-M09-G138 — SEGUNDA EVALUACIÓN (RF-24 v2.0, precondiciones VISION)",
+  "description": "SEGUNDA EVALUACION de TC-M09-G138 (RF-24 v2.0, CU05 Flujo F), casos TC-M09-278, TC-M09-279, TC-M09-280 y TC-M09-281: las cuatro precondiciones NEGATIVAS del area para la calibracion VISION.\n\nLa coleccion de la primera evaluacion solo consultaba /openapi.json, porque TEST no publicaba la operacion VISION y el runner decidia el oraculo fuera de Newman. Esta copia ejercita los cuatro rechazos y la coleccion pasa a ser DUENA DE SUS SESIONES: hace sus propios logins del Ingeniero y del Administrador y publica los tokens en {{engineer_session}} y {{admin_session}}. El runner no obtiene ningun token ni lo inyecta, porque TEST aplica sesion unica por usuario.\n\nCada caso usa un AREA DISTINTA, con una sola precondicion invalida aislada: A2 sin ninguna camara asociada, A3 con exactamente una camara asociada e inactiva, A4 con modelo de paradigma INDIVIDUAL y camara activa, y A5 con especie AVES pero tipo_modelo_asignado nulo y camara activa. Los cuatro esperan HTTP 422 con el mensaje literal del contrato, construido con el ID REAL de cada area, y ninguno debe publicar linea base.\n\nG138 NO carga observaciones: los cuatro rechazos ocurren ANTES del calculo, asi que POST /iot/telemetria/vision se ejecuta 0 veces. Todo el fixture se crea y se revierte con endpoints oficiales (areas, camaras y la especie INDIVIDUAL que el catalogo no tenia); no se usa SQL para preparar ni corregir nada.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "item": [
+  {
+   "name": "Login Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// La coleccion es duena de sus sesiones: hace sus propios logins y publica los tokens.",
+       "// El runner nunca obtiene un token ni lo inyecta (TEST aplica sesion unica por usuario).",
+       "pm.test('Login Ingeniero — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.expect(b.token, 'token de Ingeniero de Campo').to.be.a('string').and.not.empty;",
+       "pm.environment.set('engineer_session', b.token);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/",
+     "host": [
+      "{{base_url}}/sesiones/"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"correo_electronico\":\"{{ing_email}}\",\"contrasena\":\"{{ing_secret}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Login Administrador",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// La coleccion es duena de sus sesiones: hace sus propios logins y publica los tokens.",
+       "// El runner nunca obtiene un token ni lo inyecta (TEST aplica sesion unica por usuario).",
+       "pm.test('Login Administrador — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.expect(b.token, 'token de Administrador').to.be.a('string').and.not.empty;",
+       "pm.environment.set('admin_session', b.token);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/",
+     "host": [
+      "{{base_url}}/sesiones/"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"correo_electronico\":\"{{adm_email}}\",\"contrasena\":\"{{adm_secret}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Contrato OpenAPI VISION",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Primer control: que TEST publique la operacion de calibracion VISION.",
+       "pm.test('OpenAPI responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const api = pm.response.json();",
+       "const P = api.paths || {};",
+       "const S = (api.components && api.components.schemas) || {};",
+       "const postVision = P['/configuracion/calibraciones-vision'] && P['/configuracion/calibraciones-vision'].post;",
+       "const getVision  = P['/configuracion/calibraciones-vision'] && P['/configuracion/calibraciones-vision'].get;",
+       "const getBase    = P['/configuracion/calibraciones-vision/linea-base'] && P['/configuracion/calibraciones-vision/linea-base'].get;",
+       "pm.test('TEST publica POST /configuracion/calibraciones-vision', () => pm.expect(postVision, 'POST calibraciones-vision').to.exist);",
+       "pm.test('TEST publica GET /configuracion/calibraciones-vision', () => pm.expect(getVision, 'GET historial VISION').to.exist);",
+       "pm.test('TEST publica GET /configuracion/calibraciones-vision/linea-base', () => pm.expect(getBase, 'GET linea base').to.exist);",
+       "pm.environment.set('oa_post_vision', postVision ? 'PRESENTE' : 'AUSENTE');",
+       "pm.environment.set('oa_get_vision', getVision ? 'PRESENTE' : 'AUSENTE');",
+       "pm.environment.set('oa_get_linea_base', getBase ? 'PRESENTE' : 'AUSENTE');",
+       "const dto = S.CalibrarVisionDTO;",
+       "pm.test('CalibrarVisionDTO publicado', () => pm.expect(dto, 'CalibrarVisionDTO').to.exist);",
+       "const props = Object.keys((dto && dto.properties) || {});",
+       "['modo_calibracion', 'area_id', 'ventana_observacion', 'fecha_calibracion', 'observaciones']",
+       "  .forEach(c => pm.test('CalibrarVisionDTO incluye ' + c, () => pm.expect(props).to.include(c)));",
+       "const modo = dto && dto.properties && dto.properties.modo_calibracion;",
+       "const dominio = modo ? (modo.enum || (modo.const !== undefined ? [modo.const] : [])) : [];",
+       "pm.test('modo_calibracion admite VISION', () => pm.expect(dominio).to.include('VISION'));",
+       "const codigos = Object.keys((postVision && postVision.responses) || {});",
+       "pm.test('El POST declara la respuesta 422 de precondicion', () => pm.expect(codigos).to.include('422'));",
+       "pm.environment.set('oa_dto_vision', JSON.stringify(props));",
+       "pm.environment.set('oa_modo_dominio', JSON.stringify(dominio));",
+       "pm.environment.set('oa_codigos_post', JSON.stringify(codigos));",
+       "// Diagnostico: el contrato no nombra los modelos poblacionales, los declara el dominio.",
+       "pm.environment.set('oa_tipos_modelo', JSON.stringify(((S.TipoModeloAsignable || {}).enum) || ((S.EditarInfraestructuraDTO || {}).properties || {}).tipo_modelo_asignado || null));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{base_url}}/openapi.json",
+     "host": [
+      "{{base_url}}/openapi.json"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Identidad Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Identidad Ingeniero — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('Identidad Ingeniero — es el actor esperado', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('ing_email')));",
+       "pm.test('Identidad Ingeniero — rol Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+       "pm.test('Identidad Ingeniero — cuenta Activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+       "// id_usuario dinamico: no se hardcodea.",
+       "pm.environment.set('ing_id', String(b.id_usuario));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/usuarios/me",
+     "host": [
+      "{{base_url}}/usuarios/me"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Identidad Administrador",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Identidad Administrador — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('Identidad Administrador — es el actor esperado', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('adm_email')));",
+       "pm.test('Identidad Administrador — rol Administrador', () => pm.expect(b.nombre_rol).to.eql('Administrador'));",
+       "pm.test('Identidad Administrador — cuenta Activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+       "// id_usuario dinamico: no se hardcodea.",
+       "pm.environment.set('adm_id', String(b.id_usuario));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/usuarios/me",
+     "host": [
+      "{{base_url}}/usuarios/me"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Permisos Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Permisos del Ingeniero — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const acciones = (b.permisos || []).filter(p => p.id_recurso === 12).map(p => p.id_accion);",
+       "pm.environment.set('perm_ing', JSON.stringify(acciones));",
+       "pm.test('El Ingeniero tiene permiso de CREATE sobre el recurso de calibracion', () => pm.expect(acciones).to.include(1));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/me/permisos",
+     "host": [
+      "{{base_url}}/sesiones/me/permisos"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Permisos Administrador",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Permisos del Administrador — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const acciones = (b.permisos || []).filter(p => p.id_recurso === 12).map(p => p.id_accion);",
+       "pm.environment.set('perm_adm', JSON.stringify(acciones));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/me/permisos",
+     "host": [
+      "{{base_url}}/sesiones/me/permisos"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — especie AVES del catálogo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Catálogo de especies — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "// Se REUTILIZA una especie AVES existente: TC-278, TC-279 y TC-281 no crean especie.",
+       "const aves = (b.items || []).filter(x => Number(x.id_especie) === Number(pm.environment.get('especie_aves')))[0];",
+       "pm.test('La especie AVES del fixture existe y está activa', () => { pm.expect(aves, 'especie AVES').to.exist; pm.expect(aves.es_activo).to.eql(true); });",
+       "pm.test('La especie AVES tiene modelo poblacional MODELO_AVES', () => pm.expect(aves.tipo_modelo).to.eql('MODELO_AVES'));",
+       "pm.environment.set('especie_aves_nombre', String(aves.nombre));",
+       "pm.environment.set('especie_aves_modelo', String(aves.tipo_modelo));",
+       "// Para TC-280 hace falta una especie de paradigma INDIVIDUAL; se registra si ya existe alguna.",
+       "const grandes = (b.items || []).filter(x => x.tipo_modelo === 'MODELO_ESPECIES_GRANDES' && x.es_activo);",
+       "const medianas = (b.items || []).filter(x => x.tipo_modelo === 'MODELO_ESPECIES_MEDIANAS' && x.es_activo);",
+       "pm.environment.set('especies_individual_existentes', JSON.stringify({ grandes: grandes.map(x => x.id_especie), medianas: medianas.map(x => x.id_especie) }));",
+       "console.log('especies INDIVIDUAL activas en el catálogo: grandes ' + grandes.length + ', medianas ' + medianas.length);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/especies?solo_activas=true",
+     "host": [
+      "{{base_url}}/configuracion/especies?solo_activas=true"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — tipo de área del catálogo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Catálogo de tipos de área — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const lista = b.items || b || [];",
+       "const t = lista.filter(x => String(x.nombre) === pm.environment.get('area_tipo') && x.es_activo)[0];",
+       "pm.test('El tipo de área del fixture existe y está activo', () => pm.expect(t, 'tipo de área').to.exist);",
+       "pm.environment.set('area_tipo_id', String(t.id_tipo_area));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/tipos-area",
+     "host": [
+      "{{base_url}}/configuracion/tipos-area"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — finca compartida",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Las cuatro áreas del caso viven en una finca a la que ambos actores autorizados acceden.",
+       "pm.test('El Administrador accede a la finca del fixture (200)', () => pm.expect(pm.response.code).to.eql(200));",
+       "const b = pm.response.json();",
+       "pm.test('La finca del fixture está activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.environment.set('finca_nombre', String(b.nombre));",
+       "pm.environment.set('finca_visible_admin', String(pm.response.code === 200));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/fincas/{{finca_id}}",
+     "host": [
+      "{{base_url}}/configuracion/fincas/{{finca_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — finca compartida vista por el Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('El Ingeniero accede a la finca del fixture (200)', () => pm.expect(pm.response.code).to.eql(200));",
+       "pm.environment.set('finca_visible_ingeniero', String(pm.response.code === 200));",
+       "if (pm.response.code !== 200) {",
+       "  pm.environment.set('compuerta_fixture', 'FAIL: el Ingeniero no accede a la finca del fixture');",
+       "  console.log('COMPUERTA FALLIDA: el actor funcional no ve la finca.');",
+       "  postman.setNextRequest(null);",
+       "} else {",
+       "  pm.environment.set('compuerta_fixture', 'PASS: ambos actores acceden a la finca del fixture');",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/fincas/{{finca_id}}",
+     "host": [
+      "{{base_url}}/configuracion/fincas/{{finca_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — inventario previo de áreas y cámaras",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Diagnóstico: por qué no se reutiliza ningún área preexistente. Se registra el inventario",
+       "// completo de cámaras de TEST con su área y su estado.",
+       "pm.test('Inventario de dispositivos — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const cam = (b.items || []).filter(x => String(x.categoria) === 'CAMARA');",
+       "pm.environment.set('inventario_camaras', JSON.stringify(cam.map(x => ({ id: x.id_dispositivo_iot, area: x.id_infraestructura, activa: x.es_activo }))));",
+       "pm.environment.set('inventario_camaras_total', String(cam.length));",
+       "console.log('cámaras en TEST antes del setup: ' + cam.length);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — crear especie de paradigma INDIVIDUAL",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// TC-280 exige una especie cuyo tipo_modelo sea de paradigma INDIVIDUAL. El catálogo de TEST",
+       "// no tiene ninguna activa, y el área solo admite un tipo_modelo_asignado que COINCIDA con el",
+       "// de su especie (INCOHERENCIA_ESPECIE_MODELO), así que hay que registrarla.",
+       "pm.test('SETUP especie — creación 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP especie — tipo_modelo MODELO_ESPECIES_GRANDES', () => pm.expect(b.tipo_modelo).to.eql('MODELO_ESPECIES_GRANDES'));",
+       "pm.test('SETUP especie — queda activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.environment.set('especie_grandes', String(b.id_especie));",
+       "pm.environment.set('especie_grandes_nombre', String(b.nombre));",
+       "pm.environment.set('especie_grandes_creada', 'SI');",
+       "console.log('especie INDIVIDUAL creada: id ' + b.id_especie + ' (' + b.tipo_modelo + ')');"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/especies",
+     "host": [
+      "{{base_url}}/configuracion/especies"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_especie}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — crear área A2 (TC-M09-278)",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_area_base'));",
+       "b.nombre_infraestructura = 'QA-G138-A2-' + pm.environment.get('run_sufijo');",
+       "b.finca_id = Number(pm.environment.get('finca_id'));",
+       "b.especie_id = Number(pm.environment.get('especie_aves'));",
+       "b.descripcion_infraestructura = 'Area poblacional SIN camara para TC-M09-278';",
+       "b.tipo_modelo_asignado = 'MODELO_AVES';",
+       "pm.environment.set('body_area_a2', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('SETUP área A2 (TC-M09-278) — creación 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP área A2 — queda activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP área A2 — pertenece a la finca del fixture', () => pm.expect(Number(b.id_finca)).to.eql(Number(pm.environment.get('finca_id'))));",
+       "pm.test('SETUP área A2 — especie asignada', () => pm.expect(Number(b.especie_id)).to.eql(Number(pm.environment.get('especie_aves'))));",
+       "pm.test('SETUP área A2 — tipo_modelo_asignado MODELO_AVES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));",
+       "pm.environment.set('a2_id', String(b.id_infraestructura));",
+       "pm.environment.set('a2_nombre', String(b.nombre_infraestructura));",
+       "pm.environment.set('a2_modelo', String(b.tipo_modelo_asignado));",
+       "pm.environment.set('a2_especie', String(b.especie_id));",
+       "pm.environment.set('a2_activa', String(b.es_activo));",
+       "console.log('área A2 creada: id ' + b.id_infraestructura + ' modelo ' + b.tipo_modelo_asignado);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_area_a2}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — crear área A3 (TC-M09-279)",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_area_base'));",
+       "b.nombre_infraestructura = 'QA-G138-A3-' + pm.environment.get('run_sufijo');",
+       "b.finca_id = Number(pm.environment.get('finca_id'));",
+       "b.especie_id = Number(pm.environment.get('especie_aves'));",
+       "b.descripcion_infraestructura = 'Area poblacional con UNA camara inactiva para TC-M09-279';",
+       "b.tipo_modelo_asignado = 'MODELO_AVES';",
+       "pm.environment.set('body_area_a3', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('SETUP área A3 (TC-M09-279) — creación 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP área A3 — queda activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP área A3 — pertenece a la finca del fixture', () => pm.expect(Number(b.id_finca)).to.eql(Number(pm.environment.get('finca_id'))));",
+       "pm.test('SETUP área A3 — especie asignada', () => pm.expect(Number(b.especie_id)).to.eql(Number(pm.environment.get('especie_aves'))));",
+       "pm.test('SETUP área A3 — tipo_modelo_asignado MODELO_AVES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));",
+       "pm.environment.set('a3_id', String(b.id_infraestructura));",
+       "pm.environment.set('a3_nombre', String(b.nombre_infraestructura));",
+       "pm.environment.set('a3_modelo', String(b.tipo_modelo_asignado));",
+       "pm.environment.set('a3_especie', String(b.especie_id));",
+       "pm.environment.set('a3_activa', String(b.es_activo));",
+       "console.log('área A3 creada: id ' + b.id_infraestructura + ' modelo ' + b.tipo_modelo_asignado);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_area_a3}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — registrar cámara INACTIVA en A3",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_camara_base'));",
+       "b.serial = pm.environment.get('serial_a3');",
+       "b.id_infraestructura = Number(pm.environment.get('a3_id'));",
+       "b.es_activo = false;",
+       "b.descripcion = 'QA TC-M09-G138 camara INACTIVA de A3';",
+       "pm.environment.set('body_camara_a3', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Se registra INACTIVA desde el origen: la única cámara asociada al área nunca estuvo activa, así que no hay estado previo que restaurar.",
+       "pm.test('SETUP cámara A3 — registro 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP cámara A3 — categoría CAMARA', () => pm.expect(b.categoria).to.eql('CAMARA'));",
+       "pm.test('SETUP cámara A3 — asociada al área del caso', () => pm.expect(Number(b.id_infraestructura)).to.eql(Number(pm.environment.get('a3_id'))));",
+       "pm.test('SETUP cámara A3 — es_activo false desde el registro', () => pm.expect(b.es_activo).to.eql(false));",
+       "pm.environment.set('cam_a3', String(b.id_dispositivo_iot));",
+       "pm.environment.set('cam_a3_activa', String(b.es_activo));",
+       "pm.environment.set('cam_a3_serial_red', String(b.serial || '').slice(0, 14) + '***');",
+       "console.log('cámara de A3 registrada: id ' + b.id_dispositivo_iot + ' activa=' + b.es_activo);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_camara_a3}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — crear área A4 (TC-M09-280)",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_area_base'));",
+       "b.nombre_infraestructura = 'QA-G138-A4-' + pm.environment.get('run_sufijo');",
+       "b.finca_id = Number(pm.environment.get('finca_id'));",
+       "b.especie_id = Number(pm.environment.get('especie_grandes'));",
+       "b.descripcion_infraestructura = 'Area de paradigma INDIVIDUAL con camara activa para TC-M09-280';",
+       "b.tipo_modelo_asignado = 'MODELO_ESPECIES_GRANDES';",
+       "pm.environment.set('body_area_a4', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('SETUP área A4 (TC-M09-280) — creación 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP área A4 — queda activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP área A4 — pertenece a la finca del fixture', () => pm.expect(Number(b.id_finca)).to.eql(Number(pm.environment.get('finca_id'))));",
+       "pm.test('SETUP área A4 — especie asignada', () => pm.expect(Number(b.especie_id)).to.eql(Number(pm.environment.get('especie_grandes'))));",
+       "pm.test('SETUP área A4 — tipo_modelo_asignado MODELO_ESPECIES_GRANDES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_ESPECIES_GRANDES'));",
+       "pm.environment.set('a4_id', String(b.id_infraestructura));",
+       "pm.environment.set('a4_nombre', String(b.nombre_infraestructura));",
+       "pm.environment.set('a4_modelo', String(b.tipo_modelo_asignado));",
+       "pm.environment.set('a4_especie', String(b.especie_id));",
+       "pm.environment.set('a4_activa', String(b.es_activo));",
+       "console.log('área A4 creada: id ' + b.id_infraestructura + ' modelo ' + b.tipo_modelo_asignado);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_area_a4}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — registrar cámara ACTIVA en A4",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_camara_base'));",
+       "b.serial = pm.environment.get('serial_a4');",
+       "b.id_infraestructura = Number(pm.environment.get('a4_id'));",
+       "b.es_activo = true;",
+       "b.descripcion = 'QA TC-M09-G138 camara ACTIVA de A4';",
+       "pm.environment.set('body_camara_a4', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Cámara ACTIVA: la única invalidez de TC-280 debe ser el paradigma del modelo.",
+       "pm.test('SETUP cámara A4 — registro 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP cámara A4 — categoría CAMARA', () => pm.expect(b.categoria).to.eql('CAMARA'));",
+       "pm.test('SETUP cámara A4 — asociada al área del caso', () => pm.expect(Number(b.id_infraestructura)).to.eql(Number(pm.environment.get('a4_id'))));",
+       "pm.test('SETUP cámara A4 — es_activo true desde el registro', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.environment.set('cam_a4', String(b.id_dispositivo_iot));",
+       "pm.environment.set('cam_a4_activa', String(b.es_activo));",
+       "pm.environment.set('cam_a4_serial_red', String(b.serial || '').slice(0, 14) + '***');",
+       "console.log('cámara de A4 registrada: id ' + b.id_dispositivo_iot + ' activa=' + b.es_activo);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_camara_a4}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — crear área A5 (TC-M09-281)",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_area_base'));",
+       "b.nombre_infraestructura = 'QA-G138-A5-' + pm.environment.get('run_sufijo');",
+       "b.finca_id = Number(pm.environment.get('finca_id'));",
+       "b.especie_id = Number(pm.environment.get('especie_aves'));",
+       "b.descripcion_infraestructura = 'Area con especie AVES y tipo_modelo_asignado nulo para TC-M09-281';",
+       "b.tipo_modelo_asignado = null;",
+       "pm.environment.set('body_area_a5', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('SETUP área A5 (TC-M09-281) — creación 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP área A5 — queda activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP área A5 — pertenece a la finca del fixture', () => pm.expect(Number(b.id_finca)).to.eql(Number(pm.environment.get('finca_id'))));",
+       "pm.test('SETUP área A5 — especie asignada', () => pm.expect(Number(b.especie_id)).to.eql(Number(pm.environment.get('especie_aves'))));",
+       "pm.test('SETUP área A5 — tipo_modelo_asignado es null', () => pm.expect(b.tipo_modelo_asignado, 'tipo_modelo_asignado').to.be.null);",
+       "pm.environment.set('a5_id', String(b.id_infraestructura));",
+       "pm.environment.set('a5_nombre', String(b.nombre_infraestructura));",
+       "pm.environment.set('a5_modelo', String(b.tipo_modelo_asignado));",
+       "pm.environment.set('a5_especie', String(b.especie_id));",
+       "pm.environment.set('a5_activa', String(b.es_activo));",
+       "console.log('área A5 creada: id ' + b.id_infraestructura + ' modelo ' + b.tipo_modelo_asignado);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_area_a5}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — registrar cámara ACTIVA en A5",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const b = JSON.parse(pm.environment.get('body_camara_base'));",
+       "b.serial = pm.environment.get('serial_a5');",
+       "b.id_infraestructura = Number(pm.environment.get('a5_id'));",
+       "b.es_activo = true;",
+       "b.descripcion = 'QA TC-M09-G138 camara ACTIVA de A5';",
+       "pm.environment.set('body_camara_a5', JSON.stringify(b));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Cámara ACTIVA: la única invalidez de TC-281 debe ser el modelo nulo.",
+       "pm.test('SETUP cámara A5 — registro 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP cámara A5 — categoría CAMARA', () => pm.expect(b.categoria).to.eql('CAMARA'));",
+       "pm.test('SETUP cámara A5 — asociada al área del caso', () => pm.expect(Number(b.id_infraestructura)).to.eql(Number(pm.environment.get('a5_id'))));",
+       "pm.test('SETUP cámara A5 — es_activo true desde el registro', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.environment.set('cam_a5', String(b.id_dispositivo_iot));",
+       "pm.environment.set('cam_a5_activa', String(b.es_activo));",
+       "pm.environment.set('cam_a5_serial_red', String(b.serial || '').slice(0, 14) + '***');",
+       "console.log('cámara de A5 registrada: id ' + b.id_dispositivo_iot + ' activa=' + b.es_activo);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_camara_a5}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — inventario de cámaras por área del fixture",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Verificación de que cada caso aísla UNA sola precondición inválida.",
+       "pm.test('Inventario de dispositivos — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const cam = (b.items || []).filter(x => String(x.categoria) === 'CAMARA');",
+       "const de = (areaId) => cam.filter(x => Number(x.id_infraestructura) === Number(areaId));",
+       "const a2 = de(pm.environment.get('a2_id'));",
+       "const a3 = de(pm.environment.get('a3_id'));",
+       "const a4 = de(pm.environment.get('a4_id'));",
+       "const a5 = de(pm.environment.get('a5_id'));",
+       "// TC-278 exige CERO cámaras ASOCIADAS, no solo cero activas.",
+       "pm.test('TC-278 — el área A2 no tiene ninguna cámara asociada', () => pm.expect(a2.length).to.eql(0));",
+       "pm.test('TC-279 — el área A3 tiene exactamente UNA cámara asociada', () => pm.expect(a3.length).to.eql(1));",
+       "pm.test('TC-279 — esa única cámara está INACTIVA', () => pm.expect(a3[0].es_activo).to.eql(false));",
+       "pm.test('TC-279 — el área A3 no tiene ninguna cámara activa', () => pm.expect(a3.filter(x => x.es_activo === true).length).to.eql(0));",
+       "pm.test('TC-280 — el área A4 tiene al menos una cámara ACTIVA', () => pm.expect(a4.filter(x => x.es_activo === true).length).to.be.at.least(1));",
+       "pm.test('TC-281 — el área A5 tiene al menos una cámara ACTIVA', () => pm.expect(a5.filter(x => x.es_activo === true).length).to.be.at.least(1));",
+       "const resumen = (l) => ({ asociadas: l.length, activas: l.filter(x => x.es_activo === true).length, ids: l.map(x => x.id_dispositivo_iot) });",
+       "pm.environment.set('cams_a2', JSON.stringify(resumen(a2)));",
+       "pm.environment.set('cams_a3', JSON.stringify(resumen(a3)));",
+       "pm.environment.set('cams_a4', JSON.stringify(resumen(a4)));",
+       "pm.environment.set('cams_a5', JSON.stringify(resumen(a5)));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — área A2 verificada por el Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// El actor funcional (TC-M09-278) debe ver el área: es quien envía el POST.",
+       "pm.test('SETUP A2 — el Ingeniero accede al área (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP A2 — el área está activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP A2 — tiene especie asignada', () => pm.expect(b.especie_id, 'especie_id').to.not.be.null);",
+       "pm.test('SETUP A2 — el modelo es POBLACIONAL (MODELO_AVES)', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));",
+       "pm.environment.set('a2_tipo_real', String(b.tipo_area));",
+       "pm.environment.set('a2_detalle', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a2_id}}",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a2_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — área A3 verificada por el Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// El actor funcional (TC-M09-279) debe ver el área: es quien envía el POST.",
+       "pm.test('SETUP A3 — el Ingeniero accede al área (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP A3 — el área está activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP A3 — tiene especie asignada', () => pm.expect(b.especie_id, 'especie_id').to.not.be.null);",
+       "pm.test('SETUP A3 — el modelo es POBLACIONAL (MODELO_AVES)', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));",
+       "pm.environment.set('a3_tipo_real', String(b.tipo_area));",
+       "pm.environment.set('a3_detalle', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a3_id}}",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a3_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — área A4 verificada por el Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// El actor funcional (TC-M09-280) debe ver el área: es quien envía el POST.",
+       "pm.test('SETUP A4 — el Ingeniero accede al área (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP A4 — el área está activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP A4 — tiene especie asignada', () => pm.expect(b.especie_id, 'especie_id').to.not.be.null);",
+       "pm.test('SETUP A4 — el modelo es de paradigma INDIVIDUAL (MODELO_ESPECIES_GRANDES)', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_ESPECIES_GRANDES'));",
+       "pm.environment.set('a4_tipo_real', String(b.tipo_area));",
+       "pm.environment.set('a4_detalle', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a4_id}}",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a4_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "SETUP — área A5 verificada por el Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// El actor funcional (TC-M09-281) debe ver el área: es quien envía el POST.",
+       "pm.test('SETUP A5 — el Ingeniero accede al área (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('SETUP A5 — el área está activa', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('SETUP A5 — tiene especie asignada', () => pm.expect(b.especie_id, 'especie_id').to.not.be.null);",
+       "pm.test('SETUP A5 — tipo_modelo_asignado es null', () => pm.expect(b.tipo_modelo_asignado, 'tipo_modelo_asignado').to.be.null);",
+       "pm.environment.set('a5_tipo_real', String(b.tipo_area));",
+       "pm.environment.set('a5_detalle', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a5_id}}",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a5_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-278 — línea base del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Se prefirieron áreas SIN línea base previa: lo esperable es 404, para poder demostrar",
+       "// literalmente que no se registra línea base para el área.",
+       "pm.test('PRE TC-M09-278 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('PRE TC-M09-278 — el área arranca sin línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_pre_a2_http', String(pm.response.code));",
+       "pm.environment.set('lb_pre_a2', JSON.stringify(b));",
+       "pm.environment.set('lb_pre_a2_id', String((b && b.id_calibracion_vision) || ''));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-278 — historial VISION del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('PRE TC-M09-278 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "pm.test('PRE TC-M09-278 — el área arranca sin calibraciones VISION', () => pm.expect(Number(b.total)).to.eql(0));",
+       "pm.environment.set('hist_pre_a2_total', String(b.total));",
+       "pm.environment.set('hist_pre_a2_ids', JSON.stringify(ids));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-278 POST calibrar VISION",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Body estructuralmente válido: ventana con fin > inicio y ambos en el pasado. No se",
+       "// introduce ninguna invalidez adicional.",
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_a2', iso);",
+       "pm.environment.set('body_a2_sent', JSON.stringify({",
+       "  modo_calibracion: 'VISION',",
+       "  area_id: Number(pm.environment.get('a2_id')),",
+       "  ventana_observacion: {",
+       "    inicio: pm.environment.get('window_inicio'),",
+       "    fin: pm.environment.get('window_fin')",
+       "  },",
+       "  observaciones: 'QA TC-M09-278',",
+       "  fecha_calibracion: iso",
+       "}));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oráculo del caso: HTTP 422 y MENSAJE LITERAL con el ID REAL del área. La única",
+       "// invalidez de la precondición es: el área no tiene ninguna cámara asociada.",
+       "pm.test('TC-M09-278 — HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+       "pm.test('TC-M09-278 — no es 400', () => pm.expect(pm.response.code).to.not.eql(400));",
+       "pm.test('TC-M09-278 — no es 403', () => pm.expect(pm.response.code).to.not.eql(403));",
+       "pm.test('TC-M09-278 — no es 404', () => pm.expect(pm.response.code).to.not.eql(404));",
+       "pm.test('TC-M09-278 — no es 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "const esperado = pm.environment.get('msg_base').replace('__AREA__', String(pm.environment.get('a2_id')));",
+       "pm.environment.set('msg_esperado_a2', esperado);",
+       "pm.test('TC-M09-278 — mensaje EXACTO con el ID real del área', () => pm.expect(msg).to.eql(esperado));",
+       "pm.test('TC-M09-278 — la respuesta no devuelve id_calibracion_vision', () => pm.expect(b && b.id_calibracion_vision).to.be.undefined);",
+       "pm.environment.set('a2_http', String(pm.response.code));",
+       "pm.environment.set('a2_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('a2_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('a2_mensaje_exacto', msg === esperado ? 'SI' : 'NO');",
+       "pm.environment.set('a2_respuesta', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_a2_sent}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-278 — línea base después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// No debe publicarse ninguna línea base: el área debe seguir sin línea vigente.",
+       "pm.test('TC-M09-278 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('TC-M09-278 — el área sigue SIN línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "pm.test('TC-M09-278 — la línea base no cambió respecto al PRE', () => pm.expect(String(pm.response.code)).to.eql(pm.environment.get('lb_pre_a2_http')));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_post_a2_http', String(pm.response.code));",
+       "pm.environment.set('lb_post_a2', JSON.stringify(b));",
+       "pm.environment.set('lb_post_a2_id', String((b && b.id_calibracion_vision) || ''));",
+       "// STOP_ALL: si un rechazo de precondición publicara línea base, no se arriesgan más POST.",
+       "if (pm.response.code === 200) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-278', area: pm.environment.get('a2_id'), linea_base: b, nota: 'un rechazo 422 de precondicion publico linea base: defecto grave de integridad; no se ejecutan mas POST funcionales y no se borra nada' }));",
+       "  console.log('STOP_ALL: se publicó línea base en un rechazo de precondición.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a2_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-278 — historial VISION después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('TC-M09-278 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "const pre = JSON.parse(pm.environment.get('hist_pre_a2_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.test('TC-M09-278 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('hist_pre_a2_total'))));",
+       "pm.test('TC-M09-278 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "// Registro de cualquier calibración VISION inesperada; una EXITOSA sería inadmisible.",
+       "const exitosas = (b.items || []).filter(x => String(x.estado) === 'EXITOSA');",
+       "pm.test('TC-M09-278 — no aparece ninguna calibración VISION exitosa', () => pm.expect(exitosas).to.eql([]));",
+       "pm.environment.set('hist_post_a2_total', String(b.total));",
+       "pm.environment.set('hist_post_a2_ids', JSON.stringify(ids));",
+       "pm.environment.set('hist_post_a2_nuevos', JSON.stringify(nuevos));",
+       "pm.environment.set('hist_post_a2_exitosas', JSON.stringify(exitosas));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a2_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-279 — línea base del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Se prefirieron áreas SIN línea base previa: lo esperable es 404, para poder demostrar",
+       "// literalmente que no se registra línea base para el área.",
+       "pm.test('PRE TC-M09-279 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('PRE TC-M09-279 — el área arranca sin línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_pre_a3_http', String(pm.response.code));",
+       "pm.environment.set('lb_pre_a3', JSON.stringify(b));",
+       "pm.environment.set('lb_pre_a3_id', String((b && b.id_calibracion_vision) || ''));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a3_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a3_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-279 — historial VISION del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('PRE TC-M09-279 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "pm.test('PRE TC-M09-279 — el área arranca sin calibraciones VISION', () => pm.expect(Number(b.total)).to.eql(0));",
+       "pm.environment.set('hist_pre_a3_total', String(b.total));",
+       "pm.environment.set('hist_pre_a3_ids', JSON.stringify(ids));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a3_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a3_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-279 POST calibrar VISION",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Body estructuralmente válido: ventana con fin > inicio y ambos en el pasado. No se",
+       "// introduce ninguna invalidez adicional.",
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_a3', iso);",
+       "pm.environment.set('body_a3_sent', JSON.stringify({",
+       "  modo_calibracion: 'VISION',",
+       "  area_id: Number(pm.environment.get('a3_id')),",
+       "  ventana_observacion: {",
+       "    inicio: pm.environment.get('window_inicio'),",
+       "    fin: pm.environment.get('window_fin')",
+       "  },",
+       "  observaciones: 'QA TC-M09-279',",
+       "  fecha_calibracion: iso",
+       "}));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oráculo del caso: HTTP 422 y MENSAJE LITERAL con el ID REAL del área. La única",
+       "// invalidez de la precondición es: su única cámara asociada está inactiva.",
+       "pm.test('TC-M09-279 — HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+       "pm.test('TC-M09-279 — no es 400', () => pm.expect(pm.response.code).to.not.eql(400));",
+       "pm.test('TC-M09-279 — no es 403', () => pm.expect(pm.response.code).to.not.eql(403));",
+       "pm.test('TC-M09-279 — no es 404', () => pm.expect(pm.response.code).to.not.eql(404));",
+       "pm.test('TC-M09-279 — no es 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "const esperado = pm.environment.get('msg_base').replace('__AREA__', String(pm.environment.get('a3_id')));",
+       "pm.environment.set('msg_esperado_a3', esperado);",
+       "pm.test('TC-M09-279 — mensaje EXACTO con el ID real del área', () => pm.expect(msg).to.eql(esperado));",
+       "pm.test('TC-M09-279 — la respuesta no devuelve id_calibracion_vision', () => pm.expect(b && b.id_calibracion_vision).to.be.undefined);",
+       "pm.environment.set('a3_http', String(pm.response.code));",
+       "pm.environment.set('a3_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('a3_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('a3_mensaje_exacto', msg === esperado ? 'SI' : 'NO');",
+       "pm.environment.set('a3_respuesta', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_a3_sent}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-279 — línea base después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// No debe publicarse ninguna línea base: el área debe seguir sin línea vigente.",
+       "pm.test('TC-M09-279 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('TC-M09-279 — el área sigue SIN línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "pm.test('TC-M09-279 — la línea base no cambió respecto al PRE', () => pm.expect(String(pm.response.code)).to.eql(pm.environment.get('lb_pre_a3_http')));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_post_a3_http', String(pm.response.code));",
+       "pm.environment.set('lb_post_a3', JSON.stringify(b));",
+       "pm.environment.set('lb_post_a3_id', String((b && b.id_calibracion_vision) || ''));",
+       "// STOP_ALL: si un rechazo de precondición publicara línea base, no se arriesgan más POST.",
+       "if (pm.response.code === 200) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-279', area: pm.environment.get('a3_id'), linea_base: b, nota: 'un rechazo 422 de precondicion publico linea base: defecto grave de integridad; no se ejecutan mas POST funcionales y no se borra nada' }));",
+       "  console.log('STOP_ALL: se publicó línea base en un rechazo de precondición.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a3_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a3_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-279 — historial VISION después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('TC-M09-279 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "const pre = JSON.parse(pm.environment.get('hist_pre_a3_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.test('TC-M09-279 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('hist_pre_a3_total'))));",
+       "pm.test('TC-M09-279 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "// Registro de cualquier calibración VISION inesperada; una EXITOSA sería inadmisible.",
+       "const exitosas = (b.items || []).filter(x => String(x.estado) === 'EXITOSA');",
+       "pm.test('TC-M09-279 — no aparece ninguna calibración VISION exitosa', () => pm.expect(exitosas).to.eql([]));",
+       "pm.environment.set('hist_post_a3_total', String(b.total));",
+       "pm.environment.set('hist_post_a3_ids', JSON.stringify(ids));",
+       "pm.environment.set('hist_post_a3_nuevos', JSON.stringify(nuevos));",
+       "pm.environment.set('hist_post_a3_exitosas', JSON.stringify(exitosas));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a3_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a3_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-280 — línea base del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Se prefirieron áreas SIN línea base previa: lo esperable es 404, para poder demostrar",
+       "// literalmente que no se registra línea base para el área.",
+       "pm.test('PRE TC-M09-280 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('PRE TC-M09-280 — el área arranca sin línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_pre_a4_http', String(pm.response.code));",
+       "pm.environment.set('lb_pre_a4', JSON.stringify(b));",
+       "pm.environment.set('lb_pre_a4_id', String((b && b.id_calibracion_vision) || ''));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a4_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a4_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-280 — historial VISION del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('PRE TC-M09-280 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "pm.test('PRE TC-M09-280 — el área arranca sin calibraciones VISION', () => pm.expect(Number(b.total)).to.eql(0));",
+       "pm.environment.set('hist_pre_a4_total', String(b.total));",
+       "pm.environment.set('hist_pre_a4_ids', JSON.stringify(ids));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a4_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a4_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-280 POST calibrar VISION",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Body estructuralmente válido: ventana con fin > inicio y ambos en el pasado. No se",
+       "// introduce ninguna invalidez adicional.",
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_a4', iso);",
+       "pm.environment.set('body_a4_sent', JSON.stringify({",
+       "  modo_calibracion: 'VISION',",
+       "  area_id: Number(pm.environment.get('a4_id')),",
+       "  ventana_observacion: {",
+       "    inicio: pm.environment.get('window_inicio'),",
+       "    fin: pm.environment.get('window_fin')",
+       "  },",
+       "  observaciones: 'QA TC-M09-280',",
+       "  fecha_calibracion: iso",
+       "}));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oráculo del caso: HTTP 422 y MENSAJE LITERAL con el ID REAL del área. La única",
+       "// invalidez de la precondición es: el modelo asignado es de paradigma INDIVIDUAL, no poblacional.",
+       "pm.test('TC-M09-280 — HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+       "pm.test('TC-M09-280 — no es 400', () => pm.expect(pm.response.code).to.not.eql(400));",
+       "pm.test('TC-M09-280 — no es 403', () => pm.expect(pm.response.code).to.not.eql(403));",
+       "pm.test('TC-M09-280 — no es 404', () => pm.expect(pm.response.code).to.not.eql(404));",
+       "pm.test('TC-M09-280 — no es 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "const esperado = pm.environment.get('msg_base').replace('__AREA__', String(pm.environment.get('a4_id')));",
+       "pm.environment.set('msg_esperado_a4', esperado);",
+       "pm.test('TC-M09-280 — mensaje EXACTO con el ID real del área', () => pm.expect(msg).to.eql(esperado));",
+       "pm.test('TC-M09-280 — la respuesta no devuelve id_calibracion_vision', () => pm.expect(b && b.id_calibracion_vision).to.be.undefined);",
+       "pm.environment.set('a4_http', String(pm.response.code));",
+       "pm.environment.set('a4_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('a4_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('a4_mensaje_exacto', msg === esperado ? 'SI' : 'NO');",
+       "pm.environment.set('a4_respuesta', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_a4_sent}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-280 — línea base después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// No debe publicarse ninguna línea base: el área debe seguir sin línea vigente.",
+       "pm.test('TC-M09-280 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('TC-M09-280 — el área sigue SIN línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "pm.test('TC-M09-280 — la línea base no cambió respecto al PRE', () => pm.expect(String(pm.response.code)).to.eql(pm.environment.get('lb_pre_a4_http')));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_post_a4_http', String(pm.response.code));",
+       "pm.environment.set('lb_post_a4', JSON.stringify(b));",
+       "pm.environment.set('lb_post_a4_id', String((b && b.id_calibracion_vision) || ''));",
+       "// STOP_ALL: si un rechazo de precondición publicara línea base, no se arriesgan más POST.",
+       "if (pm.response.code === 200) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-280', area: pm.environment.get('a4_id'), linea_base: b, nota: 'un rechazo 422 de precondicion publico linea base: defecto grave de integridad; no se ejecutan mas POST funcionales y no se borra nada' }));",
+       "  console.log('STOP_ALL: se publicó línea base en un rechazo de precondición.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a4_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a4_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-280 — historial VISION después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('TC-M09-280 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "const pre = JSON.parse(pm.environment.get('hist_pre_a4_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.test('TC-M09-280 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('hist_pre_a4_total'))));",
+       "pm.test('TC-M09-280 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "// Registro de cualquier calibración VISION inesperada; una EXITOSA sería inadmisible.",
+       "const exitosas = (b.items || []).filter(x => String(x.estado) === 'EXITOSA');",
+       "pm.test('TC-M09-280 — no aparece ninguna calibración VISION exitosa', () => pm.expect(exitosas).to.eql([]));",
+       "pm.environment.set('hist_post_a4_total', String(b.total));",
+       "pm.environment.set('hist_post_a4_ids', JSON.stringify(ids));",
+       "pm.environment.set('hist_post_a4_nuevos', JSON.stringify(nuevos));",
+       "pm.environment.set('hist_post_a4_exitosas', JSON.stringify(exitosas));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a4_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a4_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-281 — línea base del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Se prefirieron áreas SIN línea base previa: lo esperable es 404, para poder demostrar",
+       "// literalmente que no se registra línea base para el área.",
+       "pm.test('PRE TC-M09-281 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('PRE TC-M09-281 — el área arranca sin línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_pre_a5_http', String(pm.response.code));",
+       "pm.environment.set('lb_pre_a5', JSON.stringify(b));",
+       "pm.environment.set('lb_pre_a5_id', String((b && b.id_calibracion_vision) || ''));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a5_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a5_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "PRE TC-M09-281 — historial VISION del área",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('PRE TC-M09-281 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "pm.test('PRE TC-M09-281 — el área arranca sin calibraciones VISION', () => pm.expect(Number(b.total)).to.eql(0));",
+       "pm.environment.set('hist_pre_a5_total', String(b.total));",
+       "pm.environment.set('hist_pre_a5_ids', JSON.stringify(ids));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a5_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a5_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-281 POST calibrar VISION",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Body estructuralmente válido: ventana con fin > inicio y ambos en el pasado. No se",
+       "// introduce ninguna invalidez adicional.",
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_a5', iso);",
+       "pm.environment.set('body_a5_sent', JSON.stringify({",
+       "  modo_calibracion: 'VISION',",
+       "  area_id: Number(pm.environment.get('a5_id')),",
+       "  ventana_observacion: {",
+       "    inicio: pm.environment.get('window_inicio'),",
+       "    fin: pm.environment.get('window_fin')",
+       "  },",
+       "  observaciones: 'QA TC-M09-281',",
+       "  fecha_calibracion: iso",
+       "}));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oráculo del caso: HTTP 422 y MENSAJE LITERAL con el ID REAL del área. La única",
+       "// invalidez de la precondición es: el área no tiene tipo_modelo_asignado (null).",
+       "pm.test('TC-M09-281 — HTTP 422', () => pm.expect(pm.response.code).to.eql(422));",
+       "pm.test('TC-M09-281 — no es 400', () => pm.expect(pm.response.code).to.not.eql(400));",
+       "pm.test('TC-M09-281 — no es 403', () => pm.expect(pm.response.code).to.not.eql(403));",
+       "pm.test('TC-M09-281 — no es 404', () => pm.expect(pm.response.code).to.not.eql(404));",
+       "pm.test('TC-M09-281 — no es 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "const esperado = pm.environment.get('msg_base').replace('__AREA__', String(pm.environment.get('a5_id')));",
+       "pm.environment.set('msg_esperado_a5', esperado);",
+       "pm.test('TC-M09-281 — mensaje EXACTO con el ID real del área', () => pm.expect(msg).to.eql(esperado));",
+       "pm.test('TC-M09-281 — la respuesta no devuelve id_calibracion_vision', () => pm.expect(b && b.id_calibracion_vision).to.be.undefined);",
+       "pm.environment.set('a5_http', String(pm.response.code));",
+       "pm.environment.set('a5_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('a5_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('a5_mensaje_exacto', msg === esperado ? 'SI' : 'NO');",
+       "pm.environment.set('a5_respuesta', JSON.stringify(b));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_a5_sent}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-281 — línea base después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// No debe publicarse ninguna línea base: el área debe seguir sin línea vigente.",
+       "pm.test('TC-M09-281 — línea base 404 o 2xx', () => pm.expect([200, 404]).to.include(pm.response.code));",
+       "pm.test('TC-M09-281 — el área sigue SIN línea base vigente', () => pm.expect(pm.response.code).to.eql(404));",
+       "pm.test('TC-M09-281 — la línea base no cambió respecto al PRE', () => pm.expect(String(pm.response.code)).to.eql(pm.environment.get('lb_pre_a5_http')));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('lb_post_a5_http', String(pm.response.code));",
+       "pm.environment.set('lb_post_a5', JSON.stringify(b));",
+       "pm.environment.set('lb_post_a5_id', String((b && b.id_calibracion_vision) || ''));",
+       "// STOP_ALL: si un rechazo de precondición publicara línea base, no se arriesgan más POST.",
+       "if (pm.response.code === 200) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ caso: 'TC-M09-281', area: pm.environment.get('a5_id'), linea_base: b, nota: 'un rechazo 422 de precondicion publico linea base: defecto grave de integridad; no se ejecutan mas POST funcionales y no se borra nada' }));",
+       "  console.log('STOP_ALL: se publicó línea base en un rechazo de precondición.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a5_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a5_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-281 — historial VISION después del rechazo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('TC-M09-281 — historial 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion_vision);",
+       "const pre = JSON.parse(pm.environment.get('hist_pre_a5_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.test('TC-M09-281 — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('hist_pre_a5_total'))));",
+       "pm.test('TC-M09-281 — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "// Registro de cualquier calibración VISION inesperada; una EXITOSA sería inadmisible.",
+       "const exitosas = (b.items || []).filter(x => String(x.estado) === 'EXITOSA');",
+       "pm.test('TC-M09-281 — no aparece ninguna calibración VISION exitosa', () => pm.expect(exitosas).to.eql([]));",
+       "pm.environment.set('hist_post_a5_total', String(b.total));",
+       "pm.environment.set('hist_post_a5_ids', JSON.stringify(ids));",
+       "pm.environment.set('hist_post_a5_nuevos', JSON.stringify(nuevos));",
+       "pm.environment.set('hist_post_a5_exitosas', JSON.stringify(exitosas));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a5_id}}",
+     "host": [
+      "{{base_url}}/configuracion/calibraciones-vision?area_id={{a5_id}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Auditoría RF-10 de los rechazos (evidencia complementaria)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// RFC-006 puede registrar los rechazos con resultado FALLIDO. Eso NO es una línea base:",
+       "// se distingue la auditoría del rechazo (esperable) de la calibración o la línea base (prohibidas).",
+       "pm.test('Auditoría RF-10 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ing = Number(pm.environment.get('ing_id'));",
+       "const areas = ['a2', 'a3', 'a4', 'a5'].map(k => Number(pm.environment.get(k + '_id')));",
+       "const rechazos = (b.items || []).filter(e => {",
+       "  const d = e.detalle || {};",
+       "  const esVision = String(d.operacion || '') === 'CALIBRACION_VISION';",
+       "  const delCaso = d.id_infraestructura !== undefined && areas.indexOf(Number(d.id_infraestructura)) >= 0;",
+       "  const fallido = e.resultado === undefined ? d.exitoso === false : String(e.resultado).toLowerCase() !== 'exitoso';",
+       "  return esVision && delCaso && fallido && (Number(e.id_usuario) === ing || Number(d.id_usuario) === ing);",
+       "}).map(e => ({ id_evento: e.id_evento, tipo_evento: e.tipo_evento, resultado: e.resultado, area: (e.detalle || {}).id_infraestructura, codigo_http: (e.detalle || {}).codigo_http, codigo_error: (e.detalle || {}).codigo_error }));",
+       "const exitosos = (b.items || []).filter(e => {",
+       "  const d = e.detalle || {};",
+       "  return String(d.operacion || '') === 'CALIBRACION_VISION' && areas.indexOf(Number(d.id_infraestructura)) >= 0 &&",
+       "         (e.resultado === undefined ? d.exitoso === true : String(e.resultado).toLowerCase() === 'exitoso');",
+       "});",
+       "pm.test('No existe ningún evento RF-10 de calibración VISION EXITOSA en las áreas del caso', () => pm.expect(exitosos).to.eql([]));",
+       "pm.environment.set('auditoria_rechazos', JSON.stringify(rechazos));",
+       "pm.environment.set('auditoria_exitosos', JSON.stringify(exitosos));",
+       "console.log('auditoría RF-10: ' + rechazos.length + ' rechazo(s) correlacionado(s), ' + exitosos.length + ' éxito(s)');"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/auditoria/?id_usuario={{ing_id}}&fecha_desde={{auditoria_desde}}&tamano=50",
+     "host": [
+      "{{base_url}}/auditoria/?id_usuario={{ing_id}}&fecha_desde={{auditoria_desde}}&tamano=50"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — la cámara de A3 sigue inactiva (sin escritura)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN cámara A3 — consulta 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('RESTAURACIÓN cámara A3 — sigue inactiva, como se registró', () => pm.expect(b.es_activo).to.eql(false));",
+       "pm.environment.set('cam_a3_final', String(b.es_activo));",
+       "pm.environment.set('cam_a3_sin_cambio_de_estado', 'SI');"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot/{{cam_a3}}",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot/{{cam_a3}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar la cámara de A4",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN cámara A4 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('RESTAURACIÓN cámara A4 — queda inactiva', () => pm.expect(b.es_activo).to.eql(false));",
+       "pm.environment.set('cam_a4_final', String(b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot/{{cam_a4}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot/{{cam_a4}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar la cámara de A5",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN cámara A5 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('RESTAURACIÓN cámara A5 — queda inactiva', () => pm.expect(b.es_activo).to.eql(false));",
+       "pm.environment.set('cam_a5_final', String(b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot/{{cam_a5}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot/{{cam_a5}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar el área A2",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN área A2 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('a2_final_activa', String(b && b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a2_id}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a2_id}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar el área A3",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN área A3 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('a3_final_activa', String(b && b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a3_id}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a3_id}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar el área A4",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN área A4 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('a4_final_activa', String(b && b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a4_id}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a4_id}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar el área A5",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN área A5 — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('a5_final_activa', String(b && b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{a5_id}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{a5_id}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — desactivar la especie creada",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('RESTAURACIÓN especie — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "pm.environment.set('especie_grandes_final', String(b && b.es_activo));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{admin_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/especies/{{especie_grandes}}/desactivar",
+     "host": [
+      "{{base_url}}/configuracion/especies/{{especie_grandes}}/desactivar"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "RESTAURACIÓN — estado final del fixture verificado",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Verificación final — 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const cam = (b.items || []).filter(x => String(x.categoria) === 'CAMARA');",
+       "const creadas = ['a3', 'a4', 'a5'].map(k => Number(pm.environment.get('cam_' + k)));",
+       "const vivas = cam.filter(x => creadas.indexOf(Number(x.id_dispositivo_iot)) >= 0 && x.es_activo === true);",
+       "pm.test('Ninguna cámara creada por el fixture queda activa', () => pm.expect(vivas.map(x => x.id_dispositivo_iot)).to.eql([]));",
+       "pm.environment.set('camaras_creadas_activas', JSON.stringify(vivas.map(x => x.id_dispositivo_iot)));",
+       "pm.environment.set('inventario_camaras_final', JSON.stringify(cam.map(x => ({ id: x.id_dispositivo_iot, area: x.id_infraestructura, activa: x.es_activo }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{engineer_session}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot"
+     ]
+    }
+   },
+   "response": []
+  }
+ ]
+}

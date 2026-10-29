@@ -61,6 +61,12 @@ def registrar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaEspecieItemResponse:
+    """Registra una patología para una especie activa (RF-16).
+
+    **Acceso:** `patologias` · Crear.
+
+    Nombre único dentro de la especie (409).
+    """
     use_case = RegistrarPatologiaUseCase(
         db=db,
         especie_patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
@@ -86,6 +92,10 @@ def consultar_patologias(
     solo_activas: bool = Query(False, description="Si es true, solo devuelve patologías activas."),
     db: Session = Depends(get_db),
 ) -> PatologiasPorEspecieResponse:
+    """Patologías de una especie; `solo_activas` filtra las vigentes (RF-16).
+
+    **Acceso:** `patologias` · Leer.
+    """
     use_case = ConsultarPatologiasUseCase(
         especie_patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
     )
@@ -114,6 +124,12 @@ def editar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaEspecieItemResponse:
+    """Edita una patología activa (RF-16).
+
+    **Acceso:** `patologias` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarPatologiaUseCase(
         db=db,
         especie_patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
@@ -140,6 +156,12 @@ def desactivar_patologia(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PatologiaEspecieItemResponse:
+    """Desactiva una patología (RF-16).
+
+    **Acceso:** `patologias` · Desactivar.
+
+    Responde 422 si está referenciada en eventos sanitarios.
+    """
     use_case = DesactivarPatologiaUseCase(
         db=db,
         especie_patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),

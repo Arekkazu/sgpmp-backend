@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -16,7 +20,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Response
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -24,6 +28,7 @@ from src.prediction.application.use_cases.versiones_modelo.activar_version_model
 from src.prediction.application.use_cases.versiones_modelo.consultar_versiones_use_case import ConsultarVersionesUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_notas_version_use_case import RegistrarNotasVersionUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_version_modelo_use_case import RegistrarVersionModeloUseCase
+from src.prediction.infrastructure.adapters.aviso_version_modelo_email_adapter import AvisoVersionModeloEmailAdapter
 from src.prediction.infrastructure.adapters.variable_i3p1_m09_adapter import VariableI3P1M09Adapter
 from src.prediction.infrastructure.dto.registrar_notas_version_dto import RegistrarNotasVersionDTO
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
@@ -44,6 +49,7 @@ _RECURSO = 43  # modulo1.recursos: 'version_modelo'
     response_model=VersionModeloResponse,
     status_code=201,
     responses={
+        200: {"model": VersionModeloResponse, "description": "Versión registrada con estado RECHAZADO (RF-69 E3)"},
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
@@ -52,6 +58,7 @@ _RECURSO = 43  # modulo1.recursos: 'version_modelo'
     summary="Registrar nueva versión de modelo IA desde RF-71 (RF-69 — solo interno)",
 )
 async def registrar_version_modelo(
+    response: Response,
     x_rf71_internal_key: Optional[str] = Header(None, alias="X-RF71-Internal-Key"),
     db: Session = Depends(get_db),
     dto: RegistrarVersionModeloDTO = Depends(),
@@ -61,8 +68,12 @@ async def registrar_version_modelo(
         repo=SqlAlchemyVersionModeloRepository(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         variable_port=VariableI3P1M09Adapter(db),
+        aviso_port=AvisoVersionModeloEmailAdapter(db),
     )
     entidad = use_case.execute(dto, internal_key=x_rf71_internal_key)
+    # RF-69 E3 (DEV-34): la versión se registra igual, pero RECHAZADO por métricas responde 200.
+    if entidad.estado_version == "RECHAZADO":
+        response.status_code = 200
     return VersionModeloResponse.from_entity(entidad)
 
 
@@ -162,6 +173,7 @@ def registrar_notas(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "La versión no está en estado APROBADO (RF-69 E4)"},
         422: {"model": ErrorResponse},
     },
     summary="Activar versión APROBADA de modelo IA (RF-69 Fase 5 — atómico)",

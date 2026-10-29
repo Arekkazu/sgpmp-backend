@@ -1,3 +1,5 @@
+"""Caso de uso: registro de mediciones de crecimiento (RF-40)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -24,6 +26,12 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class RegistrarEventoCrecimientoUseCase:
+    """Registra una medición (peso, talla...) validada contra los parámetros de la especie en M09.
+
+    El tipo de medición debe estar configurado y el valor dentro de su rango. En un
+    lote exige peso promedio y cantidad medida, y recalcula biomasa y densidad.
+    Requiere fase activa y un estado que permita eventos.
+    """
 
     def __init__(
         self,

@@ -120,19 +120,26 @@ def test_retirar_la_finca_revoca_el_acceso_sin_tocar_al_propietario(
     productor = crear_usuario_db(id_rol=rol_sin_alcance_global)
     veterinario = crear_usuario_db(id_rol=rol_sin_alcance_global)
     id_finca = _finca_con_propietario(db_session, productor["id_usuario"])
+    # F4: ningún rol es global; el administrador solo asigna fincas a las que
+    # tiene acceso (en el alta real queda asignado como creador).
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": admin["id_usuario"], "f": id_finca},
+    )
     headers = crear_auth_headers(admin)
     url = f"/usuarios/{veterinario['id_usuario']}/fincas"
 
-    client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)
+    primera = client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)
+    assert primera.status_code == 200, primera.text
     r = client.put(url, json={"ids_fincas": []}, headers=headers)
 
     assert r.status_code == 200, r.text
     assert _permitidas(db_session, veterinario["id_usuario"], rol_sin_alcance_global) == []
     assert _permitidas(db_session, productor["id_usuario"], rol_sin_alcance_global) == [id_finca]
-    dueno = db_session.execute(
-        text("SELECT id_usuario FROM modulo9.fincas WHERE id_finca = :id"), {"id": id_finca},
-    ).scalar()
-    assert dueno == productor["id_usuario"]
+    # F3 retiró fincas.id_usuario: la API muestra como asignado el primer acceso activo.
+    db_session.expire_all()
+    finca = SqlAlchemyFincaRepository(db_session).obtener_por_id(id_finca)
+    assert finca is not None and finca.id_usuario == productor["id_usuario"]
 
     # Volver a asignarla reactiva la misma fila, sin duplicar.
     client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)
@@ -160,3 +167,23 @@ def test_finca_inexistente_responde_404(
 
     assert r.status_code == 404
     assert r.json()["error_code"] == "FINCA_NO_ENCONTRADA"
+
+
+def test_usuario_eliminado_responde_410(
+    client, db_session, crear_usuario_db, crear_auth_headers, rol_sin_alcance_global,
+) -> None:
+    admin = crear_usuario_db(id_rol=ID_ROL_ADMINISTRADOR)
+    eliminado = crear_usuario_db(id_rol=rol_sin_alcance_global)
+    db_session.execute(
+        text("UPDATE modulo1.cuentas_usuarios SET id_estado_cuenta = 5 WHERE id_usuario = :u"),
+        {"u": eliminado["id_usuario"]},
+    )
+
+    r = client.put(
+        f"/usuarios/{eliminado['id_usuario']}/fincas",
+        json={"ids_fincas": []},
+        headers=crear_auth_headers(admin),
+    )
+
+    assert r.status_code == 410
+    assert r.json()["error_code"] == "USUARIO_ELIMINADO"

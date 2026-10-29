@@ -14,6 +14,9 @@ class VersionModeloResponse(BaseModel):
     id_version_modelo: int
     nombre_version: str
     tipo_modelo: Optional[str]
+    paradigma: Optional[str] = None
+    componente: Optional[str] = None
+    metricas_poblacionales: Optional[dict] = None
     estado_version: str
     formato_artefacto: Optional[str]
     tamanio_artefacto_bytes: Optional[int]
@@ -27,7 +30,7 @@ class VersionModeloResponse(BaseModel):
     accuracy: Optional[Decimal]
     roc_auc_score: Optional[Decimal]
     recall_por_clase: Optional[dict]
-    matriz_confusion: Optional[dict]
+    matriz_confusion: Optional[list]  # matriz NxN: lista de filas
     compatibilidad_variables: Optional[list]
     notas_validacion: Optional[str]
     detalle_validacion: Optional[str]
@@ -42,6 +45,9 @@ class VersionModeloResponse(BaseModel):
             id_version_modelo=e.id_version_modelo,
             nombre_version=e.nombre_version,
             tipo_modelo=e.tipo_modelo,
+            paradigma=e.paradigma,
+            componente=e.componente,
+            metricas_poblacionales=e.metricas_poblacionales,
             estado_version=e.estado_version,
             formato_artefacto=e.formato_artefacto,
             tamanio_artefacto_bytes=e.tamanio_artefacto_bytes,

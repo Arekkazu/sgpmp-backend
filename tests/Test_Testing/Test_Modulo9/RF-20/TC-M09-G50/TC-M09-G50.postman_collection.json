@@ -1,46 +1,363 @@
 {
   "info": {
-    "name": "RF-20 - TC-M09-G50 Edicion de un area productiva existente",
-    "description": "Automatiza TC-M09-101: lee el estado 'antes' de un area productiva existente, la edita con datos validos distintos (nombre, superficie) usando el fecha_actualizacion devuelto (FA-14), y compara contra el estado 'despues' leido de forma independiente. BLOQUEADO: EditarInfraestructuraUseCase revalida tipo_area contra modulo9.tipos_area en cada edicion (linea 73 de editar_infraestructura_use_case.py), igual que el registro (ver tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md) -- esa tabla no existe en el servidor de test compartido, asi que CUALQUIER edicion falla con 500 sin importar los datos enviados. Usa un area ya existente en el entorno (id=1) porque crear una nueva tambien esta bloqueada.",
+    "name": "RF-20 - TC-M09-G50 Edicion de un area productiva existente y cambio de especie",
+    "description": "RF-20 v1.1 (RFC-009). TC-M09-101: lee el estado 'antes' de un area propia, la edita con datos validos distintos (nombre, superficie, descripcion) conservando especie y modelo, usando el fecha_actualizacion devuelto (FA-14), y compara contra una lectura independiente. TC-M09-259: un area de la especie A con 2 lotes de esa especie alojados (registrados via M02) rechaza el cambio a la especie B con 422 AREA_CON_ACTIVOS_DE_OTRA_ESPECIE (conteo y especie en el mensaje) y no cambia; un area equivalente sin activos acepta el mismo cambio. La coleccion crea su propia finca, especies, areas y activos.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
-    { "key": "token_admin", "value": "" },
-    { "key": "id_infraestructura", "value": "1" },
-    { "key": "fecha_actualizacion_antes", "value": "" },
-    { "key": "nombre_antes", "value": "" }
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_especie_a",
+      "value": ""
+    },
+    {
+      "key": "id_especie_a_nombre",
+      "value": ""
+    },
+    {
+      "key": "id_especie_b",
+      "value": ""
+    },
+    {
+      "key": "id_especie_b_nombre",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura",
+      "value": ""
+    },
+    {
+      "key": "antes_fecha",
+      "value": ""
+    },
+    {
+      "key": "antes_fecha_raw",
+      "value": ""
+    },
+    {
+      "key": "nombre_antes",
+      "value": ""
+    },
+    {
+      "key": "superficie_antes",
+      "value": ""
+    },
+    {
+      "key": "id_area_con_activos",
+      "value": ""
+    },
+    {
+      "key": "con_activos_fecha",
+      "value": ""
+    },
+    {
+      "key": "con_activos_fecha_raw",
+      "value": ""
+    },
+    {
+      "key": "id_area_sin_activos",
+      "value": ""
+    },
+    {
+      "key": "sin_activos_fecha",
+      "value": ""
+    },
+    {
+      "key": "sin_activos_fecha_raw",
+      "value": ""
+    },
+    {
+      "key": "nombre_area",
+      "value": ""
+    },
+    {
+      "key": "fecha_raw",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Paso 1 - Login Administrador",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo', sufijo);"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
-              "const json = pm.response.json();",
-              "pm.collectionVariables.set('token_admin', json.token);"
+              "pm.collectionVariables.set('token_admin', pm.response.json().token);"
             ]
           }
         }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
-          "options": { "raw": { "language": "json" } }
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
       },
       "response": []
     },
     {
-      "name": "Paso 2 - Leer el area existente (estado 'antes')",
+      "name": "Paso 2 - Registrar una finca propia para la prueba",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_finca', pm.response.json().id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Edicion Area {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Registrar especie A (MODELO_AVES)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie activa con tipo_modelo MODELO_AVES', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "    pm.expect(json.tipo_modelo).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_especie_a', json.id_especie);",
+              "pm.collectionVariables.set('id_especie_a_nombre', json.nombre);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves Edicion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G50\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Registrar especie B (MODELO_PORCINOS) para el cambio de especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie activa con tipo_modelo MODELO_PORCINOS', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "    pm.expect(json.tipo_modelo).to.eql('MODELO_PORCINOS');",
+              "});",
+              "pm.collectionVariables.set('id_especie_b', json.id_especie);",
+              "pm.collectionVariables.set('id_especie_b_nombre', json.nombre);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Porcinos Edicion {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G50\",\n  \"densidad_maxima_por_especie\": \"50.00\",\n  \"tipo_modelo\": \"MODELO_PORCINOS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - Registrar el area a editar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace con la especie y el modelo enviados', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_infraestructura', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque-01\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 6 - Leer el area existente (estado 'antes')",
       "event": [
         {
           "listen": "test",
@@ -50,12 +367,10 @@
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
               "console.log('Estado ANTES: ' + JSON.stringify(json));",
-              "// Se guarda como fragmento JSON ya listo para insertar SIN comillas",
-              "// adicionales en el body: 'null' literal si nunca se edito (ver FA-14",
-              "// en curls_m09_cu04_infraestructura.md), o la fecha entre comillas.",
+              "// Fragmento JSON listo para insertar sin comillas extra: 'null' si nunca se edito (FA-14).",
               "const fechaFragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
-              "pm.collectionVariables.set('fecha_actualizacion_antes_raw', fechaFragmento);",
-              "pm.collectionVariables.set('fecha_actualizacion_antes', json.fecha_actualizacion);",
+              "pm.collectionVariables.set('antes_fecha_raw', fechaFragmento);",
+              "pm.collectionVariables.set('antes_fecha', json.fecha_actualizacion);",
               "pm.collectionVariables.set('nombre_antes', json.nombre_infraestructura);",
               "pm.collectionVariables.set('superficie_antes', json.superficie);"
             ]
@@ -64,17 +379,28 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-101 - Editar el area con datos validos distintos [BLOQUEADO: ver NOTA_BLOQUEO de TC-M09-G48]",
+      "name": "TC-M09-101 - Editar el area con datos validos distintos",
       "event": [
         {
           "listen": "test",
@@ -84,16 +410,19 @@
               "pm.test('Edicion aceptada (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
               "console.log('Estado DESPUES (respuesta del PATCH): ' + JSON.stringify(json));",
-              "",
               "pm.test('nombre cambio respecto al estado anterior', function () {",
               "    pm.expect(json.nombre_infraestructura).to.not.eql(pm.collectionVariables.get('nombre_antes'));",
               "    pm.expect(json.nombre_infraestructura).to.eql('Estanque Editado TC-M09-G50');",
               "});",
-              "pm.test('superficie actualizada correctamente', function () {",
+              "pm.test('superficie cambio de ' + pm.collectionVariables.get('superficie_antes') + ' a 2750.50', function () {",
               "    pm.expect(parseFloat(json.superficie)).to.eql(2750.5);",
               "});",
+              "pm.test('especie y modelo se conservan', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});",
               "pm.test('fecha_actualizacion rotada respecto al estado anterior', function () {",
-              "    pm.expect(json.fecha_actualizacion).to.not.eql(pm.collectionVariables.get('fecha_actualizacion_antes'));",
+              "    pm.expect(json.fecha_actualizacion).to.not.eql(pm.collectionVariables.get('antes_fecha'));",
               "});"
             ]
           }
@@ -102,24 +431,40 @@
       "request": {
         "method": "PATCH",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Estanque Editado TC-M09-G50\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2750.50\",\n  \"descripcion_infraestructura\": \"Editado por TC-M09-101\",\n  \"fecha_actualizacion\": {{fecha_actualizacion_antes_raw}}\n}",
-          "options": { "raw": { "language": "json" } }
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque Editado TC-M09-G50\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2750.50\",\n  \"descripcion_infraestructura\": \"Editado por TC-M09-101\",\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\",\n  \"fecha_actualizacion\": {{antes_fecha_raw}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
         "url": {
           "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "Paso 4 - Confirmar que el area no cambio (la edicion fallida no debe alterar nada)",
+      "name": "TC-M09-101 - Confirmar de forma independiente que la edicion quedo persistida",
       "event": [
         {
           "listen": "test",
@@ -128,10 +473,313 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "console.log('Estado tras el intento fallido: ' + JSON.stringify(json));",
-              "pm.test('nombre y superficie siguen siendo los originales', function () {",
-              "    pm.expect(json.nombre_infraestructura).to.eql(pm.collectionVariables.get('nombre_antes'));",
-              "    pm.expect(json.superficie).to.eql(pm.collectionVariables.get('superficie_antes'));",
+              "console.log('Estado DESPUES (lectura independiente): ' + JSON.stringify(json));",
+              "pm.test('nombre, superficie y descripcion persistidos con los valores editados', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Estanque Editado TC-M09-G50');",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(2750.5);",
+              "    pm.expect(json.descripcion_infraestructura).to.eql('Editado por TC-M09-101');",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "});",
+              "pm.test('fecha_actualizacion registrada', function () { pm.expect(json.fecha_actualizacion).to.not.eql(null); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 1 - Registrar area A (especie A) que alojara activos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace con la especie y el modelo enviados', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_area_con_activos', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque Con Activos\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 2 - Alojar lote 1 de la especie A en el area A (M02)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo registrado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Activo: ' + JSON.stringify(json));",
+              "pm.test('Alojado en el area y de la especie actual', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_area_con_activos'));",
+              "    pm.expect(json.id_especie).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie_a}},\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_area_con_activos}},\n  \"cantidad_inicial\": 10,\n  \"detalles_procedencia\": \"Lote 1 de prueba TC-M09-259\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 3 - Alojar lote 2 de la especie A en el area A (M02)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo registrado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Activo: ' + JSON.stringify(json));",
+              "pm.test('Alojado en el area y de la especie actual', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_area_con_activos'));",
+              "    pm.expect(json.id_especie).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie_a}},\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_area_con_activos}},\n  \"cantidad_inicial\": 20,\n  \"detalles_procedencia\": \"Lote 2 de prueba TC-M09-259\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 4 - Leer el area A antes del cambio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado ANTES: ' + JSON.stringify(json));",
+              "// Fragmento JSON listo para insertar sin comillas extra: 'null' si nunca se edito (FA-14).",
+              "const fechaFragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
+              "pm.collectionVariables.set('con_activos_fecha_raw', fechaFragmento);",
+              "pm.collectionVariables.set('con_activos_fecha', json.fecha_actualizacion);",
+              "pm.collectionVariables.set('nombre_area', json.nombre_infraestructura);",
+              "pm.collectionVariables.set('fecha_raw', fechaFragmento);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_activos}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259a - Rechaza cambiar a especie B un area con 2 activos de la especie A (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo AREA_CON_ACTIVOS_DE_OTRA_ESPECIE', function () { pm.expect(json.error_code).to.eql('AREA_CON_ACTIVOS_DE_OTRA_ESPECIE'); });",
+              "pm.test('Senala el campo especie_id', function () { pm.expect(JSON.stringify(json.fields)).to.include('especie_id'); });",
+              "pm.test('El mensaje informa el conteo (2 activos) y la especie alojada', function () {",
+              "    pm.expect(json.message).to.include('2 activos');",
+              "    pm.expect(json.message).to.include(pm.collectionVariables.get('id_especie_a_nombre'));",
+              "});",
+              "pm.test('El mensaje indica trasladar o desvincular los activos', function () {",
+              "    pm.expect(json.message).to.include('Traslade o desvincule');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"{{nombre_area}}\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"especie_id\": {{id_especie_b}},\n  \"tipo_modelo_asignado\": \"MODELO_PORCINOS\",\n  \"fecha_actualizacion\": {{fecha_raw}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_activos}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259a - Relectura: el area A conserva especie A y MODELO_AVES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('No se aplico el cambio de especie ni de modelo', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "    pm.expect(json.fecha_actualizacion).to.eql(pm.collectionVariables.get('con_activos_fecha'));",
               "});"
             ]
           }
@@ -139,11 +787,213 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_con_activos}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 5 - Registrar area B equivalente (especie A) sin activos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Nace con la especie y el modelo enviados', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_a'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_area_sin_activos', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque Sin Activos\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"especie_id\": {{id_especie_a}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259 - Paso 6 - Leer el area B antes del cambio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado ANTES: ' + JSON.stringify(json));",
+              "// Fragmento JSON listo para insertar sin comillas extra: 'null' si nunca se edito (FA-14).",
+              "const fechaFragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
+              "pm.collectionVariables.set('sin_activos_fecha_raw', fechaFragmento);",
+              "pm.collectionVariables.set('sin_activos_fecha', json.fecha_actualizacion);",
+              "pm.collectionVariables.set('nombre_area', json.nombre_infraestructura);",
+              "pm.collectionVariables.set('fecha_raw', fechaFragmento);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_activos}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259b - Permite cambiar a especie B el area sin activos alojados (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cambio aceptado (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Queda con especie B y MODELO_PORCINOS', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_b'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_PORCINOS');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"{{nombre_area}}\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"especie_id\": {{id_especie_b}},\n  \"tipo_modelo_asignado\": \"MODELO_PORCINOS\",\n  \"fecha_actualizacion\": {{fecha_raw}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_activos}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-259b - Relectura: el cambio de especie quedo persistido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Persisten especie B y MODELO_PORCINOS', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_b'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_PORCINOS');",
+              "    pm.expect(json.fecha_actualizacion).to.not.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_activos}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_sin_activos}}"
+          ]
         }
       },
       "response": []

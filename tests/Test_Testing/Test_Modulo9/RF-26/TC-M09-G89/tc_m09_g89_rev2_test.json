@@ -1,0 +1,58 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g89-rf26-rev2-test",
+    "name": "TC-M09-G89 rev2 TEST - Consulta auditoria identidad visual",
+    "description": "Reevaluacion TC-M09-169 en TEST. No modifica tc_m09_g89.json. OpenAPI TEST no declara GET de auditorias_visuales. Password via --env-var. La ejecucion rev2 se documenta en Resultados; no se relanzo Newman para no duplicar PATCH.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo", "value": "admin@pecuaria.co" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "finca_id", "value": "4" }
+  ],
+  "item": [
+    {
+      "name": "00 - Login Admin TEST",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

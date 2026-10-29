@@ -204,7 +204,7 @@ def test_sin_fase_productiva_activa_se_audita_como_rechazado() -> None:
         bitacora_repo=bitacora,
     )
     dto = RegistrarEventoProductivoDTO(
-        tipo_producto='LECHE',
+        id_metrica_produccion=1,
         cantidad_producida=Decimal('2.5'),
         unidad_medida='L',
         fecha_evento=date.today(),

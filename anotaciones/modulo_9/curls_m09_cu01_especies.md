@@ -71,7 +71,9 @@ Respuesta esperada `200`:
 ## Flujo B — Editar especie (Admin o Ingeniero de Campo)
 
 `fecha_actualizacion` debe ser el valor exacto que devolvió el sistema al
-consultar la especie (control de concurrencia optimista).
+consultar la especie (control de concurrencia optimista). Una especie que nunca
+se editó la tiene en `null`: se envía `null` (o se omite), nunca la hora del
+cliente, que no coincide con la BD y responde `412` (INC-M09-62-G03).
 
 ```bash
 curl -X PATCH http://localhost:8000/configuracion/especies/1 \
@@ -84,10 +86,24 @@ curl -X PATCH http://localhost:8000/configuracion/especies/1 \
   }'
 ```
 
+Primera edición de una especie recién registrada (`fecha_actualizacion: null` en el GET):
+
+```bash
+curl -X PATCH http://localhost:8000/configuracion/especies/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Bovino Lechero",
+    "descripcion": "Primera edición",
+    "fecha_actualizacion": null
+  }'
+```
+
 Errores posibles:
 - `404` — especie no existe
 - `409` — nombre ya pertenece a otra especie
-- `412` — concurrencia: la especie fue modificada por otro usuario
+- `412` — concurrencia: la especie fue modificada por otro usuario (el valor enviado,
+  incluido `null`, no coincide con el almacenado)
 - `422` — especie inactiva (debe reactivarse primero)
 
 ---

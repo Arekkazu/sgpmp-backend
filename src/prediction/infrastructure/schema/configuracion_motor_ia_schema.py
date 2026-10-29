@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,8 +17,11 @@ class ConfiguracionMotorIAResponse(BaseModel):
 
     id_configuracion_motor: int
     tipo_modelo: str
-    umbral_riesgo_alto: Decimal
-    umbral_alerta_critica: Decimal
+    paradigma: Optional[str] = None
+    umbral_riesgo_alto: Optional[Decimal] = None
+    umbral_alerta_critica: Optional[Decimal] = None
+    umbral_score_anomalia: Optional[Decimal] = None
+    versiones_activas_por_componente: Optional[dict[str, int]] = None
     ventana_temporal_min: int
     modo_ejecucion: str
     id_version_modelo_activa: Optional[int] = None
@@ -37,8 +43,11 @@ class ConfiguracionMotorIAResponse(BaseModel):
         return cls(
             id_configuracion_motor=entidad.id_configuracion_motor,
             tipo_modelo=entidad.tipo_modelo,
+            paradigma=entidad.paradigma,
             umbral_riesgo_alto=entidad.umbral_riesgo_alto,
             umbral_alerta_critica=entidad.umbral_alerta_critica,
+            umbral_score_anomalia=entidad.umbral_score_anomalia,
+            versiones_activas_por_componente=entidad.versiones_activas_por_componente,
             ventana_temporal_min=entidad.ventana_temporal_min,
             modo_ejecucion=entidad.modo_ejecucion,
             id_version_modelo_activa=entidad.id_version_modelo_activa,
@@ -60,3 +69,63 @@ class ConfiguracionMotorIAResponse(BaseModel):
 class ConfiguracionMotorIAListResponse(BaseModel):
     total: int
     items: list[ConfiguracionMotorIAResponse]
+
+
+class SincronizacionNodoSchema(BaseModel):
+    """Estado de la configuración en un nodo Edge (``modulo4.sincronizacion_nodos_edge``)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_dispositivo_iot: int
+    serial: str
+    config_version_servidor: int
+    config_version_nodo: Optional[int] = None
+    estado_sincronizacion: str  # APLICADA | PENDIENTE | FALLIDA | DESINCRONIZADO
+    intentos_sincronizacion: int
+    fecha_ultimo_intento: Optional[datetime] = None
+    fecha_aplicacion: Optional[datetime] = None
+    motivo_fallo: Optional[str] = None
+
+
+class SincronizacionMotorSchema(BaseModel):
+    """Estado consolidado de la configuración en los nodos Edge del tipo_modelo (DEV-09)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    estado: str
+    mensaje: str
+    nodos: list[SincronizacionNodoSchema]
+
+
+class VersionConfiguracionMotorSchema(BaseModel):
+    """Una versión de la configuración (RF-65 Restricción 5, DEV-36)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    config_version: int
+    vigente: bool
+    # UPDATE/DELETE que reemplazó esta versión (null en la vigente).
+    operacion: Optional[str] = None
+    id_usuario_responsable: int
+    vigente_desde: Optional[datetime] = None
+    vigente_hasta: Optional[datetime] = None
+    # Usuario que la reemplazó (null en la vigente y en DELETE).
+    id_usuario_cambio: Optional[int] = None
+    configuracion: dict
+
+
+class HistorialConfiguracionMotorSchema(BaseModel):
+    """Historial append-only de ``modulo4.configuracion_ia_log`` más la versión vigente."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    tipo_modelo: str
+    config_version_vigente: Optional[int] = None
+    total: int
+    versiones: list[VersionConfiguracionMotorSchema]
+
+
+class ConfiguracionMotorIAGuardadaResponse(ConfiguracionMotorIAResponse):
+    """Respuesta de POST /prediccion/motor-ia: la configuración guardada y su sincronización."""
+
+    sincronizacion: SincronizacionMotorSchema

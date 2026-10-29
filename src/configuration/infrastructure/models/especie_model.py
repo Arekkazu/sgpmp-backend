@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-19 RF-15: mapea esperanza_vida_dias (RFC-014) |
 """Modelo ORM para la tabla `modulo9.especies`.
 
 Catálogo maestro de especies productivas gestionadas en la plataforma.
@@ -58,5 +61,14 @@ class EspecieModel(Base):
         comment=(
             'Densidad máxima permitida para lotes de la especie, expresada '
             'en individuos por unidad de superficie (RF-36).'
+        ),
+    )
+    # RFC-014 (DB-07): días; NULL = no definida. CHECK > 0 en la BD.
+    esperanza_vida_dias: Mapped[Optional[int]] = mapped_column(Integer)
+    grupo_manejo: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        comment=(
+            'Clasificación productiva de la especie (RF-15 v1.1). Determina el '
+            'tipo_modelo_asignado admisible de sus áreas (RF-20), mapeo 1:1 AVES -> MODELO_AVES.'
         ),
     )

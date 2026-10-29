@@ -219,3 +219,61 @@ def test_ca8_aplica_alcance_y_registra_rechazos_con_postgresql(
         },
     ).scalar_one()
     assert intentos == 3
+
+
+def test_g105_productor_solo_ve_la_bitacora_de_sus_fincas_con_postgresql(
+    db_session: Session,
+    crear_usuario_db,
+) -> None:
+    """INC-M02-63-G105 (#490): el filtro por fincas aplica a toda clasificación.
+
+    Antes el Productor solo quedaba limitado en ACCESO_DATOS; con el activo de
+    otra finca leía CONTROL_ESTADO, SANITARIO, etc. (200 con 4 registros).
+    """
+    productor = crear_usuario_db(id_rol=_id_rol(db_session, 'Productor'))
+    otro_productor = crear_usuario_db(id_rol=_id_rol(db_session, 'Productor'))
+    activo_propio = _crear_activo_desde_fixture(db_session, productor['id_usuario'])
+    activo_ajeno = _crear_activo_desde_fixture(db_session, otro_productor['id_usuario'])
+    # _crear_activo_desde_fixture usa el mismo id para finca, área y activo.
+    finca_propia = activo_propio
+    db_session.execute(
+        text('INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)'),
+        {'u': productor['id_usuario'], 'f': finca_propia},
+    )
+
+    repo = SqlAlchemyBitacoraAuditoriaRepository(db_session)
+    for activo, usuario in ((activo_propio, productor), (activo_ajeno, otro_productor)):
+        for clasificacion in ('CONTROL_ESTADO', 'TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'GESTION_OPERATIVA'):
+            repo.registrar(_evento(activo, clasificacion, usuario['id_usuario']))
+    repo.registrar(_evento(None, 'GESTION_OPERATIVA', productor['id_usuario']))
+    repo.registrar(_evento(None, 'GESTION_OPERATIVA', otro_productor['id_usuario']))
+
+    caso = ConsultarBitacoraUseCase(db_session, repo, SqlAlchemyRolRepository(db_session))
+    usuario = _usuario(productor)
+
+    with pytest.raises(AuthorizationError) as denegado:
+        caso.execute(ConsultarBitacoraDTO(id_activo_biologico=activo_ajeno), usuario, [finca_propia])
+    assert denegado.value.status_code == 403
+
+    eventos, total = caso.execute(ConsultarBitacoraDTO(page_size=100), usuario, [finca_propia])
+    assert total == len(eventos)
+    assert {e.clasificacion_biologica for e in eventos if e.id_activo_biologico == activo_propio} == {
+        'CONTROL_ESTADO', 'TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'GESTION_OPERATIVA',
+    }
+    assert all(
+        e.id_activo_biologico == activo_propio
+        or (e.id_activo_biologico is None and e.id_usuario_responsable == productor['id_usuario'])
+        for e in eventos
+    ), [(e.id_activo_biologico, e.id_usuario_responsable) for e in eventos]
+
+    intentos = db_session.execute(
+        text(
+            """
+            SELECT count(*) FROM modulo2.bitacora_auditoria_m02
+            WHERE tipo_evento = 'ACCESO_NO_AUTORIZADO'
+              AND id_usuario_responsable = :productor AND id_activo_biologico = :activo
+            """
+        ),
+        {'productor': productor['id_usuario'], 'activo': activo_ajeno},
+    ).scalar_one()
+    assert intentos == 1

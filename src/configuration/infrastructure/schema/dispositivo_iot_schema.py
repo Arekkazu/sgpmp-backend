@@ -2,19 +2,26 @@
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
 
 
 class DispositivoIotResponse(BaseModel):
+    """Dispositivo IoT registrado."""
     id_dispositivo_iot: int
     serial: str
     descripcion: str
     id_infraestructura: int
     id_tipo_dispositivo: int
+    categoria: Optional[str] = None  # SENSOR | CAMARA, derivada del tipo
     es_activo: bool
     fecha_creacion: datetime.datetime
+    id_dispositivo_gateway: Optional[int] = None
+    resolucion: Optional[str] = None
+    fps: Optional[int] = None
+    area_cobertura_m2: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}
 
@@ -26,11 +33,17 @@ class DispositivoIotResponse(BaseModel):
             descripcion=dispositivo.descripcion,
             id_infraestructura=dispositivo.id_infraestructura,
             id_tipo_dispositivo=dispositivo.id_tipo_dispositivo,
+            categoria=dispositivo.categoria,
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
+            id_dispositivo_gateway=dispositivo.id_dispositivo_gateway,
+            resolucion=dispositivo.resolucion,
+            fps=dispositivo.fps,
+            area_cobertura_m2=dispositivo.area_cobertura_m2,
         )
 
 
 class ListaDispositivosIotResponse(BaseModel):
+    """Dispositivos IoT visibles para el usuario."""
     total: int
     items: list[DispositivoIotResponse]

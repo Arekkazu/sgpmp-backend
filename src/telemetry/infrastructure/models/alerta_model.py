@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,7 +45,8 @@ class AlertaModel(Base):
 
     fecha_evento: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     fecha_generacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fecha_registro: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # La columna es NOT NULL DEFAULT now(): sin server_default el ORM inserta NULL explícito.
+    fecha_registro: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), server_default=func.now())
     fecha_notificacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     fecha_atencion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     fecha_resolucion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
@@ -61,13 +62,13 @@ class AlertaModel(Base):
         Integer, ForeignKey('modulo2.activos_biologicos.id_activo_biologico')
     )
     id_infraestructura: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo9.infraestructura.id_infraestructura')
+        Integer, ForeignKey('modulo9.infraestructuras.id_infraestructura')
     )
     id_evento_edge_computing: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo3.eventos_edge_computing.id_evento_edge_computing')
     )
     id_telemetria: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo3.telemetria.id_telemetria')
+        Integer, ForeignKey('modulo3.telemetrias.id_telemetria')
     )
     id_paquete_inferencia: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo3.paquetes_inferencia.id_paquetes_inferencia')

@@ -1,0 +1,42 @@
+TC-M02-G08 rev4 RF-33 TEST
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G08/tc_m02_g08_rev4.json
+Fecha UTC: 2026-09-26T04:16:35.8350035Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: productor@pecuaria.co (id_usuario=2). Password via env. JWT redactado.
+No sobrescribe rev3/rev2.
+
+Newman exit 0. 9 requests, 38 assertions, 0 fallidas.
+Exit 0 no se usa como veredicto automatico; se verifico HTTP/body/GET/historial/restore.
+
+CODIGO rama laura (sin modificar):
+RegistrarActivoBiologicoUseCase NO contiene DENSIDAD_MAXIMA_NO_CONFIGURADA.
+TEST desplegado SI lo exigia en rev3 sobre especie 4.
+Densidad inicial del lote = cantidad/superficie (0.05 = 25/500).
+EspecieM09Adapter local no mapea densidad_maxima_por_especie; TEST GET especies SI expone el campo.
+
+PRECONDICION DENSIDAD (READ-ONLY):
+GET /configuracion/especies?solo_activas=true HTTP 200
+Especie 4 Cachama Blanca activa, densidad_maxima_por_especie=null (sigue sin servir para 005).
+Unica especie activa con densidad: id_especie=5 Mojarra Plateada densidad_maxima_por_especie=5.0000
+SELECT modulo9.especies: 1 fila con densidad no null = especie 5.
+GET metricas especie 5: 0 metricas (peso_destete es de especie 4 / G12; no se uso).
+Se documento el cambio de especie 4 -> 5. Objetivo poblacional RF-33 se mantiene.
+
+Finca: id_finca=1 Finca Acuicola El Remanso, activa, id_usuario=2.
+Infra: id_infraestructura=3 Alevinera-01, activa, superficie=500.00, finca 1.
+
+TC-M02-004: APROBADO (rev3, no reejecutado). Activo historico 480 restaurado INACTIVO en rev3.
+
+TC-M02-005: APROBADO
+POST /activos-biologicos POBLACIONAL especie 5 infra 3 nacimiento cantidad_inicial=25 peso_promedio_inicial=2.5
+HTTP 201 id_activo_biologico=496 tipo=POBLACIONAL estado ACTIVO identificador=null
+detalle: cantidad_inicial=25 cantidad_actual=25 peso_promedio_inicial=2.5000 densidad=0.05
+GET 496 HTTP 200 mismos datos.
+GET historial HTTP 200 total_registros=1 categoria=CREACION descripcion Registro inicial
+snapshot id_activo=496 cantidad_inicial=25.
+PATCH /496/estado INACTIVO HTTP 200 estado_anterior=1 estado_nuevo=2
+GET 496 post-restore nombre_estado=INACTIVO id_estado=2. No DELETE. No DML.
+
+TC-M02-G08: APROBADO (004 rev3 + 005 rev4).
+
+No commit. No push. No merge. No codigo productivo.

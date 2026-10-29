@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas y parámetros      |
 """Entidades del reporte de gastos acumulados (RF-77 / CU-04).
 
 Python puro, sin SQLAlchemy ni FastAPI. ``ReporteGasto`` es el agregado de
@@ -36,6 +39,34 @@ class FiltrosReporteGasto:
     @property
     def dias(self) -> int:
         return (self.fecha_fin - self.fecha_inicio).days + 1
+
+    @property
+    def meses(self) -> int:
+        return max(1, round(self.dias / 30.44))
+
+    def a_dict(self) -> dict:
+        """Parámetros guardados para regenerar el reporte (RF-77 RNF "Historial de reportes")."""
+        return {
+            "fecha_inicio": self.fecha_inicio.isoformat(),
+            "fecha_fin": self.fecha_fin.isoformat(),
+            "tipo_periodo": self.tipo_periodo,
+            "id_activo_biologico": self.id_activo_biologico,
+            "id_infraestructura": self.id_infraestructura,
+            "id_especie": self.id_especie,
+            "categorias_incluidas": self.categorias_incluidas,
+        }
+
+    @classmethod
+    def desde_dict(cls, datos: dict) -> "FiltrosReporteGasto":
+        return cls(
+            fecha_inicio=date.fromisoformat(datos["fecha_inicio"]),
+            fecha_fin=date.fromisoformat(datos["fecha_fin"]),
+            tipo_periodo=datos.get("tipo_periodo") or GranularidadDesglose.CICLO_COMPLETO.value,
+            id_activo_biologico=datos.get("id_activo_biologico"),
+            id_infraestructura=datos.get("id_infraestructura"),
+            id_especie=datos.get("id_especie"),
+            categorias_incluidas=datos.get("categorias_incluidas"),
+        )
 
 
 @dataclass(frozen=True)
@@ -110,3 +141,26 @@ class ReporteGasto:
     id_reporte_gasto_acumulado: Optional[int] = None
     id_usuario: Optional[int] = None
     fecha_generacion: Optional[datetime] = None
+    parametros: Optional[dict] = None
+    # Líneas del período (no se persisten): alimentan la exportación PDF/CSV.
+    lineas: list[LineaGasto] = field(default_factory=list)
+
+    @property
+    def estado(self) -> str:
+        return "SIN_DATOS" if self.sin_datos else "GENERADO"
+
+    @property
+    def mensaje(self) -> Optional[str]:
+        """Mensaje de RF-77 E1 cuando no hay gastos con costo en el período."""
+        if not self.sin_datos:
+            return None
+        alcance = (
+            f"el activo {self.id_activo_biologico}" if self.id_activo_biologico is not None
+            else f"la infraestructura {self.id_infraestructura}" if self.id_infraestructura is not None
+            else f"la especie {self.id_especie}"
+        )
+        return (
+            f"No se encontraron registros de gastos con costo registrado para {alcance} en el período "
+            f"{self.fecha_inicio.isoformat()} – {self.fecha_fin.isoformat()}. Verifique que los registros "
+            "tengan costo_unitario definido."
+        )

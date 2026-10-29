@@ -1,11 +1,19 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Validaciones compartidas por los use cases de eventos y edición del activo (RF-35,
+RF-39, RF-44).
+"""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.fechas import fecha_usuario
 
 # RF-39: estados que permiten registro de eventos
 _ESTADOS_PERMITEN_EVENTOS = {1, 3, 4}  # ACTIVO, EN_TRATAMIENTO, AISLADO
@@ -62,6 +70,9 @@ def validar_historial_consistente(activo: ActivoBiologico, historico_repo: Histo
 
 
 def validar_estado_permite_eventos(activo: ActivoBiologico) -> None:
+    """Solo ACTIVO, EN_TRATAMIENTO y AISLADO admiten eventos nuevos; otro estado
+    responde 409.
+    """
     if activo.id_estado not in _ESTADOS_PERMITEN_EVENTOS:
         estado_actual = _NOMBRES_ESTADO.get(activo.id_estado, str(activo.id_estado))
         raise ConflictError(
@@ -74,11 +85,29 @@ def validar_estado_permite_eventos(activo: ActivoBiologico) -> None:
         )
 
 
+def no_anterior_a_creacion(fecha: date, fecha_dt: datetime, activo: ActivoBiologico) -> datetime:
+    """Instante a persistir para un evento cuya ``fecha`` es solo día.
+
+    ``trg_fn_evento_fecha_coherente`` exige ``fecha >= fecha_creacion`` exacta
+    del activo. Un evento del mismo día (en la zona del usuario) en que se creó el activo,
+    fijado a medianoche o fin de día UTC, puede caer antes de esa hora y el
+    trigger lo rechazaba; se sube a la hora de creación. Un día anterior a la
+    creación se deja tal cual: el trigger lo rechaza con 400.
+    """
+    creacion = activo.fecha_creacion
+    if creacion is not None and fecha_dt < creacion and fecha >= fecha_usuario(creacion):
+        return creacion
+    return fecha_dt
+
+
 def validar_fecha_evento(
     fecha: datetime,
     activo: ActivoBiologico,
     evento_repo: EventoActivoRepository,
 ) -> None:
+    """Valida que la fecha del evento no sea futura ni anterior al registro del activo
+    (400).
+    """
     # RF-39/40/41/42 clasifican "Fecha inválida" como HTTP 400, no como regla de
     # negocio: ValidationError, no BusinessRuleError. RF-43 no pasa por aquí, pide
     # 422 para su propio caso de fecha.
@@ -89,14 +118,21 @@ def validar_fecha_evento(
         raise ValidationError(
             code='FECHA_FUTURA',
             message='La fecha del evento no puede ser posterior a la fecha actual.',
+            field='fecha',
         )
 
+    # #289: las dos causas compartían un mensaje genérico ("inválida o
+    # inconsistente con el historial") que no decía qué fecha era válida.
     if activo.fecha_creacion:
         creacion_utc = activo.fecha_creacion.astimezone(timezone.utc)
         if fecha_utc < creacion_utc:
             raise ValidationError(
                 code='FECHA_ANTERIOR_REGISTRO',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al registro del activo. '
+                    'Usa una fecha y hora iguales o posteriores a su registro.'
+                ),
+                field='fecha',
             )
 
     ultima = evento_repo.obtener_ultima_fecha(activo.id_activo_biologico)
@@ -105,5 +141,9 @@ def validar_fecha_evento(
         if fecha_utc < ultima_utc:
             raise ValidationError(
                 code='FECHA_INCOHERENTE',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al último evento registrado '
+                    'para este activo.'
+                ),
+                field='fecha',
             )

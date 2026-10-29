@@ -1,21 +1,27 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.version_modelo import VersionModelo
+from src.prediction.domain.repositories.aviso_version_modelo_port import AvisoVersionModeloPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
 from src.shared.errors import AuthorizationError, BusinessRuleError
+from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, TIPOS_MODELO, es_poblacional
 
-_TIPOS_VALIDOS = {"ESPECIES_PEQUEÑAS", "ESPECIES_MEDIANAS", "ESPECIES_GRANDES", "CONTAGIO"}
 _FORMATOS_VALIDOS = {"ONNX", "TENSORFLOW_SAVED_MODEL"}
 _MAX_BYTES = 500 * 1024 * 1024  # 500 MB
 _METRICAS_REQUERIDAS = {
@@ -27,9 +33,18 @@ _METRICAS_REQUERIDAS = {
     "recall_por_clase",
     "matriz_confusion",
 }
+# RF-69 v2.0 (RFC-009): un modelo no supervisado no produce F1/recall; se valida
+# con la calibración en sitio y sus tasas de falsos positivos y de detección.
+_TASAS_POBLACIONALES = ("tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_clinicos")
 # Magic bytes para identificar el formato del artefacto
 _ONNX_MAGIC = b"\x08"          # protobuf field tag 1 (model_ir_version)
 _TF_SAVEDMODEL_MAGIC = b"\x0a" # protobuf field tag 1 (saved_model_schema_version)
+# RF-69 E1b (DEV-48): un aviso al Administrador por ventana, aunque el intento se repita;
+# misma ventana anti-spam de RF-14. Todos los intentos quedan en la bitácora.
+_VENTANA_AVISO_CARGA_EXTERNA = timedelta(minutes=5)
+_MOTIVO_CARGA_EXTERNA = "X-RF71-Internal-Key ausente o incorrecta"
+
+logger = logging.getLogger(__name__)
 
 
 class RegistrarVersionModeloUseCase:
@@ -41,11 +56,13 @@ class RegistrarVersionModeloUseCase:
         repo: VersionModeloRepository,
         auditoria_repo: EventoAuditoriaM04Repository,
         variable_port: VariableI3P1Port,
+        aviso_port: AvisoVersionModeloPort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._auditoria_repo = auditoria_repo
         self._variable_port = variable_port
+        self._aviso_port = aviso_port
 
     def execute(self, dto: RegistrarVersionModeloDTO, internal_key: Optional[str]) -> VersionModelo:
         # FA-02: verificar clave interna
@@ -65,23 +82,31 @@ class RegistrarVersionModeloUseCase:
         self._validar_hash_sha256_campo(dto.dataset_entrenamiento_hash, "dataset_entrenamiento_hash")
         self._verificar_hash_artefacto(archivo_bytes, dto.hash_artefacto_sha256, dto.id_proceso_rf71)
 
-        # FA-04: métricas
-        metricas = self._validar_metricas(dto.metricas_validacion)
-
-        # FA-04: tipo_modelo
-        if dto.tipo_modelo not in _TIPOS_VALIDOS:
+        # FA-04: tipo_modelo (antes que las métricas: el paradigma decide cuáles se exigen)
+        if dto.tipo_modelo not in TIPOS_MODELO:
             raise BusinessRuleError(
                 code="TIPO_MODELO_INVALIDO",
-                message=f"tipo_modelo debe ser uno de: {sorted(_TIPOS_VALIDOS)}.",
+                message=f"tipo_modelo debe ser uno de: {sorted(TIPOS_MODELO)}.",
                 field="tipo_modelo",
             )
+
+        # FA-04: métricas y componente por paradigma
+        if es_poblacional(dto.tipo_modelo):
+            componente = self._validar_componente(dto.componente)
+            metricas_poblacionales = self._validar_metricas_poblacionales(dto.metricas_validacion)
+            metricas = dict.fromkeys(_METRICAS_REQUERIDAS)
+        else:
+            componente, metricas_poblacionales = None, None  # no aplican a INDIVIDUAL/META
+            metricas = self._validar_metricas(dto.metricas_validacion)
 
         # Validar compatibilidad_variables contra catálogo I3P-1
         self._validar_variables(dto.compatibilidad_variables)
 
         # Guardar artefacto en disco
         ext = "onnx" if formato == "ONNX" else "pb"
-        ruta = self._guardar_artefacto(archivo_bytes, dto.id_proceso_rf71, dto.tipo_modelo, ext)
+        ruta = self._guardar_artefacto(
+            archivo_bytes, dto.id_proceso_rf71, f"{dto.tipo_modelo}_{componente}" if componente else dto.tipo_modelo, ext
+        )
 
         # Crear entidad
         entidad = VersionModelo.crear(
@@ -102,6 +127,8 @@ class RegistrarVersionModeloUseCase:
             compatibilidad_variables=dto.compatibilidad_variables,
             fecha_entrenamiento=dto.fecha_entrenamiento,
             version_referencia=dto.version_referencia,
+            componente=componente,
+            metricas_poblacionales=metricas_poblacionales,
         )
 
         # Evaluación automática de métricas (Fase 3)
@@ -154,7 +181,29 @@ class RegistrarVersionModeloUseCase:
         except Exception:
             self._db.rollback()
 
+        # RF-69 E3 (DEV-48): el Veterinario revisa la versión rechazada; aviso después del commit.
+        if estado_final == "RECHAZADO":
+            try:
+                self._aviso_port.avisar_version_rechazada(entidad)
+            except Exception:  # la versión ya quedó registrada aunque el aviso falle
+                logger.exception("No se pudo avisar la versión rechazada %s", entidad.id_version_modelo)
+
         return entidad
+
+    def _avisar_carga_externa(self, id_proceso: uuid.UUID) -> None:
+        """RF-69 E1b (DEV-48): avisa al Administrador, como mucho una vez por ventana."""
+        try:
+            desde = datetime.now(timezone.utc) - _VENTANA_AVISO_CARGA_EXTERNA
+            _, intentos = self._auditoria_repo.consultar(
+                tipo_evento="INTENTO_CARGA_MODELO_EXTERNO", fecha_desde=desde, por_pagina=1
+            )
+            # El intento actual ya está registrado: más de uno significa que ya se avisó.
+            if intentos > 1:
+                return
+            self._aviso_port.avisar_carga_externa(id_proceso_rf71=str(id_proceso), motivo=_MOTIVO_CARGA_EXTERNA)
+        except Exception:  # el 403 sale igual aunque el aviso falle
+            self._db.rollback()
+            logger.exception("No se pudo avisar el intento de carga de modelo externo")
 
     # ------------------------------------------------------------------
     # Validaciones privadas
@@ -170,7 +219,7 @@ class RegistrarVersionModeloUseCase:
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={
-                    "motivo": "X-RF71-Internal-Key ausente o incorrecta",
+                    "motivo": _MOTIVO_CARGA_EXTERNA,
                     "id_proceso_rf71": str(id_proceso),
                 },
             )
@@ -178,6 +227,7 @@ class RegistrarVersionModeloUseCase:
                 self._db.commit()
             except Exception:
                 self._db.rollback()
+            self._avisar_carga_externa(id_proceso)
             raise AuthorizationError(
                 code="REGISTRO_INTERNO_REQUERIDO",
                 message=(
@@ -285,6 +335,50 @@ class RegistrarVersionModeloUseCase:
             resultado[campo] = val
         resultado["recall_por_clase"] = metricas["recall_por_clase"]
         resultado["matriz_confusion"] = metricas["matriz_confusion"]
+        return resultado
+
+    def _validar_componente(self, componente: Optional[str]) -> str:
+        if componente not in COMPONENTES_POBLACIONAL:
+            raise BusinessRuleError(
+                code="COMPONENTE_INVALIDO",
+                message=(
+                    "Los modelos POBLACIONAL se versionan por componente: componente debe ser uno de "
+                    f"{sorted(COMPONENTES_POBLACIONAL)}."
+                ),
+                field="componente",
+            )
+        return componente
+
+    def _validar_metricas_poblacionales(self, metricas: dict) -> dict:
+        faltantes = {"calibracion_completada", *_TASAS_POBLACIONALES} - set(metricas.keys())
+        if faltantes:
+            raise BusinessRuleError(
+                code="METRICAS_INCOMPLETAS",
+                message=f"Los metadatos del modelo son inválidos o incompletos: faltan {sorted(faltantes)}.",
+                field="metricas_validacion",
+            )
+        if not isinstance(metricas["calibracion_completada"], bool):
+            raise BusinessRuleError(
+                code="METRICA_INVALIDA",
+                message="El campo calibracion_completada debe ser booleano.",
+                field="metricas_validacion",
+            )
+        resultado: dict = {"calibracion_completada": metricas["calibracion_completada"]}
+        for campo in _TASAS_POBLACIONALES:
+            valor = metricas[campo]
+            if isinstance(valor, bool) or not isinstance(valor, (int, float)):
+                raise BusinessRuleError(
+                    code="METRICA_INVALIDA",
+                    message=f"El campo {campo} tiene un valor no numérico.",
+                    field="metricas_validacion",
+                )
+            if not (0.0 <= valor <= 1.0):
+                raise BusinessRuleError(
+                    code="METRICA_FUERA_DE_RANGO",
+                    message=f"El campo {campo}={valor} debe estar en el rango [0.0, 1.0].",
+                    field="metricas_validacion",
+                )
+            resultado[campo] = valor
         return resultado
 
     def _validar_variables(self, variables: list) -> None:

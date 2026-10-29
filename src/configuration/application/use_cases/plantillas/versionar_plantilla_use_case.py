@@ -22,6 +22,7 @@ from src.configuration.domain.esquema_plantilla import (
     validar_rangos_fisicos_umbrales,
 )
 from src.configuration.application.use_cases.plantillas._auditoria_comun import registrar_intento_fallido
+from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import MENSAJE_ESPECIE_NO_DISPONIBLE
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
@@ -91,11 +92,8 @@ class VersionarPlantillaUseCase:
         especie = self.especie_repo.obtener_por_id(base.id_especie)
         if especie is None or not especie.es_activo:
             raise BusinessRuleError(
-                code="ESPECIE_INACTIVA",
-                message=(
-                    "No se puede versionar una plantilla cuya especie asociada "
-                    "no está disponible o fue desactivada."
-                ),
+                code="ESPECIE_NO_DISPONIBLE",
+                message=MENSAJE_ESPECIE_NO_DISPONIBLE,
                 field="id_especie",
             )
 

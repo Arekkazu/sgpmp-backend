@@ -1,0 +1,35 @@
+{
+  "tc": "TC-M04-G083",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G083: Distribución OTA e integridad",
+  "estado_general": "Rechazado",
+  "stats": {
+    "tests": 27,
+    "passes": 21,
+    "failures": 6
+  },
+  "checkpoints": [
+    {
+      "paso": "NW-01: Autenticación Admin",
+      "esperado": "Status 200 con token JWT",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.01: Consulta despliegues OTA existentes",
+      "esperado": "Status 200 con items de despliegues",
+      "obtenido": "OK",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-Teardown: Rollback transaccional",
+      "esperado": "Status 200 con Rollback exitoso",
+      "obtenido": "OK",
+      "estado": "OK"
+    }
+  ],
+  "bloqueados": [
+    "TC-M04-257 (MODELO_DISTRIBUIDO_EDGE) - Endpoint productor de distribución OTA no expuesto en backend REST",
+    "TC-M04-258 (HASH_INVALIDO_DETECTADO) - Imposible simular fallo de integridad en nodo Edge sin endpoint de distribución"
+  ]
+}

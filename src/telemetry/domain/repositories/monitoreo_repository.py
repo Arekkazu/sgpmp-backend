@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -26,11 +29,11 @@ class MonitoreoRepository(ABC):
         self,
         id_infraestructura: Optional[int],
         pagina: int,
-        por_pagina: int,
+        por_pagina: Optional[int],
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
-        """Devuelve (sensores, total) del estado actual con contexto M09."""
+        """Devuelve (sensores, total) del estado actual con contexto M09. ``por_pagina`` None = todos."""
 
     @abstractmethod
     def obtener_resumen_unidades(

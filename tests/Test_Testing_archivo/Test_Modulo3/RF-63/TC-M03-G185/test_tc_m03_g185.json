@@ -1,0 +1,987 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g185-owasp-bola-v1",
+    "name": "TC-M03-G185 - OWASP API1 BOLA en Auditoría IoT (RF-63)",
+    "description": "Suite automatizada Newman para TC-M03-G185 (RF-63). Evalúa aislamiento a nivel de objeto entre roles y detección de defecto BOLA en acceso a eventos técnicos y financieros.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let currentRunId = pm.collectionVariables.get(\"run_id\");",
+          "if (!currentRunId || currentRunId.trim() === \"\") {",
+          "    currentRunId = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", currentRunId);",
+          "}",
+          "const secret = pm.collectionVariables.get(\"sandbox_secret\");",
+          "if (currentRunId) {",
+          "    pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: currentRunId });",
+          "}",
+          "if (secret) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: secret });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "role_password",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": ""
+    },
+    {
+      "key": "infra_id",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "id_telemetria_eval",
+      "value": ""
+    },
+    {
+      "key": "id_evento_nic41",
+      "value": ""
+    },
+    {
+      "key": "id_evento_tecnico",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Setup-Autenticacion",
+      "item": [
+        {
+          "name": "00-Login-ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para admin\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-INGENIERO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"gestor.granja.test@pecuaria.co\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para ingeniero\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_ingeniero\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00-Login-CONTADOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"{{role_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Login exitoso para contador\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a(\"string\").that.is.not.empty;",
+                  "    pm.collectionVariables.set(\"token_contador\", res.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-Setup-Sintetico-Catalogo",
+      "item": [
+        {
+          "name": "01-Crear-Finca-Sintetica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/fincas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca QA G185 BOLA\",\n  \"ubicacion\": \"Vereda La Palma QA\",\n  \"area_total\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Finca creada en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idFinca = res.id_finca || (res.finca && res.finca.id_finca) || res.id;",
+                  "    pm.collectionVariables.set(\"finca_id\", String(idFinca));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02-Crear-Infraestructura-Sintetica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/infraestructuras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_finca\": \"{{finca_id}}\",\n  \"nombre\": \"Galpon 185 BOLA\",\n  \"id_tipo_area\": 1,\n  \"capacidad_maxima\": 250\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const fId = parseInt(pm.collectionVariables.get(\"finca_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_finca = fId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Infraestructura creada en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idInfra = res.id_infraestructura || (res.infraestructura && res.infraestructura.id_infraestructura) || res.id;",
+                  "    pm.collectionVariables.set(\"infra_id\", String(idInfra));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03-Crear-Dispositivo-Sintetico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_infraestructura\": \"{{infra_id}}\",\n  \"numero_serie\": \"DEV-G185-INIT\",\n  \"id_tipo_dispositivo\": 1,\n  \"modelo\": \"ESP32-G185-BOLA\",\n  \"firmware_version\": \"2.1.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const infId = parseInt(pm.collectionVariables.get(\"infra_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_infraestructura = infId;",
+                  "const serial = \"DEV-G185-\" + Math.floor(100000 + Math.random() * 900000);",
+                  "body.numero_serie = serial;",
+                  "pm.collectionVariables.set(\"device_serial\", serial);",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Dispositivo creado en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idDev = res.id_dispositivo_iot || res.id_dispositivo || res.id;",
+                  "    pm.collectionVariables.set(\"device_id\", String(idDev));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04-Crear-Sensor-Sintetico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_variable\": 1,\n  \"pin_conexion\": \"A0\",\n  \"resolucion\": 0.1,\n  \"precision_lectura\": 0.05,\n  \"rango_minimo\": -10,\n  \"rango_maximo\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const devId = parseInt(pm.collectionVariables.get(\"device_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_dispositivo_iot = devId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201/200 - Sensor creado en sandbox\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idSen = res.id_sensor || res.id;",
+                  "    pm.collectionVariables.set(\"sensor_id\", String(idSen));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-Setup-Generacion-Eventos",
+      "item": [
+        {
+          "name": "05-Generar-Evento-NIC41-Telemetria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sensor\": 0,\n  \"valor\": 26,\n  \"timestamp_captura\": \"2026-10-18T10:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sensorId = parseInt(pm.collectionVariables.get(\"sensor_id\"), 10);",
+                  "const body = JSON.parse(pm.request.body.raw);",
+                  "body.id_sensor = sensorId;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200/201 - Telemetría NIC41 ingerida\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const res = pm.response.json();",
+                  "    const idTel = res.id_telemetria || res.id;",
+                  "    pm.collectionVariables.set(\"id_telemetria_eval\", String(idTel));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06-Evaluar-Calidad-Puntual-NIC41",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_telemetria_eval}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_telemetria_eval}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200/201 - Calidad evaluada (Evento NIC41 emitido)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07-Generar-Evento-TECNICO-Mantenimiento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/dispositivos/{{device_id}}/mantenimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "dispositivos",
+                "{{device_id}}",
+                "mantenimiento"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_nuevo\": \"MANTENIMIENTO\",\n  \"motivo\": \"Prueba BOLA G185 evento técnico\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Transición mantenimiento aplicada (Evento TECNICO emitido)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08-Guardar-IDs-Eventos-NIC41-y-TECNICO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?por_pagina=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "por_pagina",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const evNic = res.items.find(i => i.clasificacion_registro === \"NIC41\");",
+                  "const evTec = res.items.find(i => i.clasificacion_registro === \"TECNICO\");",
+                  "if (evNic) pm.collectionVariables.set(\"id_evento_nic41\", evNic.id_evento);",
+                  "if (evTec) pm.collectionVariables.set(\"id_evento_tecnico\", evTec.id_evento);",
+                  "console.log(\"[INFO G185] ID NIC41:\", evNic ? evNic.id_evento : \"no encontrado\");",
+                  "console.log(\"[INFO G185] ID TECNICO:\", evTec ? evTec.id_evento : \"no encontrado\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-TC-M03-353-BOLA-Aislamiento-Roles",
+      "item": [
+        {
+          "name": "09-TC-353a-CONTADOR-Accede-Evento-TECNICO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{id_evento_tecnico}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{id_evento_tecnico}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"[DEFECTO BOLA] CONTADOR pudo acceder al detalle de un evento TECNICO (HTTP 200). El backend carece de control de acceso a nivel de objeto/clasificación.\");",
+                  "    pm.test(\"[DEFECTO BOLA] CONTADOR debe recibir 403/404 al acceder a evento TECNICO\", function () {",
+                  "        pm.expect(pm.response.code, \"BOLA: Contador no debe ver eventos técnicos\").to.be.oneOf([403, 404]);",
+                  "    });",
+                  "} else {",
+                  "    pm.test(\"Status 403/404 - CONTADOR rechazado legítimamente en evento técnico\", function () {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10-TC-353b-INGENIERO-Accede-Evento-NIC41",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{id_evento_nic41}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{id_evento_nic41}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log(\"[DEFECTO BOLA] INGENIERO_CAMPO pudo acceder al detalle de un evento NIC41 no técnico (HTTP 200).\");",
+                  "    pm.test(\"[DEFECTO BOLA] INGENIERO_CAMPO debe recibir 403/404 al acceder a evento puramente NIC41\", function () {",
+                  "        pm.expect(pm.response.code, \"BOLA: Ingeniero no debe ver eventos financieros NIC41\").to.be.oneOf([403, 404]);",
+                  "    });",
+                  "} else {",
+                  "    pm.test(\"Status 403/404 - INGENIERO_CAMPO rechazado en evento NIC41\", function () {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11-TC-353c-Filtrar-Entidad-Fuera-Alcance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_contador}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria?entidad_afectada_id=99999999-9999-9999-9999-999999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": [
+                {
+                  "key": "entidad_afectada_id",
+                  "value": "99999999-9999-9999-9999-999999999999"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Entidad afectada inexistente o ajena devuelve array vacío sin error\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.total).to.eql(0);",
+                  "    pm.expect(res.items).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12-TC-353d-Enumeracion-UUIDs-Ficticios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 - UUID ficticio no revela existencia ni datos\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.error_code).to.eql(\"EVENTO_NO_ENCONTRADO\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13-TC-353e-ADMINISTRADOR-Acceso-Total",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/{{id_evento_nic41}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "{{id_evento_nic41}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - ADMINISTRADOR tiene acceso legítimo a ambos tipos de eventos\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14-Aislamiento-Entre-Fincas-Bloqueado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log(\"[BLOQUEADO] Subcaso Aislamiento entre fincas: El modelo BitacoraAuditoriaIotModel y el esquema EventoAuditoriaIotSchema no contienen id_finca ni relación a fincas. No es posible probar aislamiento entre fincas de un atributo inexistente.\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown-Rollback",
+      "item": [
+        {
+          "name": "99-Teardown-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 - Rollback exitoso\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

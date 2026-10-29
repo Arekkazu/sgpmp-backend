@@ -30,8 +30,13 @@ from src.configuration.domain.repositories.plantilla_repository import Plantilla
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError
 
+
+MENSAJE_ESPECIE_NO_DISPONIBLE = (
+    "Error de referencia: La especie asociada no está disponible o ha sido desactivada. "
+    "No se puede crear una plantilla para una especie no operativa."
+)
 
 class RegistrarPlantillaUseCase:
     """Crea una plantilla con versión auto-incrementada para el template_name dado."""
@@ -94,16 +99,14 @@ class RegistrarPlantillaUseCase:
                 field="template_name",
             )
 
+        # RF-31 FA "Especie de referencia inactiva o no encontrada": 422 en los
+        # dos casos y con el mismo mensaje (INC-M09-77-G111). Código propio: el
+        # frontend traduce ESPECIE_INACTIVA con un texto de umbrales.
         especie = self.especie_repo.obtener_por_id(dto.id_especie)
-        if especie is None:
-            raise NotFoundError(
-                code="ESPECIE_NO_ENCONTRADA",
-                message=f"No existe la especie con id {dto.id_especie}.",
-            )
-        if not especie.es_activo:
+        if especie is None or not especie.es_activo:
             raise BusinessRuleError(
-                code="ESPECIE_INACTIVA",
-                message="No se puede crear una plantilla a partir de una especie inactiva.",
+                code="ESPECIE_NO_DISPONIBLE",
+                message=MENSAJE_ESPECIE_NO_DISPONIBLE,
                 field="id_especie",
             )
 

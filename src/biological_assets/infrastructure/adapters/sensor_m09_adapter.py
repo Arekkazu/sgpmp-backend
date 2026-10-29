@@ -1,3 +1,7 @@
+"""Adapter de ``SensorConsultaPort`` que lee sensores, su dispositivo, área y
+compatibilidad con especies de M09.
+"""
+
 from __future__ import annotations
 
 from typing import Optional

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 """INC-M09-107-G32 (#298): el semáforo histórico (RF-59) debe consumir el umbral RF-17 real.
 
 Cubre `SemaforoCalculator.calcular_por_niveles` y `ConsultarHistorialUseCase._semaforo_historico`
@@ -48,6 +51,9 @@ class _HistorialRepoFake:
         return self.lecturas, len(self.lecturas)
 
     def calcular_estadisticas(self, filtros):
+        return []
+
+    def detectar_vacios(self, filtros):  # DEV-38 (RF-59 E7)
         return []
 
 

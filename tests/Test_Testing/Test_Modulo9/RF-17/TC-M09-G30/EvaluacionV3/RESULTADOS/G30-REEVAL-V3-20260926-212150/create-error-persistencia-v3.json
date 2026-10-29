@@ -1,0 +1,64 @@
+{
+  "grupo": "TC-M09-G30",
+  "caso": "TC-M09-64",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "tipo": "REEVALUACION V3",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-tercera-evaluacion-M09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G30-REEVAL-V3-20260926-212150",
+  "fecha": "2026-09-27T02:25:57.029Z",
+  "motivo": "El POST no devolvio el status de exito del contrato. Se reconcilia por GET (solo lectura) sin repetir la escritura, conforme al procedimiento.",
+  "status": 500,
+  "errorCode": "FALLO_SINCRONIZACION_EDGE",
+  "mensaje": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión.",
+  "combinacion": {
+    "id_especie": 43,
+    "id_variable_ambiental": 13
+  },
+  "umbralesPreviosDeLaEspecie": [
+    52
+  ],
+  "registrosDeLaCombinacionTrasElPost": [
+    56
+  ],
+  "nuevosDetectados": [
+    56
+  ],
+  "identificacionInequivoca": true,
+  "idPersistido": 56,
+  "coincideConConfiguracionA": true,
+  "estadoSincronizacion": "PENDIENTE",
+  "detalle": {
+    "id_umbral_ambiental": 56,
+    "id_especie": 43,
+    "id_variable_ambiental": 13,
+    "unidad_medida": "°C",
+    "valor_min": "38.00",
+    "valor_max": "42.00",
+    "es_activo": true,
+    "fecha_actualizacion": null,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "38.00",
+        "limite_superior": "39.33"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "39.33",
+        "limite_superior": "40.66"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "40.66",
+        "limite_superior": "42.00"
+      }
+    ],
+    "estado_sincronizacion": "PENDIENTE",
+    "fecha_ultima_sincronizacion": null,
+    "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+  },
+  "decision": "La escritura persistio: se continua con ese recurso sin repetir el POST"
+}

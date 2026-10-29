@@ -24,8 +24,8 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
     # Lectura
     # ------------------------------------------------------------------
 
-    def obtener_por_id(self, id_umbral_ambiental: int) -> Optional[UmbralAmbiental]:
-        orm = self._db.get(UmbralAmbientalModel, id_umbral_ambiental)
+    def obtener_por_id(self, id_umbral_ambiental: int, *, bloquear: bool = False) -> Optional[UmbralAmbiental]:
+        orm = self._db.get(UmbralAmbientalModel, id_umbral_ambiental, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_especie_y_variable(

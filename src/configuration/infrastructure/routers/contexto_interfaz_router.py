@@ -40,6 +40,12 @@ def obtener_contexto(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ContextoInterfazResponse | Response:
+    """Contexto para adaptar la interfaz: rol, finca activa, especies configuradas, módulos autorizados e identidad visual (RF-25).
+
+    **Acceso:** `contexto_interfaz` · Leer.
+
+    Responde 204 si la finca aún no tiene especies ni infraestructura configuradas.
+    """
     use_case = ObtenerContextoUseCase(
         contexto_repo=SqlAlchemyContextoInterfazRepository(db),
         identidad_repo=SqlAlchemyIdentidadVisualRepository(db),

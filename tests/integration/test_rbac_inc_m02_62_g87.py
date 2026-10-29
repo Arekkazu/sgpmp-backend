@@ -122,8 +122,9 @@ def test_productor_llega_al_flujo_funcional_sobre_activo_de_su_finca(
                 a.id_activo_biologico
             FROM modulo1.usuarios u
             JOIN modulo1.cuentas_usuarios c ON c.id_usuario = u.id_usuario
-            JOIN modulo9.fincas f ON f.id_usuario = u.id_usuario
-            JOIN modulo9.infraestructuras i ON i.id_finca = f.id_finca
+            JOIN modulo9.usuarios_fincas uf
+              ON uf.id_usuario = u.id_usuario AND uf.es_activo IS TRUE
+            JOIN modulo9.infraestructuras i ON i.id_finca = uf.id_finca
             JOIN modulo2.activos_biologicos a
               ON a.id_infraestructura = i.id_infraestructura
             WHERE u.id_rol = 2 AND c.id_estado_cuenta = 2

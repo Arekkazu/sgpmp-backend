@@ -7,6 +7,7 @@ from src.shared.errors import ValidationError
 
 
 class NivelAlerta(str, Enum):
+    """Nivel semafórico de una alerta ambiental."""
     normal = 'normal'
     precaucion = 'precaucion'
     critico = 'critico'

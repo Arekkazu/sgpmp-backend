@@ -9,6 +9,7 @@ _VALORES_VALIDOS = {'INDIVIDUAL', 'LOTE', 'AMBOS'}
 
 
 class AplicaTipoActivo(str, Enum):
+    """A qué tipo de activo aplica una métrica: individual, lote o ambos."""
     INDIVIDUAL = 'INDIVIDUAL'
     LOTE = 'LOTE'
     AMBOS = 'AMBOS'

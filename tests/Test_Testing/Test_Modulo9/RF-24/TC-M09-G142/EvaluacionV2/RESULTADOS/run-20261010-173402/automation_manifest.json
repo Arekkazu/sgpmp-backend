@@ -1,0 +1,91 @@
+{
+  "run_id": "run-20261010-173402",
+  "grupo": "TC-M09-G142",
+  "ambiente": "TEST",
+  "execution_number": 2,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX",
+  "herramientas": "Newman (ejecutor) + Pytest (verificador)",
+  "informe": "TC-M09-G142_reevaluacion_V2.md",
+  "automatizacion": [
+    {
+      "path": "EvaluacionV2/automation/test_g142_v2.py",
+      "funcion": "verificador independiente de solo lectura (Pytest)",
+      "bytes": 42064,
+      "sha256": "d5c458f4e9dce934c5de088ebd312294669ff0803819db8490adbd1ad86f414c"
+    },
+    {
+      "path": "EvaluacionV2/automation/run-g142-v2.cjs",
+      "funcion": "runner Newman: precheck de solo lectura y RUN oficial",
+      "bytes": 22719,
+      "sha256": "4cd8b8362b5e46482e5a5a75b70fab38fbedabc11f2e95cc7804db68e8d4bd97",
+      "sha256_en_disco_tras_la_ejecucion": "a2aeb3f6d61c4d0296fec13f4837602e3f449640f3dcb07b22e6746b360340b9",
+      "bytes_en_disco_tras_la_ejecucion": 23801,
+      "correccion_posterior_a_la_ejecucion": {
+        "defecto": "el modo `run` abortaba SIEMPRE si ya existia el HTML oficial del RUN, lo que obligaba a borrarlo a mano en cada reejecucion; incompatible con la politica 'mismo RUN logico, varias ejecuciones' y con riesgo de perder evidencia por un borrado manual",
+        "correccion": "la reejecucion se declara con G142_SOBRESCRIBIR_OFICIAL=1; sin esa variable aborta con un mensaje que explica la politica, y con ella avisa por consola antes de sobrescribir",
+        "validacion": "ejecutado `run` sin la variable: aborta en la guarda, despues de la compuerta de fixture y ANTES de Newman, sin emitir ningun POST; el HTML y el resto de artefactos quedaron intactos",
+        "naturaleza": "AUTOMATIZACION (QA). No es un defecto del producto.",
+        "pendiente": "se ejercitara en la proxima ejecucion oficial del grupo; el `sha256` de arriba sigue siendo el de la automatizacion que produjo los artefactos de esta ejecucion"
+      }
+    },
+    {
+      "path": "EvaluacionV2/automation/TC-M09-G142.postman_collection.json",
+      "funcion": "colección oficial: dueña de su sesión, ejecuta los dos eventos M02",
+      "bytes": 69625,
+      "sha256": "0e1d6b617d4a0cc0074306bbdc7d975824b5c807b1b3b78dd354dc67e21b5a95",
+      "sha256_en_disco_tras_la_ejecucion": "445024719ffef3e71e0c724d8056d54b12ce53c3446c721d4710a952653492cf",
+      "bytes_en_disco_tras_la_ejecucion": 70451,
+      "correccion_posterior_a_la_ejecucion": {
+        "item": "TC-M09-289 · Verificar que el lote quedo CERRADO",
+        "defecto": "la assertion leia `b.estado || b.id_estado`; el cuerpo trae `estado: null`, asi que caia al id (5) y lo comparaba contra la cadena 'CERRADO'. El nombre viajaba en `nombre_estado`, que no se leia. Unico fallo del Newman oficial de la ejecucion 2.",
+        "correccion": "acepta `id_estado == 5` (EstadoActivo.CERRADO) o un `nombre_estado`/`estado` que contenga CERRADO",
+        "naturaleza": "AUTOMATIZACION (QA). No es un defecto del producto.",
+        "validacion": "evaluada en Node contra el cuerpo real de GET /activos-biologicos/806 (id_estado 5, nombre_estado 'CERRADO'): la logica vieja da false y la nueva da true. NO se repitieron el alta ni el cierre, que ya habian recibido respuesta.",
+        "pendiente": "se ejercitara en la proxima ejecucion oficial del grupo; el `sha256` de arriba sigue siendo el de la automatizacion que produjo los artefactos de esta ejecucion"
+      }
+    },
+    {
+      "path": "EvaluacionV2/automation/TC-M09-G142.precheck.postman_collection.json",
+      "funcion": "colección de precheck de solo lectura",
+      "bytes": 17063,
+      "sha256": "ba9bca6787080e45fae9ab82b966755661cdd24419ed449a30c648d3d57a56c9",
+      "sha256_en_disco_tras_la_ejecucion": "7509b8cfc6839ff6918eb5b5f83cedff89efe22933768e8b27ca1479eb2d2caf",
+      "bytes_en_disco_tras_la_ejecucion": 17947,
+      "correccion_posterior_a_la_ejecucion": {
+        "defecto": "el precheck elegia la especie por su cuenta e informaba de la 82 (0 ciclos) mientras el RUN oficial corria con la 78 cualificada por la compuerta: el reporte de consola no describia el fixture real",
+        "correccion": "usa `especie_cualificada` cuando la compuerta la exporta y comprueba que esa especie este entre las aptas del catalogo",
+        "validacion": "precheck reejecutado: 11 requests, 20 assertions, 0 failures, 0 escrituras, especie_id 78 y ciclos_de_la_especie 1",
+        "naturaleza": "AUTOMATIZACION (QA). No es un defecto del producto.",
+        "pendiente": "se ejercitara en la proxima ejecucion oficial del grupo; el `sha256` de arriba sigue siendo el de la automatizacion que produjo los artefactos de esta ejecucion"
+      }
+    }
+  ],
+  "artefactos_resultados": [
+    {
+      "archivo": "evidencia.json",
+      "bytes": 18746,
+      "sha256": "e05338ebff23be4636e2a039ae5aef3964ac13e6d4626f887545d8200470e853"
+    },
+    {
+      "archivo": "newman/newman-TC-M09-G142.html",
+      "bytes": 384366,
+      "sha256": "613bcf2a25d108698f9d5c404c7d0b94cbf48312ff7ce2ce4216aafc748f9ab4"
+    },
+    {
+      "archivo": "newman-resumen.json",
+      "bytes": 2854,
+      "sha256": "6a7061f5b70a421e0e5db880bfc854158abe35d8c2fff60d018685f02140d40e"
+    },
+    {
+      "archivo": "pytest.xml",
+      "bytes": 1819,
+      "sha256": "25410bb1f76a78868da04d8bdae0ee541ae02223313dad135f6c6fc28f91dd39"
+    },
+    {
+      "archivo": "TC-M09-G142_reevaluacion_V2.md",
+      "bytes": 29251,
+      "sha256": "0957301ac39980c7d8abaa9409d92a6082c003e074f5794b150608c72b4e37ae"
+    }
+  ],
+  "nota_trazabilidad": "`sha256` describe la automatizacion que produjo los artefactos de este RUN. Si una entrada trae `sha256_en_disco_tras_la_ejecucion`, el archivo se corrigio despues de ejecutar y el detalle esta en `correccion_posterior_a_la_ejecucion`."
+}

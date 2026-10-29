@@ -18,6 +18,11 @@ class HistoricoRepoFake:
     def __init__(self) -> None:
         self.registros: list[dict] = []
 
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
+
     def registrar(self, **kwargs) -> HistoricoEstado:
         self.registros.append(kwargs)
         return HistoricoEstado(
@@ -86,3 +91,29 @@ def test_no_registra_historico_si_la_transicion_es_invalida() -> None:
 
     assert repo.registros == []
     assert activo.id_estado == 6
+
+
+def test_cambio_con_fecha_de_solo_dia_no_queda_antes_del_ultimo_cambio() -> None:
+    """INC-M02-78-G49 (#573): un evento sanitario lleva el activo a
+    EN_TRATAMIENTO a las 15:00 UTC y el mismo día se devuelve a ACTIVO a mano
+    con fecha de solo día (medianoche UTC). Si el histórico lo guarda a
+    medianoche, el trigger sigue viendo EN_TRATAMIENTO como último estado y el
+    siguiente cambio responde 409 ESTADO_ACTIVO_INCONSISTENTE."""
+    sanitario = datetime(2026, 10, 11, 15, 0, tzinfo=timezone.utc)
+    repo = HistoricoRepoFake()
+    repo.ultimo = HistoricoEstado(
+        id_activo_biologico=10, id_estado_anterior=1, id_estado_nuevo=3,
+        fecha_cambio=sanitario, modulo_origen='modulo2', id_usuario=1,
+    )
+
+    aplicar_cambio_estado(
+        activo=_activo(id_estado=3),
+        id_estado_nuevo=1,
+        fecha=datetime(2026, 10, 11, tzinfo=timezone.utc),
+        motivo='recuperado',
+        usuario_id=1,
+        historico_repo=repo,
+        modulo_origen='MANUAL',
+    )
+
+    assert repo.registros[0]['fecha'] > sanitario

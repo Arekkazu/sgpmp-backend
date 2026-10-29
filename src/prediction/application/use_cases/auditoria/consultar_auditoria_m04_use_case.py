@@ -1,5 +1,9 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-26 | Arekkazu | INC-M04-209-G092 RF-73: filtro por correlacion_id |
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -8,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+
+logger = logging.getLogger(__name__)
 
 
 class ConsultarAuditoriaM04UseCase:
@@ -28,6 +34,7 @@ class ConsultarAuditoriaM04UseCase:
         pagina: int,
         por_pagina: int,
         id_usuario_consultor: int,
+        correlacion_id: Optional[uuid.UUID] = None,
     ) -> tuple[list[EventoAuditoriaM04], int]:
         items, total = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -37,6 +44,7 @@ class ConsultarAuditoriaM04UseCase:
             id_sistema=id_sistema,
             id_referencia=id_referencia,
             severidad_evento=severidad_evento,
+            correlacion_id=correlacion_id,
             pagina=pagina,
             por_pagina=por_pagina,
         )
@@ -55,11 +63,13 @@ class ConsultarAuditoriaM04UseCase:
     ) -> None:
         try:
             self._repo.registrar(
-                tipo_evento="CONSULTA_AUDITORIA_M04",
+                tipo_evento="HISTORIAL_CONSULTADO",
                 tipo_actor="USUARIO",
                 id_usuario=id_usuario,
                 severidad_evento="INFO",
+                resultado_operacion="EXITOSO",
                 payload_evento={
+                    "consulta": "AUDITORIA_M04",
                     "total_resultados": total_resultados,
                     "filtro_tipo_evento": filtro_tipo_evento,
                     "pagina": pagina,
@@ -67,4 +77,7 @@ class ConsultarAuditoriaM04UseCase:
             )
             self._db.commit()
         except Exception:
+            # La consulta ya se resolvió: no se le niega al usuario por la auditoría,
+            # pero la pérdida del evento tiene que quedar a la vista.
+            logger.exception("No se registró el evento de auditoría de la consulta M04")
             self._db.rollback()

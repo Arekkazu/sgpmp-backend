@@ -64,6 +64,9 @@ class CicloBiologico:
     def desactivar(self) -> None:
         self.es_activo = False
 
+    def activar(self) -> None:
+        self.es_activo = True
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, CicloBiologico):
             return NotImplemented

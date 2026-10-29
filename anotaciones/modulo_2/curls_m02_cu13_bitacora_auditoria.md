@@ -137,7 +137,12 @@ Valores de `severidad_log`: `INFO` | `WARNING` | `ERROR` | `CRITICAL`
 |------|------|-------|
 | 401 | UNAUTHORIZED | Token ausente o inválido |
 | 403 | AUTHORIZATION_ERROR | El rol del usuario no tiene permiso READ (acción 2) sobre recurso 31 (`bitacora_auditoria_m02`) |
+| 403 | ALCANCE_BITACORA_DENEGADO | Productor que pide `id_activo_biologico` de un activo fuera de sus fincas, en cualquier clasificación (INC-M02-63-G105 #490). El intento queda en la bitácora como `ACCESO_NO_AUTORIZADO` (CA-8) |
 | 422 | PARAMETROS_INVALIDOS | `fecha_inicio` o `fecha_fin` no son ISO 8601 válidas |
+
+**Alcance del Productor (RF-52 precondición 3, #490):** sin filtro de activo solo recibe eventos de
+activos alojados en sus fincas (`modulo9.usuarios_fincas`, el mismo alcance RF-25 del resto de M02) y
+los eventos sin activo que él mismo originó.
 
 ---
 

@@ -241,9 +241,16 @@ curl -X POST http://localhost:8000/configuracion/metricas \
     "nombre": "Peso promedio",
     "unidad_medida": "kg",
     "tipo_medicion": "PESO",
-    "aplica_a_tipo_activo": "INDIVIDUAL"
+    "aplica_a_tipo_activo": "INDIVIDUAL",
+    "tipo_dato": "NUMERICO",
+    "valor_min": 20,
+    "valor_max": 40
   }'
 ```
+
+`valor_min` / `valor_max` (RFC-004, **TC-M02-G12 #460**) son opcionales y definen el rango válido del
+atributo dinámico que RF-33 valida al registrar un activo. Solo aplican a `tipo_dato` `NUMERICO` o
+`ENTERO`; si ambos vienen, `valor_min <= valor_max`. Hasta 10 dígitos con 4 decimales (`NUMERIC(10,4)`).
 
 Respuesta esperada `201`:
 ```json
@@ -253,13 +260,23 @@ Respuesta esperada `201`:
   "unidad_medida": "kg",
   "tipo_medicion": "PESO",
   "aplica_a_tipo_activo": "INDIVIDUAL",
+  "tipo_dato": "NUMERICO",
+  "es_obligatorio": false,
+  "valor_min": "20.0000",
+  "valor_max": "40.0000",
   "id_especie": 1,
   "es_activo": true,
   "fecha_actualizacion": null
 }
 ```
 
+Los `Decimal` viajan como cadena (`"20.0000"`), igual que en el resto de la API de configuración.
+
 Errores posibles:
+- `400` — `VAL_ENTRADA` sin `tipo_dato` (campo `tipo_dato`, "Este campo es obligatorio."). RF-16 v1.2
+  (RFC-004, INC-M09-G130 #487): el usuario lo elige; el backend ya no lo infiere de `tipo_medicion`
+- `400` — `RANGO_METRICA_INVALIDO` (`valor_min` > `valor_max`, campo `valor_min`) o `RANGO_METRICA_NO_APLICA`
+  (rango con `tipo_dato` `TEXTO`/`BOOLEANO`, campo `valor_min` o `valor_max`)
 - `404` — especie no existe o está inactiva
 - `409` — nombre duplicado para esta especie (case-insensitive)
 - `422` — unidad incoherente con tipo_medicion (FA-10) o tipo_medicion inválido
@@ -291,6 +308,10 @@ Respuesta esperada `200`:
       "unidad_medida": "kg",
       "tipo_medicion": "PESO",
       "aplica_a_tipo_activo": "INDIVIDUAL",
+      "tipo_dato": "NUMERICO",
+      "es_obligatorio": false,
+      "valor_min": "20.0000",
+      "valor_max": "40.0000",
       "id_especie": 1,
       "es_activo": true,
       "fecha_actualizacion": null
@@ -298,6 +319,9 @@ Respuesta esperada `200`:
   ]
 }
 ```
+
+`valor_min`/`valor_max` son `null` cuando la métrica no tiene rango. Es la forma oficial de que QA consulte los
+límites configurados (TC-M02-014: comprobar por API que un valor queda fuera de rango).
 
 ---
 
@@ -318,7 +342,26 @@ curl -X PATCH http://localhost:8000/configuracion/metricas/1 \
   }'
 ```
 
+**Rango en la edición (RFC-004):** omitir `valor_min`/`valor_max` **conserva** el rango guardado; enviarlos con un
+número lo reemplaza; enviarlos como `null` lo **elimina**. Se valida ya fusionado con lo guardado (enviar solo
+`valor_max: 10` con un `valor_min` guardado de 20 da `400 RANGO_METRICA_INVALIDO`). Si la edición cambia
+`tipo_dato` a `TEXTO`/`BOOLEANO` sin enviar rango, el rango previo se limpia; enviarlo explícitamente da
+`400 RANGO_METRICA_NO_APLICA`.
+
+```bash
+curl -X PATCH http://localhost:8000/configuracion/metricas/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"nombre": "Peso promedio ajustado", "unidad_medida": "kg", "tipo_medicion": "PESO",
+       "aplica_a_tipo_activo": "AMBOS", "fecha_actualizacion": "<valor devuelto>",
+       "valor_min": 25, "valor_max": null}'
+```
+
+El nombre acepta guion bajo (`peso_destete`), igual que el dominio: antes el DTO lo rechazaba y una métrica
+creada así no se podía editar.
+
 Errores posibles:
+- `400` — `RANGO_METRICA_INVALIDO` / `RANGO_METRICA_NO_APLICA`
 - `404` — métrica no existe
 - `409` — nombre duplicado para esta especie
 - `412` — conflicto de concurrencia (otra sesión modificó la métrica)

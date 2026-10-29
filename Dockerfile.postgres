@@ -1,5 +1,25 @@
 FROM postgres:18
 
+# Version fijada (DL3008). A diferencia del Dockerfile del backend -- donde el
+# aviso se resolvio quitando los paquetes -- aqui pg_cron es necesario: el
+# batch/scheduler de Modulo 5 lo requiere y `shared_preload_libraries=pg_cron`
+# solo funciona si la extension esta instalada en la imagen.
+#
+# Por que fijarla y no ignorar el aviso: sin version fija, dos construcciones
+# de la misma etiqueta pueden traer paquetes distintos, asi que un escaneo de
+# vulnerabilidades sobre una construccion no dice nada sobre la siguiente. Ese
+# fue justamente el limite metodologico que se reporto en el informe de
+# seguridad de infraestructura.
+#
+# Riesgo asumido y como se recupera: el repositorio PGDG conserva varias
+# versiones a la vez (al fijar esta habia 1.6.8-1, 1.6.7-3 y 1.6.7-2
+# disponibles), pero eventualmente rota las viejas. Cuando eso pase, el build
+# fallara con "Version '1.6.8-1.pgdg13+1' for 'postgresql-18-cron' was not
+# found". Es un fallo RUIDOSO y en tiempo de construccion, no una degradacion
+# silenciosa en produccion. Para actualizarla:
+#   docker run --rm postgres:18 sh -c 'apt-get update -qq && apt-cache policy postgresql-18-cron'
+# y reemplazar por la version "Candidate" que reporte.
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-18-cron \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        postgresql-18-cron=1.6.8-1.pgdg13+1 \
     && rm -rf /var/lib/apt/lists/*

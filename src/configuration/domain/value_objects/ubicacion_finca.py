@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Optional
 
 from src.shared.errors import ValidationError
+from src.shared.rehidratar import rehidratar
 
 _TEXTO = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ ]*$")
 
@@ -37,6 +38,8 @@ def _validar_texto(valor: str, campo: str) -> str:
 
 @dataclass(frozen=True)
 class UbicacionFinca:
+    """Departamento, municipio, vereda y coordenadas de una finca; se guarda como JSONB.
+    """
     departamento: str
     municipio: str
     vereda: str
@@ -81,8 +84,10 @@ class UbicacionFinca:
 
     @classmethod
     def from_dict(cls, data: dict) -> UbicacionFinca:
+        """Rehidrata desde el JSONB guardado (#166: fincas sin vereda)."""
         try:
-            return cls(
+            return rehidratar(
+                cls,
                 departamento=data.get("departamento", ""),
                 municipio=data.get("municipio", ""),
                 vereda=data.get("vereda", ""),

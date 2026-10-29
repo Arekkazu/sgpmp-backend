@@ -1,0 +1,356 @@
+{
+  "info": {
+    "name": "TC-M02-G110 - Fecha del evento productivo: futura, anterior al inicio y fuera de la fase (RF-43 E-05: HTTP 422)",
+    "description": "RF-43, error E-05 (422). Brecha de cobertura detectada en la revision del RFC. Nota: RF-43 usa 422 para fecha invalida, a diferencia de RF-39/40/41/45 (400). Datos de TEST (2026-10-02): especie 4 Cachama Blanca (tiene la metrica Peso/PESO/kg en RF-16), infraestructura 8, id_ciclo_productiva 10 (Ciclo QA JE Bovino, fase unica).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()));",
+              "pm.collectionVariables.set('fecha_inicio', new Date(Date.now() - 5*86400000).toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0B. Setup - activo INDIVIDUAL propio Macho (nace ACTIVO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":{{id_especie}},\"fecha_inicio_ciclo\":\"{{fecha_inicio}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":{{id_infraestructura}},\"identificador\":\"QA-G110-M-{{rid}}\",\"raza\":\"QA G110\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "0C. Setup - registrar fase productiva activa (RF-37) Macho",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Fase registrada (201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/fases",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"id_ciclo_productiva\": {{id_ciclo_productiva}}, \"motivo_cambio\": \"QA G110 fase activa\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Observacion - evento productivo valido con fecha = hoy sobre activo registrado hoy (no es sub-caso; solo se registra la respuesta)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[Observacion] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Observacion registrada: HTTP ' + pm.response.code + ' (informativo, no es criterio de aceptacion)', function () { pm.expect(pm.response.code).to.be.a('number'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/productivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_producto\": \"peso\", \"cantidad_producida\": 20, \"unidad_medida\": \"kg\", \"fecha_evento\": \"{{fecha_hoy}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-320 - Rechazar evento productivo con fecha futura",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_futura', new Date(Date.now() + (2)*86400000).toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-320] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-320 - RF-43 E-05 fecha futura: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-320 - RF-43 E-05 fecha futura: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/posterior a la fecha actual del sistema/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/productivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_producto\": \"peso\", \"cantidad_producida\": 20, \"unidad_medida\": \"kg\", \"fecha_evento\": \"{{fecha_futura}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-321 - Rechazar evento productivo anterior al inicio del activo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_pre_inicio', new Date(Date.now() + (-7)*86400000).toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-321] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-321 - RF-43 E-05 anterior al inicio del activo: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-321 - RF-43 E-05 anterior al inicio del activo: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/anterior a la fecha de inicio del activo/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/productivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_producto\": \"peso\", \"cantidad_producida\": 20, \"unidad_medida\": \"kg\", \"fecha_evento\": \"{{fecha_pre_inicio}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-322 - Rechazar evento productivo fuera del periodo de la fase activa",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_pre_fase', new Date(Date.now() + (-2)*86400000).toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-322] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-322 - RF-43 E-05 fuera del periodo de la fase: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
+              "pm.test('TC-M02-322 - RF-43 E-05 fuera del periodo de la fase: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/fuera del per[ií]odo de la fase productiva activa/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/productivo",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_producto\": \"peso\", \"cantidad_producida\": 20, \"unidad_medida\": \"kg\", \"fecha_evento\": \"{{fecha_pre_fase}}\" }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "4"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "8"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "10"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    },
+    {
+      "key": "fecha_inicio",
+      "value": ""
+    }
+  ]
+}

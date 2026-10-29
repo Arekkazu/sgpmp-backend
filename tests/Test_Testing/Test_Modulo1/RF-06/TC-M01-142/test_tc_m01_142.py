@@ -8,7 +8,7 @@ import requests
 
 BASE_URL = os.getenv(
     "TEST_BASE_URL",
-    "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "https://api.inmero.co/back-sigab-test",
 )
 
 DB_HOST = os.getenv("DB_HOST", "158.69.200.27")

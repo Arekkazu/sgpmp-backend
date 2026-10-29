@@ -1,7 +1,7 @@
 describe('TC-M01-105 - Gestión de cuenta de usuario', () => {
 
   const baseUrl =
-    'https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test';
+    'https://api.inmero.co/back-sigab-test';
 
   let tokenAdmin;
   let tokenUsuarioPrueba;

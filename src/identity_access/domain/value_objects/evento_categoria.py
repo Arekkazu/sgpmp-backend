@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: tipo de evento 31 CAMBIO_VARIABLE_CRITICA (RFC-016) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tipo de evento 32 NOTIFICACION_ALERTA |
+# | 2026-10-23 | Arekkazu | M05 RF-74..81: tipos de evento 33-38 de las notificaciones de suministros |
 """Categorías funcionales de los eventos de auditoría del Módulo 1.
 
 La categoría se deriva del tipo de evento en un único punto del dominio. De
@@ -62,6 +67,25 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Alerta de la reconciliación diaria de M02 (RF-52 E5): historial sin su
     # registro de auditoría. Proceso automático sobre auditoría, igual que el 25.
     28: EventoCategoria.MODIFICACION,
+    # Intento de calibración de sensor rechazado en M09 (RF-24 v1.1, RFC-006,
+    # OWASP A09). La calibración es una modificación de configuración técnica.
+    29: EventoCategoria.MODIFICACION,
+    # Calibración registrada correctamente en M09 (RF-24/RF-10), SENSOR o VISION
+    # según detalle.operacion.
+    30: EventoCategoria.MODIFICACION,
+    # Variable ambiental marcada o desmarcada como crítica (RFC-016 B.7, RF-17).
+    31: EventoCategoria.MODIFICACION,
+    # Notificación de una alerta de RF-57 a un usuario (DEV-32): la emite un proceso
+    # automático, igual que el 28.
+    32: EventoCategoria.MODIFICACION,
+    # Notificaciones internas de M05 (migración bf404c6f1018): las emiten procesos
+    # automáticos (reportes, historial, provisión a M06, batch ICA), igual que el 32.
+    33: EventoCategoria.MODIFICACION,
+    34: EventoCategoria.MODIFICACION,
+    35: EventoCategoria.MODIFICACION,
+    36: EventoCategoria.MODIFICACION,
+    37: EventoCategoria.MODIFICACION,
+    38: EventoCategoria.MODIFICACION,
 }
 
 
@@ -99,6 +123,16 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     26: "EXPORTACION_AUDITORIA",
     27: "CAMBIO_IDIOMA_PERSONAL",
     28: "INCONSISTENCIA_AUDITORIA_M02",
+    29: "CALIBRACION_RECHAZADA",
+    30: "CALIBRACION_EXITOSA",
+    31: "CAMBIO_VARIABLE_CRITICA",
+    32: "NOTIFICACION_ALERTA",
+    33: "REPORTE_GASTOS_GENERADO",
+    34: "REPORTE_GASTOS_FALLIDO",
+    35: "HISTORIAL_SUMINISTROS_LISTO",
+    36: "PROVISION_M06_PENDIENTE",
+    37: "ALERTA_CONVERSION_ALIMENTICIA",
+    38: "BATCH_ICA_INTERRUMPIDO",
 }
 
 

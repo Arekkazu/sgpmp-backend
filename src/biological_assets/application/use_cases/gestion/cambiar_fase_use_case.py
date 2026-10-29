@@ -1,3 +1,5 @@
+"""Caso de uso: avance o cambio de fase del ciclo productivo del activo (RF-37)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +21,14 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class CambiarFaseUseCase:
+    """Cierra la gestión de fase vigente y abre la siguiente (o la fase destino indicada).
+
+    El ciclo debe ser de la especie del activo y tener fases. Saltar fases fuera
+    de la secuencia estándar exige confirmación explícita
+    (``TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR``). No admite fases solapadas ni
+    activos que no estén operativos.
+    """
+
     def __init__(
         self,
         db: Session,
@@ -70,6 +80,14 @@ class CambiarFaseUseCase:
             raise ValidationError(
                 code='CICLO_INVALIDO',
                 message=f'El ciclo productivo con ID {dto.id_ciclo_productiva} no existe.',
+                field='id_ciclo_productiva',
+            )
+        # #288: el ID de un ciclo de otra especie se aceptaba sin aviso y dejaba
+        # al activo en un ciclo ajeno (ej. un ciclo bovino en una cachama).
+        if ciclo.id_especie is not None and ciclo.id_especie != activo.id_especie:
+            raise BusinessRuleError(
+                code='CICLO_ESPECIE_INCOMPATIBLE',
+                message=f'El ciclo productivo "{ciclo.nombre}" no corresponde a la especie del activo.',
                 field='id_ciclo_productiva',
             )
         if not ciclo.fases:

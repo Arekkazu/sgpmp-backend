@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Caso de uso: cálculo de indicadores zootécnicos del activo (RF-51)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -27,6 +32,12 @@ _INDICADORES_SOLO_HEMBRA = {'PRODUCCION'}
 
 
 class ConsultarIndicadoresUseCase:
+    """Calcula los indicadores del activo en un rango de fechas.
+
+    Cada causa de "no disponible" tiene su código: datos insuficientes (422),
+    consumo de alimento en cero (409), valor atípico crítico (500), indicador que
+    no aplica al sexo del animal o rango fuera de su ciclo de vida (400).
+    """
 
     def __init__(
         self,
@@ -139,8 +150,7 @@ class ConsultarIndicadoresUseCase:
     ) -> None:
         if fecha_inicio is not None:
             if activo.detalle_individual is not None:
-                nacimiento = activo.detalle_individual.fecha_nacimiento
-                nacimiento_fecha = nacimiento.date() if isinstance(nacimiento, datetime) else nacimiento
+                nacimiento_fecha = activo.detalle_individual.fecha_nacimiento
                 if nacimiento_fecha is not None and fecha_inicio < nacimiento_fecha:
                     raise ValidationError(
                         code='RANGO_FUERA_DE_CICLO_VIDA',

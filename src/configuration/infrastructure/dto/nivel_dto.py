@@ -11,6 +11,9 @@ _NIVELES_VALIDOS = {'normal', 'precaucion', 'critico'}
 
 
 class NivelDTO(BaseDTO):
+    """Tramo de un nivel (``normal`` | ``precaucion`` | ``critico``) dentro del rango
+    del umbral.
+    """
     nivel: str
     limite_inferior: Decimal
     limite_superior: Decimal

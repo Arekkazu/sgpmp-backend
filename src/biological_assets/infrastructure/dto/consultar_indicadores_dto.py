@@ -1,3 +1,5 @@
+"""Filtros de ``GET /activos-biologicos/{id_activo}/indicadores`` (RF-51)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,6 +13,11 @@ _TIPOS_VALIDOS = {'CRECIMIENTO', 'PRODUCCION', 'SANITARIO', 'EFICIENCIA', 'TODOS
 
 
 class ConsultarIndicadoresDTO(BaseDTO):
+    """Rango y tipo de indicador.
+
+    ``tipo_indicador``: ``CRECIMIENTO`` | ``PRODUCCION`` | ``SANITARIO`` | ``EFICIENCIA`` |
+    ``TODOS``.
+    """
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
     tipo_indicador: str = 'TODOS'

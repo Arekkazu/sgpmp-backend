@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: la edición de perfil aplica el mismo rango [18, 100) |
 """Caso de uso: edición de perfil de usuario (propio o por administrador).
 
 La autorización se resuelve en dos endpoints del router: edición propia y
@@ -30,7 +33,7 @@ from src.identity_access.infrastructure.dto.perfil_dto import (
     EditarPerfilAdminDTO,
     PerfilBaseDTO,
 )
-from src.identity_access.infrastructure.email_templates import activation_email
+from src.identity_access.infrastructure.email_templates import verificar_correo_email
 from src.shared.email import send_email
 from src.shared.errors import (
     AuthorizationError,
@@ -315,6 +318,32 @@ class EditarPerfilUseCase:
                 ),
             )
 
+        # Mismo rango de edad que el registro (RF-01, RFC-013); el mínimo también
+        # cubre una fecha de nacimiento futura (edad negativa).
+        limite = (
+            Usuario.limite_edad_incumplido(dto.fecha_nacimiento)
+            if dto.fecha_nacimiento is not None
+            else None
+        )
+        if limite == "MINIMA":
+            raise ValidationError(
+                code="EDAD_MINIMA_REQUERIDA",
+                message=(
+                    f"La fecha de nacimiento no es válida: el usuario debe tener al "
+                    f"menos {Usuario.EDAD_MINIMA} años."
+                ),
+                field="fecha_nacimiento",
+            )
+        if limite == "MAXIMA":
+            raise ValidationError(
+                code="EDAD_FUERA_DE_RANGO",
+                message=(
+                    f"La fecha de nacimiento no es válida: la edad debe estar entre "
+                    f"{Usuario.EDAD_MINIMA} y {Usuario.EDAD_MAXIMA - 1} años."
+                ),
+                field="fecha_nacimiento",
+            )
+
         # El correo únicamente puede cambiarse si la cuenta está activa.
         if (
             correo_modificado
@@ -455,12 +484,17 @@ class EditarPerfilUseCase:
                 else "Usuario"
             )
 
+            # Bajo el usuario AFECTADO, igual que gestionar_cuenta: NotificacionService
+            # busca el evento a notificar por ese id_usuario. Registrado bajo el
+            # admin, la notificación de una edición administrativa nunca salía
+            # (o se enlazaba a un evento viejo del usuario).
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
                 exitoso=True,
-                id_usuario=usuario_actual.id_usuario,
+                id_usuario=id_usuario,
                 detalle={
                     "id_usuario_modificado": id_usuario,
+                    "id_usuario_responsable": usuario_actual.id_usuario,
                     "tipo_actor": tipo_actor,
                     "campos_modificados": list(cambios.keys()),
                     "valores_anteriores": valores_anteriores,
@@ -481,8 +515,8 @@ class EditarPerfilUseCase:
         if correo_modificado and token_verificacion is not None:
             send_email(
                 to=nuevo_correo,
-                subject="Verifica tu nuevo correo en SGPMP",
-                html_body=activation_email(
+                subject="Confirma tu nuevo correo en SIGAB",
+                html_body=verificar_correo_email(
                     usuario.nombre,
                     token_verificacion,
                 ),

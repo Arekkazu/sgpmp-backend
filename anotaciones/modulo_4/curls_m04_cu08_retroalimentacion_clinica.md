@@ -254,3 +254,28 @@ WHERE tipo_evento IN ('RETROALIMENTACION_REGISTRADA', 'CONFLICTO_RETROALIMENTACI
 ORDER BY fecha_evento DESC
 LIMIT 5;
 ```
+
+---
+
+## E8 — Error de persistencia (DEV-48)
+
+No se reproduce con un curl normal: ocurre cuando falla la base de datos o el almacenamiento al guardar la retroalimentación (no cuando el dato es rechazado: un 409/400/422 sigue igual).
+
+Respuesta esperada `500`:
+```json
+{
+  "error_code": "ERROR_PERSISTENCIA_RETROALIMENTACION",
+  "message": "Error interno al registrar la retroalimentación.",
+  "fields": []
+}
+```
+
+Se registra el incidente en la auditoría técnica de RF-73 (`modulo4.eventos_auditoria_m04`): `tipo_evento = RETROALIMENTACION_REGISTRADA`, `resultado_operacion = FALLIDO`, `severidad_evento = ERROR`, `codigo_error = ERROR_PERSISTENCIA_RETROALIMENTACION` y la clase del error en `descripcion_error`. Si la bitácora tampoco responde, el evento queda en el fallback local `logs/audit_fallback_M04_YYYYMMDD.log` (RF-73 E8).
+
+```sql
+SELECT fecha_evento, id_referencia, codigo_error, descripcion_error, payload_evento
+FROM modulo4.eventos_auditoria_m04
+WHERE tipo_evento = 'RETROALIMENTACION_REGISTRADA' AND resultado_operacion = 'FALLIDO'
+ORDER BY fecha_evento DESC
+LIMIT 5;
+```

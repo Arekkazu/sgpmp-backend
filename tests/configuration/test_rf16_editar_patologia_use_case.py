@@ -40,7 +40,7 @@ class EspeciePatologiaRepoFake:
     def __init__(self, rows: list[EspeciePatologia]) -> None:
         self.rows = {r.id_especies_patologias: r for r in rows}
 
-    def obtener_por_id(self, id_ep):
+    def obtener_por_id(self, id_ep, **_):
         return self.rows.get(id_ep)
 
     def obtener_por_especie_y_nombre(self, id_especie, nombre):

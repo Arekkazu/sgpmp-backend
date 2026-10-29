@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Lógica de sesión compartida entre los distintos caminos de autenticación.
 
 ``LoginUseCase`` (contraseña), ``SsoLoginUseCase`` (handoff RS256 de
@@ -23,6 +26,7 @@ from src.identity_access.domain.repositories.evento_repository import EventoRepo
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.shared.errors import AuthorizationError, LockedError
 from src.shared.jwt import create_token, refresh_token_expiration, token_expiration
+from src.shared.fechas import en_zona_usuario
 
 
 def verificar_estado_cuenta(
@@ -52,20 +56,29 @@ def verificar_estado_cuenta(
             (inactiva/eliminada). HTTP 403.
     """
     if cuenta.esta_bloqueada():
-        bloqueado_hasta = cuenta.bloqueado_hasta
-        if bloqueado_hasta is not None:
+        if cuenta.bloqueado_hasta is None:
+            # Bloqueo administrativo (RF-06): no vence. Antes caía en el
+            # desbloqueo automático y el siguiente login reactivaba la cuenta.
+            raise AuthorizationError(
+                code="CUENTA_DESHABILITADA",
+                message=(
+                    "Acceso restringido. Su cuenta ha sido desactivada por políticas de seguridad "
+                    "o administración. Por favor, contacte al soporte técnico para más información."
+                ),
+            )
+        if not cuenta.bloqueo_temporal_vencido(ahora):
+            bloqueado_hasta = cuenta.bloqueado_hasta
             if bloqueado_hasta.tzinfo is None:
                 bloqueado_hasta = bloqueado_hasta.replace(tzinfo=timezone.utc)
-            if bloqueado_hasta > ahora:
-                raise LockedError(
-                    code="CUENTA_BLOQUEADA",
-                    message=(
-                        f"Cuenta bloqueada por seguridad debido a múltiples intentos fallidos. "
-                        f"Podrá intentar acceder nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')} "
-                        f"(dentro de 15 minutos exactos)."
-                    ),
-                )
-        # Tiempo de bloqueo expiró → desbloquear automáticamente
+            raise LockedError(
+                code="CUENTA_BLOQUEADA",
+                message=(
+                    f"Cuenta bloqueada por seguridad debido a múltiples intentos fallidos. "
+                    f"Podrá intentar acceder nuevamente a las {en_zona_usuario(bloqueado_hasta).strftime('%H:%M:%S')} "
+                    f"(dentro de 15 minutos exactos)."
+                ),
+            )
+        # Venció el bloqueo por intentos fallidos → desbloquear con contador en cero.
         try:
             cuenta.desbloquear()
             cuentas_repo.guardar(cuenta)

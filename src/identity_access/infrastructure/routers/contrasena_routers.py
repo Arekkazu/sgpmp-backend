@@ -33,6 +33,7 @@ router = APIRouter(prefix="/contrasena", tags=["Contraseña"])
 
 @router.put(
     "/usuarios/{id_usuario}",
+    summary="Cambiar la contraseña propia (RF-07)",
     response_model=MessageResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -49,6 +50,14 @@ def cambiar_contrasena(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Cambia la contraseña del usuario autenticado verificando la actual.
+
+    **Acceso:** autenticado; `id_usuario` debe ser el propio (403 en otro caso).
+
+    Errores: contraseña actual incorrecta (401), contraseña reutilizada (409),
+    cuenta no activa (422), 5 intentos fallidos bloquean el cambio 30 minutos
+    (423). Al terminar se cierran todas las sesiones activas del usuario.
+    """
     use_case = CambiarContrasenaUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
@@ -63,6 +72,7 @@ def cambiar_contrasena(
 
 @router.post(
     "/recuperar",
+    summary="Solicitar recuperación de contraseña (RF-08)",
     response_model=MessageResponse,
     status_code=202,
     responses={
@@ -76,6 +86,13 @@ def solicitar_recuperacion(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    """Envía al correo un enlace para restablecer la contraseña (válido 15 minutos).
+
+    **Acceso:** público.
+
+    Responde siempre el mismo mensaje genérico (202) exista o no el correo, para
+    evitar enumeración de usuarios. Limitado a 3 solicitudes por hora por IP (429).
+    """
     ip = request.client.host if request.client else "unknown"
     use_case = SolicitarRecuperacionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
@@ -91,6 +108,7 @@ def solicitar_recuperacion(
 
 @router.post(
     "/restablecer",
+    summary="Restablecer la contraseña con el token de recuperación (RF-09)",
     response_model=MessageResponse,
     responses={
         400: {"model": ErrorResponse},
@@ -102,6 +120,14 @@ def solicitar_recuperacion(
     },
 )
 def restablecer_contrasena(dto: RestablecerContrasenaDTO, request: Request, db: Session = Depends(get_db)):
+    """Fija una contraseña nueva usando el token recibido por correo.
+
+    **Acceso:** público.
+
+    Errores: token inválido (401), ya usado o contraseña reutilizada (409), token
+    expirado (410), demasiados intentos desde la IP (423). El token se destruye
+    tras el uso y se cierran todas las sesiones activas.
+    """
     ip = request.client.host if request.client else "unknown"
     use_case = RestablecerContrasenaUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),

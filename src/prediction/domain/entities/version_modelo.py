@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
+# | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
 from __future__ import annotations
 
 import uuid
@@ -6,7 +10,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import BusinessRuleError, ConflictError
+from src.shared.tipo_modelo import es_poblacional, paradigma_de
 
 _UMBRAL_F1 = Decimal("0.80")
 _UMBRAL_RECALL = Decimal("0.85")
@@ -31,7 +36,7 @@ class VersionModelo:
     accuracy: Optional[Decimal]
     roc_auc_score: Optional[Decimal]
     recall_por_clase: Optional[dict]
-    matriz_confusion: Optional[dict]
+    matriz_confusion: Optional[list]  # matriz NxN: lista de filas
     compatibilidad_variables: Optional[list]
     notas_validacion: Optional[str]
     detalle_validacion: Optional[str]
@@ -42,6 +47,16 @@ class VersionModelo:
     fecha_despliegue: Optional[datetime]
 
     id_version_modelo: Optional[int] = None
+    # RF-69 v2.0 (RFC-009): los modelos POBLACIONAL se versionan por componente y se
+    # validan con métricas de calibración en vez de F1/recall.
+    componente: Optional[str] = None
+    metricas_poblacionales: Optional[dict] = None
+    # DEV-15 / DB-04: firma del artefacto que el nodo verifica antes de instalar (D6).
+    firma_artefacto: Optional[str] = None
+
+    @property
+    def paradigma(self) -> Optional[str]:
+        return paradigma_de(self.tipo_modelo)
 
     @classmethod
     def crear(
@@ -54,19 +69,29 @@ class VersionModelo:
         hash_artefacto_sha256: str,
         dataset_entrenamiento_hash: str,
         id_proceso_rf71: uuid.UUID,
-        f1_score: Decimal,
-        recall_clase_riesgo_alto: Decimal,
-        precision_modelo: Decimal,
-        accuracy: Decimal,
-        roc_auc_score: Decimal,
-        recall_por_clase: dict,
-        matriz_confusion: dict,
+        f1_score: Optional[Decimal],
+        recall_clase_riesgo_alto: Optional[Decimal],
+        precision_modelo: Optional[Decimal],
+        accuracy: Optional[Decimal],
+        roc_auc_score: Optional[Decimal],
+        recall_por_clase: Optional[dict],
+        matriz_confusion: Optional[list],
         compatibilidad_variables: list,
         fecha_entrenamiento: datetime,
         version_referencia: Optional[int] = None,
+        componente: Optional[str] = None,
+        metricas_poblacionales: Optional[dict] = None,
     ) -> VersionModelo:
+        # El componente entra al nombre: un mismo proceso RF-71 registra varios
+        # componentes de un modelo POBLACIONAL y nombre_version es único.
+        # ponytail: nombre_version es varchar(40) y 6 vistas de M04 dependen de la
+        # columna; en vez de recrearlas se quita el prefijo MODELO_ y la fecha va en
+        # aammdd (peor caso ACUICULTURA_SEGUIMIENTO_aammdd_xxxxxxxx = 39).
+        prefijo = tipo_modelo.removeprefix("MODELO_")
+        if componente:
+            prefijo = f"{prefijo}_{componente}"
         nombre_version = (
-            f"{tipo_modelo}_{fecha_entrenamiento.strftime('%Y%m%d')}_{str(id_proceso_rf71)[:8]}"
+            f"{prefijo}_{fecha_entrenamiento.strftime('%y%m%d')}_{str(id_proceso_rf71)[:8]}"
         )
         return cls(
             nombre_version=nombre_version,
@@ -94,19 +119,27 @@ class VersionModelo:
             fecha_entrenamiento=fecha_entrenamiento,
             fecha_registro=None,
             fecha_despliegue=None,
+            componente=componente,
+            metricas_poblacionales=metricas_poblacionales,
         )
 
     def validar_y_asignar_estado(self) -> None:
         """Evalúa métricas y asigna APROBADO o RECHAZADO. Llena detalle_validacion si RECHAZADO."""
         defectos = []
-        if self.f1_score is None or self.f1_score < _UMBRAL_F1:
-            defectos.append(
-                f"f1_score_global={self.f1_score} < umbral requerido {_UMBRAL_F1}"
-            )
-        if self.recall_clase_riesgo_alto is None or self.recall_clase_riesgo_alto < _UMBRAL_RECALL:
-            defectos.append(
-                f"recall_clase_riesgo_alto={self.recall_clase_riesgo_alto} < umbral requerido {_UMBRAL_RECALL}"
-            )
+        if es_poblacional(self.tipo_modelo):
+            # ponytail: RF-69 v2.0 nombra las métricas poblacionales pero no fija umbrales
+            # para las tasas; solo la calibración COMPLETADA decide hasta que Análisis los defina.
+            if not (self.metricas_poblacionales or {}).get("calibracion_completada"):
+                defectos.append("calibracion_completada=false: la calibración en sitio no está COMPLETADA")
+        else:
+            if self.f1_score is None or self.f1_score < _UMBRAL_F1:
+                defectos.append(
+                    f"f1_score_global={self.f1_score} < umbral requerido {_UMBRAL_F1}"
+                )
+            if self.recall_clase_riesgo_alto is None or self.recall_clase_riesgo_alto < _UMBRAL_RECALL:
+                defectos.append(
+                    f"recall_clase_riesgo_alto={self.recall_clase_riesgo_alto} < umbral requerido {_UMBRAL_RECALL}"
+                )
         if defectos:
             self.estado_version = "RECHAZADO"
             self.detalle_validacion = "; ".join(defectos)
@@ -115,9 +148,12 @@ class VersionModelo:
             self.detalle_validacion = None
 
     def activar(self) -> None:
-        """Transiciona a ACTIVO. Solo válido desde APROBADO y con notas_validacion."""
+        """Transiciona a ACTIVO. Solo válido desde APROBADO y con notas_validacion.
+
+        RF-69 E4 (DEV-34): activar una versión en estado distinto de APROBADO es 409.
+        """
         if self.estado_version in ("DEPRECADO", "RECHAZADO"):
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="TRANSICION_ESTADO_INVALIDA",
                 message=(
                     f"Los modelos en estado {self.estado_version} son terminales "
@@ -125,7 +161,7 @@ class VersionModelo:
                 ),
             )
         if self.estado_version != "APROBADO":
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="VERSION_NO_APROBADA",
                 message=(
                     f"Solo las versiones en estado APROBADO pueden activarse. "
@@ -164,15 +200,28 @@ class VersionModelo:
                 message="Las notas de validación no pueden estar vacías.",
                 field="notas_validacion",
             )
+        # M4-06 / CA-13: la nota clínica no se sobrescribe. Antes el PATCH reemplazaba el
+        # texto y una nota nueva quedó insertada en medio de la de otro veterinario.
+        if self.notas_validacion and self.notas_validacion.strip():
+            raise ConflictError(
+                code="NOTAS_INMUTABLES",
+                message="Esta versión ya tiene notas de validación clínica registradas y no se pueden modificar.",
+                field="notas_validacion",
+            )
         self.notas_validacion = notas.strip()
 
     def _snapshot(self) -> dict:
+        # Las llaves siguen los campos mínimos de RF-73 (id_version, f1_score_global...)
+        # para que el evento de auditoría no se registre como AUDITORIA_EVENTO_INVALIDO.
         return {
+            "id_version": self.id_version_modelo,
             "nombre_version": self.nombre_version,
             "tipo_modelo": self.tipo_modelo,
+            "paradigma": self.paradigma,
+            "componente": self.componente,
             "estado_version": self.estado_version,
             "formato_artefacto": self.formato_artefacto,
-            "f1_score": str(self.f1_score) if self.f1_score is not None else None,
+            "f1_score_global": str(self.f1_score) if self.f1_score is not None else None,
             "recall_clase_riesgo_alto": (
                 str(self.recall_clase_riesgo_alto)
                 if self.recall_clase_riesgo_alto is not None
@@ -183,4 +232,5 @@ class VersionModelo:
             "roc_auc_score": str(self.roc_auc_score) if self.roc_auc_score is not None else None,
             "detalle_validacion": self.detalle_validacion,
             "notas_validacion": self.notas_validacion,
+            **(self.metricas_poblacionales or {}),
         }

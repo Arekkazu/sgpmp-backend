@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 """RF-48: la fecha futura se rechaza como regla funcional con HTTP 422.
 
 E-10 es la última validación del proceso (RF-48 paso 6f) — el control de
@@ -9,6 +12,7 @@ de llegar a la fecha futura.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 
 import pytest
 from fastapi import FastAPI
@@ -27,6 +31,7 @@ from src.biological_assets.infrastructure.routers import activo_biologico_router
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.error_handlers import register_error_handlers
+from src.configuration.domain.services.capacidad_area import EspecieDelArea
 from src.shared.errors import BusinessRuleError, ConflictError
 
 
@@ -92,11 +97,20 @@ class InfraPortFake:
     def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
         return True
 
+    def obtener_especie(self, id_especie: int):
+        return EspecieDelArea(id_especie, 'Especie', 'G', Decimal('10'))
+
+    def bloquear_capacidad(self, _id: int) -> None:
+        pass
+
+    def asociar_especie(self, _id_infraestructura: int, _id_especie: int) -> None:
+        pass
+
 
 def _infra(id_infraestructura: int, id_finca: int) -> InfraestructuraConsulta:
     return InfraestructuraConsulta(
         id_infraestructura=id_infraestructura, nombre=f'Infra {id_infraestructura}',
-        tipo='Corral', es_activo=True, id_finca=id_finca,
+        tipo='Corral', es_activo=True, id_finca=id_finca, superficie=Decimal('100'),
     )
 
 

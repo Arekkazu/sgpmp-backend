@@ -1,10 +1,21 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-31 RF-57: tarea periódica que vence alertas por SLA (E10) |
+# | 2026-10-21 | Arekkazu | DEV-32 RF-57: tarea periódica de notificación de alertas y escalamiento por SLA |
+# | 2026-10-21 | Leandro | DEV-27 RF-60: conecta politica temporal en evaluador |
+# | 2026-10-22 | Arekkazu         | M05 RF-79/81: outbox a M06 y purga de archivos |
+# | 2026-10-23 | destroyerban | DEV-37 RF-73: reintentos, respaldo local y sincronización de la bitácora M04 |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura imports perdidos en el merge dev → test (sandbox y X-Zona-Horaria) |
+# | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: tarea que libera las OTA PROGRAMADO al abrir su ventana |
+# | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: router del modelo de riesgo de contagio |
 import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -20,6 +31,7 @@ validar_configuracion()
 
 logger = logging.getLogger(__name__)
 
+
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
@@ -31,6 +43,7 @@ from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
+from src.configuration.infrastructure.routers.calibracion_vision_router import router as calibracion_vision_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
 from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
@@ -51,8 +64,10 @@ from src.telemetry.infrastructure.routers.infraestructura_iot_router import rout
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.telemetry.infrastructure.routers.regla_alerta_edge_router import router as regla_alerta_edge_router
 from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
+from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
@@ -81,22 +96,25 @@ from src.shared import almacen_logos
 from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
-from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware, documentar_zona_horaria
+from src.shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
+from src.shared.rollback.presentation.test_control_router import router as test_control_router
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
     """Tarea periódica RF-60: evalúa estado de dispositivos cada 60 s."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case import EvaluarEstadoDispositivosUseCase
     from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
     from src.telemetry.infrastructure.repositories.estado_dispositivo_iot_repository import SqlAlchemyEstadoDispositivoIoTRepository
     from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
     from src.telemetry.infrastructure.repositories.historico_transicion_dispositivo_repository import SqlAlchemyHistoricoTransicionDispositivoRepository
     from src.telemetry.infrastructure.repositories.periodo_inactividad_repository import SqlAlchemyPeriodoInactividadRepository
+    from src.telemetry.infrastructure.adapters.parametros_heartbeat_mlops_adapter import ParametrosHeartbeatMLOpsAdapter
 
     while True:
         await asyncio.sleep(60)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = EvaluarEstadoDispositivosUseCase(
                 db=db,
@@ -105,12 +123,70 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 periodo_repo=SqlAlchemyPeriodoInactividadRepository(db),
                 alerta_repo=SqlAlchemyAlertaRepository(db),
                 historico_alerta_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
+                parametros_port=ParametrosHeartbeatMLOpsAdapter(db),
             )
             n = use_case.execute()
             if n > 0:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vencer_alertas_sla_periodicamente() -> None:
+    """Tarea periódica RF-57 E10 (DEV-31): alertas ACTIVA con el SLA cumplido → VENCIDA, cada 60 s."""
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.vencer_alertas_sla_use_case import VencerAlertasSlaUseCase
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            use_case = VencerAlertasSlaUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('VencerAlertasSla: %d alertas pasaron a VENCIDA.', n)
+        except Exception:
+            logger.exception('VencerAlertasSla: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _notificar_alertas_periodicamente() -> None:
+    """Tarea periódica RF-57 Fase 8 / E6 / E7 / E8 (DEV-32): notifica las alertas nuevas cada 10 s."""
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.alertas.notificar_alertas_use_case import NotificarAlertasUseCase
+    from src.telemetry.infrastructure.adapters.notificacion_alerta_rf14_adapter import NotificacionAlertaRf14Adapter
+    from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
+    from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
+
+    while True:
+        await asyncio.sleep(10)
+        db = sesion_sistema()
+        try:
+            use_case = NotificarAlertasUseCase(
+                db=db,
+                alerta_repo=SqlAlchemyAlertaRepository(db),
+                notificacion_port=NotificacionAlertaRf14Adapter(db),
+                parametros_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+                auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('NotificarAlertas: %d alertas notificadas.', n)
+        except Exception:
+            logger.exception('NotificarAlertas: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -123,7 +199,7 @@ async def _ejecutar_batch_ica_diario() -> None:
     """
     from datetime import datetime, time as dtime, timedelta
 
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.eficiencia_factory import build_ejecutar_batch_use_case
     from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
         SqlAlchemyConfiguracionBatchICARepository,
@@ -131,7 +207,7 @@ async def _ejecutar_batch_ica_diario() -> None:
 
     while True:
         hora = dtime(2, 0)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             hora = SqlAlchemyConfiguracionBatchICARepository(db).obtener().hora_ejecucion
         except Exception:
@@ -145,7 +221,7 @@ async def _ejecutar_batch_ica_diario() -> None:
             proximo += timedelta(days=1)
         await asyncio.sleep((proximo - ahora).total_seconds())
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_ejecutar_batch_use_case(db)
             ejecucion = await use_case.ejecutar(tipo_disparo="AUTOMATICO")
@@ -171,7 +247,7 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
     """
     from datetime import datetime, time as dtime, timedelta
 
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.application.use_cases.suministros.revertir_retiros_vencidos_use_case import (
         RevertirRetirosVencidosUseCase,
     )
@@ -186,7 +262,7 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
         await asyncio.sleep((proximo - ahora).total_seconds())
 
         try:
-            use_case = RevertirRetirosVencidosUseCase(session_factory=SessionLocal)
+            use_case = RevertirRetirosVencidosUseCase(session_factory=sesion_sistema)
             n = await asyncio.to_thread(use_case.ejecutar)
             logger.info("Reversión de retiros vencidos: %d activo(s) revertido(s) a ACTIVO.", n)
         except Exception:
@@ -212,7 +288,7 @@ async def _archivar_auditoria_diariamente() -> None:
     from src.identity_access.infrastructure.repositories.usuario_repository import (
         SqlAlchemyUsuarioRepository,
     )
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     hora = dtime(4, 0)
 
@@ -222,7 +298,7 @@ async def _archivar_auditoria_diariamente() -> None:
         La sesión del archivado quedó en rollback, así que la notificación necesita
         una propia.
         """
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             return NotificarFalloArchivadoUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
@@ -246,7 +322,7 @@ async def _archivar_auditoria_diariamente() -> None:
         await asyncio.sleep((proximo - ahora).total_seconds())
 
         def ejecutar_archivado():
-            db = SessionLocal()
+            db = sesion_sistema()
             try:
                 return ArchivarAuditoriaUseCase(
                     eventos_repo=SqlAlchemyEventoRepository(db),
@@ -301,7 +377,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     ``intervalo_poll_segundos`` (configurable en
     ``modulo5.configuracion_batch_reportes_gastos``).
     """
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.reporte_gastos_factory import (
         build_procesar_cola_reportes_gastos_use_case,
     )
@@ -310,7 +386,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             intervalo = SqlAlchemyConfiguracionBatchReporteGastoRepository(db).obtener().intervalo_poll_segundos
         except Exception:
@@ -321,7 +397,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_procesar_cola_reportes_gastos_use_case(db)
             n = await use_case.ejecutar()
@@ -337,16 +413,17 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     """Poller RF-81: procesa la cola de trabajos pesados de historial de suministros
     (``CONSULTA_PESADA`` nivel 3/4 y ``EXPORTACION`` > 10.000 registros). Mismo
     patrón de poller continuo que RF-77."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.historial_suministros_factory import (
         build_procesar_cola_historial_suministros_use_case,
+        build_purgar_archivos_vencidos_use_case,
     )
     from src.supplies.infrastructure.repositories.configuracion_batch_historial_repository import (
         SqlAlchemyConfiguracionBatchHistorialRepository,
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             intervalo = SqlAlchemyConfiguracionBatchHistorialRepository(db).obtener().intervalo_poll_segundos
         except Exception:
@@ -357,7 +434,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_procesar_cola_historial_suministros_use_case(db)
             n = await use_case.ejecutar()
@@ -368,12 +445,46 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
         finally:
             db.close()
 
+        # RF-77 (24 h) / RF-81 (72 h): purga de archivos exportados vencidos.
+        db = sesion_sistema()
+        try:
+            purgados = build_purgar_archivos_vencidos_use_case(db).execute()
+            if purgados:
+                logger.info("Purga de exportaciones de M05: %d archivo(s) vencido(s).", purgados)
+        except Exception:
+            logger.exception("Error purgando los archivos exportados vencidos de M05.")
+        finally:
+            db.close()
+
+
+async def _despachar_provisiones_m06_periodicamente() -> None:
+    """RF-79: entrega a M06 los eventos del outbox de provisiones (CA-1: ≤ 5 s)."""
+    from src.shared.database import sesion_sistema
+    from src.supplies.infrastructure.factories.provision_nic41_factory import (
+        build_despachar_provisiones_m06_use_case,
+    )
+
+    while True:
+        await asyncio.sleep(2)
+
+        def despachar() -> int:
+            db = sesion_sistema()
+            try:
+                return build_despachar_provisiones_m06_use_case(db).ejecutar()
+            finally:
+                db.close()
+
+        try:
+            await asyncio.to_thread(despachar)
+        except Exception:
+            logger.exception("Error en el despachador de provisiones hacia M06.")
+
 
 async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     """Poller RF-10: procesa las exportaciones de auditoría demasiado grandes
     para resolverse dentro de la petición. Mismo patrón que los pollers de RF-77
     y RF-81."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.identity_access.application.use_cases.auditoria.exportacion_async_use_cases import (
         ProcesarColaExportacionesUseCase,
     )
@@ -388,7 +499,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             intervalo = (
                 SqlAlchemyExportacionAuditoriaRepository(db)
@@ -405,7 +516,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             cola_repo = SqlAlchemyExportacionAuditoriaRepository(db)
             use_case = ProcesarColaExportacionesUseCase(
@@ -433,15 +544,85 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
     from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
         SqlAlchemyBitacoraAuditoriaRepository,
     )
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     while True:
         await asyncio.sleep(5)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
         except Exception:
             logger.exception("Error vaciando el buffer de la bitácora de M02.")
+        finally:
+            db.close()
+
+
+async def _liberar_ota_programadas_periodicamente() -> None:
+    """RF-70 E1: avisa ota/notify a los despliegues PROGRAMADO pospuestos cuando abre su ventana."""
+    from src.prediction.application.use_cases.ota.liberar_despliegues_programados_use_case import (
+        LiberarDesplieguesProgramadosUseCase,
+    )
+    from src.prediction.infrastructure.adapters.ota_edge_adapters import (
+        AvisoOtaBrokerAdapter,
+        NodoOtaM09Adapter,
+        UrlDescargaHmacAdapter,
+    )
+    from src.prediction.infrastructure.repositories.despliegue_ota_repository import SqlAlchemyDespliegueOtaRepository
+    from src.prediction.infrastructure.repositories.distribucion_ota_repository import (
+        SqlAlchemyDistribucionOtaRepository,
+    )
+    from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+    from src.shared.database import sesion_sistema
+
+    while True:
+        await asyncio.sleep(60)
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(LiberarDesplieguesProgramadosUseCase(
+                db=db,
+                version_repo=SqlAlchemyVersionModeloRepository(db),
+                distribucion_repo=SqlAlchemyDistribucionOtaRepository(db),
+                despliegue_repo=SqlAlchemyDespliegueOtaRepository(db),
+                nodo_port=NodoOtaM09Adapter(db),
+                aviso_port=AvisoOtaBrokerAdapter(),
+                url_port=UrlDescargaHmacAdapter(),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudieron liberar las distribuciones OTA programadas; se reintentará.")
+        finally:
+            db.close()
+
+
+async def _sincronizar_respaldo_auditoria_m04_periodicamente() -> None:
+    """RF-73 E8: cuando la BD vuelve, lleva a la bitácora de M04 lo que quedó en el
+    respaldo local (audit_fallback_M04_YYYYMMDD.log). Sin respaldo no toca la BD."""
+    from src.prediction.application.use_cases.auditoria.sincronizar_respaldo_auditoria_m04_use_case import (
+        SincronizarRespaldoAuditoriaM04UseCase,
+    )
+    from src.prediction.infrastructure.adapters.aviso_auditoria_m04_email_adapter import AvisoAuditoriaM04EmailAdapter
+    from src.prediction.infrastructure.adapters.respaldo_auditoria_m04_archivo_adapter import (
+        RespaldoAuditoriaM04ArchivoAdapter,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
+        SqlAlchemyEventoAuditoriaM04Repository,
+    )
+    from src.shared.database import sesion_sistema
+
+    respaldo = RespaldoAuditoriaM04ArchivoAdapter()
+    while True:
+        await asyncio.sleep(30)
+        if not respaldo.hay_pendientes():
+            continue
+        db = sesion_sistema()
+        try:
+            await asyncio.to_thread(SincronizarRespaldoAuditoriaM04UseCase(
+                db=db,
+                repo=SqlAlchemyEventoAuditoriaM04Repository(db, respaldo),
+                respaldo=respaldo,
+                aviso=AvisoAuditoriaM04EmailAdapter(db),
+            ).execute)
+        except Exception:
+            logger.exception("No se pudo sincronizar el respaldo de auditoría de M04; se reintentará.")
         finally:
             db.close()
 
@@ -469,12 +650,12 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
         SqlAlchemyNotificacionRepository,
     )
     from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     hora = dtime(5, 0)
 
     def reconciliar():
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             return ReconciliarBitacoraHistorialUseCase(
                 db=db,
@@ -485,7 +666,7 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
             db.close()
 
     def avisar(inconsistencias) -> int:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             return NotificarInconsistenciaAuditoriaUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
@@ -529,16 +710,24 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
     verificar_migraciones_aplicadas(engine)
 
+    from src.telemetry.infrastructure.workers.postcommit_worker import procesar_postcommit_periodicamente
+
     tasks = [
+        asyncio.create_task(procesar_postcommit_periodicamente()),
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
+        asyncio.create_task(_vencer_alertas_sla_periodicamente()),
+        asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+        asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
+        asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
+        asyncio.create_task(_liberar_ota_programadas_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -550,12 +739,75 @@ async def lifespan(app: FastAPI):
             pass
 
 
+DESCRIPCION_API = """
+Backend del Sistema de Gestión y Planificación para el Mercado Pecuario (SGPMP).
+
+**Autenticación.** `POST /sesiones/` devuelve el access token (JWT, 8 h) en el
+body; se envía en `Authorization: Bearer <token>`. El refresh token viaja solo
+en la cookie `HttpOnly` `refresh_token`: ante un `401 TOKEN_EXPIRADO`, llamar
+`POST /sesiones/refresh` y reintentar.
+
+**Autorización.** Cada endpoint protegido exige un permiso (recurso + acción)
+de `modulo1.permisos`; la descripción de cada endpoint indica cuál. Sin él
+responde 403. `GET /sesiones/me/permisos` lista los del usuario.
+
+**Errores.** Todas las respuestas de error tienen la forma
+`{"error_code", "message", "fields", "timestamp"}`; `error_code` es estable y es
+lo que el cliente debe interpretar (y traducir).
+
+**Concurrencia optimista.** Las ediciones piden el `fecha_actualizacion` o la
+`version` leídos; si el registro cambió entretanto responden 412.
+
+**Fechas y zona horaria.** Los instantes se guardan y se devuelven en UTC; se
+envían en ISO 8601 con zona (`2026-10-23T22:00:00-05:00` o `...Z`) y uno sin
+zona se toma como UTC. Los días calendario van como `YYYY-MM-DD`. "Hoy", las
+fechas futuras, los filtros por día y las horas de los mensajes se calculan en
+la zona de la cabecera `X-Zona-Horaria` (ej. `America/Bogota`), que cada
+endpoint documenta; sin ella, en UTC.
+"""
+
+# Descripción de los tags de M01, M02 y M09; el orden aquí es el de Swagger.
+# Los tags de los demás módulos aparecen después, en orden de registro.
+TAGS_OPENAPI = [
+    {"name": "Usuarios", "description": "M01 · Registro, activación, perfil, listado y gestión de cuentas de usuario (RF-01, RF-05, RF-06, RF-11 a RF-13, RF-25)."},
+    {"name": "Sesiones", "description": "M01 · Login con contraseña o SSO AgroFusion, refresh token, logout y permisos del usuario (RF-02)."},
+    {"name": "Contraseña", "description": "M01 · Cambio, recuperación y restablecimiento de contraseña (RF-07 a RF-09)."},
+    {"name": "Auditoría", "description": "M01 · Historial inmutable de eventos con verificación de integridad, archivo histórico y exportación CSV (RF-10)."},
+    {"name": "Roles y Permisos", "description": "M01 · CRUD de roles y asignación de permisos recurso + acción (RF-03, RF-04)."},
+    {"name": "Notificaciones", "description": "M01 · Bandeja interna de notificaciones del usuario (RF-14)."},
+    {"name": "Integración AgroFusion", "description": "M01 · API servidor a servidor para el Hub de AgroFusion; se autentica con `client_id`/`client_secret`, no con JWT."},
+    {"name": "Activos Biológicos", "description": "M02 · Registro, fases, eventos, historial, fichas, transferencias, sensores, indicadores y bitácora de los activos biológicos (RF-33 a RF-52)."},
+    {"name": "Infraestructuras (Sensores IoT)", "description": "M02 · Asociación ambiental de sensores a una infraestructura completa (RF-49 Tipo B)."},
+    {"name": "Configuración - Especies", "description": "M09 · Catálogo maestro de especies productivas (RF-15)."},
+    {"name": "Configuración - Ciclos Productivos", "description": "M09 · Etapas del ciclo productivo por especie (RF-16)."},
+    {"name": "Configuración - Patologías", "description": "M09 · Catálogo de patologías por especie (RF-16)."},
+    {"name": "Configuración - Métricas de Producción", "description": "M09 · Métricas de producción y atributos dinámicos por especie (RF-16)."},
+    {"name": "Configuración - Umbrales Ambientales", "description": "M09 · Umbrales por especie y variable con niveles de alerta, sincronizados a los Gateway Edge (RF-17)."},
+    {"name": "Configuración - Variables Ambientales", "description": "M09 · Catálogo de variables ambientales (RF-17)."},
+    {"name": "Configuración - Plantillas", "description": "M09 · Plantillas versionadas de configuración por especie y su aplicación (RF-30 a RF-32)."},
+    {"name": "Configuración - Parámetros Operativos", "description": "M09 · Frecuencia de muestreo y heartbeat globales de los dispositivos IoT (RF-18)."},
+    {"name": "Configuración - Fincas", "description": "M09 · Fincas productivas (RF-19)."},
+    {"name": "Configuración - Infraestructura Productiva", "description": "M09 · Áreas productivas de cada finca (RF-20)."},
+    {"name": "Configuración - Tipos de Área", "description": "M09 · Catálogo de tipos de área productiva (RF-20)."},
+    {"name": "Configuración - Dispositivos IoT", "description": "M09 · Dispositivos IoT, sensores, configuración remota por MQTT y credenciales de Gateway Edge (RF-21 a RF-23)."},
+    {"name": "Configuración - Sensores", "description": "M09 · Asociación de sensores a áreas y calibración manual (RF-22, RF-24)."},
+    {"name": "Configuración - Calibración por visión", "description": "M09 · Línea base por visión de un área a partir de sus cámaras (RF-24 v2.0)."},
+    {"name": "Configuración - Interfaz Adaptativa (RF-25)", "description": "M09 · Contexto para adaptar la interfaz al rol y la finca del usuario."},
+    {"name": "Configuración - Identidad Visual (RF-26)", "description": "M09 · Logo, colores y nombre visible por finca, con evaluación de contraste WCAG AA."},
+    {"name": "Configuración - Tema Visual (RF-27)", "description": "M09 · Tema claro/oscuro/sistema, personal y global."},
+    {"name": "Configuración - Dashboard Layout (RF-28)", "description": "M09 · Dashboard personalizable por usuario: grilla, catálogo de widgets y datos."},
+    {"name": "Configuración - Preferencia de Idioma (RF-29)", "description": "M09 · Idioma de la interfaz (`es-CO` / `en-US`), personal y global."},
+]
+
 app = FastAPI(
     lifespan=lifespan,
     root_path=os.getenv("ROOT_PATH", "/api"),
-    title="sistema gestion  - Gestión de Usuarios, Roles y Permisos",
-    description="Microservicio de gestión de usuarios, roles y permisos dentro del sistema de gestión de maquinaria y nómina.",
+    title="SGPMP API",
+    description=DESCRIPCION_API,
     version="1.0.0",
+    openapi_tags=TAGS_OPENAPI,
+    # Cabecera X-Zona-Horaria en cada endpoint de Swagger (ver src/shared/fechas.py).
+    dependencies=[Depends(documentar_zona_horaria)],
 )
 
 # Allowlist explícita, sin depender de que ENV valga literalmente "production"
@@ -566,6 +818,8 @@ allowed_origins = [
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+app.add_middleware(TestSandboxMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -575,8 +829,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
-    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan.
-    expose_headers=["Content-Disposition", "X-Total-Registros", "X-Registros-Exportados"],
+    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan,
+    # ni cuándo reintentar tras un 429 del limitador de tasa (#495).
+    expose_headers=[
+        "Content-Disposition", "X-Total-Registros", "X-Registros-Exportados",
+        "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset",
+    ],
 )
 
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
@@ -599,6 +857,10 @@ app.mount(
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
+
+if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() == "true":
+    logger.warning("MODO PRUEBAS (SANDBOX) HABILITADO. No usar en producción.")
+    app.include_router(test_control_router)
 
 register_error_handlers(app)
 
@@ -628,6 +890,7 @@ app.include_router(tipo_area_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)
+app.include_router(calibracion_vision_router)
 app.include_router(contexto_interfaz_router)
 app.include_router(identidad_visual_router)
 app.include_router(tema_visual_router)
@@ -638,11 +901,13 @@ app.include_router(evento_edge_router)
 app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
+app.include_router(regla_alerta_edge_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
 app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
+app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)

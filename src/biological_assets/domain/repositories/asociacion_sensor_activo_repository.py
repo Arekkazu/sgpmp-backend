@@ -1,3 +1,6 @@
+"""Puerto de persistencia de las asociaciones sensor ↔ activo/infraestructura (RF-49).
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,6 +10,8 @@ from src.biological_assets.domain.entities.activo_biologico import AsociacionSen
 
 
 class AsociacionSensorActivoRepository(ABC):
+    """Contrato de acceso a datos para :class:`AsociacionSensorActivo` y su auditoría.
+    """
 
     @abstractmethod
     def guardar(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:

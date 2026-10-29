@@ -1,3 +1,5 @@
+"""Caso de uso: consulta de un activo biológico por id (RF-35 / RF-36)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -14,6 +16,10 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarActivoUseCase:
+    """Devuelve el activo si pertenece al alcance de fincas del usuario y registra la
+    consulta en RF-52.
+    """
+
     def __init__(
         self,
         db: Session,

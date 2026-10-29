@@ -37,6 +37,10 @@ def listar_tipos_dispositivo_iot(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaTiposDispositivoIotResponse:
+    """Tipos de dispositivo IoT con sus rangos de frecuencia de captura e intervalo de transmisión (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     tipos = SqlAlchemyTipoDispositivoIotRepository(db).listar()
     items = [TipoDispositivoIotResponse.from_entity(t) for t in tipos]
     return ListaTiposDispositivoIotResponse(total=len(items), items=items)

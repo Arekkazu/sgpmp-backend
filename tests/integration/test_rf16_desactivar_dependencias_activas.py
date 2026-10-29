@@ -240,6 +240,7 @@ def test_desactivar_metrica_sin_dependencias_permite_200(
             "nombre": f"Metrica RF16 {_sid()}",
             "unidad_medida": "kg",
             "tipo_medicion": "PESO",
+            "tipo_dato": "NUMERICO",
         },
         headers=h,
     )
@@ -265,6 +266,7 @@ def test_desactivar_metrica_con_registro_productivo_activo_bloquea_422(
             "nombre": f"Metrica RF16 {sid}",
             "unidad_medida": "kg",
             "tipo_medicion": "PESO",
+            "tipo_dato": "NUMERICO",
         },
         headers=h,
     )

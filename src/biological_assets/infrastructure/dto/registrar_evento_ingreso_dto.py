@@ -1,3 +1,6 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/ingreso`` (RF-36).
+"""
+
 from __future__ import annotations
 
 from datetime import date
@@ -15,6 +18,10 @@ _TIPOS_INGRESO = {'compra', 'nacimiento', 'donacion', 'transferencia_interna'}
 
 
 class RegistrarEventoIngresoDTO(BaseDTO):
+    """Ingreso de individuos a un lote.
+
+    ``tipo_ingreso``: ``compra`` | ``nacimiento`` | ``donacion`` | ``transferencia_interna``.
+    """
     tipo_ingreso: str
     fecha_ingreso: date
     cantidad_ingresada: int

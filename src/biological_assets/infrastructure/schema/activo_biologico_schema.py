@@ -1,15 +1,27 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+"""Schemas de respuesta de los endpoints de activos biológicos (M02)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
+
+# #213: la columna `densidad` es NUMERIC sin escala; la división en BD llega con
+# 20 decimales ("0.01000000000000000000") o en notación científica ("0E-20").
+Densidad = Annotated[Decimal, AfterValidator(lambda d: d.quantize(Decimal('0.0001')))]
 
 
 # ── Schemas de CU04 (RF-44, RF-38) ──────────────────────────────────────────
 
 class HistoricoEstadoResponse(BaseModel):
+    """Un cambio de estado registrado en el histórico (RF-44)."""
     id_historico: Optional[int]
     id_activo_biologico: int
     id_estado_anterior: int
@@ -25,6 +37,7 @@ class HistoricoEstadoResponse(BaseModel):
 
 
 class CambioEstadoResponse(BaseModel):
+    """Resultado de un cambio de estado manual (RF-44)."""
     id_activo_biologico: int
     estado_anterior: int
     estado_nuevo: int
@@ -32,6 +45,7 @@ class CambioEstadoResponse(BaseModel):
 
 
 class CierreActivoResponse(BaseModel):
+    """Resultado del cierre de ciclo del activo (RF-38)."""
     id_activo_biologico: int
     estado: str
     fecha_cierre: date
@@ -40,29 +54,77 @@ class CierreActivoResponse(BaseModel):
 
 
 class DetalleIndividualResponse(BaseModel):
+    """Datos propios de un activo INDIVIDUAL."""
     id_detalle: Optional[int]
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    fecha_nacimiento: Optional[date]  # RFC-014: opcional; día calendario
     peso_inicial: Optional[Decimal]
     fecha_creacion: Optional[datetime]
 
     model_config = {'from_attributes': True}
 
 
+class ParametroEspecieResponse(BaseModel):
+    """Atributo dinámico que la especie exige o admite al registrar un activo (#194)."""
+    nombre: str
+    tipo_dato: str
+    es_obligatorio: bool
+    unidad_medida: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+
+    model_config = {'from_attributes': True}
+
+
+class MetricaActivoResponse(BaseModel):
+    """Métrica de la especie del activo para elegir en los eventos (RF-40, RF-43).
+
+    ``habilitada_en_fase`` indica si la fase activa la admite en un evento productivo.
+    """
+    id_metrica_produccion: int
+    nombre: str
+    tipo_medicion: str
+    unidad_medida: str
+    tipo_dato: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+    habilitada_en_fase: bool
+
+
+class PatologiaActivoResponse(BaseModel):
+    """Patología de la especie del activo para el diagnóstico sanitario (RF-41)."""
+    id_patologia: int
+    nombre: str
+
+
+class PatologiasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    items: list[PatologiaActivoResponse]
+
+
+class MetricasActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    items: list[MetricaActivoResponse]
+
+
 class DetallePoblacionalResponse(BaseModel):
+    """Datos propios de un lote POBLACIONAL: conteo, peso promedio, biomasa y densidad.
+    """
     id_detalle: Optional[int]
     cantidad_inicial: int
     cantidad_actual: Optional[int]
     peso_promedio_inicial: Optional[Decimal]
     peso_promedio: Optional[Decimal]
     biomasa_total: Optional[Decimal]
-    densidad: Optional[Decimal]
+    densidad: Optional[Densidad]
 
     model_config = {'from_attributes': True}
 
 
 class ActivoBiologicoResponse(BaseModel):
+    """Activo biológico con su detalle individual o poblacional según ``tipo``."""
     id_activo_biologico: int
     id_especie: int
     tipo: str
@@ -82,11 +144,18 @@ class ActivoBiologicoResponse(BaseModel):
     fecha_actualizacion: Optional[datetime] = None
     detalle_individual: Optional[DetalleIndividualResponse]
     detalle_poblacional: Optional[DetallePoblacionalResponse]
+    # M2-04 (reporte UAT): el listado mostraba "Especie #4" y la ficha "Cachama
+    # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
+    nombre_especie: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
+    # RFC-014 (DEV-20): solo en el registro; informativa, el activo se registra igual (201).
+    advertencia_edad: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
 
 class ActivosPaginadosResponse(BaseModel):
+    """Página del listado de activos."""
     total_registros: int
     pagina_actual: int
     total_paginas: int
@@ -95,6 +164,9 @@ class ActivosPaginadosResponse(BaseModel):
 
 
 class AsociacionInfraestructuraResponse(BaseModel):
+    """Periodo de alojamiento del activo en una infraestructura (``fecha_fin`` nula =
+    vigente).
+    """
     id_historial: int
     id_activo_biologico: int
     id_infraestructura: int
@@ -102,11 +174,16 @@ class AsociacionInfraestructuraResponse(BaseModel):
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+    # RFC-012 (RF-34 1.2): derivada = capacidad_efectiva del área (floor(MIN densidad ×
+    # superficie)), no configurable. Solo en la asociación vigente; null si alguna
+    # especie del área no tiene densidad.
+    capacidad_maxima: Optional[int] = None
 
     model_config = {'from_attributes': True}
 
 
 class SensorEnInfraestructuraResponse(BaseModel):
+    """Sensor activo instalado en la infraestructura del activo."""
     id_sensor: int
     nombre: str
     id_dispositivo_iot: int
@@ -117,6 +194,8 @@ class SensorEnInfraestructuraResponse(BaseModel):
 
 
 class ConsultaAsociacionResponse(BaseModel):
+    """Infraestructura del activo: vigente, en una fecha o historial completo (RF-34).
+    """
     tipo_consulta: str
     id_activo_biologico: int
     asociacion_activa: Optional[AsociacionInfraestructuraResponse] = None
@@ -126,6 +205,7 @@ class ConsultaAsociacionResponse(BaseModel):
 
 
 class GestionFaseResponse(BaseModel):
+    """Paso del activo por una fase de su ciclo productivo (RF-37)."""
     id_gestion_fases: Optional[int]
     id_activo_biologico: int
     id_ciclo_productiva: int
@@ -144,13 +224,37 @@ class GestionFaseResponse(BaseModel):
 
 
 class HistorialFasesResponse(BaseModel):
+    """Todas las gestiones de fase del activo."""
     id_activo_biologico: int
     fases: list[GestionFaseResponse]
+
+
+class FaseCicloProductivoResponse(BaseModel):
+    """Fase de un ciclo productivo, en su orden dentro de la secuencia."""
+    id_ciclos_productivo_biologico: int
+    id_ciclo_biologico: int
+    nombre_fase: str
+    duracion_dias: int
+
+
+class CicloProductivoResponse(BaseModel):
+    """Ciclo productivo de M09 con sus fases."""
+    id_ciclo_productivo: int
+    nombre: str
+    fases: list[FaseCicloProductivoResponse]
+
+
+class CiclosProductivosActivoResponse(BaseModel):
+    """Ciclos productivos asignables al activo (los de su especie)."""
+    id_activo_biologico: int
+    total: int
+    items: list[CicloProductivoResponse]
 
 
 # ── Schemas de eventos biológicos (CU05 - RF-39/RF-40) ──────────────────────
 
 class EventoCrecimientoResponse(BaseModel):
+    """Detalle de un evento de crecimiento."""
     tipo_medicion: str
     valor_medicion: Decimal
     unidad_medida: str
@@ -163,6 +267,7 @@ class EventoCrecimientoResponse(BaseModel):
 
 
 class EventoBajaResponse(BaseModel):
+    """Detalle de un evento de baja."""
     cantidad_afectada: int
     tipo: str
     motivo_baja: Optional[str]
@@ -171,6 +276,7 @@ class EventoBajaResponse(BaseModel):
 
 
 class EventoIngresoResponse(BaseModel):
+    """Detalle de un ingreso de individuos a un lote."""
     cantidad_ingresada: int
     tipo: str
     motivo_ingreso: Optional[str]
@@ -179,6 +285,7 @@ class EventoIngresoResponse(BaseModel):
 
 
 class EventoSanitarioResponse(BaseModel):
+    """Detalle de un evento sanitario."""
     tipo: str
     diagnostico: Optional[str]
     medicamento: Optional[str]
@@ -192,6 +299,7 @@ class EventoSanitarioResponse(BaseModel):
 
 
 class EventoProductivoResponse(BaseModel):
+    """Detalle de un evento productivo."""
     cantidad: Decimal
     id_metrica_produccion: int
     id_ciclo_productivo: int
@@ -203,6 +311,7 @@ class EventoProductivoResponse(BaseModel):
 
 
 class EventoReproductivoResponse(BaseModel):
+    """Detalle de un evento reproductivo."""
     categoria: str
     resultado: str
     numero_cria: int
@@ -213,6 +322,7 @@ class EventoReproductivoResponse(BaseModel):
 
 
 class EventoActivoResponse(BaseModel):
+    """Evento biológico con el subtipo que le corresponde poblado (RF-39)."""
     id_eventos: int
     id_activo_biologico: int
     fecha: datetime
@@ -229,6 +339,7 @@ class EventoActivoResponse(BaseModel):
 
 
 class HistorialEventosResponse(BaseModel):
+    """Eventos del activo, del más reciente al más antiguo."""
     id_activo_biologico: int
     total: int
     eventos: list[EventoActivoResponse]
@@ -237,11 +348,13 @@ class HistorialEventosResponse(BaseModel):
 # ── Schema de respuesta para CU06 (RF-40) ────────────────────────────────────
 
 class RegistrarEventoCrecimientoResponse(BaseModel):
+    """Evento de crecimiento registrado y valores recalculados del lote."""
     evento: EventoActivoResponse
     fase_avanzada: bool = False
 
 
 class RegistrarEventoSanitarioResponse(BaseModel):
+    """Evento sanitario registrado y estado resultante del activo."""
     evento: EventoActivoResponse
     cambio_estado: Optional[HistoricoEstadoResponse] = None
 
@@ -249,12 +362,14 @@ class RegistrarEventoSanitarioResponse(BaseModel):
 # ── Schema de respuesta para CU08 (RF-42) ────────────────────────────────────
 
 class RegistrarEventoReproductivoResponse(BaseModel):
+    """Evento reproductivo registrado."""
     evento: EventoActivoResponse
 
 
 # ── Schemas CU10 (RF-46, RF-47, RF-48) ───────────────────────────────────────
 
 class RegistroHistorialResponse(BaseModel):
+    """Línea del historial consolidado (RF-46)."""
     categoria: str
     fecha_evento: datetime
     descripcion: str
@@ -264,6 +379,7 @@ class RegistroHistorialResponse(BaseModel):
 
 
 class HistorialActivoResponse(BaseModel):
+    """Página del historial consolidado del activo (RF-46)."""
     id_activo_biologico: int
     total_registros: int
     pagina_actual: int
@@ -273,7 +389,20 @@ class HistorialActivoResponse(BaseModel):
     mensaje: Optional[str] = None
 
 
+class AccesoDirectoResponse(BaseModel):
+    """RF-47 Sección 8: acción disponible desde la ficha para el rol del usuario."""
+    codigo: str
+    nombre: str
+    metodo: str
+    ruta: str
+    rf_origen: str
+    tipos_evento: Optional[list[str]] = None
+
+
 class FichaIntegralResponse(BaseModel):
+    """Ficha integral del activo (RF-47); las secciones que no cargan llegan vacías con
+    advertencia.
+    """
     id_activo_biologico: int
     identificador: Optional[str]
     tipo: str
@@ -291,16 +420,18 @@ class FichaIntegralResponse(BaseModel):
     fecha_ultimo_peso: Optional[date] = None
     cantidad_actual: Optional[int] = None
     biomasa_total: Optional[Decimal] = None
-    densidad: Optional[Decimal] = None
+    densidad: Optional[Densidad] = None
     eventos_sanitarios: list[dict] = []
     eventos_productivos: list[dict] = []
     eventos_crecimiento: list[dict] = []
     eventos_reproductivos: list[dict] = []
     indicadores: list[dict] = []
     advertencias: list[str] = []
+    accesos_directos: list[AccesoDirectoResponse] = []
 
 
 class FichaLoteResponse(BaseModel):
+    """Ficha de gestión de un lote con densidad, densidad máxima e historial (RF-36)."""
     id_activo_biologico: int
     identificador: Optional[str]
     especie: Optional[str] = None
@@ -312,13 +443,14 @@ class FichaLoteResponse(BaseModel):
     peso_promedio_inicial: Optional[Decimal] = None
     peso_promedio: Optional[Decimal] = None
     biomasa_total: Optional[Decimal] = None
-    densidad: Optional[Decimal] = None
+    densidad: Optional[Densidad] = None
     densidad_maxima: Optional[Decimal] = None
     historial: list[RegistroHistorialResponse] = []
     total_registros_historial: int = 0
 
 
 class TransferenciaResponse(BaseModel):
+    """Transferencia interna registrada (RF-48)."""
     id_movimiento: Optional[int]
     id_activo_biologico: int
     infraestructura_origen: str
@@ -329,16 +461,22 @@ class TransferenciaResponse(BaseModel):
 
 
 class InfraestructuraDisponibleResponse(BaseModel):
+    """Infraestructura válida como destino de una transferencia."""
     id_infraestructura: int
     nombre: str
     tipo: str
+    # RFC-012: derivada = capacidad_efectiva del destino (floor(MIN densidad × superficie)).
     capacidad_maxima: Optional[int] = None
+    ocupacion_actual: Optional[int] = None
     id_especie: Optional[int] = None
 
 
 # ── Schemas de CU11 (RF-49) ──────────────────────────────────────────────────
 
 class AsociacionSensorActivoResponse(BaseModel):
+    """Asociación sensor ↔ activo/infraestructura (RF-49); ``advertencia`` avisa si el
+    dispositivo está fuera de línea.
+    """
     id_asociacion_activo_sensor: int
     # None para una asociación AMBIENTAL a nivel de infraestructura (RF-49
     # Tipo B, INC-M02-66-G90/#217) -- aplica a todos los activos de esa
@@ -370,6 +508,7 @@ class ConsultaAsociacionesSensorResponse(BaseModel):
 # ── Schemas CU12 (RF-50, RF-51) ──────────────────────────────────────────────
 
 class IndicadorZootecnicoResponse(BaseModel):
+    """Indicador calculado; ``disponible=false`` cuando no hay datos suficientes."""
     tipo: str
     valor: Optional[Decimal] = None
     unidad: str
@@ -381,6 +520,7 @@ class IndicadorZootecnicoResponse(BaseModel):
 
 
 class IndicadoresActivoResponse(BaseModel):
+    """Indicadores zootécnicos del activo (RF-51)."""
     id_activo_biologico: int
     tipo_activo: str
     indicadores: list[IndicadorZootecnicoResponse]
@@ -388,6 +528,7 @@ class IndicadoresActivoResponse(BaseModel):
 
 
 class DatosConsolidadosResponse(BaseModel):
+    """Vista consolidada del activo para módulos analíticos (RF-50)."""
     id_activo_biologico: int
     identificador: Optional[str]
     tipo_activo: str
@@ -409,6 +550,7 @@ class DatosConsolidadosResponse(BaseModel):
 # ── CU13 RF-52 — Auditoría y Trazabilidad ────────────────────────────────────
 
 class EventoAuditoriaResponse(BaseModel):
+    """Entrada de la bitácora de M02 con su hash de integridad (RF-52)."""
     id_bitacora: int
     id_evento: str
     rf_origen: str
@@ -430,6 +572,7 @@ class EventoAuditoriaResponse(BaseModel):
 
 
 class BitacoraAuditoriaResponse(BaseModel):
+    """Página de la bitácora de M02 (RF-52)."""
     total_registros: int
     pagina_actual: int
     total_paginas: int
@@ -438,6 +581,7 @@ class BitacoraAuditoriaResponse(BaseModel):
 
 
 class RegistroCorrectivoAuditoriaResponse(BaseModel):
+    """Registro correctivo creado en la bitácora (RF-52 E5)."""
     tabla: str
     id_registro: int
     id_activo_biologico: Optional[int]

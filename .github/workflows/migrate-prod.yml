@@ -1,0 +1,30 @@
+name: Deploy Migrations - production
+
+# Mismo patron que migrate-dev.yml / migrate-test.yml: cada push a main que
+# toque alembic/versions aplica `alembic upgrade head` sobre la base de PROD.
+#
+# Requisito en Settings -> Environments -> production: secret
+# PROD_DATABASE_URL con el usuario DUENO del esquema (no sgpmp_app: bajo RLS
+# el usuario de la app no puede hacer DDL).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "alembic/versions/**"
+  workflow_dispatch:
+
+concurrency:
+  group: alembic-migrate-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    uses: ./.github/workflows/_migrate-template.yml
+    with:
+      environment_name: production
+    secrets:
+      database_url: ${{ secrets.PROD_DATABASE_URL }}

@@ -1,3 +1,9 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-23 | destroyerban | DEV-39 RF-58: vista por permiso, GRIS sin umbral y anomalías visibles |
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-08 RF-58: conteo del semáforo sobre todos los sensores, no la página |
+# | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: 422 en E2, varias variables, activo, alertas y series |
 """Router FastAPI para monitoreo de telemetría IoT (`/iot/monitoreo`).
 
 RF-58 — CU04 Modo tiempo real:
@@ -23,26 +29,49 @@ from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.errors import ServiceUnavailableError, ValidationError
-from src.shared.rbac import require_permission
+from src.shared.errors import BusinessRuleError, ServiceUnavailableError, ValidationError
+from src.shared.rbac import require_permission, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
+    RegistrarEventoAuditoriaIotUseCase,
+)
 from src.telemetry.application.use_cases.monitoreo.consultar_historial_use_case import ConsultarHistorialUseCase
 from src.telemetry.application.use_cases.monitoreo.obtener_dashboard_use_case import ObtenerDashboardUseCase
+from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen
 from src.telemetry.domain.entities.monitoreo import FiltrosHistorial
+from src.telemetry.infrastructure.adapters.aviso_sin_umbral_email_adapter import AvisoSinUmbralEmailAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
+from src.telemetry.infrastructure.rbac_auditoria import require_permission_auditado
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
+    SqlAlchemyBitacoraAuditoriaIotRepository,
+)
 from src.telemetry.infrastructure.repositories.historial_telemetria_repository import SqlAlchemyHistorialTelemetriaRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
 from src.telemetry.infrastructure.schema.monitoreo_schema import (
     DashboardResponseSchema,
     EstadoSensorSchema,
+    AlertaCorrelacionadaSchema,
     HistorialPageSchema,
     LecturaHistoricaSchema,
     ResumenEstadisticoSchema,
     ResumenUnidadSchema,
+    SerieTemporalSchema,
+)
+
+#: RF-59 Fase 2 / E2: parámetros inválidos → 422, también los que rechaza FastAPI
+#: (fecha faltante, por_pagina fuera de 1–500; INC-M03-180-G111 / INC-M03-185-G114).
+_VALIDACION_422 = {"x-codigo-validacion": 422}
+_DESC_TIPO_VARIABLE = (
+    "Código (TEMPERATURA_AMBIENTAL) o nombre de la variable. Varias: repetir el parámetro "
+    "o separarlas por coma (CA-9)."
 )
 
 router = APIRouter(prefix="/iot/monitoreo", tags=["Telemetría IoT - Monitoreo"])
+
+# RF-58 CA-8 (DB-08): lo tienen los roles técnicos, no el Productor. Por nombre: su
+# id_recurso sale de la secuencia y no coincide entre bases.
+_RECURSO_DATOS_TECNICOS = 'datos_tecnicos_dashboard'
 
 
 # ---------------------------------------------------------------------------
@@ -67,15 +96,18 @@ def obtener_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
-    use_case = ObtenerDashboardUseCase(monitoreo_repo=SqlAlchemyMonitoreoRepository(db))
+    use_case = ObtenerDashboardUseCase(
+        monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
+        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+    )
+    ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
-        id_rol_usuario=usuario_actual.id_rol,
-        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
-            usuario_actual.id_usuario, usuario_actual.id_rol
-        ),
+        # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
+        ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
+        ids_fincas_permitidas=ids_fincas,
     )
     return DashboardResponseSchema(
         total=total,
@@ -83,6 +115,7 @@ def obtener_dashboard(
         por_pagina=por_pagina,
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
+        conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 
@@ -104,15 +137,18 @@ def obtener_dashboard_por_unidad(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardResponseSchema:
-    use_case = ObtenerDashboardUseCase(monitoreo_repo=SqlAlchemyMonitoreoRepository(db))
+    use_case = ObtenerDashboardUseCase(
+        monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
+        aviso_sin_umbral=AvisoSinUmbralEmailAdapter(db),
+    )
+    ids_fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     sensores, resumen, total = use_case.execute(
         id_infraestructura=id_infraestructura,
         pagina=pagina,
         por_pagina=por_pagina,
-        id_rol_usuario=usuario_actual.id_rol,
-        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
-            usuario_actual.id_usuario, usuario_actual.id_rol
-        ),
+        # CA-8 (DEV-39): por permiso (DB-08), no por id_rol quemado.
+        ver_datos_tecnicos=tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_TECNICOS, 2),
+        ids_fincas_permitidas=ids_fincas,
     )
     return DashboardResponseSchema(
         total=total,
@@ -120,6 +156,7 @@ def obtener_dashboard_por_unidad(
         por_pagina=por_pagina,
         resumen_unidades=[ResumenUnidadSchema.model_validate(u.__dict__) for u in resumen],
         sensores=[EstadoSensorSchema.model_validate(s.__dict__) for s in sensores],
+        conteo_semaforo=use_case.contar_semaforos(id_infraestructura, ids_fincas_permitidas=ids_fincas),
     )
 
 
@@ -135,7 +172,10 @@ def obtener_dashboard_por_unidad(
         403: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
-    dependencies=[Depends(require_permission(34, 5))],
+    dependencies=[Depends(require_permission_auditado(
+        34, 5, componente_origen=ComponenteOrigen.RF59, tipo_evento='HISTORIAL_ACCESO_DENEGADO',
+    ))],
+    openapi_extra=_VALIDACION_422,
     summary="Exportar historial en PDF/Excel — pendiente implementación M08 (RF-59)",
 )
 def exportar_historial(
@@ -143,12 +183,13 @@ def exportar_historial(
     fecha_inicio: date = Query(),
     fecha_fin: date = Query(),
     sensor_id: Optional[int] = Query(default=None),
-    tipo_variable: Optional[str] = Query(default=None),
+    tipo_variable: Optional[list[str]] = Query(default=None, description=_DESC_TIPO_VARIABLE),
     categoria_variable: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
     especie: Optional[str] = Query(default=None),
     estado_dato: Optional[str] = Query(default=None),
     origen_dato: Optional[str] = Query(default=None),
+    id_activo_biologico: Optional[int] = Query(default=None),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> None:
     filtros = FiltrosHistorial(
@@ -161,6 +202,7 @@ def exportar_historial(
         especie=especie,
         estado_dato=estado_dato,
         origen_dato=origen_dato,
+        id_activo_biologico=id_activo_biologico,
     )
     # FA-11: bloquear exportación sin filtros activos
     if not filtros.tiene_filtro_adicional():
@@ -180,21 +222,25 @@ def exportar_historial(
     response_model=HistorialPageSchema,
     status_code=200,
     responses={
-        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
+        422: {"model": ErrorResponse, "description": "Parámetros inválidos (E2) o rango sin filtros (E4)"},
     },
-    dependencies=[Depends(require_permission(34, 2))],
+    openapi_extra=_VALIDACION_422,
+    # E1 (DEV-38): el 403 de RBAC queda en la bitácora de RF-63.
+    dependencies=[Depends(require_permission_auditado(
+        34, 2, componente_origen=ComponenteOrigen.RF59, tipo_evento='HISTORIAL_ACCESO_DENEGADO',
+    ))],
     summary="Consultar historial de lecturas con filtros y paginación (RF-59)",
 )
 def consultar_historial(
     fecha_inicio: date = Query(description="Fecha inicio del rango (YYYY-MM-DD)"),
     fecha_fin: date = Query(description="Fecha fin del rango (YYYY-MM-DD)"),
     sensor_id: Optional[int] = Query(default=None),
-    tipo_variable: Optional[str] = Query(default=None),
+    tipo_variable: Optional[list[str]] = Query(default=None, description=_DESC_TIPO_VARIABLE),
     categoria_variable: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
+    id_activo_biologico: Optional[int] = Query(default=None, description="Lecturas vinculadas al activo (RF-61)"),
     especie: Optional[str] = Query(default=None),
     estado_dato: Optional[str] = Query(default=None, description="LECTURA_VALIDA / FUERA_DE_RANGO / ERROR_CALIBRACION"),
     origen_dato: Optional[str] = Query(default=None, description="TIEMPO_REAL / BUFFER_LOCAL / EDGE_AGREGADO"),
@@ -206,7 +252,7 @@ def consultar_historial(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialPageSchema:
     if orden.upper() not in ('ASC', 'DESC'):
-        raise ValidationError(code='ORDEN_INVALIDO', message="El parámetro 'orden' debe ser ASC o DESC.")
+        raise BusinessRuleError(code='ORDEN_INVALIDO', message="El parámetro 'orden' debe ser ASC o DESC.", field='orden')
 
     filtros = FiltrosHistorial(
         fecha_inicio=fecha_inicio,
@@ -219,6 +265,7 @@ def consultar_historial(
         estado_dato=estado_dato,
         origen_dato=origen_dato,
         incluir_alertas=incluir_alertas,
+        id_activo_biologico=id_activo_biologico,
         pagina=pagina,
         por_pagina=por_pagina,
         orden=orden.upper(),
@@ -230,11 +277,18 @@ def consultar_historial(
     use_case = ConsultarHistorialUseCase(
         historial_repo=SqlAlchemyHistorialTelemetriaRepository(db),
         umbral_port=UmbralHistoricoM09Adapter(db),
+        auditoria=RegistrarEventoAuditoriaIotUseCase(db, SqlAlchemyBitacoraAuditoriaIotRepository(db)),
     )
-    lecturas, estadisticas, total, metadatos = use_case.execute(filtros)
+    lecturas, estadisticas, total, metadatos = use_case.execute(
+        filtros, id_usuario=usuario_actual.id_usuario, id_rol=usuario_actual.id_rol,
+    )
 
     return HistorialPageSchema(
         total=total,
+        total_encontrado=metadatos['total_encontrado'],
+        truncado=metadatos['truncado'],
+        aviso=metadatos['aviso'],
+        vacios_temporales=metadatos['vacios_temporales'],
         pagina=pagina,
         por_pagina=por_pagina,
         paginas_totales=metadatos['total_paginas'],
@@ -242,4 +296,8 @@ def consultar_historial(
         rango_real_datos=metadatos['rango_real_datos'],
         items=[LecturaHistoricaSchema.model_validate(l.__dict__) for l in lecturas],
         estadisticas=[ResumenEstadisticoSchema.model_validate(e.__dict__) for e in estadisticas],
+        series=[SerieTemporalSchema.model_validate(serie) for serie in metadatos['series']],
+        alertas_correlacionadas=[
+            AlertaCorrelacionadaSchema.model_validate(a) for a in metadatos['alertas_correlacionadas']
+        ],
     )

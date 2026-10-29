@@ -1,23 +1,30 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """DTO de entrada para editar una finca (PATCH RF-19).
 
 Incluye ``fecha_actualizacion`` como token de concurrencia optimista.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 
 from pydantic import field_validator
 
 from src.configuration.infrastructure.dto.registrar_finca_dto import UbicacionFincaDTO
 from src.shared.base_dto import BaseDTO
+from src.shared.fechas import FechaHoraUtc
 
 
 class EditarFincaDTO(BaseDTO):
+    """Campos editables de la finca.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre: str
     ubicacion: UbicacionFincaDTO
     tamano_h: Decimal
-    fecha_actualizacion: datetime
+    fecha_actualizacion: FechaHoraUtc
 
     @field_validator("nombre")
     @classmethod

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77 E6c: error 413                      |
 """Jerarquía de errores de dominio compartida.
 
 Todos los errores de negocio e infraestructura heredan de ``AppError``.
@@ -156,6 +159,16 @@ class GoneError(AppError):
     status_code = 410
 
 
+class PayloadTooLargeError(AppError):
+    """El archivo a entregar supera el tamaño máximo permitido (HTTP 413).
+
+    Caso de referencia: la exportación CSV de RF-77 (E6c), que no puede pasar de
+    50 MB; nunca se entrega un archivo parcial.
+    """
+
+    status_code = 413
+
+
 class UnsupportedMediaTypeError(AppError):
     """El tipo de archivo enviado no es uno de los admitidos (HTTP 415).
 
@@ -254,9 +267,23 @@ class TooManyRequestsError(AppError):
     Usar cuando el sistema rechaza una operación porque ya hay demasiados
     trabajos en curso del mismo tipo (ej: generación de reportes,
     exportaciones). El cliente debe reintentar más tarde.
+
+    ``headers`` viaja tal cual en la respuesta: el limitador de tasa lo usa
+    para decir cuándo reintentar (``Retry-After`` y ``RateLimit-*``, #495).
     """
 
     status_code = 429
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        field: Optional[str] = None,
+        *,
+        headers: Optional[dict[str, str]] = None,
+    ):
+        super().__init__(code, message, field)
+        self.headers = headers
 
 
 class ServiceUnavailableError(AppError):

@@ -1,0 +1,38 @@
+{
+  "info": { "name": "G88 RF-58 por subcaso", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "event": [
+    { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+      "if (pm.environment.get('qa_autorizado') !== 'SI' || !pm.environment.get('run_id') || !pm.environment.get('sandbox_secret')) { pm.execution.skipRequest(); return; }",
+      "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+      "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});",
+      "if (pm.environment.get('solo_umbrales') === 'SI' && !pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+      "if (pm.environment.get('solo_umbrales') !== 'SI' && pm.request.url.toString().includes('/configuracion/umbrales')) { pm.execution.skipRequest(); return; }",
+      "if (pm.request.method === 'POST') { if (pm.environment.get('skip_ingesta') === 'SI') { pm.execution.skipRequest(); return; } const t=pm.environment.get('broker_service_token'); if (!t) { pm.execution.skipRequest(); return; } pm.request.headers.upsert({key:'Authorization',value:'Bearer '+t}); pm.request.body.update(pm.environment.get('cuerpo_ingesta')); }"
+    ] } },
+    { "listen": "test", "script": { "type": "text/javascript", "exec": [
+      "pm.test('[SETUP] Eco del RUN',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));"
+    ] } }
+  ],
+  "item": [
+    { "name": "Ingesta de lectura del subcaso", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/iot/telemetria", "body": { "mode": "raw", "raw": "{{cuerpo_ingesta}}" } },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const id=pm.environment.get('caso'); const code=pm.response.code; const b=code===201?pm.response.json():{};",
+        "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-INGESTA] Respuesta de ingesta registrada',()=>{pm.expect(code).to.eql(201);pm.expect(b.id_telemetria).to.be.a('number');});",
+        "if(code===201 && Number.isInteger(b.id_telemetria)){pm.environment.set('id_telemetria_run',String(b.id_telemetria));pm.environment.set('timestamp_captura_run',JSON.parse(pm.environment.get('cuerpo_ingesta')).timestamp_captura);};"
+      ] } }] },
+    { "name": "Dashboard del subcaso", "request": { "method": "GET", "header": [{"key":"Authorization","value":"Bearer {{tok_prod}}"}], "url": "{{base_url}}/iot/monitoreo/dashboard?id_infraestructura={{id_infraestructura}}&por_pagina=50" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const id=pm.environment.get('caso'); const check=pm.environment.get('check_id'); const code=pm.response.code; const b=code===200?pm.response.json():{}; const s=(b.sensores||[]).find(x=>String(x.id_sensor)===String(pm.environment.get('sensor_id')));",
+        "pm.test('['+id+'][PRE][PRE-'+id.slice(-3)+'-DASHBOARD] Productor y sensor accesibles',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');});",
+        "pm.test('['+id+'][ASSERT]['+check+'] Valor y semáforo observados',()=>{pm.expect(code).to.eql(200);pm.expect(s).to.be.an('object');if(pm.environment.get('esperado_valor')!=='')pm.expect(Number(s.ultimo_valor)).to.be.closeTo(Number(pm.environment.get('esperado_valor')),0.0001);if(pm.environment.get('esperado_estado'))pm.expect(s.estado_semaforo).to.be.oneOf(pm.environment.get('esperado_estado').split('/'));if(pm.environment.get('esperado_unidad'))pm.expect(s.ultima_unidad).to.eql(pm.environment.get('esperado_unidad'));});"
+      ] } }] },
+    { "name": "API-172-A umbrales de la especie (solo GET)", "request": { "method": "GET",
+        "header": [{"key":"Authorization","value":"Bearer {{tok_admin}}"}],
+        "url": "{{base_url}}/configuracion/umbrales?id_especie={{especie_id}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const b=pm.response.code===200?pm.response.json():{}; const xs=b.items||[]; const keys=xs.map(x=>({campos:Object.keys(x).sort(),niveles:(x.niveles||[]).map(n=>Object.keys(n).sort())}));",
+        "const esT=k=>/toleran|tolerance|^t$|^t_|_t$/i.test(k); const ausente=xs.length>0 && keys.every(x=>!x.campos.some(esT) && x.niveles.every(n=>!n.some(esT)));",
+        "pm.test('[TC-M03-172][ASSERT][API-172-A] T configurable disponible en respuesta M09',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(ausente,'ausencia de T en umbral y niveles').to.eql(false);});"
+      ] } }] }
+  ]
+}

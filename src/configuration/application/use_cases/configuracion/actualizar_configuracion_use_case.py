@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-27 RF-60/18: valida cadena en actualizacion    |
 """Caso de uso: Actualizar parámetros operativos globales (PATCH RF-18).
 
 Aplica concurrencia optimista: rechaza si ``fecha_actualizacion`` no coincide.
@@ -17,9 +20,13 @@ from src.configuration.domain.value_objects.heartbeat import Heartbeat
 from src.configuration.infrastructure.dto.actualizar_configuracion_dto import ActualizarConfiguracionDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError, PreconditionFailedError
+from .validar_cadena_heartbeat import validar_cadena_heartbeat
 
 
 class ActualizarConfiguracionUseCase:
+    """Actualiza frecuencia de muestreo y heartbeat con concurrencia optimista (412) y
+    avisa al monitoreo IoT.
+    """
 
     def __init__(
         self,
@@ -27,16 +34,19 @@ class ActualizarConfiguracionUseCase:
         config_repo: ConfiguracionGlobalRepository,
         auditoria_repo: AuditoriaConfigRepository,
         iot_port: IotNotificacionPort,
+        parametros_repo,
     ) -> None:
         self.db = db
         self.config_repo = config_repo
         self.auditoria_repo = auditoria_repo
         self.iot_port = iot_port
+        self.parametros_repo = parametros_repo
 
     def execute(
         self, id_configuracion_global: int, dto: ActualizarConfiguracionDTO, usuario_actual: UsuarioActual
     ) -> ConfiguracionGlobal:
-        config = self.config_repo.obtener_por_id(id_configuracion_global)
+        self.parametros_repo.bloquear_configuracion()
+        config = self.config_repo.obtener_por_id(id_configuracion_global, bloquear=True)
         if config is None:
             raise NotFoundError(
                 code="CONFIG_NO_ENCONTRADA",
@@ -68,6 +78,8 @@ class ActualizarConfiguracionUseCase:
 
         frecuencia = FrecuenciaMuestreo(dto.frecuencia_muestreo)
         heartbeat = Heartbeat(dto.heartbeat)
+        ConfiguracionGlobal._validar_coherencia(frecuencia, heartbeat)
+        validar_cadena_heartbeat(self.parametros_repo, frecuencia.valor, heartbeat.valor)
 
         config.actualizar(
             frecuencia_muestreo=frecuencia,

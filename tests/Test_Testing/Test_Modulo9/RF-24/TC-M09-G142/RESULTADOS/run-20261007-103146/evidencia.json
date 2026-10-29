@@ -1,0 +1,423 @@
+{
+  "grupo": "TC-M09-G142",
+  "casos": [
+    "TC-M09-288",
+    "TC-M09-289"
+  ],
+  "run_id": "run-20261007-103146",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? ../TC-M09-G130/\n?? ../TC-M09-G131/\n?? ../TC-M09-G132/\n?? ../TC-M09-G133/\n?? ../TC-M09-G134/\n?? ../TC-M09-G135/\n?? ../TC-M09-G137/\n?? ../TC-M09-G138/\n?? ../TC-M09-G139/\n?? ../TC-M09-G141/\n?? ./\n?? ../TC-M09-G74-v2.0/\n?? ../TC-M09-G75-v2.0/\n?? ../TC-M09-G76-v2.0/\n?? ../TC-M09-G77-v2.0/\n?? ../TC-M09-G79-v2.0/\n?? ../TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_http": 200,
+  "openapi_observed_at_utc": "2026-10-07T10:32:21.771025+00:00",
+  "openapi_sha256": "3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8",
+  "openapi": {
+    "routes": {
+      "alta": {
+        "present": true,
+        "method": "POST",
+        "path": "/activos-biologicos",
+        "summary": "Registrar activo biológico (RF-33)",
+        "request_schema": {
+          "$ref": "#/components/schemas/RegistrarActivoBiologicoDTO"
+        },
+        "responses": [
+          "201",
+          "400",
+          "401",
+          "403",
+          "409",
+          "422",
+          "429"
+        ]
+      },
+      "cierre": {
+        "present": true,
+        "method": "POST",
+        "path": "/activos-biologicos/{id_activo}/cierre",
+        "summary": "Cerrar ciclo productivo del activo biológico (RF-38)",
+        "request_schema": {
+          "$ref": "#/components/schemas/CerrarCicloDTO"
+        },
+        "responses": [
+          "200",
+          "400",
+          "401",
+          "403",
+          "404",
+          "409",
+          "422"
+        ]
+      },
+      "detalle": {
+        "present": true,
+        "method": "GET",
+        "path": "/activos-biologicos/{id_activo}",
+        "summary": "Consultar activo biológico (RF-35)",
+        "request_schema": null,
+        "responses": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "422"
+        ]
+      },
+      "auditoria": {
+        "present": true,
+        "method": "GET",
+        "path": "/auditoria/",
+        "summary": "Consultar Auditoria",
+        "request_schema": null,
+        "responses": [
+          "200",
+          "206",
+          "400",
+          "403",
+          "500",
+          "422"
+        ]
+      }
+    },
+    "paths_totales": 210,
+    "schemas_totales": 305,
+    "related_operations": [],
+    "term_counts": {
+      "VISION": 0,
+      "vector": 0,
+      "vector_comportamiento": 0,
+      "ventana_observacion": 0,
+      "origen_disparo": 0,
+      "linea_base": 0,
+      "baseline": 0,
+      "apto_para_ia": 2
+    },
+    "manual_vision_published": false,
+    "dto_alta_m02": {
+      "name": "RegistrarActivoBiologicoDTO",
+      "fields": [
+        "tipo_activo",
+        "id_especie",
+        "fecha_inicio_ciclo",
+        "detalles_procedencia",
+        "origen_financiero",
+        "costo_adquisicion",
+        "soporte_documental",
+        "id_infraestructura",
+        "atributos_dinamicos",
+        "identificador",
+        "raza",
+        "sexo",
+        "fecha_nacimiento",
+        "peso_inicial",
+        "cantidad_inicial",
+        "peso_promedio_inicial"
+      ],
+      "required": [
+        "tipo_activo",
+        "id_especie",
+        "fecha_inicio_ciclo",
+        "origen_financiero",
+        "id_infraestructura"
+      ]
+    },
+    "dto_cierre_m02": {
+      "name": "CerrarCicloDTO",
+      "fields": [
+        "fecha_cierre",
+        "motivo_cierre",
+        "descripcion_cierre"
+      ],
+      "required": [
+        "fecha_cierre",
+        "motivo_cierre"
+      ]
+    }
+  },
+  "newman": {
+    "exit_code": 0,
+    "stdout": "newman\n\nTC-M09-G142 - preflight de integración M02/VISION TEST\n\n→ GET OpenAPI TEST y comprobar contratos M02\n  GET https://api.inmero.co/back-sigab-test/openapi.json [200 OK, 568.78kB, 966ms]\n  √  OpenAPI TEST responde 200\n  √  Alta M02 publicada\n  √  Cierre M02 publicado\n  √  Detalle M02 y RF-10 publicados\n\n┌─────────────────────────┬────────────────────┬───────────────────┐\n│                         │           executed │            failed │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│              iterations │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│                requests │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│            test-scripts │                  1 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│      prerequest-scripts │                  0 │                 0 │\n├─────────────────────────┼────────────────────┼───────────────────┤\n│              assertions │                  4 │                 0 │\n├─────────────────────────┴────────────────────┴───────────────────┤\n│ total run duration: 1092ms                                       │\n├──────────────────────────────────────────────────────────────────┤\n│ total data received: 568.4kB (approx)                            │\n├──────────────────────────────────────────────────────────────────┤\n│ average response time: 966ms [min: 966ms, max: 966ms, s.d.: 0µs] │\n└──────────────────────────────────────────────────────────────────┘\n",
+    "stderr": ""
+  },
+  "pytest": {
+    "exit_code": 0,
+    "resultado": "..                                                                       [100%]\n2 passed in 2.87s\n"
+  },
+  "precondiciones_vision": {
+    "fuente_vectores": {
+      "estado": "NO IDENTIFICADA FORMALMENTE en API/esquema TEST",
+      "no_equivalencia": "apto_para_ia en telemetría no prueba vector de comportamiento VISION"
+    },
+    "N": null,
+    "N_estado": "NO EVALUADO; sin fuente formal de vectores",
+    "baseline": {
+      "estado": "NO IDENTIFICADA FORMALMENTE en API/esquema TEST"
+    },
+    "area": {
+      "estado": "NO EVALUADA tras bloqueo global"
+    },
+    "especie": {
+      "estado": "NO EVALUADA tras bloqueo global"
+    },
+    "camara": {
+      "estado": "NO EVALUADA tras bloqueo global"
+    },
+    "discovery_db": {
+      "database": "sgpmp_test",
+      "user": "member_qa",
+      "transaction_read_only": "on",
+      "consultas": [
+        "SELECT current_database(),current_user,current_setting('transaction_read_only')",
+        "SELECT table_schema,table_name,table_type FROM information_schema.tables\nWHERE table_schema NOT IN ('pg_catalog','information_schema')\nAND lower(table_name) ~ '(vision|vector|comportamiento|linea_base|baseline|observacion)'\nORDER BY table_schema,table_name",
+        "SELECT table_schema,table_name,column_name FROM information_schema.columns\nWHERE table_schema NOT IN ('pg_catalog','information_schema')\nAND lower(column_name) ~ '(vector|comportamiento|origen_disparo|baseline|linea_base|ventana_observacion|id_camara)'\nORDER BY table_schema,table_name,column_name",
+        "SELECT table_schema,table_name,column_name FROM information_schema.columns\nWHERE (table_schema='modulo3' AND table_name IN\n('paquetes_inferencia','eventos_edge_computing','telemetrias','telemetria_calidad'))\nOR (table_schema='modulo9' AND table_name IN\n('calibraciones','configuraciones_globales','infraestructuras','dispositivos_iot'))\nORDER BY table_schema,table_name,ordinal_position"
+      ],
+      "candidate_tables": [
+        {
+          "schema": "modulo1",
+          "table": "integridad_baseline",
+          "type": "BASE TABLE"
+        },
+        {
+          "schema": "modulo4",
+          "table": "observaciones_clinicas",
+          "type": "BASE TABLE"
+        },
+        {
+          "schema": "modulo5",
+          "table": "provision_nic41",
+          "type": "BASE TABLE"
+        },
+        {
+          "schema": "modulo5",
+          "table": "vw_m05_provision_incrementales",
+          "type": "VIEW"
+        },
+        {
+          "schema": "modulo5",
+          "table": "vw_m05_provision_nic41",
+          "type": "VIEW"
+        },
+        {
+          "schema": "modulo6",
+          "table": "revisiones_reconocimiento",
+          "type": "BASE TABLE"
+        }
+      ],
+      "candidate_columns": [],
+      "selected_columns": {
+        "modulo3.eventos_edge_computing": [
+          "id_evento_edge_computing",
+          "id_dispositivo_iot",
+          "tipo_evento",
+          "id_sensor",
+          "severidad",
+          "variables_involucradas",
+          "id_regla_alerta",
+          "valor_evaluado",
+          "umbral_min_aplicado",
+          "umbral_max_aplicado",
+          "desviacion_pct",
+          "fecha_captura",
+          "fecha_procesamiento",
+          "origen_dato",
+          "estado_conectividad",
+          "metadatos",
+          "enviado_backend",
+          "almacendado_buffer"
+        ],
+        "modulo3.paquetes_inferencia": [
+          "id_paquetes_inferencia",
+          "id_sensor",
+          "id_dispositivo_iot",
+          "id_evento_edge_computing",
+          "tipo_variable",
+          "valor_numerico",
+          "unidad",
+          "estado_calidad",
+          "estado_desviacion",
+          "severidad",
+          "origen",
+          "contexto_ambiental",
+          "contexto_incomplento",
+          "metadatos",
+          "id_version_modelo",
+          "fecha_envio",
+          "estado_paquete",
+          "intento_envios"
+        ],
+        "modulo3.telemetria_calidad": [
+          "id_evaluacion",
+          "id_telemetria",
+          "id_sensor",
+          "timestamp_evaluacion",
+          "indice_calidad",
+          "clasificacion_calidad",
+          "apto_para_ia",
+          "apto_para_nic41",
+          "flags_detectados",
+          "version_limites_fisicos_aplicada",
+          "parametros_aplicados",
+          "parametros_calibracion_aplicados",
+          "estado_evaluacion",
+          "motivo_reevaluacion",
+          "id_evaluacion_superada",
+          "version_evaluacion",
+          "fecha_creacion"
+        ],
+        "modulo3.telemetrias": [
+          "id_telemetria",
+          "id_sensor",
+          "id_variable",
+          "id_dispositivo_iot",
+          "valor_crudo",
+          "valor_ajustado",
+          "timestamp_captura",
+          "timestamp_envio",
+          "timestamp_procesamiento",
+          "origen",
+          "estado_calidad",
+          "calibrado",
+          "latitud",
+          "longitud",
+          "metadatos",
+          "categoria_variable",
+          "unidad_medida",
+          "version_calibracion",
+          "parametros_calibracion",
+          "valor_agregado",
+          "ventana_agregacion_min",
+          "tipo_dato",
+          "latencia_alta",
+          "frecuencia_anomala",
+          "posible_drift",
+          "dato_buferizado",
+          "dato_agredado_edge",
+          "reloj_desincronizado",
+          "latencia_procesamiento_ms",
+          "nivel_bateria_pct",
+          "calidad_senal_rssi",
+          "calidad_senal_snr",
+          "frecuencia_muestreo_min",
+          "estado_conectividad",
+          "apto_para_ia",
+          "apto_para_nic41"
+        ],
+        "modulo9.calibraciones": [
+          "id_calibracion",
+          "id_dispositivo_iot",
+          "fecha_calibracion",
+          "id_sensor",
+          "valor_referencia",
+          "observaciones",
+          "id_usuario",
+          "ganancia",
+          "offset_calibracion"
+        ],
+        "modulo9.configuraciones_globales": [
+          "id_configuracion_global",
+          "frecuencia_muestreo",
+          "heartbeat",
+          "fecha_actualizacion",
+          "id_usuario",
+          "es_activo"
+        ],
+        "modulo9.dispositivos_iot": [
+          "id_dispositivo_iot",
+          "serial",
+          "descripcion",
+          "es_activo",
+          "fecha_creacion",
+          "id_infraestructura",
+          "id_tipo_dispositivo",
+          "id_dispositivo_gateway",
+          "resolucion",
+          "fps",
+          "area_cobertura_m2"
+        ],
+        "modulo9.infraestructuras": [
+          "id_infraestructura",
+          "descripcion",
+          "nombre",
+          "id_finca",
+          "superficie",
+          "es_activo",
+          "tipo",
+          "fecha_actualizacion",
+          "capacidad_maxima",
+          "id_especie",
+          "tipo_modelo_asignado"
+        ]
+      },
+      "m03_semantic_candidates": [],
+      "m09_semantic_candidates": [],
+      "formal_m03_vision_source_identified": false,
+      "formal_m09_vision_baseline_identified": false,
+      "criterio": "No hay relación formal publicada cámara→vector VISION→área/tiempo/aptitud ni línea base VISION; telemetría/calidad genérica no prueba esa semántica."
+    }
+  },
+  "TC-M09-288": {
+    "baseline_pre": null,
+    "m02_request": null,
+    "m02_response": null,
+    "id_activo": null,
+    "t_evento": null,
+    "trigger_signal": null,
+    "baseline_post": null,
+    "elapsed": null,
+    "auditoria_m09": null,
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "motivo": "Sin fuente formal de vectores VISION/N ni superficie baseline verificable; no se registró lote M02."
+  },
+  "TC-M09-289": {
+    "activo": null,
+    "precondiciones_cierre": null,
+    "baseline_pre": null,
+    "m02_request": null,
+    "m02_response": null,
+    "t_evento": null,
+    "trigger_signal": null,
+    "baseline_post": null,
+    "auditoria_m09": null,
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "motivo": "La dependencia VISION no es montable/verificable; no se preparó ni cerró lote M02."
+  },
+  "post_alta_m02": 0,
+  "post_cierre_m02": 0,
+  "post_manual_vision": 0,
+  "post_setup": 0,
+  "sql_escritura": false,
+  "stop_all": false,
+  "resultado_general": "BLOQUEADO / NO VERIFICABLE",
+  "motivo_general": "Rutas M02 disponibles, pero no hay fuente formal VISION/baseline verificable para evaluar la integración automática.",
+  "incidencias": [
+    {
+      "incidencia_requerida": "SÍ",
+      "grupo_responsable": "Por determinar",
+      "componente": "M03/M09 e integración M02",
+      "grupo": "TC-M09-G142",
+      "casos": [
+        "TC-M09-288",
+        "TC-M09-289"
+      ],
+      "resultado": "BLOQUEADO / NO VERIFICABLE",
+      "motivo": "Aclarar fuente formal de vectores VISION, N y superficie baseline antes de ejecutar triggers M02.",
+      "esperado": "Dependencias VISION montables y verificables; luego eventos M02 con baseline automática/auditoría.",
+      "obtenido": "M02 publicado, fuente VISION/baseline no identificada por API/SELECT de esquema.",
+      "causa_raiz": "Por determinar; contrato, implementación o despliegue/documentación no distinguibles.",
+      "type": "question",
+      "severity": "Normal",
+      "priority": "Normal",
+      "evidencia": "evidencia.json / newman.html / pytest.xml"
+    }
+  ]
+}

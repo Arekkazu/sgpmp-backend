@@ -144,3 +144,27 @@ def test_infraestructura_destino_inactiva_es_422_no_400():
     assert exc.value.code == 'INFRAESTRUCTURA_DESTINO_INVALIDA'
     assert exc.value.status_code == 422
     assert not isinstance(exc.value, ValidationError)
+
+
+def test_lote_sin_identificador_no_muestra_none():
+    """#212: los lotes no tienen identificador; el 409 decía "El activo None"."""
+    from src.shared.errors import ConflictError
+
+    lote = _activo(471)
+    lote.identificador = None
+    lote.id_estado = EstadoActivo.BAJA
+    lote.nombre_estado = 'BAJA'
+    uc = RegistrarTransferenciaUseCase(
+        db=None,
+        activo_repo=ActivoRepoFake(lote, asociacion=None),
+        transferencia_repo=TransferenciaRepoFake(),
+        infra_port=InfraPortFake({}),
+        parametros_port=None,
+    )
+
+    with pytest.raises(ConflictError) as exc:
+        uc.execute(471, _dto(destino=51), _usuario())
+
+    assert exc.value.code == 'ACTIVO_NO_ACTIVO'
+    assert 'None' not in exc.value.message
+    assert 'El activo 471 ' in exc.value.message

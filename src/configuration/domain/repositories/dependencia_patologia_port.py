@@ -13,6 +13,9 @@ from abc import ABC, abstractmethod
 
 
 class DependenciaPatologiaPort(ABC):
+    """Puerto que indica si una patología está referenciada en eventos sanitarios
+    (bloquea su desactivación).
+    """
 
     @abstractmethod
     def tiene_dependencias_activas(self, id_patologia: int) -> bool:

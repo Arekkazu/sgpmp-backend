@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """RF-45: el registro de baja delega el cambio de estado en el componente centralizado.
 
 En una baja total (individual o lote que llega a cero) el use case delega la
@@ -8,6 +11,8 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
+
+from src.shared.fechas import hoy_usuario
 
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import (
     RegistrarEventoBajaUseCase,
@@ -76,6 +81,11 @@ class HistoricoRepoFake:
     def __init__(self, orden: list[str] | None = None) -> None:
         self.registros: list[dict] = []
         self.orden = orden
+
+    ultimo = None
+
+    def obtener_ultimo_cambio(self, _id_activo: int):
+        return self.ultimo
 
     def registrar(self, **kwargs) -> HistoricoEstado:
         if self.orden is not None:
@@ -225,11 +235,8 @@ def test_baja_mismo_dia_utc_usa_la_hora_real_no_medianoche() -> None:
     uc = _uc(db, activo, evento_repo, historico)
 
     antes = datetime.now(timezone.utc)
-    # date.today() es la fecha LOCAL del proceso, no la UTC -- cerca de la
-    # medianoche UTC ambas difieren. La regla del bug es explícitamente sobre
-    # "el mismo día UTC", así que el DTO se construye con la fecha UTC real.
     dto = RegistrarEventoBajaDTO(
-        tipo_baja='venta', fecha_baja=antes.date(), motivo_baja='motivo de baja',
+        tipo_baja='venta', fecha_baja=hoy_usuario(), motivo_baja='motivo de baja',
     )
     uc.execute(10, dto, _usuario())
     despues = datetime.now(timezone.utc)

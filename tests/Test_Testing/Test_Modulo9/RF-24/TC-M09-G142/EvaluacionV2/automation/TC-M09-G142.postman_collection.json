@@ -1,0 +1,1934 @@
+{
+  "info": {
+    "name": "TC-M09-G142 — RF-24 v2.0 · disparo automatico M02 → M09 (VISION)",
+    "description": "SEGUNDA EVALUACION de TC-M09-G142 (TC-M09-288 y TC-M09-289).\n\nLa coleccion es dueña de su sesion: hace su propio login del Administrador y nunca recibe un token inyectado por el runner.\n\nEjecuta EXACTAMENTE dos eventos funcionales de M02 — el alta del lote POBLACIONAL y el cierre de su ciclo — y NUNCA llama a POST /configuracion/calibraciones-vision: el proposito del grupo es demostrar que M02 provoca el calculo VISION sin una solicitud del usuario. Todo lo demas es setup de fixture o observacion por GET.\n\nLas assertions de veredicto quedan rojas si el producto no dispara el calculo: son la evidencia del caso y no se relajan.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "SETUP 01 · Login Administrador (la coleccion es dueña de la sesion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones/"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"{{admin_correo}}\", \"contrasena\": \"{{admin_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · el Administrador autentica (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.expect(b.token, 'token').to.be.a('string');",
+              "pm.environment.set('admin_session', b.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 02 · Resolver finca QA del Administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/fincas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · listado de fincas (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const activas = (b.items || []).filter(f => f.es_activo);",
+              "pm.expect(activas.length, 'fincas activas del Administrador').to.be.above(0);",
+              "const preferida = activas.find(f => f.id_finca === 163);",
+              "const elegida = preferida || activas[0];",
+              "pm.environment.set('finca_id', String(elegida.id_finca));",
+              "pm.environment.set('fincas_admin', JSON.stringify(activas.map(f => f.id_finca)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 03 · Resolver tipo de area del catalogo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-area",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/tipos-area"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · catalogo de tipos de area (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const activos = (b.items || []).filter(t => t.es_activo);",
+              "pm.expect(activos.length, 'tipos de area activos').to.be.above(0);",
+              "const galpon = activos.find(t => String(t.nombre).toLowerCase().indexOf('galp') === 0);",
+              "pm.environment.set('tipo_area', (galpon || activos[0]).nombre);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 03b · Resolver especie AVES apta para el alta de lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · catalogo de especies (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "// El alta de un lote calcula su densidad inicial, asi que la especie DEBE tener",
+              "// densidad_maxima_por_especie configurada en M09 (si no: 422 DENSIDAD_MAXIMA_NO_CONFIGURADA).",
+              "const aptas = (b.items || []).filter(e => e.es_activo",
+              "  && String(e.tipo_modelo) === 'MODELO_AVES'",
+              "  && e.densidad_maxima_por_especie !== null && e.densidad_maxima_por_especie !== undefined",
+              "  && Number(e.densidad_maxima_por_especie) > 0);",
+              "pm.test('SETUP · hay una especie AVES activa con densidad maxima configurada',",
+              "  () => pm.expect(aptas.length, 'especies AVES con densidad').to.be.above(0));",
+              "aptas.sort((x, y) => x.id_especie - y.id_especie);",
+              "pm.environment.set('especies_aptas', JSON.stringify(aptas.map(e => e.id_especie)));",
+              "// La especie NO se elige aqui por heuristica: para TC-289 hace falta ademas un ciclo",
+              "// productivo con fases, y eso solo lo sabe la compuerta del runner, que lo consulta en",
+              "// la BD. Si la compuerta ya cualifico una especie, se usa esa; el 'id mas bajo' solo",
+              "// queda como respaldo cuando se corre la coleccion sin el runner.",
+              "const cualificada = String(pm.environment.get('especie_cualificada') || '').trim();",
+              "let elegida;",
+              "let razon;",
+              "if (cualificada) {",
+              "  elegida = aptas.find(e => String(e.id_especie) === cualificada);",
+              "  pm.test('SETUP · la especie cualificada por la compuerta sigue apta en el catalogo',",
+              "    () => pm.expect(elegida, `especie ${cualificada} entre las aptas`).to.not.be.undefined);",
+              "  razon = 'cualificada por la compuerta: tiene ciclo productivo con fases y densidad';",
+              "} else {",
+              "  elegida = aptas[0];",
+              "  razon = 'respaldo sin compuerta: primera especie AVES activa con densidad, por id';",
+              "}",
+              "if (elegida) {",
+              "  pm.environment.set('especie_id', String(elegida.id_especie));",
+              "  pm.environment.set('especie_nombre', String(elegida.nombre));",
+              "  pm.environment.set('especie_densidad_maxima', String(elegida.densidad_maxima_por_especie));",
+              "  pm.environment.set('especie_razon_seleccion', razon);",
+              "  console.log(`SETUP · especie elegida ${elegida.id_especie} (${razon})`);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 03c · Metricas obligatorias de la especie (atributos_dinamicos)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/metricas?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/metricas?id_especie={{especie_id}}&solo_activas=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · metricas de la especie consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const oblig = (b.items || []).filter(m => m.es_obligatorio",
+              "  && ['LOTE', 'AMBOS'].indexOf(String(m.aplica_a_tipo_activo)) >= 0);",
+              "pm.environment.set('metricas_obligatorias', JSON.stringify(oblig.map(m => m.nombre)));",
+              "pm.test('SETUP · la especie no exige atributos dinamicos obligatorios para LOTE',",
+              "  () => pm.expect(oblig.length, 'metricas obligatorias de LOTE').to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 04 · Crear area A1 (POBLACIONAL, limpia)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre_infraestructura\": \"QA-G142-A1-{{sufijo}}\", \"tipo_area\": \"{{tipo_area}}\", \"superficie\": 120.0, \"finca_id\": \"{{finca_id_num}}\", \"descripcion_infraestructura\": \"Area A1 de TC-M09-G142 ({{run_id}})\", \"especie_id\": \"{{especie_id_num}}\", \"tipo_modelo_asignado\": \"MODELO_AVES\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('finca_id_num', Number(pm.environment.get('finca_id')));",
+              "pm.environment.set('especie_id_num', Number(pm.environment.get('especie_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · A1 creada (201)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('a1_id', String(b.id_infraestructura));",
+              "pm.test('SETUP · A1 con la especie resuelta', () => pm.expect(String(b.especie_id)).to.eql(pm.environment.get('especie_id')));",
+              "pm.test('SETUP · A1 con tipo_modelo_asignado MODELO_AVES', () => pm.expect(b.tipo_modelo_asignado).to.eql('MODELO_AVES'));",
+              "pm.test('SETUP · A1 activa', () => pm.expect(b.es_activo).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 05 · Crear camara C1 nueva y exclusiva",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G142-CAM-{{sufijo}}\", \"descripcion\": \"QA TC-M09-G142 camara VISION del RUN {{run_id}}\", \"id_infraestructura\": \"{{a1_id_num}}\", \"id_tipo_dispositivo\": 5, \"es_activo\": true, \"resolucion\": \"1920x1080\", \"fps\": 30, \"area_cobertura_m2\": \"50.00\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('a1_id_num', Number(pm.environment.get('a1_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · C1 creada (201)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('c1_id', String(b.id_dispositivo_iot));",
+              "pm.environment.set('c1_fps', String(b.fps));",
+              "pm.test('SETUP · C1 es CAMARA', () => pm.expect(b.categoria).to.eql('CAMARA'));",
+              "pm.test('SETUP · C1 activa', () => pm.expect(b.es_activo).to.eql(true));",
+              "pm.test('SETUP · C1 asociada a A1', () => pm.expect(String(b.id_infraestructura)).to.eql(pm.environment.get('a1_id')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 06 · Ingerir 40 observaciones VISION aptas (M03)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/telemetria/vision",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot/telemetria/vision"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_vision}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Observaciones recientes y cerradas, anteriores al evento M02: desde 24 h antes,",
+              "// una cada 5 minutos. Vectores deterministas; apto_para_ia NO se envia (lo calcula M03).",
+              "const base = new Date(Date.now() - 24 * 60 * 60 * 1000);",
+              "base.setUTCSeconds(0, 0);",
+              "const fps = Number(pm.environment.get('c1_fps') || 30);",
+              "const obs = [];",
+              "for (let i = 0; i < 40; i++) {",
+              "  const t = new Date(base.getTime() + i * 5 * 60 * 1000);",
+              "  obs.push({",
+              "    timestamp_captura: t.toISOString().replace(/\\.\\d{3}Z$/, 'Z'),",
+              "    cobertura_ventana: '1.0000', n_tracks: 20, n_tracks_perdidos: 0,",
+              "    fps_efectivo: fps.toFixed(2), estado_calibracion: 'CALIBRADA',",
+              "    vector: { densidad_actividad: Number((12 + (i % 3) * 0.01).toFixed(4)),",
+              "              tasa_movimiento: Number((6 + (i % 3) * 0.01).toFixed(4)) }",
+              "  });",
+              "}",
+              "pm.environment.set('w_inicio', obs[0].timestamp_captura);",
+              "pm.environment.set('w_fin', obs[obs.length - 1].timestamp_captura);",
+              "pm.environment.set('cuerpo_vision', JSON.stringify({",
+              "  device_id: Number(pm.environment.get('c1_id')),",
+              "  access_key: 'QA-M09-G142-CAM-' + pm.environment.get('sufijo'),",
+              "  area_id: Number(pm.environment.get('a1_id')),",
+              "  observaciones: obs",
+              "}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP · ingesta VISION aceptada (2xx)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.test('SETUP · total = 40', () => pm.expect(b.total).to.eql(40));",
+              "pm.test('SETUP · aceptadas = 40', () => pm.expect(b.aceptadas).to.eql(40));",
+              "pm.test('SETUP · duplicadas = 0', () => pm.expect(b.duplicadas).to.eql(0));",
+              "const aptas = (b.observaciones || []).filter(o => o.apto_para_ia === true).length;",
+              "pm.test('SETUP · las 40 quedan apto_para_ia = true', () => pm.expect(aptas).to.eql(40));",
+              "pm.environment.set('obs_aptas', String(aptas));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 288 · Historial VISION de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 288 · historial accesible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_pre_288', JSON.stringify(ids));",
+              "pm.test('PRE 288 · A1 arranca sin calibraciones VISION', () => pm.expect(ids.length).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 288 · Linea base vigente de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.environment.set('baseline_pre_288', pm.response.code === 200 ? String(b.id_calibracion_vision) : 'NINGUNA');",
+              "pm.environment.set('baseline_pre_288_http', String(pm.response.code));",
+              "pm.test('PRE 288 · A1 sin linea base previa (404)', () => pm.expect(pm.response.code).to.eql(404));",
+              "pm.environment.set('t_pre_288', new Date().toISOString());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Alta de lote POBLACIONAL en M02 (evento funcional 1 de 2)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_alta}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date().toISOString().slice(0, 10);",
+              "pm.environment.set('cuerpo_alta', JSON.stringify({",
+              "  tipo_activo: 'POBLACIONAL',",
+              "  id_especie: Number(pm.environment.get('especie_id')),",
+              "  fecha_inicio_ciclo: hoy,",
+              "  origen_financiero: 'nacimiento',",
+              "  detalles_procedencia: 'Lote QA de TC-M09-G142',",
+              "  id_infraestructura: Number(pm.environment.get('a1_id')),",
+              "  cantidad_inicial: 10,",
+              "  peso_promedio_inicial: '0.50'",
+              "}));",
+              "pm.environment.set('t_alta_pre', new Date().toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.environment.set('t_alta', new Date().toISOString());",
+              "pm.environment.set('alta_http', String(pm.response.code));",
+              "pm.test('TC-288 · el alta del lote responde 2xx', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "if ([200, 201].indexOf(pm.response.code) >= 0) {",
+              "  pm.environment.set('id_lote', String(b.id_activo_biologico || b.id_activo || ''));",
+              "  pm.test('TC-288 · el lote es POBLACIONAL', () => pm.expect(String(b.tipo_activo || b.tipo)).to.eql('POBLACIONAL'));",
+              "  pm.test('TC-288 · el lote queda en A1', () => pm.expect(String(b.id_infraestructura)).to.eql(pm.environment.get('a1_id')));",
+              "  pm.test('TC-288 · el lote lleva la especie de A1', () => pm.expect(String(b.id_especie)).to.eql(pm.environment.get('especie_id')));",
+              "} else {",
+              "  pm.environment.set('id_lote', '');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Verificar el lote por GET",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-288 · el lote existe (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('lote_estado_pre', String(b.estado || b.id_estado || ''));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 1 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-288 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_obs_288', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 1 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_288_http', String(pm.response.code));",
+              "pm.test('TC-288 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 2 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-288 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_obs_288', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 2 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_288_http', String(pm.response.code));",
+              "pm.test('TC-288 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 3 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-288 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_obs_288', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 3 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_288_http', String(pm.response.code));",
+              "pm.test('TC-288 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 4 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-288 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const ids = (b.items || []).map(i => i.id_calibracion_vision);",
+              "pm.environment.set('hist_obs_288', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · Observacion 4 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_288_http', String(pm.response.code));",
+              "pm.test('TC-288 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-288 · VEREDICTO · debe existir una calibracion AUTOMATICA nueva",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "const pre = JSON.parse(pm.environment.get('hist_pre_288') || '[]');",
+              "const items = b.items || [];",
+              "const nuevas = items.filter(i => pre.indexOf(i.id_calibracion_vision) < 0);",
+              "pm.environment.set('nuevas_288', JSON.stringify(nuevas.map(i => i.id_calibracion_vision)));",
+              "// Oraculo del caso: el alta de M02 debe provocar el calculo VISION sin POST manual.",
+              "pm.test('TC-288 · el alta del lote genero una calibracion VISION nueva',",
+              "  () => pm.expect(nuevas.length, 'calibraciones nuevas tras el alta').to.be.above(0));",
+              "const auto = nuevas.filter(i => i.origen_disparo === 'AUTOMATICO');",
+              "pm.test('TC-288 · la calibracion nueva tiene origen_disparo AUTOMATICO',",
+              "  () => pm.expect(auto.length, 'calibraciones AUTOMATICO').to.be.above(0));",
+              "if (auto.length) {",
+              "  const a = auto[0];",
+              "  pm.environment.set('auto_288_id', String(a.id_calibracion_vision));",
+              "  pm.test('TC-288 · la calibracion automatica es EXITOSA', () => pm.expect(a.estado).to.eql('EXITOSA'));",
+              "  pm.test('TC-288 · la calibracion automatica no tiene usuario', () => pm.expect(a.id_usuario).to.eql(null));",
+              "  pm.test('TC-288 · la calibracion automatica trae linea base', () => pm.expect(a.linea_base).to.not.eql(null));",
+              "} else {",
+              "  pm.environment.set('auto_288_id', 'NINGUNA');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 289 · Ciclos productivos asignables al lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/ciclos-productivos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}/ciclos-productivos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('SETUP 289 · ciclos asignables consultables (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "const items = b.items || [];",
+              "pm.environment.set('ciclos_asignables', String(items.length));",
+              "// Si la compuerta cualifico un ciclo concreto, se exige que M02 lo ofrezca:",
+              "// que exista en SQL no prueba que la API lo considere asignable.",
+              "const cicloCualificado = String(pm.environment.get('ciclo_productivo_cualificado') || '').trim();",
+              "let ciclo = items.length ? items[0] : null;",
+              "if (cicloCualificado) {",
+              "  const coincide = items.find(c => String(c.id_ciclo_productivo) === cicloCualificado);",
+              "  pm.test('SETUP 289 · M02 ofrece el ciclo productivo cualificado',",
+              "    () => pm.expect(coincide, `ciclo ${cicloCualificado} entre los asignables`)",
+              "      .to.not.be.undefined);",
+              "  if (coincide) ciclo = coincide;",
+              "}",
+              "pm.environment.set('ciclo_id', ciclo ? String(ciclo.id_ciclo_productivo) : '');",
+              "// SETUP, no veredicto: el cierre de M02 exige fase activa y la fase exige un ciclo",
+              "// productivo de la especie en modulo9.ciclos_productivos. Si no hay ninguno es una",
+              "// precondicion de datos de M09, no el disparo automatico que mide el grupo.",
+              "pm.test('SETUP 289 · la especie tiene algun ciclo productivo asignable',",
+              "  () => pm.expect(items.length, 'ciclos productivos asignables').to.be.above(0));",
+              "// Guarda de arrays (§8/§25): nunca se indexa sin comprobar tipo y longitud.",
+              "// En la ejecucion 1 este bloque hacia items[0].fases con items = [] y rompia el script.",
+              "if (!Array.isArray(items)) {",
+              "  throw new Error('Respuesta de ciclos productivos no es un array valido: ' + JSON.stringify(b).slice(0, 200));",
+              "}",
+              "let fases = [];",
+              "if (items.length === 0) {",
+              "  // Precondicion de datos explicita, sin TypeError: la especie no tiene ciclo productivo.",
+              "  pm.environment.set('fase_destino_id', '');",
+              "  pm.environment.set('precondicion_289', 'SIN_CICLO_PRODUCTIVO');",
+              "  console.log('SETUP 289 · la especie no tiene ciclos productivos asignables: TC-289 no es montable');",
+              "} else {",
+              "  const elegido = ciclo || items[0];",
+              "  fases = Array.isArray(elegido.fases) ? elegido.fases : [];",
+              "  pm.environment.set('precondicion_289', fases.length ? 'OK' : 'CICLO_SIN_FASES');",
+              "  pm.environment.set('fase_destino_id',",
+              "    fases.length ? String(fases[0].id_ciclos_productivo_biologico || fases[0].id || '') : '');",
+              "  pm.test('SETUP 289 · el ciclo elegido tiene al menos una fase',",
+              "    () => pm.expect(fases.length, 'fases del ciclo').to.be.above(0));",
+              "}",
+              "pm.environment.set('fases_del_ciclo', String(fases.length));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP 289 · Asignar fase activa al lote (precondicion del cierre M02)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/fases",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}/fases"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id_ciclo_productiva\": {{ciclo_id_num}}, \"motivo_cambio\": \"Asignacion de ciclo para el cierre de TC-M09-289\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('ciclo_id_num', Number(pm.environment.get('ciclo_id')));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('SETUP 289 · fase asignada (2xx)', () => pm.expect([200, 201]).to.include(pm.response.code));",
+              "pm.environment.set('fase_http', String(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 289 · Detalle del lote (debe ser cerrable)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 289 · el lote existe (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('lote_estado_pre_289', String(b.estado || b.id_estado || ''));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 289 · Historial VISION de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('PRE 289 · historial accesible (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_pre_289', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRE 289 · Linea base vigente de A1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.environment.set('baseline_pre_289', pm.response.code === 200 ? String(b.id_calibracion_vision) : 'NINGUNA');",
+              "pm.environment.set('baseline_pre_289_http', String(pm.response.code));",
+              "pm.test('PRE 289 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));",
+              "pm.environment.set('t_pre_289', new Date().toISOString());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Cierre del ciclo del lote en M02 (evento funcional 2 de 2)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}/cierre"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_cierre}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date().toISOString().slice(0, 10);",
+              "pm.environment.set('cuerpo_cierre', JSON.stringify({",
+              "  fecha_cierre: hoy,",
+              "  motivo_cierre: 'finalizacion_lote',",
+              "  descripcion_cierre: 'Cierre QA de TC-M09-289 para observar el disparo automatico VISION'",
+              "}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('t_cierre', new Date().toISOString());",
+              "pm.environment.set('cierre_http', String(pm.response.code));",
+              "pm.test('TC-289 · el cierre del ciclo responde 2xx', () => pm.expect([200, 201]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Verificar que el lote quedo CERRADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos/{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-289 · el lote sigue consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "// modulo2.estados_activos_biologicos: CERRADO = 5 (EstadoActivo.CERRADO). Esta ruta",
+              "// devuelve el id en `id_estado` y el nombre en `nombre_estado`; `estado` puede no venir.",
+              "// En la ejecucion 2 la assertion fallo por comparar el id '5' contra la cadena 'CERRADO'.",
+              "const ESTADO_CERRADO = 5;",
+              "const idEstado = b.id_estado;",
+              "const nombreEstado = String(b.nombre_estado || b.estado || '');",
+              "pm.environment.set('lote_estado_post', String(idEstado !== undefined && idEstado !== null",
+              "  ? idEstado : nombreEstado));",
+              "pm.environment.set('lote_estado_post_nombre', nombreEstado);",
+              "const cerrado = Number(idEstado) === ESTADO_CERRADO",
+              "  || nombreEstado.toUpperCase().indexOf('CERRADO') >= 0;",
+              "pm.test('TC-289 · el lote quedo CERRADO',",
+              "  () => pm.expect(cerrado,",
+              "    `id_estado ${idEstado} / nombre ${nombreEstado || '(no expuesto)'}`).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 1 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-289 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_289', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 1 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_289_http', String(pm.response.code));",
+              "pm.test('TC-289 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 2 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-289 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_289', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 2 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_289_http', String(pm.response.code));",
+              "pm.test('TC-289 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 3 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-289 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_289', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 3 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_289_http', String(pm.response.code));",
+              "pm.test('TC-289 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 4 · historial VISION (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('TC-289 · historial consultable (200)', () => pm.expect(pm.response.code).to.eql(200));",
+              "pm.environment.set('hist_obs_289', JSON.stringify((b.items || []).map(i => i.id_calibracion_vision)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · Observacion 4 · linea base (solo GET)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision/linea-base?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.environment.set('baseline_obs_289_http', String(pm.response.code));",
+              "pm.test('TC-289 · linea base consultable (200 o 404)', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-289 · VEREDICTO · debe existir una calibracion AUTOMATICA nueva",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/calibraciones-vision?area_id={{a1_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/calibraciones-vision?area_id={{a1_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "const pre = JSON.parse(pm.environment.get('hist_pre_289') || '[]');",
+              "const items = b.items || [];",
+              "const nuevas = items.filter(i => pre.indexOf(i.id_calibracion_vision) < 0);",
+              "pm.environment.set('nuevas_289', JSON.stringify(nuevas.map(i => i.id_calibracion_vision)));",
+              "// Oraculo del caso: el cierre del ciclo debe provocar el calculo VISION sin POST manual.",
+              "pm.test('TC-289 · el cierre del ciclo genero una calibracion VISION nueva',",
+              "  () => pm.expect(nuevas.length, 'calibraciones nuevas tras el cierre').to.be.above(0));",
+              "const auto = nuevas.filter(i => i.origen_disparo === 'AUTOMATICO');",
+              "pm.test('TC-289 · la calibracion nueva tiene origen_disparo AUTOMATICO',",
+              "  () => pm.expect(auto.length, 'calibraciones AUTOMATICO').to.be.above(0));",
+              "if (auto.length) {",
+              "  const a = auto[0];",
+              "  pm.environment.set('auto_289_id', String(a.id_calibracion_vision));",
+              "  pm.test('TC-289 · la calibracion automatica es EXITOSA', () => pm.expect(a.estado).to.eql('EXITOSA'));",
+              "  pm.test('TC-289 · la calibracion automatica no tiene usuario', () => pm.expect(a.id_usuario).to.eql(null));",
+              "  const auto288 = pm.environment.get('auto_288_id');",
+              "  if (auto288 && auto288 !== 'NINGUNA') {",
+              "    pm.test('TC-289 · la calibracion del cierre es distinta de la del alta',",
+              "      () => pm.expect(String(a.id_calibracion_vision)).to.not.eql(auto288));",
+              "  }",
+              "} else {",
+              "  pm.environment.set('auto_289_id', 'NINGUNA');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CIERRE · Auditoria RF-10 tipo 30 (CALIBRACION_EXITOSA)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=30&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento=30&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const desde = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, 19);",
+              "pm.environment.set('auditoria_desde', desde);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('CIERRE · auditoria RF-10 consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const items = b.items || b.eventos || [];",
+              "const vision = items.filter(e => {",
+              "  let d = e.detalle || {};",
+              "  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { d = {}; } }",
+              "  return d.operacion === 'CALIBRACION_VISION' && String(d.id_infraestructura) === pm.environment.get('a1_id');",
+              "});",
+              "pm.environment.set('auditoria_30_a1', JSON.stringify(vision.map(e => e.id_evento || e.id)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CIERRE · Auditoria RF-10 tipo 29 (CALIBRACION_RECHAZADA)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=29&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria/?tipo_evento=29&fecha_desde={{auditoria_desde}}&pagina=1&tamano=50"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const desde = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, 19);",
+              "pm.environment.set('auditoria_desde', desde);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "const b = cuerpo();",
+              "pm.test('CIERRE · auditoria RF-10 consultable (200 o 206)', () => pm.expect([200, 206]).to.include(pm.response.code));",
+              "const items = b.items || b.eventos || [];",
+              "const vision = items.filter(e => {",
+              "  let d = e.detalle || {};",
+              "  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { d = {}; } }",
+              "  return d.operacion === 'CALIBRACION_VISION' && String(d.id_infraestructura) === pm.environment.get('a1_id');",
+              "});",
+              "pm.environment.set('auditoria_29_a1', JSON.stringify(vision.map(e => e.id_evento || e.id)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "RESTAURACION · Desactivar la camara C1 creada por el RUN",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_session}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{c1_id}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion/dispositivos-iot/{{c1_id}}/desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const cuerpo = () => { try { return pm.response.json(); } catch (e) { return {}; } };",
+              "pm.test('RESTAURACION · C1 desactivada (2xx)', () => pm.expect([200, 204]).to.include(pm.response.code));",
+              "pm.environment.set('restauracion_c1_http', String(pm.response.code));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ from src.configuration.domain.repositories.metrica_produccion_repository import 
 
 
 class ConsultarMetricasUseCase:
+    """Lista las métricas de producción de una especie, opcionalmente solo las activas.
+    """
 
     def __init__(self, metricas_repo: MetricaProduccionRepository) -> None:
         self.metricas_repo = metricas_repo

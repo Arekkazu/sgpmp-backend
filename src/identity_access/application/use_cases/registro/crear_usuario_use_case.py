@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-18 RF-01: rechaza 100 años o más con 403 EDAD_FUERA_DE_RANGO |
 """Caso de uso: creación de un nuevo usuario en el sistema.
 
 Construye la entidad de dominio :class:`Usuario` a partir del DTO de entrada,
@@ -26,6 +29,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
+from src.shared.email import INTENTOS_CORREO_CON_TOKEN
 from src.shared.errors import (
     AuthorizationError,
     ServiceUnavailableError,
@@ -121,10 +125,21 @@ class CrearUsuarioUseCase:
         )
 
         # 4. Regla de negocio que vive en la entidad, no en el caso de uso.
-        if not usuario.es_mayor_de_edad():
+        limite = Usuario.limite_edad_incumplido(dto.fecha_nacimiento)
+        if limite == "MINIMA":
             raise AuthorizationError(
                 code="EDAD_MINIMA_REQUERIDA",
                 message="Registro denegado: debe ser mayor de 18 años para registrarse como responsable de una unidad productiva en el sistema.",
+                field="fecha_nacimiento",
+            )
+        if limite == "MAXIMA":
+            raise AuthorizationError(
+                code="EDAD_FUERA_DE_RANGO",
+                message=(
+                    "Registro denegado. La edad indicada está fuera del rango válido para "
+                    "registrarse como responsable de una unidad productiva (18 a 99 años). "
+                    "Verifique su fecha de nacimiento."
+                ),
                 field="fecha_nacimiento",
             )
 
@@ -162,8 +177,10 @@ class CrearUsuarioUseCase:
                 tipo_evento=TIPO_REGISTRO_USUARIO,
                 id_usuario=usuario.id_usuario,
                 correo_destino=str(usuario.correo),
-                asunto_email="Activa tu cuenta en SGPMP",
+                asunto_email="Activa tu cuenta en SIGAB",
                 contenido_html_email=activation_email(usuario.nombre, token),
+                # RF-01: el token de activación sí reintenta hasta 3 veces.
+                intentos_email=INTENTOS_CORREO_CON_TOKEN,
             )
             if enviado is False:
                 raise ServiceUnavailableError(

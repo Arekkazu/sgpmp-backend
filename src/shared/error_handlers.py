@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: un evento Edge con estructura inválida queda en la bitácora (E1) |
+# | 2026-10-26 | Arekkazu | INC-M03/M04 RF-57/59/73: 422 por ruta (x-codigo-validacion) y E1 de RF-57 en bitácora |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: respetar el HTTP 422 declarado por ruta y conservar el 400 predeterminado. |
 """Handlers globales de error de la aplicación FastAPI.
 
 Se registran en main.py con register_error_handlers(app). Cubren tres capas:
@@ -22,7 +27,10 @@ from datetime import datetime, timezone
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import InterfaceError, OperationalError, SQLAlchemyError
+from psycopg2 import Error as PsycopgError
+from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError, SQLAlchemyError
+
+from .db_error_translator import traducir_rechazo_trigger
 
 from .errors import AppError, GatewayTimeoutError, InfrastructureError, ServiceUnavailableError
 
@@ -34,6 +42,7 @@ def _respuesta_error(
     code: str,
     message: str,
     fields: list[dict] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     """Construye el cuerpo estándar de error.
 
@@ -42,6 +51,7 @@ def _respuesta_error(
         code: Código de negocio en mayúsculas.
         message: Mensaje legible para el usuario final.
         fields: Detalle por campo. Lista vacía si el error no aplica a uno.
+        headers: Cabeceras adicionales de la respuesta (p. ej. ``Retry-After``).
 
     Returns:
         JSONResponse con las claves `error_code`, `message`, `fields` y `timestamp`.
@@ -54,6 +64,7 @@ def _respuesta_error(
             "fields": fields or [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
+        headers=headers,
     )
 
 
@@ -89,7 +100,9 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
     fields = [{"field": exc.field, "message": exc.message}] if exc.field else []
 
-    return _respuesta_error(exc.status_code, exc.code, exc.message, fields)
+    return _respuesta_error(
+        exc.status_code, exc.code, exc.message, fields, headers=getattr(exc, "headers", None)
+    )
 
 
 def _usuario_del_token(request: Request) -> int | None:
@@ -113,6 +126,78 @@ def _usuario_del_token(request: Request) -> int | None:
         return int(payload["sub"])
     except Exception:
         return None
+
+
+def _auditar_evento_edge_rechazado(request: Request, exc: RequestValidationError, fields: list[dict]) -> None:
+    """RF-56 E1: un evento Edge con estructura inválida queda en la bitácora RF-63 con su
+    contenido. Nunca cambia la respuesta 400."""
+    if request.method != "POST" or not request.url.path.rstrip("/").endswith("/iot/eventos-edge"):
+        return
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.inferencia.registrar_rechazo_evento_edge import (
+        registrar_evento_rechazado,
+    )
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
+        SqlAlchemyBitacoraAuditoriaIotRepository,
+    )
+
+    cuerpo = exc.body if isinstance(exc.body, dict) else {"cuerpo": exc.body}
+    db = sesion_sistema()
+    try:
+        registrar_evento_rechazado(
+            db, SqlAlchemyBitacoraAuditoriaIotRepository(db), motivo="estructura inválida",
+            codigo="ERROR_ESTRUCTURA", payload={**cuerpo, "_errores": fields},
+            serial=cuerpo.get("serial") if isinstance(cuerpo.get("serial"), str) else None,
+        )
+    except Exception:
+        logger.warning("RF-56: no se pudo registrar el evento Edge rechazado en la bitácora.")
+    finally:
+        db.close()
+
+
+def _auditar_evento_alerta_rechazado(request: Request, exc: RequestValidationError, fields: list[dict]) -> None:
+    """RF-57 E1: un evento de alerta con estructura inválida se descarta y queda en la bitácora
+    RF-63 como ERROR_ESTRUCTURA_EVENTO. Nunca cambia la respuesta 400."""
+    if request.method != "POST" or not request.url.path.rstrip("/").endswith("/iot/alertas"):
+        return
+    from src.shared.database import sesion_sistema
+    from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
+        RegistrarEventoAuditoriaIotUseCase,
+    )
+    from src.telemetry.domain.entities.evento_auditoria_iot import (
+        ComponenteOrigen, EntidadAfectadaTipo, SeveridadLog, TipoResultado,
+    )
+    from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
+        SqlAlchemyBitacoraAuditoriaIotRepository,
+    )
+
+    cuerpo = exc.body if isinstance(exc.body, dict) else {"cuerpo": str(exc.body)[:2000]}
+    db = sesion_sistema()
+    try:
+        RegistrarEventoAuditoriaIotUseCase(db, SqlAlchemyBitacoraAuditoriaIotRepository(db)).execute(
+            tipo_evento="ERROR_ESTRUCTURA_EVENTO",
+            resultado=TipoResultado.RECHAZADO,
+            componente_origen=ComponenteOrigen.RF57,
+            severidad_log=SeveridadLog.WARNING,
+            descripcion="Evento de alerta descartado: estructura inválida o incoherente (RF-57 E1).",
+            entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
+            entidad_afectada_id=str(cuerpo.get("device_id")) if cuerpo.get("device_id") is not None else None,
+            accion_detallada={"errores": fields, "evento": {k: str(v)[:200] for k, v in cuerpo.items()}},
+        )
+    except Exception:
+        logger.warning("RF-57: no se pudo registrar el evento de alerta rechazado en la bitácora.")
+    finally:
+        db.close()
+
+
+def _codigo_validacion(request: Request) -> int:
+    """400 por defecto; 422 en las rutas cuyo RF lo exige para parámetros inválidos.
+
+    La ruta lo declara con ``openapi_extra={"x-codigo-validacion": 422}`` (RF-59 E2,
+    RF-73): el resto de la API conserva el 400 que esperan sus flujos alternos.
+    """
+    extra = getattr(request.scope.get("route"), "openapi_extra", None) or {}
+    return extra.get("x-codigo-validacion", 400)
 
 
 def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> None:
@@ -220,7 +305,7 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
         exc: Excepción `RequestValidationError` de FastAPI.
 
     Returns:
-        JSONResponse 400 con los campos que fallaron la validación.
+        JSONResponse 400 (o 422 si la ruta lo declara) con los campos que fallaron la validación.
     """
     fields = []
     for error in exc.errors():
@@ -231,8 +316,12 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     # INC-M02-43-G29 / RF-36: las operaciones rechazadas antes de llegar al
     # use case (400 de Pydantic) también deben quedar en la bitácora de M02.
     _auditar_validacion_rechazada_m02(request, fields)
+    _auditar_evento_edge_rechazado(request, exc, fields)
+    _auditar_evento_alerta_rechazado(request, exc, fields)
 
-    return _respuesta_error(400, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
+    return _respuesta_error(
+        _codigo_validacion(request), "VAL_ENTRADA", "Errores de validacion en la solicitud", fields
+    )
 
 
 async def db_no_disponible_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -282,6 +371,18 @@ async def error_no_controlado_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+async def rechazo_trigger_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Red de seguridad para triggers conocidos que escapen del repositorio.
+
+    El rollback pertenece al caso de uso/get_db. No genera auditoría sin el
+    contexto de negocio; RF-53 la registra en su caso de uso tras el rollback.
+    """
+    rechazo = traducir_rechazo_trigger(exc)
+    if rechazo is not None:
+        return await app_error_handler(request, rechazo)
+    return await error_no_controlado_handler(request, exc)
+
+
 def register_error_handlers(app) -> None:
     """Registra los handlers de errores en la aplicación FastAPI.
 
@@ -292,5 +393,7 @@ def register_error_handlers(app) -> None:
     app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_exception_handler(OperationalError, db_no_disponible_handler)
     app.add_exception_handler(InterfaceError, db_no_disponible_handler)
+    app.add_exception_handler(DBAPIError, rechazo_trigger_handler)
+    app.add_exception_handler(PsycopgError, rechazo_trigger_handler)
     app.add_exception_handler(SQLAlchemyError, error_no_controlado_handler)
     app.add_exception_handler(Exception, error_no_controlado_handler)

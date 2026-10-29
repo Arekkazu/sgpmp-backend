@@ -1,0 +1,627 @@
+{
+  "caso": "TC-M02-158",
+  "herramienta": {
+    "solicitada": "k6",
+    "utilizada": "arnes equivalente en Node (fetch nativo)",
+    "motivo": "k6 no esta instalado en la estacion de QA y QA no instala software durante la ejecucion",
+    "equivalencia": "mismos 101 pedidos, misma concurrencia (5 trabajadores, shared-iterations), mismo oraculo por conteos globales, sin peticion de setup al endpoint RF-50",
+    "nodeVersion": "v22.15.1"
+  },
+  "configuracion": {
+    "base": "https://api.inmero.co/back-sigab-test",
+    "ruta_m04": "/activos-biologicos/279/datos-consolidados?tipo_dato=eventos&pagina=1&page_size=20",
+    "ruta_m06": "/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&pagina=1&page_size=20",
+    "solicitudes": 101,
+    "vus": 5,
+    "limite_declarado": 100,
+    "ventana_declarada_s": 60,
+    "peticion_de_setup_al_endpoint_rf50": 0
+  },
+  "ventana": {
+    "ancla_ultimo_get_m04_previo": "2026-10-05T15:01:01.790Z",
+    "espera_aplicada_s": 0,
+    "inicio_rafaga": "2026-10-05T15:02:30.649Z",
+    "fin_rafaga": "2026-10-05T15:02:33.518Z",
+    "duracion_ms": 2869,
+    "duracion_s": 2.869,
+    "dentro_de_60_s": true
+  },
+  "conteos": {
+    "total_solicitudes": 101,
+    "http_200": 100,
+    "http_429": 1,
+    "otros_total": 0,
+    "otros_detalle": [],
+    "por_codigo": {
+      "200": 100,
+      "429": 1
+    }
+  },
+  "primer_429": {
+    "ordenLlegada": 100,
+    "ordenLanzamiento": 100,
+    "status": 429,
+    "error_code": "LIMITE_TASA_EXCEDIDO",
+    "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos.",
+    "expone_datos_del_activo": false,
+    "cabeceras_de_cuota": {},
+    "instante": "2026-10-05T15:02:33.508Z"
+  },
+  "aislamiento": {
+    "m06_despues_de_saturar_m04": {
+      "tipo_dato": "metricas",
+      "http": 200,
+      "error_code": null,
+      "id_activo_devuelto": 279,
+      "ms": 124,
+      "instante": "2026-10-05T15:02:33.642Z"
+    },
+    "m04_reconfirmacion_en_el_mismo_instante": {
+      "tipo_dato": "eventos",
+      "http": 429,
+      "error_code": "LIMITE_TASA_EXCEDIDO",
+      "instante": "2026-10-05T15:02:33.739Z"
+    },
+    "contadores_independientes": true
+  },
+  "latencias_ms": {
+    "min": 110,
+    "max": 368,
+    "media": 139
+  },
+  "secuencia": [
+    {
+      "n": 1,
+      "status": 200,
+      "ms": 126
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 3,
+      "status": 200,
+      "ms": 321
+    },
+    {
+      "n": 4,
+      "status": 200,
+      "ms": 368
+    },
+    {
+      "n": 5,
+      "status": 200,
+      "ms": 366
+    },
+    {
+      "n": 6,
+      "status": 200,
+      "ms": 368
+    },
+    {
+      "n": 7,
+      "status": 200,
+      "ms": 143
+    },
+    {
+      "n": 8,
+      "status": 200,
+      "ms": 115
+    },
+    {
+      "n": 9,
+      "status": 200,
+      "ms": 133
+    },
+    {
+      "n": 10,
+      "status": 200,
+      "ms": 157
+    },
+    {
+      "n": 11,
+      "status": 200,
+      "ms": 157
+    },
+    {
+      "n": 12,
+      "status": 200,
+      "ms": 153
+    },
+    {
+      "n": 13,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 14,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 15,
+      "status": 200,
+      "ms": 127
+    },
+    {
+      "n": 16,
+      "status": 200,
+      "ms": 142
+    },
+    {
+      "n": 17,
+      "status": 200,
+      "ms": 141
+    },
+    {
+      "n": 18,
+      "status": 200,
+      "ms": 129
+    },
+    {
+      "n": 19,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 20,
+      "status": 200,
+      "ms": 116
+    },
+    {
+      "n": 21,
+      "status": 200,
+      "ms": 126
+    },
+    {
+      "n": 22,
+      "status": 200,
+      "ms": 137
+    },
+    {
+      "n": 23,
+      "status": 200,
+      "ms": 131
+    },
+    {
+      "n": 24,
+      "status": 200,
+      "ms": 132
+    },
+    {
+      "n": 25,
+      "status": 200,
+      "ms": 135
+    },
+    {
+      "n": 26,
+      "status": 200,
+      "ms": 121
+    },
+    {
+      "n": 27,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 28,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 29,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 30,
+      "status": 200,
+      "ms": 132
+    },
+    {
+      "n": 31,
+      "status": 200,
+      "ms": 137
+    },
+    {
+      "n": 32,
+      "status": 200,
+      "ms": 131
+    },
+    {
+      "n": 33,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 34,
+      "status": 200,
+      "ms": 121
+    },
+    {
+      "n": 35,
+      "status": 200,
+      "ms": 122
+    },
+    {
+      "n": 36,
+      "status": 200,
+      "ms": 135
+    },
+    {
+      "n": 37,
+      "status": 200,
+      "ms": 143
+    },
+    {
+      "n": 38,
+      "status": 200,
+      "ms": 135
+    },
+    {
+      "n": 39,
+      "status": 200,
+      "ms": 118
+    },
+    {
+      "n": 40,
+      "status": 200,
+      "ms": 122
+    },
+    {
+      "n": 41,
+      "status": 200,
+      "ms": 118
+    },
+    {
+      "n": 42,
+      "status": 200,
+      "ms": 137
+    },
+    {
+      "n": 43,
+      "status": 200,
+      "ms": 141
+    },
+    {
+      "n": 44,
+      "status": 200,
+      "ms": 126
+    },
+    {
+      "n": 45,
+      "status": 200,
+      "ms": 112
+    },
+    {
+      "n": 46,
+      "status": 200,
+      "ms": 123
+    },
+    {
+      "n": 47,
+      "status": 200,
+      "ms": 137
+    },
+    {
+      "n": 48,
+      "status": 200,
+      "ms": 141
+    },
+    {
+      "n": 49,
+      "status": 200,
+      "ms": 148
+    },
+    {
+      "n": 50,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 51,
+      "status": 200,
+      "ms": 112
+    },
+    {
+      "n": 52,
+      "status": 200,
+      "ms": 146
+    },
+    {
+      "n": 53,
+      "status": 200,
+      "ms": 142
+    },
+    {
+      "n": 54,
+      "status": 200,
+      "ms": 156
+    },
+    {
+      "n": 55,
+      "status": 200,
+      "ms": 152
+    },
+    {
+      "n": 56,
+      "status": 200,
+      "ms": 134
+    },
+    {
+      "n": 57,
+      "status": 200,
+      "ms": 123
+    },
+    {
+      "n": 58,
+      "status": 200,
+      "ms": 136
+    },
+    {
+      "n": 59,
+      "status": 200,
+      "ms": 142
+    },
+    {
+      "n": 60,
+      "status": 200,
+      "ms": 145
+    },
+    {
+      "n": 61,
+      "status": 200,
+      "ms": 139
+    },
+    {
+      "n": 62,
+      "status": 200,
+      "ms": 118
+    },
+    {
+      "n": 63,
+      "status": 200,
+      "ms": 122
+    },
+    {
+      "n": 64,
+      "status": 200,
+      "ms": 147
+    },
+    {
+      "n": 65,
+      "status": 200,
+      "ms": 149
+    },
+    {
+      "n": 66,
+      "status": 200,
+      "ms": 148
+    },
+    {
+      "n": 67,
+      "status": 200,
+      "ms": 129
+    },
+    {
+      "n": 68,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 69,
+      "status": 200,
+      "ms": 121
+    },
+    {
+      "n": 70,
+      "status": 200,
+      "ms": 137
+    },
+    {
+      "n": 71,
+      "status": 200,
+      "ms": 140
+    },
+    {
+      "n": 72,
+      "status": 200,
+      "ms": 127
+    },
+    {
+      "n": 73,
+      "status": 200,
+      "ms": 127
+    },
+    {
+      "n": 74,
+      "status": 200,
+      "ms": 118
+    },
+    {
+      "n": 75,
+      "status": 200,
+      "ms": 133
+    },
+    {
+      "n": 76,
+      "status": 200,
+      "ms": 138
+    },
+    {
+      "n": 77,
+      "status": 200,
+      "ms": 139
+    },
+    {
+      "n": 78,
+      "status": 200,
+      "ms": 135
+    },
+    {
+      "n": 79,
+      "status": 200,
+      "ms": 125
+    },
+    {
+      "n": 80,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 81,
+      "status": 200,
+      "ms": 116
+    },
+    {
+      "n": 82,
+      "status": 200,
+      "ms": 128
+    },
+    {
+      "n": 83,
+      "status": 200,
+      "ms": 126
+    },
+    {
+      "n": 84,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 85,
+      "status": 200,
+      "ms": 123
+    },
+    {
+      "n": 86,
+      "status": 200,
+      "ms": 135
+    },
+    {
+      "n": 87,
+      "status": 200,
+      "ms": 116
+    },
+    {
+      "n": 88,
+      "status": 200,
+      "ms": 124
+    },
+    {
+      "n": 89,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 90,
+      "status": 200,
+      "ms": 125
+    },
+    {
+      "n": 91,
+      "status": 200,
+      "ms": 130
+    },
+    {
+      "n": 92,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 93,
+      "status": 200,
+      "ms": 134
+    },
+    {
+      "n": 94,
+      "status": 200,
+      "ms": 120
+    },
+    {
+      "n": 95,
+      "status": 200,
+      "ms": 128
+    },
+    {
+      "n": 96,
+      "status": 200,
+      "ms": 134
+    },
+    {
+      "n": 97,
+      "status": 200,
+      "ms": 125
+    },
+    {
+      "n": 98,
+      "status": 200,
+      "ms": 134
+    },
+    {
+      "n": 99,
+      "status": 200,
+      "ms": 126
+    },
+    {
+      "n": 100,
+      "status": 429,
+      "ms": 110
+    },
+    {
+      "n": 101,
+      "status": 200,
+      "ms": 118
+    }
+  ],
+  "oraculo": {
+    "items": [
+      {
+        "descripcion": "las 101 solicitudes se completaron dentro de la ventana de 60 s",
+        "cumple": true
+      },
+      {
+        "descripcion": "se emitieron exactamente 101 solicitudes",
+        "cumple": true
+      },
+      {
+        "descripcion": "aparecio al menos una respuesta HTTP 429 al exceder el limite",
+        "cumple": true
+      },
+      {
+        "descripcion": "no aparecieron codigos inesperados (401/403/404/500)",
+        "cumple": true
+      },
+      {
+        "descripcion": "el numero de respuestas permitidas no excede el limite declarado",
+        "cumple": true
+      },
+      {
+        "descripcion": "el 429 no expone datos del activo",
+        "cumple": true
+      },
+      {
+        "descripcion": "el 429 trae un error funcional identificable",
+        "cumple": true
+      },
+      {
+        "descripcion": "M06 responde 200 inmediatamente despues de saturar M04",
+        "cumple": true
+      },
+      {
+        "descripcion": "M06 no recibe 429 por la rafaga de M04",
+        "cumple": true
+      },
+      {
+        "descripcion": "M04 sigue saturado en ese mismo instante (contadores independientes)",
+        "cumple": true
+      }
+    ],
+    "total": 10,
+    "superadas": 10,
+    "fallidas": 0
+  },
+  "veredicto": "APROBADO"
+}

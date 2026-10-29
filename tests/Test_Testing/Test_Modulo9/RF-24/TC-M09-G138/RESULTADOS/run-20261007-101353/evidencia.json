@@ -1,0 +1,188 @@
+{
+  "grupo": "TC-M09-G138",
+  "casos": [
+    "TC-M09-278",
+    "TC-M09-279",
+    "TC-M09-280",
+    "TC-M09-281"
+  ],
+  "run_id": "run-20261007-101353",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G134/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G135/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_vision": {
+    "encontrada": false,
+    "method": null,
+    "path": null,
+    "request_schema": null,
+    "responses": null,
+    "security": null,
+    "busqueda": {
+      "paths_totales": 210,
+      "post_totales": 77,
+      "schemas_totales": 305,
+      "apariciones_exactas": {
+        "VISION": 0,
+        "modo_calibracion": 0,
+        "ventana_observacion": 0,
+        "origen_disparo": 0,
+        "linea_base": 0,
+        "baseline": 0
+      },
+      "operaciones_vision_candidatas": []
+    },
+    "calibracion_sensor": {
+      "method": "POST",
+      "path": "/configuracion/sensores/{id_sensor}/calibrar",
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "request_schema": {
+        "$ref": "#/components/schemas/RegistrarCalibracionDTO"
+      },
+      "responses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ],
+      "security": null,
+      "dto": "RegistrarCalibracionDTO",
+      "campos": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "requeridos": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "fecha_calibracion"
+      ]
+    }
+  },
+  "actores": {
+    "ingeniero": "NO CONSULTADO: VISION ausente",
+    "administrador": "NO CONSULTADO: VISION ausente"
+  },
+  "fuente_paradigma_tc280": {
+    "estado": "NO EVALUADA",
+    "motivo": "No se llegó a la preparación del fixture A4"
+  },
+  "fixtures": {
+    "A2": {
+      "estado": "NO CREADO"
+    },
+    "A3": {
+      "estado": "NO CREADO"
+    },
+    "A4": {
+      "estado": "NO CREADO"
+    },
+    "A5": {
+      "estado": "NO CREADO"
+    }
+  },
+  "TC-M09-278": {
+    "resultado": "RECHAZADO",
+    "precondicion_negativa": "área sin cámara",
+    "fixture": "NO CREADO",
+    "post_ejecutado": false,
+    "http_esperado": 422,
+    "http_obtenido": null,
+    "mensaje_exacto": "NO OBSERVABLE: sin operación VISION",
+    "linea_base_pre_post": "NO OBSERVABLE: no hubo POST ni fixture",
+    "motivo": "TEST no publica operación VISION para probar área sin cámara; la matriz G138 califica esta ausencia como rechazo."
+  },
+  "TC-M09-279": {
+    "resultado": "RECHAZADO",
+    "precondicion_negativa": "única cámara inactiva",
+    "fixture": "NO CREADO",
+    "post_ejecutado": false,
+    "http_esperado": 422,
+    "http_obtenido": null,
+    "mensaje_exacto": "NO OBSERVABLE: sin operación VISION",
+    "linea_base_pre_post": "NO OBSERVABLE: no hubo POST ni fixture",
+    "motivo": "TEST no publica operación VISION para probar única cámara inactiva; la matriz G138 califica esta ausencia como rechazo."
+  },
+  "TC-M09-280": {
+    "resultado": "RECHAZADO",
+    "precondicion_negativa": "paradigma INDIVIDUAL",
+    "fixture": "NO CREADO",
+    "post_ejecutado": false,
+    "http_esperado": 422,
+    "http_obtenido": null,
+    "mensaje_exacto": "NO OBSERVABLE: sin operación VISION",
+    "linea_base_pre_post": "NO OBSERVABLE: no hubo POST ni fixture",
+    "motivo": "TEST no publica operación VISION para probar paradigma INDIVIDUAL; la matriz G138 califica esta ausencia como rechazo."
+  },
+  "TC-M09-281": {
+    "resultado": "RECHAZADO",
+    "precondicion_negativa": "sin tipo_modelo_asignado",
+    "fixture": "NO CREADO",
+    "post_ejecutado": false,
+    "http_esperado": 422,
+    "http_obtenido": null,
+    "mensaje_exacto": "NO OBSERVABLE: sin operación VISION",
+    "linea_base_pre_post": "NO OBSERVABLE: no hubo POST ni fixture",
+    "motivo": "TEST no publica operación VISION para probar sin tipo_modelo_asignado; la matriz G138 califica esta ausencia como rechazo."
+  },
+  "post_vision_planificados": 0,
+  "post_vision_ejecutados": 0,
+  "post_setup_ejecutados": 0,
+  "sql_ejecutado": "ninguno",
+  "stop_all": false,
+  "resultado_general": "RECHAZADO",
+  "motivo_general": "Los cuatro casos comparten la ausencia concluyente del contrato VISION en TEST.",
+  "incidencias": [
+    {
+      "incidencia_requerida": "SÍ",
+      "grupo_responsable": "Desarrollo",
+      "grupo": "TC-M09-G138",
+      "casos": [
+        "TC-M09-278",
+        "TC-M09-279",
+        "TC-M09-280",
+        "TC-M09-281"
+      ],
+      "resultado": "RECHAZADO",
+      "motivo": "VISION no publicada en OpenAPI TEST.",
+      "esperado": "Operación VISION y HTTP 422/mensaje exacto para las cuatro precondiciones negativas.",
+      "obtenido": "Solo calibración SENSOR Flujo D; operación VISION ausente.",
+      "causa_raiz": "Contrato RF-24 VISION no expuesto en TEST; mecanismo implementación/despliegue pendiente de determinar.",
+      "type": "bug",
+      "severity": "Important",
+      "priority": "High",
+      "evidencia": "evidencia.json / newman.html"
+    }
+  ],
+  "openapi_http": 200,
+  "newman": {
+    "assertions": [
+      {
+        "nombre": "OpenAPI TEST responde 200",
+        "error": null
+      },
+      {
+        "nombre": "OpenAPI expone rutas y esquemas",
+        "error": null
+      }
+    ],
+    "fallos": []
+  },
+  "openapi_observed_at_utc": "2026-10-07T10:14:01.513Z",
+  "openapi_sha256": "3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8"
+}

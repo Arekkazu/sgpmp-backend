@@ -10,7 +10,31 @@
 | Endpoints | `POST /activos-biologicos/{id_activo}/fases` · `GET /activos-biologicos/{id_activo}/fases` |
 | Responsable | Juan Manuel · Prioridad Alta |
 
-## Resultado (2026-09-19): 4/4 sub-casos FAIL — pero ya por gaps reales, no por bloqueos de entorno
+## ✅ Resultado vigente (2026-09-26): 4/4 sub-casos PASS — 15/15 assertions
+
+Los 4 gaps del 2026-09-19 están corregidos en TEST por cambios que llegaron con el merge de `dev`:
+`15c4611e feat(m02): fase_destino/confirmacion_no_estandar, fecha no futura y RBAC (RF-37)` (TC-M02-040 y 041) y
+`05b4cdec fix(rf37): 409 en vez de 500 al cambiar de fase un activo cerrado o con fechas solapadas (INC-M02-G34)`
+(TC-M02-043 y 044).
+
+Único cambio en la colección: en TC-M02-041, `fase_destino_id` pasa de `3` a `{{id_fase_destino}}=6`. El campo es
+el **id de la fase dentro del ciclo** (`id_ciclos_productivo_biologico`), no el número de paso; con `3` el sistema
+respondía `400 FASE_DESTINO_INVALIDA` (correcto, ese id no pertenece al ciclo 2), sin llegar a la regla que se
+prueba. En TEST el ciclo 2 tiene las fases `4`, `5` y `6` (pasos 1-3), verificado en la BD de TEST (solo lectura).
+
+| Caso | WHEN | Resultado real (2026-09-26) |
+|---|---|---|
+| TC-M02-040 | `fecha_inicio` futura (2027-01-01) | **400** `VAL_ENTRADA`, `fecha_inicio`: "La fecha de inicio de la fase no puede ser futura." — PASS |
+| TC-M02-041 | Salto de la fase 1 a la 3 (`fase_destino_id=6`) sin `confirmacion_no_estandar` | **409** `TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR` — PASS |
+| TC-M02-043 | Fase con `fecha_inicio` 2020-01-01, que solapa el historial | **409** `FASE_SOLAPADA` (antes 500) — PASS |
+| TC-M02-044 | Cambio de fase sobre activo `CERRADO` (cierre RF-38 → 200) | **409** `ACTIVO_NO_OPERATIVO` (antes 500) — PASS |
+
+Activos propios creados por la corrida: 623 (040), 624 (041), 625 (043), 626 (044). Evidencia:
+`RESULTADOS/TC-M02-G34_resultado.html` (Newman htmlextra, 2026-09-26).
+
+---
+
+## Histórico (2026-09-19): 4/4 sub-casos FAIL — pero ya por gaps reales, no por bloqueos de entorno
 
 **INC-M02-37-01 (el crash que bloqueaba los 4 sub-casos) está resuelto**, igual que el defecto de RF-45 que
 bloqueaba la precondición de TC-M02-044 (ver `NOTA_BLOQUEO.md`). Los 4 sub-casos ya llegan a probar su regla de

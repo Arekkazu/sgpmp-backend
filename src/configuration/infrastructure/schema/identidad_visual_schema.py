@@ -11,6 +11,7 @@ from src.configuration.infrastructure.schema.accesibilidad_schema import Accesib
 
 
 class IdentidadVisualResponse(BaseModel):
+    """Identidad visual vigente de la finca con su evaluación de contraste."""
     id_identidad_visual: int
     id_finca: int
     id_usuario: int
@@ -64,5 +65,6 @@ class AuditoriaIdentidadVisualResponse(BaseModel):
 
 
 class HistorialAuditoriaIdentidadVisualResponse(BaseModel):
+    """Historial de cambios de identidad visual."""
     total: int
     items: list[AuditoriaIdentidadVisualResponse]

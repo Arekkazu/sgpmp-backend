@@ -1,12 +1,14 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Router FastAPI para el módulo de usuarios (`/usuarios`).
 
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
 gestión de estado de cuenta y registro de tokens FCM.
 """
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -16,7 +18,11 @@ from src.identity_access.application.use_cases.perfil.editar_perfil_use_case imp
 from src.identity_access.application.use_cases.registro.activar_cuenta_use_case import ActivarCuentaUseCase
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
-from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
+    ConsultarDetalleUsuarioUseCase,
+    enmascarar_identificacion,
+    puede_ver_identificacion_completa,
+)
 from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
@@ -24,6 +30,9 @@ from src.identity_access.domain.repositories.captcha_verifier_port import (
 )
 from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
     GoogleRecaptchaAdapter,
+)
+from src.identity_access.infrastructure.adapters.notificacion_sesion_background_adapter import (
+    NotificacionSesionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
@@ -47,6 +56,7 @@ from src.identity_access.infrastructure.schema.gestion_schema import (
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
+from src.shared.fechas import FechaHoraUtc
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -56,7 +66,10 @@ def get_captcha_verifier() -> CaptchaVerifierPort:
     return GoogleRecaptchaAdapter()
 
 
-def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
+def _crear_editar_perfil_use_case(db: Session, background_tasks: BackgroundTasks) -> EditarPerfilUseCase:
+    # La notificación va al usuario editado, que en la edición administrativa
+    # no es quien hace el request: bajo RLS solo el usuario de servicio puede
+    # registrarla y actualizar su estado (igual que el login, D1).
     return EditarPerfilUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
@@ -64,10 +77,7 @@ def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
         eventos_repo=SqlAlchemyEventoRepository(db),
         roles_repo=SqlAlchemyRolRepository(db),
         db=db,
-        notificacion_service=NotificacionService(
-            port=SqlAlchemyNotificacionRepository(db),
-            db=db,
-        ),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
 
 
@@ -103,6 +113,7 @@ def _a_usuario_response(usuario) -> UsuarioResponse:
 
 @router.get(
     "/admin",
+    summary="Listar usuarios del sistema (RF-11)",
     response_model=UsuarioListadoPaginadoResponse,
     dependencies=[Depends(require_permission(1, 2))],
     responses={
@@ -119,7 +130,7 @@ def listar_usuarios_admin(
     estado_cuenta: Optional[str] = Query(
         None, description="Nombre del estado de cuenta (ej: Activo, Bloqueado), case-insensitive."
     ),
-    actualizado_desde: Optional[datetime] = Query(
+    actualizado_desde: Optional[FechaHoraUtc] = Query(
         None, description="Solo usuarios modificados (datos o estado de cuenta) desde este instante."
     ),
     pagina: int = Query(1, ge=1),
@@ -127,6 +138,12 @@ def listar_usuarios_admin(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Listado paginado de usuarios con filtros por nombre, correo, estado y rol.
+
+    **Acceso:** permiso `usuarios` · Leer (1·R).
+
+    Página máxima de 50 ítems. La consulta queda registrada en auditoría.
+    """
     use_case = ListarUsuariosUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
@@ -165,6 +182,7 @@ def listar_usuarios_admin(
 
 @router.post(
     "/",
+    summary="Registrar un usuario nuevo (RF-01)",
     response_model=MessageResponse,
     status_code=201,
     responses={
@@ -181,6 +199,15 @@ def crear_usuario(
     db: Session = Depends(get_db),
     captcha_verifier: CaptchaVerifierPort = Depends(get_captcha_verifier),
 ):
+    """Autorregistro público con validación reCAPTCHA v2.
+
+    **Acceso:** público.
+
+    La cuenta nace en estado PENDIENTE y se envía un correo con el enlace de
+    activación (`GET /usuarios/activar/{token}`). Errores: captcha inválido (400),
+    menor de la edad mínima (403), correo o identificación ya registrados (409),
+    SMTP no disponible (503).
+    """
     ip, user_agent = _contexto_auditoria(request)
 
     use_case = CrearUsuarioUseCase(
@@ -202,6 +229,7 @@ def crear_usuario(
 
 @router.post(
     "/activar/reenviar",
+    summary="Reenviar el correo de activación (RF-01)",
     response_model=MessageResponse,
     responses={
         422: {"model": ErrorResponse},
@@ -209,6 +237,13 @@ def crear_usuario(
     },
 )
 def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depends(get_db)):
+    """Genera un token de activación nuevo para una cuenta PENDIENTE y reenvía el correo.
+
+    **Acceso:** público.
+
+    Limitado a 3 solicitudes por hora por IP. Responde siempre el mismo mensaje
+    genérico para no revelar qué correos están registrados.
+    """
     ip, _ = _contexto_auditoria(request)
 
     use_case = ReenviarTokenUseCase(
@@ -222,6 +257,7 @@ def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depend
 
 @router.get(
     "/activar/{token}",
+    summary="Activar cuenta con el token del correo (RF-01)",
     response_model=MessageResponse,
     responses={
         400: {"model": ErrorResponse},
@@ -234,6 +270,12 @@ def activar_cuenta(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """Activa la cuenta asociada al token recibido por correo.
+
+    **Acceso:** público.
+
+    Errores: token inexistente o cuenta ya activa (400), token expirado (410).
+    """
     ip, user_agent = _contexto_auditoria(request)
 
     use_case = ActivarCuentaUseCase(
@@ -255,6 +297,7 @@ def activar_cuenta(
 
 @router.post(
     "/me/fcm-token",
+    summary="Registrar token FCM del dispositivo (RF-14)",
     response_model=MessageResponse,
     status_code=200,
     responses={401: {"model": ErrorResponse}},
@@ -265,6 +308,11 @@ def registrar_fcm_token(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Guarda el token de Firebase Cloud Messaging del dispositivo del usuario autenticado
+    para poder enviarle notificaciones push.
+
+    **Acceso:** autenticado.
+    """
     user_agent = request.headers.get("user-agent")
     repo = SqlAlchemyNotificacionRepository(db)
     repo.guardar_fcm_token(usuario_actual.id_usuario, dto.token, user_agent)
@@ -274,6 +322,7 @@ def registrar_fcm_token(
 
 @router.get(
     "/me",
+    summary="Consultar el perfil propio (RF-13)",
     response_model=UsuarioDetalleResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -284,6 +333,13 @@ def consultar_perfil(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Devuelve los datos del usuario autenticado.
+
+    **Acceso:** autenticado.
+
+    El número de identificación se devuelve enmascarado (solo los primeros 4
+    dígitos visibles). El acceso queda registrado en auditoría.
+    """
     use_case = ConsultarPerfilUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
@@ -294,6 +350,7 @@ def consultar_perfil(
 
 @router.patch(
     "/me",
+    summary="Editar el perfil propio (RF-05)",
     response_model=UsuarioResponse,
     responses={
         400: {"model": ErrorResponse},
@@ -308,10 +365,19 @@ def consultar_perfil(
 )
 def editar_perfil_propio(
     dto: EditarPerfilDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    usuario = _crear_editar_perfil_use_case(db).execute(
+    """Edita los datos personales del usuario autenticado.
+
+    **Acceso:** autenticado (solo su propio perfil).
+
+    Usa concurrencia optimista: enviar la `version` leída; si cambió responde 412.
+    Si cambia el correo, la cuenta vuelve a PENDIENTE y se envía un correo de
+    verificación (503 si el SMTP falla).
+    """
+    usuario = _crear_editar_perfil_use_case(db, background_tasks).execute(
         usuario_actual.id_usuario,
         dto,
         usuario_actual,
@@ -321,10 +387,12 @@ def editar_perfil_propio(
 
 @router.patch(
     "/{id_usuario}",
+    summary="Editar el perfil de otro usuario (RF-05)",
     response_model=UsuarioResponse,
     dependencies=[Depends(require_permission(1, 3))],
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
@@ -337,22 +405,39 @@ def editar_perfil_propio(
 def editar_perfil_admin(
     id_usuario: int,
     dto: EditarPerfilAdminDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    usuario = _crear_editar_perfil_use_case(db).execute(
+    """Edición administrativa de los datos de un usuario, incluido su rol.
+
+    **Acceso:** permiso `usuarios` · Actualizar (1·U).
+
+    Mismas reglas que la edición propia (412 por concurrencia, re-verificación si
+    cambia el correo). El estado de la cuenta no se edita aquí sino en
+    `POST /usuarios/{id_usuario}/gestionar`. La identificación de la respuesta se
+    enmascara si el actor no tiene `usuarios` · Ejecutar (1·E).
+    """
+    usuario = _crear_editar_perfil_use_case(db, background_tasks).execute(
         id_usuario,
         dto,
         usuario_actual,
     )
 
-    return _a_usuario_response(usuario)
+    # SEG-M01-03: editar (U) no da derecho a ver el ID completo (E); mismo
+    # criterio que GET /{id_usuario}/detalle.
+    respuesta = _a_usuario_response(usuario)
+    if not puede_ver_identificacion_completa(SqlAlchemyPermisoRepository(db), usuario_actual):
+        respuesta.numero_identificacion = enmascarar_identificacion(respuesta.numero_identificacion)
+    return respuesta
 
 @router.get(
     "/{id_usuario}/detalle",
+    summary="Consultar el detalle de un usuario (RF-12)",
     response_model=UsuarioDetalleResponse,
     dependencies=[Depends(require_permission(1, 2))],
     responses={
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         429: {"model": ErrorResponse},
@@ -363,6 +448,14 @@ def detalle_usuario(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Ficha completa de un usuario para administración.
+
+    **Acceso:** permiso `usuarios` · Leer (1·R).
+
+    La identificación solo se muestra completa con `usuarios` · Ejecutar (1·E);
+    en otro caso se enmascara. Consultas a ritmo no manual responden 429 y, si el
+    acceso no puede quedar en auditoría, la visualización se bloquea.
+    """
     use_case = ConsultarDetalleUsuarioUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         permisos_repo=SqlAlchemyPermisoRepository(db),
@@ -375,10 +468,12 @@ def detalle_usuario(
 
 @router.post(
     "/{id_usuario}/gestionar",
+    summary="Cambiar el estado de la cuenta de un usuario (RF-06)",
     response_model=MessageResponse,
     dependencies=[Depends(require_permission(4, 3))],
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
@@ -387,9 +482,19 @@ def detalle_usuario(
 def gestionar_cuenta(
     id_usuario: int,
     dto: GestionarCuentaDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Activa, inactiva, bloquea, desbloquea o elimina la cuenta de un usuario.
+
+    **Acceso:** permiso `cuentas` · Actualizar (4·U).
+
+    Errores: cambiar el estado de la propia cuenta (403), motivo faltante, estado
+    sin cambio, desbloquear una cuenta que no está BLOQUEADA o dejar el sistema sin
+    administrador activo (400), transición de estado no permitida (409). Invalida
+    las sesiones del usuario afectado cuando corresponde.
+    """
     use_case = GestionarCuentaUseCase(
     usuarios_repo=SqlAlchemyUsuarioRepository(db),
     cuentas_repo=SqlAlchemyCuentaRepository(db),
@@ -397,10 +502,9 @@ def gestionar_cuenta(
     sesiones_repo=SqlAlchemySesionRepository(db),
     roles_repo=SqlAlchemyRolRepository(db),
     db=db,
-    notificacion_service=NotificacionService(
-        port=SqlAlchemyNotificacionRepository(db),
-        db=db,
-    ),
+    # El aviso va al usuario afectado, no al admin del request: se registra
+    # como el usuario de servicio, el único que RLS deja escribirlo (D1).
+    notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
 )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}
@@ -412,8 +516,10 @@ def gestionar_cuenta(
     dependencies=[Depends(require_permission(1, 3))],
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
     },
     summary="Asignar o desasignar fincas a un usuario (RF-25)",
 )
@@ -423,6 +529,14 @@ def asignar_fincas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Reemplaza el conjunto completo de fincas a las que accede el usuario.
+
+    **Acceso:** permiso `usuarios` · Actualizar (1·U).
+
+    La lista enviada es el estado final: las fincas que no aparecen dejan de estar
+    asignadas. Una finca puede estar asignada a varios usuarios. Un usuario
+    ELIMINADO responde 410.
+    """
     use_case = AsignarFincasUsuarioUseCase(db=db)
     resultado = use_case.execute(id_usuario, dto, usuario_actual)
     return {

@@ -58,6 +58,10 @@ def obtener_idioma(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IdiomaResueltoResponse:
+    """Idioma efectivo del usuario: personal, si no el global, si no `es-CO` (RF-29).
+
+    **Acceso:** `preferencia_idioma` · Leer.
+    """
     use_case = ObtenerIdiomaResueltoUseCase(idioma_repo=SqlAlchemyPreferenciaIdiomaRepository(db))
     resultado = use_case.execute(usuario_actual)
     return IdiomaResueltoResponse(**resultado)
@@ -81,6 +85,12 @@ def guardar_idioma_personal(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PreferenciaIdiomaResponse:
+    """Guarda el idioma preferido del usuario (`es-CO` | `en-US`) (RF-29).
+
+    **Acceso:** `preferencia_idioma` · Actualizar.
+
+    Si el perfil cambió desde la última lectura (`version_perfil`) responde 409.
+    """
     repo = SqlAlchemyPreferenciaIdiomaRepository(db)
     use_case = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=SqlAlchemyEventoRepository(db))
     entidad = use_case.execute(dto, usuario_actual)
@@ -105,6 +115,10 @@ def guardar_idioma_personal(
 def obtener_idioma_global(
     db: Session = Depends(get_db),
 ) -> Optional[PreferenciaIdiomaResponse]:
+    """Idioma por defecto del sistema (RF-29).
+
+    **Acceso:** `configuracion_ui_global` · Leer.
+    """
     use_case = ObtenerIdiomaGlobalUseCase(idioma_repo=SqlAlchemyPreferenciaIdiomaRepository(db))
     entidad = use_case.execute()
     if entidad is None:
@@ -132,6 +146,10 @@ def guardar_idioma_global(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PreferenciaIdiomaResponse:
+    """Cambia el idioma por defecto del sistema (RF-29).
+
+    **Acceso:** `configuracion_ui_global` · Actualizar.
+    """
     repo = SqlAlchemyPreferenciaIdiomaRepository(db)
     use_case = GuardarIdiomaGlobalUseCase(db=db, idioma_repo=repo)
     entidad = use_case.execute(dto, usuario_actual)

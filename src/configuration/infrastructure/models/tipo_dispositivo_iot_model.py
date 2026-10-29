@@ -40,6 +40,8 @@ class TipoDispositivoIotModel(Base):
     frecuencia_captura_max: Mapped[int] = mapped_column(Integer, nullable=False)
     intervalo_transmision_min: Mapped[int] = mapped_column(Integer, nullable=False)
     intervalo_transmision_max: Mapped[int] = mapped_column(Integer, nullable=False)
+    # RF-21 v2.0 (RFC-011): SENSOR | CAMARA (ck_tipo_dispositivo_iot_categoria).
+    categoria: Mapped[str] = mapped_column(String(10), nullable=False, server_default="SENSOR")
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )

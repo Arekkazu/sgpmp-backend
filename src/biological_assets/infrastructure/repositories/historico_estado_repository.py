@@ -1,3 +1,5 @@
+"""Implementación SQLAlchemy de ``HistoricoEstadoRepository`` (RF-44)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyHistoricoEstadoRepository(HistoricoEstadoRepository):
+    """Inserta y consulta ``modulo2.historicos_estados_activos``."""
 
     def __init__(self, db: Session) -> None:
         self.db = db

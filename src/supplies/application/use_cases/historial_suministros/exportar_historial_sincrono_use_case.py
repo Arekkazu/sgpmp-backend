@@ -1,24 +1,37 @@
-"""Caso de uso: exportar el historial de suministros en CSV, vía síncrona (RF-81).
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: PDF/Excel, 202 > 10.000, firma     |
+"""Caso de uso: exportar el historial de suministros a PDF o Excel (RF-81 Fase 6).
 
-Solo para volúmenes ≤ ``umbral_exportacion_async`` (10.000 por defecto);
-volúmenes mayores deben pasar por ``SolicitarTrabajoHistorialUseCase`` (tipo
-EXPORTACION). Reutiliza el mismo patrón de ``csv``+``io.StringIO`` que
-``exportar_auditoria_m04_use_case.py``. ``lineas_a_csv`` se reutiliza también
-desde el worker del motor async (exportación asíncrona). Registra
-``EXPORTACION_HISTORIAL_GENERADA`` en la bitácora de auditoría de M05 (RF-80,
-cierre de gap CU-06): la falla de auditoría no bloquea la respuesta.
+- ≤ 10.000 registros: archivo síncrono (≤ 10 s).
+- > 10.000: se encola un trabajo EXPORTACION y se responde 202 con
+  ``id_exportacion`` (E3); máximo 3 exportaciones asíncronas en curso por
+  usuario (E6, 429). El worker genera el archivo, lo deja disponible 72 h y
+  avisa al usuario.
+
+El archivo trae encabezado del activo, todos los campos de cada registro,
+subtotales por tipo de suministro y por ciclo, y firma (SHA-256 de las filas)
+con el timestamp del sistema. Registra ``EXPORTACION_HISTORIAL_GENERADA`` en la
+bitácora de M05 (RF-80) sin bloquear la respuesta si la auditoría falla.
 """
 from __future__ import annotations
 
-import csv
-import io
+import hashlib
 import logging
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from datetime import datetime, timezone
+from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
+from src.supplies.application.use_cases.exportacion.generador_archivos import (
+    Documento,
+    generar_excel,
+    generar_pdf,
+)
 from src.supplies.domain.entities.historial_suministro import FiltrosHistorialSuministro, LineaHistorialSuministro
+from src.supplies.domain.entities.trabajo_historial_suministro import TrabajoHistorialSuministro
 from src.supplies.domain.repositories.activo_consulta_port import ActivoConsultaPort
 from src.supplies.domain.repositories.alcance_activo_port import AlcanceActivoPort
 from src.supplies.domain.repositories.auditoria_suministro_port import (
@@ -29,12 +42,15 @@ from src.supplies.domain.repositories.configuracion_batch_historial_repository i
     ConfiguracionBatchHistorialRepository,
 )
 from src.supplies.domain.repositories.historial_suministro_read_port import HistorialSuministroReadPort
+from src.supplies.domain.value_objects.historial_suministro_enums import TipoTrabajoHistorial
 
 logger = logging.getLogger(__name__)
 
-_CAMPOS_CSV = [
+FORMATOS = {"PDF": ".pdf", "EXCEL": ".xlsx"}
+_COLUMNAS = [
     "id_registro_suministro",
     "tipo_suministro",
+    "tipo_operacion",
     "descripcion",
     "fecha_aplicacion",
     "cantidad",
@@ -46,34 +62,24 @@ _CAMPOS_CSV = [
     "especie",
     "nombre_ciclo",
     "estado_ciclo",
+    "observacion",
 ]
 
 
-def _linea_a_dict(l: LineaHistorialSuministro) -> dict:
-    return {
-        "id_registro_suministro": l.id_registro_suministro,
-        "tipo_suministro": l.tipo_suministro,
-        "descripcion": l.descripcion,
-        "fecha_aplicacion": l.fecha_aplicacion.isoformat(),
-        "cantidad": str(l.cantidad),
-        "unidad_medida": l.unidad_medida,
-        "precio_unitario": str(l.precio_unitario),
-        "costo_registro": str(l.costo_registro),
-        "origen_precio": l.origen_precio,
-        "nombre_activo": l.nombre_activo,
-        "especie": l.especie,
-        "nombre_ciclo": l.nombre_ciclo,
-        "estado_ciclo": l.estado_ciclo,
-    }
+def _fila(l: LineaHistorialSuministro) -> list:
+    return [
+        l.id_registro_suministro, l.tipo_suministro, l.tipo_operacion, l.descripcion,
+        l.fecha_aplicacion.isoformat(), l.cantidad, l.unidad_medida, l.precio_unitario, l.costo_registro,
+        l.origen_precio, l.nombre_activo, l.especie, l.nombre_ciclo, l.estado_ciclo, l.observacion,
+    ]
 
 
-def lineas_a_csv(lineas: list[LineaHistorialSuministro]) -> str:
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=_CAMPOS_CSV)
-    writer.writeheader()
-    for l in lineas:
-        writer.writerow(_linea_a_dict(l))
-    return output.getvalue()
+@dataclass(frozen=True)
+class ArchivoHistorial:
+    contenido: bytes
+    nombre_archivo: str
+    formato: str
+    total_registros: int
 
 
 class ExportarHistorialSincronoUseCase:
@@ -85,6 +91,7 @@ class ExportarHistorialSincronoUseCase:
         config_repo: ConfiguracionBatchHistorialRepository,
         db: Session,
         auditoria_port: AuditoriaSuministroPort,
+        solicitar: Optional[object] = None,
     ) -> None:
         self.historial_port = historial_port
         self.alcance_port = alcance_port
@@ -92,23 +99,40 @@ class ExportarHistorialSincronoUseCase:
         self.config_repo = config_repo
         self.db = db
         self.auditoria_port = auditoria_port
+        self.solicitar = solicitar
 
     def execute(
-        self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int
-    ) -> tuple[str, str, int]:
-        return self._exportar(filtros, id_usuario=id_usuario, id_rol=id_rol, forzar=False)
+        self, filtros: FiltrosHistorialSuministro, formato: str, *, id_usuario: int, id_rol: int
+    ) -> Union[ArchivoHistorial, TrabajoHistorialSuministro]:
+        ids_permitidos = self._validar(filtros, formato, id_usuario, id_rol)
+        config = self.config_repo.obtener()
+        resultado = self.historial_port.consultar(
+            replace(filtros, pagina=1, registros_por_pagina=config.umbral_exportacion_async), ids_permitidos
+        )
+        if resultado.total_registros_filtrados > config.umbral_exportacion_async:
+            return self.solicitar.execute(
+                TipoTrabajoHistorial.EXPORTACION.value, filtros, id_usuario, id_rol, formato_exportacion=formato
+            )
+        return self._archivo(filtros, formato, resultado, id_usuario)
 
     def exportar_forzado(
-        self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int
-    ) -> tuple[str, str, int]:
-        """Usado por el worker del motor async (trabajo EXPORTACION): sin límite
-        de tamaño de página — el trabajo ya fue encolado precisamente porque
-        supera el umbral síncrono."""
-        return self._exportar(filtros, id_usuario=id_usuario, id_rol=id_rol, forzar=True)
+        self, filtros: FiltrosHistorialSuministro, formato: str, *, id_usuario: int, id_rol: int
+    ) -> ArchivoHistorial:
+        """Worker del motor async (trabajo EXPORTACION): todo el volumen, sin umbral síncrono."""
+        ids_permitidos = self._validar(filtros, formato, id_usuario, id_rol)
+        resultado = self.historial_port.consultar(
+            replace(filtros, pagina=1, registros_por_pagina=5_000_000), ids_permitidos
+        )
+        return self._archivo(filtros, formato, resultado, id_usuario)
 
-    def _exportar(
-        self, filtros: FiltrosHistorialSuministro, *, id_usuario: int, id_rol: int, forzar: bool
-    ) -> tuple[str, str, int]:
+    # ── Auxiliares ───────────────────────────────────────────────────────────
+    def _validar(self, filtros: FiltrosHistorialSuministro, formato: str, id_usuario: int, id_rol: int):
+        if formato not in FORMATOS:
+            raise BusinessRuleError(
+                code="FORMATO_EXPORTACION_INVALIDO",
+                message="El formato de exportación del historial debe ser PDF o EXCEL.",
+                field="formato_exportacion",
+            )
         activo = self.activo_port.obtener(filtros.id_activo_biologico)
         if activo is None:
             raise NotFoundError(
@@ -116,36 +140,54 @@ class ExportarHistorialSincronoUseCase:
                 message=f"El activo biológico {filtros.id_activo_biologico} no existe.",
                 field="id_activo_biologico",
             )
-
         ids_permitidos = self.alcance_port.listar_ids_activos_permitidos(id_usuario, id_rol)
         if ids_permitidos is not None and filtros.id_activo_biologico not in ids_permitidos:
             raise AuthorizationError(
                 code="ACCESO_DENEGADO",
-                message=f"No tiene permisos para exportar el historial del activo {filtros.id_activo_biologico}.",
-            )
-
-        config = self.config_repo.obtener()
-        limite_pagina = 5_000_000 if forzar else config.umbral_exportacion_async
-        filtros_export = replace(filtros, pagina=1, registros_por_pagina=limite_pagina)
-        resultado = self.historial_port.consultar(filtros_export, ids_permitidos)
-
-        if not forzar and resultado.total_registros_filtrados > config.umbral_exportacion_async:
-            raise BusinessRuleError(
-                code="EXPORTACION_REQUIERE_MODO_ASINCRONO",
                 message=(
-                    f"La exportación contiene {resultado.total_registros_filtrados} registros, que supera "
-                    f"el límite de {config.umbral_exportacion_async} para exportación síncrona. Solicítela "
-                    "vía POST /suministros/historial/trabajos (tipo EXPORTACION)."
+                    f"No tiene permisos para consultar el historial del activo {filtros.id_activo_biologico}. "
+                    "Verifique su rol y unidades productivas asignadas."
                 ),
             )
+        return ids_permitidos
 
-        contenido = lineas_a_csv(resultado.lineas)
-        nombre_archivo = (
+    def _archivo(self, filtros, formato: str, resultado, id_usuario: int) -> ArchivoHistorial:
+        ahora = datetime.now(timezone.utc)
+        filas = [_fila(l) for l in resultado.lineas]
+        firma = hashlib.sha256("\n".join("|".join(map(str, f)) for f in filas).encode("utf-8")).hexdigest()
+        primera = resultado.lineas[0] if resultado.lineas else None
+        documento = Documento(
+            titulo="Historial de Suministros",
+            columnas=_COLUMNAS,
+            filas=filas,
+            encabezado=[
+                f"Activo: {filtros.id_activo_biologico}"
+                + (f" — {primera.nombre_activo} ({primera.especie})" if primera else ""),
+                f"Filtros: ciclo={filtros.id_ciclo_productivo or 'TODOS'}, "
+                f"fechas={filtros.fecha_inicio_filtro or '-'}..{filtros.fecha_fin_filtro or '-'}, "
+                f"tipo={filtros.tipo_suministro_filtro}, origen={filtros.origen_precio_filtro}",
+                f"Total de registros: {resultado.total_registros_filtrados} · "
+                f"Monto total: {resultado.monto_total_filtrado} COP",
+            ],
+            pie=[
+                *(f"Subtotal {tipo}: {d['monto']} COP ({d['total']} registros)"
+                  for tipo, d in resultado.desglose_por_tipo_suministro.items()),
+                *(f"Subtotal ciclo {ciclo}: {d['monto']} COP ({d['total']} registros)"
+                  for ciclo, d in resultado.desglose_por_ciclo.items()),
+                f"Firma del sistema (SHA-256): {firma}",
+                f"Generado por SIGAB: {ahora.isoformat(timespec='seconds')}",
+            ],
+        )
+        contenido = generar_pdf(documento, ahora) if formato == "PDF" else generar_excel(documento)
+        nombre = (
             f"Historial_Suministros_{filtros.id_activo_biologico}_"
-            f"{filtros.fecha_inicio_filtro or 'inicio'}_{filtros.fecha_fin_filtro or 'fin'}.csv"
+            f"{filtros.fecha_inicio_filtro or 'inicio'}_{filtros.fecha_fin_filtro or 'fin'}{FORMATOS[formato]}"
         )
         self._auditar_exportacion(filtros, id_usuario)
-        return contenido, nombre_archivo, resultado.total_registros_filtrados
+        return ArchivoHistorial(
+            contenido=contenido, nombre_archivo=nombre, formato=formato,
+            total_registros=resultado.total_registros_filtrados,
+        )
 
     def _auditar_exportacion(self, filtros: FiltrosHistorialSuministro, id_usuario: int) -> None:
         try:

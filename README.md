@@ -15,7 +15,7 @@ Sistema de Gestión y Planificación para el Mercado Pecuario.
 | Background | Firebase Admin SDK |
 | Auditoría | audit-sdk (interno, vendoreado) |
 | Testing | pytest + pytest-cov |
-| Documentación | OpenAPI (Swagger en /docs) |
+| Documentación | OpenAPI (Swagger en /docs) y pdoc (`scripts/generar_docs.sh` → `docs/index.html`) |
 
 ## Arquitectura: Monolito Modular + Hexagonal + DDD
 

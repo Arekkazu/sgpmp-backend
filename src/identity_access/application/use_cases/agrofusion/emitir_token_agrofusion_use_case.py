@@ -58,14 +58,15 @@ class EmitirTokenAgroFusionUseCase:
             LockedError: La cuenta está bloqueada temporalmente. HTTP 423.
             AuthorizationError: La cuenta está pendiente, inactiva o eliminada. HTTP 403.
         """
+        # Usuario sin cuenta: mismo 404 que un correo inexistente, no un 500.
         usuario = self.usuarios_repo.obtener_por_correo(Email(email))
-        if usuario is None:
+        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario) if usuario else None
+        if cuenta is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
                 message="No existe una cuenta sgpmp asociada a ese correo.",
             )
 
-        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
         ahora = datetime.now(timezone.utc)
         verificar_estado_cuenta(cuenta, usuario, self.cuentas_repo, self.db, ahora)
 

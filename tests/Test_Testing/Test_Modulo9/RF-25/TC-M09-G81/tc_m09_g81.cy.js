@@ -23,7 +23,7 @@ describe(
     () => {
 
         const FRONTEND_URL =
-            'http://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login';
+            'https://api.inmero.co/login';
 
         const USUARIO = 'admin@pecuaria.co';
         const PASSWORD = 'Test1234!';

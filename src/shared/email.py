@@ -26,6 +26,10 @@ _SMTP_USER = os.getenv("SMTP_USER")
 _SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 _MAX_RETRIES = 3
+#: Intentos para correos que llevan un token (RF-01 activación, RF-08
+#: recuperación): el RF-01 exige reintentar hasta 3 veces. Las notificaciones
+#: de RF-14 usan 1 (ver ``NotificacionService``).
+INTENTOS_CORREO_CON_TOKEN = _MAX_RETRIES
 _RETRY_DELAY = 5
 # QA M01 2.2: smtplib.SMTP() sin timeout bloquea indefinidamente si el host
 # no responde (no hay limite de socket por defecto). Acotado bien por debajo
@@ -33,10 +37,10 @@ _RETRY_DELAY = 5
 _SMTP_TIMEOUT = 8
 
 
-def send_email(to: str, subject: str, html_body: str) -> None:
+def send_email(to: str, subject: str, html_body: str, intentos: int = _MAX_RETRIES) -> None:
     """Envía un correo HTML al destinatario indicado.
 
-    Intenta el envío hasta ``_MAX_RETRIES`` veces con una pausa de
+    Intenta el envío hasta ``intentos`` veces con una pausa de
     ``_RETRY_DELAY`` segundos entre intentos. Si todos los intentos fallan,
     lanza ``ServiceUnavailableError``.
 
@@ -44,6 +48,10 @@ def send_email(to: str, subject: str, html_body: str) -> None:
         to: Dirección de correo del destinatario.
         subject: Asunto del mensaje.
         html_body: Cuerpo del mensaje en formato HTML.
+        intentos: Intentos SMTP antes de rendirse. Por defecto
+            ``INTENTOS_CORREO_CON_TOKEN`` (RF-01: hasta 3). Las notificaciones
+            de RF-14 pasan ``1``: el RF prohíbe reintentarlas para no
+            duplicar el correo.
 
     Raises:
         ServiceUnavailableError: Si el servidor SMTP no responde después de
@@ -57,7 +65,7 @@ def send_email(to: str, subject: str, html_body: str) -> None:
 
     last_error: Exception | None = None
 
-    for attempt in range(1, _MAX_RETRIES + 1):
+    for attempt in range(1, intentos + 1):
         try:
             with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=_SMTP_TIMEOUT) as server:
                 server.ehlo()
@@ -68,8 +76,8 @@ def send_email(to: str, subject: str, html_body: str) -> None:
             return
         except Exception as e:
             last_error = e
-            logger.warning("Intento %d/%d fallido al enviar correo a %s: %r", attempt, _MAX_RETRIES, to, e)
-            if attempt < _MAX_RETRIES:
+            logger.warning("Intento %d/%d fallido al enviar correo a %s: %r", attempt, intentos, to, e)
+            if attempt < intentos:
                 time.sleep(_RETRY_DELAY)
 
     raise ServiceUnavailableError(

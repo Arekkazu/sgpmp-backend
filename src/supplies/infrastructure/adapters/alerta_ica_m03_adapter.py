@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | USAB-M03 M3-07 RF-74: recalcular el ICA consolida la alerta abierta en vez de duplicarla |
 """Adaptador para generar la alerta de conversión alimenticia crítica (RF-74 / CA-3).
 
 Inserta una alerta ``CONVERSION_ALIMENTICIA`` / ``CRITICO`` en ``modulo3.alertas``
@@ -25,6 +28,26 @@ _TIPO_VARIABLE = "conversion_alimenticia"
 _ACCION_SUGERIDA = (
     "Revisar dieta, calidad del alimento y estado sanitario del activo: "
     "la conversión alimenticia es crítica."
+)
+
+# M3-07 (RF-57 CA-4): recalcular el ICA del mismo activo creaba otra alerta cada vez
+# (4 iguales en 3 min). Como en telemetría, se consolida en la alerta abierta: sube
+# frecuencia_evento y ultima_ocurrencia; el contenido original es inmutable.
+_CONSOLIDAR = text(
+    """
+    UPDATE modulo3.alertas
+       SET frecuencia_evento = COALESCE(frecuencia_evento, 1) + 1,
+           ultima_ocurrencia = :ahora
+     WHERE id_alerta = (
+           SELECT id_alerta FROM modulo3.alertas
+            WHERE tipo_alerta = CAST(:tipo AS modulo3.enum_tipo_alerta)
+              AND id_activo_biologico = :id_activo
+              AND estado_alerta IN ('ACTIVA', 'EN_ATENCION')
+            ORDER BY fecha_generacion DESC
+            LIMIT 1
+              FOR UPDATE)
+    RETURNING id_alerta
+    """
 )
 
 _INSERT = text(
@@ -72,6 +95,12 @@ class AlertaICAM03Adapter(AlertaICAPort):
             {"periodo_evaluacion": periodo_evaluacion, "regla": "CA > 5.0 (CRITICA)"}
         )
         try:
+            consolidada = self.db.execute(
+                _CONSOLIDAR, {"tipo": _TIPO_ALERTA, "id_activo": id_activo_biologico, "ahora": ahora},
+            ).fetchone()
+            if consolidada:
+                self.db.flush()
+                return consolidada.id_alerta
             row = self.db.execute(
                 _INSERT,
                 {

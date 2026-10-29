@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.historicos_estados_activos``: cambios de estado del activo
+(RF-44).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

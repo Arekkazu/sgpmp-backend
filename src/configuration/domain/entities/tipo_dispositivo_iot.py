@@ -9,15 +9,36 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+# RF-21: la computadora de borde del sitio (hoy una Raspberry), el "Gateway IoT"
+# de M03. Atiende N dispositivos (id_dispositivo_gateway) y es lo que se conecta
+# al broker MQTT; no captura datos, por eso RF-23 no le aplica.
+TIPO_GATEWAY_EDGE = "GATEWAY_EDGE"
+
+# RF-21 v2.0 (RFC-011): la categoría es del tipo, no del dispositivo.
+CATEGORIA_SENSOR = "SENSOR"
+CATEGORIA_CAMARA = "CAMARA"
+
 
 @dataclass(frozen=True)
 class TipoDispositivoIot:
+    """Tipo de hardware IoT con los rangos permitidos de frecuencia de captura e
+    intervalo de transmisión (RF-23).
+    """
     id_tipo_dispositivo: int
     nombre: str
     frecuencia_captura_min: int
     frecuencia_captura_max: int
     intervalo_transmision_min: int
     intervalo_transmision_max: int
+    categoria: str = CATEGORIA_SENSOR
+
+    @property
+    def es_gateway_edge(self) -> bool:
+        return self.nombre == TIPO_GATEWAY_EDGE
+
+    @property
+    def es_camara(self) -> bool:
+        return self.categoria == CATEGORIA_CAMARA
 
     def verificar_rango(
         self, frecuencia_captura: int, intervalo_transmision: int

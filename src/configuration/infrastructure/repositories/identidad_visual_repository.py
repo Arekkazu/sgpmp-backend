@@ -13,6 +13,7 @@ from src.configuration.domain.value_objects.color_hex import ColorHex
 from src.configuration.domain.value_objects.nombre_organizacion import NombreOrganizacion
 from src.configuration.infrastructure.models.identidad_visual_model import IdentidadVisualModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
@@ -27,16 +28,16 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
             id_finca=orm.id_finca,
             id_usuario=orm.id_usuario,
             logo_path=orm.logo_path,
-            primary_color=ColorHex(orm.primary_color) if orm.primary_color else None,
-            secondary_color=ColorHex(orm.secondary_color) if orm.secondary_color else None,
-            org_display_name=NombreOrganizacion(orm.org_display_name) if orm.org_display_name else None,
+            primary_color=rehidratar(ColorHex, orm.primary_color) if orm.primary_color else None,
+            secondary_color=rehidratar(ColorHex, orm.secondary_color) if orm.secondary_color else None,
+            org_display_name=rehidratar(NombreOrganizacion, orm.org_display_name) if orm.org_display_name else None,
             version=orm.version,
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_finca(self, id_finca: int) -> Optional[IdentidadVisual]:
+    def obtener_por_finca(self, id_finca: int, *, bloquear: bool = False) -> Optional[IdentidadVisual]:
         # Usa la misma lógica que vw_rf26_identidad_visual_activa: última versión por finca
-        orm = (
+        query = (
             self.db.query(IdentidadVisualModel)
             .filter(IdentidadVisualModel.id_finca == id_finca)
             .order_by(
@@ -44,8 +45,10 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
                 IdentidadVisualModel.fecha_creacion.desc().nullslast(),
                 IdentidadVisualModel.id_identidad_visual.desc(),
             )
-            .first()
         )
+        if bloquear:
+            query = query.with_for_update().populate_existing()
+        orm = query.first()
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, entidad: IdentidadVisual) -> IdentidadVisual:

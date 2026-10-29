@@ -29,6 +29,7 @@ from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
 from src.configuration.infrastructure.dto.registrar_finca_dto import RegistrarFincaDTO
 from src.configuration.infrastructure.repositories.auditoria_finca_repository import SqlAlchemyAuditoriaFincaRepository
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
+from src.configuration.infrastructure.repositories.nombre_usuario_lookup import nombres_usuarios
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
@@ -41,15 +42,19 @@ router = APIRouter(prefix="/configuracion/fincas", tags=["Configuración - Finca
 _RECURSO = 9   # modulo1.recursos: 'fincas'
 
 
+def _respuesta(db: Session, finca) -> FincaResponse:
+    return FincaResponse.from_entity(finca, nombres_usuarios(db, [finca.id_usuario]).get(finca.id_usuario))
+
+
 def _ids_fincas_alcance_lectura(
     db: Session,
     usuario_actual: UsuarioActual,
 ) -> Optional[list[int]]:
     """Resuelve el alcance de datos sin depender de IDs fijos de roles.
 
-    Quien administra fincas (permiso de gestión sobre el recurso) conserva la
-    vista global (``None``). Un rol de solo lectura mantiene su permiso R, pero
-    queda limitado a las fincas a las que tiene acceso en ``modulo9.usuarios_fincas``.
+    El Administrador (rol protegido) tiene la vista global (``None``). El resto
+    de roles queda limitado a las fincas a las que tiene acceso en
+    ``modulo9.usuarios_fincas``.
     """
     return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario, usuario_actual.id_rol
@@ -73,13 +78,17 @@ def registrar_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
+    """Registra una finca con nombre único, ubicación y tamaño en hectáreas (RF-19).
+
+    **Acceso:** `fincas` · Crear.
+    """
     use_case = RegistrarFincaUseCase(
         db=db,
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(dto, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.get(
@@ -97,10 +106,15 @@ def listar_fincas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaFincasResponse:
+    """Fincas asignadas al usuario (todas para roles con alcance global) (RF-19).
+
+    **Acceso:** `fincas` · Leer.
+    """
     ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     fincas = use_case.listar(ids_fincas_permitidas=ids_permitidas, solo_activas=solo_activas)
-    items = [FincaResponse.from_entity(f) for f in fincas]
+    nombres = nombres_usuarios(db, (f.id_usuario for f in fincas))
+    items = [FincaResponse.from_entity(f, nombres.get(f.id_usuario)) for f in fincas]
     return ListaFincasResponse(total=len(items), items=items)
 
 
@@ -120,10 +134,16 @@ def obtener_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
+    """Detalle de una finca (RF-19).
+
+    **Acceso:** `fincas` · Leer.
+
+    Una finca no asignada al usuario responde 403.
+    """
     ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     finca = use_case.obtener(id_finca, ids_fincas_permitidas=ids_permitidas)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -145,13 +165,19 @@ def editar_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
+    """Edita nombre, ubicación o tamaño de una finca (RF-19).
+
+    **Acceso:** `fincas` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarFincaUseCase(
         db=db,
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, dto, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -171,6 +197,12 @@ def desactivar_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
+    """Desactiva una finca (RF-19).
+
+    **Acceso:** `fincas` · Desactivar.
+
+    Responde 422 si tiene dispositivos IoT o activos biológicos activos.
+    """
     use_case = DesactivarFincaUseCase(
         db=db,
         finca_repo=SqlAlchemyFincaRepository(db),
@@ -178,7 +210,7 @@ def desactivar_finca(
         dependency_port=FincaDependencyAdapter(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)
 
 
 @router.patch(
@@ -198,10 +230,14 @@ def reactivar_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
+    """Reactiva una finca inactiva (RF-19).
+
+    **Acceso:** `fincas` · Desactivar.
+    """
     use_case = ReactivarFincaUseCase(
         db=db,
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
-    return FincaResponse.from_entity(finca)
+    return _respuesta(db, finca)

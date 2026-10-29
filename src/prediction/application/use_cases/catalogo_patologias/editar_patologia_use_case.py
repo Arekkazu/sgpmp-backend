@@ -1,3 +1,7 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
+# | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la edición toma la siguiente versión del catálogo |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,7 +15,13 @@ from src.prediction.domain.repositories.modelo_activo_port import ModeloActivoPo
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.infrastructure.dto.editar_patologia_dto import EditarPatologiaDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
+from src.shared.errors import (
+    BusinessRuleError,
+    ConflictError,
+    MethodNotAllowedError,
+    NotFoundError,
+    PreconditionFailedError,
+)
 
 
 class EditarPatologiaUseCase:
@@ -33,13 +43,13 @@ class EditarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
-        entidad = self._repo.obtener_por_id(id_patologia)
+        entidad = self._repo.obtener_por_id(id_patologia, bloquear=True)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")
 
-        # FA-06: no editar patología base
+        # FA-06 / RF-64 E2 (DEV-35): editar una patología base es 405
         if entidad.es_base:
-            raise BusinessRuleError(
+            raise MethodNotAllowedError(
                 code="PATOLOGIA_BASE_INMUTABLE",
                 message="Las patologías base del sistema no pueden ser modificadas.",
             )
@@ -104,6 +114,7 @@ class EditarPatologiaUseCase:
             descripcion_clinica=dto.descripcion_clinica.strip(),
             variables=[PatologiaVariable(id_variable_ambiental=i) for i in ids_solicitados],
             fecha_actualizacion=datetime.now(timezone.utc),
+            version_catalogo=self._repo.siguiente_version_catalogo(),
         )
 
         try:

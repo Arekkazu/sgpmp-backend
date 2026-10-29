@@ -1,3 +1,5 @@
+"""Caso de uso: historial de fases productivas de un activo (RF-37)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -10,6 +12,8 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarHistorialFasesUseCase:
+    """Lista todas las gestiones de fase del activo, incluida la vigente."""
+
     def __init__(self, db: Session, repo: ActivoBiologicoRepository) -> None:
         self.db = db
         self.repo = repo

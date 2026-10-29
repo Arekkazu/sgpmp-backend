@@ -10,6 +10,7 @@ from src.configuration.domain.entities.aplicacion_plantilla import AplicacionPla
 
 
 class AplicacionPlantillaRepository(ABC):
+    """Contrato de acceso al registro de aplicaciones de plantillas (RF-32)."""
 
     @abstractmethod
     def guardar(self, aplicacion: AplicacionPlantilla) -> AplicacionPlantilla:

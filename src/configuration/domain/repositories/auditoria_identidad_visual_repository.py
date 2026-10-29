@@ -7,6 +7,7 @@ from src.configuration.domain.entities.auditoria_identidad_visual import Auditor
 
 
 class AuditoriaIdentidadVisualRepository(ABC):
+    """Contrato de la auditoría de cambios de identidad visual."""
 
     @abstractmethod
     def registrar(
@@ -16,6 +17,9 @@ class AuditoriaIdentidadVisualRepository(ABC):
         valor_anterior: dict,
         valor_nuevo: dict,
     ) -> None:
+        """Inserta un registro de auditoría con la identidad visual antes y después del
+        cambio.
+        """
         raise NotImplementedError
 
     @abstractmethod

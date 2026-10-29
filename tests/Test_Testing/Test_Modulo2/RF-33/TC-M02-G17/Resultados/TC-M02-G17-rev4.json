@@ -1,0 +1,136 @@
+{
+  "caso": "TC-M02-G17",
+  "revision": 4,
+  "rf": [
+    "RF-33",
+    "RF-16"
+  ],
+  "cu": "CU01",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-26T18:18:09.874895+00:00",
+  "alcance": "Solo TC-M02-187. 188 y 189 no reejecutados (APROBADO rev3).",
+  "comparacion_historica": {
+    "rev2_rev3": "187 BLOQUEADO: no habia metrica activa+obligatoria aplicable a INDIVIDUAL.",
+    "rev4": "Reevaluacion con precondicion DBA; el resultado se determina por ejecucion."
+  },
+  "contrato": {
+    "POST": "POST /activos-biologicos",
+    "ATRIBUTO_REQUERIDO": "BusinessRuleError HTTP 422",
+    "aplica_individual": "INDIVIDUAL o AMBOS (adapter M09: LOTE = poblacional)"
+  },
+  "subcasos": {
+    "TC-M02-188": {
+      "resultado": "APROBADO",
+      "origen": "rev3",
+      "nota": "No reejecutado. HTTP 422 ATRIBUTO_TIPO_INVALIDO."
+    },
+    "TC-M02-189": {
+      "resultado": "APROBADO",
+      "origen": "rev3",
+      "nota": "No reejecutado. transferencia_interna aceptada."
+    },
+    "TC-M02-187": {
+      "resultado": "APROBADO",
+      "endpoint": "POST /activos-biologicos",
+      "metrica": {
+        "id_especie": 1,
+        "nombre_especie": "Tilapia Roja",
+        "estado_especie": "activa",
+        "id_metrica": 27,
+        "nombre": "Peso al nacer (Obligatorio QA)",
+        "tipo_dato": "NUMERICO",
+        "es_obligatorio": true,
+        "aplicabilidad": "INDIVIDUAL",
+        "estado_metrica": "activa",
+        "otras_obligatorias": []
+      },
+      "control": {
+        "http": 201,
+        "error_code": null,
+        "message": null,
+        "fields": null,
+        "id_creado": 632,
+        "claves_atributos_enviados": [
+          "Peso al nacer (Obligatorio QA)"
+        ],
+        "body": "{\"id_activo_biologico\": 632, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG17R4C181809874853\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {\"Peso al nacer (Obligatorio QA)\": 1.0}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T18:18:24.795447Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 467, \"raza\": \"QA-G17-R4\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T18:18:24.795447Z\"}, \"detalle_poblacional\": null}",
+        "infra": 3,
+        "atributos_enviados": {
+          "Peso al nacer (Obligatorio QA)": 1.0
+        },
+        "restauracion": {
+          "id": 632,
+          "http_estado": 200,
+          "http_get": 200,
+          "estado": "INACTIVO"
+        }
+      },
+      "omision": {
+        "http": 422,
+        "error_code": "ATRIBUTO_REQUERIDO",
+        "message": "El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.",
+        "fields": [
+          {
+            "field": "atributos_dinamicos.Peso al nacer (Obligatorio QA)",
+            "message": "El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio."
+          }
+        ],
+        "id_creado": null,
+        "claves_atributos_enviados": [],
+        "body": "{\"error_code\": \"ATRIBUTO_REQUERIDO\", \"message\": \"El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.\", \"fields\": [{\"field\": \"atributos_dinamicos.Peso al nacer (Obligatorio QA)\", \"message\": \"El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.\"}], \"timestamp\": \"2026-09-26T18:18:27.339133+00:00\"}",
+        "clave_omitida": "Peso al nacer (Obligatorio QA)",
+        "clave_presente_en_json": false,
+        "busqueda_identificador": {
+          "http": 200,
+          "ids": []
+        }
+      },
+      "null": {
+        "http": 422,
+        "error_code": "ATRIBUTO_REQUERIDO",
+        "message": "El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.",
+        "fields": [
+          {
+            "field": "atributos_dinamicos.Peso al nacer (Obligatorio QA)",
+            "message": "El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio."
+          }
+        ],
+        "id_creado": null,
+        "claves_atributos_enviados": null,
+        "body": "{\"error_code\": \"ATRIBUTO_REQUERIDO\", \"message\": \"El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.\", \"fields\": [{\"field\": \"atributos_dinamicos.Peso al nacer (Obligatorio QA)\", \"message\": \"El atributo dinámico 'Peso al nacer (Obligatorio QA)' es obligatorio.\"}], \"timestamp\": \"2026-09-26T18:18:29.524386+00:00\"}",
+        "atributo": {
+          "Peso al nacer (Obligatorio QA)": null
+        }
+      },
+      "conclusion": "Precondicion OK: especie 1 Tilapia Roja activa; metrica 'Peso al nacer (Obligatorio QA)' obligatoria=True tipo=NUMERICO aplica=INDIVIDUAL. Control HTTP 201 id=632 restaurado INACTIVO. Omision (clave 'Peso al nacer (Obligatorio QA)' ausente) HTTP 422 ATRIBUTO_REQUERIDO sin ID. Null HTTP 422 ATRIBUTO_REQUERIDO. Bloqueo historico 187 resuelto.",
+      "busqueda": {
+        "especies_http": 200,
+        "scan": [
+          {
+            "id_especie": 1,
+            "http": 200,
+            "n": 4,
+            "especie_activa": true
+          }
+        ],
+        "encontrada": true
+      }
+    }
+  },
+  "ids_creados": [],
+  "estado_global": "APROBADO",
+  "auditoria": "Rev1/rev2/rev3 intactas. Sin DML. Sin cambios RF-16 ni productivos. Sin commit/push.",
+  "logins": {
+    "admin": {
+      "correo": "admin@pecuaria.co",
+      "http": 200,
+      "ok": true
+    },
+    "productor": {
+      "correo": "productor@pecuaria.co",
+      "http": 200,
+      "ok": true
+    }
+  }
+}

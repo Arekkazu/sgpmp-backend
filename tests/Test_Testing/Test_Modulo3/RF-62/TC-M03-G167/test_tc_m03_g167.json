@@ -1,0 +1,2420 @@
+{
+  "info": {
+    "_postman_id": "tc-m03-g167-v3-autosiembra",
+    "name": "TC-M03-G167 - Drift fronteras RF-62 (autosiembra)",
+    "description": "Suite autosuficiente. Crea finca/área/dispositivo/sensor en sandbox, calibra por escenario, ingesta 20 lecturas + 1 evaluada, evalúa y verifica oráculo. Rollback al final.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request de colección: resuelve run_id y sandbox_secret desde CUALQUIER scope",
+          "// (env, collection, global). Usar pm.variables.get() en lugar de pm.collectionVariables.get()",
+          "// porque --env-var escribe en el scope Environment, no en Collection.",
+          "let rid = pm.variables.get(\"run_id\");",
+          "if (!rid || !rid.trim()) {",
+          "    rid = \"test-\" + pm.variables.replaceIn(\"{{$guid}}\");",
+          "    pm.collectionVariables.set(\"run_id\", rid);",
+          "}",
+          "pm.request.headers.upsert({ key: \"X-Test-Run-Id\", value: rid });",
+          "",
+          "const sec = pm.variables.get(\"sandbox_secret\");",
+          "if (sec && sec.trim()) {",
+          "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: sec });",
+          "} else {",
+          "    console.error('[TC-M03-G167] Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "    // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que NINGUNA escritura llegue a TEST sin sandbox.",
+          "    pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://www.api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "sandbox_secret",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_admin",
+      "value": ""
+    },
+    {
+      "key": "broker_token",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_tipo_dispositivo",
+      "value": ""
+    },
+    {
+      "key": "tipo_area_nombre",
+      "value": ""
+    },
+    {
+      "key": "id_finca",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura",
+      "value": ""
+    },
+    {
+      "key": "device_id",
+      "value": ""
+    },
+    {
+      "key": "device_serial",
+      "value": ""
+    },
+    {
+      "key": "sensor_id",
+      "value": ""
+    },
+    {
+      "key": "id_tel_1a",
+      "value": ""
+    },
+    {
+      "key": "id_tel_1b",
+      "value": ""
+    },
+    {
+      "key": "id_tel_1c",
+      "value": ""
+    },
+    {
+      "key": "id_tel_2a",
+      "value": ""
+    },
+    {
+      "key": "id_tel_2b",
+      "value": ""
+    },
+    {
+      "key": "id_tel_3a",
+      "value": ""
+    },
+    {
+      "key": "id_tel_3b",
+      "value": ""
+    },
+    {
+      "key": "finca_nombre",
+      "value": ""
+    },
+    {
+      "key": "area_nombre",
+      "value": ""
+    },
+    {
+      "key": "device_nombre",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00-Preflight-Autosiembra",
+      "item": [
+        {
+          "name": "00.01-Login-Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.collectionVariables.set(\"token_admin\", r.token);",
+                  "});",
+                  "try {",
+                  "    const parts = pm.response.json().token.split(\".\");",
+                  "    if (parts.length === 3) {",
+                  "        const payload = JSON.parse(Buffer.from(parts[1], \"base64\").toString(\"utf8\"));",
+                  "        const id = payload.sub || payload.id_usuario || payload.user_id;",
+                  "        pm.test(\"id_usuario extraido del JWT\", function () {",
+                  "            pm.expect(id, \"JWT sin sub/id_usuario/user_id\").to.exist;",
+                  "        });",
+                  "        pm.collectionVariables.set(\"id_usuario_admin\", id);",
+                  "    }",
+                  "} catch (e) {",
+                  "    pm.test(\"Decodificar JWT\", function () { pm.expect.fail(\"Error: \" + e.message); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.02-Descubrir-Tipo-Dispositivo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/tipos-dispositivo-iot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "tipos-dispositivo-iot"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Tipo SENSOR disponible\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const items = pm.response.json().items || [];",
+                  "    const sensor = items.find(x => x.categoria === \"SENSOR\");",
+                  "    pm.expect(sensor, \"No hay tipo_dispositivo SENSOR\").to.exist;",
+                  "    pm.collectionVariables.set(\"id_tipo_dispositivo\", sensor.id_tipo_dispositivo);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.03-Descubrir-Tipo-Area",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/tipos-area?solo_activos=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "tipos-area"
+              ],
+              "query": [
+                {
+                  "key": "solo_activos",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Tipo área Galpón disponible\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const items = pm.response.json().items || [];",
+                  "    const galpon = items.find(x => /galp[oó]n/i.test(x.nombre));",
+                  "    pm.expect(galpon, \"No hay tipo_area Galpón\").to.exist;",
+                  "    pm.collectionVariables.set(\"tipo_area_nombre\", galpon.nombre);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.04-Crear-Finca",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/fincas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "fincas"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Finca mjzlepempt\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"Qa\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5,\n  \"id_usuario\": \"{{id_usuario_admin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Finca 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_finca).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_finca\", r.id_finca);",
+                  "    pm.collectionVariables.set(\"finca_nombre\", r.nombre);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.05-Crear-Area",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/infraestructuras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "infraestructuras"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_infraestructura\": \"Area amdwsenjpk\",\n  \"tipo_area\": \"{{tipo_area_nombre}}\",\n  \"superficie\": 100,\n  \"finca_id\": \"{{id_finca}}\",\n  \"descripcion_infraestructura\": \"Area de pruebas de calidad\",\n  \"especie_id\": 123,\n  \"tipo_modelo_asignado\": \"MODELO_ACUICULTURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Área 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_infraestructura).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_infraestructura\", r.id_infraestructura);",
+                  "    pm.collectionVariables.set(\"area_nombre\", r.nombre_infraestructura);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.06-Crear-Dispositivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/dispositivos-iot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"GDEVUJCKGRHPMP\",\n  \"descripcion\": \"Dispositivo de pruebas de calidad\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Dispositivo 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_dispositivo_iot).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"device_id\", r.id_dispositivo_iot);",
+                  "    pm.collectionVariables.set(\"device_serial\", r.serial);",
+                  "    pm.collectionVariables.set(\"device_nombre\", r.serial);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.07-Crear-Sensor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/dispositivos-iot/{{device_id}}/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "dispositivos-iot",
+                "{{device_id}}",
+                "sensores"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sensor bqjlzxmhuu\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Sensor 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_sensores).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"sensor_id\", r.id_sensores);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.08-Asociar-Sensor-Area",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/asociar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "asociar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"punto_instalacion\": \"Centro del area\",\n  \"confirmar\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Asociación 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-1A-drift-5%",
+      "item": [
+        {
+          "name": "1A.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1,\n  \"fecha_calibracion\": \"2026-10-19T01:45:00Z\",\n  \"observaciones\": \"Calibración G167 1A (drift 5%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1A: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-1.0000, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1A.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 20.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T01:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1A: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1A.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 21,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T01:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1A: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_1a\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1A.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_1a}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_1a}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1A (5.00% (borde estricto, sin flag)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo === true, \"No debe activarse el flag de drift\").to.be.false;",
+                  "    pm.expect(r.indice_calidad).to.equal(100);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(true);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-1B-drift-7%",
+      "item": [
+        {
+          "name": "1B.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1.4,\n  \"fecha_calibracion\": \"2026-10-19T02:45:00Z\",\n  \"observaciones\": \"Calibración G167 1B (drift 7%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1B: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-1.4000, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1B.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.3,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.4,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.5,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.3,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.4,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.5,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.3,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.4,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.5,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.3,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.4,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.5,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.6,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T02:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1B: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1B.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 21.4,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T02:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1B: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_1b\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1B.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_1b}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_1b}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1B (7.00% (tramo <10%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(7.0000, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(21.4000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(90);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(true);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-1C-drift-9.99%",
+      "item": [
+        {
+          "name": "1C.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1.998,\n  \"fecha_calibracion\": \"2026-10-19T03:45:00Z\",\n  \"observaciones\": \"Calibración G167 1C (drift 9.99%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1C: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-1.9980, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1C.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.798,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.898,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.998,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.098,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.198,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.798,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.898,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.998,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.098,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.198,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.798,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.898,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.998,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.098,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.198,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.798,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.898,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.998,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.098,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.198,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T03:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1C: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1C.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 21.998,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T03:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1C: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_1c\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1C.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_1c}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_1c}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"1C (9.99% (frontera <10%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(9.9900, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(21.9980, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(90);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(true);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-2A-drift-10%",
+      "item": [
+        {
+          "name": "2A.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -2,\n  \"fecha_calibracion\": \"2026-10-19T04:45:00Z\",\n  \"observaciones\": \"Calibración G167 2A (drift 10%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2A: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-2.0000, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2A.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 21.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T04:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2A: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2A.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 22,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T04:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2A: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_2a\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2A.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_2a}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_2a}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2A (10.00% (frontera 10-20%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(10.0000, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(22.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(75);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(false);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-2B-drift-15%",
+      "item": [
+        {
+          "name": "2B.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -3,\n  \"fecha_calibracion\": \"2026-10-19T05:45:00Z\",\n  \"observaciones\": \"Calibración G167 2B (drift 15%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2B: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-3.0000, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2B.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 22.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T05:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2B: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2B.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 23,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T05:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2B: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_2b\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2B.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_2b}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_2b}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"2B (15.00% (tramo 10-20%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(15.0000, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(23.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(75);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(false);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-3A-drift-20.01%",
+      "item": [
+        {
+          "name": "3A.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -4.002,\n  \"fecha_calibracion\": \"2026-10-19T06:45:00Z\",\n  \"observaciones\": \"Calibración G167 3A (drift 20.01%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-4.0020, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.802,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.902,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.002,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.102,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.202,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.802,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.902,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.002,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.102,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.202,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.802,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.902,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.002,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.102,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.202,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.802,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 23.902,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.002,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.102,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.202,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T06:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 24.002,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T06:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_3a\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_3a}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_3a}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A (20.01% (frontera >20%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(20.0100, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(24.0020, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(60);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(false);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.05-Verificar-Alerta-RF57",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3a}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: [INC-M03-RF57] alerta técnica emitida (esperada)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta técnica al superar 20%\").to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.06-Verificar-Bitacora-RF63",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3a}}' ORDER BY id_evento DESC LIMIT 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    pm.expect(rows[0].tipo_evento).to.equal(\"EVALUACION_CALIDAD_COMPLETADA\");",
+                  "    pm.expect(rows[0].componente_origen).to.equal(\"RF-62\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3A.07-Verificar-D7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3a}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3A: D7 (exactamente 1 VIGENTE)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(parseInt(rows[0].n, 10)).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Escenario-3B-drift-25%",
+      "item": [
+        {
+          "name": "3B.01-Calibrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_id}}",
+                "calibrar"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -5,\n  \"fecha_calibracion\": \"2026-10-19T07:45:00Z\",\n  \"observaciones\": \"Calibración G167 3B (drift 25%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: calibración 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
+                  "    pm.expect(r.offset).to.be.closeTo(-5.0000, 0.0001);",
+                  "    pm.expect(r.ganancia).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.02-Ingestar-Serie-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria",
+                "batch"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registros\": [\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:00:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:02:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:04:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:06:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:08:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:10:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:12:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:14:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:16:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:18:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:20:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:22:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:24:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:26:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:28:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.8,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:30:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 24.9,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:32:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:34:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.1,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:36:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    },\n    {\n      \"device_id\": \"{{device_id}}\",\n      \"sensor_id\": \"{{sensor_id}}\",\n      \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n      \"valor\": 25.2,\n      \"unidad\": \"°C\",\n      \"timestamp_captura\": \"2026-10-19T07:38:00Z\",\n      \"serial\": \"{{device_serial}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: batch 200 (total=20, aceptados=20, rechazados=0)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.total).to.equal(20);",
+                  "    pm.expect(r.aceptados).to.equal(20);",
+                  "    pm.expect(r.rechazados).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.03-Ingestar-Lectura-Evaluada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/telemetria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "telemetria"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": \"{{device_id}}\",\n  \"sensor_id\": \"{{sensor_id}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"2026-10-19T07:45:00Z\",\n  \"serial\": \"{{device_serial}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: lectura 21 ingerida 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    pm.expect(r.id_telemetria).to.be.a(\"number\").and.above(0);",
+                  "    pm.collectionVariables.set(\"id_tel_3b\", r.id_telemetria);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.04-Evaluar-Calidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/calidad/{{id_tel_3b}}/evaluar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{id_tel_3b}}",
+                "evaluar"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B (25.00% (tramo >20%)): evaluar 201 + oráculo exacto\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const r = pm.response.json();",
+                  "    const flags = r.flags_detectados || {};",
+                  "    const drift = flags.posible_drift || {};",
+                  "    pm.expect(drift.activo).to.equal(true);",
+                  "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(25.0000, 0.01);",
+                  "    pm.expect(drift.media_ultimas_N).to.be.closeTo(25.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
+                  "    pm.expect(r.indice_calidad).to.equal(60);",
+                  "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
+                  "    pm.expect(r.apto_para_ia).to.equal(true);",
+                  "    pm.expect(r.apto_para_nic41).to.equal(false);",
+                  "    pm.expect(r.estado_evaluacion).to.equal(\"VIGENTE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.05-Verificar-Alerta-RF57",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3b}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: [INC-M03-RF57] alerta técnica emitida (esperada)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta técnica al superar 20%\").to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.06-Verificar-Bitacora-RF63",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3b}}' ORDER BY id_evento DESC LIMIT 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    pm.expect(rows[0].tipo_evento).to.equal(\"EVALUACION_CALIDAD_COMPLETADA\");",
+                  "    pm.expect(rows[0].componente_origen).to.equal(\"RF-62\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3B.07-Verificar-D7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3b}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"3B: D7 (exactamente 1 VIGENTE)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    pm.expect(parseInt(rows[0].n, 10)).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99-Teardown",
+      "item": [
+        {
+          "name": "99.01-Rollback-Sandbox",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
+              ],
+              "query": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rollback 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.include(\"Rollback exitoso\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

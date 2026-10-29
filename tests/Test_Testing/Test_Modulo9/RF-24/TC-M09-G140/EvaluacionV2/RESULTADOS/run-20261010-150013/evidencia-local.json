@@ -1,0 +1,833 @@
+{
+  "run_id": "run-20261010-150013",
+  "grupo": "TC-M09-G140",
+  "caso": "TC-M09-286",
+  "ambiente": "LOCAL AISLADO",
+  "herramienta": "Pytest en proceso + TestClient sobre la app real + PostgreSQL local real",
+  "newman": "NO APLICA",
+  "generado": "2026-10-11T01:08:13.296944+00:00",
+  "execution_number_group": 3,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX",
+  "nuevo_run_creado": "NO",
+  "autorizado_por": "LIDER_DESARROLLO",
+  "correccion": {
+    "pr": 550,
+    "fix": "JSONB(none_as_null=True)",
+    "archivo": "src/configuration/infrastructure/models/calibracion_vision_model.py"
+  },
+  "historial_ejecuciones": [
+    {
+      "ejecucion": 1,
+      "run_id": "run-20261010-141449",
+      "tipo": "EVALUACION_INICIAL",
+      "TC-M09-286": "RECHAZADO",
+      "motivo": "el POST objetivo devolvio 400 VALOR_NO_PERMITIDO (field calibracion_vision_resultado_coherente) en vez del 422: la calibracion NO_CONVERGIDA / REFINAMIENTO no se pudo persistir porque json_linea_base se escribia como JSON 'null' y no como SQL NULL. La linea base previa se conservo: no hubo dano de datos.",
+      "nota": "RUN historico; no se modifica ni se reutiliza como resultado vigente"
+    },
+    {
+      "ejecucion": 2,
+      "run_id": "run-20261010-150013",
+      "tipo": "REEJECUCION_PARCIAL",
+      "TC-M09-286": "NO REEJECUTADO / RECHAZADO heredado",
+      "motivo": "QA autorizo reejecutar solo TC-284 y TC-285 contra TEST"
+    }
+  ],
+  "presupuesto": {
+    "post_calibracion": 2,
+    "post_vision": 2,
+    "reintentos": 0
+  },
+  "limitaciones": [],
+  "LOCAL_GUARD": {
+    "host": "db",
+    "port": 5432,
+    "database": "sgpmp_g140_lab",
+    "current_user": "postgres",
+    "current_database": "sgpmp_g140_lab",
+    "servidor": "172.27.0.2/32",
+    "puerto_servidor": 5432,
+    "version": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "DATABASE_URL_sanitizada": "postgresql://postgres:[REDACTED]@db:5432/sgpmp_g140_lab",
+    "marcas_prohibidas_en_dsn": [],
+    "variables_de_entorno_con_marcas_prohibidas": [],
+    "veredicto": "PASS"
+  },
+  "fuente_del_backend_local": {
+    "LOCAL_SOURCE_SHA": "c4612dae6d8f0601488b94a3635f6592aa640686",
+    "origen": "snapshot de solo lectura de origin/test (git archive) montado en /app; el working tree de la rama QA no se modifica ni se usa como fuente",
+    "archivo_importado": "/app/src/configuration/infrastructure/models/calibracion_vision_model.py",
+    "linea_json_linea_base": "json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))",
+    "fix_en_el_texto": "SÍ",
+    "tipo_sqlalchemy": "JSONB",
+    "none_as_null_efectivo": true,
+    "veredicto": "PASS"
+  },
+  "alembic": {
+    "fuente": "migraciones reales del proyecto (alembic upgrade head como owner del laboratorio)",
+    "alembic_upgrade_head": [
+      "INFO  [alembic.runtime.migration] Will assume transactional DDL.",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:114: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:197: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN RAISE EXCEPTION 'INVALID_FORMAT...', NEW.nombre USING ERRCODE = 'P0118'; END IF;"
+    ],
+    "alembic_current": [
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:197: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN RAISE EXCEPTION 'INVALID_FORMAT...', NEW.nombre USING ERRCODE = 'P0118'; END IF;"
+    ],
+    "alembic_heads": [
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN",
+      "/app/alembic/versions/8c44765be172_f4_cierre_brechas_rls_fincas_.py:197: SyntaxWarning: invalid escape sequence '\\s'",
+      "  IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]+$' THEN RAISE EXCEPTION 'INVALID_FORMAT...', NEW.nombre USING ERRCODE = 'P0118'; END IF;"
+    ],
+    "version_num_en_bd": "5c2e8a1f7d39",
+    "tablas_vision_presentes": [
+      "modulo3.observaciones_vision",
+      "modulo9.calibraciones_vision",
+      "modulo9.lineas_base_vision"
+    ]
+  },
+  "commit_backend": "no disponible dentro del contenedor",
+  "parametros": {
+    "fuente": "ParametrosLineaBase — src/configuration/domain/entities/linea_base_vision.py; el router construye CalibrarVisionUseCase sin pasar `parametros`",
+    "vigentes_en_el_codigo": {
+      "min_observaciones": 30,
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 10
+    },
+    "usados_en_el_laboratorio": {
+      "min_observaciones": 30,
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 1
+    },
+    "N": 30,
+    "epsilon": 0.01,
+    "max_iteraciones": 1,
+    "min_datos_componente": 10,
+    "inyeccion": "__init__.__defaults__ del caso de uso, solo en memoria, revertida al cerrar"
+  },
+  "fixture": {
+    "origen": "sintético, sembrado por SQL en la base local y exclusiva del laboratorio",
+    "finca_id": 1,
+    "area_id": 1,
+    "area_activa": true,
+    "especie_id": 12,
+    "tipo_modelo_asignado": "MODELO_AVES",
+    "paradigma": "POBLACIONAL",
+    "camara_id": 1,
+    "camara_categoria": "CAMARA",
+    "camara_activa": true,
+    "fps_nominal": 30,
+    "camara_serial": "[SERIAL REDACTED]",
+    "usuario_id": 4,
+    "id_rol": 4,
+    "correo": "ingeniero.g140.lab@laboratorio-g140.co",
+    "permisos_sensores_crear_del_rol": 1,
+    "login": "PASS"
+  },
+  "baseline_setup": {
+    "ventana": {
+      "inicio": "2026-08-01T00:00:00Z",
+      "fin": "2026-08-01T04:00:00Z"
+    },
+    "lote": {
+      "total": 30,
+      "aceptadas": 30,
+      "duplicadas": 0,
+      "aptas": 30,
+      "indices_distintos": [
+        100
+      ]
+    },
+    "conteo_bd": {
+      "total": 30,
+      "aptas": 30
+    },
+    "request": {
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "ventana_observacion": {
+        "inicio": "2026-08-01T00:00:00Z",
+        "fin": "2026-08-01T04:00:00Z"
+      },
+      "observaciones": "QA TC-M09-286 setup de linea base previa",
+      "fecha_calibracion": "2026-10-11T01:08:51.769648+00:00"
+    },
+    "http": 201,
+    "response": {
+      "id_calibracion_vision": 1,
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "especie_id": 12,
+      "origen_disparo": "MANUAL",
+      "id_usuario": 4,
+      "ventana_observacion": {
+        "fin": "2026-08-01T04:00:00Z",
+        "inicio": "2026-08-01T00:00:00Z"
+      },
+      "fecha_calibracion": "2026-10-11T01:08:51.769648Z",
+      "estado": "EXITOSA",
+      "etapa_fallo": null,
+      "motivo": null,
+      "linea_base": {
+        "valores": {
+          "tasa_movimiento": 5.0,
+          "densidad_actividad": 10.0
+        },
+        "componentes_no_calibrables": []
+      },
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "iteraciones": 1,
+      "observaciones": "QA TC-M09-286 setup de linea base previa"
+    },
+    "nota": "POST de SETUP; se ejecuta con max_iteraciones = 1 ya inyectado",
+    "BASELINE_PRE_286_ID": 1,
+    "iteraciones": 1,
+    "verificacion_bd": {
+      "calibracion": [
+        {
+          "id_calibracion_vision": 1,
+          "estado": "EXITOSA",
+          "cantidad_observaciones": 30,
+          "cantidad_observaciones_validas": 30,
+          "iteraciones": 1
+        }
+      ],
+      "linea_base_vigente": [
+        {
+          "id_calibracion_vision": 1
+        }
+      ]
+    }
+  },
+  "oracle": {
+    "independiente": "oracle_g140.py no importa calcular_linea_base, recortar_p5_p95, mediana, percentil ni ningún módulo src.configuration/src.telemetry",
+    "parametros": {
+      "min_observaciones": 30,
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 1
+    },
+    "dataset_densidad_actividad": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      2.0,
+      4.0,
+      4.0,
+      4.0,
+      5.0,
+      5.0,
+      5.0,
+      6.0,
+      6.0,
+      8.0,
+      8.0,
+      8.0,
+      10.0,
+      20.0,
+      20.0,
+      20.0,
+      50.0,
+      50.0,
+      100.0,
+      100.0
+    ],
+    "dataset_tasa_movimiento": [
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      10.0,
+      20.0,
+      20.0,
+      20.0,
+      40.0,
+      40.0,
+      40.0,
+      50.0,
+      50.0,
+      50.0,
+      60.0,
+      60.0,
+      80.0,
+      80.0,
+      80.0,
+      100.0,
+      200.0,
+      200.0,
+      200.0,
+      500.0,
+      500.0,
+      1000.0,
+      1000.0
+    ],
+    "n_observaciones": 30,
+    "ORACLE_DESCARTE": {
+      "modo_recorte": "DESCARTE",
+      "estado": "NO_CONVERGIDA",
+      "etapa_fallo": "REFINAMIENTO",
+      "motivo": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "valores": {},
+      "componentes_no_calibrables": [],
+      "iteraciones": 1,
+      "traza": {
+        "modo_recorte": "DESCARTE",
+        "parametros": {
+          "min_observaciones": 30,
+          "cobertura_minima": 0.5,
+          "tracks_minimos": 1,
+          "min_datos_componente": 10,
+          "epsilon": 0.01,
+          "max_iteraciones": 1
+        },
+        "etapa_1": {
+          "entradas": 30,
+          "validas": 30,
+          "descartadas_por_aptitud": 0,
+          "descartadas_por_cobertura": 0,
+          "descartadas_por_tracks": 0,
+          "minimo_exigido": 30
+        },
+        "etapa_2": {
+          "densidad_actividad": {
+            "n_entrada": 30,
+            "p5": 1.0,
+            "p95": 77.49999999999986,
+            "n_tras_recorte": 28,
+            "min_datos_componente": 10,
+            "mediana_de_entrada": 5.0,
+            "mediana_tras_recorte": 4.5
+          },
+          "tasa_movimiento": {
+            "n_entrada": 30,
+            "p5": 10.0,
+            "p95": 774.9999999999986,
+            "n_tras_recorte": 28,
+            "min_datos_componente": 10,
+            "mediana_de_entrada": 50.0,
+            "mediana_tras_recorte": 45.0
+          }
+        },
+        "etapa_3": {
+          "mediana_inicial": {
+            "densidad_actividad": 4.5,
+            "tasa_movimiento": 45.0
+          },
+          "iteraciones": [
+            {
+              "iteracion": 1,
+              "componentes": {
+                "densidad_actividad": {
+                  "n_antes": 28,
+                  "n_despues": 26,
+                  "mediana_anterior": 4.5,
+                  "mediana_nueva": 4.0,
+                  "cambio_relativo": 0.1111111111111111
+                },
+                "tasa_movimiento": {
+                  "n_antes": 28,
+                  "n_despues": 26,
+                  "mediana_anterior": 45.0,
+                  "mediana_nueva": 40.0,
+                  "cambio_relativo": 0.1111111111111111
+                }
+              },
+              "cambio_maximo": 0.1111111111111111,
+              "epsilon": 0.01,
+              "convergio": false
+            }
+          ]
+        }
+      }
+    },
+    "ORACLE_WINSORIZACION": {
+      "modo_recorte": "WINSORIZACION",
+      "estado": "EXITOSA",
+      "etapa_fallo": null,
+      "motivo": null,
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "valores": {
+        "densidad_actividad": 5.0,
+        "tasa_movimiento": 50.0
+      },
+      "componentes_no_calibrables": [],
+      "iteraciones": 1,
+      "traza": {
+        "modo_recorte": "WINSORIZACION",
+        "parametros": {
+          "min_observaciones": 30,
+          "cobertura_minima": 0.5,
+          "tracks_minimos": 1,
+          "min_datos_componente": 10,
+          "epsilon": 0.01,
+          "max_iteraciones": 1
+        },
+        "etapa_1": {
+          "entradas": 30,
+          "validas": 30,
+          "descartadas_por_aptitud": 0,
+          "descartadas_por_cobertura": 0,
+          "descartadas_por_tracks": 0,
+          "minimo_exigido": 30
+        },
+        "etapa_2": {
+          "densidad_actividad": {
+            "n_entrada": 30,
+            "p5": 1.0,
+            "p95": 77.49999999999986,
+            "n_tras_recorte": 30,
+            "min_datos_componente": 10,
+            "mediana_de_entrada": 5.0,
+            "mediana_tras_recorte": 5.0
+          },
+          "tasa_movimiento": {
+            "n_entrada": 30,
+            "p5": 10.0,
+            "p95": 774.9999999999986,
+            "n_tras_recorte": 30,
+            "min_datos_componente": 10,
+            "mediana_de_entrada": 50.0,
+            "mediana_tras_recorte": 50.0
+          }
+        },
+        "etapa_3": {
+          "mediana_inicial": {
+            "densidad_actividad": 5.0,
+            "tasa_movimiento": 50.0
+          },
+          "iteraciones": [
+            {
+              "iteracion": 1,
+              "componentes": {
+                "densidad_actividad": {
+                  "n_antes": 30,
+                  "n_despues": 30,
+                  "mediana_anterior": 5.0,
+                  "mediana_nueva": 5.0,
+                  "cambio_relativo": 0.0
+                },
+                "tasa_movimiento": {
+                  "n_antes": 30,
+                  "n_despues": 30,
+                  "mediana_anterior": 50.0,
+                  "mediana_nueva": 50.0,
+                  "cambio_relativo": 0.0
+                }
+              },
+              "cambio_maximo": 0.0,
+              "epsilon": 0.01,
+              "convergio": true
+            }
+          ]
+        }
+      }
+    },
+    "resumen_descarte": {
+      "mediana_inicial": {
+        "densidad_actividad": 4.5,
+        "tasa_movimiento": 45.0
+      },
+      "mediana_tras_primera_iteracion": {
+        "densidad_actividad": 4.0,
+        "tasa_movimiento": 40.0
+      },
+      "cambio_relativo_maximo": 0.1111111111111111,
+      "epsilon": 0.01,
+      "convergencia": false
+    }
+  },
+  "dataset_no_convergente": {
+    "ventana": {
+      "inicio": "2026-08-02T00:00:00Z",
+      "fin": "2026-08-02T04:00:00Z"
+    },
+    "lote": {
+      "total": 30,
+      "aceptadas": 30,
+      "duplicadas": 0,
+      "aptas": 30,
+      "indices_distintos": [
+        100
+      ]
+    },
+    "conteo_bd": {
+      "total": 30,
+      "aptas": 30
+    },
+    "linea_base_vigente_antes": [
+      {
+        "id_calibracion_vision": 1
+      }
+    ]
+  },
+  "post_objetivo": {
+    "request": {
+      "modo_calibracion": "VISION",
+      "area_id": 1,
+      "ventana_observacion": {
+        "inicio": "2026-08-02T00:00:00Z",
+        "fin": "2026-08-02T04:00:00Z"
+      },
+      "observaciones": "QA TC-M09-286 no convergencia",
+      "fecha_calibracion": "2026-10-11T01:08:51.998893+00:00"
+    },
+    "http": 422,
+    "response": {
+      "error_code": "LINEA_BASE_NO_CALCULADA",
+      "message": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+      "fields": [],
+      "timestamp": "2026-10-11T01:08:52.035796+00:00"
+    },
+    "http_esperado": 422,
+    "error_code": "LINEA_BASE_NO_CALCULADA",
+    "message_obtenido": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+    "message_esperado": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+    "mensaje_exacto": "SÍ",
+    "veredicto": "CONFORME"
+  },
+  "verificacion_bd_intento": {
+    "calibraciones_del_intento": [
+      {
+        "id_calibracion_vision": 2,
+        "estado": "NO_CONVERGIDA",
+        "etapa_fallo": "REFINAMIENTO",
+        "motivo": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+        "json_linea_base": null,
+        "cantidad_observaciones": 30,
+        "cantidad_observaciones_validas": 30,
+        "iteraciones": 1,
+        "origen_disparo": "MANUAL",
+        "id_usuario": 4,
+        "json_ventana_observacion": {
+          "fin": "2026-08-02T04:00:00Z",
+          "inicio": "2026-08-02T00:00:00Z"
+        },
+        "observaciones": "QA TC-M09-286 no convergencia"
+      }
+    ],
+    "persistida": "SI",
+    "esperado": "una fila con estado NO_CONVERGIDA, etapa REFINAMIENTO, json_linea_base NULL, 30/30 observaciones e iteraciones 1",
+    "resumen": {
+      "id_calibracion_vision": 2,
+      "estado_esperado": "NO_CONVERGIDA",
+      "estado_obtenido": "NO_CONVERGIDA",
+      "etapa_esperada": "REFINAMIENTO",
+      "etapa_obtenida": "REFINAMIENTO",
+      "json_linea_base": null,
+      "cantidad_observaciones": 30,
+      "cantidad_observaciones_validas": 30,
+      "iteraciones": 1,
+      "motivo": "Sin convergencia tras 1 iteraciones (ε = 1%)."
+    }
+  },
+  "linea_base_post": {
+    "http": 200,
+    "api": {
+      "area_id": 1,
+      "especie_id": 12,
+      "id_calibracion_vision": 1,
+      "linea_base": {
+        "valores": {
+          "tasa_movimiento": 5.0,
+          "densidad_actividad": 10.0
+        },
+        "componentes_no_calibrables": []
+      },
+      "fecha_publicacion": "2026-10-11T01:08:51.769648Z"
+    },
+    "bd": [
+      {
+        "id_calibracion_vision": 1,
+        "json_valor": {
+          "valores": {
+            "tasa_movimiento": 5.0,
+            "densidad_actividad": 10.0
+          },
+          "componentes_no_calibrables": []
+        }
+      }
+    ],
+    "BASELINE_PRE_286_ID": 1,
+    "conservada": "SÍ",
+    "historial": {
+      "total": 2,
+      "items": [
+        {
+          "id_calibracion_vision": 2,
+          "modo_calibracion": "VISION",
+          "area_id": 1,
+          "especie_id": 12,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4,
+          "ventana_observacion": {
+            "fin": "2026-08-02T04:00:00Z",
+            "inicio": "2026-08-02T00:00:00Z"
+          },
+          "fecha_calibracion": "2026-10-11T01:08:51.998893Z",
+          "estado": "NO_CONVERGIDA",
+          "etapa_fallo": "REFINAMIENTO",
+          "motivo": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+          "linea_base": null,
+          "n_observaciones": 30,
+          "n_observaciones_validas": 30,
+          "iteraciones": 1,
+          "observaciones": "QA TC-M09-286 no convergencia"
+        },
+        {
+          "id_calibracion_vision": 1,
+          "modo_calibracion": "VISION",
+          "area_id": 1,
+          "especie_id": 12,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4,
+          "ventana_observacion": {
+            "fin": "2026-08-01T04:00:00Z",
+            "inicio": "2026-08-01T00:00:00Z"
+          },
+          "fecha_calibracion": "2026-10-11T01:08:51.769648Z",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 5.0,
+              "densidad_actividad": 10.0
+            },
+            "componentes_no_calibrables": []
+          },
+          "n_observaciones": 30,
+          "n_observaciones_validas": 30,
+          "iteraciones": 1,
+          "observaciones": "QA TC-M09-286 setup de linea base previa"
+        }
+      ]
+    }
+  },
+  "auditoria_rf10": {
+    "eventos_vision_recientes": [
+      {
+        "estado": "PROCESADO",
+        "modulo": "MODULO9",
+        "detalle": {
+          "ip": "testclient",
+          "estado": "NO_CONVERGIDA",
+          "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+          "operacion": "CALIBRACION_VISION",
+          "id_especie": 12,
+          "user_agent": "testclient",
+          "codigo_http": 422,
+          "etapa_fallo": "REFINAMIENTO",
+          "codigo_error": "LINEA_BASE_NO_CALCULADA",
+          "motivo_etapa": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+          "id_infraestructura": 1,
+          "id_calibracion_vision": 2
+        },
+        "categoria": "MODIFICACION",
+        "id_evento": 3,
+        "id_sesion": 1,
+        "resultado": "fallido",
+        "id_usuario": 4,
+        "user_agent": "testclient",
+        "descripcion": "Calibración por visión rechazada (HTTP 422 LINEA_BASE_NO_CALCULADA)",
+        "tipo_evento": 29,
+        "direccion_ip": "testclient",
+        "fecha_evento": "2026-10-11T01:08:52.029897+00:00",
+        "nombre_usuario": "Ingeniero Laboratorio Local",
+        "hash_integridad": "9424d01fc1c5ee966542362b23fa435a6aa6f2cf8027cce35e736b9dacd543b0"
+      },
+      {
+        "estado": "PROCESADO",
+        "modulo": "MODULO9",
+        "detalle": {
+          "ip": "testclient",
+          "estado": "EXITOSA",
+          "motivo": null,
+          "operacion": "CALIBRACION_VISION",
+          "id_especie": 12,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 5.0,
+              "densidad_actividad": 10.0
+            },
+            "componentes_no_calibrables": []
+          },
+          "user_agent": "testclient",
+          "etapa_fallo": null,
+          "iteraciones": 1,
+          "origen_disparo": "MANUAL",
+          "n_observaciones": 30,
+          "id_infraestructura": 1,
+          "ventana_observacion": {
+            "fin": "2026-08-01T04:00:00Z",
+            "inicio": "2026-08-01T00:00:00Z"
+          },
+          "id_calibracion_vision": 1,
+          "n_observaciones_validas": 30
+        },
+        "categoria": "MODIFICACION",
+        "id_evento": 2,
+        "id_sesion": 1,
+        "resultado": "exitoso",
+        "id_usuario": 4,
+        "user_agent": "testclient",
+        "descripcion": "Línea base por visión publicada para el área 1",
+        "tipo_evento": 30,
+        "direccion_ip": "testclient",
+        "fecha_evento": "2026-10-11T01:08:51.890942+00:00",
+        "nombre_usuario": "Ingeniero Laboratorio Local",
+        "hash_integridad": "31a04a7d41d4d4df3d1009986c3d9d6816c7a746c4aaaac38d58c7e917aeddd4"
+      }
+    ],
+    "evento_del_intento": [
+      {
+        "estado": "PROCESADO",
+        "modulo": "MODULO9",
+        "detalle": {
+          "ip": "testclient",
+          "estado": "NO_CONVERGIDA",
+          "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+          "operacion": "CALIBRACION_VISION",
+          "id_especie": 12,
+          "user_agent": "testclient",
+          "codigo_http": 422,
+          "etapa_fallo": "REFINAMIENTO",
+          "codigo_error": "LINEA_BASE_NO_CALCULADA",
+          "motivo_etapa": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+          "id_infraestructura": 1,
+          "id_calibracion_vision": 2
+        },
+        "categoria": "MODIFICACION",
+        "id_evento": 3,
+        "id_sesion": 1,
+        "resultado": "fallido",
+        "id_usuario": 4,
+        "user_agent": "testclient",
+        "descripcion": "Calibración por visión rechazada (HTTP 422 LINEA_BASE_NO_CALCULADA)",
+        "tipo_evento": 29,
+        "direccion_ip": "testclient",
+        "fecha_evento": "2026-10-11T01:08:52.029897+00:00",
+        "nombre_usuario": "Ingeniero Laboratorio Local",
+        "hash_integridad": "9424d01fc1c5ee966542362b23fa435a6aa6f2cf8027cce35e736b9dacd543b0"
+      }
+    ],
+    "registrada": "SÍ",
+    "resumen_del_intento": {
+      "id_evento": 3,
+      "tipo_evento": 29,
+      "resultado": "fallido",
+      "modulo": "MODULO9",
+      "id_usuario": 4,
+      "direccion_ip": "PRESENTE",
+      "fecha_evento": "2026-10-11T01:08:52.029897+00:00",
+      "operacion": "CALIBRACION_VISION",
+      "area": 1,
+      "especie": 12,
+      "estado": "NO_CONVERGIDA",
+      "etapa": "REFINAMIENTO",
+      "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 1 y especie 12. Se conserva la línea base vigente anterior.",
+      "motivo_etapa": "Sin convergencia tras 1 iteraciones (ε = 1%).",
+      "codigo_http": 422,
+      "codigo_error": "LINEA_BASE_NO_CALCULADA",
+      "id_calibracion_vision": 2
+    }
+  },
+  "cuadro_tc286": [
+    {
+      "criterio": "Ambiente",
+      "esperado": "LOCAL",
+      "obtenido": "LOCAL AISLADO (sgpmp_g140_lab)"
+    },
+    {
+      "criterio": "max_iteraciones",
+      "esperado": 1,
+      "obtenido": 1
+    },
+    {
+      "criterio": "Cambio tras iteración",
+      "esperado": ">= epsilon (0.01)",
+      "obtenido": 0.1111111111111111
+    },
+    {
+      "criterio": "HTTP",
+      "esperado": 422,
+      "obtenido": 422
+    },
+    {
+      "criterio": "error_code",
+      "esperado": "LINEA_BASE_NO_CALCULADA",
+      "obtenido": "LINEA_BASE_NO_CALCULADA"
+    },
+    {
+      "criterio": "estado",
+      "esperado": "NO_CONVERGIDA",
+      "obtenido": "NO_CONVERGIDA"
+    },
+    {
+      "criterio": "etapa_fallo",
+      "esperado": "REFINAMIENTO",
+      "obtenido": "REFINAMIENTO"
+    },
+    {
+      "criterio": "iteraciones",
+      "esperado": 1,
+      "obtenido": 1
+    },
+    {
+      "criterio": "baseline previa conservada",
+      "esperado": "SÍ",
+      "obtenido": "SÍ"
+    }
+  ],
+  "resultado": {
+    "TC-M09-286": "APROBADO",
+    "incidencia_requerida": "NO",
+    "nota": "el estado NO_CONVERGIDA con etapa REFINAMIENTO es el esperado oficial de la matriz QA actualizada (§0 y §57 del paquete); no se abre incidencia por el"
+  },
+  "nota_g139": {
+    "contexto": "§61 - en TEST se observo que una calibracion VISION no exitosa devolvia 400 VALOR_NO_PERMITIDO por ck_calibracion_vision_resultado_coherente",
+    "en_el_laboratorio": "no se reprodujo: el intento respondio HTTP 422",
+    "fila_persistida": {
+      "id_calibracion_vision": 2,
+      "estado_esperado": "NO_CONVERGIDA",
+      "estado_obtenido": "NO_CONVERGIDA",
+      "etapa_esperada": "REFINAMIENTO",
+      "etapa_obtenida": "REFINAMIENTO",
+      "json_linea_base": null,
+      "cantidad_observaciones": 30,
+      "cantidad_observaciones_validas": 30,
+      "iteraciones": 1,
+      "motivo": "Sin convergencia tras 1 iteraciones (ε = 1%)."
+    }
+  },
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO — redactado por patrón",
+    "database_url_con_password": "NO — solo la versión sanitizada",
+    "sql_dml_en_test": 0,
+    "sql_dml_en_laboratorio": "siembra del fixture, autorizada en base local y exclusiva"
+  }
+}

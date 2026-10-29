@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional
 
 import pytest
 
@@ -38,11 +40,24 @@ class _OrmFake:
     id_especie: int = 4
     es_activo: bool = True
     fecha_actualizacion: datetime = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    valor_min: Optional[Decimal] = Decimal('20.0000')
+    valor_max: Optional[Decimal] = Decimal('40.0000')
 
 
 def test_a_entidad_reconstruye_dato_legacy_con_guion_bajo():
     entidad = SqlAlchemyMetricaProduccionRepository._a_entidad(_OrmFake())
     assert entidad.nombre.valor == 'peso_destete'
+
+
+def test_a_entidad_lleva_el_rango_valor_min_valor_max():
+    # TC-M02-G12 (#460): el rango configurado debe llegar a la entidad para poder exponerse en la API.
+    entidad = SqlAlchemyMetricaProduccionRepository._a_entidad(_OrmFake())
+    assert (entidad.valor_min, entidad.valor_max) == (Decimal('20'), Decimal('40'))
+
+
+def test_a_entidad_metrica_sin_rango_deja_none():
+    entidad = SqlAlchemyMetricaProduccionRepository._a_entidad(_OrmFake(valor_min=None, valor_max=None))
+    assert (entidad.valor_min, entidad.valor_max) == (None, None)
 
 
 def test_a_entidad_valor_legacy_no_mapeado_da_validation_error_no_500():

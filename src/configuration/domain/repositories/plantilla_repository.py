@@ -12,6 +12,7 @@ from src.configuration.domain.entities.plantilla import Plantilla
 
 
 class PlantillaRepository(ABC):
+    """Contrato de acceso a datos para :class:`Plantilla` (versionadas por nombre)."""
 
     @abstractmethod
     def obtener_por_id(self, id_plantilla: int) -> Optional[Plantilla]:

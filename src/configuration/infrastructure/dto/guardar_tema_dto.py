@@ -5,6 +5,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class GuardarTemaDTO(BaseDTO):
+    """``theme_mode``: 1 claro, 2 oscuro, 3 según el sistema operativo."""
     theme_mode: int
 
     @field_validator("theme_mode")

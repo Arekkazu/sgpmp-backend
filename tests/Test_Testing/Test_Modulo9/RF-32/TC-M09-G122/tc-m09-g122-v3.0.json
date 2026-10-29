@@ -1,0 +1,175 @@
+{
+  "info": {
+    "_postman_id": "b8d3f2a0-4c6e-4a89-9d21-tc09122v30",
+    "name": "TC-M09-G122 v3.0 - Validacion del estado de la plantilla a aplicar (fix confirmado en codigo)",
+    "description": "Retest de TC-M09-G122 (TC-235/236). El retest v2.0 (2026-09-12) confirmo el defecto: el sistema aplicaba una version SUPERADA de una plantilla exactamente igual que la vigente (200 OK en ambas), sin ninguna restriccion. Antes de correr esta v3.0 se releyo el codigo fuente y se encontro que ya se agrego la correccion: `AplicarPlantillaUseCase._ejecutar` (INC-M09-03-122 / #317) ahora compara la version de la plantilla contra `plantilla_repo.obtener_ultima_version(template_name)` y, si no coincide, lanza `BusinessRuleError(code='PLANTILLA_VERSION_NO_VIGENTE')` -- que el manejador global de AppError traduce a HTTP 422. Esta version deja de conformarse con 'no responder 200' (como hacia la v2.0, cuando no habia ningun codigo de error que verificar) y ahora exige el status 422 y el error_code exactos que el codigo produce. Ademas, en vez de mandar `fecha_actualizacion_especie_destino: null` a ciegas (en la v2.0 eso solo funcionaba porque la especie destino elegida por casualidad tenia ese campo en null), esta version captura el valor real de la especie destino (paso 0B) y lo reenvia tal cual como JSON valido (null o la fecha entre comillas), para no arriesgar un 409 CONFLICTO_CONCURRENCIA espurio si esta vez la especie elegida si tiene fecha_actualizacion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_origen", "value": "" },
+    { "key": "id_especie_destino", "value": "" },
+    { "key": "fecha_actualizacion_json", "value": "null" },
+    { "key": "id_plantilla_v1", "value": "" },
+    { "key": "id_plantilla_v2", "value": "" },
+    { "key": "nombre_ciclo_v1", "value": "" },
+    { "key": "nombre_ciclo_v2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener 2 especies activas distintas (origen y destino)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos 2 especies activas', function () { pm.expect(body.items.length).to.be.above(1); });",
+        "if (body.items && body.items.length > 1) {",
+        "    pm.collectionVariables.set('id_especie_origen', body.items[0].id_especie);",
+        "    var destino = body.items[1];",
+        "    pm.collectionVariables.set('id_especie_destino', destino.id_especie);",
+        "",
+        "    // FIX v3.0: se captura el valor REAL de fecha_actualizacion de la especie",
+        "    // destino -- puede ser null o una fecha -- y se guarda ya serializado a",
+        "    // JSON valido (con comillas si es texto, o el literal null), para poder",
+        "    // insertarlo tal cual en el body crudo con {{fecha_actualizacion_json}}",
+        "    // sin depender de logica condicional que Postman no soporta ahi.",
+        "    var fechaValor = destino.fecha_actualizacion;",
+        "    var fechaJson = (fechaValor === null || fechaValor === undefined) ? 'null' : JSON.stringify(fechaValor);",
+        "    pm.collectionVariables.set('fecha_actualizacion_json', fechaJson);",
+        "    console.log('Especie destino elegida: id=' + destino.id_especie + ' fecha_actualizacion=' + fechaValor);",
+        "",
+        "    var ts = Date.now();",
+        "    pm.collectionVariables.set('nombre_ciclo_v1', 'Etapa V1 Test G122 ' + ts);",
+        "    pm.collectionVariables.set('nombre_ciclo_v2', 'Etapa V2 Test G122 ' + ts);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Crear plantilla v1 (version 1, sera superada)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR V1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('1 - la plantilla v1 se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_v1', pm.response.json().id_plantilla); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-G122-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_origen}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [\n      { \"nombre\": \"{{nombre_ciclo_v1}}\", \"duracion_dias\": 30 }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. Versionar la plantilla (crea version 2, vigente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[VERSIONAR -> V2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('2 - la version 2 se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_v2', body.id_plantilla);",
+        "    pm.test('2 - la nueva plantilla queda en version 2', function () { pm.expect(body.version).to.eql(2); });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [\n      { \"nombre\": \"{{nombre_ciclo_v2}}\", \"duracion_dias\": 45 }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/versiones"
+      }
+    },
+    {
+      "name": "3. TC-M09-235 v3.0 - Impedir aplicacion de una plantilla inexistente (404)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-235] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-235 v3.0 - aplicar un id de plantilla inexistente debe rechazarse con 404', function () {",
+        "    pm.response.to.have.status(404);",
+        "});",
+        "if (pm.response.code === 404) {",
+        "    var err = pm.response.json();",
+        "    pm.test('3 - el error trae el codigo PLANTILLA_NO_ENCONTRADA', function () {",
+        "        pm.expect(err.error_code).to.eql('PLANTILLA_NO_ENCONTRADA');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": {{fecha_actualizacion_json}}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/999999/aplicar"
+      }
+    },
+    {
+      "name": "4. TC-M09-236 v3.0 - Impedir aplicacion de la version SUPERADA (v1, no vigente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-236 - v1 superada] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 500) { console.log('OBSERVACION: 500 -- seria el defecto general de vuelta (deberia estar corregido desde TC-M09-G116).'); }",
+        "if (pm.response.code === 200) { console.log('El sistema SI permitio aplicar la version superada (v1). El fix de INC-M09-03-122 no esta activo / regreso.'); }",
+        "if (pm.response.code === 409) { console.log('OBSERVACION: 409 podria ser CONFLICTO_CONCURRENCIA en vez del rechazo por version superada; revisar el body de la respuesta.'); }",
+        "",
+        "// FIX v3.0: en la v2.0 esta asercion solo exigia 'no 200', porque en ese",
+        "// momento el codigo no tenia ningun rechazo especifico que verificar. Ahora",
+        "// que se confirmo leyendo el codigo (aplicar_plantilla_use_case.py, comentario",
+        "// INC-M09-03-122 / #317) que el rechazo es BusinessRuleError -> HTTP 422 con",
+        "// error_code PLANTILLA_VERSION_NO_VIGENTE, se exige exactamente eso.",
+        "pm.test('TC-M09-236 v3.0 - aplicar una version SUPERADA (no vigente) de una plantilla debe rechazarse con 422 PLANTILLA_VERSION_NO_VIGENTE', function () {",
+        "    pm.response.to.have.status(422);",
+        "});",
+        "if (pm.response.code === 422) {",
+        "    var err = pm.response.json();",
+        "    pm.test('4 - el error trae el codigo PLANTILLA_VERSION_NO_VIGENTE', function () {",
+        "        pm.expect(err.error_code).to.eql('PLANTILLA_VERSION_NO_VIGENTE');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": {{fecha_actualizacion_json}}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/aplicar"
+      }
+    },
+    {
+      "name": "5. Control - aplicar la version VIGENTE (v2) sobre una especie limpia",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONTROL - v2 vigente] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 409) { console.log('OBSERVACION: 409 sugiere que fecha_actualizacion_json no coincidio con el valor real actual -- revisar la captura del paso 0B.'); }",
+        "pm.test('5 (control) - aplicar la version vigente (v2) de la plantilla debe responder 200 OK', function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "if (pm.response.code === 200) {",
+        "    var b = pm.response.json();",
+        "    var nombres = (b.after_snapshot.ciclos_biologicos || []).map(function(c) { return c.nombre; });",
+        "    pm.test('5 - el after_snapshot refleja el ciclo de la version 2 (no el de la v1)', function () {",
+        "        pm.expect(nombres).to.include(pm.collectionVariables.get('nombre_ciclo_v2'));",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": {{fecha_actualizacion_json}}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v2}}/aplicar"
+      }
+    }
+  ]
+}

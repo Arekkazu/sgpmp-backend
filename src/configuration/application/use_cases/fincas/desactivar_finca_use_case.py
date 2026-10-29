@@ -12,6 +12,9 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class DesactivarFincaUseCase:
+    """Desactiva una finca sin dispositivos IoT ni activos biológicos activos (422 si
+    los tiene).
+    """
 
     def __init__(
         self,

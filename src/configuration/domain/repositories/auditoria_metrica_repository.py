@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 
 class AuditoriaMetricaRepository(ABC):
+    """Contrato de la auditoría de métricas de producción."""
 
     @abstractmethod
     def registrar(

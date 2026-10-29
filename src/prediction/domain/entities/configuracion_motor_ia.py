@@ -5,12 +5,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
+from src.shared.tipo_modelo import paradigma_de
+
 
 @dataclass(eq=False)
 class ConfiguracionMotorIA:
     tipo_modelo: str
-    umbral_riesgo_alto: Decimal
-    umbral_alerta_critica: Decimal
+    # RF-65 v2.0 (RFC-009): solo INDIVIDUAL/META; POBLACIONAL usa umbral_score_anomalia.
+    umbral_riesgo_alto: Optional[Decimal]
+    umbral_alerta_critica: Optional[Decimal]
     ventana_temporal_min: int
     modo_ejecucion: str
     w_factor_sanitario: Decimal
@@ -27,14 +30,21 @@ class ConfiguracionMotorIA:
     hr_max_config: Optional[Decimal] = None
     densidad_maxima_config: Optional[Decimal] = None
     fecha_creacion: Optional[datetime] = None
+    umbral_score_anomalia: Optional[Decimal] = None
+    # POBLACIONAL: componente -> id_version ACTIVO (reemplaza id_version_modelo_activa).
+    versiones_activas_por_componente: Optional[dict[str, int]] = None
+
+    @property
+    def paradigma(self) -> Optional[str]:
+        return paradigma_de(self.tipo_modelo)
 
     @classmethod
     def crear(
         cls,
         *,
         tipo_modelo: str,
-        umbral_riesgo_alto: Decimal,
-        umbral_alerta_critica: Decimal,
+        umbral_riesgo_alto: Optional[Decimal],
+        umbral_alerta_critica: Optional[Decimal],
         ventana_temporal_min: int,
         modo_ejecucion: str,
         w_factor_sanitario: Decimal,
@@ -47,6 +57,8 @@ class ConfiguracionMotorIA:
         hr_min_config: Optional[Decimal] = None,
         hr_max_config: Optional[Decimal] = None,
         densidad_maxima_config: Optional[Decimal] = None,
+        umbral_score_anomalia: Optional[Decimal] = None,
+        versiones_activas_por_componente: Optional[dict[str, int]] = None,
     ) -> ConfiguracionMotorIA:
         return cls(
             tipo_modelo=tipo_modelo,
@@ -64,6 +76,8 @@ class ConfiguracionMotorIA:
             hr_min_config=hr_min_config,
             hr_max_config=hr_max_config,
             densidad_maxima_config=densidad_maxima_config,
+            umbral_score_anomalia=umbral_score_anomalia,
+            versiones_activas_por_componente=versiones_activas_por_componente,
             config_version=1,
             es_activa=True,
         )
@@ -71,8 +85,8 @@ class ConfiguracionMotorIA:
     def actualizar(
         self,
         *,
-        umbral_riesgo_alto: Decimal,
-        umbral_alerta_critica: Decimal,
+        umbral_riesgo_alto: Optional[Decimal],
+        umbral_alerta_critica: Optional[Decimal],
         ventana_temporal_min: int,
         modo_ejecucion: str,
         w_factor_sanitario: Decimal,
@@ -85,6 +99,8 @@ class ConfiguracionMotorIA:
         hr_min_config: Optional[Decimal] = None,
         hr_max_config: Optional[Decimal] = None,
         densidad_maxima_config: Optional[Decimal] = None,
+        umbral_score_anomalia: Optional[Decimal] = None,
+        versiones_activas_por_componente: Optional[dict[str, int]] = None,
     ) -> None:
         self.umbral_riesgo_alto = umbral_riesgo_alto
         self.umbral_alerta_critica = umbral_alerta_critica
@@ -100,13 +116,18 @@ class ConfiguracionMotorIA:
         self.hr_min_config = hr_min_config
         self.hr_max_config = hr_max_config
         self.densidad_maxima_config = densidad_maxima_config
+        self.umbral_score_anomalia = umbral_score_anomalia
+        self.versiones_activas_por_componente = versiones_activas_por_componente
         self.config_version += 1
 
     def _snapshot(self) -> dict:
         return {
             "tipo_modelo": self.tipo_modelo,
-            "umbral_riesgo_alto": str(self.umbral_riesgo_alto),
-            "umbral_alerta_critica": str(self.umbral_alerta_critica),
+            "paradigma": self.paradigma,
+            "umbral_riesgo_alto": str(self.umbral_riesgo_alto) if self.umbral_riesgo_alto is not None else None,
+            "umbral_alerta_critica": str(self.umbral_alerta_critica) if self.umbral_alerta_critica is not None else None,
+            "umbral_score_anomalia": str(self.umbral_score_anomalia) if self.umbral_score_anomalia is not None else None,
+            "versiones_activas_por_componente": self.versiones_activas_por_componente,
             "ventana_temporal_min": self.ventana_temporal_min,
             "modo_ejecucion": self.modo_ejecucion,
             "id_version_modelo_activa": self.id_version_modelo_activa,

@@ -14,6 +14,9 @@ from src.configuration.domain.entities.identidad_visual import IdentidadVisual
 
 @dataclass
 class ContextoInterfaz:
+    """Contexto de la interfaz adaptativa (RF-25): usuario, rol, finca activa, especies,
+    módulos autorizados e identidad visual.
+    """
     id_usuario: int
     nombre_completo: str
     id_rol: int

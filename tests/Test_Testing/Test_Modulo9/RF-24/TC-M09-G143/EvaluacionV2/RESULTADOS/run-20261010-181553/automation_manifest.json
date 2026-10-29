@@ -1,0 +1,121 @@
+{
+  "run_id": "run-20261010-181553",
+  "grupo": "TC-M09-G143",
+  "execution_number": 2,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX",
+  "ambientes": {
+    "TC-M09-290": "TEST",
+    "TC-M09-291": "TEST",
+    "TC-M09-292": "LOCAL AISLADO"
+  },
+  "herramientas": "Newman (ejecutor) + Pytest TEST (verificador) + Pytest LOCAL (orquestador)",
+  "informe": "TC-M09-G143_reevaluacion_V2.md",
+  "referencia_backend": "origin/test 4f09cb6953843cbab06319000c14d1b30feb8a56",
+  "correcciones_verificadas": {
+    "PR_553": "detalle.id_especie en rechazos tempranos",
+    "PR_554": "disparo automático M02 → M09"
+  },
+  "nota": "los scripts no se copian dentro del RUN: aquí va su SHA-256. Todas las fuentes son anteriores al artefacto que produjeron, así que estos hashes describen la automatización efectivamente utilizada en la ejecución 2.",
+  "nota_generacion": "el manifest se genera desde el host. El escritor anterior corría DENTRO del contenedor del laboratorio, donde /app es el snapshot de origin/test: escribía allí y solo veía los 3 ficheros copiados, así que dejaba el manifest del repositorio sin actualizar e incompleto.",
+  "automatizacion": [
+    {
+      "path": "EvaluacionV2/automation/TC-M09-G143.postman_collection.json",
+      "funcion": "colección oficial: ejecuta TC-290 y TC-291 en TEST",
+      "bytes": 68835,
+      "sha256": "55273703844863291d87e74e02c4934a7ff8c2cffa50676699a96482ed1a2b5c",
+      "modificado": "2026-10-11T06:35:15.789461+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/TC-M09-G143.precheck.postman_collection.json",
+      "funcion": "precheck de solo lectura del arnés",
+      "bytes": 19155,
+      "sha256": "0a51ab682a9706dfb9a893b63cfcdeab4a27634bce6d2206f2402a1019b57259",
+      "modificado": "2026-10-10T23:14:16.875077+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/run-g143-v2.cjs",
+      "funcion": "runner Newman: guardas estáticas, presupuestos y reportes",
+      "bytes": 13400,
+      "sha256": "f03b39e66a788852d9d23d23e89b4271709d0837d18fce5cf30d42744d685516",
+      "modificado": "2026-10-11T06:33:54.545942+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/test_g143_test.py",
+      "funcion": "verificador independiente de TEST (solo lectura)",
+      "bytes": 35655,
+      "sha256": "2d7f8f0212cf18aaf5b42f0d1ba8aa6dbd1daf0c65d9f988e72523df9293c9d3",
+      "modificado": "2026-10-11T06:44:15.671242+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/test_g143_local.py",
+      "funcion": "orquestador del laboratorio LOCAL AISLADO de TC-292",
+      "bytes": 42352,
+      "sha256": "89923f17879e03396e9c8527f3408c6feeffd404d4a975f2cf97c7b19b21d527",
+      "modificado": "2026-10-11T06:37:47.004220+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/docker-compose.g143-local.yml",
+      "funcion": "definición del laboratorio LOCAL AISLADO",
+      "bytes": 5863,
+      "sha256": "6c30281496cc5a0844d3332791e0b967ceb5209ff708f76fb31e7c72a08a76fc",
+      "modificado": "2026-10-11T06:38:01.757685+00:00"
+    },
+    {
+      "path": "EvaluacionV2/automation/init-roles.g143-local.sql",
+      "funcion": "roles que las migraciones esperan en el laboratorio",
+      "bytes": 996,
+      "sha256": "6ef61e2c265cd94982365fd40b75d10cfe44e5cad57a061d6db79cdeecf9743c",
+      "modificado": "2026-10-10T23:18:26.858821+00:00"
+    }
+  ],
+  "artefactos_resultados": [
+    {
+      "archivo": "backend-local.log",
+      "bytes": 3246,
+      "sha256": "66260f865fbc748a4fe55a28bf380f73e8b0d010e65c71ded103b2eea5481543",
+      "generado": "2026-10-11T06:41:06.487393+00:00"
+    },
+    {
+      "archivo": "evidencia-local.json",
+      "bytes": 14575,
+      "sha256": "aaf70d8dc764d98dddcf03d45f52655f59670d45d1f132e975754a8a0c746bde",
+      "generado": "2026-10-11T06:41:06.449252+00:00"
+    },
+    {
+      "archivo": "evidencia-test.json",
+      "bytes": 19618,
+      "sha256": "695940716a10800a0ca32ff0c8531f635d0c1c2c9f21e6dc2d3aa85b51249944",
+      "generado": "2026-10-11T06:48:45.131688+00:00"
+    },
+    {
+      "archivo": "newman/newman-TC-M09-G143.html",
+      "bytes": 350756,
+      "sha256": "fa4175eb58cea725073bc6de4064825fff99eb4ae7a8bbc5142c1be0af8b1ded",
+      "generado": "2026-10-11T06:36:41.386863+00:00"
+    },
+    {
+      "archivo": "newman-resumen.json",
+      "bytes": 5400,
+      "sha256": "c6bcb5128bb7fb89ed593aefa3b2af1279abb8a3e6993c53e2d17fac41126c72",
+      "generado": "2026-10-11T06:36:41.400863+00:00"
+    },
+    {
+      "archivo": "pytest-local.xml",
+      "bytes": 2353,
+      "sha256": "70132e7b5bdf983130a0e45356668c09c7b74b48da21f30018c1f994130379b2",
+      "generado": "2026-10-11T06:41:06.459344+00:00"
+    },
+    {
+      "archivo": "pytest-test.xml",
+      "bytes": 1809,
+      "sha256": "f0c549ebf6c16ef798573d41d86e30e52e199b63a54373405a826bbab8a005ac",
+      "generado": "2026-10-11T06:48:45.133195+00:00"
+    },
+    {
+      "archivo": "TC-M09-G143_reevaluacion_V2.md",
+      "bytes": 33253,
+      "sha256": "efba276768985895d45bedc4b32160390401fd6aac5119b580b225675d2d2bde",
+      "generado": "2026-10-11T06:48:01.371439+00:00"
+    }
+  ]
+}

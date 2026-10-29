@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-10-09T22:24:01.468Z",
+    "end": "2026-10-09T22:24:12.372Z",
+    "duration": 10904,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "b1f32f84-f675-44fb-b847-70de57f4cae3",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo1\\RF-10\\TC-M01-74\\tc_m01_074_rev4.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo1\\RF-10\\TC-M01-74\\tc_m01_074_rev4.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "ab8d458f-c389-4bfa-a3c0-69180a4e416c",
+          "title": "TC-M01-074 rev4 TEST - exportar auditoría offline",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "online, offline y recuperación de Exportar CSV en auditoría TEST",
+              "fullTitle": "TC-M01-074 rev4 TEST - exportar auditoría offline online, offline y recuperación de Exportar CSV en auditoría TEST",
+              "timedOut": null,
+              "duration": 10855,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const correo = Cypress.env('correo') || 'admin@pecuaria.co';\nconst contrasena = Cypress.env('contrasena');\nexpect(contrasena, 'contrasena via Cypress.env (no hardcodear)').to.be.a('string').and.not.empty;\nnotas.usuario = correo;\ncy.intercept({\n  method: 'POST',\n  url: POST_LOGIN\n}).as('login');\ncy.intercept({\n  method: 'POST',\n  url: POST_REFRESH\n}, req => {\n  req.continue(res => {\n    notas.refreshLlamadas.push({\n      status: res.statusCode,\n      url: String(req.url || '').replace(/([?&]token=)[^&]+/gi, '$1[REDACTED]')\n    });\n  });\n}).as('refresh');\ncy.intercept({\n  method: 'GET',\n  url: GET_AUDITORIA\n}, req => {\n  req.continue(res => {\n    notas.getAuditoria.push({\n      status: res.statusCode\n    });\n  });\n}).as('getAuditoria');\ncy.intercept({\n  method: 'GET',\n  url: GET_EXPORTAR\n}, req => {\n  notas.exportApiHits.push({\n    when: new Date().toISOString(),\n    url: String(req.url || '').split('?')[0]\n  });\n  req.continue();\n}).as('exportarCsv');\nnotas.exportApiHitsOnlineBaseline = 0;\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"], input[name=\"correo_electronico\"]').first().should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').first().should('be.visible').clear().type(contrasena, {\n  log: false,\n  parseSpecialCharSequences: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar|iniciar sesión|login/i).click();\nnotas.logins += 1;\ncy.wait('@login').then(intc => {\n  notas.loginHttp = intc.response ? intc.response.statusCode : null;\n  if (notas.loginHttp !== 200) {\n    notas.clasificacion = 'BLOQUEADO';\n    notas.notaAuth = `Login HTTP ${notas.loginHttp}. No se evalua Exportar CSV.`;\n    notas.escenario = 'AUTH';\n  }\n  expect(notas.loginHttp, 'login un intento').to.eq(200);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\ncy.contains(/Panel principal|Auditoría|Configuración/i, {\n  timeout: 20000\n}).should('exist');\ncy.screenshot('074-rev4-01-dashboard');\ncy.contains('a, button, [role=\"button\"]', /^Auditoría$/i).should('be.visible').click();\ncy.url({\n  timeout: 20000\n}).then(u => {\n  notas.urlTrasNavegar = u;\n  if (u.includes('/login')) {\n    notas.clasificacion = 'BLOQUEADO';\n    notas.notaAuth = 'Redirect a /login al navegar Auditoría, antes de offline.';\n    notas.escenario = 'NAV';\n  }\n});\ncy.url().should('include', '/auditoria');\ncy.url().should('not.include', '/login');\ncy.contains('h1', /Auditoría/i).should('be.visible');\ncy.wait('@getAuditoria').then(intc => {\n  const st = intc.response ? intc.response.statusCode : null;\n  expect(st, 'GET auditoria online').to.be.oneOf([200, 206]);\n});\ncy.get('table tbody tr', {\n  timeout: 20000\n}).should('have.length.greaterThan', 0);\ncy.contains('button', /Exportar CSV|Export CSV/i).scrollIntoView().should('be.visible').then($btn => {\n  notas.online = snapshotBoton($btn);\n  expect(notas.online.disabledProp, 'online: Exportar habilitado si hay eventos').to.eq(false);\n});\ncy.screenshot('074-rev4-02-online-exportar');\ncy.get('@exportarCsv.all').then(calls => {\n  notas.exportApiHitsOnlineBaseline = (calls || []).length;\n});\ncy.window().then(win => {\n  notas.onLineAntes = win.navigator.onLine;\n  expect(notas.onLineAntes, 'antes de emular: online').to.eq(true);\n  const origCreate = win.URL.createObjectURL.bind(win.URL);\n  notas.blobUrlCallsOffline = 0;\n  win.URL.createObjectURL = function blobProbe() {\n    notas.blobUrlCallsOffline += 1;\n    return origCreate.apply(win.URL, arguments);\n  };\n  return cdpNetwork(true).then(() => {\n    notas.cdpOfflineOk = true;\n  }).catch(err => {\n    notas.cdpOfflineOk = false;\n    notas.cdpOfflineError = String(err && err.message ? err.message : err);\n  }).then(() => {\n    marcarNavegador(win, false);\n  });\n});\ncy.window().its('navigator.onLine').should('eq', false);\ncy.window().then(win => {\n  notas.onLineOffline = win.navigator.onLine;\n});\ncy.wait(800);\ncy.url().then(u => {\n  notas.urlOffline = u;\n});\ncy.contains('h1', /Auditoría/i).should('be.visible');\ncy.get('h1').invoke('text').then(t => {\n  notas.h1Offline = String(t || '').trim();\n});\ncy.url().should('include', '/auditoria');\ncy.url().should('not.include', '/login');\ncy.get('body').then($body => {\n  const txt = $body.text();\n  notas.alertaOffline = /sin conexión|requiere conexión|requires a connection/i.test(txt);\n});\ncy.contains('button', /Exportar CSV|Export CSV/i).scrollIntoView().should('be.visible').then($btn => {\n  notas.offline = snapshotBoton($btn);\n  const bloqueado = notas.offline.disabledProp === true || notas.offline.ariaDisabled === 'true';\n  if (bloqueado) {\n    notas.escenario = 'E';\n    notas.clasificacion = 'APROBADO';\n    notas.clickOfflineDisparado = false;\n  } else {\n    notas.escenario = 'D';\n    notas.clasificacion = 'RECHAZADO';\n    cy.wrap($btn).click();\n    notas.clickOfflineDisparado = true;\n  }\n});\ncy.wait(500);\ncy.get('@exportarCsv.all').then(calls => {\n  const total = (calls || []).length;\n  notas.exportApiHitsOffline = total - (notas.exportApiHitsOnlineBaseline || 0);\n});\ncy.screenshot('074-rev4-03-offline-exportar');\ncy.then(() => {\n  const bloqueado = notas.offline && (notas.offline.disabledProp === true || notas.offline.ariaDisabled === 'true');\n  const sinDescarga = !notas.clickOfflineDisparado && (notas.exportApiHitsOffline || 0) === 0;\n  notas.descargaImpedidaOffline = sinDescarga;\n});\ncy.writeFile(`${EVIDENCIA}/TC-M01-074_rev4_notas.json`, notas);\ncy.then(() => {\n  const bloqueado = notas.offline && (notas.offline.disabledProp === true || notas.offline.ariaDisabled === 'true');\n  expect(bloqueado, 'exportación deshabilitada sin conexión (disabled o aria-disabled)').to.eq(true);\n  expect(notas.descargaImpedidaOffline, 'sin click ni GET exportar en offline').to.eq(true);\n  expect(notas.alertaOffline, 'alerta de sin conexión visible').to.eq(true);\n});\ncy.window().then(win => {\n  return cdpNetwork(false).then(() => {\n    notas.cdpOnlineOk = true;\n  }).catch(() => {\n    notas.cdpOnlineOk = false;\n  }).then(() => {\n    marcarNavegador(win, true);\n  });\n});\ncy.window().its('navigator.onLine').should('eq', true);\ncy.wait(800);\ncy.url().should('include', '/auditoria');\ncy.url().should('not.include', '/login');\ncy.contains('button', /Exportar CSV|Export CSV/i).scrollIntoView().should('be.visible').then($btn => {\n  notas.recuperacion = snapshotBoton($btn);\n  expect(notas.recuperacion.disabledProp, 'online restaurado: Exportar vuelve a habilitarse').to.eq(false);\n});\ncy.screenshot('074-rev4-04-online-restaurado');\ncy.contains('button', /Exportar CSV|Export CSV/i).click();\ncy.wait(1500);\ncy.get('@exportarCsv.all').then(calls => {\n  notas.exportApiHitsOnline = (calls || []).length;\n});\ncy.screenshot('074-rev4-05-export-tras-recuperacion');\ncy.writeFile(`${EVIDENCIA}/TC-M01-074_rev4_notas.json`, notas);",
+              "err": {},
+              "uuid": "fe67e2ff-3998-4368-944d-b833953ebe80",
+              "parentUUID": "ab8d458f-c389-4bfa-a3c0-69180a4e416c",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "fe67e2ff-3998-4368-944d-b833953ebe80"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 10855,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M01-074_rev4_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo1\\RF-10\\TC-M01-74\\Resultados",
+        "reportFilename": "TC-M01-074_rev4_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

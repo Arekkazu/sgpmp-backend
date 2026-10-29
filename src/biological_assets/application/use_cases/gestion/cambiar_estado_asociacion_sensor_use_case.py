@@ -1,3 +1,7 @@
+"""Caso de uso: activar, inactivar o cerrar una asociación sensor ↔
+activo/infraestructura (RF-49).
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -28,6 +32,12 @@ _TRANSICIONES_VALIDAS: dict[str, set[str]] = {
 
 
 class CambiarEstadoAsociacionSensorUseCase:
+    """Cambia el estado de una asociación de sensor y audita el cambio.
+
+    ``execute`` opera sobre asociaciones de un activo y ``execute_infraestructura``
+    sobre las ambientales de una infraestructura. Errores: asociación inexistente
+    (404), estado igual al actual (409), transición no permitida (422).
+    """
 
     def __init__(self, db: Session, repo: AsociacionSensorActivoRepository) -> None:
         self.db = db

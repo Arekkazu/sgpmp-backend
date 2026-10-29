@@ -15,6 +15,7 @@ _MAX = 60  # límite de la columna en DB (varchar 60)
 
 @dataclass(frozen=True)
 class NombrePatologia:
+    """Nombre de patología: 3 a 60 caracteres, empieza por letra."""
     valor: str
 
     def __post_init__(self) -> None:

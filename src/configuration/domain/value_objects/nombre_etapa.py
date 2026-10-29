@@ -15,6 +15,9 @@ _MAX = 50
 
 @dataclass(frozen=True)
 class NombreEtapa:
+    """Nombre de etapa: 3 a 50 caracteres, empieza por letra; admite dígitos, espacios,
+    guiones y paréntesis.
+    """
     valor: str
 
     def __post_init__(self) -> None:

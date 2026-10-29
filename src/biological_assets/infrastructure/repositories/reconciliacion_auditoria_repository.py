@@ -1,3 +1,5 @@
+"""Implementación SQLAlchemy de ``ReconciliacionAuditoriaRepository`` (RF-52 E5)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -37,6 +39,9 @@ _FUENTES_RF46: dict[str, tuple[str, str]] = {
 
 
 class SqlAlchemyReconciliacionAuditoriaRepository(ReconciliacionAuditoriaRepository):
+    """Cruza las tablas del historial RF-46 con la bitácora; el turno usa un advisory
+    lock de PostgreSQL.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

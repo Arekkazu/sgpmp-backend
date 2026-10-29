@@ -29,6 +29,9 @@ def _snapshot(ciclo: CicloBiologico) -> dict:
 
 
 class DesactivarCicloUseCase:
+    """Desactiva una etapa; se bloquea si ya está inactiva o tiene activos en curso
+    (422).
+    """
 
     def __init__(
         self,

@@ -1,0 +1,1237 @@
+{
+  "info": {
+    "name": "RF-64 - TC-M04-G009 Seguridad transversal del catálogo de patologías",
+    "description": "Automatiza TC-M04-032..035 (RF-64; OWASP API3, API2, API8/A03 y ASVS V9) sobre /prediccion/patologias. 032: alta con es_base=true, version_catalogo=999, es_activo=false e id_patologia=1 en el payload -> ignorados o rechazados; se crea con es_base=false y versión 1, y las base siguen siendo 8. 033: GET, POST y PATCH sin token, con token expirado y con firma alterada -> 401 sin exponer datos ni el payload; la patología objetivo no cambia. Para un token expirado real, cargar uno capturado hace más de 8 h en la variable token_expirado; si está vacía se usa uno con exp en el pasado (su firma tampoco es válida). 034: SQL/NoSQL/script en nombre y descripción y byte nulo -> rechazo o almacenamiento inerte, sin 5xx, sin reflejar marcado HTML/script y con el catálogo íntegro. 035: GET y POST por HTTP plano sin seguir redirecciones -> rechazo o redirección a https://; las versiones de TLS obsoletas se verifican con test_tc_m03_g15_canal_cifrado.py o testssl.sh (mismo host). Notas del código: BaseDTO descarta los campos fuera del contrato y rechaza bytes nulos con 400; nombre y descripción no tienen restricción de caracteres, así que <script> se guarda tal cual y vuelve en la respuesta JSON. Datos propios: especie y patologías.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Precondiciones (datos propios)",
+      "item": [
+        {
+          "name": "Login (rol veterinario; por defecto Administrador)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+                  "let sufijo = '';",
+                  "for (let i = 0; i < 8; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+                  "pm.collectionVariables.set('sufijo', sufijo);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "const token = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_vet', token);",
+                  "// Token con la firma alterada: se cambia el último carácter de la firma.",
+                  "const ultimo = token.slice(-1);",
+                  "pm.collectionVariables.set('token_firma_alterada', token.slice(0, -1) + (ultimo === 'A' ? 'B' : 'A'));",
+                  "// Si no se entrega un token expirado real (variable token_expirado), se arma uno con exp en el pasado.",
+                  "if (!pm.collectionVariables.get('token_expirado')) {",
+                  "  const partes = token.split('.');",
+                  "  const desde64url = (s) => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return CryptoJS.enc.Base64.parse(s).toString(CryptoJS.enc.Utf8); };",
+                  "  const a64url = (s) => CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(s)).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+                  "  const carga = JSON.parse(desde64url(partes[1]));",
+                  "  carga.exp = Math.floor(Date.now() / 1000) - 3600;",
+                  "  pm.collectionVariables.set('token_expirado_armado', partes[0] + '.' + a64url(JSON.stringify(carga)) + '.' + partes[2]);",
+                  "  console.log('TC-M04-033: sin token_expirado real; se usa uno con exp en el pasado (su firma tampoco es válida)');",
+                  "} else { pm.collectionVariables.set('token_expirado_armado', pm.collectionVariables.get('token_expirado')); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/sesiones/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_veterinario}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar especie propia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/especies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "especies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Bovino Seguridad Catalogo {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M04-G009\",\n  \"densidad_maxima_por_especie\": \"5.00\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patología propia para las pruebas de autenticación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Patología creada (201)', function () { pm.response.to.have.status(201); });",
+                  "pm.collectionVariables.set('id_objetivo', pm.response.json().id_patologia);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Seguridad {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 14],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M04-032 Mass assignment de es_base / version_catalogo",
+      "item": [
+        {
+          "name": "TC-M04-032 - Crear enviando es_base=true y version_catalogo=999",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 201;",
+                  "pm.test('TC-M04-032: los campos de servidor se ignoran (201) o se rechazan (400/422)', function () {",
+                  "  pm.expect(ok || [400, 422].includes(pm.response.code), 'HTTP ' + pm.response.code).to.eql(true);",
+                  "});",
+                  "if (ok) {",
+                  "  const p = pm.response.json();",
+                  "  pm.test('TC-M04-032: se crea con es_base=false', function () { pm.expect(p.es_base).to.eql(false); });",
+                  "  pm.test('TC-M04-032: versión calculada por el backend (1), no 999', function () { pm.expect(p.version_catalogo).to.eql(1); });",
+                  "  pm.test('TC-M04-032: activa e id propio (no los enviados)', function () { pm.expect(p.es_activo).to.eql(true); pm.expect(p.id_patologia).to.not.eql(1); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Asignacion Masiva {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 15],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\",\n  \"es_base\": true,\n  \"version_catalogo\": 999,\n  \"es_activo\": false,\n  \"id_patologia\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-032 - Las patologías base siguen siendo 8",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Catálogo base responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-032: no se agregó ninguna patología base', function () { pm.expect((pm.response.json().items || []).length).to.eql(8); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias?solo_base=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ],
+              "query": [
+                {
+                  "key": "solo_base",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M04-033 Autenticación válida",
+      "item": [
+        {
+          "name": "TC-M04-033 - GET /prediccion/patologias con sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (sin token, GET): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (sin token, GET): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - POST /prediccion/patologias con sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (sin token, POST): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (sin token, POST): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Sin Autenticacion {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - PATCH /prediccion/patologias/{id} con sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (sin token, PATCH): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (sin token, PATCH): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Seguridad {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - GET /prediccion/patologias con token expirado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (token expirado, GET): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (token expirado, GET): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_armado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - POST /prediccion/patologias con token expirado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (token expirado, POST): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (token expirado, POST): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_armado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Sin Autenticacion {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - PATCH /prediccion/patologias/{id} con token expirado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (token expirado, PATCH): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (token expirado, PATCH): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_expirado_armado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Seguridad {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - GET /prediccion/patologias con firma alterada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (firma alterada, GET): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (firma alterada, GET): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_firma_alterada}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - POST /prediccion/patologias con firma alterada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (firma alterada, POST): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (firma alterada, POST): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_firma_alterada}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Sin Autenticacion {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [13, 16],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - PATCH /prediccion/patologias/{id} con firma alterada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-033 (firma alterada, PATCH): HTTP 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('TC-M04-033 (firma alterada, PATCH): la respuesta no expone datos del catálogo ni el payload', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.not.include('nombre_patologia'); pm.expect(t).to.not.include('descripcion_clinica');",
+                  "  pm.expect(t).to.not.include(pm.collectionVariables.get('sufijo'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_firma_alterada}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Objetivo Seguridad {{sufijo}}\",\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\",\n  \"variables_sensoricas_asociadas\": [13, 14, 15]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-033 - La patología objetivo no fue modificada sin autenticación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Detalle responde 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-033: sigue en su versión 1', function () { pm.expect(pm.response.json().version_catalogo).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias/{{id_objetivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias",
+                "{{id_objetivo}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M04-034 Fuzzing e inyección en texto libre",
+      "item": [
+        {
+          "name": "TC-M04-034 - Inyección: SQL en el nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034 (SQL en el nombre): sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  "pm.test('TC-M04-034 (SQL en el nombre): se rechaza (4xx) o se almacena (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422]); });",
+                  "const t = pm.response.text();",
+                  "pm.test('TC-M04-034 (SQL en el nombre): la respuesta no refleja marcado HTML/script sin sanitizar', function () {",
+                  "  pm.expect(/<script|<img|onerror=/i.test(t)).to.eql(false);",
+                  "});",
+                  "pm.test('TC-M04-034 (SQL en el nombre): la respuesta no expone SQL ni trazas', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax error/i.test(t)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"'; DROP TABLE modulo9.patologias; -- {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 10],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-034 - Inyección: NoSQL en el nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034 (NoSQL en el nombre): sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  "pm.test('TC-M04-034 (NoSQL en el nombre): se rechaza (4xx) o se almacena (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422]); });",
+                  "const t = pm.response.text();",
+                  "pm.test('TC-M04-034 (NoSQL en el nombre): la respuesta no refleja marcado HTML/script sin sanitizar', function () {",
+                  "  pm.expect(/<script|<img|onerror=/i.test(t)).to.eql(false);",
+                  "});",
+                  "pm.test('TC-M04-034 (NoSQL en el nombre): la respuesta no expone SQL ni trazas', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax error/i.test(t)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"{\\\"$gt\\\": \\\"\\\"} {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 11],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-034 - Inyección: script en el nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034 (script en el nombre): sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  "pm.test('TC-M04-034 (script en el nombre): se rechaza (4xx) o se almacena (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422]); });",
+                  "const t = pm.response.text();",
+                  "pm.test('TC-M04-034 (script en el nombre): la respuesta no refleja marcado HTML/script sin sanitizar', function () {",
+                  "  pm.expect(/<script|<img|onerror=/i.test(t)).to.eql(false);",
+                  "});",
+                  "pm.test('TC-M04-034 (script en el nombre): la respuesta no expone SQL ni trazas', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax error/i.test(t)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"<script>alert(document.cookie)</script> {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [9, 12],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-034 - Inyección: script en la descripción",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034 (script en la descripción): sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  "pm.test('TC-M04-034 (script en la descripción): se rechaza (4xx) o se almacena (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422]); });",
+                  "const t = pm.response.text();",
+                  "pm.test('TC-M04-034 (script en la descripción): la respuesta no refleja marcado HTML/script sin sanitizar', function () {",
+                  "  pm.expect(/<script|<img|onerror=/i.test(t)).to.eql(false);",
+                  "});",
+                  "pm.test('TC-M04-034 (script en la descripción): la respuesta no expone SQL ni trazas', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax error/i.test(t)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Script Descripcion {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [10, 11],\n  \"descripcion_clinica\": \"<img src=x onerror=alert(1)> Cuadro clínico de prueba con alteración sostenida de variables.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-034 - Inyección: byte nulo en el nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034 (byte nulo en el nombre): sin error 5xx', function () { pm.expect(pm.response.code).to.be.below(500); });",
+                  "pm.test('TC-M04-034 (byte nulo en el nombre): se rechaza (4xx) o se almacena (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422]); });",
+                  "const t = pm.response.text();",
+                  "pm.test('TC-M04-034 (byte nulo en el nombre): la respuesta no refleja marcado HTML/script sin sanitizar', function () {",
+                  "  pm.expect(/<script|<img|onerror=/i.test(t)).to.eql(false);",
+                  "});",
+                  "pm.test('TC-M04-034 (byte nulo en el nombre): la respuesta no expone SQL ni trazas', function () {",
+                  "  pm.expect(/Traceback|sqlalchemy|psycopg|syntax error/i.test(t)).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Byte\\u0000Nulo {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [10, 12],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M04-034 - El catálogo sigue íntegro tras las inyecciones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M04-034: el catálogo responde (la tabla sigue existiendo)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('TC-M04-034: las 8 patologías base siguen presentes', function () {",
+                  "  pm.expect((pm.response.json().items || []).filter(p => p.es_base).length).to.eql(8);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/prediccion/patologias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. TC-M04-035 Comunicación cifrada",
+      "item": [
+        {
+          "name": "TC-M04-035 - GET del catálogo por HTTP plano (sin TLS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const redirige = [301, 302, 307, 308].includes(pm.response.code);",
+                  "const destino = pm.response.headers.get('Location') || '';",
+                  "pm.test('TC-M04-035: HTTP plano se rechaza o redirige a HTTPS', function () {",
+                  "  pm.expect(redirige ? destino.startsWith('https://') : pm.response.code >= 400, 'HTTP ' + pm.response.code + ' Location=' + destino).to.eql(true);",
+                  "});",
+                  "pm.test('TC-M04-035: no se sirven datos del catálogo por el canal plano', function () { pm.expect(pm.response.text()).to.not.include('nombre_patologia'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "http://{{host}}/api-sgpmp-test/prediccion/patologias",
+              "host": [
+                "http://{{host}}"
+              ],
+              "path": [
+                "api-sgpmp-test",
+                "prediccion",
+                "patologias"
+              ]
+            }
+          },
+          "response": [],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        },
+        {
+          "name": "TC-M04-035 - POST del catálogo por HTTP plano (sin TLS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const redirige = [301, 302, 307, 308].includes(pm.response.code);",
+                  "pm.test('TC-M04-035: el alta por HTTP plano no se procesa', function () {",
+                  "  pm.expect(redirige || pm.response.code >= 400, 'HTTP ' + pm.response.code).to.eql(true);",
+                  "  pm.expect(pm.response.text()).to.not.include('id_patologia');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vet}}"
+              }
+            ],
+            "url": {
+              "raw": "http://{{host}}/api-sgpmp-test/prediccion/patologias",
+              "host": [
+                "http://{{host}}"
+              ],
+              "path": [
+                "api-sgpmp-test",
+                "prediccion",
+                "patologias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_patologia\": \"Canal Plano {{sufijo}}\",\n  \"especie_aplicable\": \"{{id_especie}}\",\n  \"variables_sensoricas_asociadas\": [11, 12],\n  \"descripcion_clinica\": \"Cuadro clínico de prueba con alteración sostenida de las variables fisiológicas asociadas durante horas.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "host",
+      "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io"
+    },
+    {
+      "key": "correo_veterinario",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena_veterinario",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token_expirado",
+      "value": ""
+    },
+    {
+      "key": "token_vet",
+      "value": ""
+    },
+    {
+      "key": "token_firma_alterada",
+      "value": ""
+    },
+    {
+      "key": "token_expirado_armado",
+      "value": ""
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_objetivo",
+      "value": ""
+    }
+  ]
+}

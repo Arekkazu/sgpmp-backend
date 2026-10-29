@@ -1,0 +1,21 @@
+{
+  "info": {"name":"G94 RF-58 TC-M03-185","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "event":[{"listen":"prerequest","script":{"type":"text/javascript","exec":[
+    "if(pm.environment.get('qa_autorizado')!=='SI') throw new Error('LANZADOR_NO_AUTORIZADO');",
+    "pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('token_productor')});",
+    "pm.request.headers.upsert({key:'X-Test-Run-Id',value:pm.environment.get('run_id')});",
+    "pm.request.headers.upsert({key:'X-Sandbox-Secret',value:pm.environment.get('sandbox_secret')});"
+  ]}}],
+  "item":[
+    {"name":"[TC-M03-185][ASSERT][API-185-01] Dashboard global sin fincas","request":{"method":"GET","header":[{"key":"Accept","value":"application/json"}],"url":"{{base_url}}/iot/monitoreo/dashboard?pagina=1&por_pagina=50"},"event":[{"listen":"test","script":{"type":"text/javascript","exec":[
+      "const j=pm.response.code===200?pm.response.json():{};",
+      "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+      "pm.test('[TC-M03-185][ASSERT][API-185-01]',()=>{pm.expect(pm.response.code).to.eql(200);pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])});"
+    ]}}]},
+    {"name":"[TC-M03-185][ASSERT][API-185-02] Área antes asignada","event":[{"listen":"prerequest","script":{"type":"text/javascript","exec":["if(!pm.environment.get('id_area_previa')) pm.execution.skipRequest();"]}},{"listen":"test","script":{"type":"text/javascript","exec":[
+      "const j=pm.response.code===200?pm.response.json():{};",
+      "pm.test('[TC-M03-185][PRE][PRE-RUN-ECO]',()=>pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')));",
+      "pm.test('[TC-M03-185][ASSERT][API-185-02]',()=>{pm.expect(pm.response.code).to.be.below(500);if(pm.response.code===200){pm.expect(j.total).to.eql(0);pm.expect(j.resumen_unidades).to.deep.eql([]);pm.expect(j.sensores).to.deep.eql([])}else pm.expect([403,404]).to.include(pm.response.code)});"
+    ]}}],"request":{"method":"GET","header":[{"key":"Accept","value":"application/json"}],"url":"{{base_url}}/iot/monitoreo/dashboard/{{id_area_previa}}?pagina=1&por_pagina=50"}}
+  ]
+}

@@ -1,3 +1,5 @@
+"""Modelo ORM de ``modulo2.eventos_productivos`` (subtipo de evento, RF-43)."""
+
 from __future__ import annotations
 
 from decimal import Decimal

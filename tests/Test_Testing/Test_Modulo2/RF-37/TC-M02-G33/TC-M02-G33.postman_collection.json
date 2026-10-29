@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M02-G33 - Transiciones de fase validas: secuencia estandar y no estandar con confirmacion",
-    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-039 (cambio de fase estandar valido) y TC-M02-042 (transicion no estandar con confirmacion_no_estandar=true). Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado. TC-M02-039 ya funciona (INC-M02-37-01 se corrigio); TC-M02-042 sigue con un gap estructural (el DTO no declara confirmacion_no_estandar ni fase_destino_id, ver NOTA_BLOQUEO.md).",
+    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-039 (cambio de fase estandar valido) y TC-M02-042 (transicion no estandar con confirmacion_no_estandar=true). Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado. Reevaluado 2026-09-26: fase_destino_id/confirmacion_no_estandar ya estan implementados (15c4611e). fase_destino_id es el id de la fase dentro del ciclo (id_ciclos_productivo_biologico), no el numero de paso: en TEST el ciclo 2 tiene las fases 4 (paso 1), 5 (paso 2) y 6 (paso 3), por eso id_fase_destino=6.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,7 +13,8 @@
     { "key": "id_infraestructura", "value": "1" },
     { "key": "identificador_activo", "value": "" },
     { "key": "id_activo", "value": "" },
-    { "key": "id_ciclo_productiva", "value": "2" }
+    { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "id_fase_destino", "value": "6" }
   ],
   "item": [
     {
@@ -113,7 +114,7 @@
         "url": "{{base_url}}/activos-biologicos/{{id_activo}}/fases",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"Salto no estandar - QA-G33\",\n  \"confirmacion_no_estandar\": true,\n  \"fase_destino_id\": 3\n}"
+          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"Salto no estandar - QA-G33\",\n  \"confirmacion_no_estandar\": true,\n  \"fase_destino_id\": {{id_fase_destino}}\n}"
         }
       },
       "event": [{ "listen": "test", "script": { "exec": [
@@ -124,7 +125,33 @@
         "  pm.test('RF-37: el salto respeta fase_destino_id (paso_actual=3), no avanza secuencial por defecto (paso_actual=2)', function () {",
         "    pm.expect(body.paso_actual).to.eql(3);",
         "  });",
+        "  pm.test('RF-37: la respuesta marca la transicion como no estandar', function () {",
+        "    pm.expect(body.es_transicion_no_estandar).to.eql(true);",
+        "  });",
         "}"
+      ] } }]
+    },
+    {
+      "name": "4. TC-M02-042 - Verificar historial de fases tras el salto (GET)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/fases"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[HISTORIAL FASES TRAS SALTO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El historial de fases responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "const anterior = body.fases.find(f => f.paso_actual === 1);",
+        "const actual = body.fases.find(f => f.es_activa);",
+        "pm.test('RF-37: la fase anterior queda cerrada (fecha_finalizacion)', function () {",
+        "  pm.expect(anterior.es_activa).to.eql(false);",
+        "  pm.expect(anterior.fecha_finalizacion).to.not.eql(null);",
+        "});",
+        "pm.test('RF-37: el historial deja evidencia de la transicion no estandar confirmada', function () {",
+        "  pm.expect(actual.paso_actual).to.eql(3);",
+        "  pm.expect(actual.es_transicion_no_estandar).to.eql(true);",
+        "});"
       ] } }]
     }
   ]

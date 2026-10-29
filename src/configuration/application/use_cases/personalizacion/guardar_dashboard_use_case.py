@@ -21,6 +21,11 @@ from src.shared.errors import AuthorizationError, ConflictError, ValidationError
 
 
 class GuardarDashboardUseCase:
+    """Guarda la grilla del dashboard del usuario.
+
+    Cada widget debe existir y estar autorizado para el rol (403). Si el perfil
+    cambió desde la última lectura responde 409.
+    """
 
     def __init__(
         self,

@@ -2,11 +2,13 @@
 
 No generan links al frontend (a diferencia de identity_access): son avisos
 informativos sobre el período de retiro de un medicamento aplicado a un activo
-biológico.
+biológico. Usan la plantilla común de ``src/shared/plantilla_correo.py``.
 """
 from __future__ import annotations
 
 from datetime import date
+
+from src.shared.plantilla_correo import formatear_dia, renderizar_correo
 
 
 def inicio_retiro_email(nombre: str, nombre_medicamento: str, fecha_fin_retiro: date) -> str:
@@ -20,14 +22,21 @@ def inicio_retiro_email(nombre: str, nombre_medicamento: str, fecha_fin_retiro: 
     Returns:
         String HTML listo para enviar por SMTP.
     """
-    return f"""
-    <h2>Hola, {nombre}</h2>
-    <p>Se aplicó el medicamento <strong>{nombre_medicamento}</strong> a uno de tus activos
-    biológicos, lo que inicia un período de retiro.</p>
-    <p>El activo permanecerá en estado <strong>EN_TRATAMIENTO</strong> hasta el
-    <strong>{fecha_fin_retiro.isoformat()}</strong>. Durante este período no debe destinarse a
-    consumo humano ni a producción de leche/huevos.</p>
-    """
+    return renderizar_correo(
+        titulo="Un activo entró en período de retiro",
+        nombre=nombre,
+        parrafos=[
+            "Se aplicó un medicamento a uno de tus activos biológicos. Mientras dure el "
+            "retiro, el activo queda en tratamiento y no debe destinarse a consumo humano "
+            "ni a producción de leche o huevos.",
+        ],
+        evento="Inicio de período de retiro",
+        tono="atencion",
+        detalles=[
+            ("Medicamento", nombre_medicamento),
+            ("Retiro hasta", formatear_dia(fecha_fin_retiro)),
+        ],
+    )
 
 
 def fin_retiro_email(nombre: str, fecha_fin_retiro: date) -> str:
@@ -40,9 +49,13 @@ def fin_retiro_email(nombre: str, fecha_fin_retiro: date) -> str:
     Returns:
         String HTML listo para enviar por SMTP.
     """
-    return f"""
-    <h2>Hola, {nombre}</h2>
-    <p>El período de retiro vigente hasta el <strong>{fecha_fin_retiro.isoformat()}</strong>
-    ha concluido.</p>
-    <p>El activo volvió automáticamente al estado <strong>ACTIVO</strong>.</p>
-    """
+    return renderizar_correo(
+        titulo="Terminó el período de retiro",
+        nombre=nombre,
+        parrafos=[
+            "El período de retiro de tu activo biológico concluyó y el activo volvió "
+            "automáticamente al estado activo.",
+        ],
+        evento="Fin de período de retiro",
+        detalles=[("Retiro vigente hasta", formatear_dia(fecha_fin_retiro))],
+    )

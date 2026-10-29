@@ -10,6 +10,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class GuardarTemaPersonalUseCase:
+    """Guarda el tema visual preferido del usuario."""
 
     def __init__(self, db: Session, tema_repo: TemaVisualRepository) -> None:
         self.db = db

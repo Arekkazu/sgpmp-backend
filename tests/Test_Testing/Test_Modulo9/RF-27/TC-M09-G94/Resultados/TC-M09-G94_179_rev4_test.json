@@ -1,0 +1,111 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 0,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-09-25T07:19:23.009Z",
+    "end": "2026-09-25T07:19:33.783Z",
+    "duration": 10774,
+    "testsRegistered": 1,
+    "passPercent": 0,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "de8f5811-45f9-4625-ba2d-9c463f81a3a5",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev4_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev4_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "b0043d1f-59bb-4a05-8fd8-7dd354bc2c20",
+          "title": "TC-M09-179 rev4 TEST",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-179 aplica color_ajustado en --brand-500 con data-theme=light",
+              "fullTitle": "TC-M09-179 rev4 TEST TC-M09-179 aplica color_ajustado en --brand-500 con data-theme=light",
+              "timedOut": null,
+              "duration": 659,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "const contrasena = pass();\ncy.request({\n  method: 'POST',\n  url: `${TEST_API}/sesiones/`,\n  headers: {\n    'Content-Type': 'application/json'\n  },\n  body: {\n    correo_electronico: 'admin@pecuaria.co',\n    contrasena\n  },\n  failOnStatusCode: false\n}).then(r => {\n  expect(r.status, 'login admin un intento').to.eq(200);\n  tokenAdmin = r.body.token;\n});\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctx');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/personalizacion\\/tema\\/?$/\n}).as('getTema');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('loginProd');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').clear().type('productor@pecuaria.co');\ncy.get('input[type=\"password\"]').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@loginProd').then(intc => {\n  expect(intc.response.statusCode, 'login productor UI un intento').to.eq(200);\n  tokenProd = intc.response.body.token;\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.wait('@ctx').then(intc => {\n  const body = intc.response.body;\n  expect(body.id_finca, 'snapshot contexto finca').to.eq(1);\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-contexto-antes.json`, {\n    id_usuario: body.id_usuario,\n    id_finca: body.id_finca,\n    finca_activa: body.finca_activa,\n    identidad_visual: body.identidad_visual,\n    accesibilidad: body.accesibilidad\n  });\n});\nleerTokens().then(css => {\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-css-antes.json`, css);\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(idRes => {\n  expect(idRes.status, 'GET identidad snapshot').to.eq(200);\n  snapId = {\n    primary_color: idRes.body.primary_color,\n    secondary_color: idRes.body.secondary_color,\n    org_display_name: idRes.body.org_display_name,\n    version: idRes.body.version,\n    logo_path: idRes.body.logo_path\n  };\n  expect(String(snapId.primary_color).toUpperCase()).to.eq('#1A6B3C');\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-snapshot-identidad.json`, snapId);\n});\napi('GET', '/configuracion/personalizacion/tema', 'prod').then(tRes => {\n  expect(tRes.status).to.eq(200);\n  snapTema = tRes.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-snapshot-tema.json`, {\n    theme_mode: tRes.body.theme_mode,\n    fuente: tRes.body.fuente,\n    id_tema_visual: tRes.body.id_tema_visual\n  });\n  expect(snapTema).to.eq(2);\n  return api('PATCH', '/configuracion/personalizacion/tema', 'prod', {\n    theme_mode: 1\n  });\n}).then(pTema => {\n  expect(pTema.status, 'PATCH tema=1').to.eq(200);\n  patchedTema = true;\n  return api('GET', '/configuracion/personalizacion/tema', 'prod');\n}).then(gTema => {\n  expect(gTema.body.theme_mode, 'GET tema tras PATCH').to.eq(1);\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-tema-tras-patch.json`, {\n    theme_mode: gTema.body.theme_mode,\n    fuente: gTema.body.fuente\n  });\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(idRes => {\n  return api('PATCH', `/configuracion/identidad-visual/${FINCA}`, 'admin', {\n    primary_color: COLOR_BAJO,\n    secondary_color: snapId.secondary_color,\n    org_display_name: snapId.org_display_name,\n    version: idRes.body.version\n  });\n}).then(pId => {\n  expect(pId.status, 'PATCH primary #FFFFFF').to.be.oneOf([200, 201]);\n  patchedId = true;\n  const claro = pId.body.accesibilidad.primary_color.claro;\n  expect(claro.ratio).to.eq(1);\n  expect(claro.cumple_aa).to.eq(false);\n  expect(normColor(claro.color_ajustado)).to.eq(AJUSTADO);\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, 'admin').then(gId => {\n  expect(normColor(gId.body.primary_color)).to.eq(COLOR_BAJO);\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-identidad-despues.json`, {\n    primary_color: gId.body.primary_color,\n    secondary_color: gId.body.secondary_color,\n    version: gId.body.version,\n    accesibilidad_claro: gId.body.accesibilidad.primary_color.claro\n  });\n});\napi('GET', '/configuracion/interfaz/contexto', 'prod').then(ctx => {\n  expect(ctx.body.id_usuario).to.eq(2);\n  expect(ctx.body.id_finca).to.eq(1);\n  expect(normColor(ctx.body.identidad_visual.primary_color)).to.eq(COLOR_BAJO);\n  const claro = ctx.body.accesibilidad.primary_color.claro;\n  expect(claro.ratio).to.eq(1);\n  expect(claro.cumple_aa).to.eq(false);\n  expect(normColor(claro.color_ajustado)).to.eq(AJUSTADO);\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-contexto-api-despues.json`, {\n    id_usuario: ctx.body.id_usuario,\n    id_finca: ctx.body.id_finca,\n    identidad_visual: ctx.body.identidad_visual,\n    accesibilidad_primary_claro: claro\n  });\n});\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctxPost');\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/personalizacion\\/tema\\/?$/\n}).as('temaPost');\ncy.visit(`${TEST_FRONT}/dashboard`);\ncy.url().should('include', '/dashboard');\ncy.wait('@temaPost', {\n  timeout: 20000\n}).then(intc => {\n  const mode = intc.response.body && intc.response.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-tema-browser.json`, {\n    http: intc.response.statusCode,\n    theme_mode: mode\n  });\n  expect(mode, 'GET tema navegador = 1').to.eq(1);\n});\ncy.get('html', {\n  timeout: 20000\n}).should('have.attr', 'data-theme', 'light');\ncy.wait('@ctxPost', {\n  timeout: 20000\n}).then(intc => {\n  const body = intc.response.body;\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-contexto-browser.json`, {\n    http: intc.response.statusCode,\n    id_usuario: body.id_usuario,\n    id_finca: body.id_finca,\n    identidad_visual: body.identidad_visual,\n    accesibilidad_primary_claro: body.accesibilidad && body.accesibilidad.primary_color && body.accesibilidad.primary_color.claro\n  });\n  expect(body.id_finca, 'contexto navegador finca 1').to.eq(1);\n  expect(body.identidad_visual).to.be.an('object');\n  expect(body.accesibilidad).to.be.an('object');\n  expect(normColor(body.identidad_visual.primary_color)).to.eq(COLOR_BAJO);\n  expect(normColor(body.accesibilidad.primary_color.claro.color_ajustado)).to.eq(AJUSTADO);\n});\nleerTokens().then(css => {\n  const aplicado = normColor(css['--brand-500'].inline || css['--brand-500'].computed);\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-css-despues.json`, _objectSpread(_objectSpread({}, css), {}, {\n    esperado: AJUSTADO,\n    brand500_normalizado: aplicado\n  }));\n  expect(aplicado, '--brand-500 = color_ajustado #757575').to.eq(AJUSTADO);\n});\ncy.screenshot('G94-rev4-179-dashboard-light-variante');\ncy.task('getAxeSource').then(src => {\n  cy.window().then(win => {\n    if (!win.axe) {\n      const script = win.document.createElement('script');\n      script.text = src;\n      win.document.documentElement.appendChild(script);\n    }\n  });\n});\ncy.window().should('have.property', 'axe');\ncy.window().then(win => win.axe.run(win.document, {\n  runOnly: {\n    type: 'rule',\n    values: ['color-contrast']\n  }\n})).then(results => {\n  const cc = (results.passes || []).find(p => p.id === 'color-contrast');\n  cy.writeFile(`${EVIDENCIA}/G94-rev4-179-axe.json`, {\n    violations: (results.violations || []).length,\n    violation_ids: (results.violations || []).map(v => v.id),\n    color_contrast_pass_nodes: cc ? (cc.nodes || []).length : 0\n  });\n});",
+              "err": {
+                "message": "AssertionError: restore theme_mode HTTP: expected 401 to equal 200\n\nBecause this error occurred during a `after all` hook we are skipping the remaining tests in the current suite: `TC-M09-179 rev4 TEST`",
+                "estack": "AssertionError: restore theme_mode HTTP: expected 401 to equal 200\n\nBecause this error occurred during a `after all` hook we are skipping the remaining tests in the current suite: `TC-M09-179 rev4 TEST`\n    at Context.eval (webpack:///./tc_m09_g94_179_rev4_test.cy.js:105:57)\n    at getRet (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121066:20)\n    at tryCatcher (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:1777:23)\n    at Promise.attempt.Promise.try (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:4285:29)\n    at Context.thenFn (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121077:66)\n    at Context.then (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121328:21)",
+                "diff": "- '401'\n+ '200'\n"
+              },
+              "uuid": "7eebda33-cdda-4f00-b266-d674424d41e7",
+              "parentUUID": "b0043d1f-59bb-4a05-8fd8-7dd354bc2c20",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [],
+          "failures": [
+            "7eebda33-cdda-4f00-b266-d674424d41e7"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 659,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_179_rev4_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados",
+        "reportFilename": "TC-M09-G94_179_rev4_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

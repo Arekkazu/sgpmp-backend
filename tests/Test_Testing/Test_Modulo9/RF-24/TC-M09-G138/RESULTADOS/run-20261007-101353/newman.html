@@ -1,0 +1,64 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>G138 Newman OpenAPI TEST</title><style>body{font:16px system-ui;max-width:70rem;margin:2rem;line-height:1.45}pre{white-space:pre-wrap;background:#f4f4f4;padding:1rem}</style><h1>G138 — Newman GET OpenAPI TEST</h1><p>RUN run-20261007-101353 · HTTP 200 · VISION publicada: NO · POST VISION: 0</p><h2>Assertions Newman</h2><pre>[
+  {
+    &quot;nombre&quot;: &quot;OpenAPI TEST responde 200&quot;,
+    &quot;error&quot;: null
+  },
+  {
+    &quot;nombre&quot;: &quot;OpenAPI expone rutas y esquemas&quot;,
+    &quot;error&quot;: null
+  }
+]</pre><h2>Discovery contractual</h2><pre>{
+  &quot;encontrada&quot;: false,
+  &quot;method&quot;: null,
+  &quot;path&quot;: null,
+  &quot;request_schema&quot;: null,
+  &quot;responses&quot;: null,
+  &quot;security&quot;: null,
+  &quot;busqueda&quot;: {
+    &quot;paths_totales&quot;: 210,
+    &quot;post_totales&quot;: 77,
+    &quot;schemas_totales&quot;: 305,
+    &quot;apariciones_exactas&quot;: {
+      &quot;VISION&quot;: 0,
+      &quot;modo_calibracion&quot;: 0,
+      &quot;ventana_observacion&quot;: 0,
+      &quot;origen_disparo&quot;: 0,
+      &quot;linea_base&quot;: 0,
+      &quot;baseline&quot;: 0
+    },
+    &quot;operaciones_vision_candidatas&quot;: []
+  },
+  &quot;calibracion_sensor&quot;: {
+    &quot;method&quot;: &quot;POST&quot;,
+    &quot;path&quot;: &quot;/configuracion/sensores/{id_sensor}/calibrar&quot;,
+    &quot;summary&quot;: &quot;Registrar calibración de sensor (RF-24 Flujo D)&quot;,
+    &quot;request_schema&quot;: {
+      &quot;$ref&quot;: &quot;#/components/schemas/RegistrarCalibracionDTO&quot;
+    },
+    &quot;responses&quot;: [
+      &quot;201&quot;,
+      &quot;400&quot;,
+      &quot;401&quot;,
+      &quot;403&quot;,
+      &quot;404&quot;,
+      &quot;422&quot;,
+      &quot;500&quot;
+    ],
+    &quot;security&quot;: null,
+    &quot;dto&quot;: &quot;RegistrarCalibracionDTO&quot;,
+    &quot;campos&quot;: [
+      &quot;id_dispositivo_iot&quot;,
+      &quot;id_infraestructura&quot;,
+      &quot;valor_referencia&quot;,
+      &quot;ganancia&quot;,
+      &quot;offset&quot;,
+      &quot;fecha_calibracion&quot;,
+      &quot;observaciones&quot;
+    ],
+    &quot;requeridos&quot;: [
+      &quot;id_dispositivo_iot&quot;,
+      &quot;id_infraestructura&quot;,
+      &quot;fecha_calibracion&quot;
+    ]
+  }
+}</pre><p>OpenAPI SHA-256: 3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8</p></html>

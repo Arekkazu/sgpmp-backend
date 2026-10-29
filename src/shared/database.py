@@ -1,3 +1,8 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-10-25 | DanielRuiz | PR-706: restaura reintentos de dev y conserva get_db del sandbox de test |
+# | 2026-10-25 | SamuelPR21 |  reseteo de contexto RLS en Sandbox QA para evitar herencia de identidad entre peticiones
 """Configuración del engine SQLAlchemy y generador de sesiones de base de datos.
 
 Exporta `get_db`, el generador FastAPI/Depends que provee una sesión por request
@@ -11,13 +16,19 @@ rendirse y traduce el fallo a `ServiceUnavailableError`.
 import logging
 import os
 import time
+from contextlib import contextmanager
+from datetime import timezone
+from typing import Iterator, Optional
 
+import psycopg2.extensions as pg_ext
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from fastapi import Depends
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.shared.errors import ServiceUnavailableError
+from src.shared.fechas import nombre_zona_usuario
 
 load_dotenv()
 
@@ -44,10 +55,172 @@ if not DATABASE_URL:
 # falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
 # siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
 # (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+# La sesión de Postgres siempre en UTC (ver src/shared/fechas.py): así `now()`,
+# `CURRENT_DATE` y los `::date` no dependen de la configuración del servidor.
 engine = create_engine(
-    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False,
+    connect_args={"options": "-c timezone=UTC"},
 )
+
+# Las pocas columnas `timestamp` sin zona (`modulo1.usuarios.fecha_registro`,
+# `auditoria.logs_*`, varias vistas) guardan hora UTC porque la sesión es UTC,
+# pero llegaban a Python sin zona y la API las serializaba sin offset: el
+# navegador las leía como hora local. Se marcan UTC al leerlas.
+_TIMESTAMP_SIN_ZONA = pg_ext.string_types[1114]
+
+
+def _timestamp_utc(valor, cursor):
+    fecha = _TIMESTAMP_SIN_ZONA(valor, cursor)
+    return fecha.replace(tzinfo=timezone.utc) if fecha is not None else None
+
+
+pg_ext.register_type(pg_ext.new_type((1114,), "TIMESTAMP_UTC", _timestamp_utc))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).
+# Las políticas leen `app.current_user_id` / `app.current_role` y los triggers
+# de auditoría de modulo2 leen `app.usuario_id`. `set_config(..., true)` muere
+# con la transacción, así que todo lo que corría después del primer `commit()`
+# del request quedaba sin identidad (bajo RLS: cero filas). La identidad vive
+# en `Session.info` y se reaplica al empezar cada transacción de esa sesión;
+# no se filtra a otro request porque cada request abre su propia sesión.
+_CLAVE_IDENTIDAD = "identidad_rls"
+
+# D1/D4 (decisión del DBA en el PR #485): las tareas de fondo y la ingesta IoT
+# corren como un usuario de servicio con filas explícitas en
+# `modulo9.usuarios_fincas`, nunca con BYPASSRLS. Lo crea la migración
+# `5c3e9b1d7a20`, que también lo deja sin poder iniciar sesión. Su id se
+# resuelve por correo (difiere entre bases) al empezar la primera transacción,
+# no al crear la sesión: así una BD caída falla dentro del `try` de la tarea.
+CORREO_USUARIO_SERVICIO = "servicio.sistema@sgpmp.local"
+_ROL_SERVICIO = "Administrador"
+_SISTEMA = object()
+_id_usuario_servicio: Optional[int] = None
+
+
+def _set_config(conexion, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
+    conexion.execute(
+        text(
+            "SELECT set_config('app.current_user_id', :uid, true), "
+            "set_config('app.current_role', :rol, true)"
+        ),
+        {"uid": "" if id_usuario is None else str(id_usuario), "rol": nombre_rol or ""},
+    )
+    if id_usuario is not None:
+        conexion.execute(
+            text("SELECT set_config('app.usuario_id', :uid, true)"), {"uid": str(id_usuario)}
+        )
+
+
+def _id_servicio(conexion) -> int:
+    global _id_usuario_servicio
+    if _id_usuario_servicio is None:
+        # Todavía no hay identidad: bajo RLS solo la función SECURITY DEFINER
+        # del login (a7380032a23b) puede resolver un usuario por correo.
+        _id_usuario_servicio = conexion.execute(
+            text("SELECT modulo1.fn_id_usuario_por_correo(:correo)"),
+            {"correo": CORREO_USUARIO_SERVICIO},
+        ).scalar()
+        if _id_usuario_servicio is None:
+            raise RuntimeError(
+                f"No existe el usuario de servicio {CORREO_USUARIO_SERVICIO}: "
+                "falta aplicar las migraciones (alembic upgrade head)."
+            )
+    return _id_usuario_servicio
+
+
+def _aplicar_identidad(conexion, identidad) -> None:
+    if identidad is _SISTEMA:
+        identidad = (_id_servicio(conexion), _ROL_SERVICIO)
+    _set_config(conexion, *identidad)
+
+
+@event.listens_for(Session, "after_begin")
+def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
+    identidad = session.info.get(_CLAVE_IDENTIDAD)
+    if identidad is not None:
+        _aplicar_identidad(conexion, identidad)
+
+
+@event.listens_for(Session, "after_begin")
+def _declarar_zona_usuario(_session: Session, _transaccion, conexion) -> None:
+    """`modulo1.fn_hoy_usuario()` lee `app.zona_horaria` para que los triggers
+    usen el mismo "hoy" que la API. Sin zona (UTC) no hace falta el viaje: la
+    función ya cae a UTC. `true` la limita a la transacción, como la identidad.
+    """
+    zona = nombre_zona_usuario()
+    if zona != "UTC":
+        conexion.execute(text("SELECT set_config('app.zona_horaria', :zona, true)"), {"zona": zona})
+
+
+def _declarar(db: Session, identidad) -> None:
+    db.info[_CLAVE_IDENTIDAD] = identidad
+    if db.in_transaction():
+        _aplicar_identidad(db.connection(), identidad)
+
+
+def declarar_identidad(db: Session, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
+    """Declara quién ejecuta la transacción en curso y las siguientes de `db`."""
+    _declarar(db, (id_usuario, nombre_rol))
+
+
+def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
+    """Flujos que todavía no tienen identidad (login, registro, refresh, activación,
+    recuperación): a partir de aquí actúan como el usuario recién resuelto.
+
+    Nunca pisa una identidad ya declarada: un request autenticado no pasa a
+    actuar como otro usuario por una búsqueda.
+    """
+    if db.info.get(_CLAVE_IDENTIDAD) is None:
+        declarar_identidad(db, id_usuario, None)
+
+
+def declarar_identidad_sistema(db: Session) -> None:
+    """Hace que `db` actúe como el usuario de servicio."""
+    _declarar(db, _SISTEMA)
+
+
+@contextmanager
+def como_sistema(db: Session) -> Iterator[None]:
+    """Corre un bloque de `db` como el usuario de servicio y luego restaura la identidad.
+
+    Para búsquedas internas cuyo resultado no puede depender de quién llama,
+    dentro de la misma transacción del request (ej. a qué Gateway Edge va una
+    regla, DEV-08). `modulo9` tiene RLS forzada (FORCE ROW LEVEL SECURITY) y su
+    dueño no tiene BYPASSRLS, así que una función SECURITY DEFINER ya no la
+    evita. Usarlo solo para lecturas acotadas: todo lo que corre adentro ve
+    lo que ve el Administrador.
+    """
+    anterior = db.info.get(_CLAVE_IDENTIDAD)
+    declarar_identidad_sistema(db)
+    try:
+        yield
+    finally:
+        if anterior is not None:
+            _declarar(db, anterior)
+        else:
+            db.info.pop(_CLAVE_IDENTIDAD, None)
+            if db.in_transaction():
+                db.connection().execute(
+                    text(
+                        "SELECT set_config('app.current_user_id', '', true), "
+                        "set_config('app.current_role', '', true), "
+                        "set_config('app.usuario_id', '', true)"
+                    )
+                )
+
+
+def id_usuario_servicio(db: Session) -> int:
+    """Id del usuario de servicio, para firmar en RF-10 lo que hace el Sistema."""
+    return _id_servicio(db.connection())
+
+
+def sesion_sistema() -> Session:
+    """`SessionLocal()` que actúa como el usuario de servicio (tareas de fondo)."""
+    db = SessionLocal()
+    declarar_identidad_sistema(db)
+    return db
+
 
 # Mismo idiom que src/shared/email.py, pero con pausa corta: el frontend aborta
 # a los 15 s (sgpmp-frontend/src/shared/api/http.ts), así que el presupuesto
@@ -101,6 +274,9 @@ def _conectar_con_reintentos(db: Session) -> None:
 def get_db():
     """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
 
+    Con ``ENABLE_TEST_SANDBOX=true`` y un ``X-Test-Run-Id`` en el request,
+    entrega la sesión aislada del sandbox de pruebas en vez de una del pool.
+
     Yields:
         Session: Sesión de base de datos activa para el request actual.
 
@@ -108,14 +284,80 @@ def get_db():
         ServiceUnavailableError: Si la base de datos no responde al inicio del
             request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
     """
+    if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
+        db = SessionLocal()
+        try:
+            _conectar_con_reintentos(db)
+            yield db
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+        return
+
+    from src.shared.tesing_context import test_run_id_context
+    from src.shared.rollback.infraestructure.testing_sandbox import (
+        get_or_create_test_session,
+        SandboxCapacityExceeded,
+    )
+    from fastapi import HTTPException, status
+
+    run_id = test_run_id_context.get()
+
+    if run_id:
+        test_session = None
+        try:
+            test_session = get_or_create_test_session(run_id)
+            
+            # --- INICIO PARCHE DBA-01: RESETEO DE IDENTIDAD EN SANDBOX ---
+            # Al reutilizar la sesión física para diferentes peticiones/usuarios 
+            # dentro del mismo run_id, debemos limpiar la identidad previa 
+            # almacenada en session.info. De lo contrario, funciones como 
+            # `declarar_identidad_si_anonima` no sobrescribirán la identidad 
+            # (porque ven que ya existe una) y la transacción heredará el 
+            # contexto RLS del usuario anterior, causando violaciones RLS.
+            test_session.info.pop(_CLAVE_IDENTIDAD, None)
+            
+            # Adicionalmente, limpiamos las variables de configuración de 
+            # PostgreSQL a nivel de transacción para asegurar un estado prístino
+            # antes de que el middleware/dependencias declaren la nueva identidad.
+            if test_session.in_transaction():
+                try:
+                    test_session.connection().execute(
+                        text(
+                            "SELECT set_config('app.current_user_id', '', true), "
+                            "set_config('app.current_role', '', true), "
+                            "set_config('app.usuario_id', '', true)"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"[Sandbox] No se pudo limpiar contexto RLS previo: {e}")
+
+            yield test_session
+        except SandboxCapacityExceeded as e:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+        except Exception:
+            if test_session is not None:
+                try:
+                    test_session.rollback()
+                except Exception:
+                    pass
+            raise
+        return
+
     db = SessionLocal()
     try:
         _conectar_con_reintentos(db)
         yield db
     except Exception:
-        # Sin esto, una excepción a mitad de request deja la transacción abierta
-        # hasta el close(), y la sesión puede volver al pool contaminada.
         db.rollback()
         raise
     finally:
         db.close()
+
+
+def get_db_sistema(db: Session = Depends(get_db)) -> Session:
+    """`get_db` para endpoints sin usuario autenticado (ingesta IoT, D4)."""
+    declarar_identidad_sistema(db)
+    return db
