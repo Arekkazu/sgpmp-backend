@@ -1,0 +1,80 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from src.shared.tipo_modelo import paradigma_de
+
+
+class InferenciaMonitorResponse(BaseModel):
+    """Un resultado del motor (RF-66). INDIVIDUAL: nivel, probabilidades y patología;
+    POBLACIONAL (RFC-009): el score viaja en ``probabilidad_riesgo``."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_resultado_inferencia: uuid.UUID
+    id_activo_biologico: int
+    identificador_activo: Optional[str]
+    nombre_area: str
+    nombre_finca: str
+    especie: Optional[str]
+    tipo_modelo: str
+    id_version_modelo: int
+    nombre_version: Optional[str]
+    nivel_riesgo: int
+    probabilidad_riesgo: dict
+    id_patologia: Optional[int]
+    nombre_patologia: Optional[str]
+    probabilidad_enfermedad: dict
+    confianza_global: Decimal
+    contexto_incompleto: bool
+    latencia_excedida: bool
+    modo_ejecucion: str
+    latencia_ms: Optional[int]
+    fecha_inicio_ventana: Optional[datetime]
+    fecha_fin_ventana: Optional[datetime]
+    fecha_inferencia: datetime
+    tiene_alerta_generada: bool
+    id_alerta_generada: Optional[int]
+
+    @computed_field
+    @property
+    def paradigma(self) -> Optional[str]:
+        return paradigma_de(self.tipo_modelo)
+
+
+class RiesgoContagioMonitorResponse(BaseModel):
+    """Un cálculo de riesgo de contagio por lote (RF-68)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id_resultado_contagio: int
+    id_activo_biologico: int
+    identificador_activo: Optional[str]
+    nombre_area: str
+    nombre_finca: str
+    especie: Optional[str]
+    probabilidad_contagio: Decimal
+    nivel_riesgo_contagio: int
+    factor_sanitario_fs: Decimal
+    factor_ambiental_fa: Optional[Decimal]
+    factor_densidad_fd: Optional[Decimal]
+    w_fs_aplicado: Decimal
+    w_fa_aplicado: Decimal
+    w_fd_aplicado: Decimal
+    confianza_baja: bool
+    data_quality_score: Optional[Decimal]
+    factores_ausentes: Optional[list]
+    modo_ejecucion_calculo: Optional[str]
+    n_enfermos_detectados: Optional[int]
+    total_activos_lote: Optional[int]
+    porcentaje_sensores_activos: Optional[Decimal]
+    fecha_calculo: datetime
+    id_alerta_generada: Optional[int]
