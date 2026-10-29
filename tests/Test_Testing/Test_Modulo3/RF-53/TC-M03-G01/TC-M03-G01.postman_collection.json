@@ -1037,7 +1037,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Sensor vinculado al activo (201)', function () { pm.response.to.have.status(201); });",
-                  "pm.test('Asociación con el activo creado', function () { pm.expect(pm.response.json().id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo'))); });"
+                  "pm.test('Asociación con el activo creado', function () { pm.expect(pm.response.json().id_activo_biologico).to.eql(Number(pm.collectionVariables.get('id_activo'))); });",
+                  "// La ingesta exige fecha_asociacion (RF-22) <= timestamp_captura, y la captura se marca 2 s antes del envío:",
+                  "// se esperan 2,5 s para que ninguna lectura quede capturada antes de la asociación/calibración de su sensor.",
+                  "setTimeout(function () {}, 2500);"
                 ]
               }
             }
@@ -1306,7 +1309,7 @@
                   "if (it) {",
                   "  pm.test('TC-M03-001: estado_calidad persistido = LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
                   "  pm.test('TC-M03-001: valor_crudo persistido = 25', function () { pm.expect(Number(it.valor)).to.eql(25); });",
-                  "  pm.test('TC-M03-001: tipo_variable = TEMPERATURA_AMBIENTAL', function () { pm.expect(it.tipo_variable).to.eql('TEMPERATURA_AMBIENTAL'); });",
+                  "  pm.test('TC-M03-001: variable TEMPERATURA_AMBIENTAL (el historial expone el nombre del catálogo M09)', function () { pm.expect(it.tipo_variable).to.eql('Temperatura Ambiental'); });",
                   "  pm.test('TC-M03-001: categoria_variable = AMBIENTAL', function () { pm.expect(it.categoria_variable).to.eql('AMBIENTAL'); });",
                   "  pm.test('TC-M03-001: unidad_medida = °C', function () { pm.expect(it.unidad_medida).to.eql('°C'); });",
                   "  pm.test('TC-M03-001: origen = TIEMPO_REAL', function () { pm.expect(it.origen_dato).to.eql('TIEMPO_REAL'); });",
@@ -1371,7 +1374,7 @@
                   "if (it) {",
                   "  pm.test('TC-M03-002: estado_calidad persistido = LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
                   "  pm.test('TC-M03-002: valor_crudo persistido = 80', function () { pm.expect(Number(it.valor)).to.eql(80); });",
-                  "  pm.test('TC-M03-002: tipo_variable = FRECUENCIA_CARDIACA', function () { pm.expect(it.tipo_variable).to.eql('FRECUENCIA_CARDIACA'); });",
+                  "  pm.test('TC-M03-002: variable FRECUENCIA_CARDIACA (el historial expone el nombre del catálogo M09)', function () { pm.expect(it.tipo_variable).to.eql('Frecuencia Cardiaca'); });",
                   "  pm.test('TC-M03-002: categoria_variable = ANIMAL', function () { pm.expect(it.categoria_variable).to.eql('ANIMAL'); });",
                   "  pm.test('TC-M03-002: unidad_medida = bpm', function () { pm.expect(it.unidad_medida).to.eql('bpm'); });",
                   "  pm.test('TC-M03-002: origen = TIEMPO_REAL', function () { pm.expect(it.origen_dato).to.eql('TIEMPO_REAL'); });",
@@ -1488,7 +1491,7 @@
                   "if (it) {",
                   "  pm.test('TC-M03-003: estado_calidad persistido = LECTURA_VALIDA', function () { pm.expect(it.estado_calidad).to.eql('LECTURA_VALIDA'); });",
                   "  pm.test('TC-M03-003: valor_crudo persistido = 7.2', function () { pm.expect(Number(it.valor)).to.eql(7.2); });",
-                  "  pm.test('TC-M03-003: tipo_variable = PH_AGUA', function () { pm.expect(it.tipo_variable).to.eql('PH_AGUA'); });",
+                  "  pm.test('TC-M03-003: variable PH_AGUA (el historial expone el nombre del catálogo M09)', function () { pm.expect(it.tipo_variable).to.eql('pH del agua'); });",
                   "  pm.test('TC-M03-003: categoria_variable = HIDRICA', function () { pm.expect(it.categoria_variable).to.eql('HIDRICA'); });",
                   "  pm.test('TC-M03-003: unidad_medida = pH', function () { pm.expect(it.unidad_medida).to.eql('pH'); });",
                   "  pm.test('TC-M03-003: origen = TIEMPO_REAL', function () { pm.expect(it.origen_dato).to.eql('TIEMPO_REAL'); });",
