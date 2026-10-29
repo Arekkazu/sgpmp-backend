@@ -1,3 +1,9 @@
+## [1.4.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.11...v1.4.0-rc.12) (2026-10-29)
+
+### Bug Fixes
+
+* **alembic:** encadenar rls_modulo_03 a ebbb160365e5 hasta que entre [#831](https://github.com/Arekkazu/sgpmp-backend/issues/831) ([ebf7350](https://github.com/Arekkazu/sgpmp-backend/commit/ebf7350c5381fcd64ade8afdc58ca77a937f9288))
+
 ## [1.4.0-rc.11](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.10...v1.4.0-rc.11) (2026-10-29)
 
 ### Features
