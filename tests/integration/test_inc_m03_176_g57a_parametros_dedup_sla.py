@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: deduplicación y SLA configurados por API y aplicados (PostgreSQL real) |
+# | 2026-10-28 | Arekkazu | INC-M03-176-G57A RF-57: el evento trae el THI que exigen G68/G70 |
 """INC-M03-176-G57A (RF-57, TC-M03-G57A N37 y G57B N44): ventana de deduplicación y SLA por API.
 
 El administrador los cambia en PATCH /configuracion/parametros-alertas y POST /iot/alertas los aplica.
@@ -39,7 +40,10 @@ def _evento(http, db, hw, severidad="CRITICO"):
     return client.post("/iot/alertas", headers=broker, json={
         "device_id": hw["device"], "sensor_id": hw["sensor"], "serial": hw["serial"], "tipo_variable": "TEMPERATURA_AMBIENTAL",
         "valor": "31", "unidad": "°C", "timestamp_evento": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat(),
-        "estado_dato": "LECTURA_VALIDA", "severidad_edge": severidad, "origen_evento": "EDGE", "id_telemetria": id_lectura})
+        "estado_dato": "LECTURA_VALIDA", "severidad_edge": severidad, "origen_evento": "EDGE", "id_telemetria": id_lectura,
+        # G68/G70 (#822/#823): la severidad sale del valor y ESTRES_TERMICO exige el THI; con 31 °C (LEVE)
+        # el THI fija la severidad de cada caso.
+        "correlacion_variables": {"THI": {"LEVE": "75", "MODERADO": "80", "CRITICO": "85"}[severidad]}})
 
 
 def _alerta_previa(db, hw, hace_min):
