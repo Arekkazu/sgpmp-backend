@@ -1,0 +1,35 @@
+{
+  "grupo": "G068",
+  "run_id": "RUN-G068-V1-20261029-121139",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 57,
+    "paginas_activos": 4,
+    "paginas_descubrimiento": 4,
+    "versiones_maximas": 8,
+    "paginas_verificacion": 3,
+    "reemplazos_por_caso": 1,
+    "dias_busqueda": 88,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "duracion_ms": 14,
+      "limite_ms": 30000
+    }
+  },
+  "efectos": [
+    "login Veterinario y, si está configurado, Administrador",
+    "lecturas de descubrimiento, historial y auditoría",
+    "tres intentos de retroalimentación y posible reemplazo de 211",
+    "baja temporal RF-45 del activo 885: evento, cierre de fase, histórico BAJA y BAJA_REGISTRADA",
+    "DELETE sandbox siempre",
+    "copia condicional de BAJA_REGISTRADA en buffer local RF-52 si falla BD o hay alta carga",
+    "lecturas poscierre, posible HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}

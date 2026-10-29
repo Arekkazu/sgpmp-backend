@@ -1,0 +1,17 @@
+{
+  "grupo": "G072",
+  "version": 1,
+  "intento": 2,
+  "run_id": "RUN-G072-V1-20261029-165112",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G072-V1-R2-20261029",
+  "casos": [
+    "TC-M04-226",
+    "TC-M04-227",
+    "TC-M04-230"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico V1 (intento 2) de G072. Intento 1 RUN-G072-V1-20261029-161515 (TÉCNICO, DELETE 200, rollback confirmado): 9 POST 201 con flags y eventos de conflicto esperados, pero GET /prediccion/historial/885 tras los registros respondió 500; log del backend: 'new row violates row-level security policy for table historial_diagnostico_eventos' (la lectura materializa eventos). El responsable QA ordenó repetir y confirmar. ORD-G072-003/004: lectura del historial tras cada caso (230a, 230b, 226, 227 parcial y final); 500 persistente → RECHAZADO solo del caso disparador; ensayo Windows 37/37. SHA-256 g072.mjs 0e0548fe9c5da71fe8d96f08bf9126bd9fbaf3db072e7a4059736dd57a4a0227; lib/g072_core.mjs b468cdef1e63dab40d1675ce40998c2cf033e5b8bc23439f680c17d849266355; colección 96bcc61ae2e9785d92cb50e97fdaf61c0e70ed7ebb430a127d0fa28b4afd680d."
+  },
+  "version_anterior": null
+}
