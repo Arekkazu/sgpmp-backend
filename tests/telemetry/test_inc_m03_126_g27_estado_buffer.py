@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: validar consulta protegida, clasificación, datos desconocidos y contrato opcional del heartbeat. |
+# | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: el repositorio lee con .all() (sirve al listado) |
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -179,9 +180,9 @@ def test_http_fuera_de_alcance_es_404(cliente):
 
 def test_json_directo_invalido_no_se_presenta_como_normal():
     db=Mock()
-    db.execute.return_value.mappings.return_value.one_or_none.return_value=dict(
+    db.execute.return_value.mappings.return_value.all.return_value=[dict(
         id_dispositivo_iot=3,id_heartbeat=1,fecha_reporte=FECHA,fecha_recepcion=FECHA,
-        estado_local_buffer='A',datos_pendientes=7,json_metricas_buffer=metricas(capacidad_total=0))
+        estado_local_buffer='A',datos_pendientes=7,json_metricas_buffer=metricas(capacidad_total=0))]
     with pytest.raises(InfrastructureError) as fallo:SqlAlchemyEstadoBufferRepository(db).obtener(3,[8])
     assert fallo.value.code=='REPORTE_BUFFER_INVALIDO'
 
@@ -195,3 +196,15 @@ def test_openapi_declara_consulta_y_ampliacion_opcional():
     respuesta=schema['components']['schemas']['EstadoBufferSchema']['properties']
     assert {'capacidad_total','capacidad_utilizada','porcentaje_ocupacion','datos_pendientes',
             'ultimo_timestamp_pendiente','estado_buffer','politica_buffer_activa'} <= respuesta.keys()
+
+
+def test_listado_primero_los_mas_ocupados_y_sin_metricas_al_final():
+    """TC-DIS-148: el panel ordena por riesgo de perder datos."""
+    def fila(id_,usada=None,pendientes=0):
+        return dict(id_dispositivo_iot=id_,serial=f'EDGE-{id_}',descripcion=None,nombre_infraestructura='A',
+                    nombre_finca='F',estado_dispositivo='ACTIVO',id_heartbeat=id_,fecha_reporte=FECHA,
+                    fecha_recepcion=FECHA,estado_local_buffer='A',datos_pendientes=pendientes,
+                    json_metricas_buffer=None if usada is None else metricas(capacidad_utilizada=usada))
+    db=Mock()
+    db.execute.return_value.mappings.return_value.all.return_value=[fila(1,100),fila(2),fila(3,960),fila(4,None,9)]
+    assert [r.id_dispositivo_iot for r in SqlAlchemyEstadoBufferRepository(db).listar(None)]==[3,1,4,2]

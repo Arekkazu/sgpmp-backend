@@ -7,6 +7,7 @@
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: el cierre de la alerta recalcula el semáforo |
 # | 2026-10-27 | Leandro | INC-M03-126-G27 RF-54: exponer consulta RF-54 con JWT, RBAC e identificación del último reporte. |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: aplicar el alcance por finca existente a la consulta de estado usada por G27. |
+# | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
@@ -15,6 +16,7 @@ RF-60 — CU05 Dev scope:
   POST  /iot/eventos-buffer                   — Aviso de buffer del Gateway Edge (RF-54 → RF-60, D10)
   GET   /iot/dispositivos/{id}/estado         — Estado actual + historial de transiciones
   GET   /iot/dispositivos/{id}/historial      — Solo historial de transiciones
+  GET   /iot/buffer                           — Panel del buffer Edge de todos los dispositivos (RF-54)
   GET   /iot/alertas-tecnicas                 — Listar alertas técnicas (admin + ing ONLY)
   PATCH /iot/alertas-tecnicas/{id}/estado     — Actualizar estado de alerta técnica
 
@@ -322,6 +324,28 @@ def actualizar_estado_alerta_tecnica(
         id_usuario=usuario_actual.id_usuario,
     )
     return AlertaSchema.model_validate(alerta.__dict__)
+
+
+@router.get(
+    '/buffer',
+    response_model=list[EstadoBufferSchema],
+    dependencies=[Depends(require_permission(35, 2))],
+    responses={401:{'model':ErrorResponse},403:{'model':ErrorResponse}},
+    summary='Panel del buffer Edge: último reporte de cada dispositivo (RF-54)',
+)
+def listar_estado_buffer(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[EstadoBufferSchema]:
+    """TC-DIS-148: lo mismo que `/dispositivos/{id}/buffer` para todos los dispositivos
+    activos de las fincas del usuario, primero los más ocupados. Un dispositivo cuyo
+    firmware todavía no reporta capacidad viene con `metricas_disponibles = false`.
+
+    JWT + infraestructura_iot · Leer.
+    """
+    fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario,usuario_actual.id_rol)
+    return [EstadoBufferSchema.desde_reporte(r)
+            for r in ConsultarEstadoBufferUseCase(SqlAlchemyEstadoBufferRepository(db)).listar(fincas)]
 
 
 @router.get(
