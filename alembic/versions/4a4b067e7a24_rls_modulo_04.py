@@ -1,7 +1,11 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-27 | SamuelPR21 | RLS modulo4 RF-64..73: politicas pol_* por permiso y alcance |
+# | 2026-10-29 | Arekkazu | RLS modulo4 RF-64..73: recursos reales, predicciones por padre, escrituras de usuario y cadena tras 440ee187dab5 |
 """rls_modulo_04
 
 Revision ID: 4a4b067e7a24
-Revises: ebbb160365e5
+Revises: 440ee187dab5
 Create Date: 2026-10-27 10:35:45.634755
 
 Aplica Row Level Security al esquema modulo4 (RF-64 a RF-73) sobre sus 26 tablas.
@@ -30,17 +34,14 @@ Append-only (solo SELECT/INSERT, tambien para el usuario de servicio):
   historial_diagnostico_eventos, configuracion_ia_log, eventos_auditoria_m04,
   auditorias_predicciones, resultados_inferencia, retroalimentaciones_clinicas
 
-Recursos RBAC (modulo1.recursos) -- NOMBRES PROPUESTOS, validar contra la tabla:
-  catalogo_patologias        RF-64
-  configuracion_motor_ia     RF-65
-  inferencia_tiempo_real     RF-66
-  historial_diagnostico      RF-67
-  riesgo_contagio            RF-68
-  versionado_modelos         RF-69
-  distribucion_ota           RF-70
-  reentrenamiento_modelos    RF-71
-  retroalimentacion_clinica  RF-72
-  auditoria_motor_prediccion RF-73
+Recursos RBAC (modulo1.recursos), los mismos que exige cada router de src/prediction:
+  patologias                 (18) RF-64  C/R/U/D
+  configuracion_motor_ia     (41) RF-65  C/R; RF-68 riesgo de contagio E
+  historial_diagnostico      (42) RF-66/67 R
+  version_modelo             (43) RF-69/71 R/U/E
+  ota_status                 (44) RF-70  R/E
+  retroalimentacion_clinica  (45) RF-72  C/R
+  auditoria_m04              (46) RF-73  R/E
 
 Reutiliza funciones de modulo9 (F5):
   - fn_fincas_del_usuario()
@@ -61,7 +62,7 @@ Tabla de seguimiento
   Nombre:                   rls_modulo_04
   Responsable:              Samuel
   Version:                  <X.Y.Z segun semantic-release>
-  Version Alembic:          4a4b067e7a24 (down_revision: ebbb160365e5)
+  Version Alembic:          4a4b067e7a24 (down_revision: 440ee187dab5)
   Fecha:                    2026-10-28
   Estado:                   En correccion (PR pendiente de autorizacion)
   Repositorio:              Arekkazu/sgpmp-backend
@@ -83,9 +84,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '4a4b067e7a24'
-# TODO: cuando #831 entre a dev, cambiar a 'c83690f30edd' (o a la revision de
-# modulo3 si entra antes) y actualizar "Revises" del docstring.
-down_revision: Union[str, Sequence[str], None] = 'ebbb160365e5'
+down_revision: Union[str, Sequence[str], None] = '440ee187dab5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -99,16 +98,19 @@ def permiso(recurso: str, accion: str) -> str:
     return f"(SELECT modulo1.fn_tiene_permiso('{recurso}', '{accion}'))"
 
 
-# ── Recursos RBAC (PROPUESTOS: validar contra modulo1.recursos) ───────
-R_CATALOGO = 'catalogo_patologias'          # RF-64
-R_MOTOR = 'configuracion_motor_ia'          # RF-65
-R_INFERENCIA = 'inferencia_tiempo_real'     # RF-66
-R_HIST_DIAG = 'historial_diagnostico'       # RF-67
-R_MODELOS = 'versionado_modelos'            # RF-69
-R_OTA = 'distribucion_ota'                  # RF-70
-R_REENTRENO = 'reentrenamiento_modelos'     # RF-71
-R_RETRO = 'retroalimentacion_clinica'       # RF-72
-R_AUDITORIA = 'auditoria_motor_prediccion'  # RF-73
+# ── Recursos RBAC: los mismos que exige cada router (src/prediction) ───
+R_CATALOGO = 'patologias'                   # RF-64, patologia_m04_router (18)
+R_MOTOR = 'configuracion_motor_ia'          # RF-65/68, motor_ia y riesgo_contagio (41)
+R_HIST_DIAG = 'historial_diagnostico'       # RF-66/67, historial_diagnostico_router (42)
+R_MODELOS = 'version_modelo'                # RF-69/71, version_modelo_router (43)
+R_OTA = 'ota_status'                        # RF-70, ota_router (44)
+R_RETRO = 'retroalimentacion_clinica'       # RF-72, retroalimentacion_clinica_router (45)
+R_AUDITORIA = 'auditoria_m04'               # RF-73, auditoria_m04_router (46)
+
+# El catálogo se crea (C), edita (U) y desactiva (D) desde patologia_m04_router.
+_CATALOGO_ESCRITURA = (
+    f"({permiso(R_CATALOGO, 'C')} OR {permiso(R_CATALOGO, 'U')} OR {permiso(R_CATALOGO, 'D')})"
+)
 
 # ── Subconsultas de alcance (modulo9) ─────────────────────────────────
 _INFRA_SUBQ = (
@@ -219,15 +221,15 @@ def upgrade() -> None:
         _politicas(
             t,
             select=f"{UID} IS NOT NULL",
-            insert=permiso(R_CATALOGO, 'U'),
-            update=permiso(R_CATALOGO, 'U'),
+            insert=_CATALOGO_ESCRITURA,
+            update=_CATALOGO_ESCRITURA,
         )
 
     # historial del catalogo: append-only; lo escribe un trigger como invoker
     _politicas(
         'historial_catalogo_patologias',
         select=permiso(R_CATALOGO, 'R'),
-        insert=permiso(R_CATALOGO, 'U'),
+        insert=_CATALOGO_ESCRITURA,
         append_only=True,
     )
 
@@ -258,8 +260,8 @@ def upgrade() -> None:
     # ciclos: ejecucion manual (E) o automatica (servicio)
     _politicas(
         'ciclos_entrenamientos',
-        select=permiso(R_REENTRENO, 'R'),
-        insert=permiso(R_REENTRENO, 'E'),
+        select=permiso(R_MODELOS, 'R'),
+        insert=permiso(R_MODELOS, 'E'),
     )
     # OTA global: lanzar y actualizar requiere permiso E (RF-70)
     _politicas(
@@ -275,13 +277,13 @@ def upgrade() -> None:
     _politicas(
         'configuraciones_motor_ia',
         select=permiso(R_MOTOR, 'R'),
-        insert=permiso(R_MOTOR, 'U'),
-        update=permiso(R_MOTOR, 'U'),
+        insert=permiso(R_MOTOR, 'C'),
+        update=permiso(R_MOTOR, 'C'),
     )
     _politicas(
         'configuracion_ia_log',
         select=permiso(R_MOTOR, 'R'),
-        insert=permiso(R_MOTOR, 'U'),
+        insert=permiso(R_MOTOR, 'C'),
         append_only=True,
     )
 
@@ -308,19 +310,17 @@ def upgrade() -> None:
         select=_activo_visible('resultados_inferencia'),
         append_only=True,
     )
-    # RF-68: solo sistema inserta
+    # RF-68: el cálculo manual (41·E) y el sistema insertan; asociar_alerta actualiza
     _politicas(
         'resultados_riesgo_contagio',
         select=_activo_visible('resultados_riesgo_contagio'),
+        insert=f"{permiso(R_MOTOR, 'E')} AND {_activo_visible('resultados_riesgo_contagio')}",
+        update=f"{permiso(R_MOTOR, 'E')} AND {_activo_visible('resultados_riesgo_contagio')}",
     )
-    # RF-66/67: registro de observaciones por usuarios de la finca
+    # RF-66/67: hoy ningún endpoint registra observaciones; las escribe el sistema
     _politicas(
         'observaciones_clinicas',
         select=_activo_visible('observaciones_clinicas'),
-        insert=(
-            f"{permiso(R_INFERENCIA, 'U')} "
-            f"AND {_activo_visible('observaciones_clinicas')}"
-        ),
     )
     # RF-67 (append-only): solo sistema inserta
     _politicas(
@@ -328,10 +328,17 @@ def upgrade() -> None:
         select=_activo_visible('historial_diagnostico_eventos'),
         append_only=True,
     )
-    _politicas('predicciones', select=_activo_visible('predicciones'))
+    # predicciones no tiene id_activo_biologico: hereda la visibilidad de su observación
+    _politicas('predicciones', select=(
+        "EXISTS (SELECT 1 FROM modulo4.observaciones_clinicas oc "
+        "WHERE oc.id_observacion_clinica = predicciones.id_observacion)"))
+    # y la auditoría hereda la de su predicción
     _politicas(
         'auditorias_predicciones',
-        select=_activo_visible('auditorias_predicciones'),
+        select=(
+            "EXISTS (SELECT 1 FROM modulo4.predicciones p "
+            "WHERE p.id_prediccion = auditorias_predicciones.id_prediccion)"
+        ),
         append_only=True,
     )
 
@@ -340,11 +347,7 @@ def upgrade() -> None:
         "EXISTS (SELECT 1 FROM modulo4.observaciones_clinicas oc "
         "WHERE oc.id_observacion_clinica = detalles_signos.id_observaciones)"
     )
-    _politicas(
-        'detalles_signos',
-        select=_obs_visible,
-        insert=f"{permiso(R_INFERENCIA, 'U')} AND {_obs_visible}",
-    )
+    _politicas('detalles_signos', select=_obs_visible)
 
     # RF-72 (append-only): veterinario con permiso, sobre resultados visibles
     # y firmando con su propio id. Columnas calificadas con el nombre de tabla.
@@ -357,7 +360,7 @@ def upgrade() -> None:
         'retroalimentaciones_clinicas',
         select=_res_visible,
         insert=(
-            f"{permiso(R_RETRO, 'U')} "
+            f"{permiso(R_RETRO, 'C')} "
             f"AND {_res_visible} "
             f"AND retroalimentaciones_clinicas.id_usuario_veterinario = {UID}"
         ),
@@ -380,10 +383,12 @@ def upgrade() -> None:
             f"AND {_dispositivo_visible('despliegues_ota')}"
         ),
     )
-    # Los nodos Edge reportan por el servicio: escritura solo sistema
+    # POST /motor-ia (41·C) registra el intento de sincronización; los nodos, por el servicio
     _politicas(
         'sincronizacion_nodos_edge',
         select=_dispositivo_visible('sincronizacion_nodos_edge'),
+        insert=f"{permiso(R_MOTOR, 'C')} AND {_dispositivo_visible('sincronizacion_nodos_edge')}",
+        update=f"{permiso(R_MOTOR, 'C')} AND {_dispositivo_visible('sincronizacion_nodos_edge')}",
     )
     _politicas(
         'metricas_fallback_motor',
@@ -404,6 +409,9 @@ def upgrade() -> None:
         "AND eventos_auditoria_m04.tipo_evento::text IN ("
         "'RETROALIMENTACION_REGISTRADA', 'VERSION_APROBADA', "
         "'VERSION_RECHAZADA', 'REENTRENAMIENTO_COMPLETADO')"))
+    # El repositorio inserta con RETURNING: quien deja el evento tiene que poder leerlo,
+    # aunque no tenga permiso de consulta de auditoría (mismo caso de #556).
+    _pol(t, 'select_propio', 'SELECT', using=f"eventos_auditoria_m04.id_usuario = {UID}")
     _pol(t, 'insert', 'INSERT', check=f"{SERVICIO} OR {UID} IS NOT NULL")
     _servicio(t, append_only=True)
     _enable_force(t)
