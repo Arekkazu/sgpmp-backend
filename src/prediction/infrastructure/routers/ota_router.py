@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-204-G43/207-G46 RF-70: DISTRIBUCION_POSPUESTA al crear fuera de ventana |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la OTA no deja evento |
 """Router FastAPI para distribución OTA de modelos Edge (`/prediccion`).
 
 RF-70 CU-06: Consulta del estado OTA y listado de despliegues por dispositivo.
@@ -76,19 +77,15 @@ def consultar_ota_status(
     id_dispositivo: Optional[int] = Query(None, description="Filtrar por ID de dispositivo IoT."),
     estado: Optional[str] = Query(None, description="Filtrar por estado: EXITOSO, FALLIDO, PENDIENTE, SIN_CAMBIOS, EN_PROCESO."),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> OtaStatusResponse:
     use_case = ConsultarOtaStatusUseCase(
-        db=db,
         repo=SqlAlchemyDespliegueOtaRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         version_port=VersionModeloAdapter(db),
     )
     id_version_resultado, despliegues = use_case.execute(
         id_version=id_version,
         id_dispositivo=id_dispositivo,
         estado=estado,
-        id_usuario=usuario_actual.id_usuario,
     )
     return OtaStatusResponse(
         id_version_modelo=id_version_resultado,
@@ -115,12 +112,9 @@ def listar_despliegues(
     limit: int = Query(20, ge=1, le=100, description="Registros por página (máx. 100)."),
     offset: int = Query(0, ge=0, description="Desplazamiento de la página."),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DespliegueOtaListResponse:
     use_case = ListarDesplieguesUseCase(
-        db=db,
         repo=SqlAlchemyDespliegueOtaRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
         version_port=VersionModeloAdapter(db),
     )
     items, total = use_case.execute(
@@ -129,7 +123,6 @@ def listar_despliegues(
         estado=estado,
         limit=limit,
         offset=offset,
-        id_usuario=usuario_actual.id_usuario,
     )
     return DespliegueOtaListResponse(
         total=total,

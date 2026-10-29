@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-29 | Arekkazu     | RLS modulo4 RF-69/71: el registro interno actúa como usuario de servicio |
 # | 2026-10-29 | Arekkazu     | INC-M04-214 RF-69: campos obligatorios ausentes responden 422 |
+# | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-04 RF-73: consultar versiones no deja evento |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -97,19 +98,13 @@ def listar_versiones(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloListResponse:
-    use_case = ConsultarVersionesUseCase(
-        repo=SqlAlchemyVersionModeloRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        db=db,
-    )
+    use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
     items, total = use_case.listar(
         tipo_modelo=tipo_modelo,
         estado=estado,
         limit=limit,
         offset=offset,
-        id_usuario=usuario_actual.id_usuario,
     )
     return VersionModeloListResponse(
         total=total,
@@ -131,14 +126,9 @@ def listar_versiones(
 def obtener_version(
     id_version: int,
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VersionModeloResponse:
-    use_case = ConsultarVersionesUseCase(
-        repo=SqlAlchemyVersionModeloRepository(db),
-        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        db=db,
-    )
-    entidad = use_case.obtener_por_id(id_version, id_usuario=usuario_actual.id_usuario)
+    use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
+    entidad = use_case.obtener_por_id(id_version)
     return VersionModeloResponse.from_entity(entidad)
 
 

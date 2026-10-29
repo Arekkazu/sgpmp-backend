@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: validar E1, enums, savepoints, rollback y RBAC en PostgreSQL real. |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultas globales sin HISTORIAL_CONSULTADO |
 """PostgreSQL exclusivo de pruebas; repositorio bajo sgpmp_app sin BYPASSRLS."""
 from __future__ import annotations
 
@@ -175,13 +176,14 @@ def test_consultas_globales_y_exportacion_preservan_eventos(app_db):
     versiones, ota = Mock(), Mock()
     versiones.listar.return_value = ([],0)
     ota.listar.return_value = ([],0)
-    ConsultarVersionesUseCase(repo=versiones,auditoria_repo=auditoria,db=db).listar(id_usuario=usuario)
-    ListarDesplieguesUseCase(repo=ota,auditoria_repo=auditoria,db=db,version_port=Mock()).execute(
-        id_version=None,id_dispositivo=None,estado=None,limit=20,offset=0,id_usuario=usuario)
+    ConsultarVersionesUseCase(repo=versiones).listar()
+    ListarDesplieguesUseCase(repo=ota,version_port=Mock()).execute(
+        id_version=None,id_dispositivo=None,estado=None,limit=20,offset=0)
     ExportarAuditoriaM04UseCase(db,auditoria).exportar(tipo_evento=None,fecha_desde=None,fecha_hasta=None,
         id_usuario=None,id_sistema=None,id_referencia=None,severidad_evento=None,formato='json',id_usuario_exportador=usuario)
     registros = db.execute(text('SELECT tipo_evento::text,correlacion_id,id_referencia FROM modulo4.eventos_auditoria_m04 WHERE id_usuario=:u ORDER BY fecha_evento'),{'u':usuario}).all()
-    assert [r[0] for r in registros] == ['HISTORIAL_CONSULTADO','HISTORIAL_CONSULTADO','EXPORTACION_GENERADA']
+    # CU09 H-04: consultar versiones y despliegues no deja evento; exportar sí.
+    assert [r[0] for r in registros] == ['EXPORTACION_GENERADA']
     assert all(str(r[1]) == r[2] for r in registros)
 
 

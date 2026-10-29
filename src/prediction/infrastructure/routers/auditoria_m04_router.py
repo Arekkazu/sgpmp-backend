@@ -5,6 +5,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M04 T-18 RF-73: nombre del usuario actor además del id |
 # | 2026-10-26 | Arekkazu | INC-M04 G089/G092 RF-73: 422 en parámetros inválidos y filtro correlacion_id |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
+# | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la bitácora no deja evento |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -83,12 +84,8 @@ def listar_auditoria(
     pagina: int = Query(default=1, ge=1),
     por_pagina: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AuditoriaM04ListResponse:
-    use_case = ConsultarAuditoriaM04UseCase(
-        db=db,
-        repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-    )
+    use_case = ConsultarAuditoriaM04UseCase(repo=SqlAlchemyEventoAuditoriaM04Repository(db))
     items, total = use_case.listar(
         tipo_evento=tipo_evento,
         fecha_desde=fecha_desde,
@@ -101,7 +98,6 @@ def listar_auditoria(
         tipo_modelo=tipo_modelo,
         pagina=pagina,
         por_pagina=por_pagina,
-        id_usuario_consultor=usuario_actual.id_usuario,
     )
     return AuditoriaM04ListResponse(
         total=total,
@@ -172,11 +168,7 @@ def exportar_auditoria(
 def obtener_evento(
     id_evento: uuid.UUID,
     db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EventoAuditoriaM04Response:
-    use_case = ConsultarAuditoriaM04UseCase(
-        db=db,
-        repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-    )
-    entidad = use_case.obtener_por_id(id_evento, id_usuario_consultor=usuario_actual.id_usuario)
+    use_case = ConsultarAuditoriaM04UseCase(repo=SqlAlchemyEventoAuditoriaM04Repository(db))
+    entidad = use_case.obtener_por_id(id_evento)
     return _con_nombre_usuario(db, [EventoAuditoriaM04Response.model_validate(entidad)])[0]
