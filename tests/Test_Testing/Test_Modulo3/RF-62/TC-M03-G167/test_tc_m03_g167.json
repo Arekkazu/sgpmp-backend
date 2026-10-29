@@ -25,7 +25,9 @@
           "if (sec && sec.trim()) {",
           "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: sec });",
           "} else {",
-          "    console.warn(\"[TC-M03-G167] sandbox_secret no resuelto. Los requests van a fallar con 403.\");",
+          "    console.error('[TC-M03-G167] Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "    // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que NINGUNA escritura llegue a TEST sin sandbox.",
+          "    pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
           "}"
         ]
       }
@@ -127,6 +129,11 @@
     {
       "key": "device_nombre",
       "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": "administador.dev@gmail.com",
+      "type": "string"
     }
   ],
   "item": [

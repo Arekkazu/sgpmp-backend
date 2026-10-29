@@ -18,7 +18,11 @@
           "// Los logins (POST /sesiones) van SIN cabeceras de sandbox: dentro de un run solo el primer login funciona (limitacion del sandbox).",
           "// La sesion queda guardada de verdad y su token se usa despues dentro del run.",
           "var _esLogin = pm.request.method === 'POST' && pm.request.url.getPath().indexOf('/sesiones') !== -1;",
-          "if (!_esLogin) {",
+          "if (!pm.variables.get('sandbox_secret') && !_esLogin) {",
+          "    // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que NINGUNA escritura llegue a TEST sin sandbox.",
+          "    console.error('Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
+          "    pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else if (!_esLogin) {",
           "    pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.variables.get('run_id') });",
           "    pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' });",
           "}"

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre    | Que se hizo                                                                              |
+# |------------|-----------|------------------------------------------------------------------------------------------|
+# | 2026-10-27 | HulkyZeus | RF-62 TC-M03-G165: dispositivo fijable por TEST_G165_SERIAL; serial/area reales; 'transicion SUPERADA' evalua 2 veces; auditoria = N evaluaciones |
 """test_tc_m03_g165.py — Suite de pruebas automatizadas para TC-M03-G165 (RF-62 / RF-63).
 
 Módulo 3: Telemetría IoT — Evaluación de Calidad de Datos Telemétricos.
@@ -6,6 +9,7 @@ Ejecución: Pytest contra TEST desplegado en Sandbox Transaccional (X-Test-Run-I
 """
 from __future__ import annotations
 
+import os
 import statistics
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -113,8 +117,11 @@ def dispositivo_y_sensor_ambiental(env_config, admin_token):
     if resp.status_code != 200:
         raise RuntimeError(f"No fue posible consultar dispositivos IoT ({resp.status_code}): {resp.text}")
     items = resp.json().get("items", [])
+    # El dispositivo se puede fijar por serial (TEST_G165_SERIAL): hay dispositivos con periodos de inactividad abiertos (RF-60) que hacen
+    # que el motor omita la evaluacion de calidad (EVALUACION_OMITIDA_POR_INACTIVIDAD).
+    serial_fijo = os.environ.get("TEST_G165_SERIAL")
     for d in items:
-        if d.get("es_activo") is True:
+        if d.get("es_activo") is True and (not serial_fijo or d.get("serial") == serial_fijo):
             did = d["id_dispositivo_iot"]
             r_sens = requests.get(f"{env_config['TEST_BASE_URL']}/configuracion/dispositivos-iot/{did}/sensores", headers=headers, timeout=10)
             if r_sens.status_code == 200:
@@ -123,11 +130,19 @@ def dispositivo_y_sensor_ambiental(env_config, admin_token):
                     cat = (s.get("categoria") or "").upper()
                     nom = (s.get("nombre") or "").upper()
                     if s.get("es_activo") is True and ("TEMPERATURA" in cat or "TEMPERATURA" in nom):
+                        id_sensor = s.get("id_sensores") or s.get("id_sensor")
+                        # La calibracion exige el area donde el sensor esta ASOCIADO (puede diferir del area del dispositivo).
+                        infra = d.get("id_infraestructura", 3)
+                        r_aso = requests.get(f"{env_config['TEST_BASE_URL']}/configuracion/sensores/{id_sensor}/asociaciones", headers=headers, timeout=10)
+                        if r_aso.status_code == 200:
+                            vigentes = [a for a in r_aso.json().get("items", []) if a.get("fecha_finalizacion") is None]
+                            if vigentes:
+                                infra = vigentes[0]["id_infraestructura"]
                         return {
                             "device_id": did,
                             "access_key": d["serial"],
-                            "sensor_id": s.get("id_sensores") or s.get("id_sensor"),
-                            "id_infraestructura": d.get("id_infraestructura", 3),
+                            "sensor_id": id_sensor,
+                            "id_infraestructura": infra,
                             "tipo_variable": "TEMPERATURA_AMBIENTAL",
                             "unidad": "°C",
                             "rango_min": s.get("rango_minimo", -40.0),
@@ -189,7 +204,7 @@ def ingestar_lectura(client: SandboxClient, hardware: dict, valor: float, timest
         "timestamp_envio": timestamp.isoformat(),
         "origen": origen,
         "frecuencia_muestreo": frecuencia,
-        "serial": "IOT-ALE01-HLA-003",
+        "serial": hardware["access_key"],
     }
     # FIX: /iot/telemetria requiere BROKER_SERVICE_TOKEN (no admin JWT)
     import os
@@ -320,11 +335,15 @@ class TestEscenarioBase:
         """
         client = run_context["client"]
         id_tel = run_context["id_tel_21"]
+        # En el sandbox la evaluacion automatica de la ingesta (post-commit) no corre: la lectura solo tiene la evaluacion manual del
+        # fixture. Se evalua una vez mas para ejercitar "POST evaluar sobre una lectura ya evaluada".
+        resp_segunda = client.post(f"iot/calidad/{id_tel}/evaluar")
+        assert resp_segunda.status_code in (200, 201), f"Segunda evaluacion: {resp_segunda.status_code} {resp_segunda.text[:200]}"
         filas = client.query_sql(
             f"SELECT id_evaluacion, estado_evaluacion, id_evaluacion_superada, motivo_reevaluacion "
             f"FROM modulo3.telemetria_calidad WHERE id_telemetria = {id_tel}"
         )
-        assert len(filas) >= 2, f"Se esperaban al menos 2 evaluaciones para {id_tel} (ingesta + post evaluar)"
+        assert len(filas) >= 2, f"Se esperaban al menos 2 evaluaciones para {id_tel} (primera + segunda evaluar)"
         vigentes = [f for f in filas if f.get("estado_evaluacion") == "VIGENTE"]
         superadas = [f for f in filas if f.get("estado_evaluacion") == "SUPERADA"]
         assert len(vigentes) == 1, f"Debe existir exactamente 1 VIGENTE tras re-evaluar, encontradas: {len(vigentes)}"
@@ -375,7 +394,9 @@ class TestEscenarioBase:
             f"SELECT tipo_evento, componente_origen, clasificacion_registro, retencion_aplicable "
             f"FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{id_tel}'"
         )
-        assert len(filas) == pre + 1
+        # Cada evaluacion emite exactamente un evento RF-63 (el test de transicion SUPERADA evalua una segunda vez): delta = N de evaluaciones.
+        n_eval = client.query_sql(f"SELECT count(*) FROM modulo3.telemetria_calidad WHERE id_telemetria = {id_tel}")[0]["count"]
+        assert len(filas) == pre + n_eval
         nuevo = filas[-1]
         assert nuevo["componente_origen"] == "RF62"
         assert nuevo["clasificacion_registro"] == "NIC41"
