@@ -326,6 +326,27 @@ function buildTC321Folder() {
         '});'
     ]));
 
+    // Fix 6: 321.07 — Verificar inmutabilidad de RF-53 post-evaluación
+    items.push(makeItem(`${sub}.07-Verificar-Inmutabilidad-RF53`, "POST",
+        "{{baseUrl}}/test-control/query",
+        [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
+        {
+            query: `SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`
+        },
+        [],
+        [
+            'pm.test("TC-321: valor original en RF-53 intacto tras POST /evaluar", function () {',
+            '    pm.response.to.have.status(200);',
+            '    const rows = pm.response.json().data || pm.response.json().rows || [];',
+            '    pm.expect(rows.length).to.be.above(0);',
+            '    const row = rows[0];',
+            '    pm.expect(parseFloat(row.valor)).to.equal(50.00);',
+            '    pm.expect(row.unidad).to.equal("°C");',
+            '    pm.expect(row.estado_calidad).to.equal("FUERA_DE_RANGO");',
+            '});'
+        ]
+    ));
+
     return { name: `TC-321-fuera-de-rango`, item: items };
 }
 
@@ -388,6 +409,24 @@ function buildTC322Folder() {
         '});'
     ]));
 
+    // Fix 4: 322.05b — Pre-check sensor sin calibración previa en modulo9.calibraciones
+    items.push(makeItem(`${sub}.05b-Precheck-Sin-Calibracion`, "POST",
+        "{{baseUrl}}/test-control/query",
+        [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
+        {
+            query: `SELECT COUNT(*) AS total FROM modulo9.calibraciones WHERE id_sensor = {{${sensorIdVar}}}`
+        },
+        [],
+        [
+            'pm.test("322: Sensor sin calibración previa en modulo9.calibraciones", function () {',
+            '    pm.response.to.have.status(200);',
+            '    const rows = pm.response.json().data || pm.response.json().rows || [];',
+            '    pm.expect(rows.length).to.be.above(0);',
+            '    pm.expect(parseInt(rows[0].total)).to.equal(0);',
+            '});'
+        ]
+    ));
+
     // 322.06 — Evaluar calidad
     // El oráculo del CSV (70) asume gap implementado. En código actual gap no se detecta -> índice real 80.
     // Se deja 70 para que V2 falle honestamente (documenta INC-M03-G168-GAP-NOT-IMPLEMENTED).
@@ -406,8 +445,34 @@ function buildTC322Folder() {
         '    // Oráculo estricto del CSV: índice 70 por acumulación outlier (-20) + gap (-10)',
         '    pm.expect(r.indice_calidad).to.equal(70);',
         '    pm.expect(r.clasificacion_calidad).to.equal("APTO_CON_RESERVA");',
+        '});',
+        '// Fix 5: Assert explícito gap_temporal_anomalo.activo en TC-322',
+        'pm.test("TC-322: gap_temporal_anomalo.activo === true (aporta −10)", function () {',
+        '    const body = pm.response.json();',
+        '    pm.expect(body.flags_detectados && body.flags_detectados.gap_temporal_anomalo && body.flags_detectados.gap_temporal_anomalo.activo === true).to.equal(true);',
         '});'
     ]));
+
+    // Fix 6: 322.07 — Verificar inmutabilidad de RF-53 post-evaluación
+    items.push(makeItem(`${sub}.07-Verificar-Inmutabilidad-RF53`, "POST",
+        "{{baseUrl}}/test-control/query",
+        [h("X-Sandbox-Secret", "{{sandbox_secret}}")],
+        {
+            query: `SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{${telIdVar}}}`
+        },
+        [],
+        [
+            'pm.test("TC-322: valor original en RF-53 intacto tras POST /evaluar", function () {',
+            '    pm.response.to.have.status(200);',
+            '    const rows = pm.response.json().data || pm.response.json().rows || [];',
+            '    pm.expect(rows.length).to.be.above(0);',
+            '    const row = rows[0];',
+            '    pm.expect(parseFloat(row.valor)).to.equal(25.50);',
+            '    pm.expect(row.unidad).to.equal("°C");',
+            '    pm.expect(row.estado_calidad).to.equal("ERROR_CALIBRACION");',
+            '});'
+        ]
+    ));
 
     return { name: `TC-322-error-calibracion`, item: items };
 }
@@ -422,8 +487,10 @@ const teardown = [
         null,
         [],
         [
-            'pm.test("Rollback 200", function () {',
+            'pm.test("NW-Teardown: Rollback transaccional exitoso (HTTP 200)", function () {',
             '    pm.response.to.have.status(200);',
+            '    const data = pm.response.json();',
+            '    pm.expect(data.status).to.include("Rollback exitoso");',
             '});'
         ]
     )

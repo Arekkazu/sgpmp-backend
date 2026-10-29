@@ -304,7 +304,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Finca hohgkmqlii\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"Qa\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5,\n  \"id_usuario\": \"{{id_usuario_admin}}\"\n}",
+              "raw": "{\n  \"nombre\": \"Finca ovnbhbuwwu\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"Qa\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5,\n  \"id_usuario\": \"{{id_usuario_admin}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -357,7 +357,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre_infraestructura\": \"Area ahakloutka\",\n  \"tipo_area\": \"{{tipo_area_nombre}}\",\n  \"superficie\": 100,\n  \"finca_id\": \"{{id_finca}}\",\n  \"descripcion_infraestructura\": \"Area de pruebas estados RF-53\",\n  \"especie_id\": 2,\n  \"tipo_modelo_asignado\": null\n}",
+              "raw": "{\n  \"nombre_infraestructura\": \"Area icurdwphym\",\n  \"tipo_area\": \"{{tipo_area_nombre}}\",\n  \"superficie\": 100,\n  \"finca_id\": \"{{id_finca}}\",\n  \"descripcion_infraestructura\": \"Area de pruebas estados RF-53\",\n  \"especie_id\": 2,\n  \"tipo_modelo_asignado\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -410,7 +410,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"serial\": \"GDEVSAOUNKOS\",\n  \"descripcion\": \"Dispositivo base pruebas\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
+              "raw": "{\n  \"serial\": \"GDEVKCYBDYHJ\",\n  \"descripcion\": \"Dispositivo base pruebas\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -465,7 +465,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Sensor ipeigkcjiw\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "raw": "{\n  \"nombre\": \"Sensor fwagxaelih\",\n  \"categoria\": \"TEMPERATURA\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -573,7 +573,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"serial\": \"GDEVVHGOZPMA\",\n  \"descripcion\": \"Dispositivo 321\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
+              "raw": "{\n  \"serial\": \"GDEVSRQYFDGT\",\n  \"descripcion\": \"Dispositivo 321\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -627,7 +627,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Sensor dttsurqmde\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "raw": "{\n  \"nombre\": \"Sensor kidrfplmdv\",\n  \"categoria\": \"TEMPERATURA\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -897,6 +897,61 @@
               }
             }
           ]
+        },
+        {
+          "name": "321.07-Verificar-Inmutabilidad-RF53",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{tel_id_321}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-321: valor original en RF-53 intacto tras POST /evaluar\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    const row = rows[0];",
+                  "    pm.expect(parseFloat(row.valor)).to.equal(50.00);",
+                  "    pm.expect(row.unidad).to.equal(\"°C\");",
+                  "    pm.expect(row.estado_calidad).to.equal(\"FUERA_DE_RANGO\");",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -930,7 +985,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"serial\": \"GDEVIQPGODLU\",\n  \"descripcion\": \"Dispositivo 322\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
+              "raw": "{\n  \"serial\": \"GDEVWLDIVZFF\",\n  \"descripcion\": \"Dispositivo 322\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -984,7 +1039,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Sensor wxnpmjrkwn\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "raw": "{\n  \"nombre\": \"Sensor qrleytzstf\",\n  \"categoria\": \"TEMPERATURA\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1164,6 +1219,58 @@
           ]
         },
         {
+          "name": "322.05b-Precheck-Sin-Calibracion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS total FROM modulo9.calibraciones WHERE id_sensor = {{sensor_id_322}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"322: Sensor sin calibración previa en modulo9.calibraciones\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    pm.expect(parseInt(rows[0].total)).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "322.06-Evaluar-Calidad",
           "request": {
             "method": "POST",
@@ -1206,6 +1313,66 @@
                   "    // Oráculo estricto del CSV: índice 70 por acumulación outlier (-20) + gap (-10)",
                   "    pm.expect(r.indice_calidad).to.equal(70);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
+                  "});",
+                  "// Fix 5: Assert explícito gap_temporal_anomalo.activo en TC-322",
+                  "pm.test(\"TC-322: gap_temporal_anomalo.activo === true (aporta −10)\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.flags_detectados && body.flags_detectados.gap_temporal_anomalo && body.flags_detectados.gap_temporal_anomalo.activo === true).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "322.07-Verificar-Inmutabilidad-RF53",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Sandbox-Secret",
+                "value": "{{sandbox_secret}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT valor, unidad, timestamp_captura, estado_calidad FROM modulo3.telemetrias WHERE id_telemetria = {{tel_id_322}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"TC-322: valor original en RF-53 intacto tras POST /evaluar\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || pm.response.json().rows || [];",
+                  "    pm.expect(rows.length).to.be.above(0);",
+                  "    const row = rows[0];",
+                  "    pm.expect(parseFloat(row.valor)).to.equal(25.50);",
+                  "    pm.expect(row.unidad).to.equal(\"°C\");",
+                  "    pm.expect(row.estado_calidad).to.equal(\"ERROR_CALIBRACION\");",
                   "});"
                 ]
               }
@@ -1246,8 +1413,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Rollback 200\", function () {",
+                  "pm.test(\"NW-Teardown: Rollback transaccional exitoso (HTTP 200)\", function () {",
                   "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.status).to.include(\"Rollback exitoso\");",
                   "});"
                 ]
               }

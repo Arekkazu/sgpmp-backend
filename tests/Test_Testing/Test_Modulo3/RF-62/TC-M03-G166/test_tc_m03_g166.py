@@ -105,6 +105,7 @@ def contexto_g166() -> Generator[Dict[str, Any], None, None]:
             "JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot "
             "JOIN modulo9.sensores_areas_asociadas a ON a.id_sensor = s.id_sensores "
             "WHERE s.es_activo = true AND d.es_activo = true AND a.tiene_estado = true "
+            "  AND s.categoria = 'TEMPERATURA' "
             "ORDER BY s.id_sensores ASC "
             "LIMIT 10"
         )
@@ -173,9 +174,8 @@ def contexto_g166() -> Generator[Dict[str, Any], None, None]:
                 f"Detalle descartes: {detalle}"
             )
 
-        # FIX: anclar sensor 2 + device 1 (probe confirmó que funciona)
-        id_sensor = 2
-        id_device = 1
+        id_sensor = int(sensor_seleccionado.get("id_sensores") or sensor_seleccionado.get("id_sensor"))
+        id_device = int(sensor_seleccionado.get("id_dispositivo_iot") or sensor_seleccionado.get("id_dispositivo"))
         access_key = str(sensor_seleccionado.get("serial") or sensor_seleccionado.get("access_key"))
 
         # Si no tiene calibración registrada, sembrar la calibración nominal (ganancia=1.0, offset=0.0) bajo sandbox
@@ -200,7 +200,7 @@ def contexto_g166() -> Generator[Dict[str, Any], None, None]:
         ctx["access_key"] = access_key
 
         # 4. Ingesta Individual de las 41 Lecturas (origen BUFFER_LOCAL)
-        broker_token = os.environ.get("BROKER_TOKEN", "")
+        broker_token = os.environ.get("BROKER_SERVICE_TOKEN") or os.environ.get("BROKER_TOKEN") or cfg.get("BROKER_SERVICE_TOKEN", "")
         headers_ingesta = {
             "X-Test-Run-Id": run_id,
             "X-Sandbox-Secret": cfg["TEST_SANDBOX_SECRET"],
@@ -224,7 +224,8 @@ def contexto_g166() -> Generator[Dict[str, Any], None, None]:
                 f"{cfg['TEST_BASE_URL']}/iot/telemetria",
                 headers=headers_ingesta,
                 json=dto_ingesta,
-                timeout=15,
+                timeout=45,  # aumento desde 15s: backend TEST ocasionalmente tarda >15s
+                             # en burst de 41 ingestas (ver INC-M03-G166-LATENCY)
             )
             if resp_ing.status_code not in (200, 201):
                 pytest.fail(f"Setup G166 falló: ingesta HTTP {resp_ing.status_code} "

@@ -1,0 +1,180 @@
+{
+  "tc": "TC-M04-G083",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G083: Distribución OTA e integridad",
+  "summary": {
+    "total": 27,
+    "ok": 27,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "stats": {
+    "tests": 27,
+    "passes": 27,
+    "failures": 0
+  },
+  "checkpoints": [
+    {
+      "paso": "01.01: Login exitoso del Administrador (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.01: Consulta de despliegues OTA existentes (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "03.01: Reporte OTA integrity_ok aceptado (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.01: Consulta de auditoria exitosa (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.02: Total de eventos MODELO_DISTRIBUIDO_EDGE >= 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.03: tipo_evento es MODELO_DISTRIBUIDO_EDGE",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.04: tipo_actor es DISPOSITIVO_EDGE",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.05: id_sistema coincide con el serial del dispositivo",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.06: severidad_evento es INFO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.07: resultado_operacion es EXITOSO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.08: payload_evento valida hash_verificado / integrity_ok",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.09: id_referencia coincide con id_despliegue_ota",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.10: correlacion_id no es nulo",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "05.01: Rollback y cierre exitoso de Sandbox A (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "06.01: Reporte OTA rollback procesado (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.01: Total de eventos HASH_INVALIDO_DETECTADO >= 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.02: tipo_evento es HASH_INVALIDO_DETECTADO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.03: tipo_actor es DISPOSITIVO_EDGE y exclusividad de actor (RF-73 CA-13)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.04: severidad_evento es CRITICAL",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.05: payload_evento.hash_esperado no nulo",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.06: payload_evento.hash_recibido no nulo",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08.01: Consulta de auditoria DISTRIBUCION_FALLIDA (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08.02: Total de eventos DISTRIBUCION_FALLIDA >= 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08.03: tipo_evento es DISTRIBUCION_FALLIDA",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08.04: payload_evento documenta causa HASH_INVALIDO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09.01: Rollback y cierre exitoso de Sandbox B (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "10.01: Consulta de despliegues post-rollback (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

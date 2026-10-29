@@ -41,10 +41,9 @@ def _payload_version_registrada() -> dict:
 def test_tc_m04_016_tipo_evento_fuera_catalogo(db_session):
     """TC-M04-016 — EVENTO_INVENTADO debe rechazarse y generar AUDITORIA_EVENTO_INVALIDO."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
-    n_antes_inv = _count(db_session, "EVENTO_INVENTADO")
     n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
-    repo.registrar(
+    res = repo.registrar(
         tipo_evento="EVENTO_INVENTADO",
         tipo_actor="SISTEMA",
         id_sistema="PYTEST_G087",
@@ -54,18 +53,13 @@ def test_tc_m04_016_tipo_evento_fuera_catalogo(db_session):
     )
     db_session.flush()
 
-    n_despues_inv = _count(db_session, "EVENTO_INVENTADO")
     n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
-    assert n_despues_inv == n_antes_inv, (
-        "RF-73 Fase 2.1: tipo_evento fuera de catálogo no debe persistirse. "
-        f"Se persistieron {n_despues_inv - n_antes_inv} fila(s) con "
-        "tipo_evento='EVENTO_INVENTADO'."
-    )
+    assert res.aceptado is False, "RF-73 E1: tipo no catalogado debe ser rechazado"
+    assert "tipo_evento" in res.campos_invalidos, "RF-73 E1: campos_invalidos debe reportar tipo_evento"
     assert n_despues_audinv == n_antes_audinv + 1, (
-        "RF-73 E1: tipo fuera de catálogo debe generar "
-        f"AUDITORIA_EVENTO_INVALIDO. Se crearon "
-        f"{n_despues_audinv - n_antes_audinv} fila(s)."
+        "RF-73 E1: tipo fuera de catálogo debe generar AUDITORIA_EVENTO_INVALIDO. "
+        f"Se crearon {n_despues_audinv - n_antes_audinv} fila(s)."
     )
 
 
@@ -75,23 +69,21 @@ def test_tc_m04_017_sistema_sin_id_sistema(db_session):
     n_antes_ver = _count(db_session, "VERSION_REGISTRADA")
     n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
-    try:
-        repo.registrar(
-            tipo_evento="VERSION_REGISTRADA",
-            tipo_actor="SISTEMA",
-            id_sistema=None,       # FALTA para SISTEMA
-            id_usuario=None,
-            id_referencia=str(uuid.uuid4()),
-            payload_evento=_payload_version_registrada(),
-            severidad_evento="ERROR",
-        )
-        db_session.flush()
-    except Exception:
-        db_session.rollback()
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema=None,       # FALTA para SISTEMA
+        id_usuario=None,
+        id_referencia=str(uuid.uuid4()),
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="ERROR",
+    )
+    db_session.flush()
 
     n_despues_ver = _count(db_session, "VERSION_REGISTRADA")
     n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
+    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: SISTEMA requiere id_sistema"
     assert n_despues_ver == n_antes_ver, (
         "RF-73 CA-13: SISTEMA sin id_sistema no debe persistirse. "
         f"Se persistieron {n_despues_ver - n_antes_ver} fila(s)."
@@ -109,23 +101,21 @@ def test_tc_m04_018_usuario_con_id_sistema(db_session):
     n_antes_ver = _count(db_session, "VERSION_REGISTRADA")
     n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
-    try:
-        repo.registrar(
-            tipo_evento="VERSION_REGISTRADA",
-            tipo_actor="USUARIO",
-            id_usuario=5,
-            id_sistema="motor_inferencia",  # NO debe estar para USUARIO
-            id_referencia=str(uuid.uuid4()),
-            payload_evento=_payload_version_registrada(),
-            severidad_evento="ERROR",
-        )
-        db_session.flush()
-    except Exception:
-        db_session.rollback()
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="USUARIO",
+        id_usuario=5,
+        id_sistema="motor_inferencia",  # NO debe estar para USUARIO
+        id_referencia=str(uuid.uuid4()),
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="ERROR",
+    )
+    db_session.flush()
 
     n_despues_ver = _count(db_session, "VERSION_REGISTRADA")
     n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
+    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: USUARIO no puede tener id_sistema"
     assert n_despues_ver == n_antes_ver, (
         "RF-73 CA-13: USUARIO con id_sistema no nulo no debe persistirse. "
         f"Se persistieron {n_despues_ver - n_antes_ver} fila(s)."
