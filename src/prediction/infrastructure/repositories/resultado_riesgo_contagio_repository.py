@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: conservar umbrales aplicados en el snapshot histórico y su lectura. |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: persistir procedencia de densidad y leer snapshots históricos compatibles. |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -24,6 +25,7 @@ def _snapshot(r: ResultadoRiesgoContagio) -> dict:
         "definicion_fs": r.definicion_fs,
         "motivos_degradacion": r.motivos_degradacion,
         "densidad_asumida": r.densidad_asumida,
+        "contexto_densidad": r.contexto_densidad,
         "id_area_productiva": r.id_area_productiva,
         "config_version": r.config_version,
         "umbrales_aplicados": {k: str(v) for k, v in r.umbrales_aplicados.items()},
@@ -88,7 +90,8 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
         snap = dict(orm.variables_ambientales_snap or {})
         ausentes = list(orm.factores_ausentes or [])
         propias = {"definicion_fs", "motivos_degradacion", "densidad_asumida", "id_area_productiva",
-                   "config_version", "huella_entradas", "id_alerta_rf57", "umbrales_aplicados"}
+                   "config_version", "huella_entradas", "id_alerta_rf57", "umbrales_aplicados",
+                   "contexto_densidad"}
         return ResultadoRiesgoContagio(
             id_lote=orm.id_activo_biologico,
             probabilidad_contagio=orm.probabilidad_contagio,
@@ -106,6 +109,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
             total_activos_lote=orm.total_activos_lote,
             porcentaje_sensores_activos=orm.porcentaje_sensores_activos,
             densidad_asumida=bool(snap.get("densidad_asumida")),
+            contexto_densidad=dict(snap.get("contexto_densidad") or {}),
             fecha_calculo=orm.fecha_calculo,
             id_resultado_contagio=orm.id_resultado_contagio,
             id_configuracion_motor=orm.id_configuracion_motor,

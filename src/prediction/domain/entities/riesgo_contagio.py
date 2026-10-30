@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: clasificar con el umbral activo conservando mínimos sanitarios. |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: aplicar ocupación histórica ante error de densidad sin alterar la entrada nula. |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -14,6 +15,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
+
+from src.prediction.domain.entities.ocupacion_lote import MuestraOcupacion, promediar_ocupacion
 
 #: La frontera de Medio se conserva en 0.50; la de Alto procede de RF-65.
 #: Los porcentajes sanitarios obligatorios de RF-68 conservan sus cortes propios.
@@ -110,6 +113,7 @@ class ResultadoRiesgoContagio:
     huella_entradas: str = ""
     variables_ambientales: dict = field(default_factory=dict)
     umbrales_aplicados: dict[str, Decimal] = field(default_factory=dict)
+    contexto_densidad: dict = field(default_factory=dict)
 
     @property
     def nivel_texto(self) -> str:
@@ -161,6 +165,7 @@ def calcular_riesgo_contagio(
     score_anomalia: Optional[Decimal] = None,
     ambiente: Optional[LecturaAmbiental] = None,
     densidad_poblacional: Optional[Decimal] = None,
+    muestras_ocupacion: Optional[list[MuestraOcupacion]] = None,
     porcentaje_sensores_activos: Decimal = Decimal("100"),
 ) -> ResultadoRiesgoContagio:
     """RF-68 pasos 1–7 con sus flujos alternos. Lanza ``DatosContagioError`` cuando no se ejecuta."""
@@ -237,16 +242,35 @@ def calcular_riesgo_contagio(
     else:
         motivos.append("DATOS_AMBIENTALES_INCOMPLETOS")  # E3
 
-    # Fd: densidad / densidad máxima. Densidad desconocida → capacidad máxima (preventivo).
+    # E2: error de sensor finito → histórico registrado; nulo conserva el preventivo.
+    densidad_aplicada = densidad_poblacional
+    contexto_densidad = {
+        "densidad_solicitada": str(densidad_poblacional) if densidad_poblacional is not None else None,
+        "fuente": "ENTRADA" if densidad_poblacional is not None else "CAPACIDAD_MAXIMA_NULA",
+    }
+    if densidad_poblacional is not None and densidad_poblacional < 0:
+        historico = promediar_ocupacion(muestras_ocupacion or [], hasta=ahora)
+        densidad_aplicada = historico.densidad_promedio
+        contexto_densidad.update(historico=historico.snapshot(), fuente="HISTORICO_OCUPACION_M02")
+        if densidad_aplicada is None:
+            contexto_densidad["fuente"] = "CAPACIDAD_MAXIMA_SIN_HISTORICO"
+            motivos.append("SIN_HISTORICO_OCUPACION")
+
+    # Fd: densidad / densidad máxima. Desconocida → capacidad máxima (preventivo).
     fd: Optional[Decimal] = None
     densidad_asumida = False
     if parametros.densidad_maxima and parametros.densidad_maxima > 0:
-        if densidad_poblacional is None:
+        if densidad_aplicada is None:
             fd, densidad_asumida = Decimal("1"), True
         else:
-            fd = _acotar(Decimal(densidad_poblacional) / parametros.densidad_maxima)
+            fd = _acotar(Decimal(densidad_aplicada) / parametros.densidad_maxima)
     else:
         motivos.append("DENSIDAD_MAXIMA_NO_CONFIGURADA")
+
+    contexto_densidad["densidad_aplicada"] = (
+        str(parametros.densidad_maxima) if densidad_asumida else
+        str(densidad_aplicada) if densidad_aplicada is not None else None
+    )
 
     factores = {"fs": fs, "fa": fa, "fd": fd}
     pesos_config = {"fs": parametros.w_fs, "fa": parametros.w_fa, "fd": parametros.w_fd}
@@ -297,5 +321,6 @@ def calcular_riesgo_contagio(
         total_activos_lote=total,
         porcentaje_sensores_activos=porcentaje_sensores_activos,
         densidad_asumida=densidad_asumida,
+        contexto_densidad=contexto_densidad,
         fecha_calculo=ahora,
     )

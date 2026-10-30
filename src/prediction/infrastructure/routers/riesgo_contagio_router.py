@@ -3,6 +3,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-29 | Arekkazu | PEND-456 RF-68: GET con los cálculos del alcance para la pestaña Contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: documentar umbrales dinámicos y condiciones de alerta. |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conectar el puerto de ocupación histórica y documentar el fallback E2. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -22,6 +23,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.prediction.application.use_cases.riesgo_contagio.estimar_riesgo_contagio_use_case import (
     EstimarRiesgoContagioUseCase,
 )
+from src.prediction.infrastructure.adapters.ocupacion_lote_m02_adapter import OcupacionLoteM02Adapter
 from src.prediction.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.prediction.infrastructure.adapters.alerta_contagio_rf57_adapter import AlertaContagioRf57Adapter
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
@@ -77,12 +79,16 @@ def estimar_riesgo_contagio(
     """P = W_fs·Fs + W_fa·Fa + W_fd·Fd con los pesos y rangos de RF-65, discretizado en
     Bajo/Medio/Alto (Medio desde 0.50, Alto desde umbral_riesgo_alto de RF-65).
     Con Alto, confianza normal y probabilidad >= umbral_alerta_critica genera la
-    alerta RIESGO_CONTAGIO en RF-57 (`alerta_id`)."""
+    alerta RIESGO_CONTAGIO en RF-57 (`alerta_id`).
+    Una densidad negativa usa el promedio temporal registrado de 30 días (E2); sin
+    histórico útil usa capacidad máxima con confianza baja. Una densidad nula
+    conserva el preventivo existente."""
     resultado = EstimarRiesgoContagioUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionMotorIARepository(db),
         resultado_repo=SqlAlchemyResultadoRiesgoContagioRepository(db),
         activo_port=ActivoBiologicoM02Adapter(db),
+        ocupacion_port=OcupacionLoteM02Adapter(db),
         alerta_port=AlertaContagioRf57Adapter(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     ).execute(dto, usuario_actual.id_usuario, usuario_actual.id_rol)
