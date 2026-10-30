@@ -58,3 +58,8 @@ def test_respeta_el_alcance_de_fincas(db_session, alertas):
     a = alertas
     assert _ids(db_session, sensor_id=a["sensor"], ids_fincas_permitidas=[a["finca"]]) == {
         a["lectura_fuera"], a["sin_lectura"]}
+
+
+def test_sin_sensor_ni_activo_solo_las_alertas_de_las_lecturas(db_session, alertas):
+    # Los parámetros NULL no amplían el resultado: ninguna lectura sembrada, ninguna alerta.
+    assert _ids(db_session) == set()

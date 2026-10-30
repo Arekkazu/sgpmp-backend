@@ -3,6 +3,7 @@
 # | 2026-10-25 | Arekkazu | INC-M04-143/144/146 RF-67: eventos ordenados, id estable y nombre histórico |
 # | 2026-10-25 | Arekkazu | INC-M04-146-G012 RF-67: MD5 del id de alerta marcado como no criptográfico (Bandit B324) |
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68/RF-67: cálculos de contagio del lote en el historial |
+# | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-67: id de CONTAGIO sin hash; id de alerta sin cambios (Bearer CWE-328) |
 """Historial diagnóstico (RF-67) sobre resultados de inferencia, alertas y retroalimentación.
 
 - Orden y cursor por (fecha_evento, id_evento) DESC, sobre los tres tipos de
@@ -44,24 +45,26 @@ INFERENCIA, ALERTA, RETROALIMENTACION = "INFERENCIA", "ALERTA", "RETROALIMENTACI
 CONTAGIO = "CONTAGIO"
 
 
-def _id_derivado(prefijo: str, id_entero: int) -> uuid.UUID:
-    """UUID estable de un id entero; igual al ``md5(...)::uuid`` del SQL.
+def id_evento_alerta(id_alerta_patologica: int) -> uuid.UUID:
+    """UUID estable de una alerta (su id es entero); igual al ``md5(...)::uuid`` del SQL.
 
     MD5 solo deriva un identificador determinista, no protege nada.
     """
-    return uuid.UUID(hashlib.md5(f"{prefijo}:{id_entero}".encode(), usedforsecurity=False).hexdigest())
+    return uuid.UUID(hashlib.md5(f"ALERTA:{id_alerta_patologica}".encode(), usedforsecurity=False).hexdigest())
 
 
-def id_evento_alerta(id_alerta_patologica: int) -> uuid.UUID:
-    return _id_derivado(ALERTA, id_alerta_patologica)
+# Prefijo fijo + id en los 12 dígitos finales: estable, sin hash y sin choque con los
+# UUID v4 de inferencias y retroalimentaciones ni con los de alertas (md5).
+_PREFIJO_CONTAGIO = "c047a610-0000-0000-0000-"
 
 
 def id_evento_contagio(id_resultado_contagio: int) -> uuid.UUID:
-    return _id_derivado(CONTAGIO, id_resultado_contagio)
+    """UUID estable de un cálculo de contagio; igual a ``_id_contagio_sql``."""
+    return uuid.UUID(f"{_PREFIJO_CONTAGIO}{id_resultado_contagio:012x}")
 
 
-def _id_derivado_sql(prefijo: str, columna):
-    return cast(func.md5(literal(f"{prefijo}:") + cast(columna, Text)), UUID)
+def _id_contagio_sql(columna):
+    return cast(literal(_PREFIJO_CONTAGIO) + func.lpad(func.to_hex(columna), 12, "0"), UUID)
 
 
 # Nombre de la patología vigente en cada instante: el último cambio del catálogo
@@ -130,7 +133,7 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         )
         alertas = []
         if incluir_alertas:
-            id_alerta = _id_derivado_sql(ALERTA, ap.id_alerta_patologica)
+            id_alerta = cast(func.md5(literal("ALERTA:") + cast(ap.id_alerta_patologica, Text)), UUID)
             alertas = pagina(
                 select(ap, ri.id_resultado_inferencia, ri.id_activo_biologico)
                 .join(ri, ri.id_alerta_generada == ap.id_alerta_patologica)
@@ -148,7 +151,7 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
                     rrc.fecha_calculo <= fecha_fin,
                     *([] if nivel_riesgo is None else [rrc.nivel_riesgo_contagio == nivel_riesgo]),
                 ),
-                rrc.fecha_calculo, _id_derivado_sql(CONTAGIO, rrc.id_resultado_contagio),
+                rrc.fecha_calculo, _id_contagio_sql(rrc.id_resultado_contagio),
             )
 
         nombres = self._nombres_a_la_fecha(
