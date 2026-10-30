@@ -3,6 +3,7 @@
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: el repositorio en memoria respeta el backoff; lote no confirmado se reprograma |
 # | 2026-10-28 | Arekkazu | INC-M03-116-G59 RF-56: el repositorio en memoria implementa obtener() del puerto |
+# | 2026-10-30 | Arekkazu | RF-66: la cola bloquea con FOR NO KEY UPDATE |
 """INC-M03-112-G55 (RF-56): generación del paquete y envío batch fragmentado a máximo 500.
 
 TC-M03-090: el paquete lleva los campos obligatorios de la Salida de RF-56.
@@ -189,7 +190,9 @@ def test_listar_pendientes_ordena_por_captura_limita_y_salta_bloqueados(monkeypa
     assert "estado_paquete = 'PENDIENTE'" in sql
     assert "ORDER BY modulo3.eventos_edge_computing.fecha_captura, modulo3.paquetes_inferencia.id_paquetes_inferencia" in sql
     assert "LIMIT 500" in sql
-    assert "FOR UPDATE OF modulo3.paquetes_inferencia SKIP LOCKED" in sql or "FOR UPDATE OF paquetes_inferencia SKIP LOCKED" in sql
+    # NO KEY: la FK de modulo4.resultados_inferencia (que inserta el motor IA mientras el lote espera
+    # su respuesta) pide FOR KEY SHARE, que choca con FOR UPDATE pero no con FOR NO KEY UPDATE.
+    assert "FOR NO KEY UPDATE OF modulo3.paquetes_inferencia SKIP LOCKED" in sql or "FOR NO KEY UPDATE OF paquetes_inferencia SKIP LOCKED" in sql
 
 
 def test_paquete_generado_lleva_los_campos_obligatorios_de_rf56():
