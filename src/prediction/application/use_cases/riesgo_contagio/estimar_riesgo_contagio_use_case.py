@@ -1,9 +1,10 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: validar cobertura antes de caché y auditar el rechazo sin resultados ni alertas. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
-Flujo: acceso al lote → configuración activa de RF-65 → caché/frecuencia (5.1) →
+Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché/frecuencia (5.1) →
 cálculo (``calcular_riesgo_contagio``) → persistencia (paso 9) → RF-73 → alerta
 RIESGO_CONTAGIO hacia RF-57 si es Alto y la confianza no es baja (paso 8, CA-3, CA-6).
 
@@ -26,6 +27,7 @@ from src.prediction.domain.entities.riesgo_contagio import (
     ResultadoRiesgoContagio,
     SalidaInferencia,
     calcular_riesgo_contagio,
+    validar_cobertura_rf66,
 )
 from src.prediction.domain.repositories.activo_biologico_port import ActivoBiologicoPort
 from src.prediction.domain.repositories.alerta_contagio_port import AlertaContagioPort
@@ -75,20 +77,26 @@ class EstimarRiesgoContagioUseCase:
             )
 
         ahora = datetime.now(timezone.utc)
-        huella = self._huella(dto, config.config_version)
-        anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
-        if anteriores and ahora - anteriores[0].fecha_calculo < INTERVALO_MINIMO:
-            if anteriores[0].huella_entradas == huella:
-                anteriores[0].desde_cache = True
-                return anteriores[0]
-            espera = INTERVALO_MINIMO - (ahora - anteriores[0].fecha_calculo)
-            raise TooManyRequestsError(
-                code="EJECUCION_CONTAGIO_MUY_FRECUENTE",
-                message="El modelo de contagio de este lote se ejecutó hace menos de 5 segundos.",
-                headers={"Retry-After": str(max(1, int(espera.total_seconds()) + 1))},
-            )
-
+        salidas = [SalidaInferencia(s.probabilidad_riesgo_alto, s.fecha_inferencia, s.id_activo_biologico)
+                   for s in dto.salidas_rf66]
         try:
+            validar_cobertura_rf66(
+                salidas_rf66=salidas, total_activos_lote=dto.total_activos_lote,
+                ahora=ahora, score_anomalia=dto.score_anomalia,
+            )
+            huella = self._huella(dto, config.config_version)
+            anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
+            if anteriores and ahora - anteriores[0].fecha_calculo < INTERVALO_MINIMO:
+                if anteriores[0].huella_entradas == huella:
+                    anteriores[0].desde_cache = True
+                    return anteriores[0]
+                espera = INTERVALO_MINIMO - (ahora - anteriores[0].fecha_calculo)
+                raise TooManyRequestsError(
+                    code="EJECUCION_CONTAGIO_MUY_FRECUENTE",
+                    message="El modelo de contagio de este lote se ejecutó hace menos de 5 segundos.",
+                    headers={"Retry-After": str(max(1, int(espera.total_seconds()) + 1))},
+                )
+
             resultado = calcular_riesgo_contagio(
                 id_lote=dto.id_lote,
                 parametros=ParametrosContagio(
@@ -98,8 +106,7 @@ class EstimarRiesgoContagioUseCase:
                     densidad_maxima=config.densidad_maxima_config,
                 ),
                 ahora=ahora,
-                salidas_rf66=[SalidaInferencia(s.probabilidad_riesgo_alto, s.fecha_inferencia, s.id_activo_biologico)
-                              for s in dto.salidas_rf66],
+                salidas_rf66=salidas,
                 total_activos_lote=dto.total_activos_lote,
                 n_enfermos_detectados=dto.n_enfermos_detectados,
                 score_anomalia=dto.score_anomalia,
@@ -178,7 +185,7 @@ class EstimarRiesgoContagioUseCase:
                 id_referencia=str(dto.id_lote), entidad_referencia="lote", severidad_evento="WARNING",
                 resultado_operacion="FALLIDO", codigo_error=exc.codigo, descripcion_error=exc.mensaje,
                 payload_evento={"id_lote": dto.id_lote, "id_configuracion_motor": id_configuracion,
-                                "motivo": exc.mensaje},
+                                "motivo": exc.mensaje, **exc.contexto},
             )
             self.db.commit()
         except Exception:

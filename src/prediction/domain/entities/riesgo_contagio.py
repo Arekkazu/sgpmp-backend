@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: exigir 60 % de individuos con inferencia reciente y preservar score poblacional. |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -30,8 +31,8 @@ SINCRONIA_MAXIMA = timedelta(seconds=35)
 #: E5/E9: inferencias de RF-66 de más de 30 min no se usan; ambiente de más de 10 min, sin Fa.
 VIGENCIA_INFERENCIA = timedelta(minutes=30)
 VIGENCIA_AMBIENTAL = timedelta(minutes=10)
-#: E1: con RF-66 para menos del 50 % del lote se calcula sin Fs.
-COBERTURA_MINIMA_FS = Decimal("0.50")
+#: E8 / CA-10: mínimo confirmado del 60 % para inferencias individuales; sustituye E1.
+COBERTURA_MINIMA_FS = Decimal("0.60")
 #: E4 / Validación de Modelo: con menos del 60 % de sensores operativos no se ejecuta.
 SENSORES_MINIMOS_PCT = Decimal("60")
 #: Paso 5: data_quality_score < 0.6 → modo degradado.
@@ -46,10 +47,11 @@ SCORE_POBLACIONAL = "SCORE_POBLACIONAL"
 class DatosContagioError(Exception):
     """El modelo no se ejecuta. ``codigo`` es el evento de RF-73 que corresponde."""
 
-    def __init__(self, codigo: str, mensaje: str) -> None:
+    def __init__(self, codigo: str, mensaje: str, contexto: Optional[dict] = None) -> None:
         super().__init__(mensaje)
         self.codigo = codigo
         self.mensaje = mensaje
+        self.contexto = contexto or {}
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,40 @@ def discretizar(probabilidad: Decimal) -> int:
     return 0
 
 
+def validar_cobertura_rf66(
+    *, salidas_rf66: list[SalidaInferencia], total_activos_lote: Optional[int],
+    ahora: datetime, score_anomalia: Optional[Decimal],
+) -> tuple[list[SalidaInferencia], Optional[int]]:
+    """E8/CA-10: cada individuo identificado cuenta una vez, con su última salida reciente.
+
+    Se conserva el contrato legado sin IDs/total y el score poblacional de RFC-009.
+    La aplicación también valida antes de reutilizar resultados anteriores en caché.
+    """
+    vigentes = []
+    por_activo: dict[int, SalidaInferencia] = {}
+    for salida in salidas_rf66:
+        if not timedelta(0) <= ahora - salida.fecha_inferencia <= VIGENCIA_INFERENCIA:
+            continue
+        if salida.id_activo_biologico is None:
+            vigentes.append(salida)
+        else:
+            anterior = por_activo.get(salida.id_activo_biologico)
+            if anterior is None or salida.fecha_inferencia > anterior.fecha_inferencia:
+                por_activo[salida.id_activo_biologico] = salida
+    vigentes.extend(por_activo.values())
+    total = total_activos_lote or (len(vigentes) or None)
+    cobertura = Decimal(len(vigentes)) / Decimal(total) if total else Decimal('0')
+    if score_anomalia is None and cobertura < COBERTURA_MINIMA_FS:
+        raise DatosContagioError(
+            'ERROR_DATOS_INSUFICIENTES',
+            f'RF-66 dispone de {len(vigentes)} inferencias individuales recientes '
+            f'para {total or 0} activos del lote (mínimo 60%): no se ejecuta el modelo.',
+            contexto={'inferencias_recientes': len(vigentes), 'total_activos_lote': total,
+                      'cobertura_rf66': str(cobertura), 'cobertura_minima_rf66': str(COBERTURA_MINIMA_FS)},
+        )
+    return vigentes, total
+
+
 def calcular_riesgo_contagio(
     *,
     id_lote: int,
@@ -172,14 +208,12 @@ def calcular_riesgo_contagio(
 
     motivos: list[str] = []
 
-    # E5: inferencias de más de 30 min se descartan.
-    vigentes = [s for s in salidas_rf66 if ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA]
-    if salidas_rf66 and not vigentes and score_anomalia is None:
-        raise DatosContagioError(
-            "ERROR_DATOS_INSUFICIENTES",
-            "Las salidas de RF-66 tienen más de 30 minutos: no se ejecuta el modelo.",
-        )
-    if len(vigentes) < len(salidas_rf66):
+    # E5/E8: solo individuos con inferencia reciente contribuyen a la cobertura.
+    vigentes, total = validar_cobertura_rf66(
+        salidas_rf66=salidas_rf66, total_activos_lote=total_activos_lote,
+        ahora=ahora, score_anomalia=score_anomalia,
+    )
+    if any(not timedelta(0) <= ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA for s in salidas_rf66):
         motivos.append("INFERENCIAS_DESACTUALIZADAS_DESCARTADAS")
 
     # Precondición 5 / CA-8: sincronización entre las salidas y el dato ambiental.
@@ -200,20 +234,13 @@ def calcular_riesgo_contagio(
     # Fs: proporción de enfermos (RF-66) o score de anomalía del área (POBLACIONAL, RFC-009).
     fs: Optional[Decimal] = None
     definicion_fs: Optional[str] = None
-    total = total_activos_lote or (len(vigentes) or None)
     enfermos = n_enfermos_detectados
     if score_anomalia is not None:
         fs, definicion_fs = _acotar(Decimal(score_anomalia)), SCORE_POBLACIONAL
     elif vigentes and total:
         if enfermos is None:
             enfermos = sum(1 for s in vigentes if s.probabilidad_riesgo_alto > PROBABILIDAD_ENFERMO)
-        cobertura = Decimal(len(vigentes)) / Decimal(total)
-        if cobertura >= COBERTURA_MINIMA_FS:
-            fs, definicion_fs = _acotar(Decimal(enfermos) / Decimal(total)), CONTEO_INDIVIDUAL
-        else:
-            motivos.append("COBERTURA_RF66_MENOR_AL_50")  # E1
-    else:
-        motivos.append("SIN_SALIDAS_RF66")  # CA-5
+        fs, definicion_fs = _acotar(Decimal(enfermos) / Decimal(total)), CONTEO_INDIVIDUAL
 
     # Fa: temperatura y humedad normalizadas con los rangos de RF-65 (CA-12).
     fa: Optional[Decimal] = None
