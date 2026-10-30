@@ -5,6 +5,7 @@
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: documentar umbrales dinámicos y condiciones de alerta. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conectar el puerto de ocupación histórica y documentar el fallback E2. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: documentar el rechazo 422 por cobertura individual inferior al 60 %. |
+# | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: documentar recálculo inmediato 201 y retirar el 429 de frecuencia obsoleto. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -61,6 +62,7 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
     dependencies=[Depends(require_permission(_RECURSO, 5))],
     responses={
         200: {"model": RiesgoContagioResponse, "description": "Mismas entradas en menos de 5 s: resultado en caché (5.1)"},
+        201: {"model": RiesgoContagioResponse, "description": "Nuevo cálculo: entradas o configuración cambiantes recalculan sin esperar 5 s (CA-4/5.1)"},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse, "description": "LOTE_NO_ENCONTRADO"},
@@ -68,7 +70,6 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
             "CONFIGURACION_CONTAGIO_NO_DEFINIDA, ERROR_CONFIGURACION_PESOS, ERROR_DATOS_INSUFICIENTES "
             "(E4/E5/E8/CA-10: cobertura individual mínima 60 %) o ERROR_DATOS_DESINCRONIZADOS (> 35 s)"
         )},
-        429: {"model": ErrorResponse, "description": "EJECUCION_CONTAGIO_MUY_FRECUENTE: < 5 s desde la anterior"},
     },
     summary="Ejecutar el modelo de riesgo de contagio de un lote (RF-68)",
 )

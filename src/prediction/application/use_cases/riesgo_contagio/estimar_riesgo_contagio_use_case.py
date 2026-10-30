@@ -4,16 +4,17 @@
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: aplicar umbrales RF-65 a clasificación y alerta con trazabilidad. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: consultar histórico solo ante densidad inválida y auditar su procedencia. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: validar cobertura antes de caché y auditar el rechazo sin resultados ni alertas. |
+# | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: recalcular ante entradas cambiantes y reservar cinco segundos para caché idéntica. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
-Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché/frecuencia (5.1) →
+Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché (5.1) →
 cálculo (``calcular_riesgo_contagio``) → persistencia (paso 9) → RF-73 → alerta
 RIESGO_CONTAGIO hacia RF-57 si es Alto, alcanza el umbral crítico de RF-65 y
 la confianza no es baja (decisión funcional #852; paso 8, CA-3, CA-6).
 
 Fuera de alcance: la cola de concurrencia por lote (máx. 3 en curso, FIFO de 10) y la
-agregación de 5 min del historial. Cada solicitud corre sola y la tasa por lote se
-limita con el mínimo de 5 s entre ejecuciones.
+agregación de 5 min del historial. Los cambios de entradas se recalculan de inmediato;
+la ventana de 5 s solo reutiliza entradas idénticas (definición confirmada de CA-4/5.1).
 """
 from __future__ import annotations
 
@@ -42,12 +43,12 @@ from src.prediction.domain.repositories.resultado_riesgo_contagio_repository imp
     ResultadoRiesgoContagioRepository,
 )
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
-from src.shared.errors import BusinessRuleError, NotFoundError, TooManyRequestsError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 TIPO_MODELO = "MODELO_RIESGO_CONTAGIO"
-#: Restricciones: mínimo 5 s entre ejecuciones por lote (≤ 12/min); con las mismas
-#: entradas dentro de esa ventana se reutiliza el resultado (5.1).
-INTERVALO_MINIMO = timedelta(seconds=5)
+#: CA-4 / 5.1: ventana de caché para entradas idénticas. Los cambios recalculan
+#: sin el antiguo bloqueo de 5 s / 12 por minuto, según definición confirmada.
+VENTANA_CACHE = timedelta(seconds=5)
 #: E10: más de 5 ejecuciones consecutivas degradadas → ALERTA_CALIDAD_DATOS.
 MAX_DEGRADADAS_CONSECUTIVAS = 5
 
@@ -93,16 +94,11 @@ class EstimarRiesgoContagioUseCase:
             )
             huella = self._huella(dto, config.config_version)
             anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
-            if anteriores and ahora - anteriores[0].fecha_calculo < INTERVALO_MINIMO:
-                if anteriores[0].huella_entradas == huella:
-                    anteriores[0].desde_cache = True
-                    return anteriores[0]
-                espera = INTERVALO_MINIMO - (ahora - anteriores[0].fecha_calculo)
-                raise TooManyRequestsError(
-                    code="EJECUCION_CONTAGIO_MUY_FRECUENTE",
-                    message="El modelo de contagio de este lote se ejecutó hace menos de 5 segundos.",
-                    headers={"Retry-After": str(max(1, int(espera.total_seconds()) + 1))},
-                )
+            if (anteriores
+                    and timedelta(0) <= ahora - anteriores[0].fecha_calculo < VENTANA_CACHE
+                    and anteriores[0].huella_entradas == huella):
+                anteriores[0].desde_cache = True
+                return anteriores[0]
 
             muestras_ocupacion = []
             if dto.densidad_poblacional is not None and dto.densidad_poblacional < 0:
