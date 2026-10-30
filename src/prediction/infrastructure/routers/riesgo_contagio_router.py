@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-29 | Arekkazu | PEND-456 RF-68: GET con los cálculos del alcance para la pestaña Contagio |
+# | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: documentar recálculo inmediato 201 y retirar el 429 de frecuencia obsoleto. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -57,6 +58,7 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
     dependencies=[Depends(require_permission(_RECURSO, 5))],
     responses={
         200: {"model": RiesgoContagioResponse, "description": "Mismas entradas en menos de 5 s: resultado en caché (5.1)"},
+        201: {"model": RiesgoContagioResponse, "description": "Nuevo cálculo: entradas o configuración cambiantes recalculan sin esperar 5 s (CA-4/5.1)"},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse, "description": "LOTE_NO_ENCONTRADO"},
@@ -64,7 +66,6 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
             "CONFIGURACION_CONTAGIO_NO_DEFINIDA, ERROR_CONFIGURACION_PESOS, ERROR_DATOS_INSUFICIENTES "
             "(E4/E5/CA-10) o ERROR_DATOS_DESINCRONIZADOS (> 35 s)"
         )},
-        429: {"model": ErrorResponse, "description": "EJECUCION_CONTAGIO_MUY_FRECUENTE: < 5 s desde la anterior"},
     },
     summary="Ejecutar el modelo de riesgo de contagio de un lote (RF-68)",
 )

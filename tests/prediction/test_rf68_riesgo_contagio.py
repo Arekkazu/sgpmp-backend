@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: sustituir el bloqueo 429 por el recálculo de entradas diferentes confirmado. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from src.prediction.domain.entities.riesgo_contagio import (
     discretizar,
 )
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
-from src.shared.errors import BusinessRuleError, NotFoundError, TooManyRequestsError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 AHORA = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
 D = Decimal
@@ -214,15 +215,16 @@ def test_confianza_baja_no_genera_alerta():
     assert r.nivel_texto == "ALTO" and r.confianza_baja and r.alerta_id is None and alerta.emitidas == 0
 
 
-def test_mismas_entradas_en_menos_de_5_s_usa_el_resultado_anterior_y_distintas_dan_429():
+def test_mismas_entradas_en_menos_de_5_s_usan_cache_y_distintas_recalculan():
     resultados = _Resultados()
     uc, _, _ = _use_case(resultados)
     dto = _dto()
     primero = uc.execute(dto, 1, 3)
     resultados.anteriores = [primero]
     assert uc.execute(dto, 1, 3).desde_cache
-    with pytest.raises(TooManyRequestsError):
-        uc.execute(_dto(densidad_poblacional="1"), 1, 3)
+    nuevo = uc.execute(_dto(densidad_poblacional="1"), 1, 3)
+    assert not nuevo.desde_cache and nuevo.id_resultado_contagio != primero.id_resultado_contagio
+    assert len(resultados.guardados) == 2
 
 
 def test_lote_inaccesible_es_404_y_sin_configuracion_422():
