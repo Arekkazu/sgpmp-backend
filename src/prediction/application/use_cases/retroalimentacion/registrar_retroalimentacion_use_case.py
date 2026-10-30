@@ -4,6 +4,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | INC-M04-154-G085 RF-73: payload mínimo de CONFLICTO_RETROALIMENTACION |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: respetar la identidad exclusiva del actor del conflicto clinico. |
+# | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado validado sin normalizar a mayúsculas |
+# | 2026-10-30 | Arekkazu | INC-M04-228-G068 RF-72: rechaza retroalimentación de un activo en BAJA |
 from __future__ import annotations
 
 import logging
@@ -12,7 +14,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.retroalimentacion_clinica import RetroalimentacionClinica, _ESTADOS_CON_DIAGNOSTICO
+from src.prediction.domain.entities.retroalimentacion_clinica import (
+    RetroalimentacionClinica,
+    _ESTADOS_CON_DIAGNOSTICO,
+    validar_estado_retroalimentacion,
+)
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
 from src.prediction.domain.repositories.resultado_inferencia_port import ResultadoInferenciaPort
@@ -90,6 +96,18 @@ class RegistrarRetroalimentacionUseCase:
                 field="id_activo_biologico",
             )
 
+        # RF-72: el activo debe existir y ser válido; uno dado de baja no admite retroalimentación
+        # (INC-M04-228-G068). Se valida antes de cualquier escritura.
+        if resultado.get("activo_en_baja"):
+            raise BusinessRuleError(
+                code="ACTIVO_EN_BAJA",
+                message=(
+                    f"El activo biológico {dto.id_activo_biologico} está en estado BAJA y no admite "
+                    "retroalimentación clínica."
+                ),
+                field="id_activo_biologico",
+            )
+
         # FA-07: consistencia temporal (retroalimentación no puede ser anterior a la inferencia)
         if ahora < fecha_inferencia:
             raise BusinessRuleError(
@@ -108,7 +126,7 @@ class RegistrarRetroalimentacionUseCase:
             )
 
         # FA-04 / FA-05: validación de diagnósticos
-        estado = (dto.estado_retroalimentacion or "").upper()
+        estado = validar_estado_retroalimentacion(dto.estado_retroalimentacion)
         diags = dto.diagnosticos_reales or []
         if estado in _ESTADOS_CON_DIAGNOSTICO:
             if not diags:
