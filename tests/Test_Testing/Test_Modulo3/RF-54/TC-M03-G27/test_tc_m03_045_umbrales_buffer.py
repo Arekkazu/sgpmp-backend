@@ -1,3 +1,6 @@
+# | Fecha      | Nombre      | Que se hizo                                                                     |
+# |------------|-------------|---------------------------------------------------------------------------------|
+# | 2026-10-29 | Juan Manuel | TC-M03-G27 RF-54: metricas_buffer (INC-M03-126) y BUFFER_CAPACITY_WARNING (INC-M03-129) |
 """
 TC-M03-G27 (sub-caso 1) - Umbrales de ocupacion del buffer (WARNING / CRITICO).
 
@@ -6,17 +9,15 @@ RF relacionado: RF-54 (CU01). Caso: TC-M03-045 (valores limite).
 Criterio de la ficha: 79% -> sin alerta; 80% -> BUFFER_CAPACITY_WARNING y estado WARNING; 95% -> CRITICO.
 El umbral es configurable (confirmar el valor del ambiente antes de ejecutar; aqui 80% y 95%).
 
-Alcance (mismo criterio que TC-M03-G22): sin nodo Edge ni simulador en el proyecto, el driver informa la
-ocupacion del buffer por heartbeat (capacidad 100, pendientes 79 / 80 / 95). Lo que se verifica es el lado
-del sistema, que es lo que complementa TC-M03-054:
-- tras cada heartbeat, el estado del buffer expuesto por la API (la misma consulta de TC-M03-054) debe ser
-  NORMAL / WARNING / CRITICO;
-- el cruce del 80% debe producir una alerta para el administrador (y el 79% no).
-La emision de BUFFER_CAPACITY_WARNING dentro del nodo queda en SKIP.
-
-Nota: el heartbeat (POST /iot/heartbeat) solo informa datos_pendientes_buffer, sin la capacidad del buffer,
-y el OpenAPI de TEST no tiene endpoint de estado del buffer; con eso el backend no puede calcular el
-porcentaje. Si el contrato del heartbeat agrega la capacidad, ajustar _heartbeat().
+Alcance (mismo criterio que TC-M03-G22): sin nodo Edge ni simulador en el proyecto, el driver hace lo que
+haria el broker con lo que publica el nodo (contrato en anotaciones/modulo_3 y repo BROKER-MQTT-SGPMP):
+- heartbeat con metricas_buffer (INC-M03-126): capacidad_total 100 y capacidad_utilizada 79 / 80 / 95. El
+  estado del buffer se lee en GET /iot/dispositivos/{id}/buffer: NORMAL (<80) / WARNING (>=80) / CRITICO (>=95).
+- aviso de capacidad (INC-M03-129): el NODO emite BUFFER_CAPACITY_WARNING por sgpmp/<serial>/status al cruzar su
+  umbral (80 %) y de nuevo al 95 %; el broker lo reenvia a POST /iot/eventos-buffer (no valida `evento`). Al 79 %
+  el nodo no emite nada. Se espera una alerta tecnica LEVE al 80 % que escala a CRITICO (mismo id) al 95 %, y
+  ninguna alerta al 79 %. El backend no convierte el porcentaje del heartbeat en alerta (por diseño).
+Que el firmware emita el aviso al cruzar el umbral queda en SKIP (requiere el nodo).
 
 Requisitos: acceso de red a TEST y BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el
 /iot/* responde 401). Variables opcionales: BASE_URL, RUTA_ESTADO_BUFFER.
@@ -37,7 +38,7 @@ import pytest
 import requests
 
 BASE_URL = os.getenv("BASE_URL", "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test")
-RUTA_ESTADO_BUFFER = os.getenv("RUTA_ESTADO_BUFFER", "/dispositivos/{id}/buffer")
+RUTA_ESTADO_BUFFER = os.getenv("RUTA_ESTADO_BUFFER", "/iot/dispositivos/{id}/buffer")
 TIMEOUT = 30
 
 # DEV-06: los endpoints /iot/* de dispositivo exigen el token de servicio del broker (Authorization: Bearer);
@@ -68,11 +69,26 @@ def _crear(s, ruta, cuerpo, campo):
 
 
 def _heartbeat(device_id: int, access_key: str, pendientes: int) -> requests.Response:
+    ahora = datetime.now(timezone.utc)
     return requests.post(
         f"{BASE_URL}/iot/heartbeat",
         json={
-                "device_id": device_id, "serial": access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A", "datos_pendientes_buffer": pendientes,
-              "capacidad_buffer": CAPACIDAD, "fecha_registro": datetime.now(timezone.utc).isoformat()},
+            "device_id": device_id, "serial": access_key, "tipo_mensaje": "HEARTBEAT", "estado_local_buffer": "A",
+            "datos_pendientes_buffer": pendientes, "fecha_registro": ahora.isoformat(),
+            "metricas_buffer": {"capacidad_total": CAPACIDAD, "capacidad_utilizada": pendientes,
+                                "ultimo_timestamp_pendiente": (ahora - timedelta(minutes=1)).isoformat(),
+                                "politica_buffer_activa": "POLITICA_RECHAZO"}},
+        headers=_HEADERS_BROKER, timeout=TIMEOUT,
+    )
+
+
+def _aviso_capacidad(access_key: str, porcentaje: int) -> requests.Response:
+    """Lo que el broker reenvia del EVENTO_BUFFER que el nodo publica en status (D10 ampliado, INC-M03-129)."""
+    return requests.post(
+        f"{BASE_URL}/iot/eventos-buffer",
+        json={"serial": access_key, "evento": "BUFFER_CAPACITY_WARNING", "porcentaje_ocupacion": porcentaje,
+              "politica_aplicada": None, "cantidad_datos_afectados": 0,
+              "timestamp_evento": datetime.now(timezone.utc).isoformat()},
         headers=_HEADERS_BROKER, timeout=TIMEOUT,
     )
 
@@ -96,17 +112,19 @@ def corrida(admin):
     assert r.status_code == 201, f"Precondicion dispositivo: HTTP {r.status_code} {r.text}"
     device_id, serial = r.json()["id_dispositivo_iot"], r.json()["serial"]
 
+    desde = datetime.now(timezone.utc) - timedelta(seconds=5)
     resultados = {}
-    for pendientes, _, _ in ESCALONES:
-        desde = datetime.now(timezone.utc) - timedelta(seconds=5)
+    for pendientes, _, emite_aviso in ESCALONES:
         hb = _heartbeat(device_id, serial, pendientes)
+        aviso = _aviso_capacidad(serial, pendientes) if emite_aviso else None
         estado = admin.get(f"{BASE_URL}{RUTA_ESTADO_BUFFER.format(id=device_id)}", timeout=TIMEOUT)
         alertas = admin.get(f"{BASE_URL}/iot/alertas-tecnicas", params={
             "fecha_desde": desde.isoformat(), "fecha_hasta": (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat(),
             "por_pagina": 200}, timeout=TIMEOUT)
-        del_dispositivo = [a for a in alertas.json().get("items", []) if a.get("id_dispositivo_ioit") == device_id] \
+        del_dispositivo = [a for a in alertas.json().get("items", []) if a.get("id_dispositivo_ioit") == device_id
+                           and a.get("tipo_variable") == "BUFFER_CAPACITY_WARNING"] \
             if alertas.status_code == 200 else None
-        resultados[pendientes] = {"hb": hb, "estado": estado, "alertas": del_dispositivo}
+        resultados[pendientes] = {"hb": hb, "aviso": aviso, "estado": estado, "alertas": del_dispositivo}
     return resultados
 
 
@@ -123,16 +141,31 @@ def test_tc_m03_045_estado_del_buffer_expuesto_segun_ocupacion(pendientes, estad
     assert cuerpo.get("estado_buffer", "").replace("Í", "I") == estado_esperado, cuerpo
 
 
+_SEVERIDAD = {79: None, 80: "LEVE", 95: "CRITICO"}
+
+
 @pytest.mark.parametrize("pendientes,_estado,debe_alertar", ESCALONES, ids=["79%", "80%", "95%"])
 def test_tc_m03_045_alerta_al_cruzar_el_umbral_de_advertencia(pendientes, _estado, debe_alertar, corrida):
-    alertas = corrida[pendientes]["alertas"]
+    paso = corrida[pendientes]
+    alertas = paso["alertas"]
     assert alertas is not None, "La consulta de alertas tecnicas fallo"
-    if debe_alertar:
-        assert alertas, f"Al {pendientes}% de ocupacion no se genero ninguna alerta para el administrador"
-    else:
-        assert not alertas, f"Al {pendientes}% (bajo el umbral) no deberia haber alerta: {alertas}"
+    if not debe_alertar:
+        assert not alertas, f"Al {pendientes}% (bajo el umbral, sin aviso del nodo) no deberia haber alerta: {alertas}"
+        return
+    r = paso["aviso"]
+    assert r.status_code == 201, f"Aviso BUFFER_CAPACITY_WARNING al {pendientes}%: HTTP {r.status_code} {r.text}"
+    cuerpo = r.json()
+    assert (cuerpo["tipo_alerta_tecnica"], cuerpo["severidad"]) == ("BUFFER_CAPACITY_WARNING", _SEVERIDAD[pendientes]), cuerpo
+    assert [(a["id_alerta"], a["severidad"]) for a in alertas] == [(cuerpo["id_alerta"], _SEVERIDAD[pendientes])], (
+        f"Al {pendientes}% la bandeja de alertas tecnicas del administrador muestra {alertas}"
+    )
 
 
-def test_tc_m03_045_evento_buffer_capacity_warning_en_el_nodo():
+def test_tc_m03_045_el_95_escala_la_misma_alerta(corrida):
+    al_80, al_95 = corrida[80]["aviso"].json(), corrida[95]["aviso"].json()
+    assert al_95["id_alerta"] == al_80["id_alerta"] and al_95["es_duplicado"] is True, (al_80, al_95)
+
+
+def test_tc_m03_045_evento_buffer_capacity_warning_emitido_por_el_nodo():
     pytest.skip("La emision de BUFFER_CAPACITY_WARNING al cruzar el umbral es interna del nodo Edge: requiere el nodo o el "
                 "simulador del equipo de IoT")
