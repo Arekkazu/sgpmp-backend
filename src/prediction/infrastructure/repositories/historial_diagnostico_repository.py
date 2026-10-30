@@ -2,6 +2,8 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-143/144/146 RF-67: eventos ordenados, id estable y nombre histórico |
 # | 2026-10-25 | Arekkazu | INC-M04-146-G012 RF-67: MD5 del id de alerta marcado como no criptográfico (Bandit B324) |
+# | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68/RF-67: cálculos de contagio del lote en el historial |
+# | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-67: id de CONTAGIO sin hash; id de alerta sin cambios (Bearer CWE-328) |
 """Historial diagnóstico (RF-67) sobre resultados de inferencia, alertas y retroalimentación.
 
 - Orden y cursor por (fecha_evento, id_evento) DESC, sobre los tres tipos de
@@ -12,6 +14,10 @@
   simultánea no materializa el evento dos veces (INC-M04-146-G012).
 - ``nombre_patologia`` es el vigente a la fecha del evento según el historial
   del catálogo de M04, no el actual (INC-M04-144-G012, RF-67 CA-11).
+- RF-68 paso 9: el resultado de contagio se almacena "vinculado al lote para el
+  historial diagnóstico". Se lee de ``resultados_riesgo_contagio`` como evento
+  CONTAGIO, sin inferencia asociada, y no se materializa: la tabla de eventos
+  solo admite los tres tipos de RF-67 (INC-M04-223-G034).
 """
 from __future__ import annotations
 
@@ -29,12 +35,14 @@ from src.prediction.domain.repositories.historial_diagnostico_repository import 
 from src.prediction.infrastructure.models.alerta_patologica_model import AlertaPatologicaModel
 from src.prediction.infrastructure.models.historial_diagnostico_evento_model import HistorialDiagnosticoEventoModel
 from src.prediction.infrastructure.models.resultado_inferencia_model import ResultadoInferenciaModel
+from src.prediction.infrastructure.models.resultado_riesgo_contagio_model import ResultadoRiesgoContagioModel
 from src.prediction.infrastructure.models.retroalimentacion_clinica_model import RetroalimentacionClinicaModel
 from src.shared.db_error_translator import raise_from_db_error
 
 
 # Tipos de evento del historial (no de la bitácora de auditoría RF-73).
 INFERENCIA, ALERTA, RETROALIMENTACION = "INFERENCIA", "ALERTA", "RETROALIMENTACION"
+CONTAGIO = "CONTAGIO"
 
 
 def id_evento_alerta(id_alerta_patologica: int) -> uuid.UUID:
@@ -43,6 +51,20 @@ def id_evento_alerta(id_alerta_patologica: int) -> uuid.UUID:
     MD5 solo deriva un identificador determinista, no protege nada.
     """
     return uuid.UUID(hashlib.md5(f"ALERTA:{id_alerta_patologica}".encode(), usedforsecurity=False).hexdigest())
+
+
+# Prefijo fijo + id en los 12 dígitos finales: estable, sin hash y sin choque con los
+# UUID v4 de inferencias y retroalimentaciones ni con los de alertas (md5).
+_PREFIJO_CONTAGIO = "c047a610-0000-0000-0000-"
+
+
+def id_evento_contagio(id_resultado_contagio: int) -> uuid.UUID:
+    """UUID estable de un cálculo de contagio; igual a ``_id_contagio_sql``."""
+    return uuid.UUID(f"{_PREFIJO_CONTAGIO}{id_resultado_contagio:012x}")
+
+
+def _id_contagio_sql(columna):
+    return cast(literal(_PREFIJO_CONTAGIO) + func.lpad(func.to_hex(columna), 12, "0"), UUID)
 
 
 # Nombre de la patología vigente en cada instante: el último cambio del catálogo
@@ -61,6 +83,10 @@ _NOMBRES_A_LA_FECHA = text("""
     FROM unnest(CAST(:ids AS integer[]), CAST(:fechas AS timestamptz[])) AS x(id_patologia, fecha)
     JOIN modulo9.patologias p ON p.id_patologia = x.id_patologia
 """)
+
+
+def _flotante(valor) -> Optional[float]:
+    return None if valor is None else float(valor)
 
 
 class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
@@ -82,6 +108,7 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         ri = ResultadoInferenciaModel
         rc = RetroalimentacionClinicaModel
         ap = AlertaPatologicaModel
+        rrc = ResultadoRiesgoContagioModel
 
         # Los filtros son de la inferencia; alertas y retroalimentaciones la siguen.
         de_la_inferencia = and_(
@@ -112,6 +139,19 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
                 .join(ri, ri.id_alerta_generada == ap.id_alerta_patologica)
                 .where(de_la_inferencia),
                 ap.fecha_generacion, id_alerta,
+            )
+
+        # El cálculo de contagio no tiene patología: con ese filtro no aplica.
+        contagios = []
+        if id_patologia is None:
+            contagios = pagina(
+                select(rrc).where(
+                    rrc.id_activo_biologico == id_activo_biologico,
+                    rrc.fecha_calculo >= fecha_inicio,
+                    rrc.fecha_calculo <= fecha_fin,
+                    *([] if nivel_riesgo is None else [rrc.nivel_riesgo_contagio == nivel_riesgo]),
+                ),
+                rrc.fecha_calculo, _id_contagio_sql(rrc.id_resultado_contagio),
             )
 
         nombres = self._nombres_a_la_fecha(
@@ -180,6 +220,32 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
                 },
             )
             for retro, id_activo in retros
+        ] + [
+            EventoHistorial(
+                id_evento=id_evento_contagio(c.id_resultado_contagio),
+                tipo_evento=CONTAGIO,
+                id_activo_biologico=c.id_activo_biologico,
+                fecha_evento=c.fecha_calculo,
+                id_resultado_inferencia=None,
+                payload={
+                    "id_resultado_contagio": c.id_resultado_contagio,
+                    "probabilidad_contagio": float(c.probabilidad_contagio),
+                    "nivel_riesgo_contagio": c.nivel_riesgo_contagio,
+                    "factor_sanitario_fs": float(c.factor_sanitario_fs),
+                    "factor_ambiental_fa": _flotante(c.factor_ambiental_fa),
+                    "factor_densidad_fd": _flotante(c.factor_densidad_fd),
+                    "w_fs_aplicado": float(c.w_fs_aplicado),
+                    "w_fa_aplicado": float(c.w_fa_aplicado),
+                    "w_fd_aplicado": float(c.w_fd_aplicado),
+                    "confianza_baja": c.confianza_baja,
+                    "data_quality_score": _flotante(c.data_quality_score),
+                    "factores_ausentes": c.factores_ausentes,
+                    "n_enfermos_detectados": c.n_enfermos_detectados,
+                    "total_activos_lote": c.total_activos_lote,
+                    "id_alerta_generada": c.id_alerta_generada,
+                },
+            )
+            for (c,) in contagios
         ]
         eventos.sort(key=lambda e: (e.fecha_evento, e.id_evento), reverse=True)
         return eventos[:limite]
@@ -195,6 +261,8 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         hde = HistorialDiagnosticoEventoModel
         try:
             for evento in eventos:
+                if evento.tipo_evento == CONTAGIO:
+                    continue  # ya persiste en resultados_riesgo_contagio (RF-68)
                 # Filas de antes de que id_evento fuera estable (tenían un id aleatorio).
                 ya_existe = self._db.execute(select(select(hde.id_evento).where(
                     hde.id_resultado_inferencia == evento.id_resultado_inferencia,

@@ -4,6 +4,8 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: filtros (código, área, activo), estadísticas por umbral y alertas |
+# | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del sensor o activo del periodo aunque no estén en las lecturas |
+# | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del periodo con SQL fijo y parámetros (Bearer CWE-89) |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -220,14 +222,23 @@ LIMIT :max_vacios
 """
 
 # RF-59 Salida 5 / CA-8 (INC-M03-186-G117): alertas de RF-57 del periodo ligadas a las
-# lecturas que cumplen los filtros (mismo alcance de finca que el historial).
+# lecturas que cumplen los filtros (mismo alcance de finca que el historial). Fase 4
+# (INC-M04-226-G117): también las del sensor o activo consultado ocurridas en el periodo,
+# aunque su lectura no esté en el resultado o no tengan lectura asociada.
 _ALERTAS_HISTORIAL = """
 SELECT al.id_alerta, al.tipo_alerta::text AS tipo_alerta, al.severidad::text AS severidad,
        COALESCE(al.fecha_generacion, al.fecha_evento) AS timestamp_generacion,
        al.tipo_variable AS variable_afectada, al.estado_alerta::text AS estado_final
 FROM modulo3.alertas al
 WHERE al.tipo_alerta::text <> 'TECNICA'
-  AND al.id_telemetria IN ({ids_lecturas})
+  AND (al.id_telemetria IN ({ids_lecturas})
+       OR (COALESCE(al.fecha_generacion, al.fecha_evento) >= :fecha_inicio
+           AND COALESCE(al.fecha_generacion, al.fecha_evento) < :fecha_fin_ex
+           AND (al.id_sensor = CAST(:alerta_sensor_id AS integer)
+                OR al.id_activo_biologico = CAST(:alerta_id_activo AS integer))
+           AND (CAST(:alerta_ids_fincas AS integer[]) IS NULL
+                OR al.id_infraestructura IN (SELECT i2.id_infraestructura FROM modulo9.infraestructuras i2
+                                             WHERE i2.id_finca = ANY(CAST(:alerta_ids_fincas AS integer[]))))))
 ORDER BY timestamp_generacion DESC
 LIMIT :max_alertas
 """
@@ -364,6 +375,10 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
         sql_ids, params = _build_query(filtros, _COUNT_HISTORIAL.replace('SELECT COUNT(*)', 'SELECT t.id_telemetria', 1))
         params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
         params['max_alertas'] = _MAX_ALERTAS
+        # Sin sensor ni activo las dos igualdades con NULL son falsas: solo las alertas de las lecturas.
+        params['alerta_sensor_id'] = filtros.sensor_id
+        params['alerta_id_activo'] = filtros.id_activo_biologico
+        params['alerta_ids_fincas'] = filtros.ids_fincas_permitidas
         filas = self.db.execute(text(_ALERTAS_HISTORIAL.format(ids_lecturas=sql_ids)), params).mappings().all()
         return [AlertaCorrelacionada(**f) for f in filas]
 
