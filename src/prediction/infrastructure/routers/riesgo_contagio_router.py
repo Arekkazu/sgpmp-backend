@@ -6,6 +6,7 @@
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conectar el puerto de ocupación histórica y documentar el fallback E2. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: documentar el rechazo 422 por cobertura individual inferior al 60 %. |
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: documentar recálculo inmediato 201 y retirar el 429 de frecuencia obsoleto. |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: documentar activación RF-65 y respuesta sin caché del perfil MVP. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -61,7 +62,7 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 5))],
     responses={
-        200: {"model": RiesgoContagioResponse, "description": "Mismas entradas en menos de 5 s: resultado en caché (5.1)"},
+        200: {"model": RiesgoContagioResponse, "description": "Perfil ESTANDAR: mismas entradas en menos de 5 s, caché (5.1). MVP siempre recalcula."},
         201: {"model": RiesgoContagioResponse, "description": "Nuevo cálculo: entradas o configuración cambiantes recalculan sin esperar 5 s (CA-4/5.1)"},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: mapear el perfil persistido de cálculo de contagio. |
 from __future__ import annotations
 
 from datetime import datetime
@@ -33,6 +34,7 @@ class ConfiguracionIaLogModel(Base):
     ventana_temporal_min: Mapped[int] = mapped_column(Integer, nullable=False)
     id_version_modelo_activa: Mapped[Optional[int]] = mapped_column(Integer)
     modo_ejecucion: Mapped[str] = mapped_column(String(20), nullable=False)
+    perfil_calculo_contagio: Mapped[str] = mapped_column(String(20), nullable=False)
     config_version: Mapped[int] = mapped_column(Integer, nullable=False)
     w_factor_sanitario: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False)
     w_factor_ambiental: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False)

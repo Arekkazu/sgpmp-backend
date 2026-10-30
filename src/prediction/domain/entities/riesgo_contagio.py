@@ -4,6 +4,7 @@
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: clasificar con el umbral activo conservando mínimos sanitarios. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: aplicar ocupación histórica ante error de densidad sin alterar la entrada nula. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: exigir 60 % de individuos con inferencia reciente y preservar score poblacional. |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -116,6 +117,7 @@ class ResultadoRiesgoContagio:
     variables_ambientales: dict = field(default_factory=dict)
     umbrales_aplicados: dict[str, Decimal] = field(default_factory=dict)
     contexto_densidad: dict = field(default_factory=dict)
+    perfil_calculo_contagio: str = "ESTANDAR"
 
     @property
     def nivel_texto(self) -> str:

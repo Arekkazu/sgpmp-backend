@@ -1,10 +1,13 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: admitir el perfil MVP separado del modo de despliegue. |
 from __future__ import annotations
 
 from decimal import Decimal
 from typing import Optional
+
+from pydantic import Field
 
 from src.shared.base_dto import BaseDTO
 from src.shared.tipo_modelo import Componente
@@ -20,6 +23,7 @@ class ConfigurarMotorDTO(BaseDTO):
     versiones_activas_por_componente: Optional[dict[Componente, int]] = None
     ventana_temporal_min: int
     modo_ejecucion: str = "SERVIDOR"
+    perfil_calculo_contagio: str = Field(default="ESTANDAR", description="ESTANDAR o MVP; MVP solo para MODELO_RIESGO_CONTAGIO. No cambia EDGE/HIBRIDO/SERVIDOR.")
     w_factor_sanitario: Decimal = Decimal("0.500")
     w_factor_ambiental: Decimal = Decimal("0.300")
     w_factor_densidad: Decimal = Decimal("0.200")

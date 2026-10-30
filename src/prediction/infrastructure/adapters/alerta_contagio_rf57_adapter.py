@@ -3,6 +3,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: emitir RF-57 con identidad de servicio y restaurar el contexto del solicitante. |
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: emitir la alerta automática con identidad de servicio existente y restaurar al solicitante. |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: conservar evidencia RF-63 al emitir alertas MVP con identidad de servicio y restauración. |
 """RF-68 paso 8 → RF-57: alerta RIESGO_CONTAGIO del lote en ``modulo3.alertas``.
 
 Usa el repositorio de alertas de M03: la alerta entra al mismo ciclo que las demás
