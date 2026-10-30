@@ -178,6 +178,22 @@
     {
       "key": "id_rev1",
       "value": "0"
+    },
+    {
+      "key": "infra_nh3",
+      "value": ""
+    },
+    {
+      "key": "esp_area_nh3",
+      "value": ""
+    },
+    {
+      "key": "infra_fc",
+      "value": ""
+    },
+    {
+      "key": "esp_area_fc",
+      "value": ""
     }
   ],
   "item": [
@@ -333,6 +349,187 @@
       ]
     },
     {
+      "name": "0E.1 Preparacion: infraestructura del dispositivo del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.collectionVariables.set('infra_nh3', String(J.id_infraestructura || 0));",
+              "console.log('[G57B-0E.1][OBSERVADO] infraestructura=' + J.id_infraestructura);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.2 Preparacion: especies del area del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{infra_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_nh3', String((J.especies || [])[0] || 0));",
+              "console.log('[G57B-0E.2][OBSERVADO] especies area=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.3 Preparacion (sandbox): umbral NH3 en la especie del area",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 11,\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.4 Preparacion: infraestructura del dispositivo de frecuencia cardiaca",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id_fc}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.collectionVariables.set('infra_fc', String(J.id_infraestructura || 0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.5 Preparacion: especies del area de frecuencia cardiaca",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{infra_fc}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_fc', String((J.especies || [])[0] || 0));",
+              "console.log('[G86-0E.3][OBSERVADO] especies area=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.6 Preparacion (sandbox): umbral FRECUENCIA_CARDIACA en la especie del area",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_fc}},\n  \"id_variable_ambiental\": 14,\n  \"valor_min\": 0,\n  \"valor_max\": 300,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 100\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 100,\n      \"limite_superior\": 160\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 160,\n      \"limite_superior\": 300\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.8] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "0Y. Lectura de telemetria existente del sensor de frecuencia cardiaca (solo lectura) para referenciarla en la alerta de origen BACKEND",
       "request": {
         "method": "GET",
@@ -383,7 +580,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 39.5,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"TEMPERATURA_CORPORAL_LEVE\"]\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 40.2,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"TEMPERATURA_CORPORAL_LEVE\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -529,7 +726,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id_fc}},\n  \"sensor_id\": {{sensor_fc}},\n  \"serial\": \"{{serial_fc}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 140,\n  \"unidad\": \"bpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"BACKEND\"{{tel_json}},\n  \"reglas_activadas\": [\"FRECUENCIA_CARDIACA_MODERADA\"]\n}",
+              "raw": "{\n  \"device_id\": {{device_id_fc}},\n  \"sensor_id\": {{sensor_fc}},\n  \"serial\": \"{{serial_fc}}\",\n  \"tipo_variable\": \"FRECUENCIA_CARDIACA\",\n  \"valor\": 115,\n  \"unidad\": \"bpm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"BACKEND\"{{tel_json}},\n  \"reglas_activadas\": [\"FRECUENCIA_CARDIACA_MODERADA\"]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -679,7 +876,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"NH3_MODERADO\"],\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 38.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"NH3_MODERADO\"],\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1031,7 +1228,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"ESTRES_TERMICO\",\"TEMPERATURA_LEVE\",\"HUMEDAD_LEVE\"]\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 31.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": [\"ESTRES_TERMICO\",\"TEMPERATURA_LEVE\",\"HUMEDAD_LEVE\"],\n  \"correlacion_variables\": {\n    \"HUMEDAD_RELATIVA\": 75.0\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -406,7 +406,7 @@
                   "console.log('[TC-M03-G68 1.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "pm.test('No se genera alerta operativa (sin id_alerta)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined).to.be.true; });",
+                  "pm.test('No se genera alerta operativa (sin id_alerta o solo la alerta tecnica)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined || J.tipo_alerta === 'TECNICA').to.be.true; });",
                   "pm.test('Descarte documentado (motivo_descarte)', function () { pm.expect(J.motivo_descarte).to.exist; });",
                   "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
                 ]
@@ -465,7 +465,7 @@
                   "console.log('[TC-M03-G68 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "pm.test('No se genera alerta operativa (sin id_alerta)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined).to.be.true; });",
+                  "pm.test('No se genera alerta operativa (sin id_alerta o solo la alerta tecnica)', function () { pm.expect(J.id_alerta === null || J.id_alerta === undefined || J.tipo_alerta === 'TECNICA').to.be.true; });",
                   "pm.test('Descarte documentado (motivo_descarte)', function () { pm.expect(J.motivo_descarte).to.exist; });",
                   "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
                 ]
@@ -771,7 +771,7 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_aislar', String(J.id_alerta)); }",
                   "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "pm.test('tipo_alerta = FALLO_AMBIENTAL', function () { pm.expect(J.tipo_alerta).to.eql('FALLO_AMBIENTAL'); });",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
                   "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
                 ]
               }
@@ -787,7 +787,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G68 2.2z-a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
-                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 409, 422]).to.include(pm.response.code); });"
+                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); /* 404: la alerta tecnica no se gestiona por PATCH /iot/alertas/{id}/estado */ });"
                 ]
               }
             }
@@ -831,7 +831,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G68 2.2z-b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
-                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 409, 422]).to.include(pm.response.code); });"
+                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); /* 404: la alerta tecnica no se gestiona por PATCH /iot/alertas/{id}/estado */ });"
                 ]
               }
             }
@@ -923,7 +923,7 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
                   "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g68_fa_nc', String(J.id_alerta)); }",
-                  "pm.test('tipo_alerta = FALLO_AMBIENTAL', function () { pm.expect(J.tipo_alerta).to.eql('FALLO_AMBIENTAL'); });",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
                   "pm.test('severidad = MODERADO (variable no critica)', function () { pm.expect(J.severidad).to.eql('MODERADO'); });"
                 ]
               }
@@ -931,7 +931,98 @@
           ]
         },
         {
-          "name": "3.2 FALLO_AMBIENTAL con sensor de TEMPERATURA_CORPORAL (variable critica, sensor 471) - CRITICO",
+          "name": "3.1b Observacion: catalogo de variables criticas (RF-17, modulo9.variables_ambientales); la severidad de FALLO_AMBIENTAL depende de es_critica",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.1b] status=' + pm.response.code);",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const it = (J && J.items) || [];",
+                  "const vistas = it.map(function (v) { return v.nombre + ': es_critica=' + v.es_critica; });",
+                  "console.log('[3.1b][OBSERVADO] variables del catalogo = ' + JSON.stringify(vistas));",
+                  "const tc = it.find(function (v) { return /temperatura corporal/i.test(v.nombre); });",
+                  "if (tc) { pm.collectionVariables.set('id_var_temp_corporal', String(tc.id_variable_ambiental)); }",
+                  "pm.test('Temperatura corporal esta en el catalogo de variables', function () { pm.expect(tc, 'Temperatura corporal').to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.1c Precondicion (solo sandbox): el Administrador marca Temperatura corporal como variable critica (RF-17, PATCH es_critica); en TEST ninguna variable viene marcada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/variables-ambientales/{{id_var_temp_corporal}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "variables-ambientales",
+                "{{id_var_temp_corporal}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"es_critica\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G68 3.1c] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200 (el Administrador puede marcar la variable como critica)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('es_critica = true', function () { pm.expect(J.es_critica).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 FALLO_AMBIENTAL con sensor de TEMPERATURA_CORPORAL (variable critica, sensor 471) - CRITICO [con Temperatura corporal marcada como critica en 3.1c]",
           "request": {
             "method": "POST",
             "header": [
@@ -982,7 +1073,7 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
                   "if (J && J.id_alerta) { pm.collectionVariables.set('alerta_g68_fa_crit', String(J.id_alerta)); }",
-                  "pm.test('tipo_alerta = FALLO_AMBIENTAL', function () { pm.expect(J.tipo_alerta).to.eql('FALLO_AMBIENTAL'); });",
+                  "pm.test('Alerta tecnica FALLO_AMBIENTAL (tipo TECNICA y motivo FALLO_AMBIENTAL)', function () { pm.expect(J.tipo_alerta).to.eql('TECNICA'); pm.expect(String(J.motivo_descarte)).to.include('FALLO_AMBIENTAL'); });",
                   "pm.test('severidad = CRITICO (variable critica)', function () { pm.expect(J.severidad).to.eql('CRITICO'); });"
                 ]
               }

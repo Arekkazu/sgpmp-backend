@@ -126,6 +126,14 @@
     {
       "key": "id_cur",
       "value": "0"
+    },
+    {
+      "key": "id_regla_qa",
+      "value": "0"
+    },
+    {
+      "key": "fecha_regla_qa",
+      "value": ""
     }
   ],
   "item": [
@@ -943,19 +951,23 @@
       ]
     },
     {
-      "name": "3. Umbral de confianza de IA y umbral_confianza_minimo (TC-M03-N35)",
+      "name": "3. Umbral de confianza de IA y umbral_confianza_minimo configurables (TC-M03-N35)",
       "item": [
         {
-          "name": "3.0 Parametros operativos existentes (GET /configuracion/parametros): se documentan los campos",
+          "name": "3.0 GET /configuracion/parametros-alertas: expone el umbral de confianza de IA (E12/E13) y umbral_confianza_minimo (CA-2)",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/parametros"
+            "url": "{{base_url}}/configuracion/parametros-alertas"
           },
           "event": [
             {
@@ -963,27 +975,41 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57A 3.0] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57A 3.0] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G57A-3.0][OBSERVADO] campos = ' + JSON.stringify(Object.keys(J || {})) + ' ' + pm.response.text().slice(0, 400));",
-                  "pm.test('Los parametros operativos incluyen alguno del sistema de alertas (confianza IA, tormenta, ventanas, SLA)', function () { pm.expect(/confianza|tormenta|dedup|ventana|sla|escalam/i.test(Object.keys(J || {}).join(' '))).to.be.true; });"
+                  "pm.test('umbral_confianza_edge_ia (base 0.85, rango 0.70-0.95)', function () { var p = _g('umbral_confianza_edge_ia'); pm.expect(p, 'no listado').to.exist; pm.expect(Number(p.valor)).to.eql(0.85); pm.expect(Number(p.rango_minimo)).to.eql(0.7); pm.expect(Number(p.rango_maximo)).to.eql(0.95); });",
+                  "pm.test('rf57_umbral_confianza_minimo (base 0.75)', function () { var p = _g('rf57_umbral_confianza_minimo'); pm.expect(p, 'no listado').to.exist; pm.expect(Number(p.valor)).to.eql(0.75); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "3.1 N35: existe un endpoint para configurar el umbral de confianza de IA (E12/E13) y umbral_confianza_minimo",
+          "name": "3.1 N35: el Administrador cambia umbral_confianza_edge_ia a 0.80 y rf57_umbral_confianza_minimo a 0.80 (sin despliegue)",
           "request": {
-            "method": "GET",
+            "method": "PATCH",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/openapi.json"
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.8,\n    \"rf57_umbral_confianza_minimo\": 0.8\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
@@ -991,14 +1017,91 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57A 3.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57A 3.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "const _re = /confianza|mlops|umbral[-_]?confianza/i;",
-                  "const _hit = _paths.filter(function (p) { return _re.test(p); });",
-                  "console.log('[G57A-3.1][OBSERVADO] rutas del contrato que coinciden = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para configurar el umbral de confianza de IA (0.70-0.95) y umbral_confianza_minimo', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('umbral_confianza_edge_ia queda en 0.8', function () { pm.expect(_g('umbral_confianza_edge_ia'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('umbral_confianza_edge_ia').valor)).to.eql(0.8); });",
+                  "pm.test('rf57_umbral_confianza_minimo queda en 0.8', function () { pm.expect(_g('rf57_umbral_confianza_minimo'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_umbral_confianza_minimo').valor)).to.eql(0.8); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 N35: umbral_confianza_edge_ia fuera de 0.70-0.95 (0.96) se rechaza",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.96\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "pm.test('0.96 rechazado con 400', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 N35: el cambio persiste (GET) y se puede restaurar a 0.85 / 0.75",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"umbral_confianza_edge_ia\": 0.85,\n    \"rf57_umbral_confianza_minimo\": 0.75\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 3.3] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH de restauracion responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('valores restaurados 0.85 y 0.75', function () { pm.expect(Number(_g('umbral_confianza_edge_ia').valor)).to.eql(0.85); pm.expect(Number(_g('rf57_umbral_confianza_minimo').valor)).to.eql(0.75); });"
                 ]
               }
             }
@@ -1010,16 +1113,29 @@
       "name": "4. Parametros de tormenta N_sistema y N_unidad (TC-M03-N36)",
       "item": [
         {
-          "name": "4.1 N36: existe un endpoint para configurar N_sistema y N_unidad (tormenta de alertas)",
+          "name": "4.1 N36: el Administrador configura N_sistema y N_unidad (tormenta de alertas)",
           "request": {
-            "method": "GET",
+            "method": "PATCH",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/openapi.json"
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_tormenta_alertas_por_minuto\": 50,\n    \"rf57_tormenta_alertas_por_minuto_unidad\": 10\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
@@ -1027,14 +1143,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57A 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57A 4.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "const _re = /tormenta|storm|n[-_]?unidad|n[-_]?sistema|agrupacion/i;",
-                  "const _hit = _paths.filter(function (p) { return _re.test(p); });",
-                  "console.log('[G57A-4.1][OBSERVADO] rutas del contrato que coinciden = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para configurar N_sistema y N_unidad', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rf57_tormenta_alertas_por_minuto queda en 50', function () { pm.expect(_g('rf57_tormenta_alertas_por_minuto'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_tormenta_alertas_por_minuto').valor)).to.eql(50); });",
+                  "pm.test('rf57_tormenta_alertas_por_minuto_unidad queda en 10', function () { pm.expect(_g('rf57_tormenta_alertas_por_minuto_unidad'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_tormenta_alertas_por_minuto_unidad').valor)).to.eql(10); });"
                 ]
               }
             }
@@ -1043,19 +1157,32 @@
       ]
     },
     {
-      "name": "5. Ventanas configurables: deduplicacion, reevaluacion de IA, SLA/escalamiento (TC-M03-N37)",
+      "name": "5. Ventanas configurables: deduplicacion, reevaluacion de IA, SLA/escalamiento y reglas (TC-M03-N37)",
       "item": [
         {
-          "name": "5.1 N37: existe un endpoint para configurar ventana de deduplicacion, reevaluacion de IA o SLA/escalamiento",
+          "name": "5.1 N37: el Administrador configura la ventana de deduplicacion, la reevaluacion de IA y el SLA por severidad",
           "request": {
-            "method": "GET",
+            "method": "PATCH",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/openapi.json"
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_ventana_deduplicacion_min\": 45,\n    \"rf57_ventana_reevaluacion_min\": 90,\n    \"rf57_sla_critico_min\": 10,\n    \"rf57_sla_moderado_min\": 45,\n    \"rf57_sla_leve_min\": 180\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
@@ -1063,30 +1190,44 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57A 5.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57A 5.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "const _re = /dedup|duplicad|ventana|reevalua|(^|[/_-])sla([/_-]|$)|escalamiento/i;",
-                  "const _hit = _paths.filter(function (p) { return _re.test(p) && !/calidad/i.test(p); });",
-                  "console.log('[G57A-5.1][OBSERVADO] rutas del contrato que coinciden = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para configurar ventana de deduplicacion, reevaluacion de IA o SLA', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "const _g = function (n) { return (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === n; }); };",
+                  "pm.test('PATCH /configuracion/parametros-alertas responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rf57_ventana_deduplicacion_min queda en 45', function () { pm.expect(_g('rf57_ventana_deduplicacion_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_ventana_deduplicacion_min').valor)).to.eql(45); });",
+                  "pm.test('rf57_ventana_reevaluacion_min queda en 90', function () { pm.expect(_g('rf57_ventana_reevaluacion_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_ventana_reevaluacion_min').valor)).to.eql(90); });",
+                  "pm.test('rf57_sla_critico_min queda en 10', function () { pm.expect(_g('rf57_sla_critico_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_critico_min').valor)).to.eql(10); });",
+                  "pm.test('rf57_sla_moderado_min queda en 45', function () { pm.expect(_g('rf57_sla_moderado_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_moderado_min').valor)).to.eql(45); });",
+                  "pm.test('rf57_sla_leve_min queda en 180', function () { pm.expect(_g('rf57_sla_leve_min'), 'parametro no devuelto').to.exist; pm.expect(Number(_g('rf57_sla_leve_min').valor)).to.eql(180); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "5.2 Reglas compuestas: existe un endpoint para crear o modificar reglas (no solo propagarlas al Edge)",
+          "name": "5.2a Reglas de alerta: el Administrador crea una regla (POST /iot/reglas-alertas)",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/openapi.json"
+            "url": "{{base_url}}/iot/reglas-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA G57A regla temperatura\",\n  \"descripcion\": \"Regla de prueba QA (sandbox)\",\n  \"tipo_sensor\": \"TEMPERATURA\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"umbral_min\": 15,\n  \"umbral_max\": 30,\n  \"ventana_confirmacion_min\": 0,\n  \"lectura_confirmacion_max\": 1,\n  \"mensaje\": \"QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
@@ -1094,14 +1235,51 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57A 5.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57A 5.2a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "const _re = /reglas[-_]?alertas/i;",
-                  "const _hit = _paths.filter(function (p) { return _re.test(p) && !/sincroniz/i.test(p); });",
-                  "console.log('[G57A-5.2][OBSERVADO] rutas del contrato que coinciden = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para crear o modificar reglas de alertas (ademas de sincronizar-edge)', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "pm.test('POST /iot/reglas-alertas responde 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "var _id = J.id_regla_alertas || J.id_regla_alerta || J.id; pm.collectionVariables.set('id_regla_qa', String(_id || 0)); pm.collectionVariables.set('fecha_regla_qa', String(J.fecha_actualizacion || ''));",
+                  "pm.test('la regla creada devuelve su identificador', function () { pm.expect(_id).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2b Reglas de alerta: el Administrador modifica la regla (PUT /iot/reglas-alertas/{id}) y el cambio persiste",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/reglas-alertas/{{id_regla_qa}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"QA G57A regla temperatura\",\n  \"descripcion\": \"Regla de prueba QA modificada\",\n  \"tipo_sensor\": \"TEMPERATURA\",\n  \"categoria_variable\": \"AMBIENTAL\",\n  \"umbral_min\": 15,\n  \"umbral_max\": 28,\n  \"ventana_confirmacion_min\": 0,\n  \"lectura_confirmacion_max\": 1,\n  \"mensaje\": \"QA\",\n  \"fecha_actualizacion\": \"{{fecha_regla_qa}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G57A 5.2b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 500));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('PUT responde 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('umbral_max queda en 28', function () { pm.expect(Number(J.umbral_max)).to.eql(28); });"
                 ]
               }
             }
