@@ -1,3 +1,22 @@
+## [1.4.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.15...v1.4.0-rc.16) (2026-10-30)
+
+### Features
+
+* **rf49-mod9:** configurar desde M09 las especies compatibles de un sensor (INC-M03-135-G01) ([d3b1359](https://github.com/Arekkazu/sgpmp-backend/commit/d3b13590bfea26acd2a2979ff69636bf32ba3c1f))
+* **rf72-prediction:** ventana de retroalimentacion desde M09 y ampliacion justificada por resultado (INC-M04-229-G070) ([e540133](https://github.com/Arekkazu/sgpmp-backend/commit/e5401337a4d5dc31ab3875864e42a6fd924b0bc6)), closes [#865](https://github.com/Arekkazu/sgpmp-backend/issues/865)
+
+### Bug Fixes
+
+* **rf24-mod9:** la calibracion acepta offsets negativos con limite propio (INC-M03-137-G09) ([b330ff1](https://github.com/Arekkazu/sgpmp-backend/commit/b330ff172e25f940ed86d761c80d332e273dc58a))
+* **rf53-telemetry:** la ingesta verifica el checksum contra el contenido de la lectura (INC-M03-136-G02) ([1c9af6f](https://github.com/Arekkazu/sgpmp-backend/commit/1c9af6f8c0ae7b7b751e23ab8c8f15785622ac8c))
+* **rf57-telemetry:** POST /iot/alertas rechaza categoria_variable, tipo_evento y estado_conectividad fuera de catalogo (INC-M04-224-G66) ([5791516](https://github.com/Arekkazu/sgpmp-backend/commit/57915164eb5c1a930c4b06bd5c57a914c3160e5a))
+* **rf59-telemetry:** alertas correlacionadas con SQL fijo y parametros enlazados (Bearer CWE-89) ([bcd0fae](https://github.com/Arekkazu/sgpmp-backend/commit/bcd0fae0905d9d615c3767c78d77560999932d05)), closes [#858](https://github.com/Arekkazu/sgpmp-backend/issues/858)
+* **rf59-telemetry:** alertas_correlacionadas incluye las alertas del sensor o activo del periodo (INC-M04-226-G117) ([178a6e4](https://github.com/Arekkazu/sgpmp-backend/commit/178a6e4b240098786491898747311c942765382e))
+* **rf59-telemetry:** categoria_variable, estado_dato y origen_dato se pueden usar solos en el historial (INC-M04-225-G112) ([6a3acb9](https://github.com/Arekkazu/sgpmp-backend/commit/6a3acb9ccb8114097c444117c0d504db2c7d2d73)), closes [#763](https://github.com/Arekkazu/sgpmp-backend/issues/763)
+* **rf68-prediction:** el resultado de contagio del lote aparece en el historial diagnostico (INC-M04-223-G034) ([27b9fb3](https://github.com/Arekkazu/sgpmp-backend/commit/27b9fb39ac1a463f935ddfb0c4e23396365be176))
+* **rf72-prediction:** estado_retroalimentacion literal y rechazo de activo en BAJA (INC-M04-227-G067, INC-M04-228-G068) ([4590cc8](https://github.com/Arekkazu/sgpmp-backend/commit/4590cc8b9836ab0a26619b7c1189624f09061964))
+* **rf72-prediction:** materializar el historial con la identidad del usuario sin violar RLS (INC-M04-230-G72) ([2a2f057](https://github.com/Arekkazu/sgpmp-backend/commit/2a2f05758cac629e94d86292c77000a9dadaf2d6))
+
 ## [1.4.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.14...v1.4.0-rc.15) (2026-10-29)
 
 ### Features
