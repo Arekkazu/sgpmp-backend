@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: mantener regresiones con umbrales explícitos de configuración. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ D = Decimal
 
 def _parametros(**cambios):
     base = dict(w_fs=D("0.5"), w_fa=D("0.3"), w_fd=D("0.2"), temp_min=D("20"), temp_max=D("40"),
-                hr_min=D("40"), hr_max=D("100"), densidad_maxima=D("10"))
+                hr_min=D("40"), hr_max=D("100"), densidad_maxima=D("10"), umbral_riesgo_alto=D("0.70"))
     base.update(cambios)
     return ParametrosContagio(**base)
 
@@ -57,7 +58,7 @@ def test_formula_ponderada_ca9():
 
 @pytest.mark.parametrize("p, nivel", [("0.4999", 0), ("0.50", 1), ("0.6999", 1), ("0.70", 2), ("1", 2)])
 def test_discretizacion_en_las_fronteras(p, nivel):
-    assert discretizar(D(p)) == nivel
+    assert discretizar(D(p), D("0.70")) == nivel
 
 
 def test_acotamiento_de_temperatura_y_humedad():
@@ -172,7 +173,7 @@ class _Alerta:
 
 
 def _config(**cambios):
-    base = dict(es_activa=True, id_configuracion_motor=3, config_version=2, w_factor_sanitario=D("0.5"),
+    base = dict(umbral_riesgo_alto=D("0.70"), umbral_alerta_critica=D("0.70"), es_activa=True, id_configuracion_motor=3, config_version=2, w_factor_sanitario=D("0.5"),
                 w_factor_ambiental=D("0.3"), w_factor_densidad=D("0.2"), temp_min_config=D("20"),
                 temp_max_config=D("40"), hr_min_config=D("40"), hr_max_config=D("100"), densidad_maxima_config=D("10"))
     base.update(cambios)

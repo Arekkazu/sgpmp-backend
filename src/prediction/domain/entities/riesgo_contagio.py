@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: clasificar con el umbral activo conservando mínimos sanitarios. |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -14,8 +15,8 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
 
-#: Discretización (Salida): 0 Bajo, 1 Medio, 2 Alto. Las fronteras exactas del 50 % y
-#: 70 % (TC-M04-G027) caen en la clase superior.
+#: La frontera de Medio se conserva en 0.50; la de Alto procede de RF-65.
+#: Los porcentajes sanitarios obligatorios de RF-68 conservan sus cortes propios.
 FRONTERA_MEDIO = Decimal("0.50")
 FRONTERA_ALTO = Decimal("0.70")
 NIVELES = {0: "BAJO", 1: "MEDIO", 2: "ALTO"}
@@ -78,6 +79,7 @@ class ParametrosContagio:
     hr_min: Optional[Decimal]
     hr_max: Optional[Decimal]
     densidad_maxima: Optional[Decimal]
+    umbral_riesgo_alto: Decimal
 
 
 @dataclass
@@ -107,6 +109,7 @@ class ResultadoRiesgoContagio:
     desde_cache: bool = False
     huella_entradas: str = ""
     variables_ambientales: dict = field(default_factory=dict)
+    umbrales_aplicados: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def nivel_texto(self) -> str:
@@ -139,8 +142,8 @@ def validar_pesos(p: ParametrosContagio) -> None:
         )
 
 
-def discretizar(probabilidad: Decimal) -> int:
-    if probabilidad >= FRONTERA_ALTO:
+def discretizar(probabilidad: Decimal, umbral_riesgo_alto: Decimal) -> int:
+    if probabilidad >= umbral_riesgo_alto:
         return 2
     if probabilidad >= FRONTERA_MEDIO:
         return 1
@@ -259,7 +262,7 @@ def calcular_riesgo_contagio(
         pesos = {k: (pesos_config[k] / suma_disponible if k in disponibles else Decimal("0")) for k in factores}
 
     probabilidad = _acotar(sum(pesos[k] * factores[k] for k in disponibles))
-    nivel = discretizar(probabilidad)
+    nivel = discretizar(probabilidad, parametros.umbral_riesgo_alto)
     # Consistencia con la inferencia individual (CA-7, E6, RNF-03).
     if fs is not None and definicion_fs == CONTEO_INDIVIDUAL:
         if fs > FRONTERA_ALTO:
