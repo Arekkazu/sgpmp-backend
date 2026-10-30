@@ -3,6 +3,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: mantener regresiones con umbrales explícitos de configuración. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conservar regresiones existentes con el puerto explícito de ocupación. |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: sustituir E1 por el rechazo de cobertura mínima confirmado. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -123,9 +124,10 @@ def test_inferencias_de_mas_de_30_minutos_no_se_usan():
         _calcular(salidas_rf66=_salidas(["0.9"], desfase_s=31 * 60), ambiente=None)
 
 
-def test_cobertura_rf66_menor_al_50_calcula_sin_fs_e1():
-    r = _calcular(salidas_rf66=_salidas(["0.9"]), total_activos_lote=4)
-    assert "fs" in r.factores_ausentes and r.confianza_baja and "COBERTURA_RF66_MENOR_AL_50" in r.motivos_degradacion
+def test_cobertura_rf66_menor_al_60_rechaza_segun_e8_ca10():
+    with pytest.raises(DatosContagioError) as exc:
+        _calcular(salidas_rf66=_salidas(["0.9"]), total_activos_lote=4)
+    assert exc.value.codigo == "ERROR_DATOS_INSUFICIENTES"
 
 
 def test_score_poblacional_como_fs():

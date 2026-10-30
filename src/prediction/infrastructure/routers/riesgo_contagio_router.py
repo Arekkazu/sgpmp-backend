@@ -4,6 +4,7 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-68: GET con los cálculos del alcance para la pestaña Contagio |
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: documentar umbrales dinámicos y condiciones de alerta. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conectar el puerto de ocupación histórica y documentar el fallback E2. |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: documentar el rechazo 422 por cobertura individual inferior al 60 %. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -65,7 +66,7 @@ _RECURSO = 41  # modulo1.recursos: 'configuracion_motor_ia'
         404: {"model": ErrorResponse, "description": "LOTE_NO_ENCONTRADO"},
         422: {"model": ErrorResponse, "description": (
             "CONFIGURACION_CONTAGIO_NO_DEFINIDA, ERROR_CONFIGURACION_PESOS, ERROR_DATOS_INSUFICIENTES "
-            "(E4/E5/CA-10) o ERROR_DATOS_DESINCRONIZADOS (> 35 s)"
+            "(E4/E5/E8/CA-10: cobertura individual mínima 60 %) o ERROR_DATOS_DESINCRONIZADOS (> 35 s)"
         )},
         429: {"model": ErrorResponse, "description": "EJECUCION_CONTAGIO_MUY_FRECUENTE: < 5 s desde la anterior"},
     },
