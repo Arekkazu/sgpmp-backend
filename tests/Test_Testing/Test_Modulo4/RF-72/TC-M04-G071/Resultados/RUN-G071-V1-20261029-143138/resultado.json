@@ -1,0 +1,633 @@
+{
+  "grupo": "G071",
+  "run_id": "RUN-G071-V1-20261029-143138",
+  "version": 1,
+  "intento": 1,
+  "referencia": "AUT-G071-V1-20261029",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-219": {
+      "estado": "APROBADO",
+      "motivo": "Oráculo comprobado por API",
+      "esperado": "Tres 201, UUID válidos y distintos, presentes en historial.",
+      "observado": "HTTP 201/201/201; identificadores 8d020402-ccec-419f-b323-9dd605765999, abf573da-0224-464f-9c5d-44927dc980c6, d58c197e-5184-44d9-a76a-d024665ad829; lectura posterior inmediata completa true.",
+      "por_que": "UUID válidos true; distintos true."
+    },
+    "TC-M04-220": {
+      "estado": "APROBADO",
+      "motivo": "Oráculo comprobado por API",
+      "esperado": "Snapshot idéntico antes y después de INCORRECTO.",
+      "observado": "POST 201; resultado d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e; patología real 8; antes {\"id_resultado_inferencia\":\"d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e\",\"fecha_inferencia\":\"2026-10-24T19:06:22Z\",\"nivel_riesgo\":1,\"id_patologia\":10,\"nombre_patologia\":\"Intoxicación hídrica\",\"probabilidad_riesgo\":{\"0\":0.15,\"1\":0.6,\"2\":0.15,\"3\":0.1},\"probabilidad_enfermedad\":{\"10\":0.55},\"confianza_global\":0.85,\"tipo_modelo\":\"MODELO_ESPECIES_MEDIANAS\",\"id_version_modelo\":43}; después {\"id_resultado_inferencia\":\"d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e\",\"fecha_inferencia\":\"2026-10-24T19:06:22Z\",\"nivel_riesgo\":1,\"id_patologia\":10,\"nombre_patologia\":\"Intoxicación hídrica\",\"probabilidad_riesgo\":{\"0\":0.15,\"1\":0.6,\"2\":0.15,\"3\":0.1},\"probabilidad_enfermedad\":{\"10\":0.55},\"confianza_global\":0.85,\"tipo_modelo\":\"MODELO_ESPECIES_MEDIANAS\",\"id_version_modelo\":43}.",
+      "por_que": "Comparación de riesgo, patología, probabilidades, fecha y versión: true."
+    },
+    "TC-M04-221": {
+      "estado": "APROBADO",
+      "motivo": "Oráculo comprobado por API",
+      "esperado": "PUT, PATCH y DELETE rechazados, sin operación expuesta ni cambio del registro.",
+      "observado": "HTTP 221-put-id:404, 221-patch-id:404, 221-delete-id:404, 221-patch-base:405, 221-delete-base:405; OpenAPI 200; operaciones ninguna; registro d58c197e-5184-44d9-a76a-d024665ad829.",
+      "por_que": "Registro idéntico en historial true; ninguna operación 2xx true."
+    },
+    "TC-M04-222": {
+      "estado": "APROBADO",
+      "motivo": "Oráculo comprobado por API",
+      "esperado": "Cuatro campos no nulos; anónimo e incompletos sin registro.",
+      "observado": "POST 201; anónimo 401; sin activo 400; sin resultado 400; campos respuesta {\"id_resultado_inferencia\":\"511a6d66-a862-4822-bf47-2634333531b3\",\"id_usuario_veterinario\":97,\"fecha_retroalimentacion\":\"2026-10-29T14:31:40.670157Z\",\"id_activo_biologico\":885}; campos historial {\"id_resultado_inferencia\":\"511a6d66-a862-4822-bf47-2634333531b3\",\"id_usuario_veterinario\":97,\"fecha_retroalimentacion\":\"2026-10-29T14:31:40.670157Z\",\"id_activo_biologico\":885}.",
+      "por_que": "Cuatro campos presentes en ambas lecturas true; sin registros adicionales true."
+    },
+    "TC-M04-246": {
+      "estado": "APROBADO",
+      "motivo": "Oráculo comprobado por API",
+      "esperado": "Resultado, alertas, versiones, configuración del motor e historial de inferencias sin cambios.",
+      "observado": "POST 201; resultado 5dbe4510-af8e-4ea7-8688-7efa0751800d; patología real 8; alertas 0/0; inferencias 14/14; versión 43 ACTIVO/ACTIVO; motor antes {\"tipo_modelo\":\"MODELO_ESPECIES_MEDIANAS\",\"id_version_modelo_activa\":43,\"config_version\":3,\"es_activa\":true}; después {\"tipo_modelo\":\"MODELO_ESPECIES_MEDIANAS\",\"id_version_modelo_activa\":43,\"config_version\":3,\"es_activa\":true}.",
+      "por_que": "Snapshot true; alertas true; versiones true; motor true; inferencias true."
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-219",
+      "fuente": "API",
+      "id": "API-219-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G071.json"
+    },
+    {
+      "caso": "TC-M04-220",
+      "fuente": "API",
+      "id": "API-220-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G071.json"
+    },
+    {
+      "caso": "TC-M04-221",
+      "fuente": "API",
+      "id": "API-221-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G071.json"
+    },
+    {
+      "caso": "TC-M04-222",
+      "fuente": "API",
+      "id": "API-222-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G071.json"
+    },
+    {
+      "caso": "TC-M04-246",
+      "fuente": "API",
+      "id": "API-246-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G071.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 1226,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 550,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/patologias",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 317,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 33
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/43",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 151,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/openapi.json",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 626,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-1",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 549,
+      "respuesta": {
+        "id_retroalimentacion": "8d020402-ccec-419f-b323-9dd605765999",
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-2",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 166,
+      "respuesta": {
+        "id_retroalimentacion": "abf573da-0224-464f-9c5d-44927dc980c6",
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-3",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 162,
+      "respuesta": {
+        "id_retroalimentacion": "d58c197e-5184-44d9-a76a-d024665ad829",
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-read",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 178,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-before",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 247,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-post",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 164,
+      "respuesta": {
+        "id_retroalimentacion": "10e7471a-eaf4-4468-bb51-0c8cdc483553",
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-after",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 187,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-anon",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 401,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 147,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "TOKEN_REQUERIDO",
+        "message": "Se requiere autenticación. Proporciona un token Bearer válido."
+      }
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-no-asset",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 157,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud"
+      }
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-no-result",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 151,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud"
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-put-id",
+      "metodo": "PUT",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 147,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-patch-id",
+      "metodo": "PATCH",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 148,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-delete-id",
+      "metodo": "DELETE",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 144,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-patch-base",
+      "metodo": "PATCH",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 405,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 139,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-delete-base",
+      "metodo": "DELETE",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 405,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 138,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-openapi",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/openapi.json",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 674,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-history",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 180,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-versions",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/modelos",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 167,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-motor",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-post",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 161,
+      "respuesta": {
+        "id_retroalimentacion": "cb44ab5a-f6fa-4ebd-9cb9-71913b7e35e8",
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-history",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 187,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-versions",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/modelos",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 164,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-motor",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 159,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 807,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 537,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 8
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G071-V1-20261029-143138",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 133,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 211,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    }
+  ],
+  "incidencias": [],
+  "observaciones": [
+    "Auditoría HTTP 200; eventos de la página 8.",
+    "TC-M04-246 compara el estado observable de la versión activa y la versión 43; no ejecuta una inferencia nueva. La semilla puede no contener alertas derivadas: entonces se comprueba que ninguna aparece ni cambia en la página completa.",
+    "Selección: 511a6d66-a862-4822-bf47-2634333531b3, f056f99d-78bf-478d-86f0-5b2ee1a70873, 997b8cda-b608-4bb3-a7d2-ea37cf12b944, d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e, 5dbe4510-af8e-4ea7-8688-7efa0751800d; reemplazos para negativos f7fea6d3-9bc1-49de-a88e-3be75f399b87, 32985675-9bbf-46ae-a37d-dc1833155627."
+  ],
+  "problemas_tecnicos": [],
+  "semilla": {
+    "id_activo_biologico": 885,
+    "resultados": [
+      {
+        "id": "511a6d66-a862-4822-bf47-2634333531b3",
+        "fecha": "2026-10-28T00:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "fecha": "2026-10-26T21:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+        "fecha": "2026-10-26T01:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+        "fecha": "2026-10-24T19:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+        "fecha": "2026-10-23T23:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "fecha": "2026-10-22T17:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      },
+      {
+        "id": "32985675-9bbf-46ae-a37d-dc1833155627",
+        "fecha": "2026-10-20T22:06:22Z",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "id_version_modelo": 43
+      }
+    ]
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 23,
+      "aserciones": 46
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200; identificadores nuevos ausentes y eventos de retroalimentación, inferencia y alerta iguales al descubrimiento"
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G071.json",
+    "newman/newman-G071.html",
+    "resultado.json",
+    "TC-M04-G071_resultado.md"
+  ],
+  "oficial": true,
+  "consume_version": true
+}

@@ -1,0 +1,40 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "caso": "TC-M04-205",
+  "metodo": "POST",
+  "ruta": "/prediccion/retroalimentacion",
+  "http": 400,
+  "eco": true,
+  "duracion_ms": 172,
+  "solicitudes": 1,
+  "aserciones": [
+    {
+      "nombre": "Código explícito por subcaso",
+      "aprobada": false,
+      "error": "expected [ 422 ] to include 400"
+    },
+    {
+      "nombre": "Eco de X-Test-Run-Id",
+      "aprobada": true,
+      "error": null
+    }
+  ],
+  "respuesta": {
+    "id_retroalimentacion": null,
+    "id_resultado_inferencia": null,
+    "estado_retroalimentacion": null,
+    "diagnosticos_reales": null,
+    "error_code": "VAL_ENTRADA",
+    "field": "estado_retroalimentacion",
+    "mensaje": "Errores de validacion en la solicitud",
+    "detalle_campo": "El valor ingresado debe ser un texto."
+  },
+  "fallos": [
+    {
+      "tipo": "AssertionError",
+      "mensaje": "expected [ 422 ] to include 400"
+    }
+  ],
+  "error": null
+}

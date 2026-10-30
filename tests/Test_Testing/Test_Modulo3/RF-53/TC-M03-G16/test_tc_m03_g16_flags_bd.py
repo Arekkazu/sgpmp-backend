@@ -1,3 +1,6 @@
+# | Fecha      | Nombre      | Que se hizo                                                                  |
+# |------------|-------------|------------------------------------------------------------------------------|
+# | 2026-10-29 | Juan Manuel | TC-M03-G16 RF-53: frecuencia global M09 y drift por RF-62 tras INC-M03-130 |
 """
 TC-M03-G16 - Marcado de metadata de calidad sin rechazo del dato (verificacion en BD).
 
@@ -46,6 +49,13 @@ DB_NAME = os.getenv("DB_NAME", "sgpmp_test")
 
 _COLECCION = Path(__file__).parent / "TC-M03-G16.postman_collection.json"
 
+_BLOQUEO_RLS = (
+    "BLOQUEADO: el usuario QA ({usuario}) no puede leer modulo3.telemetrias desde la RLS de modulo3 (migracion "
+    "0784d8c03206, 2026-10-28): 'permission denied for function fn_es_usuario_servicio'. El dato se persiste "
+    "(la API respondio 201) pero no se puede verificar en BD. Error: {error}"
+)
+
+
 
 @pytest.fixture(scope="module")
 def ids(tmp_path_factory) -> dict:
@@ -83,20 +93,36 @@ def ids(tmp_path_factory) -> dict:
 
 
 @pytest.fixture(scope="module")
+def frecuencia_global() -> int | None:
+    """frecuencia_muestreo (min) de la configuracion global activa de M09: la que usa la ingesta (INC-M03-130)."""
+    conexion = psycopg2.connect(host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD, dbname=DB_NAME)
+    try:
+        with conexion.cursor() as cur:
+            cur.execute("SELECT frecuencia_muestreo FROM modulo9.configuraciones_globales WHERE es_activo LIMIT 1")
+            fila = cur.fetchone()
+            return fila[0] if fila else None
+    finally:
+        conexion.close()
+
+
+@pytest.fixture(scope="module")
 def filas(ids) -> dict[int, dict]:
     todos = [i for v in ids.values() for i in (v if isinstance(v, list) else [v]) if i]
     conexion = psycopg2.connect(host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD, dbname=DB_NAME)
     try:
         with conexion.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
+            try:
+                cur.execute(
                 """
                 SELECT id_telemetria, estado_calidad::text AS estado_calidad, valor_crudo, latencia_alta,
-                       frecuencia_anomala, posible_drift, calidad_senal_rssi, calidad_senal_snr, metadatos
+                       frecuencia_anomala, frecuencia_muestreo_min, calidad_senal_rssi, calidad_senal_snr, metadatos
                 FROM modulo3.telemetrias
                 WHERE id_telemetria = ANY(%s)
                 """,
                 (todos,),
             )
+            except psycopg2.errors.InsufficientPrivilege as exc:
+                pytest.fail(_BLOQUEO_RLS.format(usuario=DB_USER, error=str(exc).splitlines()[0]))
             return {f["id_telemetria"]: f for f in cur.fetchall()}
     finally:
         conexion.close()
@@ -119,24 +145,28 @@ def test_tc_m03_012_latencia_alta_marcada_sin_rechazo(variante, ids, filas):
     )
 
 
-def test_tc_m03_034_frecuencia_anomala_marcada_sin_rechazo(ids, filas):
-    # La primera lectura no tiene una anterior con la cual comparar; desde la segunda el intervalo
-    # (1 min) no corresponde a la frecuencia configurada (10 min).
+def test_tc_m03_034_frecuencia_anomala_marcada_sin_rechazo(ids, filas, frecuencia_global):
+    # INC-M03-130 (c685130a0260): anomala = intervalo al vecino mas cercano < 0,5x o > 2x la frecuencia_muestreo
+    # GLOBAL de M09 (minutos). La primera lectura no tiene vecino; desde la segunda el intervalo (segundos) queda
+    # por debajo de 0,5x. La lectura guarda el valor aplicado en frecuencia_muestreo_min.
+    assert frecuencia_global and frecuencia_global > 1, f"Precondicion: frecuencia global M09 = {frecuencia_global}"
     lecturas = ids["034"]
     assert len(lecturas) == 5, f"TC-M03-034: se esperaban 5 lecturas persistidas, hay {len(lecturas)}"
     sin_marca = [i for i in lecturas[1:] if _fila(filas, i, "TC-M03-034")["frecuencia_anomala"] is not True]
     assert not sin_marca, f"TC-M03-034: lecturas sin frecuencia_anomala=true: {sin_marca}"
     assert all(_fila(filas, i, "TC-M03-034")["estado_calidad"] == "LECTURA_VALIDA" for i in lecturas)
+    snapshot = {_fila(filas, i, "TC-M03-034")["frecuencia_muestreo_min"] for i in lecturas}
+    assert snapshot == {frecuencia_global}, f"TC-M03-034: frecuencia_muestreo_min guardada {snapshot}, M09 {frecuencia_global}"
 
 
-def test_tc_m03_068_posible_drift_marcado_sin_rechazo(ids, filas):
+def test_tc_m03_068_serie_con_sesgo_persistida_sin_rechazo(ids, filas):
+    # INC-M03-130: el drift lo determina RF-62 en la evaluacion vigente (flags_detectados.posible_drift de
+    # GET /iot/calidad/{id}); la columna telemetrias.posible_drift no representa ese resultado. Esa verificacion
+    # esta en la coleccion Newman (member_qa no puede leer modulo3.telemetria_calidad por RLS). Aqui solo se
+    # comprueba que la serie con sesgo se persiste completa y sin rechazo.
     lecturas = ids["068"]
-    assert len(lecturas) == 10, f"TC-M03-068: se esperaban 10 lecturas persistidas, hay {len(lecturas)}"
-    ultima = _fila(filas, lecturas[-1], "TC-M03-068")
-    assert ultima["estado_calidad"] == "LECTURA_VALIDA"
-    assert ultima["posible_drift"] is True, (
-        f"TC-M03-068: posible_drift={ultima['posible_drift']} tras 10 lecturas con +3 °C de sesgo"
-    )
+    assert len(lecturas) == 21, f"TC-M03-068: se esperaban 21 lecturas persistidas (N=20 anteriores de RF-62), hay {len(lecturas)}"
+    assert all(_fila(filas, i, "TC-M03-068")["estado_calidad"] == "LECTURA_VALIDA" for i in lecturas)
 
 
 def test_tc_m03_069_calidad_senal_registrada_sin_afectar_el_dato(ids, filas):

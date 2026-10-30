@@ -1,0 +1,835 @@
+{
+  "grupo": "G050",
+  "run_id": "RUN-G050-V1-20261028-005856",
+  "version": 1,
+  "operacion": "evaluar",
+  "autorizacion": "AUT-G050-V1-20261028",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-118": {
+      "estado": "APROBADO",
+      "motivo": "POST 201; GET ONNX y hash SHA-256 fiel"
+    },
+    "TC-M04-119": {
+      "estado": "RECHAZADO",
+      "motivo": "formato_artefacto ONNX en lugar de TENSORFLOW_SAVED_MODEL; hash fiel"
+    },
+    "TC-M04-120": {
+      "estado": "APROBADO",
+      "motivo": "Seis tipos con POST 201 y GET, paradigmas, componentes y métricas independientes"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-118",
+      "fuente": "API",
+      "id": "API-118-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "POST 201; GET ONNX y hash SHA-256 fiel",
+      "evidencia": "newman/newman-G050.json",
+      "observado": {
+        "post": {
+          "http": 201,
+          "eco": true,
+          "id": 61,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "get": {
+          "http": 200,
+          "eco": true,
+          "id": 61,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "hash_enviado": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9"
+      }
+    },
+    {
+      "caso": "TC-M04-119",
+      "fuente": "API",
+      "id": "API-119-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "formato_artefacto ONNX en lugar de TENSORFLOW_SAVED_MODEL; hash fiel",
+      "evidencia": "newman/newman-G050.json",
+      "observado": {
+        "post": {
+          "http": 201,
+          "eco": true,
+          "id": 62,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "get": {
+          "http": 200,
+          "eco": true,
+          "id": 62,
+          "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "formato_artefacto": "ONNX",
+          "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "estado": "APROBADO",
+          "error": null
+        },
+        "hash_enviado": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0"
+      }
+    },
+    {
+      "caso": "TC-M04-120",
+      "fuente": "API",
+      "id": "API-120-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Seis tipos con POST 201 y GET, paradigmas, componentes y métricas independientes",
+      "evidencia": "newman/newman-G050.json",
+      "observado": [
+        {
+          "version": 1,
+          "tipo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 2,
+          "tipo": "MODELO_ESPECIES_MEDIANAS",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 3,
+          "tipo": "MODELO_RIESGO_CONTAGIO",
+          "paradigma": "META",
+          "componente": null,
+          "metricas_poblacionales": null
+        },
+        {
+          "version": 4,
+          "tipo": "MODELO_AVES",
+          "paradigma": "POBLACIONAL",
+          "componente": "DETECTOR",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        },
+        {
+          "version": 5,
+          "tipo": "MODELO_PORCINOS",
+          "paradigma": "POBLACIONAL",
+          "componente": "SEGUIMIENTO",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        },
+        {
+          "version": 6,
+          "tipo": "MODELO_ACUICULTURA",
+          "paradigma": "POBLACIONAL",
+          "componente": "ANOMALIAS",
+          "metricas_poblacionales": {
+            "calibracion_completada": true,
+            "tasa_falsos_positivos_rutina": 0.02,
+            "tasa_deteccion_eventos_clinicos": 0.96
+          }
+        }
+      ]
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G050.json",
+    "newman/newman-G050.html",
+    "TC-M04-G050_resultado.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G050-V1-20261028-005856",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "datos": {
+    "versiones": [
+      {
+        "tipo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato": "ONNX",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "2ca6652a-6d6e-412e-ba3c-3ba1c6d6ab8d",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato": "TENSORFLOW_SAVED_MODEL",
+        "hash": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "proceso": "f5764319-1115-4647-a9b4-8b28bdd9dbf7",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato": "ONNX",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "0728ba86-364f-4156-83fa-c35e328492cb",
+        "metricas": {
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93,
+          "precision_global": 0.92,
+          "accuracy": 0.94,
+          "roc_auc_score": 0.95,
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "tipo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "DETECTOR",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "bfe056ee-4188-4fae-a6b3-4c3bc98011ab",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      },
+      {
+        "tipo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "SEGUIMIENTO",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "79f0946c-ed49-409d-a485-4eb97e1c4f7e",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      },
+      {
+        "tipo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato": "ONNX",
+        "componente": "ANOMALIAS",
+        "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "proceso": "6b2774d0-d199-429b-a557-fe262c5207e3",
+        "metricas": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96,
+          "f1_score_global": 0.91,
+          "recall_clase_riesgo_alto": 0.93
+        }
+      }
+    ],
+    "version2b": {
+      "tipo": "MODELO_ESPECIES_MEDIANAS",
+      "paradigma": "INDIVIDUAL",
+      "formato": "ONNX",
+      "hash": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+      "proceso": "5404b14e-0f34-4a19-80a6-9181a804901b",
+      "metricas": {
+        "f1_score_global": 0.91,
+        "recall_clase_riesgo_alto": 0.93,
+        "precision_global": 0.92,
+        "accuracy": 0.94,
+        "roc_auc_score": 0.95,
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ]
+      }
+    },
+    "dataset_hash": "bc5482863dc51321b14ad08b0c51b2ecca562c193c36b37fb9d39cbffbfa369f",
+    "fecha_entrenamiento": "2026-10-27T00:59:00.431Z",
+    "compatibilidad_variables": [
+      16
+    ]
+  },
+  "respuestas": {
+    "posts": [
+      {
+        "http": 201,
+        "eco": true,
+        "id": 61,
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 62,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 63,
+        "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 64,
+        "tipo_modelo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "DETECTOR",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 65,
+        "tipo_modelo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "SEGUIMIENTO",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 66,
+        "tipo_modelo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "ANOMALIAS",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "gets": [
+      {
+        "http": 200,
+        "eco": true,
+        "id": 61,
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 62,
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
+        "paradigma": "INDIVIDUAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 63,
+        "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+        "paradigma": "META",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": null,
+        "metricas_poblacionales": null,
+        "f1_score": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_modelo": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 64,
+        "tipo_modelo": "MODELO_AVES",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "DETECTOR",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 65,
+        "tipo_modelo": "MODELO_PORCINOS",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "SEGUIMIENTO",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "id": 66,
+        "tipo_modelo": "MODELO_ACUICULTURA",
+        "paradigma": "POBLACIONAL",
+        "formato_artefacto": "ONNX",
+        "hash_artefacto_sha256": "7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9",
+        "componente": "ANOMALIAS",
+        "metricas_poblacionales": {
+          "calibracion_completada": true,
+          "tasa_falsos_positivos_rutina": 0.02,
+          "tasa_deteccion_eventos_clinicos": 0.96
+        },
+        "f1_score": null,
+        "recall_clase_riesgo_alto": null,
+        "precision_modelo": null,
+        "accuracy": null,
+        "roc_auc_score": null,
+        "recall_por_clase": null,
+        "matriz_confusion": null,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "v2b": null
+  },
+  "incidencias": [
+    {
+      "id": "INC-M04-G050-119",
+      "caso": "TC-M04-119",
+      "titulo": "Un TensorFlow SavedModel válido se registra con formato ONNX",
+      "equipo": "Desarrollo",
+      "derivacion": "La primera discrepancia está comprobada en POST/GET de la API pública; Desarrollo es el primer equipo de atención. La causa raíz en TEST no está demostrada.",
+      "severidad": "MEDIA",
+      "certeza": "CONFIRMADA",
+      "sustento_severidad": "El registro se completa y el hash es fiel, pero el metadato de formato es incorrecto. Los consumidores que dependan del formato (RF-66 al ejecutar y RF-70 al distribuir al Edge) podrían cargar el artefacto con el runtime equivocado; no bloquea el registro.",
+      "requisito": "RF-69, Restricción 2, línea 1873: “Solo se aceptan artefactos en formato ONNX o TensorFlow SavedModel.” Fase 1, líneas 1993-1995: “El sistema verifica que el formato del artefacto sea ONNX o TensorFlow SavedModel. Si el formato es inválido → E1.” RNF-09, línea 2391: “Solo ONNX y TensorFlow SavedModel.” Matriz G050, nota de TC-M04-119: “la detección se basa en la firma binaria del archivo, no en su extensión”.",
+      "precondiciones": "RUN RUN-G050-V1-20261028-005856 autorizado; clave RF-71 válida; catálogo I3P-1; saved_model.pb de 155 bytes construido según tensorflow/core/protobuf/saved_model.proto, con saved_model_schema_version=1 y MetaGraph “serve”; hash SHA-256 6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0.",
+      "pasos": [
+        "En el RUN autorizado, enviar POST /prediccion/modelos multipart con archivo_modelo=saved_model.pb, tipo_modelo=MODELO_ESPECIES_MEDIANAS, hash_artefacto_sha256=6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0 y cabecera X-RF71-Internal-Key.",
+        "Consultar GET /prediccion/modelos/62 y comparar formato_artefacto y hash_artefacto_sha256 con el archivo enviado."
+      ],
+      "esperado": "POST 201 y GET 200 con formato_artefacto TENSORFLOW_SAVED_MODEL y hash SHA-256 igual al enviado",
+      "obtenido": "POST 201, id 62, estado APROBADO; GET 200, formato_artefacto ONNX, hash 6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0 igual al enviado 6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0; primeros bytes 08 01 12 96.",
+      "evidencia": [
+        "newman/newman-G050.json",
+        "resultado.json"
+      ],
+      "analisis": "La API demuestra la discrepancia de formato. Hipótesis a comprobar: en origin/test, registrar_version_modelo_use_case.py:250-270 decide por el primer byte (0x08 → ONNX; 0x0a → TensorFlow). Un SavedModel real empieza con 0x08 porque el campo 1 saved_model_schema_version es varint, igual que el campo inicial de ModelProto ONNX. Esa lectura local no confirma la causa raíz en TEST.",
+      "impacto": "Los consumidores que seleccionan runtime por formato (RF-66 y RF-70) podrían elegir ONNX para un SavedModel; además, un SavedModel podría guardarse con extensión .onnx. Impacto potencial, no observado en este RUN.",
+      "cierre": "Identificar el formato por la estructura del mensaje y no por el primer byte, o recibir el formato declarado y validarlo contra la estructura; después, reevaluación V2 autorizada de TC-M04-119.",
+      "run_id": "RUN-G050-V1-20261028-005856"
+    }
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Transacción externa cerrada; archivos y respaldo local fuera de rollback"
+    }
+  },
+  "revision_qa": {
+    "fecha": "2026-10-28",
+    "realizada_por": "orquestador QA",
+    "motivo": "reescritura de informe e incidencia según formato acordado; sin cambio de veredictos"
+  }
+}

@@ -1,0 +1,583 @@
+{
+  "herramienta": "Newman",
+  "version": "6.2.2",
+  "error": null,
+  "solicitudes": [
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-1",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 549,
+      "respuesta": {
+        "id_retroalimentacion": "8d020402-ccec-419f-b323-9dd605765999",
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-2",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 166,
+      "respuesta": {
+        "id_retroalimentacion": "abf573da-0224-464f-9c5d-44927dc980c6",
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-3",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 162,
+      "respuesta": {
+        "id_retroalimentacion": "d58c197e-5184-44d9-a76a-d024665ad829",
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-219",
+      "nombre": "219-read",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 178,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-before",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 247,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-post",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 164,
+      "respuesta": {
+        "id_retroalimentacion": "10e7471a-eaf4-4468-bb51-0c8cdc483553",
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-220",
+      "nombre": "220-after",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 187,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-anon",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 401,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 147,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "TOKEN_REQUERIDO",
+        "message": "Se requiere autenticación. Proporciona un token Bearer válido."
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-no-asset",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 157,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud"
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-222",
+      "nombre": "222-no-result",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 400,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 151,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": "VAL_ENTRADA",
+        "message": "Errores de validacion en la solicitud"
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-put-id",
+      "metodo": "PUT",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 147,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-patch-id",
+      "metodo": "PATCH",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 148,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-delete-id",
+      "metodo": "DELETE",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion/d58c197e-5184-44d9-a76a-d024665ad829",
+      "http": 404,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 144,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-patch-base",
+      "metodo": "PATCH",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 405,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 139,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-delete-base",
+      "metodo": "DELETE",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 405,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 138,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-221",
+      "nombre": "221-openapi",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/openapi.json",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 674,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-history",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 180,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-versions",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/modelos",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 167,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-before-motor",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-post",
+      "metodo": "POST",
+      "ruta": "/api-sgpmp-test/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 161,
+      "respuesta": {
+        "id_retroalimentacion": "cb44ab5a-f6fa-4ebd-9cb9-71913b7e35e8",
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-history",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 187,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-versions",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/modelos",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 164,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    },
+    {
+      "caso": "TC-M04-246",
+      "nombre": "246-after-motor",
+      "metodo": "GET",
+      "ruta": "/api-sgpmp-test/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS",
+      "http": 200,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 159,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "error_code": null,
+        "message": ""
+      },
+      "aserciones": [
+        {
+          "nombre": "HTTP recibido",
+          "error": null
+        },
+        {
+          "nombre": "Eco de RUN",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "fallos": []
+}

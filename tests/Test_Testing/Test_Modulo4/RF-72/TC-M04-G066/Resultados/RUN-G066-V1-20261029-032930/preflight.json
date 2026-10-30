@@ -1,0 +1,28 @@
+{
+  "grupo": "G066",
+  "run_id": "RUN-G066-V1-20261029-032930",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 236,
+    "paginas_activos": 4,
+    "activos_maximos": 32,
+    "paginas_historial_descubrimiento": 4,
+    "versiones_maximas": 8,
+    "paginas_historial_verificacion": 3,
+    "reemplazos_por_registro": 1,
+    "dias_busqueda": 88,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "efectos": [
+    "login Veterinario y, si hace falta, Administrador",
+    "lecturas descubrimiento, catálogo, historial y auditoría",
+    "5 retroalimentaciones válidas y sus auditorías",
+    "4 intentos rechazados sin persistencia esperada",
+    "PATCH desactivar patología no base solo si falta inactiva apta",
+    "DELETE sandbox",
+    "lecturas poscierre con HISTORIAL_CONSULTADO fuera del sandbox"
+  ]
+}
