@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-30 | Arekkazu | RF-66: modo_sombra del resultado                                   |
 """Read-models del monitor de predicción (RF-66) y del riesgo de contagio (RF-68).
 
 El monitor y la pestaña de contagio pintaban datos simulados (monitorMock.ts,
@@ -43,6 +44,7 @@ class InferenciaMonitor:
     fecha_inferencia: datetime
     tiene_alerta_generada: bool
     id_alerta_generada: Optional[int]
+    modo_sombra: bool
 
 
 @dataclass(frozen=True)

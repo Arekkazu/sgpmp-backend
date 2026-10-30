@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -19,7 +20,7 @@ _SQL_INFERENCIAS = text("""
            r.id_patologia, p.nombre AS nombre_patologia, r.probabilidad_enfermedad, r.confianza_global,
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
            r.fecha_inicio_ventana, r.fecha_fin_ventana, r.fecha_inferencia,
-           r.tiene_alerta_generada, r.id_alerta_generada
+           r.tiene_alerta_generada, r.id_alerta_generada, r.modo_sombra
     FROM modulo4.resultados_inferencia r
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
     JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
