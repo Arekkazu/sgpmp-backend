@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -107,6 +108,7 @@ class ResultadoRiesgoContagio:
     desde_cache: bool = False
     huella_entradas: str = ""
     variables_ambientales: dict = field(default_factory=dict)
+    perfil_calculo_contagio: str = "ESTANDAR"
 
     @property
     def nivel_texto(self) -> str:

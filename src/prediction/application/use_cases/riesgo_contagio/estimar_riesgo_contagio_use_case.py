@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: ejecutar MVP sin caché, conservar controles y registrar el aviso E10 con resultado válido. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración activa de RF-65 → caché/frecuencia (5.1) →
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.riesgo_contagio import (
     DatosContagioError,
+    PESOS_POR_DEFECTO,
     LecturaAmbiental,
     ParametrosContagio,
     ResultadoRiesgoContagio,
@@ -74,10 +76,14 @@ class EstimarRiesgoContagioUseCase:
                 message="No hay una configuración activa de MODELO_RIESGO_CONTAGIO en RF-65 (pesos y rangos).",
             )
 
+        perfil = getattr(config, "perfil_calculo_contagio", "ESTANDAR")
+        es_mvp = perfil == "MVP"
         ahora = datetime.now(timezone.utc)
         huella = self._huella(dto, config.config_version)
         anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
-        if anteriores and ahora - anteriores[0].fecha_calculo < INTERVALO_MINIMO:
+        if (not es_mvp and anteriores
+                and getattr(anteriores[0], "perfil_calculo_contagio", "ESTANDAR") == perfil
+                and ahora - anteriores[0].fecha_calculo < INTERVALO_MINIMO):
             if anteriores[0].huella_entradas == huella:
                 anteriores[0].desde_cache = True
                 return anteriores[0]
@@ -92,7 +98,9 @@ class EstimarRiesgoContagioUseCase:
             resultado = calcular_riesgo_contagio(
                 id_lote=dto.id_lote,
                 parametros=ParametrosContagio(
-                    w_fs=config.w_factor_sanitario, w_fa=config.w_factor_ambiental, w_fd=config.w_factor_densidad,
+                    w_fs=PESOS_POR_DEFECTO["fs"] if es_mvp else config.w_factor_sanitario,
+                    w_fa=PESOS_POR_DEFECTO["fa"] if es_mvp else config.w_factor_ambiental,
+                    w_fd=PESOS_POR_DEFECTO["fd"] if es_mvp else config.w_factor_densidad,
                     temp_min=config.temp_min_config, temp_max=config.temp_max_config,
                     hr_min=config.hr_min_config, hr_max=config.hr_max_config,
                     densidad_maxima=config.densidad_maxima_config,
@@ -108,9 +116,10 @@ class EstimarRiesgoContagioUseCase:
                 porcentaje_sensores_activos=dto.porcentaje_sensores_activos,
             )
         except DatosContagioError as exc:
-            self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor)
+            self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor, perfil)
             raise BusinessRuleError(code=exc.codigo, message=exc.mensaje) from exc
 
+        resultado.perfil_calculo_contagio = perfil
         resultado.id_configuracion_motor = config.id_configuracion_motor
         resultado.config_version = config.config_version
         resultado.id_area_productiva = self.alerta_port.area_del_lote(dto.id_lote)
@@ -129,7 +138,7 @@ class EstimarRiesgoContagioUseCase:
                           "WARNING" if resultado.confianza_baja else "INFO")
             calidad_suspendida = resultado.confianza_baja and degradadas + 1 > MAX_DEGRADADAS_CONSECUTIVAS
             if calidad_suspendida:
-                self._auditar("ALERTA_CALIDAD_DATOS", resultado, id_usuario, "ADVERTENCIA", "WARNING",
+                self._auditar("ALERTA_CALIDAD_DATOS", resultado, id_usuario, "PARCIAL", "WARNING",
                               extra={"ejecuciones_degradadas_consecutivas": degradadas + 1})
             # CA-3 / CA-6 / E10: solo con confianza normal se alerta.
             if resultado.nivel_riesgo_contagio == 2 and not resultado.confianza_baja:
@@ -160,6 +169,8 @@ class EstimarRiesgoContagioUseCase:
             "factores_ausentes": resultado.factores_ausentes,
             "motivos_degradacion": resultado.motivos_degradacion,
             "config_version": resultado.config_version,
+            "perfil_calculo_contagio": resultado.perfil_calculo_contagio,
+            "pesos_aplicados": {k: str(v) for k, v in resultado.pesos_aplicados.items()},
             **(extra or {}),
         }
         self.auditoria_repo.registrar(
@@ -168,7 +179,8 @@ class EstimarRiesgoContagioUseCase:
             severidad_evento=severidad, resultado_operacion=resultado_operacion, payload_evento=payload,
         )
 
-    def _registrar_no_ejecutado(self, exc: DatosContagioError, dto, id_usuario: int, id_configuracion: int) -> None:
+    def _registrar_no_ejecutado(self, exc: DatosContagioError, dto, id_usuario: int, id_configuracion: int,
+                               perfil_calculo_contagio: str = "ESTANDAR") -> None:
         """E4/E8/CA-10 y sincronización: el intento queda en RF-73 aunque el modelo no corra."""
         tipo = exc.codigo if exc.codigo in ("ERROR_DATOS_INSUFICIENTES", "ERROR_DATOS_DESINCRONIZADOS") \
             else "RIESGO_CONTAGIO_CALCULADO"
@@ -178,7 +190,7 @@ class EstimarRiesgoContagioUseCase:
                 id_referencia=str(dto.id_lote), entidad_referencia="lote", severidad_evento="WARNING",
                 resultado_operacion="FALLIDO", codigo_error=exc.codigo, descripcion_error=exc.mensaje,
                 payload_evento={"id_lote": dto.id_lote, "id_configuracion_motor": id_configuracion,
-                                "motivo": exc.mensaje},
+                                "motivo": exc.mensaje, "perfil_calculo_contagio": perfil_calculo_contagio},
             )
             self.db.commit()
         except Exception:

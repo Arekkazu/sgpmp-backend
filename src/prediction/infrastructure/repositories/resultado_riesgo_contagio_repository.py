@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: conservar el perfil en el snapshot y leer ESTANDAR en resultados legados. |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -21,6 +22,7 @@ def _snapshot(r: ResultadoRiesgoContagio) -> dict:
     return {
         **r.variables_ambientales,
         "definicion_fs": r.definicion_fs,
+        "perfil_calculo_contagio": r.perfil_calculo_contagio,
         "motivos_degradacion": r.motivos_degradacion,
         "densidad_asumida": r.densidad_asumida,
         "id_area_productiva": r.id_area_productiva,
@@ -86,7 +88,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
         snap = dict(orm.variables_ambientales_snap or {})
         ausentes = list(orm.factores_ausentes or [])
         propias = {"definicion_fs", "motivos_degradacion", "densidad_asumida", "id_area_productiva",
-                   "config_version", "huella_entradas", "id_alerta_rf57"}
+                   "config_version", "huella_entradas", "id_alerta_rf57", "perfil_calculo_contagio"}
         return ResultadoRiesgoContagio(
             id_lote=orm.id_activo_biologico,
             probabilidad_contagio=orm.probabilidad_contagio,
@@ -100,6 +102,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
             factores_ausentes=ausentes,
             motivos_degradacion=list(snap.get("motivos_degradacion") or []),
             definicion_fs=snap.get("definicion_fs"),
+            perfil_calculo_contagio=snap.get("perfil_calculo_contagio", "ESTANDAR"),
             n_enfermos_detectados=orm.n_enfermos_detectados,
             total_activos_lote=orm.total_activos_lote,
             porcentaje_sensores_activos=orm.porcentaje_sensores_activos,
