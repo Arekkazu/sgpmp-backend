@@ -1,0 +1,112 @@
+{
+  "info": { "name": "TC-M04-G049 RF-69 registro interno", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "item": [
+    {
+      "name": "API-G049-POST-V1",
+      "request": { "method": "POST", "header": [
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-RF71-Internal-Key", "value": "{{rf71_internal_key}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "body": { "mode": "formdata", "formdata": [
+        { "key": "tipo_modelo", "value": "{{tipo_modelo}}", "type": "text" },
+        { "key": "hash_artefacto_sha256", "value": "{{hash_artefacto_sha256}}", "type": "text" },
+        { "key": "dataset_entrenamiento_hash", "value": "{{dataset_entrenamiento_hash}}", "type": "text" },
+        { "key": "metricas_validacion", "value": "{{metricas_validacion}}", "type": "text" },
+        { "key": "fecha_entrenamiento", "value": "{{fecha_entrenamiento}}", "type": "text" },
+        { "key": "compatibilidad_variables", "value": "{{compatibilidad_variables}}", "type": "text" },
+        { "key": "id_proceso_rf71", "value": "{{proceso_1}}", "type": "text" },
+        { "key": "archivo_modelo", "src": "{{onnx_path}}", "type": "file" }
+      ] }, "url": "{{base_url}}/prediccion/modelos" },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G049');}"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_1',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+      ]
+    },
+    {
+      "name": "API-G049-GET-V1",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/prediccion/modelos/{{version_1}}" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } }]
+    },
+    {
+      "name": "API-G049-AUDITORIA-V1",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/prediccion/auditoria?id_referencia={{version_1}}&pagina=1&por_pagina=200" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } }]
+    },
+    {
+      "name": "API-G049-POST-V2",
+      "request": { "method": "POST", "header": [
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-RF71-Internal-Key", "value": "{{rf71_internal_key}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "body": { "mode": "formdata", "formdata": [
+        { "key": "tipo_modelo", "value": "{{tipo_modelo}}", "type": "text" },
+        { "key": "hash_artefacto_sha256", "value": "{{hash_artefacto_sha256}}", "type": "text" },
+        { "key": "dataset_entrenamiento_hash", "value": "{{dataset_entrenamiento_hash}}", "type": "text" },
+        { "key": "metricas_validacion", "value": "{{metricas_validacion}}", "type": "text" },
+        { "key": "fecha_entrenamiento", "value": "{{fecha_entrenamiento}}", "type": "text" },
+        { "key": "compatibilidad_variables", "value": "{{compatibilidad_variables}}", "type": "text" },
+        { "key": "id_proceso_rf71", "value": "{{proceso_2}}", "type": "text" },
+        { "key": "archivo_modelo", "src": "{{onnx_path}}", "type": "file" }
+      ] }, "url": "{{base_url}}/prediccion/modelos" },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_1'))pm.execution.skipRequest();"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_2',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+      ]
+    },
+    {
+      "name": "API-G049-GET-V2",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/prediccion/modelos/{{version_2}}" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_2'))pm.execution.skipRequest();"] } }]
+    },
+    {
+      "name": "API-G049-POST-V3",
+      "request": { "method": "POST", "header": [
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-RF71-Internal-Key", "value": "{{rf71_internal_key}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "body": { "mode": "formdata", "formdata": [
+        { "key": "tipo_modelo", "value": "{{tipo_modelo}}", "type": "text" },
+        { "key": "hash_artefacto_sha256", "value": "{{hash_artefacto_sha256}}", "type": "text" },
+        { "key": "dataset_entrenamiento_hash", "value": "{{dataset_entrenamiento_hash}}", "type": "text" },
+        { "key": "metricas_validacion", "value": "{{metricas_validacion}}", "type": "text" },
+        { "key": "fecha_entrenamiento", "value": "{{fecha_entrenamiento}}", "type": "text" },
+        { "key": "compatibilidad_variables", "value": "{{compatibilidad_variables}}", "type": "text" },
+        { "key": "id_proceso_rf71", "value": "{{proceso_3}}", "type": "text" },
+        { "key": "version_referencia", "value": "{{version_2}}", "type": "text" },
+        { "key": "archivo_modelo", "src": "{{onnx_path}}", "type": "file" }
+      ] }, "url": "{{base_url}}/prediccion/modelos" },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_2'))pm.execution.skipRequest();"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["let x={};try{x=pm.response.json()}catch{};const id=x.id_version??x.id_version_modelo;pm.environment.set('version_3',String(id??''));if(pm.response.code===200||pm.response.code===201)pm.test('ID_UUID',()=>pm.expect(id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));"] } }
+      ]
+    },
+    {
+      "name": "API-G049-GET-V3",
+      "request": { "method": "GET", "header": [
+        { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+        { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+        { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+        { "key": "X-Zona-Horaria", "value": "UTC" }
+      ], "url": "{{base_url}}/prediccion/modelos/{{version_3}}" },
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if(!pm.environment.get('version_3'))pm.execution.skipRequest();"] } }]
+    }
+  ]
+}

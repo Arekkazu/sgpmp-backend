@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | INC-M04-215/216 RF-72: exceso de patologías y fuente inválida → 422 |
+# | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado sin normalizar a mayúsculas           |
 from __future__ import annotations
 
 import uuid
@@ -14,6 +15,17 @@ _ESTADOS_VALIDOS = frozenset({"CORRECTO", "PARCIAL", "INCORRECTO", "SIN_EVENTO"}
 _ESTADOS_CON_DIAGNOSTICO = frozenset({"PARCIAL", "INCORRECTO"})
 _FUENTES_VALIDAS = frozenset({"OBSERVACION_DIRECTA", "LABORATORIO", "HISTORIAL_CLINICO", "OTRO"})
 _MAX_DIAGNOSTICOS = 3
+
+
+def validar_estado_retroalimentacion(valor: object) -> str:
+    """RF-72 E3: dominio literal; "correcto", 123 o null no se normalizan (INC-M04-227-G067)."""
+    if not isinstance(valor, str) or valor not in _ESTADOS_VALIDOS:
+        raise BusinessRuleError(
+            code="ESTADO_RETROALIMENTACION_INVALIDO",
+            message="El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
+            field="estado_retroalimentacion",
+        )
+    return valor
 
 
 @dataclass(eq=False)
@@ -45,13 +57,7 @@ class RetroalimentacionClinica:
         id_usuario_veterinario: int,
         es_conflicto_retroalimentacion: bool = False,
     ) -> "RetroalimentacionClinica":
-        estado = estado_retroalimentacion.upper() if estado_retroalimentacion else ""
-        if estado not in _ESTADOS_VALIDOS:
-            raise BusinessRuleError(
-                code="ESTADO_RETROALIMENTACION_INVALIDO",
-                message="El estado de retroalimentación no es válido. Valores permitidos: CORRECTO, PARCIAL, INCORRECTO, SIN_EVENTO.",
-                field="estado_retroalimentacion",
-            )
+        estado = validar_estado_retroalimentacion(estado_retroalimentacion)
 
         diags = diagnosticos_reales or []
         if len(diags) > _MAX_DIAGNOSTICOS:

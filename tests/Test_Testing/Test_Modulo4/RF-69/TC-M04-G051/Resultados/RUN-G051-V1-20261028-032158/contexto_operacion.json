@@ -1,0 +1,21 @@
+{
+  "grupo": "G051",
+  "version": 1,
+  "intento": 3,
+  "run_id": "RUN-G051-V1-20261028-032158",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G051-V1-R3-20261028",
+  "casos": [
+    "TC-M04-121",
+    "TC-M04-122",
+    "TC-M04-123",
+    "TC-M04-124",
+    "TC-M04-125",
+    "TC-M04-126",
+    "TC-M04-127"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento técnico V1 (intento 3) de G051. Intento 2 RUN-G051-V1-20261028-025601 (TÉCNICO, DELETE 200): 121 conforme; fecha futura → HTTP 500 ERROR_INTERNO sin versión y Newman se detuvo, 123-127 sin ejecutar. ORD-G051-005: un 5xx de un dato inválido es resultado del subcaso y no detiene los demás; corte solo con 403 o tres 5xx seguidos; hipótesis del 500: trigger de BD P0408 (esquema_baseline.sql:10642-10654) sin traducción (db_error_translator.py:432-435), archivo guardado antes del INSERT (use case:107,140). Ensayo Codex 10/10. SHA-256 g051.mjs dc2b684b0c46bec097ccc23a264b97174b0f62f2a05ea419a3e2697fabfb3fbd; colección 6e1a07b6a029dd258bff7ead44751775bd137022595e4efc2351215e981b0d9e; lib/g051_escenario.mjs 236b31dd6222ee0ec82c7ad78f9fc1d5f85a679beb30b57e0191e42f87cecdfc; lib/artefactos.mjs 647fa0ef32cdf4644994b92b4a19a10df9f1947d128a0be83af188d396f97c13; lib/contrato_ejecutor.mjs 540463c066812ea9c639cde7964bb1b7bde7375f90d7aa0e933d74c6b50d1f5e; lib/seguridad.mjs e9a5172fc06fd9115c519dcf0adb31fff0e7f481de08814e5548c386f53bca0a."
+  },
+  "version_anterior": null
+}

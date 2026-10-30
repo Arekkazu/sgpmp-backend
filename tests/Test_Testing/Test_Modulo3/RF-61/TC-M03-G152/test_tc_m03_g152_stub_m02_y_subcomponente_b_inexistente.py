@@ -1,6 +1,7 @@
 # | Fecha      | Nombre    | Que se hizo                                                                                           |
 # |------------|-----------|-------------------------------------------------------------------------------------------------------|
 # | 2026-10-27 | HulkyZeus | RF-61 TC-M03-G152: reconstruido desde el reporte del 2026-10-20 (el .py original no estaba en el repo) y actualizado a DEV-44 |
+# | 2026-10-30 | QA (casos-qa-juan-parra) | Conflicto de merge (<<<<<<< HEAD vs origin/test) resuelto a favor de esta version: verificacion directa de codigo post-merge (ActivoBiologicoM02Adapter wireado en postcommit_worker.py/vinculacion_router.py/riesgo_contagio_router.py/historial_diagnostico_router.py; ActivoBiologicoStubAdapter de telemetria ya no existe como .py, solo queda un __pycache__/*.pyc huerfano) confirma que HulkyZeus tenia razon; la version HEAD (stale) que se habia conservado durante el merge del 2026-10-29 quedo descartada. |
 """TC-M03-G152 (RF-61) - M02 como fuente de activos y subcomponente B (vinculacion retrospectiva).
 
 RECONSTRUIDO: el script original (Windows, 2026-10-20) no esta en el repositorio; se rearmo a partir del codigo que traian los tracebacks de su
@@ -9,6 +10,17 @@ reporte HTML. Misma convencion: una prueba FALLA con "HALLAZGO" cuando la capaci
 Cambios respecto al original (DEV-44, 2026-10-22):
   * El ActivoBiologicoStubAdapter de telemetria ya no existe: lo reemplaza ActivoBiologicoM02Adapter (consulta el historial real de M02).
   * 0 candidatos -> SIN_VINCULAR; 1 -> CONFIRMADA; mas de 1 -> PENDIENTE_REVISION (el estado AMBIGUA ya no se emite).
+
+REEJECUTADO 2026-10-30 (resolucion del conflicto de merge pendiente desde el 2026-10-29): confirmado contra codigo real que
+ActivoBiologicoM02Adapter (src/telemetry/infrastructure/adapters/activo_biologico_m02_adapter.py) es el UNICO adaptador real
+cableado para ActivoBiologicoDependencyPort -- usado en postcommit_worker.py (VincularLecturaActivoUseCase real),
+vinculacion_router.py (x2) y contexto_activo_alerta_m02_adapter.py. ActivoBiologicoStubAdapter NO tiene archivo .py en
+src/telemetry/infrastructure/adapters/ (solo un .pyc huerfano en __pycache__, evidencia de que el archivo fuente fue borrado).
+El propio vincular_lectura_activo_use_case.py (lineas 69-91) confirma en codigo real los 4 estados que produce esta ronda:
+SIN_VINCULAR (0 candidatos), CONFIRMADA (1 candidato, o SUPERADA si la ubicacion ya tiene fecha_fin), PENDIENTE_REVISION
+(>1 candidato, o historial_inconsistente()==True). 'AMBIGUA' sigue sin ser un valor que esta clase emita (aunque el literal
+'AMBIGUA' si existe en otros archivos -- postcommit_repository.py y procesar_avisos_vinculacion_use_case.py lo tratan como
+sinonimo de pendiente de revision para fines de aviso, no como un estado que este use case asigne).
 
 LIMITES (verificados contra TEST el 2026-10-27, por eso NO hay pruebas contra la API):
   * La vinculacion automatica corre en el worker post-commit: dentro del sandbox transaccional (nunca confirma) no se ejecuta.

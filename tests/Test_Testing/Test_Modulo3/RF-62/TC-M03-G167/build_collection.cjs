@@ -21,6 +21,10 @@ function h(key, value) { return { key, value }; }
 function authAdmin() { return [h("Authorization", "Bearer {{token_admin}}")]; }
 function authBroker() { return [h("Authorization", "Bearer {{broker_token}}")]; }
 
+function wrapRlsQuery(innerSql) {
+    return `SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (${innerSql}) _q WHERE _rls.r != '' AND _rls.u != ''`;
+}
+
 function makeItem(name, method, url, headers, bodyObj, preScripts, postTests) {
     const item = {
         name: name,
@@ -121,7 +125,24 @@ const preflight = [
         '});'
     ]),
 
-    // 00.04 — Finca (SOLO LETRAS Y ESPACIOS)
+    // 00.03b ? Descubrir especie activa (preferencia ACUICULTURA)
+    makeItem("00.03b-Descubrir-Especie", "POST",
+        "{{baseUrl}}/test-control/query", authAdmin(), {
+        query: wrapRlsQuery("SELECT id_especie, grupo_manejo FROM modulo9.especies WHERE es_activo = true ORDER BY (CASE WHEN grupo_manejo = 'ACUICULTURA' THEN 0 ELSE 1 END), id_especie LIMIT 1")
+    }, [], [
+        'pm.test("Especie activa descubierta", function () {',
+        '    pm.response.to.have.status(200);',
+        '    const rows = pm.response.json().data || [];',
+        '    pm.expect(rows.length, "No hay especies activas en modulo9.especies").to.be.above(0);',
+        '    const esp = rows[0];',
+        '    const gm = esp.grupo_manejo || "ACUICULTURA";',
+        '    const modelo = (gm === "ACUICULTURA") ? "MODELO_ACUICULTURA" : ("MODELO_" + gm);',
+        '    pm.collectionVariables.set("especie_id_valida", esp.id_especie);',
+        '    pm.collectionVariables.set("tipo_modelo_valido", modelo);',
+        '});'
+    ]),
+
+    // 00.04 ? Finca (SOLO LETRAS Y ESPACIOS)
     makeItem("00.04-Crear-Finca", "POST", "{{baseUrl}}/configuracion/fincas", authAdmin(), {
         nombre: "Finca " + letrasAleatorias(10),
         ubicacion: {
@@ -150,8 +171,8 @@ const preflight = [
         superficie: 100.0,
         finca_id: "{{id_finca}}",
         descripcion_infraestructura: "Area de pruebas de calidad",
-        especie_id: 123,
-        tipo_modelo_asignado: "MODELO_ACUICULTURA"
+        especie_id: "{{especie_id_valida}}",
+        tipo_modelo_asignado: "{{tipo_modelo_valido}}"
     }, [], [
         'pm.test("Área 201", function () {',
         '    pm.response.to.have.status(201);',
@@ -215,13 +236,13 @@ const preflight = [
 const deltas = [-0.2, -0.1, 0.0, 0.1, 0.2];
 
 const escenarios = [
-    { num: "1A", subcaso: "TC-M03-313", drift: 5.00,  m: 21.000, offset: -1.000, prefix: "2026-10-19T01", evalTs: "2026-10-19T01:45:00Z", varName: "id_tel_1a", activo: false, indice: 100, clas: "APTO",            ia: true,  nic41: true,  desc: "5.00% (borde estricto, sin flag)" },
-    { num: "1B", subcaso: "TC-M03-313", drift: 7.00,  m: 21.400, offset: -1.400, prefix: "2026-10-19T02", evalTs: "2026-10-19T02:45:00Z", varName: "id_tel_1b", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "7.00% (tramo <10%)" },
-    { num: "1C", subcaso: "TC-M03-313", drift: 9.99,  m: 21.998, offset: -1.998, prefix: "2026-10-19T03", evalTs: "2026-10-19T03:45:00Z", varName: "id_tel_1c", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "9.99% (frontera <10%)" },
-    { num: "2A", subcaso: "TC-M03-314", drift: 10.00, m: 22.000, offset: -2.000, prefix: "2026-10-19T04", evalTs: "2026-10-19T04:45:00Z", varName: "id_tel_2a", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "10.00% (frontera 10-20%)" },
-    { num: "2B", subcaso: "TC-M03-314", drift: 15.00, m: 23.000, offset: -3.000, prefix: "2026-10-19T05", evalTs: "2026-10-19T05:45:00Z", varName: "id_tel_2b", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "15.00% (tramo 10-20%)" },
-    { num: "3A", subcaso: "TC-M03-315", drift: 20.01, m: 24.002, offset: -4.002, prefix: "2026-10-19T06", evalTs: "2026-10-19T06:45:00Z", varName: "id_tel_3a", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "20.01% (frontera >20%)" },
-    { num: "3B", subcaso: "TC-M03-315", drift: 25.00, m: 25.000, offset: -5.000, prefix: "2026-10-19T07", evalTs: "2026-10-19T07:45:00Z", varName: "id_tel_3b", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "25.00% (tramo >20%)" }
+    { num: "1A", subcaso: "TC-M03-313", drift: 5.00,  m: 21.000, offset: 1.1053, prefix: "2026-10-19T01", evalTs: "2026-10-19T01:45:00Z", varName: "id_tel_1a", activo: false, indice: 100, clas: "APTO",            ia: true,  nic41: true,  desc: "5.00% (borde estricto, sin flag)" },
+    { num: "1B", subcaso: "TC-M03-313", drift: 7.00,  m: 21.400, offset: 1.6108, prefix: "2026-10-19T02", evalTs: "2026-10-19T02:45:00Z", varName: "id_tel_1b", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "7.00% (tramo <10%)" },
+    { num: "1C", subcaso: "TC-M03-313", drift: 9.99,  m: 21.998, offset: 2.4415, prefix: "2026-10-19T03", evalTs: "2026-10-19T03:45:00Z", varName: "id_tel_1c", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "9.99% (frontera <10%)" },
+    { num: "2A", subcaso: "TC-M03-314", drift: 10.00, m: 22.000, offset: 2.4444, prefix: "2026-10-19T04", evalTs: "2026-10-19T04:45:00Z", varName: "id_tel_2a", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "10.00% (frontera 10-20%)" },
+    { num: "2B", subcaso: "TC-M03-314", drift: 15.00, m: 23.000, offset: 4.0588, prefix: "2026-10-19T05", evalTs: "2026-10-19T05:45:00Z", varName: "id_tel_2b", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "15.00% (tramo 10-20%)" },
+    { num: "3A", subcaso: "TC-M03-315", drift: 20.01, m: 24.002, offset: 6.0043, prefix: "2026-10-19T06", evalTs: "2026-10-19T06:45:00Z", varName: "id_tel_3a", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "20.01% (frontera >20%)" },
+    { num: "3B", subcaso: "TC-M03-315", drift: 25.00, m: 25.000, offset: 8.3333, prefix: "2026-10-19T07", evalTs: "2026-10-19T07:45:00Z", varName: "id_tel_3b", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "25.00% (tramo >20%)" }
 ];
 
 // Construye el payload del batch (20 lecturas crudas)
@@ -345,7 +366,7 @@ function buildEscenarioFolder(esc) {
             '    pm.expect(drift.activo).to.equal(true);',
             `    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(${esc.drift.toFixed(4)}, 0.01);`,
             `    pm.expect(drift.media_ultimas_N).to.be.closeTo(${esc.m.toFixed(4)}, 0.05);`,
-            `    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);`,
+            `    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(${(esc.m + esc.offset).toFixed(4)}, 0.05);`,
             '    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);',
             `    pm.expect(r.indice_calidad).to.equal(${esc.indice});`,
             `    pm.expect(r.clasificacion_calidad).to.equal("${esc.clas}");`,
@@ -367,34 +388,33 @@ function buildEscenarioFolder(esc) {
     ));
 
     // E. Verificaciones extra para escenarios >20%
-    if (esc.num === "3A" || esc.num === "3B") {
-        // RF-57: alerta técnica exigida por el requerimiento. Documenta INC-M03-RF57-NOT-EMITTED.
+    if (esc.num === "3A" || esc.num === "3B") {        // RF-57: alerta t?cnica exigida por el requerimiento. Documenta INC-M03-RF57-NOT-EMITTED.
         items.push(makeItem(
             `${esc.num}.05-Verificar-Alerta-RF57`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
-            { query: `SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{${esc.varName}}}` },
+            { query: wrapRlsQuery(`SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{${esc.varName}}}`) },
             [],
             [
-                `pm.test("${esc.num}: [INC-M03-RF57] alerta técnica emitida (esperada)", function () {`,
+                `pm.test("${esc.num}: [INC-M03-RF57] alerta t?cnica emitida (esperada)", function () {`,
                 '    pm.response.to.have.status(200);',
                 '    const rows = (pm.response.json().data || []);',
-                '    pm.expect(rows.length, "INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta técnica al superar 20%").to.be.above(0);',
+                '    pm.expect(rows.length, "INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta t?cnica al superar 20%").to.be.above(0);',
                 '});'
             ]
         ));
 
-        // RF-63: bitácora
+        // RF-63: bit?cora
         items.push(makeItem(
             `${esc.num}.06-Verificar-Bitacora-RF63`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
-            { query: `SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{${esc.varName}}}' ORDER BY id_evento DESC LIMIT 1` },
+            { query: wrapRlsQuery(`SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{${esc.varName}}}' ORDER BY id_evento DESC LIMIT 1`) },
             [],
             [
-                `pm.test("${esc.num}: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA", function () {`,
+                `pm.test("${esc.num}: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA", function () {`,
                 '    pm.response.to.have.status(200);',
                 '    const rows = (pm.response.json().data || []);',
                 '    pm.expect(rows.length).to.be.above(0);',
@@ -404,19 +424,32 @@ function buildEscenarioFolder(esc) {
             ]
         ));
 
-        // D7: un solo VIGENTE por lectura
+        // D7 y Transici?n SUPERADA: 1 VIGENTE, >=1 SUPERADA poblada (INC-M03-135)
         items.push(makeItem(
-            `${esc.num}.07-Verificar-D7`,
+            `${esc.num}.07-Verificar-Transicion-SUPERADA-D7`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
-            { query: `SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad WHERE id_telemetria = {{${esc.varName}}} AND estado_evaluacion = 'VIGENTE'` },
+            { query: wrapRlsQuery(`SELECT id_evaluacion, estado_evaluacion, motivo_reevaluacion, id_evaluacion_superada, version_evaluacion FROM modulo3.telemetria_calidad WHERE id_telemetria = {{${esc.varName}}} ORDER BY fecha_creacion DESC`) },
             [],
             [
-                `pm.test("${esc.num}: D7 (exactamente 1 VIGENTE)", function () {`,
+                `pm.test("${esc.num}: D7 - exactamente 1 VIGENTE", function () {`,
                 '    pm.response.to.have.status(200);',
                 '    const rows = (pm.response.json().data || []);',
-                '    pm.expect(parseInt(rows[0].n, 10)).to.equal(1);',
+                '    const vigentes = rows.filter(r => r.estado_evaluacion === "VIGENTE");',
+                '    pm.expect(vigentes.length, "COUNT(*) WHERE estado_evaluacion=\'VIGENTE\' = 1").to.equal(1);',
+                '});',
+                `pm.test("${esc.num}: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n", function () {`,
+                '    pm.response.to.have.status(200);',
+                '    const rows = (pm.response.json().data || []);',
+                '    const superadas = rows.filter(r => r.estado_evaluacion === "SUPERADA");',
+                '    pm.expect(superadas.length, "COUNT(*) WHERE estado_evaluacion=\'SUPERADA\' >= 1").to.be.at.least(1);',
+                '    if (superadas.length > 0) {',
+                '        const sup = superadas[0];',
+                '        pm.expect(sup.motivo_reevaluacion, "La SUPERADA tiene motivo_reevaluacion no nulo").to.exist.and.not.be.null;',
+                '        pm.expect(sup.id_evaluacion_superada, "La SUPERADA tiene id_evaluacion_superada no nulo").to.exist.and.not.be.null;',
+                '        pm.expect(sup.version_evaluacion, "La SUPERADA tiene version_evaluacion no nulo").to.exist.and.not.be.null;',
+                '    }',
                 '});'
             ]
         ));
@@ -476,6 +509,8 @@ const collection = {
     ],
     variable: [
         { key: "baseUrl", value: "https://www.api.inmero.co/api-sgpmp-test" },
+        { key: "especie_id_valida", value: "" },
+        { key: "tipo_modelo_valido", value: "" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },

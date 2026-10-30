@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "TC-M04-G056 RF-69 metadatos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API-G056-POST",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/prediccion/modelos",
+        "header": [
+          { "key": "X-Test-Run-Id", "value": "{{run_id}}" },
+          { "key": "X-Sandbox-Secret", "value": "{{sandbox_secret}}" },
+          { "key": "X-RF71-Internal-Key", "value": "{{rf71_internal_key}}" },
+          { "key": "X-Zona-Horaria", "value": "UTC" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "tipo_modelo", "type": "text", "value": "{{tipo_modelo}}" },
+            { "key": "hash_artefacto_sha256", "type": "text", "value": "{{hash_artefacto_sha256}}" },
+            { "key": "dataset_entrenamiento_hash", "type": "text", "value": "{{dataset_entrenamiento_hash}}" },
+            { "key": "metricas_validacion", "type": "text", "value": "{{metricas_validacion}}" },
+            { "key": "fecha_entrenamiento", "type": "text", "value": "{{fecha_entrenamiento}}" },
+            { "key": "compatibilidad_variables", "type": "text", "value": "{{compatibilidad_variables}}" },
+            { "key": "id_proceso_rf71", "type": "text", "value": "{{id_proceso_rf71}}" },
+            { "key": "archivo_modelo", "type": "file", "src": "{{archivo_modelo}}" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const b=pm.environment.get('base_url')||'';if(pm.environment.get('autorizado_run')!=='SI'||!pm.environment.get('run_id')||!(b==='https://www.api.inmero.co/api-sgpmp-test'||(pm.environment.get('ensayo_loopback')==='SI'&&/^http:\\/\\/(127\\.0\\.0\\.1|localhost):[0-9]+$/.test(b)))){pm.execution.skipRequest();throw Error('BLOQUEO_G056');}",
+              "if(pm.environment.get('corte_g051')==='SI'){pm.execution.skipRequest();}else{const omit=pm.iterationData.get('omitir')||[];pm.request.body.formdata.each(f=>{f.disabled=omit.includes(f.key);});}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const code=pm.response.code;const consecutivos=code>=500?Number(pm.environment.get('5xx_consecutivos')||0)+1:0;pm.environment.set('5xx_consecutivos',consecutivos);if(code===403||consecutivos>=3)pm.environment.set('corte_g051','SI');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

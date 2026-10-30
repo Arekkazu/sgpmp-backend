@@ -1,0 +1,69 @@
+{
+  "info": {
+    "name": "G067 RF-72 dominio y diagn?stico condicional",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "13 POST evaluados por Newman, una iteraci?n por solicitud; el ejecutor coordina lecturas, veredictos y cierre."
+  },
+  "item": [
+    {
+      "name": "API-G067-POST",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_veterinario}}"
+          },
+          {
+            "key": "X-Test-Run-Id",
+            "value": "{{run_id}}"
+          },
+          {
+            "key": "X-Sandbox-Secret",
+            "value": "{{sandbox_secret}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "UTC"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/prediccion/retroalimentacion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "prediccion",
+            "retroalimentacion"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{cuerpo_retroalimentacion}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const permitidos = JSON.parse(pm.environment.get('http_permitidos'));",
+              "pm.test('Código explícito por subcaso', function () { pm.expect(permitidos).to.include(pm.response.code); });",
+              "pm.test('Eco de X-Test-Run-Id', function () { pm.expect(pm.response.headers.get('X-Test-Run-Id')).to.eql(pm.environment.get('run_id')); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

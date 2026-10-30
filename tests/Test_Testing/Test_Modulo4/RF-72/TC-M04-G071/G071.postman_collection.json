@@ -1,0 +1,28 @@
+{
+  "info":{"name":"G071 RF-72 inmutabilidad y trazabilidad","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json","description":"Veintitrés peticiones secuenciales; una sola invocación Newman por RUN."},
+  "item":[
+    {"name":"219-1","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_219_1}}"}}},
+    {"name":"219-2","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_219_2}}"}}},
+    {"name":"219-3","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_219_3}}"}}},
+    {"name":"219-read","request":{"method":"GET","url":"{{base_url}}{{history_219}}"}},
+    {"name":"220-before","request":{"method":"GET","url":"{{base_url}}{{history_220}}"}},
+    {"name":"220-post","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_220}}"}}},
+    {"name":"220-after","request":{"method":"GET","url":"{{base_url}}{{history_220}}"}},
+    {"name":"222-anon","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_222}}"}}},
+    {"name":"222-no-asset","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_222_no_asset}}"}}},
+    {"name":"222-no-result","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_222_no_result}}"}}},
+    {"name":"221-put-id","request":{"method":"PUT","url":"{{base_url}}/prediccion/retroalimentacion/{{id_221_target}}","body":{"mode":"raw","raw":"{{body_edit}}"}}},
+    {"name":"221-patch-id","request":{"method":"PATCH","url":"{{base_url}}/prediccion/retroalimentacion/{{id_221_target}}","body":{"mode":"raw","raw":"{{body_edit}}"}}},
+    {"name":"221-delete-id","request":{"method":"DELETE","url":"{{base_url}}/prediccion/retroalimentacion/{{id_221_target}}"}},
+    {"name":"221-patch-base","request":{"method":"PATCH","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_edit}}"}}},
+    {"name":"221-delete-base","request":{"method":"DELETE","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_edit}}"}}},
+    {"name":"221-openapi","request":{"method":"GET","url":"{{base_url}}/openapi.json"}},
+    {"name":"246-before-history","request":{"method":"GET","url":"{{base_url}}{{history_246}}"}},
+    {"name":"246-before-versions","request":{"method":"GET","url":"{{base_url}}/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_MEDIANAS&limit=100"}},
+    {"name":"246-before-motor","request":{"method":"GET","url":"{{base_url}}/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS"}},
+    {"name":"246-post","request":{"method":"POST","url":"{{base_url}}/prediccion/retroalimentacion","body":{"mode":"raw","raw":"{{body_246}}"}}},
+    {"name":"246-after-history","request":{"method":"GET","url":"{{base_url}}{{history_246}}"}},
+    {"name":"246-after-versions","request":{"method":"GET","url":"{{base_url}}/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_MEDIANAS&limit=100"}},
+    {"name":"246-after-motor","request":{"method":"GET","url":"{{base_url}}/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS"}}
+  ]
+}

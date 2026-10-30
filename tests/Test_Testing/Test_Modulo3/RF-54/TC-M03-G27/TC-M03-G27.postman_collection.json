@@ -258,14 +258,15 @@
           "response": []
         },
         {
-          "name": "El dispositivo informa 37 datos pendientes en su buffer (heartbeat)",
+          "name": "El dispositivo informa 37 datos pendientes en su buffer (heartbeat con metricas_buffer, 37/100)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set('ahora', new Date().toISOString());"
+                  "pm.collectionVariables.set('ahora', new Date().toISOString());",
+                  "pm.collectionVariables.set('ult_pendiente', new Date(Date.now() - 60000).toISOString());"
                 ]
               }
             },
@@ -274,7 +275,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Heartbeat con datos pendientes aceptado (200)', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Heartbeat con datos pendientes y métricas del buffer aceptado (200)', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
@@ -303,7 +304,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"serial\": \"{{access_key}}\",\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"estado_local_buffer\": \"A\",\n  \"datos_pendientes_buffer\": 37,\n  \"fecha_registro\": \"{{ahora}}\"\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"serial\": \"{{access_key}}\",\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"estado_local_buffer\": \"A\",\n  \"datos_pendientes_buffer\": 37,\n  \"metricas_buffer\": {\n    \"capacidad_total\": 100,\n    \"capacidad_utilizada\": 37,\n    \"ultimo_timestamp_pendiente\": \"{{ult_pendiente}}\",\n    \"politica_buffer_activa\": \"POLITICA_RECHAZO\"\n  },\n  \"fecha_registro\": \"{{ahora}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -319,72 +320,32 @@
       "name": "2. TC-M03-054 Estado del buffer por API",
       "item": [
         {
-          "name": "TC-M03-054 - GET /dispositivos/{id}/buffer (ruta de la ficha)",
+          "name": "TC-M03-054 - GET /iot/dispositivos/{id}/buffer: estado del buffer del dispositivo (INC-M03-126)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "// La ficha nombra GET /dispositivos/{id}/buffer; el sistema lo expone en el módulo de telemetría (INC-M03-126).",
                   "pm.test('TC-M03-054: el estado del buffer se puede consultar (200)', function () { pm.response.to.have.status(200); });",
-                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "const b = j.buffer || j;",
+                  "let b = {}; try { b = pm.response.json(); } catch (e) {}",
+                  "console.log('TC-M03-054 buffer:', JSON.stringify(b));",
                   "const campos = ['capacidad_total', 'capacidad_utilizada', 'porcentaje_ocupacion', 'datos_pendientes', 'ultimo_timestamp_pendiente', 'estado_buffer', 'politica_buffer_activa'];",
-                  "pm.test('TC-M03-054: la respuesta incluye los 7 campos del buffer', function () {",
-                  "  pm.expect(campos.filter(c => !(c in b)), 'faltan').to.eql([]);",
-                  "});",
-                  "pm.test('TC-M03-054: datos_pendientes = 37 y estado_buffer en NORMAL/WARNING/CRITICO', function () {",
+                  "pm.test('TC-M03-054: la respuesta incluye los 7 campos del buffer', function () { pm.expect(campos.filter(c => !(c in b)), 'faltan').to.eql([]); });",
+                  "pm.test('TC-M03-054: refleja lo reportado por el Edge (100 / 37, 37 pendientes)', function () {",
+                  "  pm.expect(Number(b.capacidad_total)).to.eql(100);",
+                  "  pm.expect(Number(b.capacidad_utilizada)).to.eql(37);",
                   "  pm.expect(Number(b.datos_pendientes)).to.eql(37);",
-                  "  pm.expect(['NORMAL', 'WARNING', 'CRITICO', 'CRÍTICO']).to.include(b.estado_buffer);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/dispositivos/{{device_id}}/buffer",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "dispositivos",
-                "{{device_id}}",
-                "buffer"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "TC-M03-054 - GET /iot/dispositivos/{id}/buffer (ruta del módulo de telemetría)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('TC-M03-054: el estado del buffer se puede consultar (200)', function () { pm.response.to.have.status(200); });",
-                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "const b = j.buffer || j;",
-                  "const campos = ['capacidad_total', 'capacidad_utilizada', 'porcentaje_ocupacion', 'datos_pendientes', 'ultimo_timestamp_pendiente', 'estado_buffer', 'politica_buffer_activa'];",
-                  "pm.test('TC-M03-054: la respuesta incluye los 7 campos del buffer', function () {",
-                  "  pm.expect(campos.filter(c => !(c in b)), 'faltan').to.eql([]);",
+                  "  pm.expect(b.metricas_disponibles).to.eql(true);",
                   "});",
-                  "pm.test('TC-M03-054: datos_pendientes = 37 y estado_buffer en NORMAL/WARNING/CRITICO', function () {",
-                  "  pm.expect(Number(b.datos_pendientes)).to.eql(37);",
-                  "  pm.expect(['NORMAL', 'WARNING', 'CRITICO', 'CRÍTICO']).to.include(b.estado_buffer);",
+                  "pm.test('TC-M03-054: porcentaje_ocupacion = 37 y estado_buffer NORMAL (< 80 %)', function () {",
+                  "  pm.expect(Number(b.porcentaje_ocupacion)).to.eql(37);",
+                  "  pm.expect(b.estado_buffer).to.eql('NORMAL');",
+                  "});",
+                  "pm.test('TC-M03-054: política activa y último timestamp pendiente informados', function () {",
+                  "  pm.expect(b.politica_buffer_activa).to.eql('POLITICA_RECHAZO');",
+                  "  pm.expect(b.ultimo_timestamp_pendiente).to.be.a('string');",
                   "});"
                 ]
               }
@@ -418,16 +379,74 @@
           "response": []
         },
         {
-          "name": "TC-M03-054 - Referencia: lo que expone hoy el estado del dispositivo (RF-60)",
+          "name": "TC-M03-054 - GET /iot/buffer: el dispositivo aparece en el panel del buffer Edge",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "pm.test('Panel del buffer responde 200', function () { pm.response.to.have.status(200); });",
+                  "let j = []; try { j = pm.response.json(); } catch (e) {}",
+                  "const lista = Array.isArray(j) ? j : (j.items || []);",
+                  "const d = lista.find(x => x.id_dispositivo_iot === Number(pm.collectionVariables.get('device_id'))) || {};",
+                  "console.log('TC-M03-054 panel:', JSON.stringify(d));",
+                  "pm.test('TC-M03-054: el dispositivo está en el panel con su serial y 37 % NORMAL', function () {",
+                  "  pm.expect(d.serial).to.eql(pm.collectionVariables.get('access_key'));",
+                  "  pm.expect(Number(d.porcentaje_ocupacion)).to.eql(37);",
+                  "  pm.expect(d.estado_buffer).to.eql('NORMAL');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/buffer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "buffer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-054 - Estado del dispositivo (RF-60) pasa a BUFFER_ACTIVO con datos pendientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// El estado RF-60 lo actualiza el procesamiento posterior al heartbeat (asíncrono): se reintenta cada 5 s,",
+                  "// hasta 12 veces, mientras no llegue a BUFFER_ACTIVO; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 200 && (pm.response.json().estado || {}).estado_actual !== 'BUFFER_ACTIVO' && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
                   "pm.test('Estado del dispositivo responde 200', function () { pm.response.to.have.status(200); });",
                   "const e = pm.response.json().estado || {};",
-                  "console.log('TC-M03-054 estado del dispositivo:', JSON.stringify(e));",
+                  "console.log('TC-M03-054 estado:', JSON.stringify(e));",
                   "pm.test('El estado del dispositivo refleja el buffer activo (BUFFER_ACTIVO)', function () { pm.expect(e.estado_actual).to.eql('BUFFER_ACTIVO'); });"
                 ]
               }
@@ -455,6 +474,264 @@
                 "dispositivos",
                 "{{device_id}}",
                 "estado"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-054 - BUFFER_ACTIVO se sostiene sin un reporte nuevo (INC-M03-127, 60 s después)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ventana para que corra la evaluación periódica de estados (antes devolvía ACTIVO a los pocos segundos).",
+                  "// Después se renueva la sesión: la cuenta admin de TEST es compartida y un login ajeno revoca el token (TOKEN_REVOCADO).",
+                  "setTimeout(function () {",
+                  "  pm.sendRequest({",
+                  "    url: pm.collectionVariables.get('base_url') + '/sesiones/',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ correo_electronico: 'admin@pecuaria.co', contrasena: 'Test1234!' }) }",
+                  "  }, function (err, res) {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token_admin', res.json().token); }",
+                  "  });",
+                  "}, 60000);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Estado del dispositivo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const e = pm.response.json().estado || {};",
+                  "console.log('TC-M03-054 estado tras 60 s:', JSON.stringify(e));",
+                  "pm.test('Sin un heartbeat que confirme el vaciado, sigue en BUFFER_ACTIVO', function () { pm.expect(e.estado_actual).to.eql('BUFFER_ACTIVO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/dispositivos/{{device_id}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "dispositivos",
+                "{{device_id}}",
+                "estado"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-054 - El Edge confirma el buffer vacío (heartbeat 0 pendientes, 0/100)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('ahora', new Date().toISOString());",
+                  "pm.collectionVariables.set('ult_pendiente', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Heartbeat de buffer vacío aceptado (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/heartbeat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "heartbeat"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"serial\": \"{{access_key}}\",\n  \"tipo_mensaje\": \"HEARTBEAT\",\n  \"estado_local_buffer\": \"I\",\n  \"datos_pendientes_buffer\": 0,\n  \"metricas_buffer\": {\n    \"capacidad_total\": 100,\n    \"capacidad_utilizada\": 0,\n    \"ultimo_timestamp_pendiente\": null,\n    \"politica_buffer_activa\": \"POLITICA_RECHAZO\"\n  },\n  \"fecha_registro\": \"{{ahora}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-054 - Con el buffer vacío el dispositivo vuelve a ACTIVO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// El estado RF-60 lo actualiza el procesamiento posterior al heartbeat (asíncrono): se reintenta cada 5 s,",
+                  "// hasta 12 veces, mientras no llegue a ACTIVO; las aserciones van solo con la respuesta final.",
+                  "const _clave = 'reintentos_' + pm.info.requestName;",
+                  "const _n = Number(pm.collectionVariables.get(_clave) || 0);",
+                  "if (pm.response.code === 200 && (pm.response.json().estado || {}).estado_actual !== 'ACTIVO' && _n < 12) {",
+                  "  pm.collectionVariables.set(_clave, _n + 1);",
+                  "  setTimeout(function () {}, 5000);",
+                  "  pm.execution.setNextRequest(pm.info.requestName);",
+                  "  return;",
+                  "}",
+                  "pm.collectionVariables.unset(_clave);",
+                  "pm.test('Estado del dispositivo responde 200', function () { pm.response.to.have.status(200); });",
+                  "const e = pm.response.json().estado || {};",
+                  "pm.test('Tras el reporte de vaciado vuelve a ACTIVO', function () { pm.expect(e.estado_actual).to.eql('ACTIVO'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/dispositivos/{{device_id}}/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "dispositivos",
+                "{{device_id}}",
+                "estado"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-054 - Historial RF-60: cada transición se registra una sola vez",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial responde 200', function () { pm.response.to.have.status(200); });",
+                  "let h = []; try { h = pm.response.json(); } catch (e) {}",
+                  "console.log('TC-M03-054 historial:', JSON.stringify(h.map(t => [t.id_transaccion, t.estado_anterior, t.estado_nuevo, t.fecha_transicion])));",
+                  "pm.test('El historial registra BUFFER_ACTIVO -> ACTIVO', function () {",
+                  "  pm.expect(h.some(t => t.estado_anterior === 'BUFFER_ACTIVO' && t.estado_nuevo === 'ACTIVO')).to.eql(true);",
+                  "});",
+                  "const ordenado = h.slice().sort((a, b) => a.id_transaccion - b.id_transaccion);",
+                  "const repetidas = ordenado.filter((t, i) => i > 0 && t.estado_anterior === ordenado[i - 1].estado_anterior && t.estado_nuevo === ordenado[i - 1].estado_nuevo);",
+                  "pm.test('Ninguna transición aparece duplicada (misma transición dos veces seguidas)', function () {",
+                  "  pm.expect(repetidas.map(t => t.id_transaccion + ': ' + t.estado_anterior + ' -> ' + t.estado_nuevo)).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/dispositivos/{{device_id}}/historial",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "dispositivos",
+                "{{device_id}}",
+                "historial"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Rollback del sandbox (la BD queda como estaba)",
+      "item": [
+        {
+          "name": "ROLLBACK - Revertir la transacción de la corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROLLBACK - sandbox revertido (200)', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/test-control/runs/{{run_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "test-control",
+                "runs",
+                "{{run_id}}"
               ]
             }
           },
@@ -503,6 +780,34 @@
     {
       "key": "broker_token",
       "value": ""
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Sandbox transaccional de TEST (DBA): toda la corrida va en una transaccion que NUNCA se confirma y el",
+          "// ultimo paso la revierte (DELETE /test-control/runs/{run_id}). El secreto no se guarda en este archivo:",
+          "// se pasa al ejecutar:  newman run <coleccion> --env-var \"sandbox_secret=<secreto>\"",
+          "const secreto = pm.variables.get('sandbox_secret');",
+          "if (!secreto) {",
+          "  // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que",
+          "  // NADA llegue a TEST (sin sandbox esta prueba dejaria datos permanentes).",
+          "  console.error('Falta sandbox_secret: ejecutar con --env-var sandbox_secret=<secreto>. Peticion desviada, no se envia a TEST.');",
+          "  pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "} else {",
+          "  if (!pm.collectionVariables.get('run_id')) { pm.collectionVariables.set('run_id', 'test-' + pm.variables.replaceIn('{{$guid}}')); }",
+          "  pm.request.headers.upsert({ key: 'X-Test-Run-Id', value: pm.collectionVariables.get('run_id') });",
+          "  pm.request.headers.upsert({ key: 'X-Sandbox-Secret', value: secreto });",
+          "}"
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,926 @@
+{
+  "grupo": "G072",
+  "run_id": "RUN-G072-V1-20261029-165112",
+  "version": 1,
+  "intento": 2,
+  "referencia": "AUT-G072-V1-R2-20261029",
+  "ambiente": "TEST",
+  "casos": {
+    "TC-M04-226": {
+      "estado": "APROBADO",
+      "motivo": "El segundo registro contradice al primero; el indicador, el evento y la conservación de A se cotejan en respuestas y lecturas públicas.",
+      "que_se_hizo": "Se enviaron CORRECTO por A e INCORRECTO con patología 8 por B sobre 511a6d66-a862-4822-bf47-2634333531b3; se leyeron historial y auditoría.",
+      "esperado_referencia": "Dos HTTP 201; B con conflicto y un evento CONFLICTO_RETROALIMENTACION que referencia R1; A intacto (matriz G072, TC-M04-226; RF-72, líneas 4053-4061 y CA-14, 4393-4394).",
+      "observado_prosa": "HTTP 226-A=201, 226-B=201; registros 226-A: id 382d503d-a5e8-4db0-95dc-b28fba56ab3c, usuario 97, estado CORRECTO, diagnósticos null, conflicto no; 226-B: id 4c179a4b-ca40-40f0-88d0-1264f23c0b4a, usuario 162, estado INCORRECTO, diagnósticos [8], conflicto sí; historial sin lectura registros; eventos de conflicto 1; referencias de auditoría 942708e9-6257-4a3d-aa15-df8b93d58ad3:511a6d66-a862-4822-bf47-2634333531b3. La parte visible solo en historial no estuvo disponible por la incidencia.",
+      "por_que_prosa": "Las respuestas POST y la auditoria RF-73 acreditan flags, conflictos y registros por usuario; la conservacion visible solo en historial no estuvo disponible por la incidencia del primer HTTP 500."
+    },
+    "TC-M04-227": {
+      "estado": "APROBADO",
+      "motivo": "Cada respuesta se coteja por identificador, usuario, estado y diagnóstico con un registro de historial; no hay cuarto registro ni evento de consolidación.",
+      "que_se_hizo": "Se enviaron CORRECTO, PARCIAL e INCORRECTO por A, B y C sobre f056f99d-78bf-478d-86f0-5b2ee1a70873; se leyó historial y auditoría.",
+      "esperado_referencia": "Tres registros independientes, íntegros y sin consolidado ni etiqueta ganadora (matriz G072, TC-M04-227; RF-72, líneas 4043-4051 y 4065).",
+      "observado_prosa": "HTTP 227-A=201, 227-B=201, 227-C=201; registros 227-A: id d172509f-fe78-4a31-a798-023a409292c6, usuario 97, estado CORRECTO, diagnósticos null, conflicto no; 227-B: id 495604ce-3089-48ef-94a9-77fd573c4f6f, usuario 162, estado PARCIAL, diagnósticos [8], conflicto sí; 227-C: id c3a4b25c-df7e-4780-81bb-9a1d2acc3e6e, usuario 163, estado INCORRECTO, diagnósticos [8], conflicto sí; historial sin lectura registros; eventos de conflicto 2; referencias de auditoría f9a3e915-74f7-4fb5-8a6f-31c04b30d966:f056f99d-78bf-478d-86f0-5b2ee1a70873, c5af329b-784a-42da-a2f2-5d25500e73e2:f056f99d-78bf-478d-86f0-5b2ee1a70873. La parte visible solo en historial no estuvo disponible por la incidencia.",
+      "por_que_prosa": "Las respuestas POST y la auditoria RF-73 acreditan flags, conflictos y registros por usuario; la conservacion visible solo en historial no estuvo disponible por la incidencia del primer HTTP 500."
+    },
+    "TC-M04-230": {
+      "estado": "RECHAZADO",
+      "motivo": "Primer HTTP 500 del historial tras 230a-B: ERROR_INTERNO; Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "que_se_hizo": "A y B enviaron CORRECTO sobre 997b8cda-b608-4bb3-a7d2-ea37cf12b944 e INCORRECTO con la misma patología 8 sobre d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e; se leyeron historial y auditoría.",
+      "esperado_referencia": "Dos evaluaciones iguales por resultado coexisten, sin flag ni evento de conflicto (matriz G072, TC-M04-230; RF-72, líneas 4024 y 4053-4061).",
+      "observado_prosa": "HTTP 230a-A=201, 230a-B=201, 230b-A=201, 230b-B=201; registros 230a-A: id e3199174-5d15-42f3-9faa-a8beecc2af1b, usuario 97, estado CORRECTO, diagnósticos null, conflicto no; 230a-B: id 434fb8db-781e-4931-ade3-9d89218b9078, usuario 162, estado CORRECTO, diagnósticos null, conflicto no; 230b-A: id 484b981a-5a6a-4579-ad87-27a7e2b10fd5, usuario 97, estado INCORRECTO, diagnósticos [8], conflicto no; 230b-B: id c427166c-c902-4b8d-b297-5685d12d9b2d, usuario 162, estado INCORRECTO, diagnósticos [8], conflicto no; historial sin lectura/sin lectura registros; eventos de conflicto 0/0; referencias de auditoría ninguna.",
+      "por_que_prosa": "Cada par conserva sus dos registros y las respuestas y auditoría no señalan conflicto."
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-226",
+      "fuente": "API",
+      "id": "API-226-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G072.json"
+    },
+    {
+      "caso": "TC-M04-227",
+      "fuente": "API",
+      "id": "API-227-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "evidencia": "newman/newman-G072.json"
+    },
+    {
+      "caso": "TC-M04-230",
+      "fuente": "API",
+      "id": "API-230-01",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "evidencia": "newman/newman-G072.json"
+    }
+  ],
+  "solicitudes": [
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 1253,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 700,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 397,
+      "respuesta": {
+        "token_recibido": true
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 295,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/patologias",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 295,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 33
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/43",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 151,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 143,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 156,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 147,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230a-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 478,
+      "respuesta": {
+        "id_retroalimentacion": "e3199174-5d15-42f3-9faa-a8beecc2af1b",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230a-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 167,
+      "respuesta": {
+        "id_retroalimentacion": "434fb8db-781e-4931-ade3-9d89218b9078",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "historial_tras_230a",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 500,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte."
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230b-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 164,
+      "respuesta": {
+        "id_retroalimentacion": "484b981a-5a6a-4579-ad87-27a7e2b10fd5",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "230b-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 163,
+      "respuesta": {
+        "id_retroalimentacion": "c427166c-c902-4b8d-b297-5685d12d9b2d",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-230",
+      "nombre": "historial_tras_230b",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 500,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 159,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte."
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "226-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 166,
+      "respuesta": {
+        "id_retroalimentacion": "382d503d-a5e8-4db0-95dc-b28fba56ab3c",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "226-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 165,
+      "respuesta": {
+        "id_retroalimentacion": "4c179a4b-ca40-40f0-88d0-1264f23c0b4a",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-226",
+      "nombre": "historial_tras_226",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 500,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 160,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte."
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-A",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 162,
+      "respuesta": {
+        "id_retroalimentacion": "d172509f-fe78-4a31-a798-023a409292c6",
+        "es_conflicto_retroalimentacion": false,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-B",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 174,
+      "respuesta": {
+        "id_retroalimentacion": "495604ce-3089-48ef-94a9-77fd573c4f6f",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "historial_tras_227_parcial",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 500,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 159,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte."
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "227-C",
+      "metodo": "POST",
+      "ruta": "/prediccion/retroalimentacion",
+      "http": 201,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 171,
+      "respuesta": {
+        "id_retroalimentacion": "c3a4b25c-df7e-4780-81bb-9a1d2acc3e6e",
+        "es_conflicto_retroalimentacion": true,
+        "error_code": null,
+        "message": ""
+      }
+    },
+    {
+      "caso": "TC-M04-227",
+      "nombre": "historial_tras_227_final",
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 500,
+      "eco": true,
+      "herramienta": "Newman",
+      "duracion_ms": 153,
+      "respuesta": {
+        "id_retroalimentacion": null,
+        "es_conflicto_retroalimentacion": null,
+        "error_code": "ERROR_INTERNO",
+        "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte."
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 452,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 426,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 2
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 0
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 152,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 154,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 154,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 153,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 170,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 157,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 151,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 154,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 158,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": 1
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G072-V1-20261029-165112",
+      "http": 200,
+      "eco": null,
+      "duracion_ms": 141,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    },
+    {
+      "caso": null,
+      "metodo": "GET",
+      "ruta": "/prediccion/historial/885",
+      "http": 200,
+      "eco": true,
+      "duracion_ms": 203,
+      "respuesta": {
+        "error_code": null,
+        "message": "",
+        "total": null
+      }
+    }
+  ],
+  "incidencias": [
+    {
+      "id": "INC-M04-G072-230-01",
+      "caso": "TC-M04-230",
+      "equipo": "Desarrollo",
+      "fundamento_derivacion": "Primera discrepancia comprobada en GET /prediccion/historial/885 tras 230a-B, HTTP 500 ERROR_INTERNO: Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "causa_raiz": "NO DETERMINADA",
+      "causa_probable": "Log TEST aportado por responsable QA: inserción en historial_diagnostico_eventos rechazada por RLS; Desarrollo debe confirmar la causa y si ocurre fuera del sandbox. Si solo ocurre en sandbox, responsable QA podrá reclasificar a BLOQUEADO por entorno.",
+      "certeza": "CONFIRMADA",
+      "severidad": "ALTA",
+      "justificacion_severidad": "La retroalimentación deja de ser consultable en historial (RF-72 CA-8, línea 4378; Regla 3, líneas 4043-4051)."
+    }
+  ],
+  "observaciones": [
+    "OBS-M04-G072-227: la tercera respuesta para f056f99d-78bf-478d-86f0-5b2ee1a70873 indicó conflicto sí al añadirse INCORRECTO tras PARCIAL y CORRECTO. Es una observación; el oráculo de conflicto se decide en TC-M04-226.",
+    "OBS-M04-G072-HIST: HTTP 500 persistente desde 230a-B hasta el DELETE en todas las lecturas posteriores."
+  ],
+  "problemas_tecnicos": [],
+  "semilla": {
+    "id_activo_biologico": 885,
+    "resultados": [
+      {
+        "id": "511a6d66-a862-4822-bf47-2634333531b3",
+        "fecha": "2026-10-28T00:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+        "fecha": "2026-10-26T21:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+        "fecha": "2026-10-26T01:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+        "fecha": "2026-10-24T19:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+        "fecha": "2026-10-23T23:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+        "fecha": "2026-10-22T17:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "32985675-9bbf-46ae-a37d-dc1833155627",
+        "fecha": "2026-10-20T22:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      },
+      {
+        "id": "98c7697c-0cb8-403c-9421-07679e59cac8",
+        "fecha": "2026-10-19T20:06:22Z",
+        "modelo": "MODELO_ESPECIES_MEDIANAS",
+        "version": 43
+      }
+    ],
+    "patologia": 8
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "iteraciones": 1,
+      "solicitudes": 14,
+      "posts": 9,
+      "lecturas": 5,
+      "aserciones": 28
+    }
+  },
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "lecturas_historial": [
+    {
+      "momento": "230a",
+      "tras_post": "230a-B",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "paginas": 1,
+      "completo": false,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "230b",
+      "tras_post": "230b-B",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "paginas": 1,
+      "completo": false,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "226",
+      "tras_post": "226-B",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "paginas": 1,
+      "completo": false,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "227_parcial",
+      "tras_post": "227-B",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "paginas": 1,
+      "completo": false,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    },
+    {
+      "momento": "227_final",
+      "tras_post": "227-C",
+      "http": 500,
+      "codigo": "ERROR_INTERNO",
+      "mensaje": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+      "paginas": 1,
+      "completo": false,
+      "registros_por_resultado": [
+        {
+          "id_resultado_inferencia": "511a6d66-a862-4822-bf47-2634333531b3",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f056f99d-78bf-478d-86f0-5b2ee1a70873",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "997b8cda-b608-4bb3-a7d2-ea37cf12b944",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "d1f3cc43-3bf9-4492-a5b9-ec0cc5025d7e",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "5dbe4510-af8e-4ea7-8688-7efa0751800d",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "f7fea6d3-9bc1-49de-a88e-3be75f399b87",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "32985675-9bbf-46ae-a37d-dc1833155627",
+          "registros": []
+        },
+        {
+          "id_resultado_inferencia": "98c7697c-0cb8-403c-9421-07679e59cac8",
+          "registros": []
+        }
+      ]
+    }
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "DELETE 200; identificadores nuevos ausentes e historial inicial restaurado"
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G072.json",
+    "newman/newman-G072.html",
+    "resultado.json",
+    "TC-M04-G072_resultado.md"
+  ],
+  "oficial": true,
+  "consume_version": true
+}

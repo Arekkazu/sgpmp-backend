@@ -1,3 +1,6 @@
+# | Fecha      | Nombre      | Que se hizo                                                              |
+# |------------|-------------|--------------------------------------------------------------------------|
+# | 2026-10-29 | Juan Manuel | TC-M03-G12 RF-53: 026b por la ruta real (INC-M03-125), 026d y catalogo M09 |
 """
 TC-M03-G12 - Resiliencia y atomicidad del pipeline de ingesta ante fallos.
 
@@ -68,6 +71,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
     SincronizarBufferUseCase,
 )
 from src.telemetry.domain.repositories.dispositivo_port import DispositivoHeartbeatInfo
+from src.telemetry.domain.entities.telemetria import ReglaVariableI3P1
 from src.telemetry.domain.repositories.ingesta_telemetria_port import ResultadoPersistenciaIngesta
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import (
     IngerirTelemetriaBatchDTO,
@@ -152,6 +156,16 @@ class _DispositivoFalso:
         )
 
 
+class _CatalogoFalso:
+    """Catalogo M09 (f8b62bc9): la variable existe y esta activa."""
+
+    def obtener_regla(self, tipo_variable: str) -> ReglaVariableI3P1:
+        return ReglaVariableI3P1(
+            id_variable=1, tipo_variable=tipo_variable, categoria="AMBIENTAL", unidad_estandar="°C",
+            unidades_aceptadas=["°C"], valor_fisico_min=Decimal("-40"), valor_fisico_max=Decimal("85"),
+        )
+
+
 class _Entorno:
     def __init__(self) -> None:
         self.sesion = _SesionFalsa()
@@ -164,6 +178,7 @@ class _Entorno:
             ingesta_port=self.ingesta,
             dispositivo_port=_DispositivoFalso(),
             bitacora_repo=self.bitacora,
+            catalogo_port=_CatalogoFalso(),
         )
 
 
@@ -249,17 +264,104 @@ def test_tc_m03_026a_con_la_bd_caida_ninguna_lectura_queda_a_medias(entorno):
     assert entorno.sesion.rollbacks == _N
 
 
-def test_tc_m03_026b_se_registra_falla_persistencia_por_cada_lectura(entorno):
-    """La ficha exige registrar FALLA_PERSISTENCIA cuando la BD principal no esta disponible."""
-    entorno.ingesta.caida = True
-    for dto in _veinte_lecturas():
-        with pytest.raises(ServiceUnavailableError):
-            entorno.caso_de_uso().execute(dto)
+# INC-M03-125-G12 (f88d4402): FALLA_PERSISTENCIA es un evento de auditoria RF-63 que registra la ruta
+# (RutaIngestaAuditada) en un respaldo SQLite local, porque la BD principal esta caida; un worker lo
+# publica en modulo3.bitacora_auditoria_iot al recuperarse. Las lecturas no se guardan: las retiene el
+# emisor (Edge/broker, RF-54). Se prueba por la ruta HTTP real, con get_db real apuntando a un puerto
+# cerrado (la BD "caida"), sin tocar la BD compartida de TEST.
+_TOKEN = "g12-solo-pruebas"
 
-    estados = [e.get("estado_calidad") for e in entorno.bitacora.errores]
-    assert estados.count("FALLA_PERSISTENCIA") == _N, (
-        f"Se esperaban {_N} eventos FALLA_PERSISTENCIA; la bitacora registro: {estados or 'ninguno'}"
+
+@pytest.fixture
+def api_bd_caida(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from src.shared import database as modulo_db
+    from src.shared.error_handlers import register_error_handlers
+    from src.telemetry.infrastructure.adapters.respaldo_auditoria_iot_sqlite_adapter import (
+        RespaldoAuditoriaIotSqliteAdapter,
     )
+    from src.telemetry.infrastructure.routers.telemetria_router import router
+
+    motor = create_engine("postgresql+psycopg2://qa:qa@127.0.0.1:1/qa", connect_args={"connect_timeout": 1})
+    monkeypatch.setattr(modulo_db, "SessionLocal", sessionmaker(bind=motor, autoflush=False))
+    monkeypatch.setattr(modulo_db, "_PAUSA_REINTENTO", 0)
+    monkeypatch.setenv("ENABLE_TEST_SANDBOX", "false")
+    monkeypatch.setenv("BROKER_SERVICE_TOKEN", _TOKEN)
+    monkeypatch.setenv("IOT_AUDITORIA_RESPALDO_PATH", str(tmp_path / "fallas.sqlite3"))
+    app = FastAPI()
+    register_error_handlers(app)
+    app.include_router(router)
+    with TestClient(app, raise_server_exceptions=False, headers={"Authorization": f"Bearer {_TOKEN}"}) as cliente:
+        yield cliente, RespaldoAuditoriaIotSqliteAdapter()
+    motor.dispose()
+
+
+def _cuerpo(dto: IngerirTelemetriaDTO) -> dict:
+    return {**dto.model_dump(mode="json", exclude_none=True), "valor": float(dto.valor)}
+
+
+def test_tc_m03_026b_se_registra_falla_persistencia_por_cada_lectura(api_bd_caida):
+    """Con la BD caida, cada POST /iot/telemetria responde 503 y deja un evento FALLA_PERSISTENCIA respaldado."""
+    cliente, respaldo = api_bd_caida
+    lecturas = _veinte_lecturas()
+    for dto in lecturas:
+        r = cliente.post("/iot/telemetria", json=_cuerpo(dto))
+        assert r.status_code == 503, r.text
+        assert r.json().get("error_code") == "BD_NO_DISPONIBLE"
+        assert "id_telemetria" not in r.json(), "Un 503 no debe confirmar ninguna lectura"
+
+    eventos = respaldo.listar(100)
+    assert [e.tipo_evento for e in eventos] == ["FALLA_PERSISTENCIA"] * _N, (
+        f"Se esperaban {_N} eventos FALLA_PERSISTENCIA en el respaldo; hay {len(eventos)}"
+    )
+    assert [e.accion_detallada.get("timestamp_captura") for e in eventos] == [
+        dto.timestamp_captura.astimezone(timezone.utc).isoformat() for dto in lecturas
+    ], "El respaldo debe conservar el orden original de los intentos"
+    assert {e.entidad_afectada_id for e in eventos} == {str(_DEVICE_ID)}
+    assert len({e.accion_detallada["id_correlacion"] for e in eventos}) == _N, "Cada intento debe tener su correlacion"
+    for e in eventos:
+        assert e.accion_detallada.get("resguardo_lectura") == "EDGE_RF54"
+        assert "serial" not in e.accion_detallada and "valor" not in e.accion_detallada, (
+            "El respaldo no debe guardar la identidad ni el valor de la lectura"
+        )
+
+
+def test_tc_m03_026d_al_recuperarse_la_bd_se_publican_los_eventos_en_orden(api_bd_caida):
+    """El worker publica el respaldo en la bitacora en FIFO; si la publicacion falla, no se pierde nada."""
+    from src.telemetry.application.use_cases.auditoria.sincronizar_respaldo_auditoria_iot_use_case import (
+        SincronizarRespaldoAuditoriaIotUseCase,
+    )
+
+    cliente, respaldo = api_bd_caida
+    for dto in _veinte_lecturas():
+        assert cliente.post("/iot/telemetria", json=_cuerpo(dto)).status_code == 503
+    pendientes = [e.id_evento for e in respaldo.listar(100)]
+
+    class _Destino:
+        def __init__(self, fallar_en: int | None = None) -> None:
+            self.publicados, self.fallar_en = [], fallar_en
+
+        def bloquear_respaldo(self) -> bool:
+            return True
+
+        def registrar_respaldo(self, evento) -> None:
+            if self.fallar_en is not None and len(self.publicados) == self.fallar_en:
+                raise _bd_caida()
+            self.publicados.append(evento.id_evento)
+
+    sesion = _SesionFalsa()
+    with pytest.raises(OperationalError):
+        SincronizarRespaldoAuditoriaIotUseCase(sesion, _Destino(fallar_en=7), respaldo).execute()
+    assert [e.id_evento for e in respaldo.listar(100)] == pendientes, "Un lote fallido conserva todo el respaldo"
+
+    destino = _Destino()
+    assert SincronizarRespaldoAuditoriaIotUseCase(sesion, destino, respaldo).execute() == _N
+    assert destino.publicados == pendientes, "Se publican los mismos eventos, en el orden original"
+    assert not respaldo.hay_pendientes(), "Tras el commit el respaldo queda vacio"
 
 
 def test_tc_m03_026c_al_restablecerse_los_20_datos_se_procesan_en_orden_sin_perdidas_ni_duplicados(entorno):
