@@ -69,9 +69,22 @@ $evidenciasDir = Join-Path $scriptDir "evidencias"
 if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
 if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
 
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G168_reintento1.html"
-$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G168_reintento1.json"
-$runDir     = Join-Path $evidenciasDir "run-20261028"
+$dirResultados = $resultadosDir
+$sufijo = ""
+if (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento2.json")) {
+    $n = 2
+    while (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento$($n+1).json")) { $n++ }
+    $sufijo = "_reintento$($n+1)"
+} elseif (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento1.json")) {
+    $sufijo = "_reintento2"
+} elseif (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168.json")) {
+    $sufijo = "_reintento1"
+}
+
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G168$sufijo.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G168$sufijo.json"
+$runDate    = Get-Date -Format 'yyyyMMdd'
+$runDir     = Join-Path $evidenciasDir "run-$runDate"
 if (-not (Test-Path $runDir)) { New-Item -ItemType Directory -Path $runDir -Force | Out-Null }
 $consoleLog = Join-Path $runDir "console_execution.log"
 
@@ -86,6 +99,7 @@ Write-Host "==========================================================" -Foregro
 
 $newmanArgs = @(
     "run", $collectionPath,
+    "--timeout-request", "45000",
     "--env-var", "baseUrl=$BaseUrl",
     "--env-var", "run_id=$runId",
     "--env-var", "sandbox_secret=$sandboxSecret",
@@ -93,7 +107,7 @@ $newmanArgs = @(
     "--env-var", "broker_token=$brokerToken",
     "-r", "cli,htmlextra,json",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "TC-M03-G168 - Flags individuales sin severidad (Reintento 1)",
+    "--reporter-htmlextra-title", "TC-M03-G168 - Flags individuales sin severidad$sufijo",
     "--reporter-htmlextra-omitRequestBodies",
     "--reporter-htmlextra-omitHeaders",
     "--reporter-json-export", $reportJson
@@ -111,7 +125,7 @@ try {
     try {
         $delUri = "$BaseUrl/test-control/runs/$runId"
         $delHeaders = @{ "X-Sandbox-Secret" = $sandboxSecret }
-        $delResp = Invoke-RestMethod -Method DELETE -Uri $delUri -Headers $delHeaders -ErrorAction SilentlyContinue
+        $delResp = Invoke-RestMethod -Method DELETE -Uri $delUri -Headers $delHeaders -TimeoutSec 60 -ErrorAction SilentlyContinue
         Write-Host "Sandbox cerrado via runner: $($delResp | ConvertTo-Json -Compress)" -ForegroundColor Green
     } catch {
         Write-Host "Sandbox ya habia sido cerrado por la coleccion." -ForegroundColor Gray

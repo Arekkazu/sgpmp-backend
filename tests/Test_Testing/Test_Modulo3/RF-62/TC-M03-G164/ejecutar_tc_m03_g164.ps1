@@ -81,14 +81,26 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 3. Determinar rutas de salida (ReportPath y RawJsonPath)
+# 3. Determinar rutas de salida (ReportPath y RawJsonPath) con versionamiento por reintentos (§8.4 / §8.5)
+if (-not (Test-Path $resultadosDir)) {
+    New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
+}
+$dirResultados = $resultadosDir
+$sufijo = ""
+if (Test-Path "$dirResultados/resultado_TC-M03-G164_reintento1.json") {
+    $n = 1
+    while (Test-Path "$dirResultados/resultado_TC-M03-G164_reintento$($n+1).json") { $n++ }
+    $sufijo = "_reintento$($n+1)"
+} elseif (Test-Path "$dirResultados/resultado_TC-M03-G164.json") {
+    $sufijo = "_reintento1"
+}
+$archivoJson = "resultado_TC-M03-G164$sufijo.json"
+$archivoHtml = "resultado_TC-M03-G164$sufijo.html"
+
 if ($ReportPath) {
     $reportFile = $ReportPath
 } else {
-    if (-not (Test-Path $resultadosDir)) {
-        New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
-    }
-    $reportFile = Join-Path $resultadosDir "resultado_TC-M03-G164.html"
+    $reportFile = Join-Path $resultadosDir $archivoHtml
 }
 
 $reportParent = Split-Path -Parent $reportFile
@@ -194,7 +206,7 @@ try {
                     summary = [ordered]@{ total = $cps.Count; ok = $okN; falla = $fallaN; veredicto = $vered; bloqueo_externo = $null }
                     checkpoints = $cps
                 }
-                $jsonOut = Join-Path $resultadosDir "resultado_TC-M03-G164.json"
+                $jsonOut = Join-Path $resultadosDir $archivoJson
                 $jsonText = $outObj | ConvertTo-Json -Depth 6
                 [System.IO.File]::WriteAllText($jsonOut, $jsonText, (New-Object System.Text.UTF8Encoding($false)))
                 Write-Host "[B3 OK] JSON: $($cps.Count) cps | OK=$okN FALLA=$fallaN | $vered"

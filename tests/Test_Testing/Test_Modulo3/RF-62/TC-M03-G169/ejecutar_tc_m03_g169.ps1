@@ -89,6 +89,7 @@ Write-Host "==========================================================" -Foregro
 
 $newmanArgs = @(
     "run", $collectionPath,
+    "--timeout-request", "45000",
     "--env-var", "baseUrl=$BaseUrl",
     "--env-var", "run_id=$runId",
     "--env-var", "sandbox_secret=$sandboxSecret",
@@ -119,6 +120,18 @@ try {
     } catch {
         Write-Host "Sandbox ya habia sido cerrado por la coleccion." -ForegroundColor Gray
     }
+}
+
+Write-Host "`nConsolidando resultados en formato normativo (checkpoints)..." -ForegroundColor Cyan
+$consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
+if (Test-Path $consolidarScript) {
+    & node $consolidarScript --input $reportJson --output $reportJson
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Fallo durante la consolidacion de resultados."
+        $exitCode = 1
+    }
+} else {
+    Write-Warning "Script consolidador no encontrado: $consolidarScript"
 }
 
 exit $exitCode

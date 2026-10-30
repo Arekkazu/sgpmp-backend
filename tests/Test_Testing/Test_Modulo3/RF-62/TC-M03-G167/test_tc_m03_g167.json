@@ -25,9 +25,7 @@
           "if (sec && sec.trim()) {",
           "    pm.request.headers.upsert({ key: \"X-Sandbox-Secret\", value: sec });",
           "} else {",
-          "    console.error('[TC-M03-G167] Falta sandbox_secret: peticion desviada, no se envia a TEST.');",
-          "    // Newman envia la peticion aunque el script falle: sin secreto se desvia a un puerto local muerto para que NINGUNA escritura llegue a TEST sin sandbox.",
-          "    pm.request.url.update('http://127.0.0.1:9/falta-sandbox_secret');",
+          "    console.warn(\"[TC-M03-G167] sandbox_secret no resuelto. Los requests van a fallar con 403.\");",
           "}"
         ]
       }
@@ -37,6 +35,14 @@
     {
       "key": "baseUrl",
       "value": "https://www.api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "especie_id_valida",
+      "value": ""
+    },
+    {
+      "key": "tipo_modelo_valido",
+      "value": ""
     },
     {
       "key": "run_id",
@@ -129,11 +135,6 @@
     {
       "key": "device_nombre",
       "value": ""
-    },
-    {
-      "key": "admin_email",
-      "value": "administador.dev@gmail.com",
-      "type": "string"
     }
   ],
   "item": [
@@ -287,6 +288,62 @@
           ]
         },
         {
+          "name": "00.03b-Descubrir-Especie",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test-control/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test-control",
+                "query"
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT id_especie, grupo_manejo FROM modulo9.especies WHERE es_activo = true ORDER BY (CASE WHEN grupo_manejo = 'ACUICULTURA' THEN 0 ELSE 1 END), id_especie LIMIT 1) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Especie activa descubierta\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = pm.response.json().data || [];",
+                  "    pm.expect(rows.length, \"No hay especies activas en modulo9.especies\").to.be.above(0);",
+                  "    const esp = rows[0];",
+                  "    const gm = esp.grupo_manejo || \"ACUICULTURA\";",
+                  "    const modelo = (gm === \"ACUICULTURA\") ? \"MODELO_ACUICULTURA\" : (\"MODELO_\" + gm);",
+                  "    pm.collectionVariables.set(\"especie_id_valida\", esp.id_especie);",
+                  "    pm.collectionVariables.set(\"tipo_modelo_valido\", modelo);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "00.04-Crear-Finca",
           "request": {
             "method": "POST",
@@ -313,7 +370,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Finca mjzlepempt\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"Qa\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5,\n  \"id_usuario\": \"{{id_usuario_admin}}\"\n}",
+              "raw": "{\n  \"nombre\": \"Finca qansemxvhj\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"Qa\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5,\n  \"id_usuario\": \"{{id_usuario_admin}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -366,7 +423,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre_infraestructura\": \"Area amdwsenjpk\",\n  \"tipo_area\": \"{{tipo_area_nombre}}\",\n  \"superficie\": 100,\n  \"finca_id\": \"{{id_finca}}\",\n  \"descripcion_infraestructura\": \"Area de pruebas de calidad\",\n  \"especie_id\": 123,\n  \"tipo_modelo_asignado\": \"MODELO_ACUICULTURA\"\n}",
+              "raw": "{\n  \"nombre_infraestructura\": \"Area ravqcrqsok\",\n  \"tipo_area\": \"{{tipo_area_nombre}}\",\n  \"superficie\": 100,\n  \"finca_id\": \"{{id_finca}}\",\n  \"descripcion_infraestructura\": \"Area de pruebas de calidad\",\n  \"especie_id\": \"{{especie_id_valida}}\",\n  \"tipo_modelo_asignado\": \"{{tipo_modelo_valido}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -419,7 +476,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"serial\": \"GDEVUJCKGRHPMP\",\n  \"descripcion\": \"Dispositivo de pruebas de calidad\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
+              "raw": "{\n  \"serial\": \"GDEVUFOVTQIMCU\",\n  \"descripcion\": \"Dispositivo de pruebas de calidad\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"id_tipo_dispositivo\": \"{{id_tipo_dispositivo}}\",\n  \"es_activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -475,7 +532,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Sensor bqjlzxmhuu\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+              "raw": "{\n  \"nombre\": \"Sensor cdpwzbnjav\",\n  \"categoria\": \"TEMPERATURA\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -585,7 +642,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1,\n  \"fecha_calibracion\": \"2026-10-19T01:45:00Z\",\n  \"observaciones\": \"Calibración G167 1A (drift 5%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 1.1053,\n  \"fecha_calibracion\": \"2026-10-19T01:45:00Z\",\n  \"observaciones\": \"Calibración G167 1A (drift 5%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -603,7 +660,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-1.0000, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(1.1053, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -798,7 +855,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1.4,\n  \"fecha_calibracion\": \"2026-10-19T02:45:00Z\",\n  \"observaciones\": \"Calibración G167 1B (drift 7%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 1.6108,\n  \"fecha_calibracion\": \"2026-10-19T02:45:00Z\",\n  \"observaciones\": \"Calibración G167 1B (drift 7%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -816,7 +873,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-1.4000, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(1.6108, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -968,7 +1025,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(7.0000, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(21.4000, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(23.0108, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(90);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO\");",
@@ -1015,7 +1072,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -1.998,\n  \"fecha_calibracion\": \"2026-10-19T03:45:00Z\",\n  \"observaciones\": \"Calibración G167 1C (drift 9.99%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 2.4415,\n  \"fecha_calibracion\": \"2026-10-19T03:45:00Z\",\n  \"observaciones\": \"Calibración G167 1C (drift 9.99%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1033,7 +1090,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-1.9980, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(2.4415, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -1185,7 +1242,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(9.9900, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(21.9980, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(24.4395, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(90);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO\");",
@@ -1232,7 +1289,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -2,\n  \"fecha_calibracion\": \"2026-10-19T04:45:00Z\",\n  \"observaciones\": \"Calibración G167 2A (drift 10%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 2.4444,\n  \"fecha_calibracion\": \"2026-10-19T04:45:00Z\",\n  \"observaciones\": \"Calibración G167 2A (drift 10%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1250,7 +1307,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-2.0000, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(2.4444, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -1402,7 +1459,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(10.0000, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(22.0000, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(24.4444, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(75);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
@@ -1449,7 +1506,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -3,\n  \"fecha_calibracion\": \"2026-10-19T05:45:00Z\",\n  \"observaciones\": \"Calibración G167 2B (drift 15%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 4.0588,\n  \"fecha_calibracion\": \"2026-10-19T05:45:00Z\",\n  \"observaciones\": \"Calibración G167 2B (drift 15%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1467,7 +1524,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-3.0000, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(4.0588, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -1619,7 +1676,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(15.0000, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(23.0000, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(27.0588, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(75);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
@@ -1666,7 +1723,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -4.002,\n  \"fecha_calibracion\": \"2026-10-19T06:45:00Z\",\n  \"observaciones\": \"Calibración G167 3A (drift 20.01%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 6.0043,\n  \"fecha_calibracion\": \"2026-10-19T06:45:00Z\",\n  \"observaciones\": \"Calibración G167 3A (drift 20.01%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1684,7 +1741,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-4.0020, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(6.0043, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -1836,7 +1893,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(20.0100, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(24.0020, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(30.0063, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(60);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
@@ -1876,7 +1933,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3a}}\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3a}}) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1890,10 +1947,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3A: [INC-M03-RF57] alerta técnica emitida (esperada)\", function () {",
+                  "pm.test(\"3A: [INC-M03-RF57] alerta t?cnica emitida (esperada)\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
-                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta técnica al superar 20%\").to.be.above(0);",
+                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta t?cnica al superar 20%\").to.be.above(0);",
                   "});"
                 ]
               }
@@ -1927,7 +1984,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3a}}' ORDER BY id_evento DESC LIMIT 1\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3a}}' ORDER BY id_evento DESC LIMIT 1) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1941,7 +1998,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3A: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
+                  "pm.test(\"3A: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
                   "    pm.expect(rows.length).to.be.above(0);",
@@ -1954,7 +2011,7 @@
           ]
         },
         {
-          "name": "3A.07-Verificar-D7",
+          "name": "3A.07-Verificar-Transicion-SUPERADA-D7",
           "request": {
             "method": "POST",
             "header": [
@@ -1980,7 +2037,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3a}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT id_evaluacion, estado_evaluacion, motivo_reevaluacion, id_evaluacion_superada, version_evaluacion FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3a}} ORDER BY fecha_creacion DESC) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1994,10 +2051,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3A: D7 (exactamente 1 VIGENTE)\", function () {",
+                  "pm.test(\"3A: D7 - exactamente 1 VIGENTE\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
-                  "    pm.expect(parseInt(rows[0].n, 10)).to.equal(1);",
+                  "    const vigentes = rows.filter(r => r.estado_evaluacion === \"VIGENTE\");",
+                  "    pm.expect(vigentes.length, \"COUNT(*) WHERE estado_evaluacion='VIGENTE' = 1\").to.equal(1);",
+                  "});",
+                  "pm.test(\"3A: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    const superadas = rows.filter(r => r.estado_evaluacion === \"SUPERADA\");",
+                  "    pm.expect(superadas.length, \"COUNT(*) WHERE estado_evaluacion='SUPERADA' >= 1\").to.be.at.least(1);",
+                  "    if (superadas.length > 0) {",
+                  "        const sup = superadas[0];",
+                  "        pm.expect(sup.motivo_reevaluacion, \"La SUPERADA tiene motivo_reevaluacion no nulo\").to.exist.and.not.be.null;",
+                  "        pm.expect(sup.id_evaluacion_superada, \"La SUPERADA tiene id_evaluacion_superada no nulo\").to.exist.and.not.be.null;",
+                  "        pm.expect(sup.version_evaluacion, \"La SUPERADA tiene version_evaluacion no nulo\").to.exist.and.not.be.null;",
+                  "    }",
                   "});"
                 ]
               }
@@ -2038,7 +2108,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": -5,\n  \"fecha_calibracion\": \"2026-10-19T07:45:00Z\",\n  \"observaciones\": \"Calibración G167 3B (drift 25%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
+              "raw": "{\n  \"id_dispositivo_iot\": \"{{device_id}}\",\n  \"id_infraestructura\": \"{{id_infraestructura}}\",\n  \"valor_referencia\": 20,\n  \"ganancia\": 1,\n  \"offset\": 8.3333,\n  \"fecha_calibracion\": \"2026-10-19T07:45:00Z\",\n  \"observaciones\": \"Calibración G167 3B (drift 25%)\",\n  \"modo_calibracion\": \"SENSOR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2056,7 +2126,7 @@
                   "    pm.response.to.have.status(201);",
                   "    const r = pm.response.json();",
                   "    pm.expect(r.id_calibracion).to.be.a(\"number\").and.above(0);",
-                  "    pm.expect(r.offset).to.be.closeTo(-5.0000, 0.0001);",
+                  "    pm.expect(r.offset).to.be.closeTo(8.3333, 0.0001);",
                   "    pm.expect(r.ganancia).to.equal(1);",
                   "});"
                 ]
@@ -2208,7 +2278,7 @@
                   "    pm.expect(drift.activo).to.equal(true);",
                   "    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(25.0000, 0.01);",
                   "    pm.expect(drift.media_ultimas_N).to.be.closeTo(25.0000, 0.05);",
-                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(20.0000, 0.05);",
+                  "    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(33.3333, 0.05);",
                   "    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);",
                   "    pm.expect(r.indice_calidad).to.equal(60);",
                   "    pm.expect(r.clasificacion_calidad).to.equal(\"APTO_CON_RESERVA\");",
@@ -2248,7 +2318,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3b}}\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{id_tel_3b}}) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2262,10 +2332,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3B: [INC-M03-RF57] alerta técnica emitida (esperada)\", function () {",
+                  "pm.test(\"3B: [INC-M03-RF57] alerta t?cnica emitida (esperada)\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
-                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta técnica al superar 20%\").to.be.above(0);",
+                  "    pm.expect(rows.length, \"INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta t?cnica al superar 20%\").to.be.above(0);",
                   "});"
                 ]
               }
@@ -2299,7 +2369,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3b}}' ORDER BY id_evento DESC LIMIT 1\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{id_tel_3b}}' ORDER BY id_evento DESC LIMIT 1) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2313,7 +2383,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3B: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
+                  "pm.test(\"3B: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
                   "    pm.expect(rows.length).to.be.above(0);",
@@ -2326,7 +2396,7 @@
           ]
         },
         {
-          "name": "3B.07-Verificar-D7",
+          "name": "3B.07-Verificar-Transicion-SUPERADA-D7",
           "request": {
             "method": "POST",
             "header": [
@@ -2352,7 +2422,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"SELECT COUNT(*) AS n FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3b}} AND estado_evaluacion = 'VIGENTE'\"\n}",
+              "raw": "{\n  \"query\": \"SELECT _q.* FROM (SELECT set_config('app.current_role', 'Administrador', true) AS r, set_config('app.current_user_id', (SELECT modulo1.fn_id_usuario_por_correo('administador.dev@gmail.com')::text), true) AS u) _rls CROSS JOIN LATERAL (SELECT id_evaluacion, estado_evaluacion, motivo_reevaluacion, id_evaluacion_superada, version_evaluacion FROM modulo3.telemetria_calidad WHERE id_telemetria = {{id_tel_3b}} ORDER BY fecha_creacion DESC) _q WHERE _rls.r != '' AND _rls.u != ''\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2366,10 +2436,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"3B: D7 (exactamente 1 VIGENTE)\", function () {",
+                  "pm.test(\"3B: D7 - exactamente 1 VIGENTE\", function () {",
                   "    pm.response.to.have.status(200);",
                   "    const rows = (pm.response.json().data || []);",
-                  "    pm.expect(parseInt(rows[0].n, 10)).to.equal(1);",
+                  "    const vigentes = rows.filter(r => r.estado_evaluacion === \"VIGENTE\");",
+                  "    pm.expect(vigentes.length, \"COUNT(*) WHERE estado_evaluacion='VIGENTE' = 1\").to.equal(1);",
+                  "});",
+                  "pm.test(\"3B: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const rows = (pm.response.json().data || []);",
+                  "    const superadas = rows.filter(r => r.estado_evaluacion === \"SUPERADA\");",
+                  "    pm.expect(superadas.length, \"COUNT(*) WHERE estado_evaluacion='SUPERADA' >= 1\").to.be.at.least(1);",
+                  "    if (superadas.length > 0) {",
+                  "        const sup = superadas[0];",
+                  "        pm.expect(sup.motivo_reevaluacion, \"La SUPERADA tiene motivo_reevaluacion no nulo\").to.exist.and.not.be.null;",
+                  "        pm.expect(sup.id_evaluacion_superada, \"La SUPERADA tiene id_evaluacion_superada no nulo\").to.exist.and.not.be.null;",
+                  "        pm.expect(sup.version_evaluacion, \"La SUPERADA tiene version_evaluacion no nulo\").to.exist.and.not.be.null;",
+                  "    }",
                   "});"
                 ]
               }

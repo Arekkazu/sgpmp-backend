@@ -119,8 +119,9 @@ class TestHelpersMatematicosLocales:
         media_serie = 20.0
         drift = 0.07
         offset = calcular_offset_para_drift(media_serie, drift)
-        # val_cal_esperado = media_serie + offset = 20.0 - 1.3084 = 18.6916
-        # drift_rel = |20.0 - 18.6916| / 18.6916 = 1.3084 / 18.6916 = 7.00%
+        assert offset > 0
+        # val_cal_esperado = media_serie + offset = 20.0 + 1.5054 = 21.5054
+        # drift_rel = |20.0 - 21.5054| / 21.5054 = 1.5054 / 21.5054 = 7.00%
         val_cal = media_serie + offset
         drift_rel = abs(media_serie - val_cal) / val_cal
         assert abs(drift_rel - 0.07) < 0.001
@@ -129,6 +130,7 @@ class TestHelpersMatematicosLocales:
         media_serie = 20.0
         drift = 0.15
         offset = calcular_offset_para_drift(media_serie, drift)
+        assert offset > 0
         val_cal = media_serie + offset
         drift_rel = abs(media_serie - val_cal) / val_cal
         assert abs(drift_rel - 0.15) < 0.001
