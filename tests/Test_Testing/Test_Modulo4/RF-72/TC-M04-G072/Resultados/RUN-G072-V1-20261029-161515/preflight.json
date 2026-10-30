@@ -1,0 +1,26 @@
+{
+  "grupo": "G072",
+  "run_id": "RUN-G072-V1-20261029-161515",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "solicitudes_totales": 152,
+    "paginas_historial": 40,
+    "solicitudes_newman": 9,
+    "timeout_login_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos": [
+    "Tres logins Veterinario A, B y C; último acceso y auditoría de autenticación",
+    "Lecturas de historial, patologías, modelo y auditoría RF-73",
+    "Nueve retroalimentaciones y eventos de auditoría, revertidos mediante DELETE",
+    "Lecturas poscierre pueden crear HISTORIAL_CONSULTADO fuera del sandbox; sin correos ni archivos externos"
+  ]
+}

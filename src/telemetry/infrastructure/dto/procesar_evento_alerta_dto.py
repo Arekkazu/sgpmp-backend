@@ -2,16 +2,20 @@
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M03-161-G66 RF-57: contrato del evento externo y reglas como objeto |
+# | 2026-10-30 | Arekkazu | INC-M04-224-G66 RF-57: categoria_variable, tipo_evento y estado_conectividad del catálogo |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, StrictBool, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 from src.shared.fechas import FechaHoraUtc
+from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
+    _CATEGORIA_VARIABLE,
+)
 
 
 class ProcesarEventoAlertaDTO(BaseDTO):
@@ -95,6 +99,9 @@ _UNIDADES_POR_VARIABLE: dict[str, set[str]] = {
     "TDS": {"µS/cm", "ppm", "mg/L"},
 }
 
+#: RF-57 Entradas: catálogo de tipo_evento.
+_TIPOS_EVENTO = {"DESVIACION_SIMPLE", "EVENTO_COMPUESTO", "PATRON_ANOMALO", "UMBRAL_EXCEDIDO"}
+
 #: Holgura de reloj entre el emisor y el servidor antes de tratar la fecha como futura.
 _MAX_DESFASE_FUTURO = timedelta(seconds=60)
 
@@ -111,6 +118,22 @@ class EventoAlertaExternoDTO(ProcesarEventoAlertaDTO):
     contrato solo endurece lo que entra desde fuera. Cualquier fallo es 400
     VAL_ENTRADA y queda en la bitácora como ERROR_ESTRUCTURA_EVENTO (E1).
     """
+
+    # RF-57 Entradas (INC-M04-224-G66): opcionales, pero si llegan deben ser del catálogo;
+    # antes no se declaraban y cualquier valor se ignoraba con 201.
+    categoria_variable: Optional[str] = None
+    tipo_evento: Optional[str] = None
+    estado_conectividad: Optional[StrictBool] = None
+
+    @field_validator("categoria_variable", "tipo_evento")
+    @classmethod
+    def validar_catalogo(cls, v: Optional[str], info) -> Optional[str]:
+        if v is None:
+            return v
+        validos = {"AMBIENTAL", "ANIMAL", "HIDRICA"} if info.field_name == "categoria_variable" else _TIPOS_EVENTO
+        if v.upper() not in validos:
+            raise ValueError(f"{info.field_name} debe ser uno de: {', '.join(sorted(validos))}.")
+        return v.upper()
 
     @field_validator("tipo_variable")
     @classmethod
@@ -137,6 +160,12 @@ class EventoAlertaExternoDTO(ProcesarEventoAlertaDTO):
             raise ValueError(
                 f"La unidad '{self.unidad}' no corresponde a {self.tipo_variable} "
                 f"(se espera {', '.join(sorted(_UNIDADES_POR_VARIABLE[self.tipo_variable]))})."
+            )
+        esperada = _CATEGORIA_VARIABLE.get(self.tipo_variable)
+        if self.categoria_variable is not None and self.categoria_variable != esperada:
+            raise ValueError(
+                f"categoria_variable {self.categoria_variable} no corresponde a {self.tipo_variable} "
+                f"(se espera {esperada})."
             )
         # Restricción 4 / CA-15: la alerta debe poder rastrearse hasta el dato que la originó.
         if self.id_evento_edge_computing is None and self.id_telemetria is None and self.id_paquete_inferencia is None:

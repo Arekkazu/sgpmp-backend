@@ -1057,7 +1057,7 @@
       "name": "3. TC-M03-034 Frecuencia anómala",
       "item": [
         {
-          "name": "TC-M03-034 - Lectura cada 1 min con frecuencia_muestreo configurada en 10 min (x5)",
+          "name": "TC-M03-034 - 5 lecturas seguidas (segundos entre sí) con frecuencia_muestreo global M09 de minutos (x5)",
           "event": [
             {
               "listen": "prerequest",
@@ -1066,8 +1066,11 @@
                 "exec": [
                   "let i = Number(pm.collectionVariables.get('n_frec') || 0);",
                   "if (i === 0) { pm.environment.set('g16_tel_034', '[]'); }",
-                  "// Lectura i de 5: timestamps 5 min atrás ... 1 min atrás, separados 1 minuto.",
-                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - (5 - i) * 60000).toISOString());",
+                  "// INC-M03-130: la marca compara el intervalo al vecino más cercano con la frecuencia_muestreo GLOBAL de M09",
+                  "// (modulo9.configuraciones_globales, en minutos; 45 en TEST el 2026-10-29), no con el campo del payload.",
+                  "// Lecturas a segundos de distancia quedan por debajo de 0,5x. Capturas posteriores a la asociación del",
+                  "// sensor (DB-10 exige asociación vigente a la fecha de captura).",
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 1000).toISOString());",
                   "pm.collectionVariables.set('n_frec', String(i + 1));"
                 ]
               }
@@ -1083,7 +1086,7 @@
                   "const ids = JSON.parse(pm.environment.get('g16_tel_034') || '[]');",
                   "ids.push(j.id_telemetria);",
                   "pm.environment.set('g16_tel_034', JSON.stringify(ids));",
-                  "if (Number(pm.collectionVariables.get('n_frec')) < 5) { postman.setNextRequest('TC-M03-034 - Lectura cada 1 min con frecuencia_muestreo configurada en 10 min (x5)'); }"
+                  "if (Number(pm.collectionVariables.get('n_frec')) < 5) { postman.setNextRequest('TC-M03-034 - 5 lecturas seguidas (segundos entre sí) con frecuencia_muestreo global M09 de minutos (x5)'); }"
                 ]
               }
             }
@@ -1112,7 +1115,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frec}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\",\n  \"frecuencia_muestreo\": 10\n}",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_frec}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{ts_captura}}\",\n  \"origen\": \"TIEMPO_REAL\",\n  \"serial\": \"{{access_key}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1128,7 +1131,7 @@
       "name": "4. TC-M03-068 Posible drift",
       "item": [
         {
-          "name": "TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x10)",
+          "name": "TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x21: N=20 anteriores de RF-62 + la evaluada)",
           "event": [
             {
               "listen": "prerequest",
@@ -1137,8 +1140,8 @@
                 "exec": [
                   "let i = Number(pm.collectionVariables.get('n_drift') || 0);",
                   "if (i === 0) { pm.environment.set('g16_tel_068', '[]'); }",
-                  "// Lectura i de 10: timestamps 10 min atrás ... 1 min atrás, separados 1 minuto.",
-                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - (10 - i) * 60000).toISOString());",
+                  "// Capturas posteriores a la asociación del sensor (DB-10): una por request, en orden.",
+                  "pm.collectionVariables.set('ts_captura', new Date(Date.now() - 1000).toISOString());",
                   "pm.collectionVariables.set('n_drift', String(i + 1));"
                 ]
               }
@@ -1154,7 +1157,7 @@
                   "const ids = JSON.parse(pm.environment.get('g16_tel_068') || '[]');",
                   "ids.push(j.id_telemetria);",
                   "pm.environment.set('g16_tel_068', JSON.stringify(ids));",
-                  "if (Number(pm.collectionVariables.get('n_drift')) < 10) { postman.setNextRequest('TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x10)'); }"
+                  "if (Number(pm.collectionVariables.get('n_drift')) < 21) { postman.setNextRequest('TC-M03-068 - Lectura con sesgo constante de +3 °C sobre la referencia 25.0 (x21: N=20 anteriores de RF-62 + la evaluada)'); }"
                 ]
               }
             }
@@ -1194,7 +1197,7 @@
           "response": []
         },
         {
-          "name": "TC-M03-068 - RF-62 marca posible_drift en la última lectura de la serie",
+          "name": "TC-M03-068 - La evaluación automática RF-62 de la última lectura existe (postcommit)",
           "event": [
             {
               "listen": "prerequest",
@@ -1222,12 +1225,8 @@
                   "  return;",
                   "}",
                   "pm.collectionVariables.unset(_clave);",
-                  "pm.test('Calidad responde 200', function () { pm.response.to.have.status(200); });",
-                  "const f = pm.response.json().flags_detectados || {};",
-                  "console.log('TC-M03-068 flags_detectados:', JSON.stringify(f));",
-                  "pm.test('TC-M03-068: flag posible_drift activo (disponible para RF-62)', function () {",
-                  "  pm.expect(f.posible_drift && f.posible_drift.activo).to.eql(true);",
-                  "});"
+                  "console.log('TC-M03-068 evaluación automática:', pm.response.code, pm.response.text().slice(0, 300));",
+                  "pm.test('TC-M03-068: la ingesta generó la evaluación de calidad automática (200 en 60 s)', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
@@ -1253,6 +1252,64 @@
                 "iot",
                 "calidad",
                 "{{ultimo_drift}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TC-M03-068 - RF-62 marca posible_drift en la última lectura de la serie (evaluación manual)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ids = JSON.parse(pm.environment.get('g16_tel_068') || '[]');",
+                  "pm.collectionVariables.set('ultimo_drift', String(ids[ids.length - 1]));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// POST /iot/calidad/{id}/evaluar ejecuta la misma evaluación RF-62 sin depender del worker postcommit.",
+                  "pm.test('Evaluación manual RF-62 responde 201', function () { pm.response.to.have.status(201); });",
+                  "let j = {}; try { j = pm.response.json(); } catch (e) {}",
+                  "const f = j.flags_detectados || {};",
+                  "console.log('TC-M03-068 flags_detectados:', JSON.stringify(f), 'calibración:', JSON.stringify(j.parametros_calibracion_aplicados));",
+                  "pm.test('TC-M03-068: serie suficiente (N=20 lecturas anteriores)', function () { pm.expect(f.serie_insuficiente).to.be.undefined; });",
+                  "pm.test('TC-M03-068: flag posible_drift activo (sesgo +3 °C sobre la referencia 25.0)', function () {",
+                  "  pm.expect(f.posible_drift && f.posible_drift.activo).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/iot/calidad/{{ultimo_drift}}/evaluar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "iot",
+                "calidad",
+                "{{ultimo_drift}}",
+                "evaluar"
               ]
             }
           },

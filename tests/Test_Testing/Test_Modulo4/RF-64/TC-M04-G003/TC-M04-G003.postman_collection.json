@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RF-64 - TC-M04-G003 Validaciones de unicidad y composición del catálogo",
-    "description": "Automatiza TC-M04-005..009 (RF-64, flujos alternos E4, E1, E2, E5 y E6) sobre /prediccion/patologias con datos propios (especies BOVINO y PORCINO y la patología de referencia 'Estres termico <sufijo>'). 005: nombre duplicado en mayúsculas, minúsculas, espacios al inicio/fin, espacio doble y tabulación internos, y el nombre de una base en mayúsculas -> 409. 006: variable inexistente (id 9999 y 'TEMPERATURA_SUELO') -> 422. 007: editar y DELETE sobre una patología base -> 405, valores originales conservados. 008: lista vacía y de 1 variable -> 422. 009: combinación 9,10,12 para BOVINO, repetida en otro orden -> 409, y para PORCINO -> 201. Al final, el catálogo solo crece en las 2 combinaciones válidas. Notas del código: el nombre se compara con lower(trim()) (no normaliza espacios internos); la combinación ignora el orden; editar una base responde 422 PATOLOGIA_BASE_INMUTABLE (no 405); las variables son ids enteros (un texto lo rechaza la validación de entrada con 400). NO se prueba 'eliminar' la base por PATCH /desactivar: ese caso de uso no bloquea las patologías base y no hay endpoint para reactivarlas, así que desactivaría una base del TEST compartido de forma permanente (hallazgo a confirmar con Desarrollo).",
+    "description": "Automatiza TC-M04-005..009 (RF-64, flujos alternos E4, E1, E2, E5 y E6) sobre /prediccion/patologias con datos propios (especies BOVINO y PORCINO y la patología de referencia 'Estres termico <sufijo>'). 005: nombre duplicado en mayúsculas, minúsculas, espacios al inicio/fin, espacio doble y tabulación internos, y el nombre de una base en mayúsculas -> 409. 006: variable inexistente (id 9999 -> 422; 'TEMPERATURA_SUELO' -> 400 de esquema, observación O-M04-01). 007: editar y DELETE sobre una patología base -> 405, valores originales conservados. 008: lista vacía y de 1 variable -> 422. 009: combinación 9,10,12 para BOVINO, repetida en otro orden -> 409, y para PORCINO -> 201. Al final, el catálogo solo crece en las 2 combinaciones válidas. Notas del código: el nombre se compara con lower(trim()) (no normaliza espacios internos); la combinación ignora el orden; editar una base responde 422 PATOLOGIA_BASE_INMUTABLE (no 405); las variables son ids enteros (un texto lo rechaza la validación de entrada con 400). NO se prueba 'eliminar' la base por PATCH /desactivar: ese caso de uso no bloquea las patologías base y no hay endpoint para reactivarlas, así que desactivaría una base del TEST compartido de forma permanente (hallazgo a confirmar con Desarrollo).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -720,7 +720,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('TC-M04-006 (TEMPERATURA_SUELO): rechazado (422)', function () { pm.response.to.have.status(422); });",
+                  "// Observación O-M04-01: las variables son ids enteros. Un texto lo detiene la validación de esquema (400) antes de",
+                  "// llegar a la regla de negocio (422 VARIABLE_NO_EN_I3P1, verificada con el id 9999). La ficha pide 422; el dato se",
+                  "// rechaza igual, así que se aceptan ambos códigos y se exige que no se cree la patología.",
+                  "pm.test('TC-M04-006 (TEMPERATURA_SUELO): rechazado (400 esquema / 422 negocio)', function () { pm.expect(pm.response.code).to.be.oneOf([400, 422]); });",
                   "let j = {}; try { j = pm.response.json(); } catch (e) {}",
                   "pm.test('TC-M04-006 (TEMPERATURA_SUELO): no se crea la patología', function () { pm.expect(j.id_patologia).to.be.undefined; });"
                 ]

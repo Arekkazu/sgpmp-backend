@@ -304,9 +304,12 @@
                 "exec": [
                   "console.log('[TC-M03-G70 1.h] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('HTTP en 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "pm.test('tipo_alerta distinto de RIESGO_HIDRICO', function () { pm.expect(J.tipo_alerta).to.not.eql('RIESGO_HIDRICO'); });",
-                  "console.log('[OBS][OBSERVADO] tipo_alerta/severidad/es_duplicado = ' + JSON.stringify({tipo_alerta: J.tipo_alerta, severidad: J.severidad, es_duplicado: J.es_duplicado, id_alerta: J.id_alerta}));"
+                  "// v3.0: el backend (lote #831) rechaza el OD aislado con 422 REGLA_COMPUESTA_NO_ACTIVADA (no activa RIESGO_HIDRICO); 200/201 sin RIESGO_HIDRICO tambien cumple.",
+                  "pm.test('OD aislado no activa RIESGO_HIDRICO (422 REGLA_COMPUESTA_NO_ACTIVADA, o 200/201 sin ese tipo)', function () {",
+                  "  if (pm.response.code === 422) { pm.expect(JSON.stringify(J)).to.include('REGLA_COMPUESTA_NO_ACTIVADA'); }",
+                  "  else { pm.expect([200, 201]).to.include(pm.response.code); pm.expect(J.tipo_alerta).to.not.eql('RIESGO_HIDRICO'); }",
+                  "});",
+                  "console.log('[OBS][OBSERVADO] status/tipo_alerta/id_alerta = ' + JSON.stringify({status: pm.response.code, tipo_alerta: J.tipo_alerta, id_alerta: J.id_alerta}));"
                 ]
               }
             }

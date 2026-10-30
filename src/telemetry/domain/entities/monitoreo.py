@@ -5,6 +5,7 @@
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones R12, varias variables, activo, alertas y series |
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: distinguir calidad del valor operativo y momento de la condición actual. |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
+# | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato como filtro único |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -159,10 +160,15 @@ class VacioTemporal:
 
 #: RF-59 Restricción 12: combinaciones válidas además del rango de fechas (que siempre va).
 #: Se agregan "solo fechas" (CA-1, con el límite de 90 días de E4) y el activo biológico
-#: solo, que es una entrada propia del RF (RF-61, caso 220).
+#: solo, que es una entrada propia del RF (RF-61, caso 220). INC-M04-225-G112: también
+#: categoria_variable, estado_dato y origen_dato solos, que las Entradas del RF declaran
+#: opcionales (Restricción 3, Fase 3, CA-6) y la Restricción 12 no menciona solos.
 COMBINACIONES_FILTROS_VALIDAS: tuple[frozenset[str], ...] = (
     frozenset(),
     frozenset({'tipo_variable'}),
+    frozenset({'categoria_variable'}),
+    frozenset({'estado_dato'}),
+    frozenset({'origen_dato'}),
     frozenset({'sensor_id'}),
     frozenset({'id_unidad_productiva'}),
     frozenset({'especie'}),

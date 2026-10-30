@@ -476,7 +476,7 @@
                   "console.log('[TC-M03-G71 2.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
-                  "pm.test('Evento aceptado: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
+                  "pm.test('Evento aceptado: id_alerta presente; si es_duplicado=true es la consolidacion en la alerta de 2.1 (alerta_existente_id = alerta de 2.1)', function () { pm.expect(J.id_alerta).to.exist; if (J.es_duplicado === true) { pm.expect(String(J.alerta_existente_id)).to.eql(pm.collectionVariables.get('alerta_g71_a')); } });",
                   "try { pm.collectionVariables.set('alerta_g71_b', String((J||{}).id_alerta || 0)); } catch (e) {}"
                 ]
               }

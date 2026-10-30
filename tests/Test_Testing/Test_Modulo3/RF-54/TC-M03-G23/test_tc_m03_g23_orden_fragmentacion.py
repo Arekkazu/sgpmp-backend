@@ -1,6 +1,7 @@
 # | Fecha      | Nombre      | Que se hizo                                                                  |
 # |------------|-------------|------------------------------------------------------------------------------|
 # | 2026-10-26 | Juan Manuel | M03 RF-54: asociar/calibrar sensores y fecha_fin=hoy (DB-10)                 |
+# | 2026-10-29 | Juan Manuel | TC-M03-G23 RF-54: buffer_sequence_id en metadatos (INC-M03-131), capturas recientes 037/071 |
 """
 TC-M03-G23 - Integridad de orden y fragmentacion de lotes durante la captura y sincronizacion del buffer.
 
@@ -22,9 +23,13 @@ leido en la BD (modulo3.telemetrias, solo lectura con el usuario QA).
 - El limite de payload LoRaWAN es binario y del firmware; aqui se usa un tope de bytes del JSON por lote
   (LIMITE_BYTES_LOTE, por defecto 4096) solo para forzar varios lotes. Que el NODO respete el limite real
   queda en SKIP (requiere hardware).
-- buffer_sequence_id: el contrato de ingesta no lo incluye. DB-03 (commit b0917b78) retiro modulo3.buffers: el
-  buffer vive en el Edge. El test verifica si el backend conserva el id en algun lado (columna en
-  modulo3.telemetrias); hoy no lo hace.
+- buffer_sequence_id (INC-M03-131, 9a0aa196): campo opcional de /iot/telemetria/batch que se conserva tal cual
+  en modulo3.telemetrias.metadatos.buffer_sequence_id. Por MQTT el broker (BROKER-MQTT-SGPMP) solo lo pasa si el
+  nodo lo manda dentro de `metadatos`; eso es del lado IoT y no se prueba aqui.
+- DB-10 (15cb081c4835): la ingesta exige asociacion vigente del sensor a la fecha de CAPTURA. Como los sensores
+  se crean en la corrida, 037 y 071 capturan despues de la asociacion (segundos, no horas): lo que prueban
+  (orden, secuencia, fragmentacion) no depende de la antiguedad. 050 necesita series de 2 h hacia atras y queda
+  bloqueado por DB-10 (INC-M03-133).
 
 Requisitos: acceso de red a TEST (API y Postgres 5448).
 Variables: BROKER_TOKEN (token de servicio del broker de TEST, DEV-06; sin el /iot/* responde 401).
@@ -41,6 +46,7 @@ import json
 import os
 import random
 import string
+import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -62,6 +68,13 @@ DB = dict(
     user=os.getenv("DB_USER", "member_qa"), password=os.getenv("DB_PASSWORD", "qaSGP2026"),
     dbname=os.getenv("DB_NAME", "sgpmp_test"),
 )
+
+_BLOQUEO_RLS = (
+    "BLOQUEADO: el usuario QA ({usuario}) no puede leer modulo3.telemetrias desde la RLS de modulo3 (migracion "
+    "0784d8c03206, 2026-10-28): 'permission denied for function fn_es_usuario_servicio'. El dato se persiste "
+    "(la API respondio 201) pero no se puede verificar en BD. Error: {error}"
+)
+
 
 
 # --------------------------------------------------------------------------- simulador (driver)
@@ -170,28 +183,26 @@ def _filas_bd(sensores: list[int]) -> list[dict]:
     con = psycopg2.connect(**DB)
     try:
         with con.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
+            try:
+                cur.execute(
                 "SELECT t.id_telemetria, t.id_sensor, t.valor_crudo, t.timestamp_captura, t.origen::text AS origen, "
-                "       va.nombre AS variable "
+                "       va.nombre AS variable, (t.metadatos ->> 'buffer_sequence_id')::bigint AS buffer_sequence_id "
                 "FROM modulo3.telemetrias t JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable "
                 "WHERE t.id_sensor = ANY(%s) ORDER BY t.id_telemetria",
                 (sensores,),
             )
+            except psycopg2.errors.InsufficientPrivilege as exc:
+                pytest.fail(_BLOQUEO_RLS.format(usuario=DB["user"], error=str(exc).splitlines()[0]))
             return list(cur.fetchall())
     finally:
         con.close()
 
 
-def _columnas_buffer_sequence_id() -> list[str]:
-    """Tablas de modulo3 con columna buffer_sequence_id (modulo3.buffers se retiro en DB-03)."""
-    con = psycopg2.connect(**DB)
-    try:
-        with con.cursor() as cur:
-            cur.execute("SELECT table_name FROM information_schema.columns "
-                        "WHERE table_schema = 'modulo3' AND column_name = 'buffer_sequence_id' ORDER BY 1")
-            return [r[0] for r in cur.fetchall()]
-    finally:
-        con.close()
+def _ventana_reciente(n: int, paso: timedelta) -> datetime:
+    """Inicio de n capturas separadas por `paso`, todas posteriores a la asociacion (DB-10) y ya pasadas al enviar."""
+    inicio = datetime.now(timezone.utc) + timedelta(seconds=1)
+    time.sleep((paso * n).total_seconds() + 3)
+    return inicio
 
 
 def _ts(s: str) -> datetime:
@@ -202,11 +213,12 @@ def _ts(s: str) -> datetime:
 @pytest.fixture(scope="module")
 def corrida_037(admin, area):
     nodo, sensores = _nodo_con_sensores(admin, area, "037", ["TEMPERATURA"] * 5)
-    inicio = datetime.now(timezone.utc) - timedelta(hours=3)
+    paso = timedelta(milliseconds=200)
+    inicio = _ventana_reciente(50, paso)
     # 50 mediciones de 5 sensores intercaladas; el buffer se drena en FIFO por buffer_sequence_id.
     for i in range(50):
         nodo.capturar_offline(sensores[i % 5], "TEMPERATURA_AMBIENTAL", "°C", round(20 + i * 0.1, 2),
-                              inicio + timedelta(minutes=i))
+                              inicio + paso * i)
     respuestas = nodo.sincronizar()
     return {"nodo": nodo, "sensores": sensores, "respuestas": respuestas, "filas": _filas_bd(sensores)}
 
@@ -225,12 +237,11 @@ def test_tc_m03_037_orden_cronologico_estricto_en_la_bd(corrida_037):
 
 
 def test_tc_m03_037_se_conserva_el_buffer_sequence_id_del_nodo(corrida_037):
-    tablas = _columnas_buffer_sequence_id()
-    assert "telemetrias" in tablas, (
-        "El backend no conserva el buffer_sequence_id asignado en el nodo: el contrato de ingesta no incluye el "
-        f"campo, modulo3.telemetrias no tiene la columna y modulo3.buffers se retiro en DB-03 (tablas con la "
-        f"columna: {tablas or 'ninguna'})"
-    )
+    enviado = {(r["sensor_id"], _ts(r["timestamp_captura"])): r["buffer_sequence_id"] for r in corrida_037["nodo"].buffer}
+    guardado = {(f["id_sensor"], f["timestamp_captura"]): f["buffer_sequence_id"] for f in corrida_037["filas"]}
+    assert guardado == enviado, "telemetrias.metadatos.buffer_sequence_id no coincide con la secuencia asignada en el nodo"
+    secuencias = [f["buffer_sequence_id"] for f in corrida_037["filas"]]
+    assert secuencias == sorted(secuencias), "El orden de persistencia no sigue la secuencia FIFO del buffer"
 
 
 # --------------------------------------------------------------------------- TC-M03-050
@@ -277,11 +288,12 @@ def test_tc_m03_050_cada_serie_conserva_su_orden_y_su_variable(corrida_050):
 @pytest.fixture(scope="module")
 def corrida_071(admin, area):
     nodo, sensores = _nodo_con_sensores(admin, area, "071", ["TEMPERATURA", "TEMPERATURA"])
-    inicio = datetime.now(timezone.utc) - timedelta(hours=6)
+    paso = timedelta(milliseconds=200)
+    inicio = _ventana_reciente(120, paso)
     valores = {}
     for i in range(120):
         valor = round(15 + i * 0.05, 2)
-        ts = inicio + timedelta(minutes=i)
+        ts = inicio + paso * i
         nodo.capturar_offline(sensores[i % 2], "TEMPERATURA_AMBIENTAL", "°C", valor, ts)
         valores[(sensores[i % 2], ts)] = Decimal(str(valor))
     lotes = nodo.lotes_fifo(LIMITE_BYTES_LOTE)

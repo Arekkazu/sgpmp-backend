@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: validar catalogo, actor, referencia y payload antes de persistir. |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02/H-03 RF-73: NOTAS_REGISTRADAS e id_version_deprecada |
+# | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72/RF-73: VENTANA_RETROALIMENTACION_AMPLIADA |
 """RF-73 E1 y CA-13/15: contrato del evento sin dependencias de persistencia."""
 from __future__ import annotations
 
@@ -52,6 +53,7 @@ class TipoEventoM04(StrEnum):
     DEGRADACION_DETECTADA = "DEGRADACION_DETECTADA"
     RETROALIMENTACION_REGISTRADA = "RETROALIMENTACION_REGISTRADA"
     CONFLICTO_RETROALIMENTACION = "CONFLICTO_RETROALIMENTACION"
+    VENTANA_RETROALIMENTACION_AMPLIADA = "VENTANA_RETROALIMENTACION_AMPLIADA"
     AUDITORIA_EVENTO_INVALIDO = "AUDITORIA_EVENTO_INVALIDO"
     AUDITORIA_FALLA_PERSISTENCIA = "AUDITORIA_FALLA_PERSISTENCIA"
     AUDITORIA_FALLBACK_ACTIVADO = "AUDITORIA_FALLBACK_ACTIVADO"
@@ -87,6 +89,7 @@ _PAYLOAD_REQUERIDO: dict[str, tuple[str, ...]] = {
     "DEGRADACION_DETECTADA": ("tipo_modelo", "version_modelo_activa", "umbral_minimo", "periodo_evaluado_dias"),
     "RETROALIMENTACION_REGISTRADA": ("id_resultado_inferencia", "estado_retroalimentacion", "id_usuario_veterinario"),
     "CONFLICTO_RETROALIMENTACION": ("id_resultado_inferencia", "numero_retroalimentaciones"),
+    "VENTANA_RETROALIMENTACION_AMPLIADA": ("id_resultado_inferencia", "fecha_limite", "justificacion", "id_usuario_autorizador"),
     "CATALOGO_PATOLOGIA_AGREGADA": ("id_patologia", "nombre"),
     "CATALOGO_PATOLOGIA_MODIFICADA": ("id_patologia",),
     "CATALOGO_PATOLOGIA_INACTIVADA": ("id_patologia",),

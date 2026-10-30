@@ -1,8 +1,15 @@
+# | Fecha      | Nombre   | Que se hizo                                                      |
+# |------------|----------|------------------------------------------------------------------|
+# | 2026-10-30 | Arekkazu | INC-M03-135-G01 RF-49: GET/PUT especies compatibles del sensor   |
 """Router FastAPI para sensores (`/configuracion/sensores`).
 
 RF-22 — CU05 Flujo B:
   POST  /configuracion/sensores/{id}/asociar         — Asociar sensor a área productiva
   GET   /configuracion/sensores/{id}/asociaciones    — Historial de asociaciones
+
+RF-49 R3 — compatibilidad biológica sensor-especie:
+  GET   /configuracion/sensores/{id}/especies-compatibles — Especies compatibles del sensor
+  PUT   /configuracion/sensores/{id}/especies-compatibles — Reemplazar la lista
 
 RF-24 — CU05 Flujo D:
   POST  /configuracion/sensores/{id}/calibrar        — Registrar calibración
@@ -17,6 +24,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
+from src.configuration.application.use_cases.sensores.especies_compatibles_sensor_use_case import (
+    EspeciesCompatiblesSensorUseCase,
+)
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
     MENSAJE_ACCESO_DENEGADO,
     ConsultarCalibracionesUseCase,
@@ -25,11 +35,16 @@ from src.configuration.application.use_cases.sensores.registrar_calibracion_use_
 )
 from src.configuration.infrastructure.adapters.asociacion_sensor_activo_m02_adapter import AsociacionSensorActivoM02Adapter
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
+from src.configuration.infrastructure.dto.especies_compatibles_sensor_dto import EspeciesCompatiblesSensorDTO
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
 from src.configuration.infrastructure.repositories.auditoria_calibracion_repository import SqlAlchemyAuditoriaCalibracionRepository
 from src.configuration.infrastructure.repositories.auditoria_sensor_area_repository import SqlAlchemyAuditoriaSensorAreaRepository
 from src.configuration.infrastructure.repositories.calibracion_repository import SqlAlchemyCalibracionRepository
+from src.configuration.infrastructure.repositories.compatibilidad_sensor_especie_repository import (
+    SqlAlchemyCompatibilidadSensorEspecieRepository,
+)
 from src.configuration.infrastructure.repositories.dispositivo_iot_repository import SqlAlchemyDispositivoIotRepository
+from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
 from src.configuration.infrastructure.repositories.rango_calibracion_repository import SqlAlchemyRangoCalibracionRepository
 from src.configuration.infrastructure.repositories.sensor_area_repository import SqlAlchemySensorAreaRepository
@@ -40,6 +55,7 @@ from src.configuration.infrastructure.schema.calibracion_schema import (
     ListaRangosCalibracionResponse,
     RangoCalibracionResponse,
 )
+from src.configuration.infrastructure.schema.especies_compatibles_sensor_schema import EspeciesCompatiblesSensorResponse
 from src.configuration.infrastructure.schema.sensor_area_schema import (
     AsociarSensorAreaResponse,
     ListaSensorAreasResponse,
@@ -268,3 +284,62 @@ def listar_calibraciones(
     )
     items = [CalibracionResponse.from_entity(c) for c in calibraciones]
     return ListaCalibracionesResponse(total=len(items), items=items)
+
+
+# ── RF-49 R3: especies compatibles del sensor ──────────────────────────────────
+
+def _especies_use_case(db: Session) -> EspeciesCompatiblesSensorUseCase:
+    return EspeciesCompatiblesSensorUseCase(
+        db=db,
+        sensor_repo=SqlAlchemySensorRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        especie_repo=SqlAlchemyEspecieRepository(db),
+        compatibilidad_repo=SqlAlchemyCompatibilidadSensorEspecieRepository(db),
+    )
+
+
+@router.get(
+    "/{id_sensor}/especies-compatibles",
+    response_model=EspeciesCompatiblesSensorResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Especies compatibles del sensor (RF-49)",
+)
+def consultar_especies_compatibles(
+    id_sensor: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EspeciesCompatiblesSensorResponse:
+    """Especies con las que el sensor puede vincularse a un activo biológico (M02, RF-49 R3).
+
+    **Acceso:** `sensores` · Leer.
+    """
+    especies = _especies_use_case(db).consultar(id_sensor, _alcance(db, usuario_actual))
+    return EspeciesCompatiblesSensorResponse.desde(id_sensor, especies)
+
+
+@router.put(
+    "/{id_sensor}/especies-compatibles",
+    response_model=EspeciesCompatiblesSensorResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={
+        400: {"model": ErrorResponse}, 401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse}, 404: {"model": ErrorResponse},
+    },
+    summary="Configurar las especies compatibles del sensor (RF-49)",
+)
+def configurar_especies_compatibles(
+    id_sensor: int,
+    dto: EspeciesCompatiblesSensorDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EspeciesCompatiblesSensorResponse:
+    """Reemplaza la lista de especies compatibles (al menos una, todas activas).
+
+    Sin esta lista, M02 rechaza la asociación del sensor a un animal con
+    `COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`.
+
+    **Acceso:** `sensores` · Actualizar.
+    """
+    especies = _especies_use_case(db).reemplazar(id_sensor, dto.ids_especies, _alcance(db, usuario_actual))
+    return EspeciesCompatiblesSensorResponse.desde(id_sensor, especies)

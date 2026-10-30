@@ -142,6 +142,14 @@
     {
       "key": "id_venc_reciente",
       "value": "0"
+    },
+    {
+      "key": "infra_nh3",
+      "value": ""
+    },
+    {
+      "key": "esp_area_nh3",
+      "value": ""
     }
   ],
   "item": [
@@ -297,6 +305,97 @@
       ]
     },
     {
+      "name": "0E.1 Preparacion: infraestructura del dispositivo del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.collectionVariables.set('infra_nh3', String(J.id_infraestructura || 0));",
+              "console.log('[G57B-0E.1][OBSERVADO] infraestructura=' + J.id_infraestructura);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.2 Preparacion: especies del area del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{infra_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_nh3', String((J.especies || [])[0] || 0));",
+              "console.log('[G57B-0E.2][OBSERVADO] especies area=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.3 Preparacion (sandbox): umbral NH3 en la especie del area del sensor de amoniaco",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 11,\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Plazos de SLA por severidad: CRITICA 5 min, MODERADA 30 min, LEVE 120 min (TC-M03-N39 / N41 / N42, parte observable)",
       "item": [
         {
@@ -399,7 +498,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 30.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 38.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -482,7 +581,7 @@
             "url": "{{base_url}}/iot/alertas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 39.5,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 40.2,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -770,7 +869,7 @@
       "name": "4. Tiempos y reglas de escalamiento configurables (TC-M03-N44)",
       "item": [
         {
-          "name": "4.1 N44: los parametros operativos (GET /configuracion/parametros) incluyen tiempos de SLA",
+          "name": "4.1 N44: los parametros de alertas (GET /configuracion/parametros-alertas) incluyen los tiempos de SLA por severidad",
           "request": {
             "method": "GET",
             "header": [
@@ -779,7 +878,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/configuracion/parametros"
+            "url": "{{base_url}}/configuracion/parametros-alertas"
           },
           "event": [
             {
@@ -787,18 +886,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 4.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
-                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[TC-M03-G57B 4.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 800));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = []; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G57B-4.1][OBSERVADO] campos = ' + JSON.stringify(Object.keys(J || {})));",
-                  "pm.test('Algun campo de parametros es de SLA, plazo o escalamiento', function () { pm.expect(/sla|plazo|escalam|vencim/i.test(Object.keys(J || {}).join(' '))).to.be.true; });"
+                  "const _nombres = (Array.isArray(J) ? J : []).map(function (x) { return x.nombre; });",
+                  "console.log('[G57B-4.1][OBSERVADO] parametros = ' + JSON.stringify(_nombres));",
+                  "pm.test('Hay un parametro de SLA para cada severidad (CRITICO, MODERADO, LEVE)', function () {",
+                  "  ['rf57_sla_critico_min', 'rf57_sla_moderado_min', 'rf57_sla_leve_min'].forEach(function (n) { pm.expect(_nombres, n).to.include(n); });",
+                  "});",
+                  "const _esc = _nombres.filter(function (n) { return /escalam/i.test(n); });",
+                  "console.log('[G57B-4.1][OBSERVADO] parametros de reglas de escalamiento = ' + JSON.stringify(_esc));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "4.2 N44: existe un endpoint para configurar tiempos y reglas de escalamiento (se excluye /iot/calidad)",
+          "name": "4.2 N44: existe un endpoint para configurar los tiempos de SLA (PATCH /configuracion/parametros-alertas en el contrato)",
           "request": {
             "method": "GET",
             "header": [
@@ -815,13 +919,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G57B 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
+                  "console.log('[TC-M03-G57B 4.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms');",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "const _hit = _paths.filter(function (p) { return /sla|escalamiento|vencimiento|plazo/i.test(p) && !/calidad/i.test(p); });",
-                  "console.log('[G57B-4.2][OBSERVADO] rutas del contrato de SLA/escalamiento = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para configurar los tiempos y reglas de escalamiento del SLA', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "const _ruta = (J.paths || {})['/configuracion/parametros-alertas'] || {};",
+                  "console.log('[G57B-4.2][OBSERVADO] metodos de /configuracion/parametros-alertas = ' + JSON.stringify(Object.keys(_ruta)));",
+                  "pm.test('El contrato expone PATCH /configuracion/parametros-alertas para configurar los tiempos de SLA', function () { pm.expect(Object.keys(_ruta)).to.include('patch'); });"
                 ]
               }
             }

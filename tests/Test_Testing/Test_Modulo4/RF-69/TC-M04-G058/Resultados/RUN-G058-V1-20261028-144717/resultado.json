@@ -1,0 +1,1164 @@
+{
+  "grupo": "G058",
+  "run_id": "RUN-G058-V1-20261028-144717",
+  "version": 1,
+  "intento": 2,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G058-V1-R2-20261028",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-157": {
+      "estado": "APROBADO",
+      "motivo": "R 106 RECHAZADA; ambos roles HTTP 409; versión 105 sigue ACTIVO; sin transiciones nuevas"
+    },
+    "TC-M04-158": {
+      "estado": "APROBADO",
+      "motivo": "A 104 DEPRECADA; HTTP 409; B 105 no se alteró; sin transiciones nuevas"
+    },
+    "TC-M04-159": {
+      "estado": "APROBADO",
+      "motivo": "B 105 ACTIVO y en producción; HTTP 409; listado={B}; sin eventos nuevos"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-157",
+      "fuente": "API",
+      "id": "API-157-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "R 106 RECHAZADA; ambos roles HTTP 409; versión 105 sigue ACTIVO; sin transiciones nuevas",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-158",
+      "fuente": "API",
+      "id": "API-158-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "A 104 DEPRECADA; HTTP 409; B 105 no se alteró; sin transiciones nuevas",
+      "evidencia": "resultado.json"
+    },
+    {
+      "caso": "TC-M04-159",
+      "fuente": "API",
+      "id": "API-159-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "B 105 ACTIVO y en producción; HTTP 409; listado={B}; sin eventos nuevos",
+      "evidencia": "resultado.json"
+    }
+  ],
+  "presupuesto": {
+    "logins": 2,
+    "catalogo": 1,
+    "activos_iniciales": 1,
+    "registros": 3,
+    "notas": 2,
+    "activaciones_validas": 2,
+    "estados_preparados": 2,
+    "auditorias_antes": 3,
+    "intentos_invalidos": 4,
+    "comprobacion_159": 2,
+    "comprobacion_158": 2,
+    "activa_antes_157": 1,
+    "comprobacion_157": 3,
+    "auditorias_intentos": 4,
+    "cierre": 1,
+    "comprobacion_rollback": 4,
+    "total": 37,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "solicitudes": [
+    {
+      "rol": "admin",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "estado_antes": null,
+      "http": 200,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 910
+    },
+    {
+      "rol": "vet",
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "estado_antes": null,
+      "http": 200,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 633
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 16,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 151
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 0,
+      "items": [],
+      "error_codigo": null,
+      "duracion_ms": 159
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "A",
+      "http": 201,
+      "eco": true,
+      "id": 104,
+      "estado": "APROBADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 2966
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "B",
+      "http": 201,
+      "eco": true,
+      "id": 105,
+      "estado": "APROBADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 386
+    },
+    {
+      "rol": "RF-71 interno",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos",
+      "dato": "R",
+      "http": 200,
+      "eco": true,
+      "id": 106,
+      "estado": "RECHAZADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 31058
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/104/notas",
+      "estado_antes": "APROBADO",
+      "http": 200,
+      "eco": true,
+      "id": 104,
+      "estado": "APROBADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 491
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "PATCH",
+      "ruta": "/prediccion/modelos/105/notas",
+      "estado_antes": "APROBADO",
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "APROBADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 388
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/104/activar",
+      "estado_antes": "APROBADO",
+      "http": 200,
+      "eco": true,
+      "id": 104,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 158
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/105/activar",
+      "estado_antes": "APROBADO",
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 152
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/104",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 104,
+      "estado": "DEPRECADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 141
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 144
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 6,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "104",
+          "correlacion_id": "71b1bcac-d6f8-4911-82f7-8f91d5e42baa"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_DEPRECADA",
+          "id_referencia": "104",
+          "correlacion_id": "4a83bc19-973f-4a8a-be81-71f3bc196bb0"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_ACTIVADA",
+          "id_referencia": "104",
+          "correlacion_id": "7cacddb9-ffda-4e0f-9343-80edb92eaaca"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "104",
+          "correlacion_id": "c7f7d130-2bc7-49e1-88e1-4f490c5df290"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "104",
+          "correlacion_id": "173965b3-8202-451d-8e29-e09b059f29b3"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "104",
+          "correlacion_id": "18543d0d-8990-453c-a1de-8f264fe1a2d3"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 155
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 5,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "86db241b-d594-406a-9fca-7639f6df29b3"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_ACTIVADA",
+          "id_referencia": "105",
+          "correlacion_id": "4a83bc19-973f-4a8a-be81-71f3bc196bb0"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "e20b5cb8-5e5b-4688-ba0b-8343ee193b71"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "38c0774b-0238-4525-8022-acb00ebffb65"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "105",
+          "correlacion_id": "ef41b779-d6e3-44f2-a59d-4d9423a809ae"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 152
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 2,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_RECHAZADA",
+          "id_referencia": "106",
+          "correlacion_id": "169fbd6f-e1a9-4c01-a365-f7f07f929f7f"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "106",
+          "correlacion_id": "154a4d81-3a5c-499f-a9dc-5a8cff1deefa"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 140
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/105/activar",
+      "estado_antes": "ACTIVO",
+      "http": 409,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "VERSION_NO_APROBADA",
+      "duracion_ms": 134
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 142
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 1,
+      "items": [
+        {
+          "id": 105,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "componente": null,
+          "estado": "ACTIVO",
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 143
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 6,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "e0e47a53-9123-44b8-af12-8a136d3396d2"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "86db241b-d594-406a-9fca-7639f6df29b3"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_ACTIVADA",
+          "id_referencia": "105",
+          "correlacion_id": "4a83bc19-973f-4a8a-be81-71f3bc196bb0"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "e20b5cb8-5e5b-4688-ba0b-8343ee193b71"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "38c0774b-0238-4525-8022-acb00ebffb65"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "105",
+          "correlacion_id": "ef41b779-d6e3-44f2-a59d-4d9423a809ae"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 155
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/104/activar",
+      "estado_antes": "DEPRECADO",
+      "http": 409,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "TRANSICION_ESTADO_INVALIDA",
+      "duracion_ms": 132
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/104",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 104,
+      "estado": "DEPRECADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 136
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 135
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 7,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "104",
+          "correlacion_id": "01a4fb28-b7d0-45aa-aeeb-54309ff02345"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "104",
+          "correlacion_id": "71b1bcac-d6f8-4911-82f7-8f91d5e42baa"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_DEPRECADA",
+          "id_referencia": "104",
+          "correlacion_id": "4a83bc19-973f-4a8a-be81-71f3bc196bb0"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_ACTIVADA",
+          "id_referencia": "104",
+          "correlacion_id": "7cacddb9-ffda-4e0f-9343-80edb92eaaca"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "104",
+          "correlacion_id": "c7f7d130-2bc7-49e1-88e1-4f490c5df290"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "104",
+          "correlacion_id": "173965b3-8202-451d-8e29-e09b059f29b3"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "104",
+          "correlacion_id": "18543d0d-8990-453c-a1de-8f264fe1a2d3"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 153
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 7,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "a72f5d8b-978a-4274-b4ae-188bc0b9f5c7"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "e0e47a53-9123-44b8-af12-8a136d3396d2"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "105",
+          "correlacion_id": "86db241b-d594-406a-9fca-7639f6df29b3"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_ACTIVADA",
+          "id_referencia": "105",
+          "correlacion_id": "4a83bc19-973f-4a8a-be81-71f3bc196bb0"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "e20b5cb8-5e5b-4688-ba0b-8343ee193b71"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_APROBADA",
+          "id_referencia": "105",
+          "correlacion_id": "38c0774b-0238-4525-8022-acb00ebffb65"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "105",
+          "correlacion_id": "ef41b779-d6e3-44f2-a59d-4d9423a809ae"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 150
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 143
+    },
+    {
+      "rol": "Veterinario",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/106/activar",
+      "estado_antes": "RECHAZADO",
+      "http": 409,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "TRANSICION_ESTADO_INVALIDA",
+      "duracion_ms": 136
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "POST",
+      "ruta": "/prediccion/modelos/106/activar",
+      "estado_antes": "RECHAZADO",
+      "http": 409,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "TRANSICION_ESTADO_INVALIDA",
+      "duracion_ms": 144
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 105,
+      "estado": "ACTIVO",
+      "esta_produccion": true,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 140
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/106",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": 106,
+      "estado": "RECHAZADO",
+      "esta_produccion": false,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 138
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 1,
+      "items": [
+        {
+          "id": 105,
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "componente": null,
+          "estado": "ACTIVO",
+          "tipo_evento": null,
+          "id_referencia": null,
+          "correlacion_id": null
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 138
+    },
+    {
+      "rol": "Administrador",
+      "metodo": "GET",
+      "ruta": "/prediccion/auditoria?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": true,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 3,
+      "items": [
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "HISTORIAL_CONSULTADO",
+          "id_referencia": "106",
+          "correlacion_id": "f594bedf-7026-4f87-98aa-adc2b492abe2"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_RECHAZADA",
+          "id_referencia": "106",
+          "correlacion_id": "169fbd6f-e1a9-4c01-a365-f7f07f929f7f"
+        },
+        {
+          "id": null,
+          "tipo_modelo": null,
+          "componente": null,
+          "estado": null,
+          "tipo_evento": "VERSION_REGISTRADA",
+          "id_referencia": "106",
+          "correlacion_id": "154a4d81-3a5c-499f-a9dc-5a8cff1deefa"
+        }
+      ],
+      "error_codigo": null,
+      "duracion_ms": 263
+    },
+    {
+      "rol": "Sistema",
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G058-V1-20261028-144717",
+      "estado_antes": null,
+      "http": 200,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": null,
+      "duracion_ms": 129
+    },
+    {
+      "rol": "Administrador poscierre",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/104",
+      "estado_antes": null,
+      "http": 404,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "VERSION_MODELO_NO_ENCONTRADA",
+      "duracion_ms": 140
+    },
+    {
+      "rol": "Administrador poscierre",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/105",
+      "estado_antes": null,
+      "http": 404,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "VERSION_MODELO_NO_ENCONTRADA",
+      "duracion_ms": 140
+    },
+    {
+      "rol": "Administrador poscierre",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos/106",
+      "estado_antes": null,
+      "http": 404,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": null,
+      "items": null,
+      "error_codigo": "VERSION_MODELO_NO_ENCONTRADA",
+      "duracion_ms": 136
+    },
+    {
+      "rol": "Administrador poscierre",
+      "metodo": "GET",
+      "ruta": "/prediccion/modelos?[filtro]",
+      "estado_antes": null,
+      "http": 200,
+      "eco": null,
+      "id": null,
+      "estado": null,
+      "esta_produccion": null,
+      "total": 0,
+      "items": [],
+      "error_codigo": null,
+      "duracion_ms": 142
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G058-A.html",
+    "newman/newman-G058-A.json",
+    "newman/newman-G058-B.html",
+    "newman/newman-G058-B.json",
+    "newman/newman-G058-R.html",
+    "newman/newman-G058-R.json",
+    "resultado.json",
+    "TC-M04-G058_resultado.md"
+  ],
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "observaciones": [
+    "158: no se genera evento de auditoría para el intento rechazado; sin requisito normativo localizado"
+  ],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "GET poscierre: 3 versiones HTTP 404; listado ACTIVO restaurado"
+    }
+  },
+  "presupuesto_esperado": 37
+}

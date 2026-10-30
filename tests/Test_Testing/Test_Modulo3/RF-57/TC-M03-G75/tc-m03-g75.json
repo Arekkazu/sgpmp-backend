@@ -66,6 +66,46 @@
     {
       "key": "ids_alertas",
       "value": "[]"
+    },
+    {
+      "key": "device_id_nh3",
+      "value": "310"
+    },
+    {
+      "key": "serial_nh3",
+      "value": "QA58-DEV-A10-01"
+    },
+    {
+      "key": "sensor_nh3",
+      "value": "482"
+    },
+    {
+      "key": "sensor_temp_corporal",
+      "value": "471"
+    },
+    {
+      "key": "infra_nh3",
+      "value": ""
+    },
+    {
+      "key": "esp_area_nh3",
+      "value": ""
+    },
+    {
+      "key": "id_alerta_a",
+      "value": "0"
+    },
+    {
+      "key": "id_alerta_b",
+      "value": "0"
+    },
+    {
+      "key": "id_alerta_nueva",
+      "value": "0"
+    },
+    {
+      "key": "gen_a_ms",
+      "value": "0"
     }
   ],
   "item": [
@@ -180,6 +220,97 @@
               "if (pm.response.code === 201) { _guardar(J); _fin(); }",
               "else if (pm.response.code === 400 || pm.response.code === 422) { _intentar(1); }",
               "else { _fin(); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.1 Preparacion: infraestructura del dispositivo del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.collectionVariables.set('infra_nh3', String(J.id_infraestructura || 0));",
+              "console.log('[G57B-0E.1][OBSERVADO] infraestructura=' + J.id_infraestructura);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.2 Preparacion: especies del area del sensor de amoniaco",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{infra_nh3}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_nh3', String((J.especies || [])[0] || 0));",
+              "console.log('[G57B-0E.2][OBSERVADO] especies area=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.3 Preparacion (sandbox): umbral NH3 en la especie del area del sensor de amoniaco",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 11,\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
             ]
           }
         }
@@ -328,7 +459,7 @@
       "name": "2. Reevaluacion tras la recuperacion del motor (TC-M03-153 / N15 / N16 / N17)",
       "item": [
         {
-          "name": "2.1 N15/TC-M03-153: el contrato (openapi.json) tiene una ruta de reevaluacion de IA y POST /iot/alertas recibe referencia_alerta_original y generada_por_reevaluacion",
+          "name": "2.1 N15/TC-M03-153: el contrato (openapi.json) tiene POST /iot/alertas/{id_alerta}/reevaluacion",
           "request": {
             "method": "GET",
             "header": [
@@ -345,26 +476,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G75 2.1] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "function _ref(s) { if (s && s.$ref) { const n = s.$ref.split('/').pop(); return (J.components && J.components.schemas && J.components.schemas[n]) || {}; } return s || {}; }",
-                  "const _hit = _paths.filter(function (p) { return /reevalu|recuperaci/i.test(p) && !/calidad|contrasena/i.test(p); });",
-                  "const _rf62 = _paths.filter(function (p) { return /reevalu/i.test(p) && /calidad/i.test(p); });",
-                  "const _post = (((J.paths || {})['/iot/alertas'] || {}).post || {});",
-                  "let _props = []; try { _props = Object.keys(_ref(_post.requestBody.content['application/json'].schema).properties || {}); } catch (e) {}",
-                  "const _campos = _props.filter(function (c) { return /reevalu|referencia_alerta_original/i.test(c); });",
-                  "console.log('[G75-2.1][OBSERVADO] rutas de reevaluacion = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas | ruta de calidad RF-62 excluida (reevalua lecturas de telemetria, no alertas) = ' + JSON.stringify(_rf62) + ' | campos del POST /iot/alertas = ' + JSON.stringify(_props) + ' | campos de reevaluacion = ' + JSON.stringify(_campos));",
-                  "pm.test('Hay una ruta para informar la reevaluacion del motor de IA tras su recuperacion', function () { pm.expect(_hit.length, 'rutas de reevaluacion en /openapi.json').to.be.above(0); });",
-                  "pm.test('POST /iot/alertas (o la ruta de reevaluacion) recibe referencia_alerta_original y generada_por_reevaluacion', function () { pm.expect(_campos.length, 'campos de reevaluacion en el contrato: ' + JSON.stringify(_props)).to.be.above(0); });"
+                  "const _r = (J.paths || {})['/iot/alertas/{id_alerta}/reevaluacion'] || {};",
+                  "console.log('[G75-2.1][OBSERVADO] metodos de /iot/alertas/{id_alerta}/reevaluacion = ' + JSON.stringify(Object.keys(_r)));",
+                  "pm.test('El contrato expone POST /iot/alertas/{id_alerta}/reevaluacion', function () { pm.expect(Object.keys(_r)).to.include('post'); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.2 N15 Reevaluacion confirma tipo y severidad: sin alerta nueva y bitacora REEVALUACION_CONFIRMADA (BLOQUEADO)",
+          "name": "2.4a N17: GET /configuracion/parametros-alertas incluye la ventana de reevaluacion (base 60 min)",
           "request": {
             "method": "GET",
             "header": [
@@ -373,7 +496,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1"
+            "url": "{{base_url}}/configuracion/parametros-alertas"
           },
           "event": [
             {
@@ -381,14 +504,108 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test.skip('BLOQUEADO: sin logica de reevaluacion (ver 2.1) no hay forma de provocar REEVALUACION_CONFIRMADA; se reejecuta cuando exista la ruta');"
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = []; }",
+                  "const _p = (Array.isArray(J) ? J : []).filter(function (x) { return x.nombre === 'rf57_ventana_reevaluacion_min'; })[0] || {};",
+                  "console.log('[G75-2.4a][OBSERVADO] ' + JSON.stringify(_p));",
+                  "pm.test('Existe rf57_ventana_reevaluacion_min con valor base 60', function () { pm.expect(Number(_p.valor_base)).to.eql(60); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.3 N16 Recuperacion a 59:59 / 60:00 / 60:01 min (BLOQUEADO)",
+          "name": "2.4b N17: el Administrador cambia la ventana de reevaluacion a 30 min y persiste (PATCH /configuracion/parametros-alertas)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": { \"rf57_ventana_reevaluacion_min\": 30 }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PATCH responde 200', function () { pm.response.to.have.status(200); });",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = []; }",
+                  "const _p = (Array.isArray(J) ? J : []).filter(function (x) { return x.nombre === 'rf57_ventana_reevaluacion_min'; })[0] || {};",
+                  "pm.test('rf57_ventana_reevaluacion_min queda en 30', function () { pm.expect(Number(_p.valor)).to.eql(30); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.1 Vehiculo alerta A (amoniaco 38 ppm, MODERADO, generada sin resultado de IA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_nh3}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"NH3\",\n  \"valor\": 38.0,\n  \"unidad\": \"ppm\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"MODERADO\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_now', new Date().toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[G75 V.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 400));",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Alerta A creada', function () { pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('id_alerta_a', String(J.id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.1b Detalle alerta A: tiene_inferencia_no_disponible=true y fecha_generacion",
           "request": {
             "method": "GET",
             "header": [
@@ -397,7 +614,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1"
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_a}}"
           },
           "event": [
             {
@@ -405,42 +622,148 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test.skip('BLOQUEADO: depende de la reevaluacion (2.1) y fecha_generacion no se puede retroceder por BD (trigger de inmutabilidad RF-57); solo se podria probar esperando 60 min reales');"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "2.4a N17: los parametros operativos (GET /configuracion/parametros) incluyen la ventana de reevaluacion (base 60 min)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token_admin}}"
-              }
-            ],
-            "url": "{{base_url}}/configuracion/parametros"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "console.log('[TC-M03-G75 2.4a] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "console.log('[G75-2.4a][OBSERVADO] campos de parametros = ' + JSON.stringify(Object.keys(J || {})) + ' | cuerpo = ' + JSON.stringify(J).slice(0, 500));",
-                  "pm.test('Algun parametro es la ventana de reevaluacion', function () { pm.expect(/reevalu|ventana|recuperaci/i.test(Object.keys(J || {}).join(' ')), 'campos: ' + JSON.stringify(Object.keys(J || {}))).to.be.true; });"
+                  "pm.collectionVariables.set('gen_a_ms', String(Date.parse(J.fecha_generacion)));",
+                  "console.log('[G75-V.1b][OBSERVADO] ' + JSON.stringify({tipo: J.tipo_alerta, severidad: J.severidad, sin_ia: J.tiene_inferencia_no_disponible, generacion: J.fecha_generacion}));",
+                  "pm.test('Alerta A generada sin motor de inferencia (tiene_inferencia_no_disponible=true)', function () { pm.expect(J.tiene_inferencia_no_disponible).to.eql(true); });"
                 ]
               }
             }
           ]
         },
         {
-          "name": "2.4b N17: existe un endpoint para ver o cambiar la ventana de reevaluacion (60 -> 30 min)",
+          "name": "V.2 Vehiculo alerta B (temperatura corporal 40.2 C, LEVE, generada sin resultado de IA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id_nh3}},\n  \"sensor_id\": {{sensor_temp_corporal}},\n  \"serial\": \"{{serial_nh3}}\",\n  \"tipo_variable\": \"TEMPERATURA_CORPORAL\",\n  \"valor\": 40.2,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"EDGE\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('ts_now', new Date().toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[G75 V.2] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 400));",
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Alerta B creada', function () { pm.expect(J.id_alerta).to.exist; });",
+                  "pm.collectionVariables.set('id_alerta_b', String(J.id_alerta || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.3 N17: ventana de reevaluacion a 1 min (minimo permitido) para probar el borde sin esperar 60 min",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": { \"rf57_ventana_reevaluacion_min\": 1 }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PATCH responde 200', function () { pm.response.to.have.status(200); });",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = []; }",
+                  "const _p = (Array.isArray(J) ? J : []).filter(function (x) { return x.nombre === 'rf57_ventana_reevaluacion_min'; })[0] || {};",
+                  "pm.test('rf57_ventana_reevaluacion_min queda en 1', function () { pm.expect(Number(_p.valor)).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.4 N15: la IA confirma tipo y severidad de A -> sin alerta nueva (HTTP 200 CONFIRMADA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_a}}/reevaluacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[G75 V.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 400));",
+                  "pm.test('HTTP 200', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });",
+                  "pm.test('resultado CONFIRMADA y sin alerta nueva', function () { pm.expect(J.resultado).to.eql('CONFIRMADA'); pm.expect(J.id_alerta_nueva === null || J.id_alerta_nueva === undefined).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.4b N15: bitacora REEVALUACION_CONFIRMADA de la alerta A",
           "request": {
             "method": "GET",
             "header": [
@@ -449,7 +772,7 @@
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": "{{base_url}}/openapi.json"
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{id_alerta_a}}&tipo_evento=REEVALUACION_CONFIRMADA&por_pagina=10"
           },
           "event": [
             {
@@ -457,14 +780,304 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "console.log('[TC-M03-G75 2.4b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "const _paths = Object.keys(J.paths || {});",
-                  "function _ref(s) { if (s && s.$ref) { const n = s.$ref.split('/').pop(); return (J.components && J.components.schemas && J.components.schemas[n]) || {}; } return s || {}; }",
-                  "const _hit = _paths.filter(function (p) { return /reevalu|ventana/i.test(p) && !/calidad/i.test(p); });",
-                  "console.log('[G75-2.4b][OBSERVADO] rutas de ventana o reevaluacion = ' + JSON.stringify(_hit) + ' de ' + _paths.length + ' rutas');",
-                  "pm.test('Hay una ruta para configurar la ventana de reevaluacion', function () { pm.expect(_hit.length, 'rutas encontradas en /openapi.json').to.be.above(0); });"
+                  "console.log('[G75-V.4b][OBSERVADO] total=' + J.total);",
+                  "pm.test('Queda REEVALUACION_CONFIRMADA en la bitacora', function () { pm.expect(J.total).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.5 N15: la IA cambia la severidad de B (LEVE -> MODERADO) -> alerta nueva (HTTP 201 ALERTA_GENERADA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_b}}/reevaluacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[G75 V.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 400));",
+                  "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
+                  "pm.test('resultado ALERTA_GENERADA con id de alerta nueva y severidad MODERADO', function () { pm.expect(J.resultado).to.eql('ALERTA_GENERADA'); pm.expect(J.id_alerta_nueva).to.exist; pm.expect(J.severidad).to.eql('MODERADO'); });",
+                  "pm.collectionVariables.set('id_alerta_nueva', String(J.id_alerta_nueva || 0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.5b N15: la alerta nueva referencia a B (origen IA)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_nueva}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G75-V.5b][OBSERVADO] ' + JSON.stringify({origen: J.origen_evento, ref: J.referencia_alerta_original, gen_reeval: J.tiene_generada_por_reevaluacion, severidad: J.severidad}));",
+                  "pm.test('origen IA, referencia a la original y marca de reevaluacion', function () { pm.expect(J.origen_evento).to.eql('IA'); pm.expect(String(J.referencia_alerta_original)).to.eql(pm.collectionVariables.get('id_alerta_b')); pm.expect(J.tiene_generada_por_reevaluacion).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.5c N15: la alerta original B conserva su severidad LEVE (el historial no se modifica)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_b}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('B sigue LEVE y ACTIVA', function () { pm.expect(J.severidad).to.eql('LEVE'); pm.expect(J.estado_alerta).to.eql('ACTIVA'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.6 La alerta B ya tiene reevaluacion: un segundo intento se rechaza (HTTP 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_b}}/reevaluacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 REEVALUACION_YA_REGISTRADA', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.7 N16: reevaluacion a ~55 s con ventana de 1 min (dentro de la ventana) -> aceptada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_a}}/reevaluacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _g = Number(pm.collectionVariables.get('gen_a_ms')); const _ms = Math.max(0, _g + 55*1000 - Date.now());",
+                  "console.log('[G75] esperando ' + Math.round(_ms/1000) + ' s hasta generacion + 55 s');",
+                  "setTimeout(function () {}, _ms);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[G75 V.7] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "pm.test('Dentro de la ventana (55 s de 60 s): HTTP 200/201', function () { pm.expect([200, 201], pm.response.text().slice(0, 300)).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.8 N16: reevaluacion a ~66 s con ventana de 1 min (fuera de la ventana) -> rechazada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{id_alerta_a}}/reevaluacion",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta_ia\": \"SINDROME_RESPIRATORIO\",\n  \"severidad_ia\": \"MODERADO\",\n  \"probabilidad_ia\": 0.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _g = Number(pm.collectionVariables.get('gen_a_ms')); const _ms = Math.max(0, _g + 66*1000 - Date.now());",
+                  "console.log('[G75] esperando ' + Math.round(_ms/1000) + ' s hasta generacion + 66 s');",
+                  "setTimeout(function () {}, _ms);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "console.log('[G75 V.8] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+                  "pm.test('Fuera de la ventana (66 s de 60 s): HTTP 422 VENTANA_REEVALUACION_VENCIDA', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(422); pm.expect(J.error_code).to.eql('VENTANA_REEVALUACION_VENCIDA'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.8b N16: bitacora REEVALUACION_FUERA_DE_VENTANA de la alerta A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/auditoria?entidad_afectada_id={{id_alerta_a}}&tipo_evento=REEVALUACION_FUERA_DE_VENTANA&por_pagina=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "console.log('[G75-V.8b][OBSERVADO] total=' + J.total);",
+                  "pm.test('Queda el rechazo por ventana en la bitacora', function () { pm.expect(J.total).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V.9 Restaurar la ventana de reevaluacion a 60 min",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": { \"rf57_ventana_reevaluacion_min\": 60 }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('PATCH de restauracion responde 200', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }

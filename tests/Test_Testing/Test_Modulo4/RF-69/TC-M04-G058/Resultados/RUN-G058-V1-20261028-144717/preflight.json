@@ -1,0 +1,45 @@
+{
+  "grupo": "G058",
+  "run_id": "RUN-G058-V1-20261028-144717",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "logins": 2,
+    "catalogo": 1,
+    "activos_iniciales": 1,
+    "registros": 3,
+    "notas": 2,
+    "activaciones_validas": 2,
+    "estados_preparados": 2,
+    "auditorias_antes": 3,
+    "intentos_invalidos": 4,
+    "comprobacion_159": 2,
+    "comprobacion_158": 2,
+    "activa_antes_157": 1,
+    "comprobacion_157": 3,
+    "auditorias_intentos": 4,
+    "cierre": 1,
+    "comprobacion_rollback": 4,
+    "total": 37,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos_declarados": [
+    "3_versiones_BD_sandbox",
+    "2_notas_2_activaciones_validas_4_intentos_rechazados",
+    "historial_y_auditoria_BD_sandbox",
+    "3_ONNX_fuera_rollback",
+    "respaldo_RF73_posible",
+    "correo_a_cada_usuario_activo_permiso_43_3_por_R",
+    "sin_OTA_MQTT_Edge",
+    "2_logins_previos_posible_sesion_o_auditoria",
+    "posible_deprecacion_activa_heredada"
+  ]
+}

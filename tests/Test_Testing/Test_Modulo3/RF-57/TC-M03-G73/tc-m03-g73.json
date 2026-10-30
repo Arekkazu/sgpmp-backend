@@ -70,6 +70,10 @@
     {
       "key": "alerta_aislar",
       "value": "0"
+    },
+    {
+      "key": "umbral_min_original",
+      "value": "0.75"
     }
   ],
   "item": [
@@ -1028,39 +1032,24 @@
       ]
     },
     {
-      "name": "2. Cambio de umbral_confianza_minimo a 0.80 (sin despliegue)",
+      "name": "2. Cambio de rf57_umbral_confianza_minimo a 0.80 (sin despliegue)",
       "item": [
         {
-          "name": "2.1 Configurar umbral_confianza_minimo=0.80 y repetir 0.75 (no genera) y 0.80 (genera)",
+          "name": "2.0 Consultar el valor actual de rf57_umbral_confianza_minimo (GET /configuracion/parametros-alertas)",
           "request": {
             "method": "GET",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{token_admin}}"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/iot/alertas?pagina=1&por_pagina=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "iot",
-                "alertas"
-              ],
-              "query": [
-                {
-                  "key": "pagina",
-                  "value": "1"
-                },
-                {
-                  "key": "por_pagina",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Marcador de subcaso no automatizable: el parametro umbral_confianza_minimo (0.75, PREDICCION_PATOLOGIA) no existe en el backend de TEST (solo existe umbral_confianza_edge_ia de E12/E13) ni hay endpoint para modificarlo; se documenta como hallazgo"
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "description": ""
           },
           "event": [
             {
@@ -1068,7 +1057,279 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test.skip(\"NO EJECUTABLE: el parametro umbral_confianza_minimo (0.75, PREDICCION_PATOLOGIA) no existe en el backend de TEST (solo existe umbral_confianza_edge_ia de E12/E13) ni hay endpoint para modificarlo; se documenta como hallazgo\");"
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _p = (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === 'rf57_umbral_confianza_minimo'; });",
+                  "console.log('[TC-M03-G73 2.0] status=' + pm.response.code + ' param=' + JSON.stringify(_p));",
+                  "pm.test('GET /configuracion/parametros-alertas responde 200 y expone rf57_umbral_confianza_minimo', function () { pm.expect(pm.response.code).to.eql(200); pm.expect(_p, 'parametro no listado').to.exist; });",
+                  "pm.test('valor efectivo 0.75 (base del RF-57 CA-2)', function () { pm.expect(Number(_p.valor)).to.eql(0.75); });",
+                  "pm.collectionVariables.set('umbral_min_original', String(_p ? _p.valor : 0.75));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1 Configurar rf57_umbral_confianza_minimo=0.80 (sin despliegue)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_umbral_confianza_minimo\": 0.8\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _p = (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === 'rf57_umbral_confianza_minimo'; });",
+                  "console.log('[TC-M03-G73 2.1] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 400));",
+                  "pm.test('PATCH responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('rf57_umbral_confianza_minimo queda en 0.8', function () { pm.expect(_p, 'parametro no devuelto').to.exist; pm.expect(Number(_p.valor)).to.eql(0.8); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Con el umbral en 0.80, probabilidad_ia=0.75 ya NO genera",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.75,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 2.2] prob=0.75 status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('Umbral 0.80: probabilidad_ia=0.75 < 0.80 NO genera PREDICCION_PATOLOGIA', function () { pm.expect(pm.response.code).to.eql(201); pm.expect(_gen).to.eql(false); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2z Aislamiento: descartar la alerta creada en 2.2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2.3 Con el umbral en 0.80, probabilidad_ia=0.80 SI genera",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{broker_service_token}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_id\": {{device_id}},\n  \"sensor_id\": {{sensor_temperatura_ambiental}},\n  \"serial\": \"{{serial}}\",\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.0,\n  \"unidad\": \"°C\",\n  \"timestamp_evento\": \"{{ts_now}}\",\n  \"estado_dato\": \"LECTURA_VALIDA\",\n  \"severidad_edge\": \"LEVE\",\n  \"origen_evento\": \"IA\",\n  \"id_evento_edge_computing\": {{id_evento_edge}},\n  \"tipo_alerta_ia\": \"PREDICCION_PATOLOGIA\",\n  \"severidad_ia\": \"LEVE\",\n  \"probabilidad_ia\": 0.8,\n  \"reglas_activadas\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const _n = Date.now(); const _iso = (ms) => new Date(ms).toISOString();",
+                  "pm.variables.set('ts_now', _iso(_n));",
+                  "pm.variables.set('ts_m1s', _iso(_n - 1000));",
+                  "pm.variables.set('ts_m10m', _iso(_n - 10*60000));",
+                  "pm.variables.set('ts_m20m', _iso(_n - 20*60000));",
+                  "pm.variables.set('ts_m31m', _iso(_n - 31*60000));",
+                  "pm.variables.set('ts_p1h', _iso(_n + 3600000));",
+                  "pm.variables.set('ts_p10m', _iso(_n + 10*60000));",
+                  "pm.variables.set('uniq', String(_n).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 2.3] prob=0.8 status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 600));",
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _gen = (pm.response.code === 201 && J.id_alerta !== undefined && J.id_alerta !== null);",
+                  "pm.test('Umbral 0.80: probabilidad_ia=0.8 >= 0.80 genera la alerta', function () { pm.expect(_gen).to.eql(true); });",
+                  "pm.test('tipo_alerta = PREDICCION_PATOLOGIA', function () { pm.expect(J.tipo_alerta).to.eql('PREDICCION_PATOLOGIA'); });",
+                  "try { pm.collectionVariables.set('alerta_aislar', String((J || {}).id_alerta || 0)); } catch (e) { pm.collectionVariables.set('alerta_aislar', '0'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3z Aislamiento: descartar la alerta creada en 2.3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M03-G73 aislamiento] alerta_aislar=' + pm.collectionVariables.get('alerta_aislar') + ' status=' + pm.response.code);",
+                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/iot/alertas/{{alerta_aislar}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"DESCARTADA\",\n  \"motivo\": \"QA aislamiento G73\"\n}"
+            }
+          }
+        },
+        {
+          "name": "2.4 Restaurar rf57_umbral_confianza_minimo al valor original",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/parametros-alertas",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parametros\": {\n    \"rf57_umbral_confianza_minimo\": {{umbral_min_original}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+                  "const _p = (Array.isArray(J) ? J : []).find(function (x) { return x.nombre === 'rf57_umbral_confianza_minimo'; });",
+                  "console.log('[TC-M03-G73 2.4] restaurar status=' + pm.response.code + ' valor=' + (_p ? _p.valor : 'n/d'));",
+                  "pm.test('PATCH de restauracion responde 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('el umbral vuelve a su valor original (0.75)', function () { pm.expect(_p).to.exist; pm.expect(Number(_p.valor)).to.eql(Number(pm.collectionVariables.get('umbral_min_original'))); });"
                 ]
               }
             }

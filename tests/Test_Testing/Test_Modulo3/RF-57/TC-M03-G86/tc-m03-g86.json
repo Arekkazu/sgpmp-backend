@@ -90,6 +90,18 @@
     {
       "key": "id_cur",
       "value": "0"
+    },
+    {
+      "key": "esp_area_nh3",
+      "value": "0"
+    },
+    {
+      "key": "esp_area_fc",
+      "value": "0"
+    },
+    {
+      "key": "infra_fc",
+      "value": "0"
     }
   ],
   "item": [
@@ -189,6 +201,275 @@
               "pm.test('El dispositivo informa su serial', function () { pm.expect(J.serial, 'serial').to.be.a('string').and.not.empty; });",
               "pm.collectionVariables.set('serial_fc', String(J.serial || ''));",
               "console.log('[G86-0D][OBSERVADO] dispositivo=' + JSON.stringify({id: J.id_dispositivo_iot, serial: J.serial, es_activo: J.es_activo}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.1 Preparacion: especies del area del dispositivo 310 (infraestructura 337)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/337"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_nh3', String((J.especies || [])[0] || 0));",
+              "console.log('[G86-0E.1][OBSERVADO] especies area 337=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.2 Preparacion: infraestructura del dispositivo 268",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/dispositivos-iot/{{device_id_fc}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.collectionVariables.set('infra_fc', String(J.id_infraestructura || 0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.3 Preparacion: especies del area del dispositivo 268",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{infra_fc}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('esp_area_fc', String((J.especies || [])[0] || 0));",
+              "console.log('[G86-0E.3][OBSERVADO] especies area=' + JSON.stringify(J.especies));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.4 Preparacion (sandbox): umbral NH3 en la especie del area 337",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 11,\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 25\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 25,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.4] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.5 Preparacion (sandbox): umbral CO2 en la especie del area 337",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 12,\n  \"valor_min\": 0,\n  \"valor_max\": 999,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 300\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 300,\n      \"limite_superior\": 600\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 600,\n      \"limite_superior\": 999\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.5] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.6 Preparacion (sandbox): umbral FRECUENCIA_RESPIRATORIA en la especie del area 337",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 15,\n  \"valor_min\": 0,\n  \"valor_max\": 200,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 40\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 40,\n      \"limite_superior\": 80\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 80,\n      \"limite_superior\": 200\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.6] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.7 Preparacion (sandbox): umbral ACTIVIDAD en la especie del area 337",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_nh3}},\n  \"id_variable_ambiental\": 16,\n  \"valor_min\": 0,\n  \"valor_max\": 100,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 50\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 50,\n      \"limite_superior\": 80\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 80,\n      \"limite_superior\": 100\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.7] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0E.8 Preparacion (sandbox): umbral FRECUENCIA_CARDIACA en la especie del area del dispositivo 268",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/umbrales",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{esp_area_fc}},\n  \"id_variable_ambiental\": 14,\n  \"valor_min\": 0,\n  \"valor_max\": 300,\n  \"niveles\": [\n    {\n      \"nivel\": \"normal\",\n      \"limite_inferior\": 0,\n      \"limite_superior\": 100\n    },\n    {\n      \"nivel\": \"precaucion\",\n      \"limite_inferior\": 100,\n      \"limite_superior\": 160\n    },\n    {\n      \"nivel\": \"critico\",\n      \"limite_inferior\": 160,\n      \"limite_superior\": 300\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M03-G86 0E.8] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
+              "pm.test('Preparacion (sandbox): umbral creado (201) o ya existente (409)', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
             ]
           }
         }

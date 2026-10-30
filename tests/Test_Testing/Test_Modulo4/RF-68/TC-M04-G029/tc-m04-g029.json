@@ -245,6 +245,37 @@
                   "pm.test('0C. Configuracion RF-65 creada (200/201)', function () { pm.expect([200, 201], pm.response.text().slice(0, 300)).to.include(pm.response.code); });"
                 ]
               }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// v3.0 (ajuste de QA): RF-65 CA-9 exige config_version vigente al modificar una configuracion existente (412 CONFLICTO_CONCURRENCIA si no coincide).",
+                  "// Se lee la configuracion vigente DENTRO del sandbox (mismas cabeceras) y se envia su config_version; si no existe configuracion, no se envia.",
+                  "pm.sendRequest({",
+                  "    url: pm.variables.get('base_url') + '/prediccion/motor-ia/MODELO_RIESGO_CONTAGIO',",
+                  "    method: 'GET',",
+                  "    header: [",
+                  "        { key: 'Authorization', value: 'Bearer ' + pm.variables.get('token_admin') },",
+                  "        { key: 'X-Test-Run-Id', value: pm.variables.get('run_id') },",
+                  "        { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }",
+                  "    ]",
+                  "}, function (err, res) {",
+                  "    try {",
+                  "        var cuerpo = JSON.parse(pm.request.body.raw);",
+                  "        if (!err && res && res.code === 200) {",
+                  "            var v = res.json().config_version;",
+                  "            if (v !== undefined && v !== null) { cuerpo.config_version = v; }",
+                  "        } else {",
+                  "            delete cuerpo.config_version;",
+                  "        }",
+                  "        pm.request.body.update(JSON.stringify(cuerpo, null, 2));",
+                  "        console.log('[config_version] vigente=' + cuerpo.config_version + ' (GET ' + (res ? res.code : 'sin respuesta') + ')');",
+                  "    } catch (e) { console.log('[config_version] no se pudo ajustar: ' + e); }",
+                  "});"
+                ]
+              }
             }
           ]
         }
@@ -288,6 +319,37 @@
                   "var J = {}; try { J = pm.response.json(); } catch (e) {}",
                   "pm.test('1.1 La configuracion con suma de pesos distinta de 1 se rechaza con 422', function () { pm.response.to.have.status(422); });",
                   "console.log('[OBSERVADO] codigo de error devuelto: ' + J.error_code + ' (la ficha nombra ERROR_CONFIGURACION_PESOS)');"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// v3.0 (ajuste de QA): RF-65 CA-9 exige config_version vigente al modificar una configuracion existente (412 CONFLICTO_CONCURRENCIA si no coincide).",
+                  "// Se lee la configuracion vigente DENTRO del sandbox (mismas cabeceras) y se envia su config_version; si no existe configuracion, no se envia.",
+                  "pm.sendRequest({",
+                  "    url: pm.variables.get('base_url') + '/prediccion/motor-ia/MODELO_RIESGO_CONTAGIO',",
+                  "    method: 'GET',",
+                  "    header: [",
+                  "        { key: 'Authorization', value: 'Bearer ' + pm.variables.get('token_admin') },",
+                  "        { key: 'X-Test-Run-Id', value: pm.variables.get('run_id') },",
+                  "        { key: 'X-Sandbox-Secret', value: pm.variables.get('sandbox_secret') || '' }",
+                  "    ]",
+                  "}, function (err, res) {",
+                  "    try {",
+                  "        var cuerpo = JSON.parse(pm.request.body.raw);",
+                  "        if (!err && res && res.code === 200) {",
+                  "            var v = res.json().config_version;",
+                  "            if (v !== undefined && v !== null) { cuerpo.config_version = v; }",
+                  "        } else {",
+                  "            delete cuerpo.config_version;",
+                  "        }",
+                  "        pm.request.body.update(JSON.stringify(cuerpo, null, 2));",
+                  "        console.log('[config_version] vigente=' + cuerpo.config_version + ' (GET ' + (res ? res.code : 'sin respuesta') + ')');",
+                  "    } catch (e) { console.log('[config_version] no se pudo ajustar: ' + e); }",
+                  "});"
                 ]
               }
             }

@@ -1,0 +1,42 @@
+{
+  "grupo": "G057",
+  "run_id": "RUN-G057-V1-20261028-064235",
+  "ok": true,
+  "barreras": [],
+  "presupuesto": {
+    "logins": 2,
+    "catalogos": 1,
+    "eleccion": 1,
+    "registros": 4,
+    "notas": 2,
+    "activaciones": 2,
+    "versiones": 6,
+    "listados": 5,
+    "auditorias": 3,
+    "ca13": 3,
+    "cierre": 1,
+    "comprobacion_rollback": 5,
+    "total": 35,
+    "contingencia_maxima": 40,
+    "timeout_post_ms": 120000,
+    "timeout_ms": 30000,
+    "duracion_segundos": 900
+  },
+  "herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2"
+    }
+  },
+  "efectos_declarados": [
+    "4_versiones_APROBADO_BD_sandbox",
+    "2_notas_2_activaciones_hasta_2_intentos_rechazados",
+    "contingencia_A_5xx_una_version_E_un_ONNX_un_PATCH_una_activacion_y_lecturas_adicionales",
+    "historial_y_auditoria_BD_sandbox",
+    "hasta_5_ONNX_fuera_rollback",
+    "respaldo_RF73_posible",
+    "sin_correo_esperado",
+    "2_logins_previos_posible_sesion_o_auditoria",
+    "contingencia_deprecacion_activa_heredada"
+  ]
+}
