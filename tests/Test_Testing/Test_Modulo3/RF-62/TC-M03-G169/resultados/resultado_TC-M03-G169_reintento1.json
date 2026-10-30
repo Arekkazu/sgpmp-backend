@@ -1,0 +1,168 @@
+{
+  "tc": "TC-M03-G169",
+  "titulo": "Comportamiento de RF-62 según estado heredado de RF-53",
+  "rf": "RF-62",
+  "ambiente": "TEST",
+  "fecha": "2026-10-30T09:49:52.573Z",
+  "corrida": "reintento1",
+  "summary": {
+    "total": 19,
+    "ok": 15,
+    "falla": 4,
+    "veredicto": "RECHAZADO"
+  },
+  "checkpoints": [
+    {
+      "grupo": "Preflight",
+      "paso": "00.01-Login-Admin :: Login 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "Preflight",
+      "paso": "00.01-Login-Admin :: id_usuario extraido del JWT",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.04-Ingestar-Lectura-Fuera-Rango :: 321: Ingesta 201 con FUERA_DE_RANGO",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.05-Evaluar-Calidad :: 321: Evaluar 201 -> NO_APTO, índice 0, fuera_de_rango_rf53 activo",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.05-Evaluar-Calidad :: version_limites_fisicos_aplicada presente",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected null not to be null",
+      "estado": "FALLA",
+      "causa": "BACKEND_CONTRATO"
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.05-Evaluar-Calidad :: parametros_aplicados presente",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.06-Verificar-Persistencia-GET :: 321: GET calidad 200 coincide con evaluación",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.07-Verificar-Inmutabilidad-RF53 :: TC-321: valor original en RF-53 intacto tras POST /evaluar",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-321",
+      "paso": "321.09-Verificar-Sin-Alerta-Tecnica :: NO se disparó alerta técnica en RF-57 para FUERA_DE_RANGO",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.04-Ingestar-Serie-20-Con-Gap :: 322: Batch 20 lecturas 200",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.05-Ingestar-Lectura-Evaluada :: 322: Lectura 21 ingerida 201 con ERROR_CALIBRACION",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.05b-Precheck-Sin-Calibracion :: 322: Sensor sin calibración previa en modulo9.calibraciones",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.06-Evaluar-Calidad :: 322: Evaluar 201 -> APTO_CON_RESERVA, índice 70 (oráculo CSV)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected undefined to exist",
+      "estado": "FALLA",
+      "causa": "BACKEND_CONTRATO"
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.06-Evaluar-Calidad :: TC-322: gap_temporal_anomalo.activo === true (aporta −10)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected undefined to equal true",
+      "estado": "FALLA",
+      "causa": "BACKEND_CONTRATO"
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.06-Evaluar-Calidad :: apto_para_ia es true",
+      "esperado": "Aserción cumplida",
+      "obtenido": "expected false to deeply equal true",
+      "estado": "FALLA",
+      "causa": "BACKEND_CONTRATO"
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.06-Evaluar-Calidad :: apto_para_nic41 es false",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.06-Evaluar-Calidad :: sensor_congelado NO activo (serie alterna no dispara congelado)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "TC-322",
+      "paso": "322.07-Verificar-Inmutabilidad-RF53 :: TC-322: valor original en RF-53 intacto tras POST /evaluar",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    },
+    {
+      "grupo": "Teardown",
+      "paso": "99.01-Rollback-Sandbox :: NW-Teardown: Rollback transaccional exitoso (HTTP 200)",
+      "esperado": "Aserción cumplida",
+      "obtenido": "Aserción cumplida",
+      "estado": "OK",
+      "causa": null
+    }
+  ]
+}

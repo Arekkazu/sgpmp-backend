@@ -91,6 +91,26 @@
     {
       "key": "ver_hasta",
       "value": ""
+    },
+    {
+      "key": "fecha_futura_iso",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_pasada_iso",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_ahora_iso",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_24h_atras_iso",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -229,7 +249,29 @@
                   "// Guardar dinámicamente un id_evento para TC-M03-337",
                   "if (res.items.length > 0) {",
                   "    pm.collectionVariables.set(\"test_id_evento\", res.items[0].id_evento);",
-                  "}"
+                  "}",
+                  "",
+                  "pm.test('Orden DESC por fecha_hora', () => {",
+                  "    const items = pm.response.json().items || [];",
+                  "    if (items.length >= 2) {",
+                  "        const t0 = new Date(items[0].fecha_hora).getTime();",
+                  "        const t1 = new Date(items[1].fecha_hora).getTime();",
+                  "        pm.expect(t0).to.be.at.least(t1);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('id_usuario nulo en eventos automáticos', () => {",
+                  "    const items = pm.response.json().items || [];",
+                  "    items.forEach(it => {",
+                  "        if (it.tipo_actor === 'SISTEMA' && it.id_sistema) {",
+                  "            pm.expect(it.id_usuario).to.be.null;",
+                  "        }",
+                  "        if (it.tipo_actor === 'USUARIO' && it.id_usuario) {",
+                  "            pm.expect(it.id_sistema).to.be.null;",
+                  "        }",
+                  "    });",
+                  "});",
+                  ""
                 ]
               }
             }
@@ -360,8 +402,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 422 - por_pagina > 200 rechazado con Unprocessable Entity\", function () {",
-                  "    pm.response.to.have.status(422);",
+                  "pm.test(\"Status 400 - por_pagina > 200 rechazado con codigo de validacion\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.error_code).to.eql(\"VAL_ENTRADA\");",
                   "});"
                 ]
               }
@@ -544,7 +588,7 @@
           ]
         },
         {
-          "name": "15-TC-M03-337-UUID-Malformado-Responde-422",
+          "name": "15-TC-M03-337-UUID-Malformado-Responde-400",
           "request": {
             "method": "GET",
             "header": [
@@ -572,13 +616,180 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 422 - UUID malformado responde Unprocessable Entity\", function () {",
-                  "    pm.response.to.have.status(422);",
+                  "pm.test(\"Status 400 - UUID malformado responde Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.error_code).to.eql(\"VAL_ENTRADA\");",
                   "});"
                 ]
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "05-Verificacion-Integridad-Casos-Borde",
+      "item": [
+        {
+          "name": "20-Verificar-Integridad-Sin-Fechas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('20 - Sin fechas: rechazo HTTP 400 VAL_ENTRADA', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error_code).to.eql('VAL_ENTRADA');",
+                  "    const fields = (body.fields || []).map(f => f.field);",
+                  "    pm.expect(fields).to.include.members(['fecha_desde', 'fecha_hasta']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "21-Verificar-Integridad-Rango-Invertido",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = Date.now();",
+                  "pm.collectionVariables.set('fecha_futura_iso', new Date(now + 3600000).toISOString());",
+                  "pm.collectionVariables.set('fecha_pasada_iso', new Date(now - 3600000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('21 - Rango invertido: 400 RANGO_FECHAS_INVALIDO', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().error_code).to.eql('RANGO_FECHAS_INVALIDO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad?fecha_desde={{fecha_futura_iso}}&fecha_hasta={{fecha_pasada_iso}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{fecha_futura_iso}}"
+                },
+                {
+                  "key": "fecha_hasta",
+                  "value": "{{fecha_pasada_iso}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "22-Verificar-Integridad-Rango-Excedido",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const now = new Date();",
+                  "pm.collectionVariables.set('fecha_ahora_iso', now.toISOString());",
+                  "pm.collectionVariables.set('fecha_24h_atras_iso', new Date(now.getTime() - 86400000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('22 - Ventana >50k: 422 RANGO_VERIFICACION_EXCEDIDO', () => {",
+                  "    // En el ambiente TEST con 3.18M eventos, 24h supera ampliamente los 50.000.",
+                  "    pm.response.to.have.status(422);",
+                  "    pm.expect(pm.response.json().error_code).to.eql('RANGO_VERIFICACION_EXCEDIDO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/iot/auditoria/verificar-integridad?fecha_desde={{fecha_24h_atras_iso}}&fecha_hasta={{fecha_ahora_iso}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "iot",
+                "auditoria",
+                "verificar-integridad"
+              ],
+              "query": [
+                {
+                  "key": "fecha_desde",
+                  "value": "{{fecha_24h_atras_iso}}"
+                },
+                {
+                  "key": "fecha_hasta",
+                  "value": "{{fecha_ahora_iso}}"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
