@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-27 | destroyerban | INC-M03-120-G63 RF-56: cliente HTTPS hacia M04 con TLS mínimo 1.3, desactivado sin URL |
+# | 2026-10-30 | Arekkazu     | RF-66: URL base del motor en cualquier dominio y ventana del activo en cada paquete |
 """Cliente de transporte M03 → M04 para paquetes de inferencia (RF-56 Fase 6, INC-M03-120-G63).
 
 RF-56 exige "canales cifrados (TLS/SSL)"; los RNF de M03 fijan TLS 1.3. Este cliente:
@@ -11,13 +12,19 @@ RF-56 exige "canales cifrados (TLS/SSL)"; los RNF de M03 fijan TLS 1.3. Este cli
 - Verifica certificado y nombre del servidor contra las CA del sistema o contra
   ``IOT_INFERENCIA_CA_FILE``. No sigue redirecciones (evita que un 3xx lleve a ``http://``).
 
-El contrato IA-1 (endpoint, cuerpo, ACK y autenticación de M04) no está definido (INC-M03-115-G58):
-el cuerpo ``{"paquetes": [...]}`` y el ``Bearer`` son provisionales. Sin ``IOT_INFERENCIA_M04_URL``
-el router sigue con ``MotorInferenciaStubAdapter``.
+``IOT_INFERENCIA_M04_URL`` es la URL base del motor IA en cualquier dominio, con o sin prefijo
+(``https://api.inmero.co/model-ia-test``, ``https://motor.arekkazu.top``, ``https://1-2-3-4.sslip.io``):
+se le agrega ``/v1/paquetes``. Una URL que ya termina en ``/v1/paquetes`` se usa tal cual. Sin ella
+se sigue con ``MotorInferenciaStubAdapter``.
+
+Contrato IA-1 v1 (decisión D-B; INC-M03-115-G58): ``{"paquetes": [...]}`` con ``Bearer``; cada
+paquete lleva además ``id_activo_biologico`` y ``lecturas`` (ventana del activo, ver
+``VentanaInferenciaPort``) cuando el adaptador tiene de dónde sacarlas.
 """
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
 import logging
 import os
@@ -30,12 +37,14 @@ import httpx
 from src.shared.errors import InfrastructureError, ServiceUnavailableError
 from src.telemetry.domain.entities.telemetria import PaqueteInferencia
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
+from src.telemetry.domain.repositories.ventana_inferencia_port import VentanaInferenciaPort
 
 logger = logging.getLogger(__name__)
 
 VERSIONES_TLS = {"1.2": ssl.TLSVersion.TLSv1_2, "1.3": ssl.TLSVersion.TLSv1_3}
 TLS_MINIMO_POR_DEFECTO = "1.3"
 _TIMEOUT_SEGUNDOS = 10.0
+RUTA_PAQUETES = "/v1/paquetes"
 
 
 class CanalInferenciaInseguroError(InfrastructureError):
@@ -58,6 +67,12 @@ class CanalInferenciaNoDisponibleError(ServiceUnavailableError):
         )
 
 
+def url_paquetes(url: str) -> str:
+    """URL base del motor (cualquier dominio, con o sin prefijo) → URL de ``/v1/paquetes``."""
+    url = url.strip().rstrip("/")
+    return url if url.endswith(RUTA_PAQUETES) else url + RUTA_PAQUETES
+
+
 def contexto_tls(version_minima: str = TLS_MINIMO_POR_DEFECTO, ca_file: Optional[str] = None) -> ssl.SSLContext:
     if version_minima not in VERSIONES_TLS:
         raise CanalInferenciaInseguroError(
@@ -71,8 +86,8 @@ def contexto_tls(version_minima: str = TLS_MINIMO_POR_DEFECTO, ca_file: Optional
 class MotorInferenciaHttpAdapter(MotorInferenciaPort):
 
     def __init__(self, url: str, contexto: ssl.SSLContext, token: str = "",
-                 timeout: float = _TIMEOUT_SEGUNDOS) -> None:
-        if urlsplit(url).scheme.lower() != "https":
+                 timeout: float = _TIMEOUT_SEGUNDOS, ventanas: Optional[VentanaInferenciaPort] = None) -> None:
+        if urlsplit(url).scheme.lower() != "https" or not urlsplit(url).hostname:
             raise CanalInferenciaInseguroError("la URL de M04 debe usar https://")
         if contexto.verify_mode != ssl.CERT_REQUIRED or not contexto.check_hostname:
             raise CanalInferenciaInseguroError("el certificado del servidor debe verificarse")
@@ -82,9 +97,14 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
         self._contexto = contexto
         self._token = token
         self._timeout = timeout
+        self._ventanas = ventanas
+
+    @property
+    def url(self) -> str:
+        return self._url
 
     @classmethod
-    def desde_entorno(cls) -> Optional["MotorInferenciaHttpAdapter"]:
+    def desde_entorno(cls, ventanas: Optional[VentanaInferenciaPort] = None) -> Optional["MotorInferenciaHttpAdapter"]:
         url = os.environ.get("IOT_INFERENCIA_M04_URL", "").strip()
         if not url:
             return None
@@ -92,7 +112,8 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
             os.environ.get("IOT_INFERENCIA_TLS_MIN", TLS_MINIMO_POR_DEFECTO).strip(),
             os.environ.get("IOT_INFERENCIA_CA_FILE", "").strip() or None,
         )
-        return cls(url, contexto, token=os.environ.get("IOT_INFERENCIA_M04_TOKEN", ""))
+        return cls(url_paquetes(url), contexto, token=os.environ.get("IOT_INFERENCIA_M04_TOKEN", ""),
+                   ventanas=ventanas)
 
     def enviar_paquete(self, paquete: PaqueteInferencia) -> bool:
         return self._enviar([paquete])
@@ -101,7 +122,7 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
         return self._enviar(paquetes)
 
     def _enviar(self, paquetes: list[PaqueteInferencia]) -> bool:
-        cuerpo = json.dumps({"paquetes": [dataclasses.asdict(p) for p in paquetes]}, default=str)
+        cuerpo = json.dumps({"paquetes": self._cuerpos(paquetes)}, default=str)
         headers = {"Content-Type": "application/json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
@@ -125,14 +146,38 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
         return True
 
 
-def motor_inferencia_http_desde_entorno() -> Optional[MotorInferenciaHttpAdapter]:
+    def _cuerpos(self, paquetes: list[PaqueteInferencia]) -> list[dict]:
+        cuerpos = [dataclasses.asdict(p) for p in paquetes]
+        if self._ventanas is None:
+            return cuerpos
+        ventanas = self._ventanas.ventanas(paquetes)
+        for cuerpo in cuerpos:
+            ventana = ventanas.get(cuerpo["id_paquetes_inferencia"])
+            if ventana is not None:
+                cuerpo["id_activo_biologico"] = ventana.id_activo_biologico
+                cuerpo["lecturas"] = ventana.lecturas
+        return cuerpos
+
+
+def motor_inferencia_http_desde_entorno(
+    ventanas: Optional[VentanaInferenciaPort] = None,
+) -> Optional[MotorInferenciaHttpAdapter]:
     """Cliente HTTPS si ``IOT_INFERENCIA_M04_URL`` está configurada; ``None`` para usar el stub.
 
     Una configuración insegura (``http://``, TLS < 1.2, versión desconocida) no se usa: se registra
     y se devuelve ``None``, así los paquetes quedan pendientes en vez de salir por un canal sin cifrar.
     """
     try:
-        return MotorInferenciaHttpAdapter.desde_entorno()
+        cliente = MotorInferenciaHttpAdapter.desde_entorno(ventanas)
     except CanalInferenciaInseguroError as exc:
         logger.critical("RF-56: configuración de M04 rechazada, se usa el stub: %s", exc.message)
         return None
+    if cliente is not None:
+        _avisar_habilitado(cliente.url)
+    return cliente
+
+
+@functools.lru_cache(maxsize=8)
+def _avisar_habilitado(url: str) -> None:
+    """Una vez por URL (el cliente se arma por request): deja en el log a qué motor se envía."""
+    logger.info("RF-56: motor de inferencia habilitado en %s", url)

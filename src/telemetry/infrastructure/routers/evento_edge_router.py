@@ -4,6 +4,7 @@
 # | 2026-10-21 | Leandro | DEV-49 RF-57: inyecta bitacora para indisponibilidad IA  |
 # | 2026-10-27 | destroyerban | INC-M03-120-G63 RF-56: usa el cliente HTTPS hacia M04 cuando está configurado |
 # | 2026-10-28 | Arekkazu | BE-2/BE-3 RF-55: inyecta el repositorio de reglas al recibir eventos Edge |
+# | 2026-10-30 | Arekkazu | RF-66: el paquete al motor IA lleva la ventana del activo |
 """Router FastAPI para recepción de eventos Edge IoT (`/iot/eventos-edge`).
 
 RF-56 — CU02 Dev scope:
@@ -29,6 +30,7 @@ from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case import RecibirEventoEdgeUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.motor_inferencia_http_adapter import motor_inferencia_http_desde_entorno
+from src.telemetry.infrastructure.adapters.ventana_inferencia_m02_adapter import VentanaInferenciaM02Adapter
 from src.telemetry.infrastructure.adapters.motor_inferencia_stub_adapter import MotorInferenciaStubAdapter
 from src.telemetry.infrastructure.adapters.parametros_alertas_mlops_adapter import ParametrosAlertasMLOpsAdapter
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
@@ -81,7 +83,8 @@ def recibir_evento_edge(
         paquete_repo=SqlAlchemyPaqueteInferenciaRepository(db),
         dispositivo_port=DispositivoM09Adapter(db),
         # G63: cliente HTTPS (TLS >= 1.3) si IOT_INFERENCIA_M04_URL está configurada; si no, el stub.
-        motor_inferencia_port=motor_inferencia_http_desde_entorno() or MotorInferenciaStubAdapter(),
+        motor_inferencia_port=(motor_inferencia_http_desde_entorno(VentanaInferenciaM02Adapter(db))
+                               or MotorInferenciaStubAdapter()),
         parametros_alertas_port=ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
         regla_repo=SqlAlchemyReglaAlertaRepository(db),
