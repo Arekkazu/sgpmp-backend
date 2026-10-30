@@ -17,8 +17,10 @@ PATRONES = [
     (re.compile(r'eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{4,}'), '[JWT-REDACTADO]'),
     # Authorization: Bearer xxxx  (incluye el token del broker, que no es JWT)
     (re.compile(r'(Bearer\s+)[^\s"\'<&\\]{6,}', re.I), r'\1' + RED),
+    # Tabla de cabeceras del reporte HTML: <td>X-Sandbox-Secret</td> <td ...>valor</td>
+    (re.compile(r'(X-Sandbox-Secret\s*</td>\s*<td[^>]*>\s*)([^<\s][^<]*)', re.I), r'\1' + RED),
     # X-Sandbox-Secret: valor
-    (re.compile(r'(X-Sandbox-Secret["\'<>:\s&;a-z#0-9]{0,40}?)([A-Za-z0-9_\-\.=+/]{8,})', re.I), None),
+    (re.compile(r'(X-Sandbox-Secret["\'<>/:\s&;a-z#0-9]{0,300}?)([A-Za-z0-9_\-\.=+/]{8,})', re.I), None),
     # "clave": "valor"  para claves sensibles (JSON normal o escapado en HTML)
     (re.compile(r'(' + Q + r'(?:contrasena|contraseña|password|nueva_contrasena|token|access_token|refresh_token|secret|sandbox_secret|broker_service_token|access_key)' + Q + r'\s*:\s*' + Q + r')([^"&\\]*)(' + Q + r')', re.I), r'\1' + RED + r'\3'),
 ]
@@ -42,6 +44,8 @@ def quedan_secretos(texto):
         restos.append('Bearer')
     if re.search(Q + r'(?:contrasena|password|token|secret)' + Q + r'\s*:\s*' + Q + r'(?!\[REDACTADO\]|\[JWT-REDACTADO\]|' + Q + r')[^"&\\]+', texto, re.I):
         restos.append('valor sensible en JSON')
+    if re.search(r'X-Sandbox-Secret\s*</td>\s*<td[^>]*>\s*(?!\[REDACTADO\])[0-9a-f]{32,}', texto, re.I) or re.search(r'X-Sandbox-Secret["\'<>/:\s&;a-z#0-9]{0,300}?(?!\[REDACTADO\])[0-9a-f]{32,}', texto, re.I):
+        restos.append('X-Sandbox-Secret')
     return restos
 
 

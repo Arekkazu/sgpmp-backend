@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M03-G85 - Evento sin umbrales configurados o con regla mal configurada (E9)",
-    "description": "RF-57 E9. Subcaso 1 (TC-M03-157): evento valido de una variable sin umbrales: no se genera alerta operativa, el evento queda PENDIENTE_EVALUACION, se registra ERROR_CONFIGURACION_REGLA en bitacora y se genera una alerta tecnica para el administrador (GET /iot/alertas-tecnicas, no en GET /iot/alertas, DEV-13); regla mal configurada: se prueba lo que la API de umbrales (M09) permite crear. Subcaso 2 (TC-M03-N31): tras crear el umbral correcto se verifica si el evento pendiente se evalua (el RF no define si el reproceso es automatico o manual: se documenta lo observado, incluido el reenvio del evento) y se distingue de tipo_variable fuera del enum, que debe rechazarse por estructura (E1). Sensor: amoniaco 482 del dispositivo 310 (marcado 'amoniaco sin umbral' en TEST); el serial se lee por API (paso 0C). Especie QA 108 sin umbrales para el umbral de correccion. Sandbox transaccional: todas las peticiones (menos los logins) llevan X-Test-Run-Id y X-Sandbox-Secret; el ultimo item (Z) hace DELETE /test-control/runs/{run_id} y revierte la corrida. Las claves, el secreto del sandbox y el token del broker no se guardan en este archivo: el script correr_newman.ps1 las pide en la terminal. Ejecucion: .\\correr_newman.ps1 -Caso G85 (desde tests\\Test_Testing). No usar --bail. Ambiente: solo TEST.",
+    "description": "RF-57 E9. Subcaso 1 (TC-M03-157): evento valido de una variable sin umbrales: no se genera alerta operativa, el evento queda PENDIENTE_EVALUACION, se registra ERROR_CONFIGURACION_REGLA en bitacora y se genera una alerta tecnica para el administrador (GET /iot/alertas-tecnicas, no en GET /iot/alertas, DEV-13); regla mal configurada: se prueba lo que la API de umbrales (M09) permite crear. Subcaso 2 (TC-M03-N31): tras crear el umbral correcto se verifica si el evento pendiente se evalua (el RF no define si el reproceso es automatico o manual: se documenta lo observado, incluido el reenvio del evento) y se distingue de tipo_variable fuera del enum, que debe rechazarse por estructura (E1). Sensor: amoniaco 482 del dispositivo 310 (marcado 'amoniaco sin umbral' en TEST); el serial se lee por API (paso 0C). Especie 126 (la del area del sensor 482 segun el backend) sin umbrales para el umbral de correccion. Sandbox transaccional: todas las peticiones (menos los logins) llevan X-Test-Run-Id y X-Sandbox-Secret; el ultimo item (Z) hace DELETE /test-control/runs/{run_id} y revierte la corrida. Las claves, el secreto del sandbox y el token del broker no se guardan en este archivo: el script correr_newman.ps1 las pide en la terminal. Ejecucion: .\\correr_newman.ps1 -Caso G85 (desde tests\\Test_Testing). No usar --bail. Ambiente: solo TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -85,7 +85,7 @@
     },
     {
       "key": "id_especie_qa",
-      "value": "108"
+      "value": "126"
     },
     {
       "key": "id_variable_nh3",
@@ -981,7 +981,7 @@
                 "exec": [
                   "console.log('[TC-M03-G85 2.2b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Alerta descartada (HTTP 200)', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(200); });"
+                  "pm.test('Preparacion: alerta del evento 1.1 descartada (200) o no gestionable por PATCH por ser tecnica (404)', function () { pm.expect([200, 404], pm.response.text().slice(0, 300)).to.include(pm.response.code); });"
                 ]
               }
             }
