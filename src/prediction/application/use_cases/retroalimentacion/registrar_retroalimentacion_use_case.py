@@ -6,11 +6,13 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: respetar la identidad exclusiva del actor del conflicto clinico. |
 # | 2026-10-30 | Arekkazu | INC-M04-227-G067 RF-72: estado validado sin normalizar a mayúsculas |
 # | 2026-10-30 | Arekkazu | INC-M04-228-G068 RF-72: rechaza retroalimentación de un activo en BAJA |
+# | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: respeta la ampliación de ventana del resultado |
 from __future__ import annotations
 
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +20,9 @@ from src.prediction.domain.entities.retroalimentacion_clinica import (
     RetroalimentacionClinica,
     _ESTADOS_CON_DIAGNOSTICO,
     validar_estado_retroalimentacion,
+)
+from src.prediction.domain.repositories.ampliacion_ventana_retroalimentacion_repository import (
+    AmpliacionVentanaRetroalimentacionRepository,
 )
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
@@ -47,6 +52,7 @@ class RegistrarRetroalimentacionUseCase:
         patologia_repo: PatologiaM04Repository,
         auditoria_repo: EventoAuditoriaM04Repository,
         parametros_port: ParametrosMLOpsPort,
+        ampliacion_repo: Optional[AmpliacionVentanaRetroalimentacionRepository] = None,
     ) -> None:
         self._db = db
         self._repo = repo
@@ -54,6 +60,7 @@ class RegistrarRetroalimentacionUseCase:
         self._patologia_repo = patologia_repo
         self._auditoria_repo = auditoria_repo
         self._parametros_port = parametros_port
+        self._ampliacion_repo = ampliacion_repo
 
     def execute(
         self, dto: RegistrarRetroalimentacionDTO, id_usuario_veterinario: int
@@ -75,7 +82,7 @@ class RegistrarRetroalimentacionUseCase:
         ventana_dias = numero_configurado(self._parametros_port.obtener([RF72_VENTANA]), RF72_VENTANA,
                                          minimo=7, maximo=365, entero=True)
         dias_transcurridos = (ahora - fecha_inferencia).days
-        if dias_transcurridos > ventana_dias:
+        if dias_transcurridos > ventana_dias and not self._tiene_ampliacion_vigente(dto.id_resultado_inferencia, ahora):
             fecha_limite = fecha_inferencia + timedelta(days=ventana_dias)
             raise BusinessRuleError(
                 code="FUERA_DE_VENTANA_TEMPORAL",
@@ -213,6 +220,13 @@ class RegistrarRetroalimentacionUseCase:
             self._db.rollback()
 
         return entidad_guardada
+
+    def _tiene_ampliacion_vigente(self, id_resultado: uuid.UUID, ahora: datetime) -> bool:
+        """RF-72: excepción autorizada por el administrador solo para este resultado."""
+        if self._ampliacion_repo is None:
+            return False
+        fecha_limite = self._ampliacion_repo.fecha_limite_vigente(id_resultado)
+        return fecha_limite is not None and ahora <= fecha_limite
 
     def _registrar_incidente_persistencia(
         self,
