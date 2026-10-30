@@ -1,37 +1,20 @@
-"""optimize_triggers_concurrency
-
-Revision ID: c94c177b885a
-Revises: 67e33de11180
-Create Date: 2026-10-29 17:49:08.157075
-
-"""
 from typing import Sequence, Union
-
+ 
 from alembic import op
-import sqlalchemy as sa
-
-
+ 
+ 
 # revision identifiers, used by Alembic.
-revision: str = 'c94c177b885a'
-down_revision: Union[str, Sequence[str], None] = '67e33de11180'
+revision: str = "c94c177b885a"
+# Rebasado sobre el head actual de dev. Verificar con `alembic heads` (una sola línea).
+down_revision: Union[str, Sequence[str], None] = "6bd01d026ac4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
-
-
-def upgrade():
-    """
-    Optimiza los triggers fn_telemetria_actualiza_contacto_dispositivo y 
-    fn_actualizar_estado_sensor para evitar bloqueos de fila (hot-row contention) 
-    cuando llegan ráfagas de telemetría del mismo sensor.
-    
-    Cambios:
-    1. fn_telemetria_actualiza_contacto_dispositivo: Solo actualiza si el nuevo 
-       timestamp es mayor al actual (evita updates redundantes)
-    2. fn_actualizar_estado_sensor: Agrega WHERE en ON CONFLICT DO UPDATE para 
-       evitar actualizaciones si el dato en caché es más reciente
-    """
-    
-    # Optimizar fn_telemetria_actualiza_contacto_dispositivo
+ 
+ 
+def upgrade() -> None:
+    # ------------------------------------------------------------------
+    # 1) Contacto del dispositivo: evitar UPDATE cuando no hay cambio real
+    # ------------------------------------------------------------------
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_telemetria_actualiza_contacto_dispositivo()
         RETURNS trigger
@@ -39,30 +22,33 @@ def upgrade():
         AS $function$
         BEGIN
             IF NEW.estado_calidad = 'LECTURA_VALIDA'::modulo3.enum_telemetria_estado_calidad THEN
-                -- OPTIMIZACIÓN DE CONCURRENCIA: 
-                -- Solo actualizar si el nuevo timestamp es estrictamente mayor al actual.
-                -- Esto evita bloqueos de fila innecesarios (hot-row update) en ráfagas de telemetría.
-                UPDATE modulo3.estados_dispositivos_iot 
+                -- Solo escribe si el nuevo timestamp es estrictamente mayor.
+                -- Equivale al GREATEST anterior, pero sin generar una versión
+                -- nueva de la fila cuando el valor no cambia.
+                UPDATE modulo3.estados_dispositivos_iot
                 SET
                     fecha_ultimo_contacto      = NEW.timestamp_procesamiento,
                     fecha_ultima_actualizacion = now()
                 WHERE id_dispositivo_iot = NEW.id_dispositivo_iot
-                  AND (fecha_ultimo_contacto IS NULL OR fecha_ultimo_contacto < NEW.timestamp_procesamiento);
+                  AND (fecha_ultimo_contacto IS NULL
+                       OR fecha_ultimo_contacto < NEW.timestamp_procesamiento);
             END IF;
             RETURN NEW;
         END;
         $function$;
     """)
-    
-    # Optimizar fn_actualizar_estado_sensor
+ 
+    # ------------------------------------------------------------------
+    # 2) Estado actual del sensor (caché del dashboard)
+    # ------------------------------------------------------------------
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_actualizar_estado_sensor()
         RETURNS trigger
         LANGUAGE plpgsql
         AS $function$
         DECLARE
-            v_semaforo   TEXT := 'VERDE';
-            v_tiene_umbral BOOLEAN;
+            v_semaforo           TEXT := 'VERDE';
+            v_tiene_umbral       BOOLEAN;
             v_estado_dispositivo modulo3.enum_estado_dispositivo;
         BEGIN
             -- RF-58 (1): Filtro de calidad ampliado
@@ -73,35 +59,41 @@ def upgrade():
             ) THEN
                 RETURN NEW;
             END IF;
-
+ 
             -- RF-58 (3): Semáforo GRIS si ninguna especie del área tiene umbral activo.
+            -- RFC-012: la especie se obtiene por la tabla puente
+            -- modulo9.infraestructuras_especies (infraestructuras.id_especie ya no existe).
             SELECT EXISTS (
                 SELECT 1
                 FROM modulo9.sensores_areas_asociadas saa
-                JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa.id_infraestructura
+                JOIN modulo9.infraestructuras_especies ie
+                  ON ie.id_infraestructura = saa.id_infraestructura
                 JOIN modulo9.umbrales_ambientales u
-                  ON u.id_especie            = i.id_especie
+                  ON u.id_especie            = ie.id_especie
                  AND u.id_variable_ambiental = NEW.id_variable
                 WHERE saa.id_sensor = NEW.id_sensor
                   AND saa.fecha_asociacion <= NEW.timestamp_captura
-                  AND (saa.fecha_finalizacion IS NULL OR saa.fecha_finalizacion > NEW.timestamp_captura)
+                  AND (saa.fecha_finalizacion IS NULL
+                       OR saa.fecha_finalizacion > NEW.timestamp_captura)
                   AND u.es_activo = TRUE
             )
             INTO v_tiene_umbral;
-
+ 
             IF NOT v_tiene_umbral THEN
                 v_semaforo := 'GRIS';
             END IF;
-
+ 
             -- RFC-020 D-2 (RF-60 CA-23): la conectividad del dashboard es el estado del dispositivo
             SELECT ed.estado_actual INTO v_estado_dispositivo
             FROM modulo3.estados_dispositivos_iot ed
             WHERE ed.id_dispositivo_iot = NEW.id_dispositivo_iot;
-
-            -- OPTIMIZACIÓN DE CONCURRENCIA (Hot-Row Upsert):
-            -- Agregamos una cláusula WHERE al DO UPDATE. Si el dato en caché es más reciente 
-            -- que el que estamos intentando insertar, PostgreSQL omite el UPDATE, 
-            -- liberando el bloqueo de fila inmediatamente y evitando la cola de espera.
+ 
+            -- Upsert de la caché. El WHERE del DO UPDATE omite la escritura si la
+            -- caché ya tiene una lectura igual o más reciente.
+            -- OJO: la fila en conflicto queda bloqueada igual (comportamiento
+            -- documentado de ON CONFLICT DO UPDATE); solo se ahorra la escritura.
+            -- Cambio de comportamiento: lecturas desordenadas o con el mismo
+            -- timestamp_captura ya no sobrescriben la caché.
             INSERT INTO modulo3.estados_actuales_sensores (
                 id_dispositivo_iot, id_sensor,
                 ultimo_valor, ultima_unidad, ultimo_timestamp_captura,
@@ -125,21 +117,22 @@ def upgrade():
                 estado_calidad                 = EXCLUDED.estado_calidad,
                 estado_conectividad            = EXCLUDED.estado_conectividad,
                 dato_desactualizado            = FALSE
-            WHERE estados_actuales_sensores.ultimo_timestamp_captura < EXCLUDED.ultimo_timestamp_captura
-               OR estados_actuales_sensores.ultimo_timestamp_captura IS NULL;
-
+            WHERE estados_actuales_sensores.ultimo_timestamp_captura IS NULL
+               OR estados_actuales_sensores.ultimo_timestamp_captura < EXCLUDED.ultimo_timestamp_captura;
+ 
             RETURN NEW;
         END;
         $function$;
     """)
-
-
-def downgrade():
+ 
+ 
+def downgrade() -> None:
     """
-    Revierte los triggers a su versión original (sin optimizaciones de concurrencia).
+    Restaura las funciones a su definición previa (sin los WHERE de no-op).
+    IMPORTANTE: debe coincidir con la definición vigente en 6bd01d026ac4.
+    Verificar que ninguna migración entre 67e33de11180 y 6bd01d026ac4 haya
+    modificado estas funciones; si alguna lo hizo, copiar esa versión aquí.
     """
-    
-    # Restaurar fn_telemetria_actualiza_contacto_dispositivo
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_telemetria_actualiza_contacto_dispositivo()
         RETURNS trigger
@@ -156,16 +149,15 @@ def downgrade():
         END;
         $function$;
     """)
-    
-    # Restaurar fn_actualizar_estado_sensor
+ 
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo3.fn_actualizar_estado_sensor()
         RETURNS trigger
         LANGUAGE plpgsql
         AS $function$
         DECLARE
-            v_semaforo   TEXT := 'VERDE';
-            v_tiene_umbral BOOLEAN;
+            v_semaforo           TEXT := 'VERDE';
+            v_tiene_umbral       BOOLEAN;
             v_estado_dispositivo modulo3.enum_estado_dispositivo;
         BEGIN
             IF NEW.estado_calidad NOT IN (
@@ -175,7 +167,7 @@ def downgrade():
             ) THEN
                 RETURN NEW;
             END IF;
-
+ 
             SELECT EXISTS (
                 SELECT 1
                 FROM modulo9.sensores_areas_asociadas saa
@@ -190,15 +182,15 @@ def downgrade():
                   AND u.es_activo = TRUE
             )
             INTO v_tiene_umbral;
-
+ 
             IF NOT v_tiene_umbral THEN
                 v_semaforo := 'GRIS';
             END IF;
-
+ 
             SELECT ed.estado_actual INTO v_estado_dispositivo
             FROM modulo3.estados_dispositivos_iot ed
             WHERE ed.id_dispositivo_iot = NEW.id_dispositivo_iot;
-
+ 
             INSERT INTO modulo3.estados_actuales_sensores (
                 id_dispositivo_iot, id_sensor,
                 ultimo_valor, ultima_unidad, ultimo_timestamp_captura,
@@ -222,7 +214,7 @@ def downgrade():
                 estado_calidad                 = EXCLUDED.estado_calidad,
                 estado_conectividad            = EXCLUDED.estado_conectividad,
                 dato_desactualizado            = FALSE;
-
+ 
             RETURN NEW;
         END;
         $function$;
