@@ -1,0 +1,72 @@
+{
+  "connect_rc": 0,
+  "subacks": [
+    {
+      "mid": 1,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "mid": 2,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "ts": "2026-10-30T16:19:25.936084+00:00",
+      "kind": "connect",
+      "rc": 0,
+      "reason": "Success"
+    },
+    {
+      "ts": "2026-10-30T16:19:25.937781+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/RASPBERRY3B-TEST/#",
+      "mid": 1
+    },
+    {
+      "ts": "2026-10-30T16:19:25.937863+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/QA-M03-272-A-088894/#",
+      "mid": 2
+    },
+    {
+      "ts": "2026-10-30T16:19:25.958053+00:00",
+      "kind": "suback",
+      "mid": 1,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "ts": "2026-10-30T16:19:26.045170+00:00",
+      "kind": "suback",
+      "mid": 2,
+      "granted": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ]
+    },
+    {
+      "ts": "2026-10-30T16:20:40.932203+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T16:20:40.091542+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "fecha_utc": "2026-10-30T14:57:17+00:00",
+  "fase": "preflight_solo_lectura",
+  "catalogo_plataforma": {
+    "GET https://www.api.inmero.co/api-sgpmp-test/configuracion/variables-ambientales": 401,
+    "humedad_suelo_en_catalogo": "NO_COMPROBADO"
+  },
+  "edge_env": {
+    "EDGE_SOURCE": "NO_LEIDO (/etc/sgpmp/edge-agent.env requiere sudo)",
+    "EDGE_FAKE_VARIABLES": "NO_LEIDO",
+    "EDGE_LORA_VARIABLES": "NO_LEIDO"
+  },
+  "dispositivos_observados": [
+    {
+      "rol": "gateway",
+      "serial": "RASPBERRY3B-TEST",
+      "firmware_heartbeat": "v0.4.0-rc.2",
+      "fuente": "mqtt sgpmp/RASPBERRY3B-TEST/heartbeat 2026-10-30T14:47:25.453521+00:00 (run-2026-10-30-mqtt-monitor-retry)",
+      "sensores_operativos": [{ "sensor": "rf55_2", "operativo": true }]
+    },
+    {
+      "rol": "nodo",
+      "serial": "QA-M03-272-A-088894",
+      "firmware_heartbeat": "v0.4.0-rc.2",
+      "fuente": "mqtt sgpmp/QA-M03-272-A-088894/heartbeat 2026-10-30T14:48:02.363847+00:00 (run-2026-10-30-mqtt-monitor-retry)",
+      "sensores_operativos": [{ "sensor": "rf55_2", "operativo": true }]
+    }
+  ],
+  "variables_de_escenario_g38": {
+    "temperatura_ambiente": "NO_OBSERVADA_EN_TELEMETRIA_ESTA_FASE",
+    "frecuencia_respiratoria": "NO_OBSERVADA_EN_TELEMETRIA_ESTA_FASE",
+    "humedad_suelo": "NO_PRESENTE_EN_sensores_operativos_DEL_HEARTBEAT"
+  },
+  "nota": "El heartbeat no lista seriales de sensores físicos ni nombres de variables RF-17. Solo reporta el id de perfil `rf55_2`."
+}

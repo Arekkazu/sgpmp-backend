@@ -1,0 +1,119 @@
+{
+  "ok": true,
+  "connect_rc": 0,
+  "subscriptions": {
+    "sgpmp/RASPBERRY3B-TEST/#": {
+      "topic": "sgpmp/RASPBERRY3B-TEST/#",
+      "mid": 1,
+      "granted_qos_or_reason": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ],
+      "concedida": true
+    },
+    "sgpmp/QA-M03-272-A-088894/#": {
+      "topic": "sgpmp/QA-M03-272-A-088894/#",
+      "mid": 2,
+      "granted_qos_or_reason": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ],
+      "concedida": true
+    }
+  },
+  "message_count": 2,
+  "events": [
+    {
+      "ts": "2026-10-30T14:47:22.296915+00:00",
+      "kind": "config",
+      "host": "149.130.169.209",
+      "port": 1886,
+      "mqtt_version": "5",
+      "client_id": "qa-g38-mon-retry-1793371642",
+      "topics": [
+        "sgpmp/RASPBERRY3B-TEST/#",
+        "sgpmp/QA-M03-272-A-088894/#"
+      ],
+      "listen_s": 60,
+      "username_is_monitor": true,
+      "password_len": 24
+    },
+    {
+      "ts": "2026-10-30T14:47:22.334850+00:00",
+      "kind": "connect",
+      "rc": 0,
+      "reason": "Success",
+      "session_present": false
+    },
+    {
+      "ts": "2026-10-30T14:47:22.335154+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/RASPBERRY3B-TEST/#",
+      "qos_requested": 1,
+      "mid": 1,
+      "mqtt_err": 0
+    },
+    {
+      "ts": "2026-10-30T14:47:22.335242+00:00",
+      "kind": "subscribe_sent",
+      "topic": "sgpmp/QA-M03-272-A-088894/#",
+      "qos_requested": 1,
+      "mid": 2,
+      "mqtt_err": 0
+    },
+    {
+      "ts": "2026-10-30T14:47:22.353494+00:00",
+      "kind": "suback",
+      "topic": "sgpmp/RASPBERRY3B-TEST/#",
+      "mid": 1,
+      "granted_qos_or_reason": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ],
+      "concedida": true
+    },
+    {
+      "ts": "2026-10-30T14:47:22.371013+00:00",
+      "kind": "suback",
+      "topic": "sgpmp/QA-M03-272-A-088894/#",
+      "mid": 2,
+      "granted_qos_or_reason": [
+        1
+      ],
+      "reasons": [
+        "Granted QoS 1"
+      ],
+      "concedida": true
+    },
+    {
+      "ts": "2026-10-30T14:47:26.292944+00:00",
+      "kind": "message",
+      "topic": "sgpmp/RASPBERRY3B-TEST/heartbeat",
+      "qos": 1,
+      "retain": false,
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T14:47:25.453521+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T14:48:03.365143+00:00",
+      "kind": "message",
+      "topic": "sgpmp/QA-M03-272-A-088894/heartbeat",
+      "qos": 1,
+      "retain": false,
+      "tipo": "HEARTBEAT",
+      "payload": "{\"tipo_mensaje\": \"HEARTBEAT\", \"estado_local_buffer\": \"INACTIVO\", \"datos_pendientes_buffer\": 0, \"metricas_buffer\": {\"capacidad_total\": 50000, \"capacidad_utilizada\": 0, \"ultimo_timestamp_pendiente\": null, \"politica_buffer_activa\": \"POLITICA_SOBRESCRITURA\"}, \"version_firmware\": \"v0.4.0-rc.2\", \"reloj_sincronizado\": true, \"fecha_registro\": \"2026-10-30T14:48:02.363847+00:00\", \"sensores_operativos\": [{\"sensor\": \"rf55_2\", \"operativo\": true}]}"
+    },
+    {
+      "ts": "2026-10-30T14:48:22.477491+00:00",
+      "kind": "disconnect",
+      "rc": 0,
+      "reason": "Normal disconnection"
+    }
+  ]
+}
