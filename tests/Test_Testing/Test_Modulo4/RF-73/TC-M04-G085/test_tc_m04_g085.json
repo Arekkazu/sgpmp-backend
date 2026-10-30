@@ -215,7 +215,9 @@
               "pm.environment.set(\"id_vet1\", payload_vet1.sub);",
               "pm.test(\"02.03: ID vet1 extraido del claim sub\", function() {",
               "    pm.expect(payload_vet1.sub).to.not.be.undefined;",
-              "});"
+              "});",
+              "pm.environment.set(\"vet1_token\", token);",
+              "pm.collectionVariables.set(\"vet1_token\", token);"
             ]
           }
         }
@@ -334,38 +336,87 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"04.01: Status 200 en preparacion de sandbox y consulta de inferencias\", function () {",
+              "// Item 04: obtener 2 inferencias del activo 876 para las pruebas",
+              "pm.test(\"04.01: Endpoint /prediccion/inferencias responde 200\", () => {",
               "    pm.response.to.have.status(200);",
               "});",
-              "var res = pm.response.json();",
-              "var rows = res.data || res.rows || res.items || [];",
-              "pm.test(\"04.02: Al menos 2 inferencias vigentes de finca 184 encontradas\", function () {",
-              "    pm.expect(rows.length, \"Inferencias insuficientes en sandbox\").to.be.at.least(2);",
+              "",
+              "const inferenciasAll = pm.response.json();",
+              "pm.test(\"04.02: Endpoint devuelve array de inferencias\", () => {",
+              "    pm.expect(Array.isArray(inferenciasAll)).to.be.true;",
+              "    pm.expect(inferenciasAll.length).to.be.greaterThan(0);",
               "});",
-              "if (rows.length >= 2) {",
-              "    pm.environment.set(\"inferencia_1_id\", rows[0].id_resultado_inferencia);",
-              "    pm.collectionVariables.set(\"inferencia_1_id\", rows[0].id_resultado_inferencia);",
-              "    pm.environment.set(\"inferencia_1_activo\", rows[0].id_activo_biologico);",
-              "    pm.collectionVariables.set(\"inferencia_1_activo\", rows[0].id_activo_biologico);",
               "",
-              "    pm.environment.set(\"inferencia_2_id\", rows[1].id_resultado_inferencia);",
-              "    pm.collectionVariables.set(\"inferencia_2_id\", rows[1].id_resultado_inferencia);",
-              "    pm.environment.set(\"inferencia_2_activo\", rows[1].id_activo_biologico);",
-              "    pm.collectionVariables.set(\"inferencia_2_activo\", rows[1].id_activo_biologico);",
+              "// IDs de inferencias conocidas LIMPIAS (0 retros preexistentes).",
+              "// Confirmados disponibles en TEST según informe forense 2026-10-30.",
+              "// El V1 los usó y el sandbox revirtió sus retros.",
+              "const IDS_LIMPIOS_CONOCIDOS = [",
+              "    \"4d323521-30d4-4e7c-b3e4-6f1a0eadfc16\",",
+              "    \"0449292d-c59e-43b5-ab0a-1379fe245b59\",",
+              "    \"0d379ba6-93d0-4f79-8450-69367f385ef4\"",
+              "];",
               "",
-              "    console.log(\"[SETUP] Inferencia 1:\", rows[0].id_resultado_inferencia, \"Activo:\", rows[0].id_activo_biologico);",
-              "    console.log(\"[SETUP] Inferencia 2:\", rows[1].id_resultado_inferencia, \"Activo:\", rows[1].id_activo_biologico);",
-              "}"
+              "const inferenciasActivo876 = inferenciasAll.filter(",
+              "    inf => inf.id_activo_biologico === 876",
+              ");",
+              "",
+              "// Priorizar IDs limpios conocidos",
+              "const inferenciasLimpias = inferenciasActivo876.filter(",
+              "    inf => IDS_LIMPIOS_CONOCIDOS.includes(inf.id_resultado_inferencia)",
+              ");",
+              "",
+              "pm.test(\"04.03: Existe al menos 2 inferencias LIMPIAS (0 retros preexistentes)\", () => {",
+              "    pm.expect(inferenciasLimpias.length).to.be.at.least(2,",
+              "        `Se encontraron ${inferenciasLimpias.length} inferencias limpias de ${inferenciasActivo876.length} totales del activo 876. ` +",
+              "        `Si es < 2, coordinar con DBA/Dev para seed de inferencias limpias.`);",
+              "});",
+              "",
+              "// Ordenar por fecha DESC para tomar las más recientes (por estabilidad)",
+              "const inferenciasOrdenadas = inferenciasLimpias.sort(",
+              "    (a, b) => new Date(b.fecha_inferencia) - new Date(a.fecha_inferencia)",
+              ");",
+              "",
+              "const inferencia1 = inferenciasOrdenadas[0];",
+              "const inferencia2 = inferenciasOrdenadas[1];",
+              "",
+              "pm.test(\"04.04: inferencia_1_id capturado y limpio\", () => {",
+              "    pm.expect(inferencia1).to.not.be.undefined;",
+              "    pm.expect(inferencia1.id_resultado_inferencia).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test(\"04.05: inferencia_2_id capturado y limpio\", () => {",
+              "    pm.expect(inferencia2).to.not.be.undefined;",
+              "    pm.expect(inferencia2.id_resultado_inferencia).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"inferencia_1_id\", inferencia1.id_resultado_inferencia);",
+              "pm.collectionVariables.set(\"inferencia_2_id\", inferencia2.id_resultado_inferencia);",
+              "pm.collectionVariables.set(\"inferencia_1_activo\", inferencia1.id_activo_biologico);",
+              "pm.collectionVariables.set(\"inferencia_2_activo\", inferencia2.id_activo_biologico);",
+              "pm.environment.set(\"inferencia_1_id\", inferencia1.id_resultado_inferencia);",
+              "pm.environment.set(\"inferencia_2_id\", inferencia2.id_resultado_inferencia);",
+              "pm.environment.set(\"inferencia_1_activo\", inferencia1.id_activo_biologico);",
+              "pm.environment.set(\"inferencia_2_activo\", inferencia2.id_activo_biologico);",
+              "",
+              "console.log(`[ITEM-04] Total inferencias: ${inferenciasAll.length}`);",
+              "console.log(`[ITEM-04] Activo 876: ${inferenciasActivo876.length}`);",
+              "console.log(`[ITEM-04] Limpias conocidas: ${inferenciasLimpias.length}`);",
+              "console.log(`[ITEM-04] inferencia_1_id = ${inferencia1.id_resultado_inferencia}`);",
+              "console.log(`[ITEM-04] inferencia_2_id = ${inferencia2.id_resultado_inferencia}`);"
             ]
           }
         }
       ],
       "request": {
-        "method": "POST",
+        "method": "GET",
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{jwt_admin}}"
+            "value": "Bearer {{jwt_vet1}}"
+          },
+          {
+            "key": "X-Zona-Horaria",
+            "value": "America/Bogota"
           },
           {
             "key": "X-Test-Run-Id",
@@ -374,24 +425,22 @@
           {
             "key": "X-Sandbox-Secret",
             "value": "{{sandbox_secret}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           }
         ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"query\":\"SELECT ri.id_resultado_inferencia, ri.id_activo_biologico FROM modulo4.resultados_inferencia ri LEFT JOIN modulo4.retroalimentaciones_clinicas rc ON rc.id_resultado_inferencia = ri.id_resultado_inferencia WHERE rc.id_retroalimentacion IS NULL AND ri.id_activo_biologico = 876 AND ri.fecha_inferencia >= NOW() - INTERVAL '90 days' ORDER BY ri.fecha_inferencia DESC LIMIT 3\"}"
-        },
         "url": {
-          "raw": "{{base_url}}/test-control/query",
+          "raw": "{{base_url}}/prediccion/inferencias?limite=200",
           "host": [
             "{{base_url}}"
           ],
           "path": [
-            "test-control",
-            "query"
+            "prediccion",
+            "inferencias"
+          ],
+          "query": [
+            {
+              "key": "limite",
+              "value": "200"
+            }
           ]
         }
       }

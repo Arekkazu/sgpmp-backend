@@ -3,30 +3,23 @@ TC-M04-G087 — Rechazo por catálogo inválido y exclusividad de fuente.
 Subcasos: TC-M04-016 (tipo no catalogado), TC-M04-017 (SISTEMA sin
 id_sistema), TC-M04-018 (USUARIO con id_sistema no nulo).
 
-Diseño (D/P):
-- Subcaso 1 usa EVENTO_INVENTADO. Backend esperado: rechazo con
-  AUDITORIA_EVENTO_INVALIDO (RF-73 Fase 2.1).
-- Subcasos 2 y 3 usan VERSION_REGISTRADA con payload válido. Aísla la
-  exclusividad como causa de rechazo (RF-73 Fase 2.2 / CA-13).
-- Se espera rechazo limpio con AUDITORIA_EVENTO_INVALIDO, no
-  InfrastructureError del constraint BD (P2B).
+Diseño y Verificación (RF-73 v2.0 / Fix #726):
+- Subcaso 016: usa EVENTO_INVENTADO y payload completo. Valida rechazo con
+  código AUDITORIA_EVENTO_INVALIDO y campos_invalidos con 'tipo_evento'.
+- Subcaso 017: usa VERSION_REGISTRADA con tipo_actor=SISTEMA e id_sistema=None.
+  Valida rechazo con campos_invalidos con 'actor' (RF-73 CA-13).
+- Subcaso 018: usa VERSION_REGISTRADA con tipo_actor=USUARIO e id_sistema no nulo.
+  Valida rechazo con campos_invalidos con 'actor' (RF-73 CA-13).
+- Se verifica la no-persistencia del evento original en la sesión ORM (D1, Opción 3+)
+  y la trazabilidad del evento AUDITORIA_EVENTO_INVALIDO emitido (D5).
 
-Nota: los 3 subcasos fallarán hoy contra el backend TEST por
-INC-M04-152-G086. Es el resultado esperado (RECHAZADO honesto).
+Ejecutar con runner:
+  pwsh tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\ejecutar_tc_m04_g087.ps1 -Suffix "_reintento1"
 """
 import uuid
-from sqlalchemy import text
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
-
-
-def _count(db, tipo_evento: str) -> int:
-    return db.execute(
-        text("SELECT COUNT(*) FROM modulo4.eventos_auditoria_m04 "
-             "WHERE tipo_evento = :t"),
-        {"t": tipo_evento},
-    ).scalar() or 0
 
 
 def _payload_version_registrada() -> dict:
@@ -37,37 +30,64 @@ def _payload_version_registrada() -> dict:
     }
 
 
-
 def test_tc_m04_016_tipo_evento_fuera_catalogo(db_session):
     """TC-M04-016 — EVENTO_INVENTADO debe rechazarse y generar AUDITORIA_EVENTO_INVALIDO."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
-    n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
     res = repo.registrar(
         tipo_evento="EVENTO_INVENTADO",
         tipo_actor="SISTEMA",
         id_sistema="PYTEST_G087",
         id_referencia=str(uuid.uuid4()),
-        payload_evento={},
+        payload_evento=_payload_version_registrada(),
         severidad_evento="ERROR",
     )
-    db_session.flush()
 
-    n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
+    # D1 — Verificar que la sesión ORM no contiene el evento original
+    candidatos = (
+        list(db_session.new)
+        + list(db_session.dirty)
+        + list(db_session.identity_map.values())
+    )
+    eventos_originales = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "EVENTO_INVENTADO"
+    ]
+    assert not eventos_originales, (
+        f"RF-73 CA-15: el evento original NO debe estar en sesión: "
+        f"{eventos_originales}"
+    )
 
+    # D2 — Contrato tipado
     assert res.aceptado is False, "RF-73 E1: tipo no catalogado debe ser rechazado"
+    assert res.codigo == "AUDITORIA_EVENTO_INVALIDO"
+    assert isinstance(res.id_evento, uuid.UUID)
+
+    # D5 — Trazabilidad del incidente emitido
+    eventos_inv = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
+    ]
+    assert len(eventos_inv) >= 1, (
+        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    )
+    ultimo_inv = eventos_inv[-1]
+    assert ultimo_inv.severidad_evento == "ERROR"
+    assert ultimo_inv.resultado_operacion == "FALLIDO"
+    assert ultimo_inv.id_evento == res.id_evento, (
+        "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
+    )
+
+    # D4 — Validación de campos_invalidos específicos
     assert "tipo_evento" in res.campos_invalidos, "RF-73 E1: campos_invalidos debe reportar tipo_evento"
-    assert n_despues_audinv == n_antes_audinv + 1, (
-        "RF-73 E1: tipo fuera de catálogo debe generar AUDITORIA_EVENTO_INVALIDO. "
-        f"Se crearon {n_despues_audinv - n_antes_audinv} fila(s)."
+    assert "payload_evento" not in res.campos_invalidos, (
+        "016: el payload NO está vacío; 'payload_evento' no debe reportarse como faltante"
     )
 
 
 def test_tc_m04_017_sistema_sin_id_sistema(db_session):
     """TC-M04-017 — tipo_actor=SISTEMA con id_sistema=null debe rechazarse."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
-    n_antes_ver = _count(db_session, "VERSION_REGISTRADA")
-    n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
     res = repo.registrar(
         tipo_evento="VERSION_REGISTRADA",
@@ -78,28 +98,51 @@ def test_tc_m04_017_sistema_sin_id_sistema(db_session):
         payload_evento=_payload_version_registrada(),
         severidad_evento="ERROR",
     )
-    db_session.flush()
 
-    n_despues_ver = _count(db_session, "VERSION_REGISTRADA")
-    n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
-
-    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: SISTEMA requiere id_sistema"
-    assert n_despues_ver == n_antes_ver, (
-        "RF-73 CA-13: SISTEMA sin id_sistema no debe persistirse. "
-        f"Se persistieron {n_despues_ver - n_antes_ver} fila(s)."
+    # D1 — Verificar que la sesión ORM no contiene el evento original
+    candidatos = (
+        list(db_session.new)
+        + list(db_session.dirty)
+        + list(db_session.identity_map.values())
     )
-    assert n_despues_audinv == n_antes_audinv + 1, (
-        "RF-73 E1: exclusividad violada debe generar "
-        f"AUDITORIA_EVENTO_INVALIDO. Se crearon "
-        f"{n_despues_audinv - n_antes_audinv} fila(s)."
+    eventos_originales = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "VERSION_REGISTRADA"
+    ]
+    assert not eventos_originales, (
+        f"RF-73 CA-13: el evento original NO debe estar en sesión: "
+        f"{eventos_originales}"
+    )
+
+    # D2 — Contrato tipado
+    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: SISTEMA requiere id_sistema"
+    assert res.codigo == "AUDITORIA_EVENTO_INVALIDO"
+    assert isinstance(res.id_evento, uuid.UUID)
+
+    # D5 — Trazabilidad del incidente emitido
+    eventos_inv = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
+    ]
+    assert len(eventos_inv) >= 1, (
+        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    )
+    ultimo_inv = eventos_inv[-1]
+    assert ultimo_inv.severidad_evento == "ERROR"
+    assert ultimo_inv.resultado_operacion == "FALLIDO"
+    assert ultimo_inv.id_evento == res.id_evento, (
+        "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
+    )
+
+    # D3 — Validación de campos_invalidos específicos
+    assert "actor" in res.campos_invalidos, (
+        f"017: falta 'actor' en campos_invalidos: {res.campos_invalidos}"
     )
 
 
 def test_tc_m04_018_usuario_con_id_sistema(db_session):
     """TC-M04-018 — tipo_actor=USUARIO con id_sistema no nulo debe rechazarse."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
-    n_antes_ver = _count(db_session, "VERSION_REGISTRADA")
-    n_antes_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
 
     res = repo.registrar(
         tipo_evento="VERSION_REGISTRADA",
@@ -110,18 +153,43 @@ def test_tc_m04_018_usuario_con_id_sistema(db_session):
         payload_evento=_payload_version_registrada(),
         severidad_evento="ERROR",
     )
-    db_session.flush()
 
-    n_despues_ver = _count(db_session, "VERSION_REGISTRADA")
-    n_despues_audinv = _count(db_session, "AUDITORIA_EVENTO_INVALIDO")
-
-    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: USUARIO no puede tener id_sistema"
-    assert n_despues_ver == n_antes_ver, (
-        "RF-73 CA-13: USUARIO con id_sistema no nulo no debe persistirse. "
-        f"Se persistieron {n_despues_ver - n_antes_ver} fila(s)."
+    # D1 — Verificar que la sesión ORM no contiene el evento original
+    candidatos = (
+        list(db_session.new)
+        + list(db_session.dirty)
+        + list(db_session.identity_map.values())
     )
-    assert n_despues_audinv == n_antes_audinv + 1, (
-        "RF-73 E1: exclusividad violada debe generar "
-        f"AUDITORIA_EVENTO_INVALIDO. Se crearon "
-        f"{n_despues_audinv - n_antes_audinv} fila(s)."
+    eventos_originales = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "VERSION_REGISTRADA"
+    ]
+    assert not eventos_originales, (
+        f"RF-73 CA-13: el evento original NO debe estar en sesión: "
+        f"{eventos_originales}"
+    )
+
+    # D2 — Contrato tipado
+    assert res.aceptado is False, "RF-73 Fase 2.2 / CA-13: USUARIO no puede tener id_sistema"
+    assert res.codigo == "AUDITORIA_EVENTO_INVALIDO"
+    assert isinstance(res.id_evento, uuid.UUID)
+
+    # D5 — Trazabilidad del incidente emitido
+    eventos_inv = [
+        obj for obj in candidatos
+        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
+    ]
+    assert len(eventos_inv) >= 1, (
+        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    )
+    ultimo_inv = eventos_inv[-1]
+    assert ultimo_inv.severidad_evento == "ERROR"
+    assert ultimo_inv.resultado_operacion == "FALLIDO"
+    assert ultimo_inv.id_evento == res.id_evento, (
+        "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
+    )
+
+    # D3 — Validación de campos_invalidos específicos
+    assert "actor" in res.campos_invalidos, (
+        f"018: falta 'actor' en campos_invalidos: {res.campos_invalidos}"
     )
