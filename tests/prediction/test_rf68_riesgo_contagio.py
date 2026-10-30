@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conservar regresiones existentes con el puerto explícito de ocupación. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -186,6 +187,7 @@ def _use_case(resultados=None, config=_config(), accesible=True):
         config_repo=SimpleNamespace(obtener_por_tipo=lambda t: config),
         resultado_repo=resultados or _Resultados(),
         activo_port=SimpleNamespace(activo_existe_y_accesible=lambda *a: accesible),
+        ocupacion_port=SimpleNamespace(obtener_muestras=lambda *a, **kw: []),
         alerta_port=alerta, auditoria_repo=auditoria,
     )
     return uc, alerta, auditoria

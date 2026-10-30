@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: consultar histórico solo ante densidad inválida y auditar su procedencia. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración activa de RF-65 → caché/frecuencia (5.1) →
@@ -27,6 +28,8 @@ from src.prediction.domain.entities.riesgo_contagio import (
     SalidaInferencia,
     calcular_riesgo_contagio,
 )
+from src.prediction.domain.entities.ocupacion_lote import VENTANA_OCUPACION
+from src.prediction.domain.repositories.ocupacion_lote_port import OcupacionLotePort
 from src.prediction.domain.repositories.activo_biologico_port import ActivoBiologicoPort
 from src.prediction.domain.repositories.alerta_contagio_port import AlertaContagioPort
 from src.prediction.domain.repositories.configuracion_motor_ia_repository import ConfiguracionMotorIARepository
@@ -54,6 +57,7 @@ class EstimarRiesgoContagioUseCase:
         config_repo: ConfiguracionMotorIARepository,
         resultado_repo: ResultadoRiesgoContagioRepository,
         activo_port: ActivoBiologicoPort,
+        ocupacion_port: OcupacionLotePort,
         alerta_port: AlertaContagioPort,
         auditoria_repo: EventoAuditoriaM04Repository,
     ) -> None:
@@ -61,6 +65,7 @@ class EstimarRiesgoContagioUseCase:
         self.config_repo = config_repo
         self.resultado_repo = resultado_repo
         self.activo_port = activo_port
+        self.ocupacion_port = ocupacion_port
         self.alerta_port = alerta_port
         self.auditoria_repo = auditoria_repo
 
@@ -88,6 +93,12 @@ class EstimarRiesgoContagioUseCase:
                 headers={"Retry-After": str(max(1, int(espera.total_seconds()) + 1))},
             )
 
+        muestras_ocupacion = []
+        if dto.densidad_poblacional is not None and dto.densidad_poblacional < 0:
+            muestras_ocupacion = self.ocupacion_port.obtener_muestras(
+                dto.id_lote, desde=ahora - VENTANA_OCUPACION, hasta=ahora,
+            )
+
         try:
             resultado = calcular_riesgo_contagio(
                 id_lote=dto.id_lote,
@@ -105,6 +116,7 @@ class EstimarRiesgoContagioUseCase:
                 score_anomalia=dto.score_anomalia,
                 ambiente=LecturaAmbiental(**dto.variables_ambientales.model_dump()) if dto.variables_ambientales else None,
                 densidad_poblacional=dto.densidad_poblacional,
+                muestras_ocupacion=muestras_ocupacion,
                 porcentaje_sensores_activos=dto.porcentaje_sensores_activos,
             )
         except DatosContagioError as exc:
@@ -160,6 +172,7 @@ class EstimarRiesgoContagioUseCase:
             "factores_ausentes": resultado.factores_ausentes,
             "motivos_degradacion": resultado.motivos_degradacion,
             "config_version": resultado.config_version,
+            "contexto_densidad": resultado.contexto_densidad,
             **(extra or {}),
         }
         self.auditoria_repo.registrar(

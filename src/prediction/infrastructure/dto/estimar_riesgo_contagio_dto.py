@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: permitir densidad negativa finita para resolver el error de sensor en E2. |
 """``POST /prediccion/riesgo-contagio`` (RF-68 Entradas)."""
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ class EstimarRiesgoContagioDTO(BaseDTO):
         default=None, ge=0, le=1, description="Lote POBLACIONAL: Fs desde el score del área (RFC-009)."
     )
     densidad_poblacional: Optional[Decimal] = Field(
-        default=None, ge=0, description="Animales/m² (RF-36). Nula: se asume la capacidad máxima."
+        default=None, allow_inf_nan=False, description="Animales/m² (RF-36). Negativa: histórico E2; nula: capacidad máxima."
     )
     variables_ambientales: Optional[VariablesAmbientalesDTO] = None
     porcentaje_sensores_activos: Decimal = Field(default=Decimal("100"), ge=0, le=100)
