@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
 # | 2026-10-29 | Arekkazu | PEND-456 RF-68: GET con los cálculos del alcance para la pestaña Contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: documentar umbrales dinámicos y condiciones de alerta. |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -74,8 +75,9 @@ def estimar_riesgo_contagio(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> JSONResponse:
     """P = W_fs·Fs + W_fa·Fa + W_fd·Fd con los pesos y rangos de RF-65, discretizado en
-    Bajo/Medio/Alto (fronteras 0.50 y 0.70). Con Alto y confianza normal genera la alerta
-    RIESGO_CONTAGIO en RF-57 (`alerta_id`)."""
+    Bajo/Medio/Alto (Medio desde 0.50, Alto desde umbral_riesgo_alto de RF-65).
+    Con Alto, confianza normal y probabilidad >= umbral_alerta_critica genera la
+    alerta RIESGO_CONTAGIO en RF-57 (`alerta_id`)."""
     resultado = EstimarRiesgoContagioUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionMotorIARepository(db),

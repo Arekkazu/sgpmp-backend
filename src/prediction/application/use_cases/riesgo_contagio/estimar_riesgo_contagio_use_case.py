@@ -1,11 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: aplicar umbrales RF-65 a clasificación y alerta con trazabilidad. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración activa de RF-65 → caché/frecuencia (5.1) →
 cálculo (``calcular_riesgo_contagio``) → persistencia (paso 9) → RF-73 → alerta
-RIESGO_CONTAGIO hacia RF-57 si es Alto y la confianza no es baja (paso 8, CA-3, CA-6).
+RIESGO_CONTAGIO hacia RF-57 si es Alto, alcanza el umbral crítico de RF-65 y
+la confianza no es baja (decisión funcional #852; paso 8, CA-3, CA-6).
 
 Fuera de alcance: la cola de concurrencia por lote (máx. 3 en curso, FIFO de 10) y la
 agregación de 5 min del historial. Cada solicitud corre sola y la tasa por lote se
@@ -96,6 +98,7 @@ class EstimarRiesgoContagioUseCase:
                     temp_min=config.temp_min_config, temp_max=config.temp_max_config,
                     hr_min=config.hr_min_config, hr_max=config.hr_max_config,
                     densidad_maxima=config.densidad_maxima_config,
+                    umbral_riesgo_alto=config.umbral_riesgo_alto,
                 ),
                 ahora=ahora,
                 salidas_rf66=[SalidaInferencia(s.probabilidad_riesgo_alto, s.fecha_inferencia, s.id_activo_biologico)
@@ -113,6 +116,10 @@ class EstimarRiesgoContagioUseCase:
 
         resultado.id_configuracion_motor = config.id_configuracion_motor
         resultado.config_version = config.config_version
+        resultado.umbrales_aplicados = {
+            "umbral_riesgo_alto": config.umbral_riesgo_alto,
+            "umbral_alerta_critica": config.umbral_alerta_critica,
+        }
         resultado.id_area_productiva = self.alerta_port.area_del_lote(dto.id_lote)
         resultado.huella_entradas = huella
         if dto.variables_ambientales:
@@ -132,7 +139,8 @@ class EstimarRiesgoContagioUseCase:
                 self._auditar("ALERTA_CALIDAD_DATOS", resultado, id_usuario, "ADVERTENCIA", "WARNING",
                               extra={"ejecuciones_degradadas_consecutivas": degradadas + 1})
             # CA-3 / CA-6 / E10: solo con confianza normal se alerta.
-            if resultado.nivel_riesgo_contagio == 2 and not resultado.confianza_baja:
+            if (resultado.nivel_riesgo_contagio == 2 and not resultado.confianza_baja
+                    and resultado.probabilidad_contagio >= config.umbral_alerta_critica):
                 resultado.alerta_id = self.alerta_port.emitir(resultado)
                 self.resultado_repo.asociar_alerta(resultado.id_resultado_contagio, resultado.alerta_id)
                 self._auditar("ALERTA_CONTAGIO_GENERADA", resultado, id_usuario, "EXITOSO", "WARNING",
@@ -160,6 +168,7 @@ class EstimarRiesgoContagioUseCase:
             "factores_ausentes": resultado.factores_ausentes,
             "motivos_degradacion": resultado.motivos_degradacion,
             "config_version": resultado.config_version,
+            "umbrales_aplicados": {k: str(v) for k, v in resultado.umbrales_aplicados.items()},
             **(extra or {}),
         }
         self.auditoria_repo.registrar(

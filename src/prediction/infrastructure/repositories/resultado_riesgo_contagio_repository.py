@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: conservar umbrales aplicados en el snapshot histórico y su lectura. |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -25,6 +26,7 @@ def _snapshot(r: ResultadoRiesgoContagio) -> dict:
         "densidad_asumida": r.densidad_asumida,
         "id_area_productiva": r.id_area_productiva,
         "config_version": r.config_version,
+        "umbrales_aplicados": {k: str(v) for k, v in r.umbrales_aplicados.items()},
         "huella_entradas": r.huella_entradas,
         "id_alerta_rf57": r.alerta_id,
     }
@@ -86,7 +88,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
         snap = dict(orm.variables_ambientales_snap or {})
         ausentes = list(orm.factores_ausentes or [])
         propias = {"definicion_fs", "motivos_degradacion", "densidad_asumida", "id_area_productiva",
-                   "config_version", "huella_entradas", "id_alerta_rf57"}
+                   "config_version", "huella_entradas", "id_alerta_rf57", "umbrales_aplicados"}
         return ResultadoRiesgoContagio(
             id_lote=orm.id_activo_biologico,
             probabilidad_contagio=orm.probabilidad_contagio,
@@ -112,4 +114,5 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
             alerta_id=snap.get("id_alerta_rf57"),
             huella_entradas=snap.get("huella_entradas") or "",
             variables_ambientales={k: v for k, v in snap.items() if k not in propias},
+            umbrales_aplicados={k: Decimal(v) for k, v in (snap.get("umbrales_aplicados") or {}).items()},
         )
