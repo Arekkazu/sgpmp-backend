@@ -15,6 +15,7 @@
 # | 2026-10-28 | Arekkazu | BE-0 RF-55: router del CRUD de reglas de alerta |
 # | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
+# | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: router de la ventana de retroalimentación |
 import asyncio
 import logging
 import os
@@ -44,6 +45,7 @@ from src.configuration.infrastructure.routers.ciclo_router import router as cicl
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
 from src.configuration.infrastructure.routers.parametros_alertas_router import router as parametros_alertas_router
 from src.configuration.infrastructure.routers.politica_vision_router import router as politica_vision_router
+from src.configuration.infrastructure.routers.parametros_retroalimentacion_router import router as parametros_retroalimentacion_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
@@ -893,6 +895,7 @@ app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
 app.include_router(parametros_alertas_router)
 app.include_router(politica_vision_router)
+app.include_router(parametros_retroalimentacion_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
