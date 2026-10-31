@@ -11,6 +11,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: alerta generada por reevaluación de otra |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 # | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
+# | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: eventos PENDIENTE_EVALUACION se reevalúan al configurar la regla |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -40,6 +41,14 @@ class AlertaRepository(ABC):
 
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
+        raise NotImplementedError
+
+    def listar_pendientes_e9(self, limite: int) -> list[Alerta]:
+        """G85 (E9): técnicas ERROR_CONFIGURACION_REGLA abiertas con su evento aún PENDIENTE_EVALUACION."""
+        raise NotImplementedError
+
+    def marcar_pendiente_e9_evaluado(self, id_alerta: int, resultado: dict) -> None:
+        """G85 (E9): el evento pendiente ya se reevaluó; la técnica queda abierta para el Administrador."""
         raise NotImplementedError
 
     def bloquear_condicion_activo(self, id_activo_biologico: int, tipo_alerta: str) -> None:

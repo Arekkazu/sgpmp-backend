@@ -15,6 +15,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: busca la reevaluación previa con lock |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
 # | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
+# | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: eventos PENDIENTE_EVALUACION se reevalúan al configurar la regla |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -250,6 +251,35 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         try:
             self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
                 {'clave': f'rf57:{id_sensor}:{clave}'})
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def listar_pendientes_e9(self, limite: int) -> list[Alerta]:
+        orms = (
+            self.db.query(AlertaModel)
+            .filter(
+                AlertaModel.tipo_alerta == TIPO_ALERTA_TECNICA,
+                AlertaModel.tipo_variable == 'ERROR_CONFIGURACION_REGLA',
+                AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+                AlertaModel.metadato_evento['evento_pendiente']['estado_evaluacion'].astext == 'PENDIENTE_EVALUACION',
+            )
+            .order_by(AlertaModel.id_alerta)
+            .limit(limite)
+            .with_for_update(skip_locked=True)
+            .all()
+        )
+        return [self._a_entidad(o) for o in orms]
+
+    def marcar_pendiente_e9_evaluado(self, id_alerta: int, resultado: dict) -> None:
+        try:
+            orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).with_for_update().one()
+            metadato = dict(orm.metadato_evento or {})
+            evento = dict(metadato.get('evento_pendiente') or {})
+            evento['estado_evaluacion'] = 'EVALUADO'
+            metadato['evento_pendiente'] = evento
+            metadato['reevaluacion_e9'] = resultado
+            orm.metadato_evento = metadato
+            self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)
 
