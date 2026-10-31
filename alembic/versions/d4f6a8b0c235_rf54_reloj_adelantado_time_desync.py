@@ -45,9 +45,10 @@ FN = (
     'integer, numeric, numeric, numeric, numeric, numeric, boolean, jsonb)'
 )
 _ORIGINAL = 'IF p_timestamp_captura > v_ts_procesamiento THEN'
+# COALESCE: sin la clave, la comparación JSON es NULL y NOT NULL dejaría pasar la captura futura.
 _NUEVA = """IF p_timestamp_captura > v_ts_procesamiento -- G30B_RELOJ_FUTURO
-               AND NOT (v_metadatos->'reloj_sincronizado' = 'false'::jsonb
-                        AND p_timestamp_captura <= v_ts_procesamiento + INTERVAL '72 hours') THEN"""
+               AND NOT COALESCE(v_metadatos->'reloj_sincronizado' = 'false'::jsonb
+                        AND p_timestamp_captura <= v_ts_procesamiento + INTERVAL '72 hours', FALSE) THEN"""
 
 
 def _transformar(src: str, revertir: bool = False) -> str:
