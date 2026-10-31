@@ -1,3 +1,6 @@
+# | Fecha      | Nombre | Que se hizo |
+# |------------|--------|-------------|
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58/59: mismo semáforo que el dashboard (bandas RF-17 + tolerancia T) |
 from datetime import datetime
 from typing import Optional
 
@@ -41,6 +44,7 @@ class UmbralHistoricoM09Adapter(UmbralHistoricoPort):
             "id_umbral_ambiental": umbral.id_umbral_ambiental,
             "umbral_min": umbral.valor_min,
             "umbral_max": umbral.valor_max,
+            "tolerancia_semaforo": umbral.tolerancia_semaforo,
             "niveles": [
                 {
                     "nivel": n.nivel.value,

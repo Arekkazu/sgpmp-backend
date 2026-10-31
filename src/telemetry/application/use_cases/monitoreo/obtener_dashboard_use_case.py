@@ -7,6 +7,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
 # | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: estado general de la unidad con todos sus sensores, no la página |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: semáforo con la última lectura, el umbral vigente y su tolerancia T |
 from __future__ import annotations
 
 import logging
@@ -14,6 +15,7 @@ from collections import Counter
 from typing import Optional
 
 from src.telemetry.domain.entities.monitoreo import (
+    CALIDADES_CON_VALOR_SEMAFORO,
     EstadoSensorActual,
     ResumenUnidadProductiva,
     SemaforoBaseSensor,
@@ -77,9 +79,10 @@ class ObtenerDashboardUseCase:
 
         sin_umbral: list[EstadoSensorActual] = []
         for sensor in sensores:
-            # E7 (DB-12): la caché deja GRIS cuando ninguna especie del área tiene umbral
-            # activo para la variable. El GRIS por dato desactualizado (CA-5) es otro caso.
-            sensor.sin_umbral = sensor.estado_semaforo == 'GRIS' and not sensor.dato_desactualizado
+            # E7 (DB-12): GRIS cuando ninguna especie del área tiene umbral activo para la
+            # variable. G88: se mira el umbral vigente, no la caché de la última ingesta
+            # (un umbral creado después ya cuenta). El GRIS por dato desactualizado (CA-5) es otro caso.
+            sensor.sin_umbral = self._sin_umbral(sensor) and not sensor.dato_desactualizado
             sensor.estado_semaforo = self._calcular_semaforo_efectivo(sensor)
             self._marcar_estado(sensor, ver_datos_tecnicos)
             if sensor.sin_umbral:
@@ -179,12 +182,37 @@ class ObtenerDashboardUseCase:
         if sensor.dato_desactualizado:
             return 'GRIS'
 
-        estado = sensor.estado_semaforo or 'GRIS'
+        estado = ObtenerDashboardUseCase._semaforo_base(sensor)
 
         # CA-4: alerta CRITICA activa → ROJO; alerta activa → al menos AMARILLO
         tiene_critica = sensor.severidad_alerta == 'CRITICO'
         tiene_activa = sensor.id_alerta is not None
         return SemaforoCalculator.aplicar_reglas_alerta(estado, tiene_critica, tiene_activa)
+
+    @staticmethod
+    def _sin_umbral(sensor: EstadoSensorActual | SemaforoBaseSensor) -> bool:
+        if sensor.umbrales_vigentes is None:  # sin lectura: lo que dejó la caché
+            return sensor.estado_semaforo == 'GRIS'
+        return not sensor.umbrales_vigentes
+
+    @staticmethod
+    def _semaforo_base(sensor: EstadoSensorActual | SemaforoBaseSensor) -> str:
+        """G88 (RF-58 Fase 3): color de la última lectura contra el umbral vigente.
+
+        La caché ``estados_actuales_sensores`` guarda VERDE al ingerir (el trigger no
+        evalúa RF-17): una lectura FUERA_DE_RANGO seguía VERDE y un cambio de umbral no
+        recalculaba nada. Ahora el color sale en cada consulta de la última lectura
+        (válida o fuera de rango) con el umbral de hoy y su tolerancia T. ERROR_CALIBRACION
+        no trae un valor confiable: conserva lo que dejó la caché.
+        """
+        if sensor.umbrales_vigentes is None:
+            return sensor.estado_semaforo or 'GRIS'
+        if not sensor.umbrales_vigentes:
+            return 'GRIS'
+        if (sensor.valor_condicion_actual is None
+                or sensor.calidad_condicion_actual not in CALIDADES_CON_VALOR_SEMAFORO):
+            return sensor.estado_semaforo or 'GRIS'
+        return SemaforoCalculator.calcular_con_umbrales(sensor.valor_condicion_actual, sensor.umbrales_vigentes)
 
     @staticmethod
     def _marcar_estado(sensor: EstadoSensorActual, ver_datos_tecnicos: bool) -> None:
@@ -208,6 +236,7 @@ class ObtenerDashboardUseCase:
                     sensor.etiqueta_estado = ETIQUETA_EN_REVISION
                     # El aviso genérico no expone el diagnóstico reservado al permiso técnico.
                     sensor.estado_calidad = None
+                    sensor.valor_condicion_actual = None
                     if not sensor.es_valor_operativo:
                         sensor.ultimo_valor = None
             else:
