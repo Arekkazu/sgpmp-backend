@@ -70,6 +70,8 @@ def listar_vinculaciones(
     estado_vinculacion: Optional[str] = Query(default=None),
     mecanismo_vinculacion: Optional[str] = Query(default=None),
     id_infraestructura: Optional[int] = Query(default=None),
+    modelo_manejo: Optional[str] = Query(
+        default=None, description="INDIVIDUAL o POBLACIONAL (CP74)."),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     pagina: int = Query(default=1, ge=1),
@@ -86,6 +88,7 @@ def listar_vinculaciones(
         estado_vinculacion=estado_vinculacion,
         mecanismo_vinculacion=mecanismo_vinculacion,
         id_infraestructura=id_infraestructura,
+        modelo_manejo=modelo_manejo,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,
