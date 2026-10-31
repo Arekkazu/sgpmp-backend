@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 from __future__ import annotations
 
 import uuid
@@ -43,6 +44,8 @@ class InferenciaMonitorResponse(BaseModel):
     fecha_inferencia: datetime
     tiene_alerta_generada: bool
     id_alerta_generada: Optional[int]
+    # T-18: nombre de cada patología de probabilidad_enfermedad, por su id.
+    nombres_patologias: Optional[dict] = None
 
     @computed_field
     @property
