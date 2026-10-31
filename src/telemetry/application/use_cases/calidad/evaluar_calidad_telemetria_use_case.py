@@ -5,6 +5,7 @@
 # | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: detectar outlier con sigma cero y auditar notificaciones de drift pendientes sin perder calidad. |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: restringir aptitud por TIME_DESYNC usando snapshot RF53 sin modificar el indice. |
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: permitir reevaluacion dentro de una transaccion y registrar causa y version reproducible. |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -29,7 +30,7 @@ from typing import Optional
 
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.parametros_reevaluacion import corregir_estadisticos
-from src.telemetry.domain.repositories.contexto_calidad_port import ContextoCalidadPort
+from src.telemetry.domain.repositories.contexto_calidad_port import ContextoCalidadPort, LimitesFisicosCalidad
 from src.telemetry.domain.entities.consistencia_temporal_calidad import (
     utc, unir_periodos, cubierto, detectar_gaps,
 )
@@ -136,6 +137,8 @@ class EvaluarCalidadTelemetriaUseCase:
         # ── Fase 0: estado heredado de RF-53 ──────────────────────────────────
         if estado_calidad_rf53 == 'FUERA_DE_RANGO':
             flags['fuera_de_rango_rf53'] = {'activo': True}
+            # G169 (R7/R9): también esta rama persiste la versión de límites físicos aplicada.
+            self._aplicar_limites(self._limites_fisicos(id_variable))
             evaluacion = self._persistir(
                 id_telemetria=id_telemetria,
                 id_sensor=id_sensor,
@@ -170,7 +173,13 @@ class EvaluarCalidadTelemetriaUseCase:
         contexto = None
         gaps, excluidos = [], []
         if self.contexto_port is not None:
-            contexto = self.contexto_port.obtener(id_telemetria,id_sensor,id_variable,timestamp_captura,params.N)
+            if calibracion_no_disponible:
+                # G169 (R7): sin calibración se omite solo la fase 4; 2, 3 y 5 corren
+                # sobre la serie cruda del sensor (sus lecturas también son ERROR_CALIBRACION).
+                contexto = self.contexto_port.obtener(id_telemetria,id_sensor,id_variable,timestamp_captura,
+                                                      params.N, incluir_sin_calibracion=True)
+            else:
+                contexto = self.contexto_port.obtener(id_telemetria,id_sensor,id_variable,timestamp_captura,params.N)
             fechas = [utc(l.timestamp_captura) for l in contexto.lecturas] + [utc(timestamp_captura)]
             periodos = unir_periodos(contexto.periodos, utc(timestamp_captura))
             if contexto.lecturas and cubierto(min(fechas), max(fechas), periodos):
@@ -200,19 +209,7 @@ class EvaluarCalidadTelemetriaUseCase:
                 'lecturas_excluidas_rf60':excluidas,
                 'inicio_serie':min(fechas).isoformat(),'fin_serie':max(fechas).isoformat(),
             }
-            limites = contexto.limites
-            if limites is not None and limites.version is not None:
-                if (not limites.version.strip() or len(limites.version)>50 or
-                        not limites.minimo.is_finite() or not limites.maximo.is_finite() or
-                        limites.minimo > limites.maximo):
-                    raise ServiceUnavailableError('LIMITES_FISICOS_INVALIDOS','El snapshot de límites físicos es inválido.')
-                self._version_limites = limites.version
-                self._contexto['limites_fisicos_aplicados'] = {
-                    'minimo':str(limites.minimo),'maximo':str(limites.maximo),'fuente':limites.fuente}
-            else:
-                self._contexto['limites_fisicos'] = {
-                    'estado':'PENDIENTE_VERSIONADO_M09','aplicados':False,
-                    'fuente':limites.fuente if limites else None}
+            self._aplicar_limites(contexto.limites)
         else:
             # Uso aislado con puertos estadísticos; los entrypoints productivos
             # siempre inyectan el contexto real, sin catálogo físico alternativo.
@@ -323,6 +320,26 @@ class EvaluarCalidadTelemetriaUseCase:
         # ── Fase 8: Notificaciones ─────────────────────────────────────────────
         self._emitir_auditoria(TipoResultado.EXITOSO, id_telemetria, flags)
         return evaluacion
+
+    def _limites_fisicos(self, id_variable: int) -> Optional[LimitesFisicosCalidad]:
+        if self.contexto_port is None:
+            return None
+        limites = self.contexto_port.limites_fisicos(id_variable)
+        return limites if isinstance(limites, LimitesFisicosCalidad) else None
+
+    def _aplicar_limites(self, limites: Optional[LimitesFisicosCalidad]) -> None:
+        if limites is not None and limites.version is not None:
+            if (not limites.version.strip() or len(limites.version)>50 or
+                    not limites.minimo.is_finite() or not limites.maximo.is_finite() or
+                    limites.minimo > limites.maximo):
+                raise ServiceUnavailableError('LIMITES_FISICOS_INVALIDOS','El snapshot de límites físicos es inválido.')
+            self._version_limites = limites.version
+            self._contexto['limites_fisicos_aplicados'] = {
+                'minimo':str(limites.minimo),'maximo':str(limites.maximo),'fuente':limites.fuente}
+        else:
+            self._contexto['limites_fisicos'] = {
+                'estado':'PENDIENTE_VERSIONADO_M09','aplicados':False,
+                'fuente':limites.fuente if limites else None}
 
     def _persistir(
         self,

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: contrato temporal y limites aplicados |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 """Contexto histórico explícito, independiente de SQL y de estados actuales."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -43,7 +44,13 @@ class ContextoCalidad:
 class ContextoCalidadPort(ABC):
     @abstractmethod
     def obtener(self, id_telemetria: int, id_sensor: int, id_variable: int,
-                captura: datetime, n: int) -> ContextoCalidad: ...
+                captura: datetime, n: int, *, incluir_sin_calibracion: bool = False) -> ContextoCalidad:
+        """``incluir_sin_calibracion`` (G169, R7): la serie también toma lecturas
+        ERROR_CALIBRACION (valor crudo). Un sensor sin calibración solo tiene esas."""
+
+    def limites_fisicos(self, id_variable: int) -> LimitesFisicosCalidad | None:
+        """G169 (R7/R9): límites físicos vigentes de la variable, con su versión."""
+        return None
 
     @abstractmethod
     def bloquear_evaluacion(self, id_telemetria: int) -> None:

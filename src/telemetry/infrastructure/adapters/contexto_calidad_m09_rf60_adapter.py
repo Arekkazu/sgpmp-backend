@@ -1,7 +1,9 @@
 # | Fecha      | Nombre  | Que se hizo                                      |
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: consulta serie temporal y contexto RF-60 |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
 """Consultas reales sin reconstruir inactividad ni inventar versiones M09."""
+import hashlib
 from decimal import Decimal
 
 from sqlalchemy import text
@@ -27,7 +29,24 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
               AND entidad_afectada_tipo='CALIDAD_DATO' AND entidad_afectada_id=:id)"""),
             {'id':str(id_telemetria)}).scalar_one()
 
-    def obtener(self, id_telemetria, id_sensor, id_variable, captura, n):
+    def limites_fisicos(self, id_variable):
+        """G169 (#885, RF-62 R7/R9): M09 no versiona los límites físicos, así que la
+        versión es la huella de lo aplicado: variable + mínimo + máximo. Mismo valor ⇒
+        misma versión; cualquier cambio en M09 da otra, y la evaluación se puede
+        reproducir con lo que dice su ``version_limites_fisicos_aplicada``."""
+        limites = self.db.execute(text('''SELECT valor_fisico_min,valor_fisico_max
+            FROM modulo9.variables_ambientales WHERE id_variable_ambiental=:id AND es_activo'''),
+            {'id':id_variable}).one_or_none()
+        if limites is None or limites[0] is None or limites[1] is None:
+            return None
+        minimo, maximo = Decimal(str(limites[0])), Decimal(str(limites[1]))
+        huella = hashlib.sha256(f'{id_variable}|{minimo.normalize()}|{maximo.normalize()}'.encode()).hexdigest()[:16]
+        return LimitesFisicosCalidad(minimo, maximo, f'va{id_variable}:{huella}', 'modulo9.variables_ambientales')
+
+    def obtener(self, id_telemetria, id_sensor, id_variable, captura, n, *, incluir_sin_calibracion=False):
+        # G169 (R7): con la lectura en ERROR_CALIBRACION se usan también las lecturas
+        # sin calibración (valor crudo) para congelado, outlier y gap.
+        estados = ['LECTURA_VALIDA', 'ERROR_CALIBRACION'] if incluir_sin_calibracion else ['LECTURA_VALIDA']
         fuente = self.db.execute(text('''SELECT id_dispositivo_iot,frecuencia_muestreo_min
             FROM modulo3.telemetrias WHERE id_telemetria=:id AND id_sensor=:sensor
               AND id_variable=:variable AND timestamp_captura=:captura'''),
@@ -35,9 +54,9 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
         filas = self.db.execute(text('''SELECT id_telemetria,timestamp_captura,valor_crudo,
                 frecuencia_muestreo_min FROM modulo3.telemetrias
             WHERE id_sensor=:sensor AND id_variable=:variable
-              AND timestamp_captura < :captura AND estado_calidad='LECTURA_VALIDA'
+              AND timestamp_captura < :captura AND estado_calidad::text = ANY(:estados)
             ORDER BY timestamp_captura DESC,id_telemetria DESC LIMIT :n'''),
-            dict(sensor=id_sensor, variable=id_variable, captura=captura, n=n)).mappings().all()
+            dict(sensor=id_sensor, variable=id_variable, captura=captura, n=n, estados=estados)).mappings().all()
         lecturas = tuple(LecturaCalidad(r['id_telemetria'],r['timestamp_captura'],
                         Decimal(str(r['valor_crudo'])),r['frecuencia_muestreo_min']) for r in filas)
         inicio = min([captura] + [l.timestamp_captura for l in lecturas])
@@ -51,19 +70,13 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
         if any(p[0] is None for p in periodos):
             raise ServiceUnavailableError('HISTORIAL_INACTIVIDAD_INCOMPLETO',
                                           'RF-60 contiene periodos sin inicio verificable.')
-        limites = self.db.execute(text('''SELECT valor_fisico_min,valor_fisico_max
-            FROM modulo9.variables_ambientales WHERE id_variable_ambiental=:id AND es_activo'''),
-            {'id':id_variable}).one_or_none()
-        # El esquema vigente solo expone valores actuales. No son una versión
-        # válida en timestamp_captura: se transportan como consulta NO aplicada.
-        snapshot = (LimitesFisicosCalidad(Decimal(str(limites[0])),Decimal(str(limites[1])),
-                    None,'modulo9.variables_ambientales') if limites else None)
+        snapshot = self.limites_fisicos(id_variable)
         # Recuperar N válidas DESPUÉS de excluir inactividad, no descartar
         # muestras y declarar insuficiencia si hay antecedentes activos.
         activas = self.db.execute(text('''SELECT t.id_telemetria,t.timestamp_captura,
                 t.valor_crudo,t.frecuencia_muestreo_min FROM modulo3.telemetrias t
             WHERE t.id_sensor=:sensor AND t.id_variable=:variable
-              AND t.timestamp_captura<:captura AND t.estado_calidad='LECTURA_VALIDA'
+              AND t.timestamp_captura<:captura AND t.estado_calidad::text = ANY(:estados)
               AND NOT EXISTS(SELECT 1 FROM modulo3.periodos_inactividad p
                 WHERE p.id_dispositivo_iot=t.id_dispositivo_iot
                   AND p.estado_durante_periodo IN ('SIN_SEÑAL','INACTIVO')
@@ -71,7 +84,7 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
                   AND p.fecha_inicio<=t.timestamp_captura
                   AND (p.fecha_fin IS NULL OR p.fecha_fin>=t.timestamp_captura))
             ORDER BY t.timestamp_captura DESC,t.id_telemetria DESC LIMIT :n'''),
-            dict(sensor=id_sensor,variable=id_variable,captura=captura,n=n)).mappings().all()
+            dict(sensor=id_sensor,variable=id_variable,captura=captura,n=n,estados=estados)).mappings().all()
         estadisticas = tuple(LecturaCalidad(r['id_telemetria'],r['timestamp_captura'],
                          Decimal(str(r['valor_crudo'])),r['frecuencia_muestreo_min']) for r in activas)
         return ContextoCalidad(lecturas,tuple(IntervaloInactividad(*p) for p in periodos),
