@@ -1,3 +1,13 @@
+## [1.4.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.18...v1.4.0-rc.19) (2026-10-31)
+
+### Features
+
+* **rf66-prediction:** el motor IA registra sus resultados en POST /prediccion/inferencias ([c59f3a0](https://github.com/Arekkazu/sgpmp-backend/commit/c59f3a0df610dfef7ad8fa7416d864864d66dd5c))
+
+### Bug Fixes
+
+* **rf66-prediction:** la migracion 785022cc8ef9 cuelga de e5a1c7d39f62 para no dejar dos heads ([166604f](https://github.com/Arekkazu/sgpmp-backend/commit/166604fe9b9b65589da99a42bee100780cb6f4a6))
+
 ## [1.4.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.17...v1.4.0-rc.18) (2026-10-31)
 
 ### Bug Fixes
