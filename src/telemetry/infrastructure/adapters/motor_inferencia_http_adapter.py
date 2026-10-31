@@ -2,6 +2,7 @@
 # |------------|--------------|-------------|
 # | 2026-10-27 | destroyerban | INC-M03-120-G63 RF-56: cliente HTTPS hacia M04 con TLS mínimo 1.3, desactivado sin URL |
 # | 2026-10-30 | Arekkazu     | RF-66: URL base del motor en cualquier dominio y ventana del activo en cada paquete |
+# | 2026-10-31 | Arekkazu     | RF-17/RF-66 C3: el paquete lleva los rangos RF-17 de la especie del activo |
 """Cliente de transporte M03 → M04 para paquetes de inferencia (RF-56 Fase 6, INC-M03-120-G63).
 
 RF-56 exige "canales cifrados (TLS/SSL)"; los RNF de M03 fijan TLS 1.3. Este cliente:
@@ -18,8 +19,9 @@ se le agrega ``/v1/paquetes``. Una URL que ya termina en ``/v1/paquetes`` se usa
 se sigue con ``MotorInferenciaStubAdapter``.
 
 Contrato IA-1 v1 (decisión D-B; INC-M03-115-G58): ``{"paquetes": [...]}`` con ``Bearer``; cada
-paquete lleva además ``id_activo_biologico`` y ``lecturas`` (ventana del activo, ver
-``VentanaInferenciaPort``) cuando el adaptador tiene de dónde sacarlas.
+paquete lleva además ``id_activo_biologico``, ``lecturas`` (ventana del activo, ver
+``VentanaInferenciaPort``) y ``rangos_especie`` (bandas RF-17, punto C3 de ET-02) cuando el
+adaptador tiene de dónde sacarlas.
 """
 from __future__ import annotations
 
@@ -156,6 +158,8 @@ class MotorInferenciaHttpAdapter(MotorInferenciaPort):
             if ventana is not None:
                 cuerpo["id_activo_biologico"] = ventana.id_activo_biologico
                 cuerpo["lecturas"] = ventana.lecturas
+                if ventana.rangos_especie:
+                    cuerpo["rangos_especie"] = ventana.rangos_especie
         return cuerpos
 
 

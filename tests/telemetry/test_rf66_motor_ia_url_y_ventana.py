@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: URL del motor IA en cualquier dominio y ventana del activo |
+# | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: el paquete lleva los rangos RF-17 de la especie   |
 """RF-66 / IA-1 v1: la URL del motor es una URL base en cualquier dominio, cada paquete viaja
 con la ventana de su activo y la cola de reenvío usa el motor real cuando hay URL."""
 from __future__ import annotations
@@ -55,12 +56,16 @@ def test_cada_paquete_lleva_el_activo_y_su_ventana():
     lecturas = [{"timestamp": "2026-10-30T10:00:00+00:00", "variable": "frecuencia_cardiaca",
                  "valor": 71.0, "apto_para_ia": True}]
     ventanas = Mock()
-    ventanas.ventanas.return_value = {1: VentanaActivo(885, lecturas), 2: VentanaActivo(None, [])}
+    rangos = {"temperatura_corporal": {"sano": [38.0, 39.5], "plausible": [35.0, 43.0]}}
+    ventanas.ventanas.return_value = {1: VentanaActivo(885, lecturas, rangos), 2: VentanaActivo(None, [])}
     cliente = http.MotorInferenciaHttpAdapter("https://motor.arekkazu.top/v1/paquetes",
                                               ssl.create_default_context(), ventanas=ventanas)
     cuerpos = json.loads(json.dumps(cliente._cuerpos([_paquete(1), _paquete(2, sensor=9)]), default=str))
     assert (cuerpos[0]["id_activo_biologico"], cuerpos[0]["lecturas"]) == (885, lecturas)
+    assert cuerpos[0]["rangos_especie"] == rangos
+    # Sin umbral RF-17 no se manda el campo: el motor usa sus valores propios.
     assert (cuerpos[1]["id_activo_biologico"], cuerpos[1]["lecturas"]) == (None, [])
+    assert "rangos_especie" not in cuerpos[1]
     assert cuerpos[0]["tipo_variable"] == "TEMP_CORPORAL"  # el paquete de RF-56 no cambia
 
 
