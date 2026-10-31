@@ -9,6 +9,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: asocia el activo biológico y su contexto a la alerta |
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: sin umbral configurado no hay alerta operativa; técnica y ERROR_CONFIGURACION_REGLA |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-06 RF-57: acción sugerida en las alertas ambientales |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -22,6 +23,7 @@ from src.shared.errors import BusinessRuleError
 from src.telemetry.domain.entities import reglas_base_rf57
 from src.telemetry.domain.entities.alerta import (
     TIPO_ALERTA_TECNICA,
+    accion_sugerida_ambiental,
     Alerta,
     ConflictoResolucion,
     EstadoAlerta,
@@ -277,6 +279,10 @@ class GenararAlertaUseCase:
             id_dispositivo_ioit=id_dispositivo_ioit,
             id_activo_biologico=id_activo_biologico,
             id_infraestructura=id_infraestructura,
+            # M3-06: "Qué hacer" en las alertas ambientales; las de IA y contagio traen el suyo.
+            accion_sugerida=(None if tipo_alerta in (TipoAlerta.PREDICCION_PATOLOGIA, TipoAlerta.RIESGO_CONTAGIO)
+                             else accion_sugerida_ambiental(dto.tipo_variable, dto.valor,
+                                                            (dto.metadata_evento or {}).get('niveles_rf17'))),
         )
         alerta.fecha_vencimiento = alerta.calcular_fecha_vencimiento(self._sla_minutos())
 
