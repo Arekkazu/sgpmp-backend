@@ -1,12 +1,17 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-56/RF-66: ventana de lecturas del activo para el motor IA     |
+# | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos de la especie del activo desde M09        |
 """Ventana de lecturas del activo individual para el motor IA (contrato IA-1 v1).
 
 El sensor del paquete se ubica en su activo por la asociación M02 ``directa`` vigente (la
 misma regla de ``contexto_activo_alerta_m02_adapter``). La ventana son las lecturas de todos
 los sensores directos de ese activo en las 2 h previas al paquete más reciente del lote, solo
 de las variables que usa ET-02, con el nombre que ET-02 espera.
+
+Punto C3 de ET-02: la ventana lleva además las bandas RF-17 de la especie del activo, para que
+el motor no use sus rangos escritos en el código. Sano = tramo ``normal`` del umbral activo;
+plausible = ``valor_min``–``valor_max``. La actividad no va: es un índice 0–1 por construcción.
 """
 from __future__ import annotations
 
@@ -36,6 +41,21 @@ _SQL_ACTIVO_DEL_SENSOR = text("""
       AND estado_asociacion = 'ACTIVA'
       AND fecha_inicio <= :momento AND (fecha_fin IS NULL OR fecha_fin > :momento)
     ORDER BY id_sensor, fecha_inicio DESC
+""")
+
+#: Variables de ET-02 cuyas bandas gobierna RF-17 (la actividad no es configurable).
+_CODIGOS_CON_RANGO = [c for c, v in VARIABLE_ET02.items() if v != "actividad_indice"]
+
+_SQL_RANGOS_ESPECIE = text("""
+    SELECT DISTINCT ON (va.codigo_telemetria) va.codigo_telemetria, u.valor_min, u.valor_max,
+           n.limite_inferior, n.limite_superior
+    FROM modulo2.activos_biologicos ab
+    JOIN modulo9.umbrales_ambientales u ON u.id_especie = ab.id_especie AND u.es_activo
+    JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = u.id_variable_ambiental
+    JOIN modulo9.niveles_alerta_ambientales n
+      ON n.id_umbral_ambiental = u.id_umbral_ambiental AND n.nivel::text = 'normal'
+    WHERE ab.id_activo_biologico = :activo AND va.codigo_telemetria = ANY(CAST(:codigos AS text[]))
+    ORDER BY va.codigo_telemetria, u.fecha_actualizacion DESC NULLS LAST, u.id_umbral_ambiental DESC
 """)
 
 _SQL_LECTURAS = text("""
@@ -72,11 +92,14 @@ class VentanaInferenciaM02Adapter(VentanaInferenciaPort):
                 if activo is not None and (activo not in hasta or p.fecha_envio > hasta[activo]):
                     hasta[activo] = p.fecha_envio
             lecturas = {activo: self._lecturas(activo, fin) for activo, fin in hasta.items()}
+            rangos = {activo: self._rangos(activo) for activo in hasta}
         except Exception as exc:
             raise_from_db_error(exc)
         return {
             p.id_paquetes_inferencia: VentanaActivo(
-                activo_de.get(p.id_sensor), lecturas.get(activo_de.get(p.id_sensor), [])
+                activo_de.get(p.id_sensor),
+                lecturas.get(activo_de.get(p.id_sensor), []),
+                rangos.get(activo_de.get(p.id_sensor), {}),
             )
             for p in paquetes
         }
@@ -90,3 +113,10 @@ class VentanaInferenciaM02Adapter(VentanaInferenciaPort):
              "apto_para_ia": apto}
             for ts, codigo, valor, apto in filas
         ]
+
+    def _rangos(self, activo: int) -> dict[str, dict[str, list[float]]]:
+        filas = self._db.execute(_SQL_RANGOS_ESPECIE, {"activo": activo, "codigos": _CODIGOS_CON_RANGO}).all()
+        return {
+            VARIABLE_ET02[codigo]: {"sano": [float(s_min), float(s_max)], "plausible": [float(p_min), float(p_max)]}
+            for codigo, p_min, p_max, s_min, s_max in filas
+        }
