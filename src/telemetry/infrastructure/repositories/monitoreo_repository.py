@@ -7,6 +7,8 @@
 # | 2026-10-26 | Arekkazu | Lote fixes M03 RF-58: resumen con unidades sin sensores (G93) y calidad actual (ISSUE-678) juntos |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: semáforos base con su unidad para el estado general |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: última lectura y umbrales vigentes para el semáforo calculado |
 from __future__ import annotations
 
 from datetime import datetime
@@ -21,8 +23,36 @@ from src.telemetry.domain.entities.monitoreo import (
     EstadoSensorActual,
     ResumenUnidadProductiva,
     SemaforoBaseSensor,
+    UmbralSemaforo,
 )
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
+
+def _decimal(valor) -> Optional[Decimal]:
+    return None if valor is None else Decimal(str(valor))
+
+
+def _umbrales_semaforo(f) -> Optional[list[UmbralSemaforo]]:
+    """G88: umbrales vigentes del área para la variable de la última lectura.
+
+    None si el sensor no tiene lectura (no hay variable que resolver); [] si la tiene
+    pero ninguna especie del área tiene umbral activo (E7, GRIS).
+    """
+    if not f.get('tiene_lectura'):
+        return None
+    return [
+        UmbralSemaforo(
+            valor_min=_decimal(u['valor_min']),
+            valor_max=_decimal(u['valor_max']),
+            tolerancia_semaforo=_decimal(u.get('tolerancia_semaforo')),
+            niveles=[
+                {'nivel': n['nivel'], 'limite_inferior': _decimal(n['limite_inferior']),
+                 'limite_superior': _decimal(n['limite_superior'])}
+                for n in (u.get('niveles') or [])
+            ],
+        )
+        for u in (f.get('umbrales') or [])
+    ]
+
 
 _SQL_ACTUALIZAR_SEMAFORO = text("""
 UPDATE modulo3.estados_actuales_sensores
@@ -65,7 +95,11 @@ SELECT
     i.nombre                        AS nombre_infraestructura,
     i.id_finca,
     f.nombre                        AS nombre_finca,
-    a.severidad                     AS severidad_alerta
+    a.severidad                     AS severidad_alerta,
+    t_lat.valor_condicion           AS valor_condicion_actual,
+    t_lat.estado_calidad::text      AS calidad_condicion_actual,
+    (t_lat.id_variable IS NOT NULL) AS tiene_lectura,
+    umb.umbrales
 FROM modulo3.estados_actuales_sensores eas
 JOIN modulo9.sensores s ON s.id_sensores = eas.id_sensor
 LEFT JOIN LATERAL (
@@ -76,7 +110,8 @@ LEFT JOIN LATERAL (
         t2.categoria_variable::text AS categoria_variable_txt,
         t2.nivel_bateria_pct,
         t2.calidad_senal_rssi,
-        t2.calidad_senal_snr
+        t2.calidad_senal_snr,
+        COALESCE(t2.valor_ajustado, t2.valor_crudo) AS valor_condicion
     FROM modulo3.telemetrias t2
     WHERE t2.id_sensor = eas.id_sensor
     ORDER BY t2.timestamp_captura DESC, t2.id_telemetria DESC
@@ -99,6 +134,28 @@ LEFT JOIN LATERAL (
     ORDER BY saa2.fecha_asociacion DESC
     LIMIT 1
 ) saa_lat ON true
+LEFT JOIN LATERAL (
+    -- G88 (RF-58 Fase 3): umbrales RF-17 vigentes HOY de las especies del área para la
+    -- variable de la última lectura. Se resuelven en cada consulta, así un cambio de
+    -- umbral en M09 recalcula el semáforo sin esperar otra lectura.
+    SELECT json_agg(json_build_object(
+               'valor_min', ua.valor_min,
+               'valor_max', ua.valor_max,
+               'tolerancia_semaforo', ua.tolerancia_semaforo,
+               'niveles', (
+                   SELECT json_agg(json_build_object(
+                              'nivel', n.nivel::text,
+                              'limite_inferior', n.limite_inferior,
+                              'limite_superior', n.limite_superior))
+                   FROM modulo9.niveles_alerta_ambientales n
+                   WHERE n.id_umbral_ambiental = ua.id_umbral_ambiental)
+           )) AS umbrales
+    FROM modulo9.infraestructuras_especies ie
+    JOIN modulo9.umbrales_ambientales ua ON ua.id_especie = ie.id_especie
+    WHERE ie.id_infraestructura = saa_lat.id_infraestructura
+      AND ua.id_variable_ambiental = t_lat.id_variable
+      AND ua.es_activo = TRUE
+) umb ON true
 LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
 LEFT JOIN modulo9.fincas f ON f.id_finca = i.id_finca
 LEFT JOIN modulo3.alertas a ON a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA'
@@ -126,9 +183,21 @@ WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestr
 # G57B: mismo alcance que _SQL_ESTADOS (sensores visibles, área vigente, fincas), sin las
 # laterales sobre telemetrias: el conteo del semáforo solo usa la caché y la alerta activa.
 _SQL_SEMAFOROS = text("""
-SELECT eas.estado_semaforo, eas.dato_desactualizado, a.id_alerta, a.severidad AS severidad_alerta
+SELECT eas.estado_semaforo, eas.dato_desactualizado, a.id_alerta, a.severidad AS severidad_alerta,
+       saa_lat.id_infraestructura,
+       t_lat.valor_condicion           AS valor_condicion_actual,
+       t_lat.estado_calidad::text      AS calidad_condicion_actual,
+       (t_lat.id_variable IS NOT NULL) AS tiene_lectura,
+       umb.umbrales
 FROM modulo3.estados_actuales_sensores eas
 JOIN modulo9.sensores s ON s.id_sensores = eas.id_sensor
+LEFT JOIN LATERAL (
+    SELECT t2.id_variable, t2.estado_calidad, COALESCE(t2.valor_ajustado, t2.valor_crudo) AS valor_condicion
+    FROM modulo3.telemetrias t2
+    WHERE t2.id_sensor = eas.id_sensor
+    ORDER BY t2.timestamp_captura DESC, t2.id_telemetria DESC
+    LIMIT 1
+) t_lat ON true
 LEFT JOIN LATERAL (
     SELECT saa2.id_infraestructura
     FROM modulo9.sensores_areas_asociadas saa2
@@ -136,6 +205,28 @@ LEFT JOIN LATERAL (
     ORDER BY saa2.fecha_asociacion DESC
     LIMIT 1
 ) saa_lat ON true
+LEFT JOIN LATERAL (
+    -- G88 (RF-58 Fase 3): umbrales RF-17 vigentes HOY de las especies del área para la
+    -- variable de la última lectura. Se resuelven en cada consulta, así un cambio de
+    -- umbral en M09 recalcula el semáforo sin esperar otra lectura.
+    SELECT json_agg(json_build_object(
+               'valor_min', ua.valor_min,
+               'valor_max', ua.valor_max,
+               'tolerancia_semaforo', ua.tolerancia_semaforo,
+               'niveles', (
+                   SELECT json_agg(json_build_object(
+                              'nivel', n.nivel::text,
+                              'limite_inferior', n.limite_inferior,
+                              'limite_superior', n.limite_superior))
+                   FROM modulo9.niveles_alerta_ambientales n
+                   WHERE n.id_umbral_ambiental = ua.id_umbral_ambiental)
+           )) AS umbrales
+    FROM modulo9.infraestructuras_especies ie
+    JOIN modulo9.umbrales_ambientales ua ON ua.id_especie = ie.id_especie
+    WHERE ie.id_infraestructura = saa_lat.id_infraestructura
+      AND ua.id_variable_ambiental = t_lat.id_variable
+      AND ua.es_activo = TRUE
+) umb ON true
 LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
 LEFT JOIN modulo3.alertas a ON a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA'
 WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestructura)
@@ -280,6 +371,10 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
                 dato_desactualizado=bool(f['dato_desactualizado']),
                 id_alerta=f['id_alerta'],
                 severidad_alerta=f['severidad_alerta'],
+                id_infraestructura=f['id_infraestructura'],
+                valor_condicion_actual=f['valor_condicion_actual'],
+                calidad_condicion_actual=f['calidad_condicion_actual'],
+                umbrales_vigentes=_umbrales_semaforo(f),
             )
             for f in filas
         ]
@@ -340,4 +435,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
             nivel_bateria_pct=f['nivel_bateria_pct'],
             calidad_senal_rssi=f['calidad_senal_rssi'],
             calidad_senal_snr=f['calidad_senal_snr'],
+            valor_condicion_actual=f.get('valor_condicion_actual'),
+            calidad_condicion_actual=f.get('calidad_condicion_actual'),
+            umbrales_vigentes=_umbrales_semaforo(f),
         )

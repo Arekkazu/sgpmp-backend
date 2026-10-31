@@ -7,6 +7,7 @@
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: exponer separadamente referencia válida y condición actual por rol. |
 # | 2026-10-28 | destroyerban | INC-M03-178-G57B RF-57: alertas vencidas sin atención en el dashboard |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: valor de la condición actual (lectura fuera de rango) |
 from __future__ import annotations
 
 from datetime import datetime
@@ -50,6 +51,9 @@ class EstadoSensorSchema(BaseModel):
     indicador_anomalia: bool = False
     es_valor_operativo: bool = True
     etiqueta_estado: Optional[str] = None
+    # G88: valor de la última lectura, con el que se calcula el semáforo. Difiere de
+    # ultimo_valor cuando la última es FUERA_DE_RANGO (ultimo_valor sigue siendo la válida).
+    valor_condicion_actual: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}
 

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: la variable ambiental devuelve es_critica (RFC-016) |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
 """Schemas de respuesta para los endpoints de umbrales ambientales (RF-17)."""
 from __future__ import annotations
 
@@ -38,6 +39,9 @@ class UmbralAmbientalResponse(BaseModel):
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
     niveles: List[NivelAlertaResponse]
+    # INC-M03-246-G88 (RF-58 Fase 3): T configurada (null = 10 % del rango) y la que se aplica.
+    tolerancia_semaforo: Optional[Decimal] = None
+    tolerancia_semaforo_efectiva: Optional[Decimal] = None
     # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
     # PENDIENTE (recién guardado o sin ACK aún) / APLICADA (ACK recibido) /
     # NO_CONF (se publicó pero no hubo ACK a tiempo).

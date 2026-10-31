@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: E2 en 422, combinaciones R12, alertas, series y estado vacío E3 |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58/59: mismo semáforo que el dashboard (bandas RF-17 + tolerancia T) |
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -179,9 +180,13 @@ class ConsultarHistorialUseCase:
         lectura.valor_max_umbral = umbral['umbral_max']
         lectura.version_umbral = umbral['version']
 
-        return SemaforoCalculator.calcular_por_niveles(
+        # G88: misma regla que el dashboard (RF-58 Fase 3) para que ambos coincidan.
+        return SemaforoCalculator.calcular_rf58(
             valor=lectura.valor,
+            valor_min=umbral['umbral_min'],
+            valor_max=umbral['umbral_max'],
             niveles=umbral['niveles'],
+            tolerancia=umbral.get('tolerancia_semaforo'),
         )
 
     @staticmethod

@@ -6,6 +6,7 @@
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: filtros (código, área, activo), estadísticas por umbral y alertas |
 # | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del sensor o activo del periodo aunque no estén en las lecturas |
 # | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del periodo con SQL fijo y parámetros (Bearer CWE-89) |
+# | 2026-10-31 | Claude | INC-M03-242-G117 RF-59: alertas correlacionadas por fecha del evento, no de generación |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -232,8 +233,10 @@ SELECT al.id_alerta, al.tipo_alerta::text AS tipo_alerta, al.severidad::text AS 
 FROM modulo3.alertas al
 WHERE al.tipo_alerta::text <> 'TECNICA'
   AND (al.id_telemetria IN ({ids_lecturas})
-       OR (COALESCE(al.fecha_generacion, al.fecha_evento) >= :fecha_inicio
-           AND COALESCE(al.fecha_generacion, al.fecha_evento) < :fecha_fin_ex
+       -- G117 (#883): "ocurrieron en el periodo" es cuándo pasó el evento, no cuándo se generó la
+       -- alerta: una alerta del 12/05 generada después quedaba fuera de un historial del 11 al 13/05.
+       OR (COALESCE(al.fecha_evento, al.fecha_generacion) >= :fecha_inicio
+           AND COALESCE(al.fecha_evento, al.fecha_generacion) < :fecha_fin_ex
            AND (al.id_sensor = CAST(:alerta_sensor_id AS integer)
                 OR al.id_activo_biologico = CAST(:alerta_id_activo AS integer))
            AND (CAST(:alerta_ids_fincas AS integer[]) IS NULL

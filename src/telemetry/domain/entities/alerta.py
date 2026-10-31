@@ -7,6 +7,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: tipo de alerta RIESGO_CONTAGIO |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 # | 2026-10-28 | Arekkazu | BE-0/BE-3 RF-55: conducta de ReglaAlerta y regla Edge {id, nombre} en la alerta |
+# | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: tipo REGLA_SIMPLE para la lectura aislada fuera de NORMAL |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -29,6 +30,9 @@ class TipoAlerta(str, Enum):
     TORMENTA_DE_ALERTAS = "TORMENTA_DE_ALERTAS"
     # RF-68 paso 8: riesgo de contagio Alto del lote (Modelo 4 de M04).
     RIESGO_CONTAGIO = "RIESGO_CONTAGIO"
+    # G69 (RF-57 Fase 5, E14): una variable fuera de su banda NORMAL sin la compuesta que la
+    # agrupa genera su propia alerta ("una alerta independiente por cada variable").
+    REGLA_SIMPLE = "REGLA_SIMPLE"
 
 
 class EstadoAlerta(str, Enum):
