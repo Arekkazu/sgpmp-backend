@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: resultado que envía el motor IA (Salida de RF-66)         |
+# | 2026-10-30 | Arekkazu | RF-66: enfermedad estimada por código del catálogo base RF-64    |
 """Cuerpo de ``POST /prediccion/inferencias``: la Salida de RF-66 que entrega el motor IA.
 
 ``id_especie`` no viaja: el backend lo toma del activo. ``latencia_excedida`` tampoco:
@@ -35,6 +36,11 @@ class RegistrarResultadoInferenciaDTO(BaseDTO):
     nivel_riesgo: int = Field(..., ge=0, le=3, description="0 Normal, 1 Bajo, 2 Moderado, 3 Alto")
     probabilidad_riesgo: Probabilidades = Field(..., min_length=1)
     id_patologia: Optional[int] = Field(None, gt=0, description="enfermedad_estimada, del catálogo RF-64.")
+    codigo_patologia_rf64: Optional[int] = Field(
+        None, ge=0, le=7,
+        description="enfermedad_estimada como código 0–7 del catálogo base de RF-64, para quien no conoce "
+                    "el id de cada ambiente (el motor). Se usa si no viene id_patologia.",
+    )
     probabilidad_enfermedad: Probabilidades = Field(..., min_length=1)
     confianza_global: Decimal = Field(..., ge=0, le=1, allow_inf_nan=False)
     contexto_incompleto: bool

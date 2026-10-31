@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA registra resultados en el backend             |
+# | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64                           |
 """RF-66: ``POST /prediccion/inferencias`` — el motor IA entrega sus resultados."""
 from __future__ import annotations
 
@@ -57,8 +58,11 @@ def _use_case(*, existente=None, llave=("APROBADO", "MODELO_ESPECIES_GRANDES", N
     activo.obtener_especie.return_value = especie
     auditoria = Mock()
     db = Mock()
+    patologias = Mock()
+    patologias.id_base_por_codigo_rf64.side_effect = lambda codigo: {6: 13}.get(codigo)
     use_case = RegistrarResultadoInferenciaUseCase(
         db=db, repo=repo, version_port=version, activo_port=activo, auditoria_repo=auditoria,
+        patologia_repo=patologias,
     )
     return use_case, repo, auditoria, db
 
@@ -115,6 +119,18 @@ def test_rechazos_no_persisten(kwargs_uc, cambios, error, codigo):
     assert exc.value.code == codigo
     repo.guardar.assert_not_called()
     db.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(("cambios", "id_esperado"), [
+    ({"codigo_patologia_rf64": 6}, 13),                      # el motor no conoce el id del ambiente
+    ({"codigo_patologia_rf64": 6, "id_patologia": 99}, 99),  # si viene el id, manda el id
+    ({"codigo_patologia_rf64": 5}, None),                    # sin base con ese código: se guarda igual
+    ({}, None),
+])
+def test_patologia_por_codigo_rf64(cambios, id_esperado):
+    use_case, repo, _, _ = _use_case()
+    use_case.execute(_dto(**cambios))
+    assert repo.guardar.call_args.args[0].id_patologia == id_esperado
 
 
 def test_falla_al_guardar_hace_rollback():
@@ -191,6 +207,7 @@ def test_post_sin_token_configurado_503(cliente, monkeypatch):
         {"probabilidad_riesgo": {}},
         {"probabilidad_enfermedad": {"0": 1.2}},
         {"tipo_modelo": "MODELO_INVENTADO"},
+        {"codigo_patologia_rf64": 8},
         {"modo_ejecucion": "NUBE"},
         {"fecha_fin_ventana": "2026-09-20T14:00:00+00:00"},
     ],

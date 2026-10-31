@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-10-30 | Arekkazu | RF-66: POST para que el motor IA registre sus resultados           |
+# | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64                             |
 """Resultados del motor de inferencia (RF-66) en ``modulo4.resultados_inferencia``.
 
   GET  /prediccion/inferencias — Monitor. Mismo recurso que el historial diagnóstico
@@ -27,6 +28,7 @@ from src.prediction.infrastructure.dto.registrar_resultado_inferencia_dto import
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
+from src.prediction.infrastructure.repositories.patologia_m04_repository import SqlAlchemyPatologiaM04Repository
 from src.prediction.infrastructure.repositories.monitor_prediccion_repository import (
     SqlAlchemyMonitorPrediccionRepository,
 )
@@ -99,6 +101,7 @@ def registrar_resultado_inferencia(
         version_port=VersionModeloAdapter(db),
         activo_port=ActivoBiologicoM02Adapter(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+        patologia_repo=SqlAlchemyPatologiaM04Repository(db),
     ).execute(dto)
     if registro.duplicado:
         response.status_code = 200

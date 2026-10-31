@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA devuelve sus resultados al backend            |
+# | 2026-10-30 | Arekkazu | RF-66: resuelve la patología base por código RF-64               |
 """RF-66 — Registrar un resultado del motor IA (`motor-ia`) en ``modulo4.resultados_inferencia``.
 
 Postcondición 1: el resultado queda persistido de forma inmutable y alimenta RF-67
@@ -18,6 +19,7 @@ reintente sin fin).
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -25,10 +27,13 @@ from sqlalchemy.orm import Session
 from src.prediction.domain.entities.resultado_inferencia import LATENCIA_MAXIMA_MS, ResultadoInferencia
 from src.prediction.domain.repositories.activo_biologico_port import ActivoBiologicoPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
 from src.prediction.domain.repositories.resultado_inferencia_repository import ResultadoInferenciaRepository
 from src.prediction.domain.repositories.version_modelo_port import VersionModeloPort
 from src.prediction.infrastructure.dto.registrar_resultado_inferencia_dto import RegistrarResultadoInferenciaDTO
 from src.shared.errors import BusinessRuleError, NotFoundError
+
+logger = logging.getLogger(__name__)
 
 ID_SISTEMA_MOTOR = "MOTOR_IA"
 _ESTADOS_NO_UTILIZABLES = {"DEPRECADO", "RECHAZADO"}
@@ -51,12 +56,14 @@ class RegistrarResultadoInferenciaUseCase:
         version_port: VersionModeloPort,
         activo_port: ActivoBiologicoPort,
         auditoria_repo: EventoAuditoriaM04Repository,
+        patologia_repo: PatologiaM04Repository,
     ) -> None:
         self.db = db
         self.repo = repo
         self.version_port = version_port
         self.activo_port = activo_port
         self.auditoria_repo = auditoria_repo
+        self.patologia_repo = patologia_repo
 
     def execute(self, dto: RegistrarResultadoInferenciaDTO) -> ResultadoRegistro:
         existente = self.repo.obtener(dto.id_resultado_inferencia)
@@ -100,7 +107,14 @@ class RegistrarResultadoInferenciaUseCase:
                 field="id_activo_biologico",
             )
 
-        resultado = ResultadoInferencia(**dto.model_dump(), id_especie=id_especie)
+        datos = dto.model_dump(exclude={"codigo_patologia_rf64"})
+        if datos["id_patologia"] is None and dto.codigo_patologia_rf64 is not None:
+            datos["id_patologia"] = self.patologia_repo.id_base_por_codigo_rf64(dto.codigo_patologia_rf64)
+            if datos["id_patologia"] is None:
+                # Las probabilidades conservan el diagnóstico: no se pierde el resultado por esto.
+                logger.warning("RF-66: no hay patología base RF-64 con código %s; resultado %s sin patología.",
+                               dto.codigo_patologia_rf64, dto.id_resultado_inferencia)
+        resultado = ResultadoInferencia(**datos, id_especie=id_especie)
         try:
             self.repo.guardar(resultado)
             self._auditar(resultado)

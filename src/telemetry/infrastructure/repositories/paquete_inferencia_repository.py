@@ -4,6 +4,7 @@
 # | 2026-10-26 | destroyerban | INC-M03-112-G55 RF-56: envio de pendientes en lotes de maximo 500 |
 # | 2026-10-27 | destroyerban | INC-M03-113-G56 RF-56: 5 intentos con backoff 0/5/15/30/60 s y reenvio automatico |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56: consulta del paquete por id con alcance por finca |
+# | 2026-10-30 | Arekkazu | RF-66: la cola bloquea con FOR NO KEY UPDATE (el motor IA inserta resultados que referencian el paquete) |
 from src.telemetry.application.use_cases.auditoria.evidencia_iot import registrar_evidencia
 from src.telemetry.domain.entities.evento_auditoria_iot import ComponenteOrigen, EntidadAfectadaTipo
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import (
@@ -139,7 +140,11 @@ class SqlAlchemyPaqueteInferenciaRepository(PaqueteInferenciaRepository):
                 # RF-56 restricción 6: orden cronológico y secuencia original.
                 EventoEdgeComputingModel.fecha_captura,
                 PaqueteInferenciaModel.id_paquetes_inferencia,
-            ).limit(limite).with_for_update(of=PaqueteInferenciaModel, skip_locked=True).all()
+            # FOR NO KEY UPDATE y no FOR UPDATE: el lote queda bloqueado mientras se espera al motor,
+            # y el motor responde insertando en modulo4.resultados_inferencia, cuya FK hacia el
+            # paquete pide FOR KEY SHARE. Con FOR UPDATE las dos esperas se cruzaban hasta el
+            # timeout de 10 s y el paquete contaba un intento fallido aunque el resultado se guardó.
+            ).limit(limite).with_for_update(of=PaqueteInferenciaModel, skip_locked=True, key_share=True).all()
             return [self._a_entidad(orm) for orm in filas]
         except Exception as exc:
             raise_from_db_error(exc)

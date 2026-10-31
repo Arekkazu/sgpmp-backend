@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-139/140/138 RF-64: versión del catálogo, nombre normalizado y búsqueda |
 # | 2026-10-25 | Arekkazu | USAB-M04 M4-02 RF-64: nombre y unidad de variables y nombre de la especie (read-model) |
+# | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64 (motor IA) |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -65,6 +66,15 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
             .first()
         )
         return self._a_entidad(orm) if orm else None
+
+    def id_base_por_codigo_rf64(self, codigo: int) -> Optional[int]:
+        return self._db.execute(
+            select(PatologiaM04Model.id_patologia)
+            .where(PatologiaM04Model.es_base.is_(True))
+            .order_by(PatologiaM04Model.id_patologia)
+            .offset(codigo)
+            .limit(1)
+        ).scalar()
 
     def obtener_por_combinacion_variables(
         self, ids_variables: list[int], especie_aplicable: str, excluir_id: Optional[int] = None
