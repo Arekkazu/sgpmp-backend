@@ -6,6 +6,7 @@
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: distinguir calidad del valor operativo y momento de la condición actual. |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato como filtro único |
+# | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: más de 90 días solo con filtro de variable, sensor o especie |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -233,8 +234,13 @@ class FiltrosHistorial:
         return frozenset(k for k, v in presentes.items() if v)
 
     def tiene_filtro_adicional(self) -> bool:
-        """True si hay al menos un filtro adicional además del rango de fechas."""
-        return bool(self.filtros_presentes())
+        """True si hay un filtro que habilita un rango mayor al máximo (RF-59 Fase 2).
+
+        El RF pide filtros "de variable, sensor o especie" (el activo es más fino que la
+        especie). Área, categoría, estado u origen no bastan: con área y 120 días la consulta
+        tardaba minutos en vez de responder 422 al instante (TC-DIS-160).
+        """
+        return bool(self.filtros_presentes() & _FILTROS_RANGO_EXTENDIDO)
 
     def combinacion_valida(self) -> bool:
         """RF-59 Restricción 12 (INC-M03-184-G113): solo las combinaciones listadas."""
@@ -242,6 +248,9 @@ class FiltrosHistorial:
             return False
         return self.filtros_presentes() in COMBINACIONES_FILTROS_VALIDAS
 
+
+# RF-59: filtros que permiten consultar más allá del rango máximo sin filtros.
+_FILTROS_RANGO_EXTENDIDO = frozenset({'sensor_id', 'tipo_variable', 'especie', 'id_activo_biologico'})
 
 # Orden de severidad del semáforo para agregación de peor estado
 _ORDEN_SEMAFORO = {'ROJO': 4, 'AMARILLO': 3, 'GRIS': 2, 'VERDE': 1, 'SIN_DATOS': 0}
