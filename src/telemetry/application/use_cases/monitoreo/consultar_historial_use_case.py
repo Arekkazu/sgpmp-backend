@@ -3,6 +3,8 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: E2 en 422, combinaciones R12, alertas, series y estado vacío E3 |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
+# | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: más de 90 días solo con filtro de variable, sensor o especie |
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -126,7 +128,7 @@ class ConsultarHistorialUseCase:
                 code='RANGO_MAXIMO_EXCEDIDO',
                 message=(
                     f'El rango máximo sin filtros adicionales es {_MAX_DIAS_SIN_FILTRO} días. '
-                    f'Agregue al menos un filtro de variable, sensor, unidad productiva o especie.'
+                    f'Agregue al menos un filtro de variable, sensor o especie.'
                 ),
             )
 
@@ -163,14 +165,23 @@ class ConsultarHistorialUseCase:
     # ------------------------------------------------------------------
 
     def _semaforo_historico(self, lectura: LecturaHistorica) -> str:
-        if lectura.id_especie is None or lectura.valor is None:
+        if lectura.valor is None:
             return 'GRIS'
 
-        umbral = self.umbral_port.obtener_umbral_vigente(
-            id_variable_ambiental=lectura.id_variable,
-            id_especie=lectura.id_especie,
-            timestamp=lectura.timestamp_captura,
-        )
+        if lectura.id_especie is not None:
+            umbral = self.umbral_port.obtener_umbral_vigente(
+                id_variable_ambiental=lectura.id_variable,
+                id_especie=lectura.id_especie,
+                timestamp=lectura.timestamp_captura,
+            )
+        else:
+            # M3-09 / N-06: una lectura ambiental sin activo vinculado salía GRIS ("Sin
+            # datos") aunque el área tiene umbral; se usa la especie del área.
+            umbral = self.umbral_port.obtener_umbral_vigente_area(
+                id_variable_ambiental=lectura.id_variable,
+                id_infraestructura=lectura.id_infraestructura,
+                timestamp=lectura.timestamp_captura,
+            )
         if umbral is None:
             return 'GRIS'
 

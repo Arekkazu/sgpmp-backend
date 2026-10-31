@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones, variables, E3, series, filtros y 422 |
 # | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato solos |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: el fake de umbral responde también por área |
 """RF-59 (INC-M03-180..193): combinaciones de la Restricción 12, varias variables,
 estado vacío, series, filtros de área/activo y 422 en parámetros inválidos."""
 from __future__ import annotations
@@ -58,6 +59,9 @@ class _Repo:
 
 class _Umbral:
     def obtener_umbral_vigente(self, **kw):
+        return None
+
+    def obtener_umbral_vigente_area(self, **kw):  # M3-09/N-06
         return None
 
 
