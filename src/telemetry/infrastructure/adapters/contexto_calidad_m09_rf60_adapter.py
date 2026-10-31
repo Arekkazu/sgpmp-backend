@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-43 RF-62: consulta serie temporal y contexto RF-60 |
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
+# | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
 """Consultas reales sin reconstruir inactividad ni inventar versiones M09."""
 import hashlib
 from decimal import Decimal
@@ -28,6 +29,13 @@ class ContextoCalidadM09RF60Adapter(ContextoCalidadPort):
             WHERE tipo_evento='EVALUACION_OMITIDA_POR_INACTIVIDAD' AND componente_origen='RF62'
               AND entidad_afectada_tipo='CALIDAD_DATO' AND entidad_afectada_id=:id)"""),
             {'id':str(id_telemetria)}).scalar_one()
+
+    def referencia_calibracion(self, id_sensor, captura):
+        fila = self.db.execute(text('''SELECT valor_referencia FROM modulo9.calibraciones
+            WHERE id_sensor=:sensor AND fecha_calibracion<=:captura
+            ORDER BY fecha_calibracion DESC, id_calibracion DESC LIMIT 1'''),
+            {'sensor': id_sensor, 'captura': captura}).one_or_none()
+        return None if fila is None or fila[0] is None else Decimal(str(fila[0]))
 
     def limites_fisicos(self, id_variable):
         """G169 (#885, RF-62 R7/R9): M09 no versiona los límites físicos, así que la

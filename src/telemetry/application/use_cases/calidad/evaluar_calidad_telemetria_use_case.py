@@ -6,6 +6,7 @@
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: restringir aptitud por TIME_DESYNC usando snapshot RF53 sin modificar el indice. |
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: permitir reevaluacion dentro de una transaccion y registrar causa y version reproducible. |
 # | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
+# | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -281,12 +282,24 @@ class EvaluarCalidadTelemetriaUseCase:
         if not omitir_drift and parametros_calibracion and serie:
             ganancia = Decimal(str(parametros_calibracion.get('ganancia', 1)))
             offset = Decimal(str(parametros_calibracion.get('offset', 0)))
-            val_cal_esperado = statistics.mean(float(v) * float(ganancia) + float(offset) for v in serie)
-            media_n = statistics.mean(float(v) for v in serie)
+            calibrados = [float(v) * float(ganancia) + float(offset) for v in serie]
+            referencia = self._referencia_calibracion(parametros_calibracion, id_sensor, timestamp_captura)
+            if referencia is not None:
+                # G16 (#876): la deriva es cuánto se alejan las lecturas calibradas del
+                # valor esperado (referencia RF-24), no cuánto corrige la calibración:
+                # con ganancia 1 y offset 0 ese cociente era siempre 0 %.
+                val_cal_esperado = float(referencia)
+                media_n = statistics.mean(calibrados)
+                serie_drift = calibrados
+            else:
+                # Sin referencia registrada: criterio anterior (crudo vs. calibrado).
+                val_cal_esperado = statistics.mean(calibrados)
+                media_n = statistics.mean(float(v) for v in serie)
+                serie_drift = [float(v) for v in serie]
             if val_cal_esperado != 0:
                 magnitud = abs(media_n - val_cal_esperado) / abs(val_cal_esperado) * 100
                 if magnitud > params.umbral_drift:
-                    misma_dir = sum(1 for v in serie if (float(v) - val_cal_esperado) * (media_n - val_cal_esperado) > 0)
+                    misma_dir = sum(1 for v in serie_drift if (v - val_cal_esperado) * (media_n - val_cal_esperado) > 0)
                     if misma_dir >= params.P:
                         flags['posible_drift'] = {
                             'activo': True,
@@ -295,6 +308,7 @@ class EvaluarCalidadTelemetriaUseCase:
                             'magnitud_drift_porcentaje': round(magnitud, 4),
                             'P_lecturas_consistentes': misma_dir,
                             'umbral_aplicado': params.umbral_drift,
+                            'base_comparacion': 'VALOR_REFERENCIA' if referencia is not None else 'CALIBRACION_APLICADA',
                         }
 
         # ── Fase 5: Gap temporal ───────────────────────────────────────────────
@@ -320,6 +334,21 @@ class EvaluarCalidadTelemetriaUseCase:
         # ── Fase 8: Notificaciones ─────────────────────────────────────────────
         self._emitir_auditoria(TipoResultado.EXITOSO, id_telemetria, flags)
         return evaluacion
+
+    def _referencia_calibracion(self, parametros_calibracion: dict, id_sensor: int,
+                                timestamp_captura: datetime) -> Optional[Decimal]:
+        """Referencia del snapshot si la trae (reevaluación con parámetros corregidos)
+        o la de la calibración vigente en la captura. 0 no sirve de base porcentual."""
+        referencia = parametros_calibracion.get('valor_referencia')
+        if referencia is None and self.contexto_port is not None:
+            referencia = self.contexto_port.referencia_calibracion(id_sensor, timestamp_captura)
+        if not isinstance(referencia, (Decimal, int, float, str)) or isinstance(referencia, bool):
+            return None
+        try:
+            referencia = Decimal(str(referencia))
+        except ArithmeticError:
+            return None
+        return referencia if referencia.is_finite() and referencia != 0 else None
 
     def _limites_fisicos(self, id_variable: int) -> Optional[LimitesFisicosCalidad]:
         if self.contexto_port is None:
