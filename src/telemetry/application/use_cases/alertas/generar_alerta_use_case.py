@@ -9,6 +9,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-169-G77 RF-57 Fase 3/E6/CA-7: asocia el activo biológico y su contexto a la alerta |
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: sin umbral configurado no hay alerta operativa; técnica y ERROR_CONFIGURACION_REGLA |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: lectura aislada fuera de NORMAL genera alerta REGLA_SIMPLE, no 422 |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -161,6 +162,7 @@ class GenararAlertaUseCase:
         # Fase 5 (CA-1, Restricción 7): la severidad sale del valor, no de la declarada.
         severidad_reportada = dto.severidad_edge
         evaluacion = None
+        regla_simple = None
         if self.variable_port is not None and dto.origen_evento != OrigenEventoAlerta.IA:
             evaluacion = reglas_base_rf57.evaluar_evento(dto.tipo_variable, dto.valor, dto.correlacion_variables)
             if evaluacion.evaluable and evaluacion.severidad is None:
@@ -172,7 +174,9 @@ class GenararAlertaUseCase:
             if evaluacion.evaluable:
                 dto = dto.model_copy(update={"severidad_edge": evaluacion.severidad})
             # G70: una regla compuesta solo se activa con su condición mínima (variables requeridas, THI).
-            self._validar_condicion_minima(dto)
+            # G69: si la variable solo podía activar una compuesta que no se cumple, pero su propia
+            # banda no es NORMAL, la alerta es de regla simple (E14), no un 422.
+            regla_simple = self._validar_condicion_minima(dto, evaluacion)
 
         # CA-2: una predicción de IA solo genera PREDICCION_PATOLOGIA con probabilidad ≥ umbral mínimo.
         if dto.origen_evento == OrigenEventoAlerta.IA and dto.tipo_alerta_ia == TipoAlerta.PREDICCION_PATOLOGIA:
@@ -226,8 +230,10 @@ class GenararAlertaUseCase:
             )
 
         # E14/E15: una sola alerta compuesta por área y ventana; las reglas simples se consolidan en ella.
-        reglas_e14 = self._reglas_e14(dto, evaluacion, companera)
-        if reglas_e14 and id_infraestructura is not None:
+        # G69: una regla simple no activó su compuesta: no se consolida en una compuesta abierta.
+        reglas_e14 = ([reglas_base_rf57.regla_simple(dto.tipo_variable, dto.valor, dto.sensor_id, dto.id_telemetria)]
+                      if regla_simple else self._reglas_e14(dto, evaluacion, companera))
+        if reglas_e14 and id_infraestructura is not None and not regla_simple:
             compuesta = self.alerta_repo.buscar_compuesta_activa(reglas_e14[-1]["nombre"], id_infraestructura, 30)
             if compuesta:
                 correlacion = {"id_sensor": dto.sensor_id, "tipo_variable": dto.tipo_variable, "valor": str(dto.valor),
@@ -245,12 +251,16 @@ class GenararAlertaUseCase:
 
         # Fase 5/6: Clasificar tipo y severidad
         tipo_alerta, severidad_final, conflicto_resolucion = self._clasificar(dto)
+        if regla_simple:
+            tipo_alerta = TipoAlerta.REGLA_SIMPLE
 
         # Fase 7: Construir alerta
         metadato_evento = self._metadato_e14(self._metadato_con_evaluacion(dto, evaluacion, severidad_reportada),
                                              companera)
         if motivo_contexto:
             metadato_evento = {**(metadato_evento or {}), "contexto_incompleto": motivo_contexto}
+        if regla_simple:
+            metadato_evento = {**(metadato_evento or {}), "regla_simple": regla_simple}
         alerta = Alerta(
             tipo_alerta=tipo_alerta,
             severidad=severidad_final,
@@ -426,11 +436,15 @@ class GenararAlertaUseCase:
     def _orden_severidad(severidad) -> int:
         return {SeveridadAlerta.LEVE: 0, SeveridadAlerta.MODERADO: 1, SeveridadAlerta.CRITICO: 2}.get(severidad, 0)
 
-    def _validar_condicion_minima(self, dto: ProcesarEventoAlertaDTO) -> None:
-        """422 si la regla compuesta declarada o derivada de la variable no se activó según RF-57.
+    def _validar_condicion_minima(self, dto: ProcesarEventoAlertaDTO, evaluacion=None) -> Optional[dict]:
+        """422 si la regla compuesta declarada no se activó según RF-57.
 
-        El RF no define el tipo de una alerta simple (el enum solo tiene tipos compuestos), así que
-        un evento que no activa su compuesta se rechaza en vez de crear un falso positivo.
+        G69 (#881): si la compuesta solo se deriva de la variable (no la declara el evento) y no se
+        cumple, pero el valor está fuera de su banda NORMAL, la lectura activa su regla simple:
+        devuelve el detalle para crear una alerta REGLA_SIMPLE con la severidad de su banda (E14:
+        "una alerta independiente por cada variable"). Antes se rechazaba con 422 y una temperatura
+        de 13.9 °C, una humedad de 29.9 % o un oxígeno de 1.9 mg/L sin la variable compañera no
+        alertaban. No se etiqueta como la compuesta (BUG-G70-01).
         """
         declaradas = reglas_base_rf57.compuestas_declaradas(dto.reglas_activadas)
         derivada = self._inferir_tipo_alerta(dto)
@@ -443,6 +457,10 @@ class GenararAlertaUseCase:
                                                       dto.correlacion_variables)
             if motivo is None:
                 continue
+            if (codigo == "REGLA_COMPUESTA_NO_ACTIVADA" and evaluacion is not None
+                    and evaluacion.evaluable and evaluacion.severidad is not None):
+                return {"tipo_variable": dto.tipo_variable, "severidad": getattr(dto.severidad_edge, "value", dto.severidad_edge),
+                        "compuesta_no_activada": compuesta, "motivo": motivo}
             if self.auditoria_repo is not None:
                 RegistrarEventoAuditoriaIotUseCase(self.db, self.auditoria_repo).execute(
                     tipo_evento=codigo,
