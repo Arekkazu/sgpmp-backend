@@ -14,6 +14,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: compuesta abierta del área y consolidación de reglas |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: busca la reevaluación previa con lock |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
+# | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -251,6 +252,30 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
                 {'clave': f'rf57:{id_sensor}:{clave}'})
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def bloquear_condicion_activo(self, id_activo_biologico: int, tipo_alerta: str) -> None:
+        try:
+            self.db.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:clave,0))'),
+                            {'clave': f'rf57:activo:{id_activo_biologico}:{tipo_alerta}'})
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def buscar_activa_duplicada_por_activo(self, id_activo_biologico: int, tipo_alerta: str,
+                                           ventana_min: int = 30) -> Optional[Alerta]:
+        orm = (
+            self.db.query(AlertaModel)
+            .filter(
+                AlertaModel.id_activo_biologico == id_activo_biologico,
+                AlertaModel.tipo_alerta == tipo_alerta,
+                AlertaModel.estado_alerta.in_(['ACTIVA', 'EN_ATENCION']),
+                AlertaModel.fecha_generacion >= func.now() - ventana_min * literal_column("interval '1 minute'"),
+            )
+            .order_by(AlertaModel.fecha_generacion.desc())
+            .populate_existing()
+            .with_for_update()
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
 
     def buscar_tecnica_abierta(self, id_dispositivo_ioit: int, tipo_variable: str) -> Optional[Alerta]:
         orm = (

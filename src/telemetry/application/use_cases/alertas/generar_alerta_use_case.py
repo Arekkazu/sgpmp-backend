@@ -10,6 +10,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-173-G85 RF-57 E9: sin umbral configurado no hay alerta operativa; técnica y ERROR_CONFIGURACION_REGLA |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 # | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: lectura aislada fuera de NORMAL genera alerta REGLA_SIMPLE, no 422 |
+# | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -201,12 +202,21 @@ class GenararAlertaUseCase:
         tiene_contexto_incompleto = (id_activo_biologico is None)
 
         # Fase 4: Deduplicación (FA-02/E4/CA-4/CA-5)
-        self.alerta_repo.bloquear_condicion(dto.sensor_id, dto.tipo_variable)
-        alerta_existente = self.alerta_repo.buscar_activa_duplicada(
-            id_sensor=dto.sensor_id,
-            tipo_variable=dto.tipo_variable,
-            ventana_min=self._ventana_deduplicacion(),
-        )
+        if (dto.origen_evento == OrigenEventoAlerta.IA and dto.tipo_alerta_ia == TipoAlerta.PREDICCION_PATOLOGIA
+                and id_activo_biologico is not None):
+            # G74 (#882, E4): para PREDICCION_PATOLOGIA la clave es tipo + activo, no el sensor:
+            # dos sensores del mismo animal no deben abrir dos alertas de la misma predicción.
+            tipo_clave = TipoAlerta.PREDICCION_PATOLOGIA.value
+            self.alerta_repo.bloquear_condicion_activo(id_activo_biologico, tipo_clave)
+            alerta_existente = self.alerta_repo.buscar_activa_duplicada_por_activo(
+                id_activo_biologico, tipo_clave, self._ventana_deduplicacion())
+        else:
+            self.alerta_repo.bloquear_condicion(dto.sensor_id, dto.tipo_variable)
+            alerta_existente = self.alerta_repo.buscar_activa_duplicada(
+                id_sensor=dto.sensor_id,
+                tipo_variable=dto.tipo_variable,
+                ventana_min=self._ventana_deduplicacion(),
+            )
         if alerta_existente:
             nueva_sev = dto.severidad_edge
             if self._severidad_mayor(nueva_sev, alerta_existente.severidad):

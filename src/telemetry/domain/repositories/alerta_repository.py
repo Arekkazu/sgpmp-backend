@@ -10,6 +10,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-164-G71 RF-57 E14: buscar y consolidar la compuesta abierta del área |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: alerta generada por reevaluación de otra |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
+# | 2026-10-31 | Claude | INC-M03-241-G74 RF-57: deduplicación de PREDICCION_PATOLOGIA por tipo + activo biológico |
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -39,6 +40,15 @@ class AlertaRepository(ABC):
 
     def bloquear_condicion(self, id_sensor: int, tipo_variable: str) -> None:
         """Serializa creación/consolidación por sensor y variable entre canales."""
+        raise NotImplementedError
+
+    def bloquear_condicion_activo(self, id_activo_biologico: int, tipo_alerta: str) -> None:
+        """G74 (RF-57 Fase 4): serializa la deduplicación por activo y tipo de alerta."""
+        raise NotImplementedError
+
+    def buscar_activa_duplicada_por_activo(self, id_activo_biologico: int, tipo_alerta: str,
+                                           ventana_min: int = 30) -> Optional[Alerta]:
+        """G74: alerta abierta del mismo tipo para el mismo activo dentro de la ventana."""
         raise NotImplementedError
 
     def bloquear_condicion_calidad(self, id_sensor: int, anomalia: str):
