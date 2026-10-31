@@ -1,3 +1,13 @@
+## [1.4.0-rc.22](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.21...v1.4.0-rc.22) (2026-10-31)
+
+### Features
+
+* **rf66-prediction:** URL del motor IA en cualquier dominio y ventana del activo en cada paquete ([2c0d5ca](https://github.com/Arekkazu/sgpmp-backend/commit/2c0d5caa387022ffd94624ff5a40e3a347b2a5fb))
+
+### Bug Fixes
+
+* **rf56-telemetry:** la cola de reenvío llega al motor IA real y no se bloquea con su respuesta ([43c7527](https://github.com/Arekkazu/sgpmp-backend/commit/43c75271bc8f34ffb290e19c7254a203cc8c2717))
+
 ## [1.4.0-rc.21](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.20...v1.4.0-rc.21) (2026-10-31)
 
 ### Features
