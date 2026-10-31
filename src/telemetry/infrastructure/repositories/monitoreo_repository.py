@@ -7,6 +7,8 @@
 # | 2026-10-26 | Arekkazu | Lote fixes M03 RF-58: resumen con unidades sin sensores (G93) y calidad actual (ISSUE-678) juntos |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-08 RF-58: el contador por área usa el mismo criterio que el panel |
+# | 2026-10-31 | Arekkazu | CP06 RF-58/60: conectividad viva del dispositivo en el sensor y en los conteos del área |
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,7 +51,8 @@ SELECT
          THEN 'LECTURA_VALIDA' END AS estado_calidad_valor_operativo,
     COALESCE(t_lat.timestamp_captura, eas.ultimo_timestamp_captura) AS timestamp_estado_actual,
     eas.estado_desviacion::text     AS estado_desviacion,
-    eas.estado_conectividad::text   AS estado_conectividad,
+    -- CP06: conectividad viva del dispositivo; la copia de eas se congela con la última lectura.
+    COALESCE((SELECT ed.estado_actual::text FROM modulo3.estados_dispositivos_iot ed WHERE ed.id_dispositivo_iot = eas.id_dispositivo_iot), eas.estado_conectividad::text) AS estado_conectividad,
     eas.tiempo_sin_reporte_min,
     eas.dato_desactualizado,
     -- G98: la caché conserva id_alerta aunque la alerta ya no esté ACTIVA (severidad nula).
@@ -147,9 +150,10 @@ WITH agg AS (
     SELECT
         saa_lat.id_infraestructura,
         COUNT(eas.id_sensor)        AS total_sensores,
-        COUNT(CASE WHEN eas.estado_conectividad::text = 'ACTIVO' THEN 1 END)
+        -- CP06: mismo estado vivo que el detalle del sensor.
+        COUNT(CASE WHEN COALESCE((SELECT ed.estado_actual::text FROM modulo3.estados_dispositivos_iot ed WHERE ed.id_dispositivo_iot = eas.id_dispositivo_iot), eas.estado_conectividad::text) = 'ACTIVO' THEN 1 END)
                                     AS sensores_online,
-        COUNT(CASE WHEN eas.estado_conectividad::text IN ('SIN_SEÑAL','SIN_SEÑAL','INACTIVO') THEN 1 END)
+        COUNT(CASE WHEN COALESCE((SELECT ed.estado_actual::text FROM modulo3.estados_dispositivos_iot ed WHERE ed.id_dispositivo_iot = eas.id_dispositivo_iot), eas.estado_conectividad::text) IN ('SIN_SEÑAL','INACTIVO') THEN 1 END)
                                     AS sensores_sin_senal,
         COUNT(CASE WHEN COALESCE(t_actual.estado_calidad::text, eas.estado_calidad::text) = 'ERROR_CALIBRACION' THEN 1 END)
                                     AS sensores_con_error,
@@ -165,8 +169,11 @@ WITH agg AS (
             WHEN 1 THEN 'VERDE'
             ELSE 'SIN_DATOS'
         END                         AS estado_general,
+        -- M3-08: mismo criterio que el panel de alertas activas (RF-57 alertas_activas_total):
+        -- las TECNICA no cuentan. Antes un área decía "1 alerta activa" con el panel en 0.
         COUNT(CASE WHEN EXISTS (SELECT 1 FROM modulo3.alertas a
-                                WHERE a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA') THEN 1 END)
+                                WHERE a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA'
+                                  AND a.tipo_alerta::text <> 'TECNICA') THEN 1 END)
                                     AS alertas_activas_count,
         MAX(eas.ultimo_timestamp_captura)
                                     AS ultimo_dato_recibido
