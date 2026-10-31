@@ -4,6 +4,7 @@
 # | 2026-10-25 | Arekkazu | INC-M04-146-G012 RF-67: MD5 del id de alerta marcado como no criptográfico (Bandit B324) |
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68/RF-67: cálculos de contagio del lote en el historial |
 # | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-67: id de CONTAGIO sin hash; id de alerta sin cambios (Bearer CWE-328) |
+# | 2026-10-30 | Arekkazu | RF-66/RF-67: la inferencia indica si fue en modo sombra |
 """Historial diagnóstico (RF-67) sobre resultados de inferencia, alertas y retroalimentación.
 
 - Orden y cursor por (fecha_evento, id_evento) DESC, sobre los tres tipos de
@@ -178,6 +179,7 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
                     "modo_ejecucion": r.modo_ejecucion,
                     "contexto_incompleto": r.contexto_incompleto,
                     "latencia_excedida": r.latencia_excedida,
+                    "modo_sombra": r.modo_sombra,
                     "latencia_ms": r.latencia_ms,
                     "fecha_inicio_ventana": r.fecha_inicio_ventana.isoformat() if r.fecha_inicio_ventana else None,
                     "fecha_fin_ventana": r.fecha_fin_ventana.isoformat() if r.fecha_fin_ventana else None,
