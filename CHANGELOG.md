@@ -1,3 +1,15 @@
+## [1.4.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.22...v1.4.0-rc.23) (2026-10-31)
+
+### Bug Fixes
+
+* **rf68-mod4:** aislar salidas rf66 por lote ([#857](https://github.com/Arekkazu/sgpmp-backend/issues/857)) ([7844377](https://github.com/Arekkazu/sgpmp-backend/commit/7844377884e7047a4eaf60c6542317f6060ecb95))
+* **rf68-mod4:** aplicar umbrales activos de contagio ([#852](https://github.com/Arekkazu/sgpmp-backend/issues/852)) ([5f7e9cd](https://github.com/Arekkazu/sgpmp-backend/commit/5f7e9cd47dce1bf47cadecdf2400b4fe1450dce8))
+* **rf68-mod4:** exigir cobertura minima de inferencias ([#854](https://github.com/Arekkazu/sgpmp-backend/issues/854)) ([20e1aa2](https://github.com/Arekkazu/sgpmp-backend/commit/20e1aa24ba23ff2ffefadd24666964a4de7e8823))
+* **rf68-mod4:** habilitar perfil mvp de contagio ([#856](https://github.com/Arekkazu/sgpmp-backend/issues/856)) ([90220f9](https://github.com/Arekkazu/sgpmp-backend/commit/90220f9b7ea6d3c2e89e953dfcdcd2273b92ab28))
+* **rf68-mod4:** la cobertura RF-66 cuenta las salidas con el id del lote al combinar [#854](https://github.com/Arekkazu/sgpmp-backend/issues/854) y [#857](https://github.com/Arekkazu/sgpmp-backend/issues/857) ([6b155f3](https://github.com/Arekkazu/sgpmp-backend/commit/6b155f3277d7c7ec5b0279b051e359e9b625ab70)), closes [#852](https://github.com/Arekkazu/sgpmp-backend/issues/852)
+* **rf68-mod4:** recalcular contagio ante cambios de entradas ([#855](https://github.com/Arekkazu/sgpmp-backend/issues/855)) ([e351b50](https://github.com/Arekkazu/sgpmp-backend/commit/e351b508857ac629f0a7df5798a4f1f6b88dd6f2))
+* **rf68-mod4:** recuperar densidad historica del lote ([#853](https://github.com/Arekkazu/sgpmp-backend/issues/853)) ([133dc64](https://github.com/Arekkazu/sgpmp-backend/commit/133dc649eea0b63d1e965448ed08ba0b3cbe2514))
+
 ## [1.4.0-rc.22](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.21...v1.4.0-rc.22) (2026-10-31)
 
 ### Features
