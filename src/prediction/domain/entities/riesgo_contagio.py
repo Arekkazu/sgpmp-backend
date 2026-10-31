@@ -5,6 +5,7 @@
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: aplicar ocupación histórica ante error de densidad sin alterar la entrada nula. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: exigir 60 % de individuos con inferencia reciente y preservar score poblacional. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
+# | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura cuenta como observación cada salida con el id del lote |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -160,9 +161,13 @@ def discretizar(probabilidad: Decimal, umbral_riesgo_alto: Decimal) -> int:
 
 def validar_cobertura_rf66(
     *, salidas_rf66: list[SalidaInferencia], total_activos_lote: Optional[int],
-    ahora: datetime, score_anomalia: Optional[Decimal],
+    ahora: datetime, score_anomalia: Optional[Decimal], id_lote: Optional[int] = None,
 ) -> tuple[list[SalidaInferencia], Optional[int]]:
     """E8/CA-10: cada individuo identificado cuenta una vez, con su última salida reciente.
+
+    #857: M02 no relaciona individuos con su lote, así que las salidas propias llegan con
+    el id del lote. Esas no identifican a un individuo: cada una cuenta como observación,
+    igual que las salidas sin id del contrato legado.
 
     Se conserva el contrato legado sin IDs/total y el score poblacional de RFC-009.
     La aplicación también valida antes de reutilizar resultados anteriores en caché.
@@ -172,7 +177,7 @@ def validar_cobertura_rf66(
     for salida in salidas_rf66:
         if not timedelta(0) <= ahora - salida.fecha_inferencia <= VIGENCIA_INFERENCIA:
             continue
-        if salida.id_activo_biologico is None:
+        if salida.id_activo_biologico is None or salida.id_activo_biologico == id_lote:
             vigentes.append(salida)
         else:
             anterior = por_activo.get(salida.id_activo_biologico)
@@ -221,7 +226,7 @@ def calcular_riesgo_contagio(
     # E5/E8: solo individuos con inferencia reciente contribuyen a la cobertura.
     vigentes, total = validar_cobertura_rf66(
         salidas_rf66=salidas_rf66, total_activos_lote=total_activos_lote,
-        ahora=ahora, score_anomalia=score_anomalia,
+        ahora=ahora, score_anomalia=score_anomalia, id_lote=id_lote,
     )
     if any(not timedelta(0) <= ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA for s in salidas_rf66):
         motivos.append("INFERENCIAS_DESACTUALIZADAS_DESCARTADAS")

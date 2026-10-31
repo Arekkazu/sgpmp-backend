@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: reproducir contaminación entre lotes y verificar el cálculo aislado. |
+# | 2026-10-31 | Arekkazu | INC-M04-222 RF-68: expectativas con cobertura #854, umbral crítico #852 y sin 429 #855 |
 """Regresiones de aislamiento del factor sanitario por lote."""
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -8,7 +9,7 @@ import json
 
 import pytest
 
-from src.shared.errors import BusinessRuleError, TooManyRequestsError
+from src.shared.errors import BusinessRuleError
 from decimal import Decimal as D
 
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
@@ -86,18 +87,20 @@ def test_salidas_ajenas_no_inflan_la_cobertura():
     uc, _, _ = _use_case()
     dto = entrada()
     dto.salidas_rf66 = dto.salidas_rf66[:3]+dto.salidas_rf66[10:]
-    r = uc.execute(dto, 1, 3)
-    assert r.factor_sanitario is None and r.confianza_baja
-    assert 'COBERTURA_RF66_MENOR_AL_50' in r.motivos_degradacion
+    # #854: 3 propias de 10 no alcanzan la cobertura mínima; las ajenas no la completan.
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(dto, 1, 3)
+    assert exc.value.code == 'ERROR_DATOS_INSUFICIENTES'
 
 
 def test_solo_salidas_propias_con_riesgo_real_siguen_alertando():
     uc, alerta, _ = _use_case()
     dto = entrada(False)
-    for s in dto.salidas_rf66[:8]:
+    # #852: la alerta exige además alcanzar umbral_alerta_critica (0.70); 10/10 da P=0.77.
+    for s in dto.salidas_rf66:
         s.probabilidad_riesgo_alto = D('.9')
     r = uc.execute(dto, 1, 3)
-    assert r.n_enfermos_detectados == 8 and r.nivel_riesgo_contagio == 2
+    assert r.n_enfermos_detectados == 10 and r.nivel_riesgo_contagio == 2
     assert r.alerta_id == 555 and alerta.emitidas == 1
 
 
@@ -121,8 +124,9 @@ def test_cache_usa_entradas_filtradas_y_no_un_resultado_historico_sin_filtro():
     limpio = dto.model_copy(update={'salidas_rf66':dto.salidas_rf66[:-1]})
     viejo = json.dumps({'dto':limpio.model_dump(mode='json'),'config_version':2},sort_keys=True)
     primero.huella_entradas = hashlib.sha256(viejo.encode()).hexdigest()
-    with pytest.raises(TooManyRequestsError):
-        uc.execute(dto, 1, 3)
+    # #855: entradas distintas dentro de 5 s recalculan en vez de responder 429.
+    nuevo = uc.execute(dto, 1, 3)
+    assert nuevo.desde_cache is False and len(uc.resultado_repo.guardados) == 2
 
 
 def test_error_de_persistencia_no_se_oculta():

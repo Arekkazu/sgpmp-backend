@@ -7,6 +7,7 @@
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: recalcular ante entradas cambiantes y reservar cinco segundos para caché idéntica. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: ejecutar MVP sin caché, conservar controles y registrar el aviso E10 con resultado válido. |
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: filtrar inferencias por identidad del lote antes de calcular y reutilizar caché. |
+# | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura recibe el id del lote filtrado por #857 |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché (5.1) →
@@ -117,7 +118,7 @@ class EstimarRiesgoContagioUseCase:
         try:
             validar_cobertura_rf66(
                 salidas_rf66=salidas, total_activos_lote=dto.total_activos_lote,
-                ahora=ahora, score_anomalia=dto.score_anomalia,
+                ahora=ahora, score_anomalia=dto.score_anomalia, id_lote=dto.id_lote,
             )
             huella = self._huella(dto, config.config_version)
             anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)

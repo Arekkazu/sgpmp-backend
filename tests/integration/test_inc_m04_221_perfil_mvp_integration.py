@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: probar configuración, historial, cálculo MVP, seguridad, alertas y rollback con PostgreSQL real. |
+# | 2026-10-31 | Arekkazu | INC-M04-221/222 RF-68: salidas RF-66 con el id del lote (#857) |
 """Contrato RF-65/RF-68 con perfil explícito, sin alterar RLS ni triggers."""
 from __future__ import annotations
 
@@ -89,7 +90,7 @@ def configurar(client,e,perfil='MVP',version=None,actor='admin',**cambios):
 def entrada(e, enfermos=4):
     ahora=e['instante'].isoformat()
     return dict(id_lote=e['lote'], total_activos_lote=20,
-                salidas_rf66=[dict(id_activo_biologico=n+1,probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
+                salidas_rf66=[dict(id_activo_biologico=e['lote'],probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
                                   fecha_inferencia=ahora) for n in range(20)],
                 variables_ambientales=dict(temperatura='37.5',humedad_relativa='92.5',fecha_captura=ahora),
                 densidad_poblacional='8',porcentaje_sensores_activos=100)

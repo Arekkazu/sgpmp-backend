@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: validar activación separada del perfil MVP y conservar controles obligatorios. |
+# | 2026-10-31 | Arekkazu | INC-M04-221/222 RF-68: salidas con el id del lote (#857 descarta las que no lo traen) |
 """RF-65/RF-68: perfil de cálculo independiente del lugar de ejecución."""
 from decimal import Decimal as D
 from datetime import datetime, timedelta, timezone
@@ -76,7 +77,7 @@ def reloj(monkeypatch):
 def entrada(enfermos=4):
     from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
     return EstimarRiesgoContagioDTO(id_lote=1,total_activos_lote=20,
-        salidas_rf66=[dict(probabilidad_riesgo_alto='.9' if n<enfermos else '.1',fecha_inferencia=AHORA) for n in range(20)],
+        salidas_rf66=[dict(id_activo_biologico=1,probabilidad_riesgo_alto='.9' if n<enfermos else '.1',fecha_inferencia=AHORA) for n in range(20)],
         variables_ambientales=dict(temperatura='37.5',humedad_relativa='92.5',fecha_captura=AHORA),densidad_poblacional='8')
 
 

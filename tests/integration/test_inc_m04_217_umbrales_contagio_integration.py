@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: verificar umbrales y flujo en entorno aislado. |
+# | 2026-10-31 | Arekkazu | INC-M04-217/222 RF-68: salidas RF-66 con el id del lote (#857) |
 """RF-65 → RF-68 → RF-57/RF-73 con PostgreSQL, JWT, RBAC y RLS reales."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -74,7 +75,7 @@ def entrada(lote, probabilidad='0.8', qa=False):
                   variables_ambientales=dict(temperatura='36', humedad_relativa='90', fecha_captura=ahora))
     if qa:
         cuerpo.update(total_activos_lote=20, salidas_rf66=[
-            dict(probabilidad_riesgo_alto=p, fecha_inferencia=ahora) for p in ['0.9'] * 12 + ['0.1'] * 8])
+            dict(id_activo_biologico=lote, probabilidad_riesgo_alto=p, fecha_inferencia=ahora) for p in ['0.9'] * 12 + ['0.1'] * 8])
     else:
         cuerpo['score_anomalia'] = str((D(probabilidad) - D('0.5')) / D('0.5'))
     return cuerpo

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: probar aislamiento de RF-66, cálculo, seguridad, alertas y rollback con PostgreSQL real. |
+# | 2026-10-31 | Arekkazu | INC-M04-222 RF-68: 10/10 enfermos para alcanzar el umbral crítico de #852 |
 """Contrato RF-65/RF-68 con aislamiento por identidad del lote, sin alterar RLS ni triggers."""
 from __future__ import annotations
 
@@ -220,9 +221,10 @@ def test_riesgo_real_propio_genera_alerta_y_auditoria(client, db_session, escena
         return original(self,*args)
     monkeypatch.setattr(SqlAlchemyResultadoRiesgoContagioRepository,'asociar_alerta',comprobar_identidad)
     e=escenario
-    r=ejecutar(client,e,entrada(e,enfermos=8,ajenas=True))
+    # #852: la alerta exige umbral_alerta_critica (.75); con 8/10 la P no lo alcanza.
+    r=ejecutar(client,e,entrada(e,enfermos=10,ajenas=True))
     assert r.status_code==201,r.text
-    assert r.json()['n_enfermos_detectados']==8 and r.json()['nivel_riesgo_contagio']==2
+    assert r.json()['n_enfermos_detectados']==10 and r.json()['nivel_riesgo_contagio']==2
     assert r.json()['alerta_id'] is not None
     assert db_session.execute(text('SELECT count(*) FROM modulo3.alertas WHERE id_activo_biologico=:l'),{'l':e['lote']}).scalar_one()==1
     assert [x['tipo_evento'] for x in eventos(db_session,e)]==['RIESGO_CONTAGIO_CALCULADO','ALERTA_CONTAGIO_GENERADA']
@@ -253,7 +255,7 @@ def test_fallo_revierte_calculo_filtrado_y_alerta(client, db_session, escenario,
                 raise ServiceUnavailableError('SERVICIO_NO_DISPONIBLE','Fallo controlado tras auditoría.')
         monkeypatch.setattr(EstimarRiesgoContagioUseCase,'_auditar',fallar)
     antes=db_session.execute(text('SELECT count(*) FROM modulo3.bitacora_auditoria_iot')).scalar_one()
-    r=ejecutar(client,e,entrada(e,enfermos=8,ajenas=True))
+    r=ejecutar(client,e,entrada(e,enfermos=10,ajenas=True))
     assert r.status_code==503,r.text
     assert resultados(db_session,e)==1 and len(eventos(db_session,e))==1
     assert db_session.execute(text('SELECT count(*) FROM modulo3.alertas WHERE id_activo_biologico=:l'),{'l':e['lote']}).scalar_one()==0

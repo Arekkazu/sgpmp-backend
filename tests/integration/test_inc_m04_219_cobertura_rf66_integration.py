@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: validar cobertura, caché, auditoría, aislamiento y rollback con HTTP y PostgreSQL reales. |
+# | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: salidas con el id del lote; la variante duplicada pasa a otro lote |
 """RF-68 G030 con JWT y rol sgpmp_app, sin desactivar triggers ni restricciones."""
 from __future__ import annotations
 
@@ -83,7 +84,7 @@ def configurar(client, e):
 def entrada(e, cantidad=12):
     ahora = e['instante'].isoformat()
     return dict(id_lote=e['lote'], total_activos_lote=20,
-                salidas_rf66=[dict(id_activo_biologico=n+1, probabilidad_riesgo_alto='.9' if n<4 else '.1',
+                salidas_rf66=[dict(id_activo_biologico=e['lote'], probabilidad_riesgo_alto='.9' if n<4 else '.1',
                                   fecha_inferencia=ahora) for n in range(cantidad)],
                 variables_ambientales=dict(temperatura='30', humedad_relativa='70', fecha_captura=ahora),
                 densidad_poblacional='7.5', porcentaje_sensores_activos=100)
@@ -141,7 +142,7 @@ def test_desde_60_persiste_formula_y_cache_validos(client, db_session, escenario
     assert resultados(db_session,e)==1 and len(eventos(db_session,e))==1
 
 
-@pytest.mark.parametrize('variante', ['obsoleta','futura','duplicada'])
+@pytest.mark.parametrize('variante', ['obsoleta','futura','otro_lote'])
 def test_inferencia_no_util_no_completa_la_cobertura(client, db_session, escenario, variante):
     e=escenario
     configurar(client,e)
@@ -152,7 +153,8 @@ def test_inferencia_no_util_no_completa_la_cobertura(client, db_session, escenar
     elif variante=='futura':
         ultima['fecha_inferencia']=(e['instante']+timedelta(seconds=1)).isoformat()
     else:
-        ultima['id_activo_biologico']=1
+        # #857: las salidas propias traen el id del lote; una de otro lote se descarta.
+        ultima['id_activo_biologico']=e['lote']+100000
     r=ejecutar(client,e,cuerpo)
     assert r.status_code==422 and r.json()['error_code']=='ERROR_DATOS_INSUFICIENTES',r.text
     assert resultados(db_session,e)==0

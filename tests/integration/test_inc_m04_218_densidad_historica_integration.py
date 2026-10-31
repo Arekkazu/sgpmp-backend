@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: validar E2, auditoría, ventana y aislamiento con PostgreSQL y HTTP reales. |
+# | 2026-10-31 | Arekkazu | INC-M04-218/222 RF-68: salidas RF-66 con el id del lote (#857) |
 """Base exclusiva: histórico sintético identificado y prueba separada del trigger real."""
 from __future__ import annotations
 
@@ -103,7 +104,7 @@ def configurar(client, e):
 def entrada(e, densidad='-5'):
     ahora = e['instante'].isoformat()
     return dict(id_lote=e['lote'], total_activos_lote=10,
-                salidas_rf66=[dict(probabilidad_riesgo_alto=p, fecha_inferencia=ahora)
+                salidas_rf66=[dict(id_activo_biologico=e['lote'], probabilidad_riesgo_alto=p, fecha_inferencia=ahora)
                               for p in ['0.9']*2 + ['0.1']*8],
                 variables_ambientales=dict(temperatura='30',humedad_relativa='70',fecha_captura=ahora),
                 densidad_poblacional=densidad, porcentaje_sensores_activos=100)

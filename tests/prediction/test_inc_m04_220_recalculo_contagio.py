@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: validar recálculo inmediato, ventana de caché, errores y efectos transaccionales. |
+# | 2026-10-31 | Arekkazu | INC-M04-220/222 RF-68: salidas con el id del lote y conteo derivado de ellas |
 """G032: orquestación con fakes; no acredita persistencia PostgreSQL."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal as D
@@ -29,7 +30,7 @@ def reloj(monkeypatch):
 def entrada(enfermos=4):
     return EstimarRiesgoContagioDTO(
         id_lote=1, total_activos_lote=20,
-        salidas_rf66=[dict(id_activo_biologico=n+1,probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
+        salidas_rf66=[dict(id_activo_biologico=1,probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
                           fecha_inferencia=AHORA) for n in range(20)],
         densidad_poblacional='8',
         variables_ambientales=dict(temperatura='37.5',humedad_relativa='92.5',fecha_captura=AHORA))
@@ -67,7 +68,8 @@ def test_otra_entrada_relevante_cambiante_recalcula_antes_de_5_s(reloj,cambio):
     elif cambio=='score_poblacional':
         dto.score_anomalia=D('.45')
     else:
-        dto.n_enfermos_detectados=9
+        # #857: con lista, el conteo se deriva de las salidas propias, no del agregado.
+        dto=entrada(enfermos=9)
     nuevo=uc.execute(dto,1,3)
     assert not nuevo.desde_cache and nuevo.id_resultado_contagio!=primero.id_resultado_contagio
     assert len(uc.resultado_repo.guardados)==2

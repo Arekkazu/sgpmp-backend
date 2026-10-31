@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: validar recálculo, caché, configuración, auditoría, alertas y rollback con PostgreSQL y HTTP reales. |
+# | 2026-10-31 | Arekkazu | INC-M04-220/222 RF-68: salidas RF-66 con el id del lote (#857) |
 """G032 con JWT y rol real sgpmp_app; sin desactivar restricciones ni RLS."""
 from __future__ import annotations
 
@@ -87,7 +88,7 @@ def configurar(client, e):
 def entrada(e, enfermos=4):
     ahora=e['instante'].isoformat()
     return dict(id_lote=e['lote'], total_activos_lote=20,
-                salidas_rf66=[dict(id_activo_biologico=n+1,probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
+                salidas_rf66=[dict(id_activo_biologico=e['lote'],probabilidad_riesgo_alto='.9' if n<enfermos else '.1',
                                   fecha_inferencia=ahora) for n in range(20)],
                 variables_ambientales=dict(temperatura='37.5',humedad_relativa='92.5',fecha_captura=ahora),
                 densidad_poblacional='8',porcentaje_sensores_activos=100)

@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: probar mínimo del 60 %, vigencia, individuos únicos, caché y auditoría de rechazo. |
+# | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: ids individuales distintos del id del lote del helper |
 """Regresiones de G030 sin base de datos; la integración real vive en tests/integration."""
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal as D
@@ -14,7 +15,7 @@ from tests.prediction.test_rf68_riesgo_contagio import AHORA, _calcular, _dto, _
 
 
 def salidas(cantidad, fecha=AHORA):
-    return [SalidaInferencia(D('.9') if n < 4 else D('.1'), fecha, n + 1) for n in range(cantidad)]
+    return [SalidaInferencia(D('.9') if n < 4 else D('.1'), fecha, n + 101) for n in range(cantidad)]
 
 
 @pytest.mark.parametrize('cantidad', [0, 1, 9, 10, 11])
@@ -40,7 +41,7 @@ def test_cobertura_no_redondea_59_por_ciento_a_60():
 
 
 def test_inferencias_obsoletas_no_completan_el_minimo():
-    entradas = salidas(11) + [SalidaInferencia(D('.1'), AHORA - timedelta(minutes=31), 12)]
+    entradas = salidas(11) + [SalidaInferencia(D('.1'), AHORA - timedelta(minutes=31), 112)]
     with pytest.raises(DatosContagioError):
         _calcular(salidas_rf66=entradas, total_activos_lote=20)
 
@@ -57,13 +58,13 @@ def test_inferencias_futuras_no_completan_la_cobertura():
 
 
 def test_dos_inferencias_del_mismo_activo_no_cuentan_como_dos_individuos():
-    entradas = salidas(11) + [SalidaInferencia(D('.9'), AHORA, 1)]
+    entradas = salidas(11) + [SalidaInferencia(D('.9'), AHORA, 101)]
     with pytest.raises(DatosContagioError):
         _calcular(salidas_rf66=entradas, total_activos_lote=20)
 
 
 def test_ultima_salida_por_individuo_define_fs_sin_inflarlo():
-    entradas = salidas(12) + [SalidaInferencia(D('.9'), AHORA - timedelta(seconds=1), 5)]
+    entradas = salidas(12) + [SalidaInferencia(D('.9'), AHORA - timedelta(seconds=1), 105)]
     r = _calcular(salidas_rf66=entradas, total_activos_lote=20)
     assert r.factor_sanitario == D('.2')
     assert r.data_quality_score == D('.900')
