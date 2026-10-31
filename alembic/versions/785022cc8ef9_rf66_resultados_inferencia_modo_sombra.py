@@ -1,10 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra en resultados_inferencia del motor IA         |
+# | 2026-10-31 | Arekkazu | RF-66: encadena tras e5a1c7d39f62 (PR #891) para no dejar dos heads |
 """rf66: modo_sombra en modulo4.resultados_inferencia
 
 Revision ID: 785022cc8ef9
-Revises: 6bd01d026ac4
+Revises: e5a1c7d39f62
 Create Date: 2026-10-30
 
 Por qué va por Alembic: es el patrón del repo y CI solo despliega lo que está
@@ -27,7 +28,7 @@ from alembic import op
 
 
 revision: str = '785022cc8ef9'
-down_revision: Union[str, Sequence[str], None] = '6bd01d026ac4'
+down_revision: Union[str, Sequence[str], None] = 'e5a1c7d39f62'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
