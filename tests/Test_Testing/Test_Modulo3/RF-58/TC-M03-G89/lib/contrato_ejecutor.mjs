@@ -31,7 +31,8 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio }) {
     || c.operacion !== operacion.toUpperCase() || c.referencia !== referencia
     || JSON.stringify(c.casos) !== JSON.stringify(casos)
     || (operacion === 'recuperar' && c.run_objetivo !== objetivo)) throw new Error('Contexto incoherente.');
-  if (operacion === 'reevaluar' && (!c.alcance_reevaluacion || c.version_anterior !== version - 1))
+  if (operacion === 'reevaluar' && (!c.alcance_reevaluacion
+    || (c.alcance_reevaluacion.version_anterior ?? c.version_anterior) !== version - 1))
     throw new Error('Falta alcance de reevaluación.');
   return { operacion, version, intento, runId, objetivo, referencia, contexto: c, directorio: esperado };
 }

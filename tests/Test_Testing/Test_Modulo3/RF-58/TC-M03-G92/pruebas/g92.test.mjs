@@ -1,453 +1,504 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { evaluar, crearTransporte, comprobar } from '../g92.mjs';
-import { CAPACIDADES, LIMITE, diagnosticarPagina, planTemporal, compararDashboard } from '../lib/g92_escenario.mjs';
+import vm from 'node:vm';
+import { comprobar, crearTransporte, informe, registroOficial, preflight,
+  autenticarSinFinca, rlsSinFincaNoConcluyente,
+  diagnosticarCanario, canariosAntesDashboard, relojServidor,
+  evaluarRlsSinFinca, umbralAmbientalSeguro, clasificarRollback } from '../g92.mjs';
+import { CASOS, CAPACIDADES, LIMITE, SEMILLA, VALORES, VALORES_ALERTA,
+  diagnosticarPagina, validarSemillaPersistente, registrarAlertaDeArea,
+  estadoDashboard } from '../lib/g92_escenario.mjs';
 
-let regresionesNuevas = 0;
-const regresion = (condicion, mensaje) => { assert.equal(condicion, true, mensaje); regresionesNuevas++; };
-const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-assert.equal(CAPACIDADES.contrato, 'sigab-qa-ejecutor/1');
-assert.equal(LIMITE.sensores_referencia, 5);
-assert.equal(LIMITE.solicitudes_directas - LIMITE.margen_cierre, 521);
-assert.equal(LIMITE.solicitudes_directas, 525);
-assert.deepEqual(CAPACIDADES.comprobaciones_obligatorias['TC-M03-181'].API,
-  ['API-181-01', 'API-181-02']);
-assert.equal(Object.values(CAPACIDADES.comprobaciones_obligatorias)
-  .flatMap((x) => x.API).includes('API-181-03'), false);
-regresion(Object.values(CAPACIDADES.comprobaciones_obligatorias)
-  .flatMap((x) => x.API).length === 6, 'seis ASSERT obligatorias');
 assert.equal(comprobar(), 0);
-const tiempo = planTemporal('2026-10-25T05:00:00.000Z');
-assert.equal(Date.parse(tiempo.inicio) - Date.parse(tiempo.ancla), 120000);
-assert.equal(Date.parse(tiempo.marcas[1]) - Date.parse(tiempo.marcas[0]), 5000);
-assert.equal(compararDashboard([{ total: 1, sensores: [{ id_sensor: 4, id_infraestructura: 7,
-  tiempo_sin_reporte_min: 1 }], resumen_unidades: [{ id_infraestructura: 7,
-    total_sensores: 1, alertas_activas_count: 0, estado_general: 'VERDE' }] }],
-[{ total: 1, sensores: [{ id_sensor: 4, id_infraestructura: 7,
-  tiempo_sin_reporte_min: 9, dato_desactualizado: true }], resumen_unidades: [{ id_infraestructura: 7,
-    total_sensores: 1, alertas_activas_count: 0, estado_general: 'GRIS' }] }]), true);
-const pagina = diagnosticarPagina({ inicial: { total: 3, sensores: [
-  { id_sensor: 1, id_infraestructura: 2, estado_semaforo: 'VERDE' },
-  { id_sensor: 2, id_infraestructura: 2, estado_semaforo: 'AMARILLO' },
-  { id_sensor: 3, id_infraestructura: 2, estado_semaforo: 'ROJO' }],
-resumen_unidades: [{ id_infraestructura: 2, estado_general: 'ROJO',
-  alertas_activas_count: 2, ultimo_dato_recibido: '2026-10-25T05:00:00Z' }] }, areaA: 1, areaB: 2 });
-assert.equal(pagina.checks['API-181-01'], true);
-assert.equal(pagina.checks['API-181-03'], false);
-const sensoresA = Array.from({ length: 60 }, (_, i) => ({ id_sensor: i + 1,
-  id_infraestructura: 1, estado_semaforo: i === 54 ? 'ROJO' : 'VERDE' }));
-const paginaA = { total: 60, sensores: sensoresA.slice(0, 50), resumen_unidades: [
-  { id_infraestructura: 1, estado_general: 'VERDE', total_sensores: 60 }] };
-const paginaA2 = { total: 60, sensores: sensoresA.slice(50), resumen_unidades: [
-  { id_infraestructura: 1, estado_general: 'ROJO', total_sensores: 60 }] };
-const diagnosticoA = (a1) => diagnosticarPagina({ a1, a2: paginaA2, areaA: 1, areaB: 2 });
-assert.equal(diagnosticoA(paginaA).checks['PRE-183-01'], true);
-for (const heredado of ['AMARILLO', 'ROJO']) {
-  const a1 = structuredClone(paginaA);
-  a1.sensores[2].estado_semaforo = heredado;
-  assert.equal(diagnosticoA(a1).checks['PRE-183-01'], false,
-    `Un ${heredado} heredado en A debe invalidar la precondiciÃ³n 183`);
-}
-const transporteLocal = crearTransporte({ base: 'http://simulador.invalid',
-  runId: 'G92-V1-20261025-050000', secreto: 'SECRETO_LOCAL',
-  bitacora: [], secretos: [], fetcher: () => { throw new Error('RED_INESPERADA'); } });
-transporteLocal.abrir();
-await assert.rejects(() => transporteLocal.solicitar('PATCH', '/iot/alertas/1/estado',
-  { cuerpo: { nuevo_estado: 'RESUELTA' } }), /ESCRITURA_FUERA_LISTA_BLANCA/);
-await assert.rejects(() => transporteLocal.solicitar('POST', '/configuracion/infraestructuras',
-  { cuerpo: { finca_id: 185, especie_id: 126 } }), /ID_FUERA_LISTA_BLANCA/);
-const peticionesTope = [];
-const transporteTope = crearTransporte({ base: 'http://simulador.invalid',
-  runId: 'G92-V1-20261025-050000', secreto: 'SECRETO_LOCAL', bitacora: [], secretos: [],
-  limite: 5, fetcher: async (_url, opciones) => {
-    peticionesTope.push(opciones.method);
-    return { status: 200, headers: { get: () => 'G92-V1-20261025-050000' },
-      text: async () => '{}' };
-  } });
-transporteTope.abrir();
-await transporteTope.solicitar('GET', '/usuarios/me');
-await assert.rejects(() => transporteTope.solicitar('GET', '/usuarios/me'),
-  /LIMITE_SOLICITUDES_FUNCIONALES/);
-await transporteTope.solicitar('DELETE', '/test-control/runs/G92-V1-20261025-050000', { cierre: true });
-for (let i = 0; i < 4; i++) await transporteTope.solicitar('GET', '/configuracion/fincas/184');
-regresion(peticionesTope.join(',') === 'GET,DELETE,GET,GET,GET,GET' &&
-  transporteTope.estado().exceso_cierre === 1, 'no hay operación funcional tras el límite y el cierre lo supera');
+const casos = [];
+const modo = (nombre, prueba) => { prueba(); casos.push(nombre); };
+const A = 697, B = 698;
+const sensoresA = Array.from({ length: 60 }, (_, i) => ({ id_sensor: 1142 + i,
+  id_infraestructura: A, estado_semaforo: i === 54 ? 'ROJO' : 'VERDE' }));
+const sensoresB = ['VERDE', 'VERDE', 'ROJO'].map((estado_semaforo, i) => ({
+  id_sensor: 1202 + i, id_infraestructura: B, estado_semaforo,
+  tipo_variable: 'TEMPERATURA_AMBIENTAL',
+  ...(i === 2 ? { id_alerta: 2002, severidad_alerta: 'CRITICO' } : {}) }));
+const resumen = (area, estado_general, total_sensores, alertas_activas_count) => ({
+  id_infraestructura: area, estado_general, total_sensores, alertas_activas_count,
+  ultimo_dato_recibido: '2026-10-30T20:00:00Z' });
+const panelB = { alertas: [{ id_alerta: 2002, id_infraestructura: B,
+  severidad: 'CRITICO' }] };
+const conforme = () => ({ inicial: { total: 3, sensores: structuredClone(sensoresB),
+  resumen_unidades: [resumen(B, 'ROJO', 3, 1)], panel_alertas_activas: panelB },
+  a1: { total: 60, sensores: structuredClone(sensoresA.slice(0, 50)),
+    resumen_unidades: [resumen(A, 'ROJO', 60, 1)] },
+  a2: { total: 60, sensores: structuredClone(sensoresA.slice(50)),
+    resumen_unidades: [resumen(A, 'ROJO', 60, 1)] },
+  b1: { total: 3, sensores: structuredClone(sensoresB),
+    resumen_unidades: [resumen(B, 'ROJO', 3, 1)] },
+  alcanceA: true, alcanceB: true, areaA: A, areaB: B, alertasActivas: 2 });
+modo('colección y ejecutor concuerdan en PRE-181-01 y obligatorias', () => {
+  const coleccion = JSON.parse(fs.readFileSync(new URL('../G92.postman_collection.json', import.meta.url), 'utf8'));
+  const script = coleccion.item[0].event.find((x) => x.listen === 'test').script.exec.join('\n');
+  const pre = script.split('\n').find((linea) => linea.includes("pm.test(pre('TC-M03-181','PRE-181-01')"));
+  assert.match(pre, /\['VERDE','ROJO'\]/);
+  assert.doesNotMatch(pre, /AMARILLO/);
+  assert.deepEqual(CAPACIDADES.comprobaciones_obligatorias['TC-M03-181'].API,
+    ['API-181-01', 'API-181-02']);
+  assert.doesNotMatch(script, /pm\.test\(id\('TC-M03-181','API-181-03'/);
+  assert.match(script, /obs_181_03/);
+  const ejecutor = fs.readFileSync(new URL('../g92.mjs', import.meta.url), 'utf8');
+  assert.match(ejecutor, /tipo: id === 'API-181-03' \? 'OBS'/);
+  assert.match(ejecutor, /estado: id === 'API-181-03' \? 'EXCLUIDA_DEL_ORACULO'/);
+  const variables = new Map([['fase', 'inicial'], ['area_a', A], ['area_b', B], ['run_id', 'RUN_LOCAL']]);
+  const pruebas = [];
+  const pm = {
+    environment: { get: (key) => variables.get(key), set: (key, value) => variables.set(key, value) },
+    response: { code: 200, json: () => conforme().inicial,
+      headers: { get: () => 'RUN_LOCAL' } },
+    test: (name, fn) => { fn(); pruebas.push(name); },
+    expect: (actual) => ({ to: { eql: (esperado) => assert.deepEqual(actual, esperado),
+      include: (esperado) => assert.ok(actual.includes(esperado)),
+      be: { get ok() { assert.ok(actual); return true; } } } }),
+  };
+  vm.runInNewContext(script, { pm });
+  assert.equal(pruebas.length, 4);
+  assert.ok(pruebas.every((nombre) => !nombre.includes('API-181-03')));
+  assert.equal(variables.get('obs_181_amarillo'), 'false');
+  assert.deepEqual(JSON.parse(variables.get('obs_181_03')),
+    { atencion_en_resumen: false, criticas_en_resumen: false });
+});
+modo('E14 consolida LEVE a CRITICO dentro del RUN y rechaza alerta ajena', () => {
+  const creadas = new Map();
+  assert.deepEqual(registrarAlertaDeArea({ es_duplicado: false, id_alerta: 1346,
+    severidad: 'LEVE' }, B, creadas), { id: 1346, nueva: true, consolidada: false });
+  assert.deepEqual(registrarAlertaDeArea({ es_duplicado: true, id_alerta: 1346,
+    alerta_existente_id: 1346, severidad: 'CRITICO' }, B, creadas),
+  { id: 1346, nueva: false, consolidada: true });
+  assert.deepEqual([...creadas], [[1346, B]]);
+  assert.throws(() => registrarAlertaDeArea({ es_duplicado: true, id_alerta: 1346,
+    alerta_existente_id: 1346 }, A, creadas), /ALERTA_DUPLICADA_ERROR_QA/);
+  assert.throws(() => registrarAlertaDeArea({ es_duplicado: true, id_alerta: 9999,
+    alerta_existente_id: 9999 }, B, creadas), /ALERTA_DUPLICADA_ERROR_QA/);
+  assert.throws(() => registrarAlertaDeArea({ es_duplicado: false, id_alerta: 1347 },
+    B, creadas), /ALERTA_DUPLICADA_ERROR_QA/);
+});
+modo('todo conforme', () => {
+  const d = diagnosticarPagina(conforme());
+  assert.ok(Object.values(d.checks).every(Boolean));
+  assert.equal(d.observado.posicion_rojo, 55);
+  const ids = Object.values(CAPACIDADES.comprobaciones_obligatorias).flatMap((x) => x.API);
+  const r = { comprobaciones: ids.map((id) => ({ id, tipo: 'ASSERT', estado: 'APROBADO' })),
+    casos: Object.fromEntries(CASOS.map((id) => [id, { estado: 'APROBADO' }])),
+    cierre: { run: { cierre_http: 200 }, rollback: { verificado: true } },
+    canarios: ['previo-newman', 'cierre'].flatMap((fase) => [A, B].map((area) =>
+      ({ fase, area, seguro: true, evidencia: `api/E7-CANARIO-${fase}-${area}.json` }))),
+    newman: [{}], evidencias: ['resultado.json', 'TC-M03-G92_resultado.md',
+      'newman/newman-TC-M03-G92.json', 'newman/newman-TC-M03-G92.html',
+      ...['previo-newman', 'cierre'].flatMap((fase) => [A, B].map((area) =>
+        `api/E7-CANARIO-${fase}-${area}.json`))] };
+  assert.equal(registroOficial(r, () => true), true);
+  assert.equal(registroOficial({ ...r, canarios: r.canarios.slice(1) }, () => true), false);
+  assert.equal(registroOficial(r, (x) => x !== 'TC-M03-G92_resultado.md'), false);
+  assert.equal(registroOficial({ ...r, cierre: { ...r.cierre,
+    rollback: { verificado: false } } }, () => true), false);
+  assert.equal(registroOficial({ ...r, cierre: { ...r.cierre,
+    run: { cierre_http: 500 } } }, () => true), false);
+  assert.equal(registroOficial({ ...r, newman: [] }, () => true), false);
+  assert.equal(registroOficial({ ...r, casos: { ...r.casos,
+    'TC-M03-183': { estado: 'NO_CONCLUYENTE' } } }, () => true), false);
+  const checks = ids.map((id) => ({ id, caso: CASOS.find((caso) => caso.endsWith(id.split('-')[1])),
+    tipo: 'ASSERT', estado: 'APROBADO', evidencia: 'newman/newman-TC-M03-G92.json',
+    evidencias: ['newman/newman-TC-M03-G92.json'] }));
+  const reporte = informe({ ...r, run_id: 'SIMULADO_LOCAL', version: 1,
+    autorizacion: 'SIMULACION_LOCAL', commit: 'LOCAL', oficial: true,
+    directorio: '/', evidencias: [], comprobaciones: checks,
+    comprobaciones_tecnicas: [{ id: 'RLS-G92-03', estado: 'NO_CONCLUYENTE',
+      motivo: 'UPDATE público no disponible', evidencia: 'resultado.json' }],
+    casos: Object.fromEntries(CASOS.map((id) => [id, { estado: 'APROBADO',
+      veredicto: 'APROBADO', estado_tecnico: 'OK', observado: {},
+      comprobaciones: checks.filter((x) => x.caso === id) }])),
+    problemas_tecnicos: [], bitacora: [], estado: 'COMPLETO',
+    cierre: { run: { cierre_http: 200 }, motivo: 'simulación', rollback: {
+      verificado: true, comprobaciones: [], riesgos_residuales: [] } } });
+  assert.match(reporte, /^# TC-M03-G92 — APROBADO/);
+  assert.match(reporte, /Decisión del caso:\*\* \*\*APROBADO/);
+  assert.match(reporte, /RLS-G92-03: NO_CONCLUYENTE/);
+});
+modo('181 sin ROJO consolidado', () => {
+  const x = conforme(); x.inicial.resumen_unidades[0].estado_general = 'VERDE';
+  const d = diagnosticarPagina(x);
+  assert.equal(d.checks['PRE-181-01'], true);
+  assert.equal(d.checks['API-181-01'], false);
+  assert.equal(d.checks['API-181-03'], true);
+});
+modo('182 con datos de otra unidad', () => {
+  const x = conforme(); x.a1.sensores[0].id_infraestructura = B;
+  assert.equal(diagnosticarPagina(x).checks['API-182-01'], false);
+});
+modo('182 con resumen ajeno en segunda página', () => {
+  const x = conforme(); x.a2.resumen_unidades.push(resumen(B, 'ROJO', 3, 1));
+  const d = diagnosticarPagina(x);
+  assert.equal(d.checks['PRE-182-01'], true);
+  assert.equal(d.checks['API-182-02'], false);
+  assert.deepEqual(d.observado.ids_ajenos, [B]);
+});
+modo('183 sin consolidar ROJO fuera de página', () => {
+  const x = conforme(); x.a1.resumen_unidades[0].estado_general = 'VERDE';
+  const d = diagnosticarPagina(x);
+  assert.equal(d.checks['PRE-183-01'], true);
+  assert.equal(d.checks['API-183-02'], false);
+});
+modo('RUN 021342 saneado reproduce la limitación y el nuevo plan descubre 183', () => {
+  const real = JSON.parse(fs.readFileSync(new URL('./respuestas_run_021342_saneadas.json', import.meta.url), 'utf8'));
+  const entrada = { ...real, alcanceA: true, alcanceB: true, areaA: A, areaB: B,
+    alertasActivas: 1 };
+  const observado = diagnosticarPagina(entrada);
+  assert.equal(observado.checks['PRE-181-01'], true);
+  assert.equal(observado.checks['API-181-01'], true);
+  assert.equal(observado.checks['API-181-02'], true);
+  assert.equal(observado.checks['PRE-183-01'], false);
+  const plan = structuredClone(entrada); // Simulación local del plan; no es evidencia de TEST.
+  for (const pagina of [plan.a1, plan.a2]) {
+    for (const sensor of pagina.sensores) {
+      sensor.ultimo_valor = 25;
+      if (sensor.id_sensor === 1196) sensor.estado_semaforo = 'ROJO';
+    }
+    pagina.resumen_unidades[0].alertas_activas_count = 1;
+  }
+  for (const pagina of [plan.inicial, plan.b1])
+    for (const sensor of pagina.sensores) sensor.ultimo_valor = 25;
+  plan.alertasActivas = 2;
+  const defecto = diagnosticarPagina(plan);
+  assert.equal(defecto.checks['PRE-181-01'], true);
+  assert.equal(defecto.checks['PRE-183-01'], true);
+  assert.equal(defecto.checks['API-183-02'], false);
+  plan.a1.resumen_unidades[0].estado_general = 'ROJO';
+  assert.equal(diagnosticarPagina(plan).checks['API-183-02'], true);
+});
+modo('E7 evitado en la semilla local', () => {
+  assert.deepEqual(VALORES, { VERDE: 25 });
+  assert.deepEqual(VALORES_ALERTA, { ROJO: 29 });
+  assert.equal(LIMITE.telemetrias, 63);
+  assert.equal(LIMITE.alertas, 2);
+  assert.ok([...sensoresA, ...sensoresB].every((s) => s.estado_semaforo !== 'GRIS'));
+  assert.equal(LIMITE.newman, 1);
+});
+const apertura = Date.parse('2026-10-31T01:47:00Z');
+const semillaConforme = () => {
+  const ids = [...SEMILLA.sensoresA, ...SEMILLA.sensoresB];
+  return {
+    finca: { id_finca: 184, es_activo: true },
+    areas: [0, 1].map((i) => ({ id_infraestructura: SEMILLA.areas[i], id_finca: 184,
+      especie_id: 126, es_activo: true, nombre_infraestructura: `QA G92 Unidad ${i ? 'B' : 'A'}` })),
+    dispositivos: [0, 1].map((i) => ({ id_dispositivo_iot: SEMILLA.dispositivos[i],
+      id_infraestructura: SEMILLA.areas[i], es_activo: true,
+      id_dispositivo_gateway: null, categoria: 'SENSOR', serial: `SERIAL_FICTICIO_${i}` })),
+    sensores: [SEMILLA.sensoresA, SEMILLA.sensoresB].map((lista, i) => lista.map((id) =>
+      ({ id_sensores: id, id_dispositivo_iot: SEMILLA.dispositivos[i],
+        es_activo: true, categoria: 'TEMPERATURA' }))),
+    asociaciones: ids.map((id, i) => [{ id_sensores_area_asociada: 804 + i,
+      id_sensor: id, id_dispositivo_iot: i < 60 ? 785 : 786,
+      id_infraestructura: i < 60 ? 697 : 698, tiene_estado: true,
+      fecha_asociacion: '2026-10-30T01:44:00Z', fecha_finalizacion: null }]),
+    calibraciones: ids.map((id, i) => [{ id_calibracion: 319 + i,
+      id_sensor: id, id_dispositivo_iot: i < 60 ? 785 : 786,
+      valor_referencia: 25, ganancia: 1, offset: 0,
+      modo_calibracion: 'SENSOR', fecha_calibracion: '2026-10-30T00:00:00Z' }]),
+    alertas: [{ total: 0, items: [] }, { total: 0, items: [] }],
+    historial: [{ total: 0, total_encontrado: 0, items: [] },
+      { total: 0, total_encontrado: 0, items: [] }]
+  };
+};
+modo('semilla persistente conforme y sensor 1196 en posicion 55', () => {
+  assert.deepEqual(validarSemillaPersistente(semillaConforme(),
+    ['SERIAL_FICTICIO_0', 'SERIAL_FICTICIO_1'], apertura), []);
+  assert.equal(SEMILLA.sensoresA[54], 1196);
+});
+modo('semilla alterada aborta antes de escrituras', () => {
+  const x = semillaConforme(); x.asociaciones[54][0].tiene_estado = false;
+  let escrituras = 0;
+  const preparar = () => {
+    const errores = validarSemillaPersistente(x,
+      ['SERIAL_FICTICIO_0', 'SERIAL_FICTICIO_1'], apertura);
+    if (errores.length) throw new Error(errores[0]);
+    escrituras++;
+  };
+  assert.throws(preparar, /ASOCIACION_1196/);
+  assert.equal(escrituras, 0);
+});
+modo('serial ausente bloquea preflight', () => {
+  const x = preflight({ operacion: 'reintentar', version: 1, runId: 'SIMULADO' }, {});
+  assert.ok(x.barreras.includes('QA_G92_A_SERIAL'));
+  assert.ok(x.barreras.includes('QA_G92_B_SERIAL'));
+});
+modo('rollback compara estado y mantiene semilla', () => {
+  const antes = { total: 1, sensores: [{ id_sensor: 1142, estado_semaforo: 'GRIS',
+    ultimo_valor: null }], resumen_unidades: [{ id_infraestructura: 697,
+    estado_general: 'GRIS', alertas_activas_count: 0 }] };
+  assert.deepEqual(estadoDashboard(antes), estadoDashboard(structuredClone(antes)));
+  const despues = structuredClone(antes); despues.sensores[0].estado_semaforo = 'VERDE';
+  assert.notDeepEqual(estadoDashboard(antes), estadoDashboard(despues));
+});
+modo('umbral 70 real de temperatura ambiental permite continuar', () => {
+  // Valores locales para verificar el filtro del umbral, independientes del historial de RUN.
+  const niveles = (normal, precaucion, critico) => [
+    { nivel: 'normal', limite_inferior: normal[0], limite_superior: normal[1] },
+    { nivel: 'precaucion', limite_inferior: precaucion[0], limite_superior: precaucion[1] },
+    { nivel: 'critico', limite_inferior: critico[0], limite_superior: critico[1] }];
+  const umbrales = { items: [
+    { id_umbral_ambiental: 71, id_especie: 126, id_variable_ambiental: 1,
+      es_activo: true, valor_min: '14.00', valor_max: '30.00',
+      niveles: niveles(['20.00', '30.00'], ['18.00', '20.00'], ['14.00', '18.00']) },
+    { id_umbral_ambiental: 70, id_especie: 126, id_variable_ambiental: 9,
+      es_activo: true, valor_min: '15.00', valor_max: '30.00',
+      niveles: niveles(['20.00', '30.00'], ['19.00', '20.00'], ['15.00', '19.00']) }
+  ] };
+  const variables = { total: 2, items: [
+    { id_variable_ambiental: 1, nombre: 'OTRA_VARIABLE' },
+    { id_variable_ambiental: 9, nombre: 'TEMPERATURA_AMBIENTAL' }
+  ] };
+  assert.equal(umbralAmbientalSeguro(variables, umbrales), true);
+  assert.equal(umbralAmbientalSeguro(variables, { items: [umbrales.items[0]] }), false);
+  assert.equal(umbralAmbientalSeguro({ ...variables, items: variables.items.slice(0, 1) }, umbrales), false);
+});
+modo('aborto sin escrituras clasifica rollback sin exigir baseline', () => {
+  const escritura = { sensores: 0, telemetrias: 0, alertas: 0 };
+  assert.equal(clasificarRollback(escritura), 'SIN_ESCRITURAS_QUE_REVERTIR');
+  assert.equal(clasificarRollback(escritura, true), 'SIN_ESCRITURAS_QUE_REVERTIR');
+  assert.equal(clasificarRollback({ ...escritura, sensores: 1 }), 'NO_VERIFICADO');
+  assert.equal(clasificarRollback({ ...escritura, sensores: 1 }, true), 'VERIFICADO');
+  const r = { version: 1, run_id: 'SIMULADO', autorizacion: 'SIMULACION_LOCAL',
+    commit: 'LOCAL', newman: [], casos: Object.fromEntries(CASOS.map((id) =>
+      [id, { veredicto: null, estado_tecnico: 'NO_EJECUTADA', observado: null, comprobaciones: [] }])),
+    comprobaciones: [], comprobaciones_tecnicas: [], evidencias: [],
+    problemas_tecnicos: [], bitacora: [], canarios: [], estado: 'NO_CONCLUYENTE',
+    cierre: { run: { cierre_http: 200 }, motivo: 'Sin escrituras.', rollback: {
+      estado: clasificarRollback(escritura), verificado: false,
+      comprobaciones: [], riesgos_residuales: [] } } };
+  assert.match(informe(r), /rollback SIN_ESCRITURAS_QUE_REVERTIR/);
+});
+modo('canario permite dashboard sin estado antes y despues del RUN', () => {
+  assert.equal(diagnosticarCanario(200,
+    { total: 0, sensores: [], resumen_unidades: [resumen(A, 'GRIS', 0, 0)] },
+    { area: A, permitirVacia: true }).seguro, true);
+});
 
-const temporal = fs.mkdtempSync(path.join(os.tmpdir(), 'g92-prueba-'));
-try {
-  const runId = 'RUN-G92-V1-20261025-050000';
-  const run = path.join(temporal, runId);
-  const contrato = { runId, version: 1, operacion: 'evaluar', referencia: 'SIMULADOR_LOCAL',
-    contexto: { commit: 'NO_VERIFICADO' }, directorio: run };
-  const env = { QA_AUTORIZADO: 'SI', SIGAB_API_TEST_BASE: 'http://simulador.invalid',
-    QA_SANDBOX_SECRET: 'SECRETO_LOCAL', BROKER_SERVICE_TOKEN: 'BROKER_LOCAL',
-    QA_ADMIN_EMAIL: 'admin@local.invalid', QA_ADMIN_PASSWORD: 'CLAVE_ADMIN_LOCAL',
-    QA_PROD_EMAIL: 'prod@local.invalid', QA_PROD_PASSWORD: 'CLAVE_PROD_LOCAL' };
-  const eventos = [], alertasCreadas = [], vistas = new Map(), consultasNewman = [];
-  const sensoresSemilla = Array.from({ length: 1 }, (_, i) => ({
-    id_sensor: 9000 + i, id_infraestructura: 349, estado_semaforo: 'VERDE' }));
-  const areas = new Map(), dispositivos = new Map(), sensores = new Map(), alertas = new Map();
-  let areaId = 1000, dispositivoId = 2000, sensorId = 3000, alertaId = 4000, telemetriaId = 5000;
-  let cerrado = false, falla = null, umbralesLeidos = 0;
-  const respuesta = (status, cuerpo, eco = true) => ({ status,
-    headers: { get: (k) => k.toLowerCase() === 'x-test-run-id' && eco ? 'G92-V1-20261025-050000' : null },
-    text: async () => JSON.stringify(cuerpo) });
-  const listaSensores357 = () => {
-    const items = Array.from({ length: falla === 'seis-sensores' ? 6 : 1 }, (_, i) =>
-      ({ id_sensores: 358 + i, id_dispositivo_iot: 357, es_activo: true }));
-    return { total: items.length, items };
-  };
-  const resumen = (area) => ({ id_infraestructura: area,
-    total_sensores: area === 349 ? sensoresSemilla.length : [...sensores.values()].filter((s) => s.area === area && s.telemetria).length,
-    estado_general: [...sensores.values()].filter((s) => s.area === area).some((s) => s.estado === 'ROJO') ? 'ROJO'
-      : [...sensores.values()].filter((s) => s.area === area).some((s) => s.estado === 'AMARILLO') ? 'AMARILLO' : 'VERDE',
-    alertas_activas_count: [...alertas.values()].filter((a) => a.area === area && a.estado === 'ACTIVA').length,
-    ultimo_dato_recibido: '2026-10-25T05:00:00Z' });
-  const dashboard = (ruta) => {
-    const u = new URL('http://local' + ruta);
-    const area = Number(u.searchParams.get('id_infraestructura')) || null;
-    const pagina = Number(u.searchParams.get('pagina')) || 1;
-    const todos = [...sensoresSemilla.filter((s) => s.id_infraestructura === area),
-      ...[...sensores.entries()].filter(([, s]) => s.telemetria && s.area === area)
-        .map(([id_sensor, s]) => ({ id_sensor, id_infraestructura: s.area, estado_semaforo: s.estado }))]
-      .sort((a, b) => a.id_sensor - b.id_sensor);
-    const porPagina = 50;
-    const sensoresPagina = todos.slice((pagina - 1) * porPagina, pagina * porPagina)
-      .map((s) => ({ ...s, tiempo_sin_reporte_min: cerrado ? 9 : 1,
-        dato_desactualizado: cerrado }));
-    const areasConDatos = [...new Set(todos.map((s) => s.id_infraestructura))];
-    const unidades = areasConDatos.map(resumen);
-    // Simula el defecto de recálculo local: página 1 AMARILLO con el ROJO en 55.
-    if (area && pagina === 1 && todos.length === 60 && falla !== '183-correcto') unidades[0].estado_general =
-      sensoresPagina.some((s) => s.estado_semaforo === 'ROJO') ? 'ROJO'
-        : sensoresPagina.some((s) => s.estado_semaforo === 'AMARILLO') ? 'AMARILLO' : 'VERDE';
-    if (area && todos.length === 3 && falla === '181-01') unidades[0].estado_general = 'VERDE';
-    if (area && todos.length === 3 && falla === '181-03-presente')
-      unidades[0].variables_en_atencion = ['TEMPERATURA_AMBIENTAL'];
-    return { total: todos.length, pagina, por_pagina: porPagina,
-      sensores: sensoresPagina, resumen_unidades: unidades };
-  };
-  const fetcher = async (url, options) => {
-    assert.equal(fs.existsSync(path.join(run, 'preflight.json')), true, 'preflight antes de red');
-    const ruta = new URL(url).pathname + new URL(url).search;
-    const body = options.body ? JSON.parse(options.body) : null;
-    eventos.push({ metodo: options.method, ruta, headers: options.headers, body });
-    if (ruta === '/sesiones/') {
-      assert.equal(options.headers['X-Test-Run-Id'], undefined, 'login fuera del RUN');
-      return respuesta(200, { token: body.correo_electronico.startsWith('admin') ? 'JWT_ADMIN_SIM' : 'JWT_PROD_SIM' }, false);
-    }
-    if (options.method === 'DELETE') { cerrado = true; areas.clear(); dispositivos.clear();
-      sensores.clear(); alertas.clear(); return respuesta(200, {}, false); }
-    if (cerrado) {
-      if (ruta.startsWith('/iot/alertas/')) return respuesta(404, {});
-      if (ruta.startsWith('/iot/alertas?')) return respuesta(200, { total: 0, items: [] });
-      if (ruta.startsWith('/iot/monitoreo/historial')) return respuesta(200,
-        falla === 'telemetria' && ruta.includes('sensor_id=3001')
-          ? { total: 1, total_encontrado: 1, items: [{ id_telemetria: 5001 }] }
-          : { total: 0, total_encontrado: 0, items: [] });
-      if (ruta.startsWith('/iot/monitoreo/dashboard')) {
-        if (falla === 'dashboard-404') return respuesta(404, { code: 'AREA_NO_ENCONTRADA' });
-        if (falla === 'dashboard-403') return respuesta(403, { code: 'ACCESO_DENEGADO' });
-        if (falla === 'dashboard-500') return respuesta(500, { code: 'ERROR_INTERNO' });
-        if (falla === 'dashboard-timeout-cierre') throw new Error('The operation was aborted due to timeout');
-        return respuesta(200, dashboard(ruta));
-      }
-      if (ruta === '/iot/alertas?id_sensor=358&fecha_desde=2026-10-25T04%3A58%3A00.000Z&fecha_hasta=2026-10-26T05%3A00%3A00.000Z&por_pagina=200')
-        return respuesta(200, { total: 0, items: [] });
-      if (/^\/configuracion\/sensores\/\d+\/(calibraciones|asociaciones)$/.test(ruta)) {
-        if (ruta.startsWith('/configuracion/sensores/358/')) return respuesta(200,
-          { total: 1, items: [{ id_sensor: 358, id_calibracion: 700,
-            ...(falla === 'semilla-config' ? { ganancia: 2 } : { ganancia: 1 }) }] });
-        if (falla === 'asociacion-404' && ruta === '/configuracion/sensores/3001/asociaciones')
-          return respuesta(404, { code: 'SENSOR_NO_ENCONTRADO' });
-        return respuesta(200, ['calibracion', 'asociacion'].includes(falla) &&
-          ruta === `/configuracion/sensores/3001/${falla === 'calibracion' ? 'calibraciones' : 'asociaciones'}`
-          ? { total: 1, items: [{ id_sensor: 3001 }] } : { total: 0, items: [] });
-      }
-      if (ruta === '/configuracion/dispositivos-iot/357/sensores')
-        return respuesta(200, listaSensores357());
-      if (ruta === '/configuracion/fincas/184') return respuesta(200,
-        { id_finca: 184, es_activo: falla !== 'semilla' });
-      if (ruta === '/configuracion/infraestructuras/349') return respuesta(200,
-        { id_infraestructura: 349, id_finca: 184, especie_id: 126, es_activo: true, tipo_area: 'Corral' });
-      if (ruta === '/configuracion/dispositivos-iot/357') return respuesta(200,
-        { id_dispositivo_iot: 357, id_infraestructura: 349, categoria: 'SENSOR', id_tipo_dispositivo: 5 });
-      if (ruta.startsWith('/configuracion/umbrales')) return respuesta(200,
-        { items: [{ es_activo: true, id_variable_ambiental: 1,
-          niveles: [{ nivel: 'normal', limite_inferior: 20, limite_superior: 30 }] }] });
-      if (/^\/configuracion\/infraestructuras\/\d+$/.test(ruta)) return respuesta(404, {});
-      if (/^\/configuracion\/dispositivos-iot\/\d+$/.test(ruta)) return respuesta(404, {});
-      if (/^\/configuracion\/dispositivos-iot\/\d+\/sensores$/.test(ruta))
-        return respuesta(200, falla === 'sensor-residuo' && ruta.includes('/2001/')
-          ? { total: 1, items: [{ id_sensores: 3001 }] } : { total: 0, items: [] });
-    }
-    assert.equal(options.headers['X-Test-Run-Id'], 'G92-V1-20261025-050000');
-    assert.equal(options.headers['X-Sandbox-Secret'], env.QA_SANDBOX_SECRET);
-    if (ruta === '/usuarios/me') return respuesta(200, { id_usuario: 1 });
-    if (ruta.startsWith('/iot/monitoreo/dashboard')) {
-      if (falla === 'dashboard-timeout-preparacion') throw new Error('The operation was aborted due to timeout');
-      return respuesta(200, dashboard(ruta));
-    }
-    if (ruta === '/configuracion/infraestructuras/349') return respuesta(200,
-      { id_infraestructura: 349, id_finca: 184, especie_id: 126, es_activo: true, tipo_area: 'Corral' });
-    if (ruta === '/configuracion/dispositivos-iot/357') return respuesta(200,
-      { id_dispositivo_iot: 357, id_infraestructura: 349, categoria: 'SENSOR', id_tipo_dispositivo: 5 });
-    if (ruta === '/configuracion/dispositivos-iot/357/sensores') return respuesta(200,
-      listaSensores357());
-    if (ruta.startsWith('/configuracion/sensores/358/')) return respuesta(200,
-      { total: 1, items: [{ id_sensor: 358, id_calibracion: 700, ganancia: 1 }] });
-    if (ruta.startsWith('/iot/alertas?id_sensor=358&')) return respuesta(200, { total: 0, items: [] });
-    if (ruta.startsWith('/iot/monitoreo/historial?') && ruta.includes('id_infraestructura=349'))
-      return respuesta(200, { total: 0, total_encontrado: 0, items: [] });
-    if (ruta === '/configuracion/fincas/184') return respuesta(200,
-      { id_finca: 184, es_activo: true });
-    if (ruta.startsWith('/configuracion/umbrales')) return respuesta(200,
-      { items: [{ es_activo: falla !== 'umbral-falta' || ++umbralesLeidos < 2, id_variable_ambiental: 1,
-        niveles: [{ nivel: 'normal', limite_inferior: 20, limite_superior: 30 }] }] });
-    if (ruta === '/configuracion/infraestructuras' && options.method === 'POST') {
-      const id_infraestructura = ++areaId;
-      areas.set(id_infraestructura, body); return respuesta(201, { id_infraestructura, id_finca: 184 });
-    }
-    if (/^\/configuracion\/infraestructuras\/\d+$/.test(ruta)) {
-      const id = Number(ruta.split('/').at(-1)); return respuesta(200, { id_infraestructura: id, id_finca: 184 });
-    }
-    if (ruta === '/configuracion/dispositivos-iot' && options.method === 'POST') {
-      assert.equal(body.id_dispositivo_gateway, undefined);
-      const id_dispositivo_iot = ++dispositivoId;
-      dispositivos.set(id_dispositivo_iot, body);
-      return respuesta(201, { id_dispositivo_iot, categoria: 'SENSOR', id_dispositivo_gateway: null });
-    }
-    if (/^\/configuracion\/dispositivos-iot\/\d+\/sensores$/.test(ruta)) {
-      const id_sensores = ++sensorId;
-      const dispositivo = Number(ruta.split('/')[3]);
-      sensores.set(id_sensores, { area: dispositivos.get(dispositivo).id_infraestructura, estado: 'VERDE' });
-      return respuesta(201, { id_sensores });
-    }
-    if (/\/asociar$/.test(ruta)) return respuesta(201,
-      { id_sensores_area_asociada: Number(ruta.split('/')[3]) + 10000,
-        id_sensor: Number(ruta.split('/')[3]), id_infraestructura: body.id_infraestructura, tiene_estado: true });
-    if (/\/calibrar$/.test(ruta)) return respuesta(201, { id_calibracion: 1 });
-    if (ruta === '/iot/telemetria') {
-      assert.equal(options.headers.Authorization, 'Bearer BROKER_LOCAL');
-      assert.equal(body.access_key, undefined);
-      sensores.get(body.sensor_id).telemetria = ++telemetriaId;
-      return respuesta(201, { id_telemetria: telemetriaId, estado_calidad: 'LECTURA_VALIDA',
-        ...(falla === 'ingesta-gris' ? { estado_semaforo: 'GRIS' } : {}) });
-    }
-    if (ruta === '/iot/alertas' && options.method === 'POST') {
-      assert.equal(options.headers.Authorization, 'Bearer BROKER_LOCAL');
-      assert.equal(body.access_key, undefined);
-      const id_alerta = ++alertaId;
-      const s = sensores.get(body.sensor_id);
-      s.estado = body.severidad_edge === 'CRITICO' ? 'ROJO' : 'AMARILLO';
-      alertas.set(id_alerta, { sensor: body.sensor_id, area: s.area,
-        severidad: body.severidad_edge, estado: 'ACTIVA' });
-      alertasCreadas.push({ sensor: body.sensor_id, area: s.area,
-        severidad: body.severidad_edge, estado: 'ACTIVA' });
-      return respuesta(201, { id_alerta, es_duplicado: false });
-    }
-    if (/^\/iot\/alertas\/\d+$/.test(ruta) && options.method === 'GET') {
-      const a = alertas.get(Number(ruta.split('/').at(-1)));
-      return respuesta(200, { id_sensor: a.sensor, estado_alerta: a.estado, severidad: a.severidad });
-    }
-    throw new Error(`Ruta inesperada ${ruta}`);
-  };
-  const newman = ({ contrato, variables }) => {
-    consultasNewman.push(variables.consulta);
-    const cuerpo = dashboard('/iot/monitoreo/dashboard' + variables.consulta);
-    vistas.set(variables.fase, cuerpo);
-    const archivo = `newman/newman-${variables.fase}.json`;
-    fs.mkdirSync(path.join(contrato.directorio, 'newman'), { recursive: true });
-    fs.writeFileSync(path.join(contrato.directorio, archivo), JSON.stringify({ simulador_local: true }));
-    return { archivo, cuerpo, http: 200, proceso: 0, eco: true, fallos: [], aserciones: 4 };
-  };
-  const code = await evaluar(contrato, { env, newman, fetcher });
-  const r = JSON.parse(fs.readFileSync(path.join(run, 'resultado.json'), 'utf8'));
-  assert.equal(code, 0);
-  assert.equal(r.oficial, true);
-  assert.equal(r.casos['TC-M03-181'].estado, 'APROBADO');
-  assert.equal(r.casos['TC-M03-181'].estado_tecnico, 'OK');
-  regresion(r.casos['TC-M03-181'].estado === 'APROBADO', '181 aprobado sin campo excluido');
-  assert.equal(r.casos['TC-M03-182'].estado, 'APROBADO');
-  assert.equal(r.casos['TC-M03-183'].estado, 'RECHAZADO');
-  regresion(r.casos['TC-M03-183'].estado === 'RECHAZADO', '183 rechaza recálculo por página');
-  assert.equal(r.casos['TC-M03-183'].estado_tecnico, 'OK');
-  assert.equal(r.comprobaciones.find((x) => x.id === 'PRE-183-01').estado, 'APROBADO');
-  assert.equal(r.comprobaciones.find((x) => x.id === 'API-183-01').estado, 'APROBADO');
-  assert.equal(r.comprobaciones.find((x) => x.id === 'API-183-02').estado, 'RECHAZADO');
-  const excluida = r.comprobaciones.find((x) => x.id === 'API-181-03');
-  assert.equal(excluida.estado, 'EXCLUIDA_DEL_ORACULO');
-  assert.equal(excluida.tipo, 'EXCLUIDA');
-  assert.deepEqual(excluida.valor_observado, { campo: null, presente: false });
-  assert.equal(excluida.motivo, 'Exigencia de la matriz no contemplada en RF-58 (decisión QA 2026-10-25)');
-  assert.equal(r.comprobaciones.filter((x) => x.tipo === 'ASSERT' && x.estado === 'APROBADO').length, 5);
-  assert.equal(r.comprobaciones.filter((x) => x.estado === 'APROBADO').some((x) => x.id === 'API-181-03'), false);
-  regresion(excluida.tipo === 'EXCLUIDA' && excluida.estado === 'EXCLUIDA_DEL_ORACULO',
-    '181-03 excluida de aprobadas');
-  const informe = fs.readFileSync(path.join(run, 'TC-M03-G92_resultado.md'), 'utf8');
-  assert.match(informe, /## Observaciones documentales/);
-  assert.match(informe, /API-181-03 \| EXCLUIDA \| EXCLUIDA_DEL_ORACULO/);
-  assert.match(informe, /Valor observado en TEST:.*"presente": false/s);
-  assert.equal(informe.slice(informe.indexOf('## Incidencias de producto'),
-    informe.indexOf('## Incidencias técnicas QA')).includes('API-181-03'), false);
-  regresion(informe.includes('## Observaciones documentales'), 'observación documental propia');
-  assert.equal(r.cierre.rollback.verificado, true);
-  assert.equal(r.cierre.run.cierre_http, 200);
-  assert.equal(r.datos.ids_telemetria.length, 63);
-  assert.equal(r.datos.inventario.length, 323);
-  assert.equal(r.cierre.rollback.semilla_intacta, true);
-  assert.equal(r.cierre.rollback.comprobaciones.filter((x) => x.tipo === 'calibracion_por_sensor').length, 63);
-  assert.equal(r.cierre.rollback.comprobaciones.filter((x) => x.tipo === 'asociacion_por_sensor').length, 63);
-  assert.equal(r.cierre.rollback.comprobaciones.filter((x) => x.tipo === 'telemetria_por_sensor').length, 63);
-  assert.equal(r.newman.length, 4);
-  assert.equal(r.bitacora.filter((x) => x.via !== 'Newman').length, 497);
-  assert.equal(r.bitacora.filter((x) => !x.via && (x.metodo !== 'POST' || x.ruta !== '/sesiones/'))
-    .every((x) => Object.hasOwn(x, 'respuesta')), true);
-  assert.equal(r.casos['TC-M03-183'].observado.posicion_rojo, 55);
-  const areaA = vistas.get('a1').sensores[0].id_infraestructura;
-  const areaB = vistas.get('inicial').sensores[0].id_infraestructura;
-  assert.notEqual(areaA, areaB);
-  assert.equal(vistas.get('inicial').sensores.every((s) => s.id_infraestructura === areaB), true);
-  assert.equal(vistas.get('a1').sensores.every((s) => s.estado_semaforo === 'VERDE'), true);
-  assert.equal(alertasCreadas.filter((a) => a.area === areaA).length, 1);
-  assert.equal(alertasCreadas.filter((a) => a.area === areaB).length, 2);
-  assert.equal(alertasCreadas.every((a) => a.estado === 'ACTIVA'), true);
-  for (const archivo of r.evidencias) assert.equal(fs.existsSync(path.join(run, archivo)), true);
-  assert.equal(fs.readdirSync(run).filter((x) => x.endsWith('.md')).length, 1);
-  assert.equal(fs.readdirSync(path.join(dir, 'Resultados')).filter((x) => x.endsWith('.md')).length, 0);
-  regresion(r.cierre.rollback.semilla_intacta &&
-    !eventos.some((x) => x.ruta.startsWith('/iot/monitoreo/dashboard?id_infraestructura=349')),
-  'baseline 349 sin dashboard');
-  regresion(r.comprobaciones.find((x) => x.id === 'PRE-182-01').estado === 'APROBADO' &&
-    r.comprobaciones.find((x) => x.id === 'PRE-182-01').evidencias.length === 3,
-  'PRE-182-01 derivada de a1 y b1');
-  regresion(eventos.filter((x) => x.ruta.startsWith('/iot/monitoreo/dashboard'))
-    .every((x) => new URL('http://local' + x.ruta).searchParams.has('id_infraestructura')) &&
-    consultasNewman.every((x) => new URL('http://local/' + x).searchParams.has('id_infraestructura') &&
-      new URL('http://local/' + x).searchParams.get('id_infraestructura') !== '349'),
-  'ninguna consulta global del dashboard');
-  regresion(eventos.filter((x) => x.ruta === '/configuracion/umbrales?id_especie=126').length === 6,
-    'umbral revisado antes de cuatro Newman y en ambas semillas');
-  const texto = fs.readFileSync(path.join(run, 'resultado.json'), 'utf8');
-  for (const secreto of [env.QA_SANDBOX_SECRET, env.BROKER_SERVICE_TOKEN,
-    env.QA_ADMIN_EMAIL, env.QA_ADMIN_PASSWORD, env.QA_PROD_EMAIL, env.QA_PROD_PASSWORD])
-    assert.equal(texto.includes(secreto), false);
-  assert.equal(eventos.filter((x) => x.ruta === '/sesiones/').length, 4);
-  assert.equal(eventos.filter((x) => x.metodo === 'DELETE').length, 1);
-  assert.equal(eventos.filter((x) => x.metodo === 'POST' && x.ruta === '/configuracion/infraestructuras').length, 2);
-  assert.equal(eventos.filter((x) => x.metodo === 'POST' && x.ruta === '/configuracion/dispositivos-iot').length, 2);
-  assert.equal(eventos.filter((x) => x.metodo === 'POST' && /^\/configuracion\/dispositivos-iot\/\d+\/sensores$/.test(x.ruta)).length, 63);
-  assert.equal(eventos.filter((x) => x.ruta === '/iot/telemetria').length, 63);
-  assert.equal(eventos.filter((x) => x.ruta === '/iot/alertas' && x.metodo === 'POST').length, 3);
-  assert.equal(eventos.filter((x) => x.ruta.startsWith('/configuracion/sensores/') && x.ruta.endsWith('/asociar')).length, 63);
-  assert.equal(eventos.filter((x) => x.ruta.startsWith('/configuracion/sensores/') && x.ruta.endsWith('/calibrar')).length, 63);
-  assert.equal(eventos.filter((x) => x.metodo === 'PATCH').length, 0);
-  assert.equal(eventos.some((x) => x.ruta.includes('test-control/query')), false);
+const runId = 'G92-V1-20261030-000000';
+const respuesta = (status, body) => ({ status,
+  headers: { get: (nombre) => nombre === 'Date' ? 'Fri, 30 Oct 2026 00:00:00 GMT' : runId },
+  text: async () => body });
+const transporte = (respuestas, bitacora = [], permitidos = {}) => {
+  let i = 0;
+  const t = crearTransporte({ base: 'http://memoria.invalid', runId,
+    secreto: 'SECRETO_FICTICIO', bitacora, secretos: ['SECRETO_FICTICIO'], permitidos,
+    fetcher: async () => {
+      const r = respuestas[Math.min(i, respuestas.length - 1)]; i++;
+      if (r instanceof Error) throw r;
+      return r;
+    } });
+  t.abrir(); return t;
+};
+const asincronos = [];
+const modoAsync = (nombre, prueba) => asincronos.push((async () => {
+  await prueba(); casos.push(nombre);
+})());
+modoAsync('login sin finca 401 permite continuar', async () => {
+  const llamadas = [], secretos = ['CLAVE_FICTICIA', 'opcional@example.invalid'];
+  const env = { QA_PROD_SIN_FINCA_EMAIL: 'opcional@example.invalid',
+    QA_PROD_SIN_FINCA_PASSWORD: 'CLAVE_FICTICIA' };
+  const t = crearTransporte({ base: 'http://memoria.invalid', runId,
+    secreto: 'SECRETO_FICTICIO', bitacora: [], secretos,
+    fetcher: async (url, opciones) => {
+      llamadas.push(`${opciones.method} ${new URL(url).pathname}`);
+      return llamadas.length === 1
+        ? respuesta(401, JSON.stringify({ detalle: 'CLAVE_FICTICIA', email: env.QA_PROD_SIN_FINCA_EMAIL }))
+        : respuesta(200, '{}');
+    } });
+  const login = await autenticarSinFinca(t.solicitar, env, secretos);
+  const rls = rlsSinFincaNoConcluyente(login.motivo);
+  assert.equal(login.token, null);
+  assert.equal(rls.estado, 'NO_CONCLUYENTE');
+  assert.match(rls.motivo, /HTTP 401/);
+  assert.equal(rls.motivo.includes('CLAVE_FICTICIA'), false);
+  assert.equal(rls.motivo.includes('opcional@example.invalid'), false);
+  assert.match(rls.motivo, /REDACTADO/);
+  t.abrir();
+  assert.equal((await t.solicitar('GET', '/usuarios/me', { token: 'PRODUCTOR_FICTICIO' })).status, 200);
+  assert.deepEqual(llamadas, ['POST /sesiones/', 'GET /usuarios/me']);
+});
+modoAsync('variables sin finca ausentes permiten continuar', async () => {
+  const llamadas = [];
+  const t = crearTransporte({ base: 'http://memoria.invalid', runId,
+    secreto: 'SECRETO_FICTICIO', bitacora: [], secretos: [],
+    fetcher: async (url, opciones) => {
+      llamadas.push(`${opciones.method} ${new URL(url).pathname}`);
+      return respuesta(200, '{}');
+    } });
+  const login = await autenticarSinFinca(t.solicitar, {}, []);
+  assert.equal(login.token, null);
+  assert.equal(rlsSinFincaNoConcluyente(login.motivo).estado, 'NO_CONCLUYENTE');
+  assert.match(login.motivo, /Variables.*ausentes/);
+  t.abrir();
+  assert.equal((await t.solicitar('GET', '/usuarios/me', { token: 'PRODUCTOR_FICTICIO' })).status, 200);
+  assert.deepEqual(llamadas, ['GET /usuarios/me']);
+});
+modoAsync('500 al crear sensor', async () => {
+  const log = [];
+  const t = transporte([respuesta(500, '{"error":"RLS"}')], log,
+    { dispositivos: new Map([[785, { area: 697, serial: 'SERIAL_FICTICIO' }]]) });
+  const x = await t.solicitar('POST', '/configuracion/dispositivos-iot/785/sensores',
+    { token: 'JWT_FICTICIO', cuerpo: { nombre: 'QA local', categoria: 'TEMPERATURA' } });
+  assert.equal(x.status, 500);
+  assert.equal(JSON.parse(log[0].cuerpo_error).error, 'RLS');
+});
+modoAsync('422 con cuerpo guardado', async () => {
+  const log = [], t = transporte([respuesta(422, '{"detalle":"campo inválido"}')], log);
+  assert.equal((await t.solicitar('GET', '/usuarios/me')).status, 422);
+  assert.match(log[0].cuerpo_error, /campo inválido/);
+});
+modoAsync('5xx aislado', async () => {
+  const t = transporte([respuesta(500, '{}'), respuesta(200, '{}')]);
+  assert.equal((await t.solicitar('GET', '/usuarios/me')).status, 500);
+  assert.equal((await t.solicitar('GET', '/usuarios/me')).status, 200);
+});
+modoAsync('tres 5xx seguidos', async () => {
+  const t = transporte([respuesta(500, '{}')]);
+  await t.solicitar('GET', '/usuarios/me');
+  await t.solicitar('GET', '/usuarios/me');
+  await assert.rejects(() => t.solicitar('GET', '/usuarios/me'), /TRES_5XX_CONSECUTIVOS/);
+});
+modoAsync('403 de clave', async () => {
+  const t = transporte([respuesta(403, '{"error":"clave"}')]);
+  await assert.rejects(() => t.solicitar('GET', '/usuarios/me'), /CLAVE_O_ACCESO_403/);
+});
+modoAsync('timeout', async () => {
+  const t = transporte([new Error('The operation was aborted due to timeout')]);
+  await assert.rejects(() => t.solicitar('GET', '/usuarios/me'), /timeout/);
+});
+modoAsync('límite funcional conserva cierre y lecturas', async () => {
+  const t = crearTransporte({ base: 'http://memoria.invalid', runId,
+    secreto: 'SECRETO_FICTICIO', bitacora: [], secretos: [], limite: 5,
+    fetcher: async () => respuesta(200, '{}') });
+  t.abrir();
+  await t.solicitar('GET', '/usuarios/me');
+  await assert.rejects(() => t.solicitar('GET', '/usuarios/me'), /LIMITE_SOLICITUDES_FUNCIONALES/);
+  await t.solicitar('DELETE', `/test-control/runs/${runId}`, { cierre: true });
+  assert.equal((await t.solicitar('GET', '/usuarios/me')).status, 200);
+});
+modoAsync('lista blanca rechaza escritura e ID ajenos', async () => {
+  let llamadas = 0;
+  const t = crearTransporte({ base: 'http://memoria.invalid', runId,
+    secreto: 'SECRETO_FICTICIO', bitacora: [], secretos: [],
+    fetcher: async () => { llamadas++; return respuesta(201, '{}'); } });
+  t.abrir();
+  await assert.rejects(() => t.solicitar('PATCH', '/configuracion/sensores/301',
+    { cuerpo: { id_dispositivo_iot: 999 } }), /ESCRITURA_FUERA_LISTA_BLANCA/);
+  await assert.rejects(() => t.solicitar('POST', '/configuracion/dispositivos-iot/999/sensores',
+    { cuerpo: { nombre: 'QA local', categoria: 'TEMPERATURA' } }), /ID_FUERA_LISTA_BLANCA/);
+  await assert.rejects(() => t.solicitar('POST', '/configuracion/infraestructuras',
+    { cuerpo: { finca_id: 184 } }), /ESCRITURA_FUERA_LISTA_BLANCA/);
+  await assert.rejects(() => t.solicitar('POST', '/configuracion/sensores/1196/asociar',
+    { cuerpo: { id_infraestructura: 697 } }), /ESCRITURA_FUERA_LISTA_BLANCA/);
+  await assert.rejects(() => t.solicitar('POST', '/configuracion/sensores/1196/calibrar',
+    { cuerpo: { id_infraestructura: 697 } }), /ESCRITURA_FUERA_LISTA_BLANCA/);
+  assert.equal(llamadas, 0);
+});
+for (const [nombre, sensor, continua] of [
+  ['canario conforme continúa', { estado_semaforo: 'VERDE', dato_desactualizado: false }, true],
+  ['canario GRIS detiene y cierra', { estado_semaforo: 'GRIS', dato_desactualizado: false }, false],
+  ['canario sin_umbral detiene y cierra', { estado_semaforo: 'VERDE', sin_umbral: true }, false],
+]) modoAsync(nombre, async () => {
+  const areasConsultadas = [], acciones = [];
+  let cerrado = false, problema = null;
+  try {
+    const seguro = await canariosAntesDashboard([A, A, B], async (area) => {
+      areasConsultadas.push(area);
+      const d = diagnosticarCanario(200, { total: 3, sensores: [
+        { id_sensor: 101, id_infraestructura: area, ...sensor }] }, { area });
+      if (!d.seguro) problema = 'E7-CANARIO';
+      return d.seguro;
+    });
+    if (seguro) acciones.push('NEWMAN_UNICO');
+  } finally { cerrado = true; acciones.push('DELETE'); }
   assert.equal(cerrado, true);
-  assert.deepEqual(r.presupuesto, { nominal_directas: 497, maximo_directas: 521,
-    tope_operativo_directas: 525, margen_cierre: 4,
-    solicitudes_directas: 497, exceso_cierre: 0 });
-  falla = 'seis-sensores'; cerrado = false; areas.clear(); dispositivos.clear(); sensores.clear(); alertas.clear();
-  eventos.length = 0; consultasNewman.length = 0;
-  await evaluar(contrato, { env, newman, fetcher });
-  const abortado = JSON.parse(fs.readFileSync(path.join(run, 'resultado.json'), 'utf8'));
-  assert.equal(abortado.estado, 'NO_CONCLUYENTE');
-  assert.equal(abortado.cierre.run.cierre_http, 200);
-  assert.equal(eventos.filter((x) => x.metodo === 'DELETE').length, 1);
-  assert.equal(eventos.some((x) => x.metodo === 'POST' && x.ruta !== '/sesiones/'), false);
-  assert.equal(consultasNewman.length, 0);
-  regresion(abortado.problemas_tecnicos.some((x) => x.includes('SENSORES_357_EXCEDE_MAXIMO_5')),
-    'seis sensores abortan antes de escrituras');
-
-  falla = 'limite'; cerrado = false; areas.clear(); dispositivos.clear(); sensores.clear(); alertas.clear();
-  areaId = 1000; dispositivoId = 2000; sensorId = 3000; alertaId = 4000; telemetriaId = 5000;
-  eventos.length = 0; consultasNewman.length = 0;
-  await evaluar(contrato, { env, newman, fetcher, limiteDirectas: 284 });
-  const acotado = JSON.parse(fs.readFileSync(path.join(run, 'resultado.json'), 'utf8'));
-  assert.equal(acotado.cierre.run.cierre_http, 200);
-  assert.equal(acotado.cierre.rollback.verificado, true);
-  assert.equal(acotado.presupuesto.solicitudes_directas, 497);
-  assert.equal(acotado.presupuesto.exceso_cierre, 213);
-  assert.equal(eventos.findIndex((x) => x.metodo === 'DELETE'), 280);
-  assert.equal(acotado.cierre.rollback.comprobaciones.filter((x) => x.tipo === 'telemetria_por_sensor').length, 63);
-  regresion(acotado.cierre.rollback.verificado && acotado.presupuesto.exceso_cierre === 213,
-    'tope alcanzado conserva cierre completo y documenta exceso');
-  eventos.length = 0; consultasNewman.length = 0;
-  for (const variante of ['181-01', '181-03-presente', '183-correcto']) {
-    falla = variante; cerrado = false; areas.clear(); dispositivos.clear(); sensores.clear(); alertas.clear();
-    areaId = 1000; dispositivoId = 2000; sensorId = 3000; alertaId = 4000; telemetriaId = 5000;
-    await evaluar(contrato, { env, newman, fetcher });
-    const resultado = JSON.parse(fs.readFileSync(path.join(run, 'resultado.json'), 'utf8'));
-    if (variante === '181-01') {
-      assert.equal(resultado.casos['TC-M03-181'].estado, 'RECHAZADO');
-      assert.equal(resultado.comprobaciones.find((x) => x.id === 'API-181-03').estado,
-        'EXCLUIDA_DEL_ORACULO');
-      regresion(resultado.casos['TC-M03-181'].estado === 'RECHAZADO',
-        '181 rechaza solo fallo obligatorio');
-    } else if (variante === '181-03-presente') {
-      const observada = resultado.comprobaciones.find((x) => x.id === 'API-181-03');
-      assert.equal(resultado.casos['TC-M03-181'].estado, 'APROBADO');
-      assert.equal(observada.tipo, 'EXCLUIDA');
-      assert.deepEqual(observada.valor_observado,
-        { campo: 'variables_en_atencion', presente: true });
-      regresion(observada.estado === 'EXCLUIDA_DEL_ORACULO',
-        'presencia del campo sigue excluida');
-    } else {
-      assert.equal(resultado.casos['TC-M03-181'].estado, 'APROBADO');
-      assert.equal(resultado.casos['TC-M03-182'].estado, 'APROBADO');
-      assert.equal(resultado.casos['TC-M03-183'].estado, 'APROBADO');
-      assert.equal(resultado.oficial, true);
-      regresion(resultado.oficial, 'oficialidad posible sin 181-03');
-    }
+  assert.deepEqual(areasConsultadas, continua ? [A, B] : [A]);
+  assert.deepEqual(acciones, continua ? ['NEWMAN_UNICO', 'DELETE'] : ['DELETE']);
+  assert.equal(problema, continua ? null : 'E7-CANARIO');
+});
+modoAsync('cuerpo de error saneado', async () => {
+  const bitacora = [];
+  const t = transporte([respuesta(422, '{"detalle":"SECRETO_FICTICIO"}')], bitacora);
+  await t.solicitar('GET', '/usuarios/me');
+  assert.equal(JSON.stringify(bitacora).includes('SECRETO_FICTICIO'), false);
+  assert.ok(bitacora[0].cuerpo_error);
+});
+modoAsync('NOW() de transaccion: 65 marcas posteriores a semilla y entre 60 y 44 segundos', async () => {
+  let transcurrido = 0;
+  const reloj = relojServidor({ ahora: () => transcurrido });
+  const inicio = '2026-10-31T01:47:00.000Z';
+  reloj.observar(inicio);
+  reloj.fijarInicio(inicio);
+  transcurrido = 10_000;
+  reloj.observar('2026-10-31T01:47:10.000Z');
+  const fechas = { asociacion: '2026-10-30T01:44:00.000Z',
+    calibracion: '2026-10-30T00:00:00.000Z' };
+  const marcas = [];
+  for (let i = 0; i < 65; i++) marcas.push(await reloj.marca(fechas));
+  assert.equal(Date.parse(marcas[0]), Date.parse(inicio) - 60_000);
+  assert.equal(Date.parse(marcas.at(-1)), Date.parse(inicio) - 44_000);
+  assert.ok(marcas.every((m) => Date.parse(m) >= Date.parse(fechas.asociacion) &&
+    Date.parse(m) >= Date.parse(fechas.calibracion) &&
+    Date.parse(m) <= Date.parse(inicio) - 43_000));
+  assert.ok(marcas.every((m, i) => i === 0 ||
+    Date.parse(m) - Date.parse(marcas[i - 1]) === 250));
+});
+modoAsync('400 ERROR_TIEMPO conserva cuerpo de escritura saneado', async () => {
+  const log = [];
+  const t = transporte([respuesta(400, '{"error_code":"ERROR_TIEMPO"}')], log,
+    { dispositivos: new Map([[201, { area: 101, serial: 'SERIAL_FICTICIO' }]]),
+      sensores: new Map([[301, { dispositivo: 201, area: 101 }]]) });
+  const cuerpo = { device_id: 201, sensor_id: 301, serial: 'SERIAL_FICTICIO',
+    timestamp_captura: '2026-10-31T01:15:02.000Z', valor: 25 };
+  assert.equal((await t.solicitar('POST', '/iot/telemetria',
+    { token: 'TOKEN_FICTICIO', cuerpo })).status, 400);
+  assert.equal(log[0].cuerpo_solicitud.timestamp_captura, cuerpo.timestamp_captura);
+  assert.equal(log[0].cuerpo_solicitud.valor, 25);
+  assert.equal(log[0].cuerpo_solicitud.serial, '[REDACTADO]');
+  assert.equal(log[0].respuesta.error_code, 'ERROR_TIEMPO');
+});
+modo('RLS-02 lectura vacía y 403 por rol', () => {
+  const d = evaluarRlsSinFinca({ status: 200, json: { total: 0, items: [] } },
+    { status: 403, json: { error_code: 'ACCESO_DENEGADO' } });
+  assert.equal(d.estado, 'APROBADO');
+  assert.match(d.motivo, /no aísla RLS de INSERT/);
+  assert.equal(evaluarRlsSinFinca({ status: 200, json: { total: 1, items: [{}] } },
+    { status: 403, json: {} }).estado, 'FALLA');
+  assert.equal(evaluarRlsSinFinca({ status: 404, json: {} },
+    { status: 201, json: { id_sensores: 301 } }).estado, 'FALLA');
+});
+await Promise.all(asincronos);
+modo('informe oficial por caso legible y sin volcado JSON', () => {
+  const ruta = new URL('../Resultados/RUN-G92-V1-20261031-022537/resultado.json', import.meta.url);
+  const r = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+  const reporte = informe(r);
+  const secciones = CASOS.map((id, i) => reporte.split(`### ${id}\n\n`)[1]
+    .split(i < CASOS.length - 1 ? `### ${CASOS[i + 1]}` : 'La matriz exige API')[0]);
+  for (const [i, seccion] of secciones.entries()) {
+    assert.match(seccion, /\*\*Caso original y objetivo:\*\*/);
+    assert.match(seccion, /\*\*Precondiciones:\*\*/);
+    assert.match(seccion, /\*\*Pasos ejecutados:\*\*/);
+    assert.match(seccion, /\*\*Entradas:\*\*/);
+    assert.match(seccion, /\*\*Esperado:\*\*/);
+    assert.match(seccion, /\*\*Observado por API pública:\*\*/);
+    assert.match(seccion, /\*\*Decisión del caso:\*\*/);
+    assert.match(seccion, /\*\*Qué falta o cambió:\*\*/);
+    assert.doesNotMatch(seccion, /Observado:\s*\{|"resumen_a_p1"|"ids_ajenos"/);
+    assert.match(seccion, new RegExp(`API-${181 + i}-`));
   }
-  for (const defecto of ['calibracion', 'asociacion', 'asociacion-404', 'telemetria', 'semilla', 'semilla-config', 'sensor-residuo',
-    'dashboard-404', 'dashboard-403', 'dashboard-500', 'dashboard-timeout-cierre',
-    'umbral-falta', 'ingesta-gris']) {
-    falla = defecto; cerrado = false; areas.clear(); dispositivos.clear(); sensores.clear(); alertas.clear();
-    areaId = 1000; dispositivoId = 2000; sensorId = 3000; alertaId = 4000; telemetriaId = 5000; umbralesLeidos = 0;
-    await evaluar(contrato, { env, newman, fetcher });
-    const variante = JSON.parse(fs.readFileSync(path.join(run, 'resultado.json'), 'utf8'));
-    assert.equal(variante.cierre.run.cierre_http, 200);
-    if (!['umbral-falta', 'ingesta-gris'].includes(defecto))
-      assert.equal(variante.cierre.rollback.verificado, false, defecto);
-    if (['semilla', 'semilla-config'].includes(defecto)) {
-      assert.equal(variante.cierre.rollback.semilla_intacta, false);
-      if (defecto === 'semilla-config') regresion(true, 'alteración de calibración de 349 detectada');
-    } else if (defecto === 'umbral-falta' || defecto === 'ingesta-gris') {
-      assert.equal(variante.estado, 'NO_CONCLUYENTE');
-      assert.equal(variante.casos['TC-M03-181'].veredicto, null);
-      regresion(variante.problemas_tecnicos.some((x) => x.includes('RIESGO_AVISO_SIN_UMBRAL')) &&
-        variante.newman.length === 0, 'sensor GRIS o umbral ausente aborta antes de Newman');
-    } else if (defecto.startsWith('dashboard-timeout')) {
-      assert.equal(variante.estado, 'NO_CONCLUYENTE');
-      assert.equal(variante.casos['TC-M03-183'].veredicto, null);
-      regresion(variante.problemas_tecnicos.some((x) => x.includes('Timeout técnico QA') &&
-        x.includes('cierre fuera del RUN')), 'timeout filtrado en cierre es técnico QA');
-    } else if (defecto === 'asociacion-404') {
-      regresion(variante.cierre.rollback.comprobaciones.some((x) => x.tipo === 'asociacion_por_sensor' &&
-        x.http === 404 && x.coincide === false), '404 por sensor o alcance no acredita rollback');
-    } else if (defecto === 'sensor-residuo') {
-      regresion(variante.cierre.rollback.comprobaciones.some((x) => x.tipo === 'sensores_del_dispositivo' &&
-        x.coincide === false) && !variante.bitacora.some((x) =>
-        x.metodo === 'GET' && x.ruta.startsWith('/iot/monitoreo/dashboard') && x.en_run === false),
-      'residuo de sensor impide dashboard de cierre');
-    } else if (defecto.startsWith('dashboard-')) {
-      regresion(variante.cierre.rollback.verificado === false, `${defecto} no verifica cierre`);
-    } else assert.equal(variante.cierre.rollback.comprobaciones.some((x) => x.tipo.includes(defecto)
-      && x.coincide === false), true, defecto);
-  }
-  for (const archivo of ['preflight.json', 'resultado.json', 'TC-M03-G92_resultado.md',
-    ...fs.readdirSync(path.join(run, 'newman')).map((x) => `newman/${x}`)]) {
-    const contenido = fs.readFileSync(path.join(run, archivo), 'utf8');
-    const seriales = eventos.filter((x) => x.metodo === 'POST' && x.ruta === '/configuracion/dispositivos-iot')
-      .map((x) => x.body.serial);
-    for (const secreto of [env.QA_SANDBOX_SECRET, env.BROKER_SERVICE_TOKEN,
-      env.QA_ADMIN_EMAIL, env.QA_ADMIN_PASSWORD, env.QA_PROD_EMAIL, env.QA_PROD_PASSWORD,
-      ...seriales]) assert.equal(contenido.includes(secreto), false, archivo);
-  }
-} finally { fs.rmSync(temporal, { recursive: true, force: true }); }
-assert.equal(regresionesNuevas, 24);
-console.log(`G92 simulador local: ${regresionesNuevas}/24 regresiones nuevas; anteriores OK`);
+  assert.match(secciones[0], /1204 ROJO/);
+  assert.match(secciones[0], /EXCLUIDA_DEL_ORACULO/);
+  assert.doesNotMatch(secciones[0], /APROBADO \(falló en Newman\)|conciliación del responsable QA/);
+  assert.match(secciones[1], /A: 50\+10; B: 3/);
+  assert.match(secciones[2], /página 1 VERDE; página 2 ROJO/);
+  assert.match(reporte, /PRE-181-01, API-181-03 y API-183-02/);
+  assert.doesNotMatch(reporte, /\| — \|/);
+});
+assert.equal(casos.length, 34);
+console.log(`OK G92: ${casos.length}/${casos.length} modos; sin red ni RUN; registro QA fiel`);

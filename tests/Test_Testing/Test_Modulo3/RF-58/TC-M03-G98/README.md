@@ -1,29 +1,47 @@
-# TC-M03-G98 — TC-M03-191
+﻿# TC-M03-G98 — preparación local de reevaluación V3
 
-Preparación local de la automatización API de RF-58/CU04. No se ha consultado TEST ni creado un RUN.
+Orden vigente ORD-G98-015: la reevaluación V3 de TC-M03-191 queda preparada, sin RUN nuevo ni acceso a TEST. El lanzador debe solicitar `REEVALUAR`, versión 3, `version_anterior: 2` y guardar la evidencia en `EvaluacionV3/Resultados/RUN-G98-V3-<timestamp>/`, con un único `TC-M03-G98_reevaluacion_V3.md`. V2 conserva sus rutas y evidencias.
 
-**Oráculo literal de la matriz (fila G98, Windows-1252):** «HTTP 200. Se devuelve el total de alertas activas y la lista ordenada por severidad con CRITICO primero, indicando tipo de alerta, variable afectada y tiempo transcurrido, con navegación al detalle del activo biológico afectado.» Datos de la matriz: alertas activas CRITICO, ALTA y MEDIA en sensores distintos de una unidad. RF-58 Salida 2 está en `Especificacion-Requerimientos-Modulo3.md:5400-5407`; CA-11 en `:5531-5532`. RF-57 define `CRITICO > MODERADO > LEVE` en `:3785` y `LEVE | MODERADO | CRITICO` en `:4547`. La diferencia de nombres con la matriz queda documentada; se aceptan por separado el catálogo RF-57 y la escala literal CRITICO/ALTA/MEDIA de la matriz, sin inferir equivalencia entre escalas.
+El oráculo de `minutos_transcurridos` usa el inicio registrado del RUN, un margen de 120 s y la cabecera Date de la respuesta o la hora del cliente al recibirla; admite un minuto de tolerancia en cada extremo. Exige un entero dentro de esa ventana y `fecha_generacion` no posterior a la respuesta más 60 s. Un minuto negativo por el `now()` fijo del sandbox queda aprobado con observación; valores fuera de ventana siguen rechazados. El ejecutor pasa `inicio_run` a Newman y aplica la misma fórmula al leer su reporte. El ensayo de loopback simula `now()` fijo. Ningún otro oráculo, canario E7, presupuesto de tres POST ni cierre cambia.
 
-Una sola comprobación obligatoria `API-191-01`, sin UI. `GET /iot/monitoreo/dashboard/{id_infraestructura}` debe devolver un panel con total y lista, elementos con tipo, variable, tiempo transcurrido y enlace o identificador del activo, en orden descendente con CRITICO primero. Se aceptan nombres de campo equivalentes explícitos y se registran los nombres reales. El contador por unidad y los campos aislados del sensor no son un panel. La falta de panel en respuesta 200 con eco es RECHAZADO incluso si la lista debería estar vacía. Panel presente sin severidades mixtas es BLOQUEADO por datos. 5xx es BLOQUEADO; sin respuesta o sin eco es NO_CONCLUYENTE. APROBADO requiere panel completo, al menos dos severidades y orden válido.
+El RUN oficial V2 `RUN-G98-V2-20261031-183417` mostró total 3, orden y activo correctos; su único rechazo fue por el antiguo oráculo de tiempo. La lectura local de `src/telemetry/infrastructure/repositories/indicadores_alertas_repository.py:70` y `src/telemetry/application/use_cases/alertas/generar_alerta_use_case.py:110` explica el falso positivo. El informe V3 generado anula INC-M03-191-G98-02 como problema técnico QA y solo declara corregida INC-M03-191-G98-01 si V3 lo confirma oficialmente.
 
-El ejecutor consulta primero las unidades 1, 268 y 337; añade hasta tres candidatas desde una lectura de fincas y hasta dos de infraestructuras visibles al Productor. Newman recorre páginas por unidad hasta hallar alertas activas o agotar 12 páginas; no usa el dashboard global ni crea datos. Se detiene al hallar la primera unidad con alertas. El primer RUN autorizado puede probar el incumplimiento aunque no existan alertas activas: el total y la lista exigidos deben estar presentes. Referencias de código leídas: backend `origin/test 5b46ca00a0ba92774f8e3d4b9eeaeec169344f17`; frontend `origin/test 81058af57d5d80d523fb5225f8eab48e0307ba85`. Su divergencia es `DEFECTO_FUNCIONAL_CANDIDATO`, sin veredicto de TEST.
+## Preparación histórica V2
 
-## Presupuesto para la SOL futura
+Orden ORD-G98-008. Caso TC-M03-191, RF-58 CU04 Salida 2 y CA-11. Se preservan los RUN históricos de V1 y V2. Esta fase preparar no crea RUN ni consulta TEST.
 
-Fuente única: `lib/g98_presupuesto.cjs`. Máximo 3 GET de descubrimiento + 12 GET del dashboard (`por_pagina=50`) = **15 GET** dentro del RUN, 1 DELETE de cierre y **600 s**. Login Productor antes del RUN. Las lecturas llevan `X-Test-Run-Id` y `X-Sandbox-Secret` con eco obligatorio; sin refresh ni inactividad intencional. El cierre solo verifica bitácora de GET con eco y DELETE 200. El login puede registrar último acceso, auditoría, notificaciones y cierre de sesiones; las lecturas del dashboard pueden generar correo RF-58 E7 por sensores GRIS sin umbral no desactualizados. No se presume reversión de efectos externos.
+**Resultado esperado literal:** «HTTP 200. Se devuelve el total de alertas activas y la lista ordenada por severidad con CRITICO primero, indicando tipo de alerta, variable afectada y tiempo transcurrido, con navegación al detalle del activo biológico afectado.» **Precondición literal:** «Alertas activas de severidad CRITICO, ALTA y MEDIA sobre distintos sensores de la misma unidad.» La decisión QA previa acepta la escala RF-57 CRITICO > MODERADO > LEVE. Fuentes: Casos_Prueba(Modulo3 Agrupado).csv, fila G98, y Especificacion-Requerimientos-Modulo3 (1).md, RF-58 CA-11/Salida 2.
 
-## Comandos locales
+## Inventario y cobertura
 
-`node g98.mjs --capacidades` y `node g98.mjs --comprobar` no leen `.env.qa`. `node pruebas/g98.test.mjs` ejecuta regresiones locales. `node pruebas/g98_ensayo.mjs` ejecuta el runner completo contra loopback y valida `resultado.json` contra la emulación del registro QA. Salida esperada exacta:
+Un ejecutor canónico `g98.mjs`, una colección `G98.postman_collection.json`, módulos `lib/` y pruebas locales `pruebas/`. TC-M03-191 es API Postman/Newman: no requiere Cypress. `Resultados/` y `EvaluacionV2/Resultados/` son evidencias históricas. No se mueve ni retira ningún archivo.
 
-```text
-panel_ok APROBADO OFICIAL
-sin_panel RECHAZADO OFICIAL
-orden_incorrecto RECHAZADO OFICIAL
-panel_sin_mixtas BLOQUEADO NO_OFICIAL
-error5xx BLOQUEADO NO_OFICIAL
-sin_respuesta NO_CONCLUYENTE NO_OFICIAL
-G98 ensayo 6/6
-```
+API-191-01 comprueba HTTP 200, eco del RUN, panel, total ACTIVA y lista del área, orden CRITICO→MODERADO→LEVE, tipo, variable, tiempo y alcance. API-191-02 acredita tres severidades y sensores distintos. API-191-03 comprueba `id_activo_biologico` e `identificador_activo`; API-191-04 observa `severidad_alerta` de sensores. Newman ejecuta una vez el GET filtrado.
 
-En TEST, solo el lanzador externo crea `Resultados/RUN-G98-V1-<timestamp>/contexto_operacion.json` y llama `node g98.mjs --operacion evaluar --version 1 --intento 1 --run-id ... --autorizacion ... --contexto ...` con autorización particular. V2 requiere `reevaluar` y decisión explícita. El runner carga `.env.qa` solo en esa ejecución. Un único informe oficial, `resultado.json` y reportes Newman reales quedan bajo el RUN creado por el lanzador.
+## Vías de precondición
+
+Para el tercer intento V2, la búsqueda consulta primero la finca 184 y prioriza el área 702 `QA-G98-PANEL`, dispositivo 789, sensores 1210/1211/1212 y activo 928. Estos IDs ordenan la exploración; los GET públicos deben comprobar de nuevo área visible con 200 y eco, activo vinculado, dispositivo activo con serial, sensores activos, lecturas con telemetría y activo del área, y canario E7. Si el área no es visible, continúa el descubrimiento normal de dos fincas. Los nombres del historial `pH del agua`, `Amoniaco (NH3)` y `Temperatura Corporal` se convierten en los códigos del POST `PH_AGUA`, `NH3` y `TEMPERATURA_CORPORAL`; se aceptan además los códigos directos y `TEMP_CORPORAL`. Un nombre desconocido se descarta con observación.
+
+Revisión local de `src/configuration/infrastructure/routers/dispositivo_iot_router.py`, `src/configuration/application/use_cases/dispositivos_iot/consultar_dispositivos_iot_use_case.py` y `src/configuration/infrastructure/repositories/dispositivo_iot_repository.py`: el GET de dispositivos activos no pagina ni limita, y el repositorio devuelve `.all()` según las fincas visibles. Se prioriza el dispositivo 789 dentro de esa respuesta; no se añade otro GET. La verificación del área 702 añade como máximo un GET de infraestructura por rol; si la finca 184 ya está entre las dos primeras, se reutiliza la respuesta. El límite global de 224 solicitudes conserva margen y no cambia. No se modificó la colección Newman porque solo valida el dashboard.
+
+Primero se reutilizan alertas ACTIVA existentes por GET públicos, Productor primero y Administrador si hay credenciales. Si falta área apta con activo, la vía de creación está **habilitada** por la decisión QA de 2026-10-31: hasta tres POST `/iot/alertas` en el sandbox, con token `BROKER_SERVICE_TOKEN` del lanzador. El ejecutor exige área autorizada, activo vinculado, tres sensores activos de variables distintas y `id_telemetria` real del historial filtrado. Los 27 modelos DTO/RF-57 se validan localmente; M09 y las relaciones de TEST solo se acreditan por API pública durante el RUN.
+
+Cada POST exige 201, eco, `es_duplicado=false`, ID distinto y severidad esperada. Cada GET de detalle exige ACTIVA, sensor, severidad, área y activo resuelto. Un listado ACTIVA confirma los tres IDs antes de Newman. Un 422, duplicado o detalle incoherente es problema técnico de semilla y no RECHAZADO. Sin activo o sin sensores/lecturas aptos, el caso queda BLOQUEADO sin POST, con causa concreta.
+
+## Corrección del bloqueo de ORD-G98-007
+
+`src/telemetry/infrastructure/repositories/alerta_repository.py:516-534` reclama alertas sin filtrar un supuesto estado CONFIRMADA; «confirmada» en la orden anterior significaba COMMIT. `main.py:176-191` llama `sesion_sistema()`; `src/shared/database.py:218,274-302` muestra que usa otra conexión y que la sesión sandbox se entrega por `get_db()` con `X-Test-Run-Id` y `ENABLE_TEST_SANDBOX=true`. Las filas del RUN no hacen COMMIT y PostgreSQL MVCC impide que el worker las vea. La misma separación de transacciones se observó en G92 para RF-17 postcommit. Esta es lectura del código local y del hecho aportado por la orden, no verificación del despliegue TEST.
+
+Tras `DELETE /test-control/runs/<RUN>`, cada ID creado se consulta sin cabeceras del RUN. Rollback solo verificado si DELETE=200 y los tres IDs responden 404 o dejan de estar ACTIVA. Login y posibles efectos E7 del dashboard no se declaran revertidos.
+
+Presupuesto: hasta **224 solicitudes directas en RUN**, incluyendo máximo **3 POST** de alerta; una ejecución Newman con un GET; **1 DELETE** de cierre; hasta **3 GET** posteriores; **900 s**. Se inspeccionan hasta dos fincas, seis áreas, ocho dispositivos por área y 24 historiales por rol. Hasta dos POST de login pueden ocurrir fuera del RUN.
+
+## Peticiones TEST previstas, solo por lanzador autorizado
+
+1. `POST /sesiones/` Productor y opcional Administrador, fuera del RUN.
+2. Por rol: `GET /configuracion/infraestructuras?finca_id=184&solo_activas=true` para priorizar el área 702; `GET /configuracion/fincas?solo_activas=true`; hasta dos GET de infraestructuras de las fincas normales, reutilizando el de 184 si corresponde; hasta seis `GET /iot/alertas?estado=ACTIVA&id_infraestructura=<ID>&pagina=1&por_pagina=200`; canarios `GET /iot/monitoreo/dashboard/<ID>?pagina=1&por_pagina=1`.
+3. Si falta área reutilizable: `GET /configuracion/dispositivos-iot?solo_activos=true`; por área `GET /activos-biologicos?id_infraestructura=<ID>&pagina=1&page_size=100`; por dispositivo `GET /configuracion/dispositivos-iot/<ID>/sensores`; por sensor `GET /iot/monitoreo/historial?fecha_inicio=<YYYY-MM-DD>&fecha_fin=<YYYY-MM-DD>&sensor_id=<ID>&pagina=1&por_pagina=100`; canario del área. El ejecutor filtra cada lectura por sensor, área, activo, telemetría válida y variable normalizada. Un HTTP distinto de 200 se registra con código saneado en observaciones y problemas técnicos; si todas las consultas de historial fallan por HTTP, el caso queda NO_CONCLUYENTE técnico.
+4. **Únicas escrituras de escenario:** máximo tres `POST /iot/alertas` con token broker, `X-Test-Run-Id` y `X-Sandbox-Secret`; cada uno seguido de `GET /iot/alertas/<ID>`. Luego `GET /iot/alertas?estado=ACTIVA&id_infraestructura=<ID>&pagina=1&por_pagina=200`.
+5. Newman una vez: `GET /iot/monitoreo/dashboard/<ID>?pagina=1&por_pagina=50`; `DELETE /test-control/runs/<RUN>`; hasta tres `GET /iot/alertas/<ID>` sin cabeceras RUN.
+
+Sin SQL ni `/test-control/query`. Comandos locales: `node --check g98.mjs`, `node --check pruebas/g98_ensayo.mjs`, `node g98.mjs --capacidades`, `node g98.mjs --comprobar`, `node --experimental-test-isolation=none --test pruebas/g98.test.mjs`, `node pruebas/g98_ensayo.mjs` y `.venv/Scripts/python.exe -B pruebas/validar_semilla_g98.py`. El ensayo usa solo loopback y temporales, no TEST.

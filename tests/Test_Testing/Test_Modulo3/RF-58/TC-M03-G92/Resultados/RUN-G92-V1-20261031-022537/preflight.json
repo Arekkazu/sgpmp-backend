@@ -1,0 +1,75 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G92",
+  "run_id": "RUN-G92-V1-20261031-022537",
+  "operacion": "reintentar",
+  "version": 1,
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "BROKER_SERVICE_TOKEN",
+      "presente": true
+    },
+    {
+      "nombre": "QA_G92_A_SERIAL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_G92_B_SERIAL",
+      "presente": true
+    }
+  ],
+  "plan": {
+    "finca": 184,
+    "areas_persistentes": [
+      697,
+      698
+    ],
+    "dispositivos_persistentes": [
+      785,
+      786
+    ],
+    "sensores_persistentes": 63,
+    "sensores_nuevos_maximo": 2,
+    "gateway_asignado": false,
+    "validacion_en_run": "GET de finca, areas, dispositivos, sensores, asociaciones, calibraciones, alertas e historial antes de escribir"
+  },
+  "limites": {
+    "solicitudes_directas": 417,
+    "margen_cierre": 4,
+    "newman": 1,
+    "areas": 0,
+    "dispositivos": 0,
+    "sensores": 2,
+    "asociaciones": 0,
+    "calibraciones": 0,
+    "telemetrias": 63,
+    "alertas": 2,
+    "transiciones": 0
+  },
+  "barreras": [],
+  "ok": true
+}

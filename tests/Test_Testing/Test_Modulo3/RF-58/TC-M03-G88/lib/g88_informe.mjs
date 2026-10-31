@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CASOS, IDS_CASOS, resultadoOficial } from './g88_catalogo.mjs';
 import { generarPresentacionG88 } from './g88_presentacion.mjs';
+import { evaluarOficialidad } from './g88_oficial.mjs';
 
 const EQUIPOS = new Set(['Desarrollo', 'AIoT', 'DBA', 'Implementación']);
 const SEVERIDADES = new Set(['CRÍTICA', 'ALTA', 'MEDIA', 'BAJA']);
@@ -15,6 +16,18 @@ export function validarResultadoLocal(r, baseDir, informe = null) {
   if (path.basename(baseDir) !== r.run_id) errores.push('Carpeta y RUN no coinciden.');
   if (fs.existsSync(baseDir) && (!fs.existsSync(path.join(baseDir, 'resultado.json'))
     || !(r.evidencias ?? []).includes('resultado.json'))) errores.push('resultado.json sin referencia o inexistente.');
+  if ((r.evidencias ?? []).some((x) => x.startsWith('newman/'))) {
+    const nombres = fs.existsSync(path.join(baseDir, 'newman')) ? fs.readdirSync(path.join(baseDir, 'newman')).sort() : [];
+    if (JSON.stringify(nombres) !== JSON.stringify(['newman-TC-M03-G88.html', 'newman-TC-M03-G88.json']))
+      errores.push('Newman debe conservar exactamente un JSON y un HTML reales.');
+    try {
+      const reporte = JSON.parse(fs.readFileSync(path.join(baseDir, 'newman', 'newman-TC-M03-G88.json'), 'utf8'));
+      const casos = [...new Set((reporte.run?.executions ?? []).map((x) => /^TC-M03-\d+/.exec(x.item?.name ?? '')?.[0]).filter(Boolean))];
+      if (JSON.stringify(casos) !== JSON.stringify(r.newman_casos ?? [])
+        || (r.bitacora ?? []).filter((x) => x.etapa === 'NEWMAN_UNICO' && x.invocaciones === 1).length !== 1)
+        errores.push('Newman: casos o invocación no coinciden con resultado.json.');
+    } catch { errores.push('Newman JSON no legible o ausente.'); }
+  }
   if (Object.keys(r.casos ?? {}).sort().join('|') !== [...IDS_CASOS].sort().join('|')) errores.push('Casos incompletos.');
   for (const id of IDS_CASOS) {
     const esperado = resultadoOficial(id, r.comprobaciones ?? [], r.bloqueos?.[id] ?? [],
@@ -48,6 +61,12 @@ export function validarResultadoLocal(r, baseDir, informe = null) {
     if (!ruta || path.isAbsolute(ruta) || ruta.split(/[\\/]/).includes('..') || !fs.existsSync(path.join(baseDir, ruta)))
       errores.push(`Evidencia inexistente o fuera del RUN: ${ruta}`);
   }
+  if (r.oficial === true) {
+    const contrato = evaluarOficialidad(r, baseDir);
+    if (!contrato.oficial) errores.push(`Oficialidad contraria al registro QA: ${contrato.motivo_no_oficial}`);
+  }
+  if (r.oficial === false && (!r.motivo_no_oficial || r.clasificacion_prevista !== 'TECNICO'))
+    errores.push('Resultado técnico sin motivo o clasificación.');
   for (const i of r.incidencias ?? []) {
     if (i.equipo !== 'POR DETERMINAR' && !EQUIPOS.has(i.equipo)) errores.push('Equipo de producto no permitido.');
     if (!SEVERIDADES.has(i.severidad) || !i.justificacion_severidad) errores.push('Severidad sin fundamento.');
@@ -71,11 +90,12 @@ export function validarResultadoLocal(r, baseDir, informe = null) {
 export function derivarIncidencias(r) {
   const salida = [];
   const gateway266 = (r.bitacora ?? []).find((x) => x.caso === 'TC-M03-266'
-    && x.gateway_observado === true);
+    && ['ALTA_M09', 'EDICION_M09'].includes(x.etapa)
+    && (x.gateway_observado || x.estado === 'APLICADA' || x.estado_sincronizacion === 'APLICADA'));
   if (gateway266) salida.push({ caso: 'TC-M03-266', comprobacion: gateway266.etapa,
-    equipo: 'AIoT', fundamento: `Primera propagación observada con gateway tras ${gateway266.etapa}; auditoría M09 del umbral ${gateway266.umbral_id}. Derivación inicial por efecto externo; causa raíz no determinada.`,
+    equipo: 'AIoT', fundamento: `Primera señal pública de publicación Edge tras ${gateway266.etapa}; estado M09=${gateway266.estado_sincronizacion}, auditoría=${gateway266.estado}, gateways=${gateway266.gateways_count}. Derivación inicial por efecto externo; causa raíz no determinada.`,
     escalamiento: null, severidad: 'ALTA',
-    justificacion_severidad: 'La auditoría observó al menos un gateway fuera de las entidades QA; se detuvieron las escrituras siguientes de 266.',
+    justificacion_severidad: 'La respuesta M09 o la auditoría indicó publicación posible o aplicada; se detuvieron las escrituras siguientes de 266.',
     certeza: 'CONFIRMADA', causa_raiz: 'NO DETERMINADA' });
   for (const id of IDS_CASOS) {
     if (id === 'TC-M03-266' && r.casos?.[id]?.estado !== 'RECHAZADO') continue;
@@ -84,34 +104,44 @@ export function derivarIncidencias(r) {
     const primera = fallos[0];
     const pre = (r.comprobaciones ?? []).filter((x) => x.caso === id && x.tipo === 'PRE');
     if (r.casos?.[id]?.veredicto_funcional !== 'RECHAZADO') continue;
-    const newman = (r.evidencias ?? []).find((x) => id === 'TC-M03-266'
-      ? /^newman\/newman-TC-M03-266-lectura-final\.json$/.test(x)
-      : new RegExp(`^newman/newman-${id}-[^/]+\\.json$`).test(x));
+    const newman = (r.evidencias ?? []).find((x) => x === 'newman/newman-TC-M03-G88.json');
     const captura = (r.evidencias ?? []).find((x) => id === 'TC-M03-172'
       ? /TC-M03-172.*\.png$/.test(x) : /^cypress\/.*\.png$/.test(x));
-    const newman172 = (r.evidencias ?? []).find((x) => /^newman\/newman-TC-M03-172-consulta\.json$/.test(x));
+    const newman172 = (r.evidencias ?? []).find((x) => x === 'newman/newman-TC-M03-G88.json');
     const captura172 = (r.evidencias ?? []).find((x) => /TC-M03-172.*\.png$/.test(x));
-    const respuestaInicial266 = (r.respuestas ?? []).some((x) => x.caso === id && x.http === 200
-      && /^\/iot\/monitoreo\/dashboard\?/.test(x.ruta)
-      && x.cuerpo?.sensores?.some((sensor) => Number(sensor.ultimo_valor) === 15
-        && ['VERDE', 'AMARILLO', 'ROJO'].includes(sensor.estado_semaforo)));
+    const respuestaInicial266 = (r.comprobaciones ?? []).some((x) => x.caso === id
+      && x.id === 'API-266-01' && x.estado === 'APROBADO'
+      && /HTTP 200; valor=15(?:\.0+)?; semáforo=VERDE/.test(x.observado ?? ''));
     const suficiente = id === 'TC-M03-172'
-      ? r.casos?.[id]?.estado === 'RECHAZADO' && !!newman172 && !!captura172
+      ? r.casos?.[id]?.estado === 'RECHAZADO' && r.newman_casos?.includes(id) && !!newman172 && !!captura172
         && fallos.some((x) => x.id === 'API-172-A') && fallos.some((x) => x.id === 'UI-172')
       : id === 'TC-M03-266' ? r.casos?.[id]?.estado === 'RECHAZADO'
         && (r.comprobaciones ?? []).some((x) => x.caso === id && x.id === 'API-266-01'
           && ['APROBADO', 'RECHAZADO'].includes(x.estado))
-        && respuestaInicial266 && !!newman && !!primera.observado
+        && respuestaInicial266 && r.newman_casos?.includes(id) && !!newman && !!primera.observado
       : pre.length > 0 && pre.every((x) => x.estado === 'APROBADO')
-        && !!primera.observado && !!newman && (primera.fuente !== 'UI' || !!captura);
+        && !!primera.observado && r.newman_casos?.includes(id) && !!newman && (primera.fuente !== 'UI' || !!captura);
     const equipo = suficiente ? 'Desarrollo' : 'POR DETERMINAR';
     salida.push({ caso: id, comprobacion: primera.id, equipo,
-      fundamento: suficiente ? `Primera discrepancia ${primera.fuente} ${primera.id}; E1: ${id === 'TC-M03-172' ? 'GET y UI concordantes' : id === 'TC-M03-266' ? 'semilla API y lectura inicial acreditadas' : 'PRE aprobadas'}; E2: observado ${limpio(primera.observado)}; E3: ${id === 'TC-M03-172' ? 'resultado.json' : newman}${id === 'TC-M03-266' ? ', GET dashboard inicial saneado en resultado.json' : ''}${captura ? `, ${captura}` : ''}. Derivación inicial; causa raíz no determinada.`
+       fundamento: suficiente ? `Primera discrepancia ${primera.fuente} ${primera.id}; E1: ${id === 'TC-M03-172' ? 'GET y UI concordantes' : id === 'TC-M03-266' ? 'semilla API y lectura inicial acreditadas' : 'PRE aprobadas'}; E2: observado ${limpio(primera.observado)}; E3: ${id === 'TC-M03-172' ? 'resultado.json' : newman}${id === 'TC-M03-266' ? ', GET dashboard inicial en Newman y resultado.json' : ''}${captura ? `, ${captura}` : ''}. Derivación inicial; causa raíz no determinada.`
         : `Evidencia insuficiente para primer contacto: ${primera.id}.`,
       escalamiento: suficiente ? null : { responsable: 'responsable QA', evidencia_faltante: 'PRE aprobadas, observado concreto y reporte Newman; captura si es UI' },
       severidad: id === 'TC-M03-172' ? 'MEDIA' : id === 'TC-M03-266' || fallos.length > 1 ? 'ALTA' : 'MEDIA',
       justificacion_severidad: `${fallos.length} comprobación(es) funcional(es) discrepante(s) en ${id}; primera ${primera.id}, observado ${limpio(primera.observado)}. ${id === 'TC-M03-266' ? 'Bloquea el recálculo dinámico exigido.' : id === 'TC-M03-172' ? 'Falta la configurabilidad T exigida; la T por defecto sigue operativa, impacto parcial.' : 'Impacto parcial del semáforo o su presentación.'}`,
       certeza: 'CONFIRMADA', causa_raiz: 'NO DETERMINADA' });
+  }
+  const i170 = salida.findIndex(x => x.caso === 'TC-M03-170');
+  const i171 = salida.findIndex(x => x.caso === 'TC-M03-171');
+  const patronCompartido = ['TC-M03-170', 'TC-M03-171'].every(id =>
+    (r.comprobaciones ?? []).some(x => x.caso === id && x.tipo === 'ASSERT' && x.estado === 'RECHAZADO'
+      && /FUERA_DE_RANGO/.test(x.observado ?? '') && /valor=30(?:\.0+)?; semáforo=VERDE/.test(x.observado ?? '')));
+  if (i170 >= 0 && i171 >= 0 && patronCompartido) {
+    salida[i170].casos = ['TC-M03-170', 'TC-M03-171'];
+    salida[i170].comprobaciones = (r.comprobaciones ?? []).filter(x => salida[i170].casos.includes(x.caso)
+      && x.tipo === 'ASSERT' && x.estado === 'RECHAZADO').map(x => x.id);
+    salida[i170].fundamento += ' El mismo patrón FUERA_DE_RANGO y dashboard 30 VERDE afecta 170 y 171; se registra una incidencia conjunta.';
+    salida[i170].justificacion_severidad = 'ALTA: seis lecturas de advertencia o condición crítica aceptadas no aparecen como estado AMARILLO/ROJO; el dashboard conserva 30 VERDE y puede ocultar el riesgo operativo.';
+    salida.splice(i171, 1);
   }
   return salida;
 }

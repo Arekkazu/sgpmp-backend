@@ -1,18 +1,18 @@
 export const CASO = 'TC-M03-184';
 export const ORACULO = 'La unidad se muestra con estado GRIS y el mensaje "Sin datos disponibles", junto con la fecha del último dato histórico si existe; la unidad no desaparece del panel y no se devuelven errores 5xx ni valores fabricados.';
-export const IDS = ['API-184-01', 'API-184-02', 'UI-184-01', 'API-184-03', 'UI-184-02'];
-// Decisión QA 2026-10-25: INACTIVO también acredita ausencia de comunicación (RF-60).
-export const ESTADOS_SIN_COMUNICACION = Object.freeze(['SIN_SEÑAL', 'INACTIVO']);
+export const IDS = ['API-184-01', 'API-184-02', 'API-184-03', 'UI-184-01', 'UI-184-02'];
+// Decisiones QA: INACTIVO (2026-10-25) y BUFFER_ACTIVO (2026-10-31) acreditan ausencia de señal.
+export const ESTADOS_SIN_COMUNICACION = Object.freeze(['SIN_SEÑAL', 'INACTIVO', 'BUFFER_ACTIVO']);
 export const IDS_PREFERIDOS_V2 = Object.freeze([1, 2, 3]);
 export const IDS_DIAGNOSTICO = Object.freeze([349, 3, 390, 1, 2, 389, 268, 399, 337]);
 export const CONSULTAS_DIAGNOSTICO = Object.freeze(['POST /sesiones/',
   ...IDS_DIAGNOSTICO.map(id => `GET /iot/monitoreo/dashboard?id_infraestructura=${id}&por_pagina=50`)]);
 export const LIMITE = Object.freeze({ candidatas: 10, paginas_adicionales_v2: 12,
-  solicitudes_directas: 56, margen_cierre: 5, ui_api: 25, newman: 4 });
+  solicitudes_directas: 56, margen_cierre: 5, ui_api: 25, newman: 1 });
 export const CAPACIDADES = Object.freeze({
   contrato: 'sigab-qa-ejecutor/1', grupo: 'G93', casos: [CASO],
   operaciones: ['evaluar', 'reintentar', 'reevaluar', 'diagnostico'], versiones: { min: 1, max: 99 },
-  solo_lectura: true, consultas: CONSULTAS_DIAGNOSTICO, max_peticiones: 30,
+  solo_lectura: false, consultas: CONSULTAS_DIAGNOSTICO, max_peticiones: 30,
   comprobaciones_obligatorias: { [CASO]: { API: IDS.filter(x => x.startsWith('API-')), UI: IDS.filter(x => x.startsWith('UI-')) } },
   limite: LIMITE,
 });
@@ -27,14 +27,19 @@ export function evaluarApi(variante, respuesta, id) {
   if (!unidad) return { estado: 'RECHAZADO', motivo: 'La unidad no figura en resumen_unidades' };
   if (unidad.estado_general !== 'GRIS') return { estado: 'RECHAZADO', motivo: `estado_general ${unidad.estado_general}; esperado GRIS` };
   if (variante === 'V1') {
-    if (sensores.some(s => Number(s.id_infraestructura) === Number(id)) || unidad.ultimo_dato_recibido != null)
-      return { estado: 'RECHAZADO', motivo: 'Unidad nueva tiene sensor o fecha histórica inesperada' };
-    return { estado: 'APROBADO', motivo: 'Unidad nueva presente, GRIS y sin valores actuales ni fecha histórica' };
+    if (sensores.some(s => Number(s.id_infraestructura) === Number(id)) || Number(unidad.total_sensores) !== 0
+      || unidad.mensaje_estado !== 'Sin datos disponibles')
+      return { estado: 'RECHAZADO', motivo: 'Unidad nueva incumple cero sensores o mensaje de ausencia' };
+    if (unidad.ultimo_dato_recibido != null && !Number.isFinite(Date.parse(unidad.ultimo_dato_recibido)))
+      return { estado: 'RECHAZADO', motivo: 'Fecha histórica inválida en la unidad nueva' };
+    return { estado: 'APROBADO', motivo: 'Unidad nueva presente, GRIS y sin valores actuales; fecha histórica válida si existe' };
   }
   const propios = sensores.filter(s => Number(s.id_infraestructura) === Number(id));
   if (!propios.length || propios.length !== Number(unidad.total_sensores)
     || propios.some(s => !ESTADOS_SIN_COMUNICACION.includes(s.estado_conectividad) || s.dato_desactualizado !== true))
     return { estado: 'NO_CONCLUYENTE', motivo: 'Los datos dejaron de acreditar que todos los sensores estén sin comunicación y desactualizados' };
+  if (unidad.ultimo_dato_recibido != null && !Number.isFinite(Date.parse(unidad.ultimo_dato_recibido)))
+    return { estado: 'RECHAZADO', motivo: 'Fecha histórica inválida en la unidad sin señal' };
   if (unidad.ultimo_dato_recibido && propios.some(s => s.ultimo_timestamp_captura && new Date(s.ultimo_timestamp_captura) > new Date(unidad.ultimo_dato_recibido)))
     return { estado: 'RECHAZADO', motivo: 'Un sensor presenta dato posterior al último histórico de la unidad' };
   return { estado: 'APROBADO', motivo: 'Unidad presente, GRIS, sin valores actuales fabricados; fecha histórica comprobada si existe' };
@@ -86,7 +91,7 @@ export function clasificar(comprobaciones, { candidata, cierreVerificado }) {
   if (!cierreVerificado) return { estado: 'BLOQUEADO', motivo: 'Rollback no acreditado por lecturas públicas' };
   if (comprobaciones.some(x => x.tipo === 'ASSERT' && x.estado === 'RECHAZADO'))
     return { estado: 'RECHAZADO', motivo: 'Discrepancia del oráculo comprobada por API/UI pública' };
-  if (!candidata) return { estado: 'BLOQUEADO', motivo: 'No hubo unidad existente con todos los sensores SIN_SEÑAL o INACTIVO entre las candidatas acotadas; RF-60 depende de tarea periódica no forzable aquí' };
+  if (!candidata) return { estado: 'BLOQUEADO', motivo: 'No hubo unidad existente con todos los sensores SIN_SEÑAL, INACTIVO o BUFFER_ACTIVO entre las candidatas acotadas; RF-60 depende de tarea periódica no forzable aquí' };
   if (comprobaciones.some(x => x.id.startsWith('UI') && x.estado === 'NO_CONCLUYENTE'))
     return { estado: 'NO_CONCLUYENTE', motivo: 'Carga UI sin respuesta acreditada o error de red; diagnóstico pendiente' };
   if (IDS.every(id => comprobaciones.some(x => x.id === id && x.estado === 'APROBADO')))

@@ -24,7 +24,8 @@ export { validarObligatorias };
 export function clasificarRegistro(capacidades, r, presentes, contexto) {
   const requeridas = validarObligatorias(capacidades);
   const requiereUI = Object.values(requeridas).some(fuentes => 'UI' in fuentes);
-  const nombre = 'TC-M03-G98_resultado.md';
+  const nombre = contexto.version === 1 ? 'TC-M03-G98_resultado.md'
+    : `TC-M03-G98_reevaluacion_V${contexto.version}.md`;
   const evidenciaValida = x => typeof x === 'string' && x.length > 0
     && !path.isAbsolute(x) && !path.win32.isAbsolute(x)
     && !x.split(/[\\/]/).includes('..') && presentes.has(x);

@@ -17,7 +17,7 @@ test('Cypress colgado vence por timeout, termina solo su PID y el principal cont
   assert.ok(process.pid !== pid);
 });
 
-test('fallo de navegador deja ejecutar cierre; 401 renueva antes del DELETE y conserva evidencia', async () => {
+test('fallo de navegador deja ejecutar cierre; 401 renueva después del DELETE y conserva evidencia', async () => {
   const llamadas = [];
   const tokens = { admin: 'EXPIRADO' };
   const datos = { area: 349, ocupacion_inicial: 0, bloqueo_s1: true,
@@ -40,7 +40,7 @@ test('fallo de navegador deja ejecutar cierre; 401 renueva antes del DELETE y co
   assert.equal(cierre.run.cierre_http, 200);
   assert.equal(cierre.rollback.verificado, false);
   assert.equal(cierre.rollback.historial[77].http, 403);
-  assert.ok(llamadas.indexOf('POST /sesiones/') < llamadas.indexOf('DELETE /test-control/runs/G87-V2-20261023-080000'));
+  assert.ok(llamadas.indexOf('DELETE /test-control/runs/G87-V2-20261023-080000') < llamadas.indexOf('POST /sesiones/'));
   assert.equal(tokens.admin, 'NUEVO');
   assert.equal(JSON.stringify(cierre).includes('NO_GUARDAR'), false);
 });

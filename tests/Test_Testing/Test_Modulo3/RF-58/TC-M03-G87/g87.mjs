@@ -94,6 +94,18 @@ function reporterHtmlDisponible() {
   return fs.existsSync(path.join(path.dirname(process.execPath), 'node_modules', 'newman-reporter-htmlextra'));
 }
 const newmanDisponible = () => fs.existsSync(path.join(path.dirname(process.execPath), 'node_modules', 'newman'));
+export function versionNewmanLocal() {
+  try {
+    const paquete = JSON.parse(fs.readFileSync(path.join(path.dirname(process.execPath), 'node_modules', 'newman', 'package.json'), 'utf8'));
+    return /^\d+\.\d+\.\d+/.test(paquete.version) ? paquete.version : null;
+  } catch { return null; }
+}
+export function alcanceV2(contrato) {
+  if (!contrato || contrato.version < 2 || !contrato.contexto?.alcance_reevaluacion) return null;
+  const alcance = contrato.contexto.alcance_reevaluacion;
+  return { ...(typeof alcance === 'object' ? alcance : { descripcion: alcance }),
+    version_anterior: alcance.version_anterior ?? contrato.contexto.version_anterior ?? null };
+}
 
 // Comprobaciones de los casos originales (Casos_Prueba(Modulo3 Agrupado).csv, fila TC-M03-G87).
 const CASOS = {
@@ -130,7 +142,21 @@ const cuentas = (V) => ({
   ui_eng: { correo: V.QA_ENG_UI_EMAIL, clave: V.QA_ENG_UI_PASSWORD },
 });
 
-function faltantes(V, ref) {
+export const rolesParaOperacion = (version, operacion) => operacion === 'reevaluar' && version >= 2
+  ? ['admin', 'ui_prod', 'ui_eng'] : ['admin', 'prod', 'eng', 'ui_prod', 'ui_eng'];
+
+export function alcanceCuenta(perfil, rol, finca) {
+  const esperado = rol === 'prod' ? 'Productor' : 'Ingeniero de Campo';
+  const nombre = String(perfil?.nombre_rol ?? '').trim();
+  const rol_correcto = nombre === esperado;
+  const finca_asignada = Array.isArray(perfil?.fincas)
+    && perfil.fincas.some((f) => Number(f.id_finca) === Number(finca));
+  return { rol_correcto, finca_asignada, motivo: !rol_correcto
+    ? `/usuarios/me: se esperaba rol ${esperado}; rol observado ${nombre || 'no disponible'}.`
+    : !finca_asignada ? `/usuarios/me: ${esperado} sin finca ${finca} del escenario.` : null };
+}
+
+function faltantes(V, ref, roles) {
   const m = [];
   if (V.QA_AUTORIZADO !== 'SI') m.push(`QA_AUTORIZADO=${V.QA_AUTORIZADO || '(vacío)'}; se requiere SI.`);
   if (!ref || ref.length < 8) m.push('Falta --autorizacion "<referencia>".');
@@ -138,9 +164,9 @@ function faltantes(V, ref) {
   if (!V.QA_SANDBOX_SECRET) m.push('Falta QA_SANDBOX_SECRET.');
   if (!V.BROKER_SERVICE_TOKEN?.trim()) m.push('BLOQUEO_DATOS: falta BROKER_SERVICE_TOKEN para Authorization Bearer de ingesta; no se enviará ninguna petición.');
   const c = cuentas(V);
-  for (const [rol, x] of Object.entries(c)) if (!x.correo || !x.clave) m.push(`Faltan correo o contraseña de ${rol}.`);
-  const correos = Object.values(c).map((x) => String(x.correo || '').toLowerCase());
-  if (new Set(correos).size !== correos.length) m.push('Las cinco cuentas deben ser distintas (Administrador, Productor, Ingeniero y dos cuentas UI).');
+  for (const rol of roles) if (!c[rol].correo || !c[rol].clave) m.push(`Faltan correo o contraseña de ${rol}.`);
+  const correos = roles.map((rol) => String(c[rol].correo || '').toLowerCase());
+  if (new Set(correos).size !== correos.length) m.push('Las cuentas requeridas deben ser distintas.');
   return m;
 }
 
@@ -185,14 +211,15 @@ class Detener extends Error {}
 
 async function evaluar({ ref, tipo, contrato = null }) {
   const V = leerEnv();
-  const motivos = faltantes(V, ref);
+  const ver = contrato ? { version: contrato.version, intento: contrato.intento } : versionSiguiente(tipo);
+  if (ver.error) { console.error(ver.error); return 2; }
+  const escenarioV2 = contrato?.operacion === 'reevaluar' && ver.version >= 2;
+  const motivos = faltantes(V, ref, rolesParaOperacion(ver.version, contrato?.operacion));
   if (motivos.length) {
     const estado = V.QA_AUTORIZADO === 'SI' ? 'BLOQUEADO EN PRECONDICIONES' : 'NO AUTORIZADO';
     console.error(`${estado}. Ninguna solicitud remota.\n- ${motivos.join('\n- ')}`);
     return 2;
   }
-  const ver = contrato ? { version: contrato.version, intento: contrato.intento } : versionSiguiente(tipo);
-  if (ver.error) { console.error(ver.error); return 2; }
   if (!newmanDisponible() || !reporterHtmlDisponible()) { console.error('Newman o su reporter HTML no disponibles; ninguna solicitud remota.'); return 2; }
   const c = cuentas(V);
   secretos = [V.QA_SANDBOX_SECRET, V.BROKER_SERVICE_TOKEN, ...Object.values(c).map((x) => x.clave)];
@@ -207,14 +234,15 @@ async function evaluar({ ref, tipo, contrato = null }) {
       || fs.existsSync(path.join(dir, 'resultado.json'))) { console.error('RUN reservado incoherente o ya usado.'); return 2; }
   } else fs.mkdirSync(dir); // compatibilidad heredada
   const r = { grupo: 'TC-M03-G87', rf: 'RF-58', version: ver.version, intento: ver.intento, tipo, referencia: ref,
-    run_id: `RUN-${runId}`, ambiente: 'TEST', herramientas: { node: process.version },
+    run_id: `RUN-${runId}`, ambiente: 'TEST', herramientas: { node: process.version, newman: versionNewmanLocal() },
     inicio: new Date().toISOString(), operacion: contrato?.operacion?.toUpperCase() ?? tipo.toUpperCase(),
-    alcance_reevaluacion: contrato?.contexto?.alcance_reevaluacion ?? null,
+    alcance_reevaluacion: alcanceV2(contrato),
     consume_version: false, estado: 'EN_CURSO', datos: {}, comprobaciones: [], casos: {},
     cierre: {}, incidencias: [] };
   const guardar = () => fs.writeFileSync(path.join(dir, 'resultado.json'), sanear(JSON.stringify({ ...r, bitacora }, null, 2)));
   const run = { id: runId, secreto: V.QA_SANDBOX_SECRET };
   const tokens = {};
+  const respuestasLoginUi = {};
   const temporales = [];
   let runAbierto = false;
   const marcadorRuta = path.join(dir, 'run-pendiente.json');
@@ -223,7 +251,7 @@ async function evaluar({ ref, tipo, contrato = null }) {
     efectos_previstos: ['reasociación de sensores existentes', 'ingesta HTTP de lecturas en RUN',
       'sesiones y notificaciones de login fuera del RUN'], datos: {
       area: r.datos.area, ocupacion_inicial: r.datos.ocupacion_inicial, s1: r.datos.s1,
-      s2: r.datos.s2, bloqueo_s1: r.datos.bloqueo_s1, lecturas: r.datos.lecturas,
+      s2: r.datos.s2, bloqueo_s1: r.datos.bloqueo_s1, bloqueo_s2: r.datos.bloqueo_s2, lecturas: r.datos.lecturas,
       ids_telemetria: r.datos.ids_telemetria ?? [] }, ...extra }, null, 2)));
   const abortarUi = new AbortController();
   const cerrarSandbox = cierreUnico(async () => {
@@ -244,30 +272,50 @@ async function evaluar({ ref, tipo, contrato = null }) {
 
   try {
     // 1. Sesiones fuera del RUN.
-    for (const rol of ['admin', 'prod', 'eng']) {
+    const rolApi = { prod: escenarioV2 ? 'ui_prod' : 'prod', eng: escenarioV2 ? 'ui_eng' : 'eng' };
+    for (const rol of escenarioV2 ? ['admin', 'ui_prod', 'ui_eng'] : ['admin', 'prod', 'eng']) {
       const l = await api('POST', '/sesiones/', { cuerpo: { correo_electronico: c[rol].correo, contrasena: c[rol].clave }, etiqueta: `Login ${rol}` });
       if (l.status !== 200 || !l.json?.token) throw new Detener(`Login ${rol}: HTTP ${l.status}${l.error ? ` (${l.error})` : ''}.`);
       tokens[rol] = l.json.token; secretos.push(l.json.token);
+      if (escenarioV2 && (rol === 'ui_prod' || rol === 'ui_eng')) respuestasLoginUi[rol] = l.json;
     }
     const me = {};
-    for (const rol of ['prod', 'eng']) me[rol] = (await api('GET', '/usuarios/me', { token: tokens[rol], etiqueta: `Perfil ${rol}` })).json;
-    const fincas = (me.prod?.fincas ?? []).map((f) => f.id_finca).filter((id) => (me.eng?.fincas ?? []).some((g) => g.id_finca === id));
+    for (const rol of ['prod', 'eng']) {
+      const perfil = await api('GET', '/usuarios/me', { token: tokens[rolApi[rol]], etiqueta: `Perfil ${rolApi[rol]}` });
+      if (perfil.status !== 200) throw new Detener(`BLOQUEO_ENTORNO: perfil ${rol}, HTTP ${perfil.status}; alcance de fincas no verificable.`);
+      me[rol] = perfil.json;
+    }
+    const fincas = (me.prod?.fincas ?? []).map((f) => f.id_finca);
+    const fincasIngeniero = (me.eng?.fincas ?? []).map((f) => f.id_finca);
+    const alcance = escenarioV2 ? { prod: alcanceCuenta(me.prod, 'prod', 184), eng: alcanceCuenta(me.eng, 'eng', 184) } : null;
 
     // 2. Descubrimiento (Administrador, fuera del RUN): área con umbral apto y sensores existentes.
-    const leer = (ruta, etiqueta) => api('GET', ruta, { token: tokens.admin, etiqueta });
+    const leer = async (ruta, etiqueta) => {
+      const respuesta = await api('GET', ruta, { token: tokens.admin, etiqueta });
+      if ([401, 403].includes(respuesta.status) || respuesta.status >= 500)
+        throw new Detener(`BLOQUEO_ENTORNO: ${etiqueta}, HTTP ${respuesta.status}.`);
+      return respuesta;
+    };
     let area = null; let umbral = null;
-    for (const f of fincas) {
+    for (const f of escenarioV2 ? [184] : fincas) {
       for (const a of (await leer(`/configuracion/infraestructuras?finca_id=${f}`, `Áreas de finca ${f}`)).json?.items ?? []) {
         if (!a.es_activo || !a.especie_id) continue;
+        if (escenarioV2 && Number(a.id_infraestructura) !== 349) continue;
         const u = ((await leer(`/configuracion/umbrales?id_especie=${a.especie_id}`, `Umbrales especie ${a.especie_id}`)).json?.items ?? [])
-          .find((x) => x.es_activo && Number(x.id_variable_ambiental) === VARIABLE.id && Number(x.valor_min) <= 23 && Number(x.valor_max) >= 25 && Number(x.valor_max) < 60);
+          .find((x) => x.es_activo && Number(x.id_variable_ambiental) === VARIABLE.id && (escenarioV2
+            ? Number(x.valor_min) === 15 && Number(x.valor_max) === 30
+            : Number(x.valor_min) <= 23 && Number(x.valor_max) >= 25 && Number(x.valor_max) < 60));
         if (!u) continue;
         const ocupacion = (await leer(`/iot/monitoreo/dashboard?id_infraestructura=${a.id_infraestructura}&por_pagina=50`, `Ocupación área ${a.id_infraestructura}`)).json?.total;
         if (Number.isInteger(ocupacion) && ocupacion + NUEVOS_SENSORES <= 50) { area = { ...a, ocupacion }; umbral = u; break; }
       }
       if (area) break;
     }
-    if (!area) throw new Detener(`No hay área activa con especie, umbral apto de Temperatura Ambiental y cupo en el dashboard en las fincas compartidas ${JSON.stringify(fincas)}.`);
+    if (!area) throw new Detener(escenarioV2
+      ? 'BLOQUEO_DATOS: el área 349 con umbral activo 15–30 °C y cupo no está disponible en la finca 184.'
+      : `No hay área activa con especie, umbral apto de Temperatura Ambiental y cupo en el dashboard de las fincas del Productor ${JSON.stringify(fincas)}.`);
+    if (escenarioV2 && Number(area.id_finca) !== 184)
+      throw new Detener('BLOQUEO_DATOS: el área 349 no pertenece a la finca 184 del escenario V2.');
     const idsArea = new Set(((await leer(`/configuracion/infraestructuras?finca_id=${area.id_finca}`, 'Áreas de la finca')).json?.items ?? []).map((a) => a.id_infraestructura));
     const dispositivos = ((await leer('/configuracion/dispositivos-iot', 'Dispositivos')).json?.items ?? [])
       .filter((d) => d.es_activo && d.serial && idsArea.has(d.id_infraestructura))
@@ -278,6 +326,8 @@ async function evaluar({ ref, tipo, contrato = null }) {
     let s1 = null; let s2 = null;
     for (const d of dispositivos) {
       for (const s of ((await leer(`/configuracion/dispositivos-iot/${d.id_dispositivo_iot}/sensores`, `Sensores del dispositivo ${d.id_dispositivo_iot}`)).json?.items ?? []).filter((x) => x.es_activo)) {
+        if (escenarioV2 && !((Number(s.id_sensores) === 552 && Number(d.id_dispositivo_iot) === 357)
+          || (Number(s.id_sensores) === 77 && Number(d.id_dispositivo_iot) === 266))) continue;
         const cals = (await leer(`/configuracion/sensores/${s.id_sensores}/calibraciones`, `Calibraciones del sensor ${s.id_sensores}`)).json;
         const vigente = (cals?.items ?? []).filter((x) => x.id_dispositivo_iot === d.id_dispositivo_iot)
           .sort((x, y) => Date.parse(y.fecha_calibracion) - Date.parse(x.fecha_calibracion))[0];
@@ -290,13 +340,13 @@ async function evaluar({ ref, tipo, contrato = null }) {
       }
       if (s1 && s2) break;
     }
-    if (!s2) throw new Detener(`BLOQUEO_DATOS: falta sensor S2 existente sin calibración en la finca ${area.id_finca}.`);
+    let bloqueoS2 = s2 ? null : `BLOQUEO_DATOS: falta sensor S2 existente sin calibración en la finca ${area.id_finca}.`;
     let bloqueoS1 = s1 ? null : 'BLOQUEO_DATOS: no se encontró sensor S1 existente con calibración identidad.';
     for (const [nombre, s] of [['S1', s1], ['S2', s2]].filter(([, sensor]) => sensor)) {
       if (typeof s.serial !== 'string' || !s.serial.trim() || s.serial.length > 100) {
         const motivo = `BLOQUEO_DATOS: falta serial válido (1–100 caracteres) del dispositivo ${s.dev} para ${nombre}; no se puede preparar la ingesta.`;
         if (nombre === 'S1') bloqueoS1 = motivo;
-        else throw new Detener(motivo);
+        else bloqueoS2 = motivo;
       }
     }
     for (const s of [s1, s2].filter(Boolean)) {
@@ -305,7 +355,7 @@ async function evaluar({ ref, tipo, contrato = null }) {
       if (!s.area_original) {
         const motivo = `BLOQUEO_DATOS: sensor ${s.id} sin asociación activa verificable para comprobar el rollback.`;
         if (s === s1) bloqueoS1 = motivo;
-        else throw new Detener(motivo);
+        else bloqueoS2 = motivo;
       }
       if (typeof s.serial === 'string') secretos.push(s.serial);
     }
@@ -333,14 +383,24 @@ async function evaluar({ ref, tipo, contrato = null }) {
       (x.id_especie == null || Number(x.id_especie) === idEspecieDev) && Number(x.id_variable_ambiental) === VARIABLE.id &&
       x.valor_min != null && x.valor_max != null && Number.isFinite(Number(x.valor_min)) && Number.isFinite(Number(x.valor_max)));
     if (!umbralS1) throw new Detener(`BLOQUEO_DATOS: especie ${idEspecieDev} de infraestructura ${idInfraDev} del dispositivo S1 ${s1.dev} sin umbral ambiental activo de TEMPERATURA_AMBIENTAL.`);
+    if (escenarioV2 && (Number(umbralS1.valor_min) !== 15 || Number(umbralS1.valor_max) !== 30))
+      throw new Detener('BLOQUEO_DATOS: el umbral del dispositivo S1 no corresponde a 15–30 °C del escenario V1.');
     umbralDispositivo = { id: umbralS1.id_umbral_ambiental, min: Number(umbralS1.valor_min), max: Number(umbralS1.valor_max) };
-    } catch (e) { if (!(e instanceof Detener)) throw e; bloqueoS1 = e.message; }
+    } catch (e) { if (!(e instanceof Detener) || e.message.startsWith('BLOQUEO_ENTORNO')) throw e; bloqueoS1 = e.message; }
     r.datos = { finca: area.id_finca, area: area.id_infraestructura, especie: area.especie_id,
+      visibilidad_por_rol: { prod: { finca_asignada: fincas.some((id) => Number(id) === Number(area.id_finca)),
+          rol_correcto: alcance?.prod.rol_correcto ?? null },
+        eng: { finca_asignada: fincasIngeniero.some((id) => Number(id) === Number(area.id_finca)),
+          rol_correcto: alcance?.eng.rol_correcto ?? null } },
       umbral_dashboard: { id: umbral.id_umbral_ambiental, min: Number(umbral.valor_min), max: Number(umbral.valor_max) },
       umbral: umbralDispositivo, infraestructura_dispositivo_s1: idInfraDev, especie_dispositivo_s1: idEspecieDev,
       ocupacion_inicial: area.ocupacion, s1: s1 ? { id: s1.id, dispositivo: s1.dev, nombre: s1.nombre, area_original: s1.area_original, calibrado: true } : null,
-      s2: { id: s2.id, dispositivo: s2.dev, nombre: s2.nombre, area_original: s2.area_original, calibrado: false } };
+      s2: s2 ? { id: s2.id, dispositivo: s2.dev, nombre: s2.nombre, area_original: s2.area_original, calibrado: false } : null };
     if (s1) r.datos.s1.calibracion = s1.calibracion;
+    if (escenarioV2) {
+      r.datos.cuentas_api = 'cuentas UI del mismo rol (Productor e Ingeniero de Campo)';
+      r.datos.alcance_cuentas = alcance;
+    }
     if (s1) r.datos.s1.reasociacion_necesaria = Number(s1.area_original) !== Number(area.id_infraestructura);
     if (s1) r.datos.s1.motivo_reasociacion = r.datos.s1.reasociacion_necesaria
       ? `La asociación activa del sensor apunta al área ${s1.area_original}; el Productor consulta el dashboard del área ${area.id_infraestructura}.`
@@ -366,9 +426,12 @@ async function evaluar({ ref, tipo, contrato = null }) {
     } catch (e) { bloqueoS1 = e.message; }
     const valores = { ...valoresS1Run, v_c1: 21.7, v_c2: 22.3 };
     if (!Array.isArray(fisico) || ![valores.v_c1, valores.v_c2].every((x) => fisico[0] <= x && x <= fisico[1]))
-      throw new Detener('BLOQUEO_DATOS: valores de S2 fuera del rango físico; no se puede acreditar ERROR_CALIBRACION.');
+      bloqueoS2 = 'BLOQUEO_DATOS: valores de S2 fuera del rango físico; no se puede acreditar ERROR_CALIBRACION.';
     if (bloqueoS1) for (const caso of ['TC-M03-168', 'TC-M03-177']) r.comprobaciones.push({ caso, tipo: 'PRE', id: `PRE-${caso.slice(-3)}-DATOS`, descripcion: 'Escenario S1 verificable', fuente: 'API', ok: false, naturaleza: 'DATOS', obtenido: bloqueoS1 });
+    if (bloqueoS2) r.comprobaciones.push({ caso: 'TC-M03-178', tipo: 'PRE', id: 'PRE-178-DATOS',
+      descripcion: 'Escenario S2 verificable', fuente: 'API', ok: false, naturaleza: 'DATOS', obtenido: bloqueoS2 });
     r.datos.bloqueo_s1 = bloqueoS1;
+    r.datos.bloqueo_s2 = bloqueoS2;
 
     // 3. RUN: sandbox disponible y apertura con una lectura cuyo eco se exige antes de cualquier escritura.
     const disp = await api('DELETE', `/test-control/runs/${runId}-NO-EXISTE`, { secreto: V.QA_SANDBOX_SECRET, etiqueta: 'Sandbox disponible' });
@@ -376,15 +439,15 @@ async function evaluar({ ref, tipo, contrato = null }) {
     if (abortarUi.signal.aborted) throw new Detener('Interrupción antes de abrir RUN.');
     runAbierto = true;
     actualizarMarcador();
-    const apertura = await api('GET', '/usuarios/me', { token: tokens.eng, run, etiqueta: 'Apertura del RUN (sin escritura)' });
+    const apertura = await api('GET', '/usuarios/me', { token: tokens[rolApi.eng], run, etiqueta: 'Apertura del RUN (sin escritura)' });
     if (apertura.status !== 200 || apertura.eco !== runId) throw new Detener(`El backend no atendió la petición dentro del RUN (HTTP ${apertura.status}, eco ${apertura.eco === runId}); no se escribe nada.`);
     r.datos.lecturas = { ...valores, ts: { a1: t(6), a2: t(5), a3: t(4), fuera: t(3), c1: t(6), c2: t(5) } };
     actualizarMarcador();
-    const envNewman = { qa_autorizado: 'SI', s1_ejecutar: bloqueoS1 ? 'NO' : 'SI', base_url: API, run_id: runId, sandbox_secret: V.QA_SANDBOX_SECRET,
+    const envNewman = { qa_autorizado: 'SI', s1_ejecutar: bloqueoS1 ? 'NO' : 'SI', s2_ejecutar: bloqueoS2 ? 'NO' : 'SI', base_url: API, run_id: runId, sandbox_secret: V.QA_SANDBOX_SECRET,
       broker_service_token: V.BROKER_SERVICE_TOKEN,
-      tok_prod: tokens.prod, tok_eng: tokens.eng, area_id: area.id_infraestructura,
+      tok_admin: tokens.admin, tok_prod: tokens[rolApi.prod], tok_eng: tokens[rolApi.eng], area_id: area.id_infraestructura,
       s1_id: s1?.id ?? '', s1_dev: s1?.dev ?? '', s1_serial: s1?.serial ?? '', s1_reasociar: !bloqueoS1 && r.datos.s1.reasociacion_necesaria ? 'SI' : 'NO',
-      s2_id: s2.id, s2_dev: s2.dev, s2_serial: s2.serial, ...valores,
+      s2_id: s2?.id ?? '', s2_dev: s2?.dev ?? '', s2_serial: s2?.serial ?? '', ...valores,
       ts_a1: r.datos.lecturas.ts.a1, ts_a2: r.datos.lecturas.ts.a2, ts_a3: r.datos.lecturas.ts.a3, ts_fuera: r.datos.lecturas.ts.fuera,
       ts_c1: r.datos.lecturas.ts.c1, ts_c2: r.datos.lecturas.ts.c2 };
     const fEnv = path.join(os.tmpdir(), `g87-${process.pid}-env.json`);
@@ -403,7 +466,7 @@ async function evaluar({ ref, tipo, contrato = null }) {
     const nw = spawnSync('newman', ['run', path.join(DIR, 'G87.postman_collection.json'), '-e', fEnv, '--reporters', 'json,htmlextra',
       '--reporter-json-export', tmpRep, '--reporter-htmlextra-export', tmpHtml,
       '--reporter-htmlextra-skipHeaders', 'Authorization,X-Sandbox-Secret',
-      '--reporter-htmlextra-skipEnvironmentVars', 'sandbox_secret,broker_service_token,tok_prod,tok_eng,s1_serial,s2_serial',
+      '--reporter-htmlextra-skipEnvironmentVars', 'sandbox_secret,broker_service_token,tok_admin,tok_prod,tok_eng,s1_serial,s2_serial',
       '--timeout-request', '30000', '--color', 'off'].map(cita),
     { encoding: 'utf8', shell: process.platform === 'win32' });
     fs.rmSync(fEnv, { force: true });
@@ -422,82 +485,130 @@ async function evaluar({ ref, tipo, contrato = null }) {
       let cuerpo = null; try { cuerpo = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')); } catch { /* sin cuerpo */ }
       if (ex.response?.code === 201 && Number.isSafeInteger(cuerpo?.id_telemetria))
         (r.datos.ids_telemetria ??= []).push(cuerpo.id_telemetria);
-      if (ex.item?.name === 'Dashboard del Ingeniero de Campo' && Array.isArray(cuerpo?.sensores)) {
+      if (s2 && ex.item?.name === 'Dashboard del Ingeniero de Campo' && Array.isArray(cuerpo?.sensores)) {
         const observadoS2 = cuerpo.sensores.find((x) => Number(x.id_sensor) === Number(s2.id));
         r.datos.s2.indicador_ingeniero = indicadorCalibracion(observadoS2);
       }
+      const rolDashboard = ex.item?.name === 'Dashboard del Productor' ? 'prod'
+        : ex.item?.name === 'Dashboard del Ingeniero de Campo' ? 'eng' : null;
+      if (rolDashboard) {
+        const visible = (id) => Array.isArray(cuerpo?.sensores)
+          && cuerpo.sensores.some((x) => Number(x.id_sensor) === Number(id));
+        r.datos.visibilidad_por_rol[rolDashboard] = { ...r.datos.visibilidad_por_rol[rolDashboard],
+          http: http, s1: s1 ? visible(s1.id) : null, s2: s2 ? visible(s2.id) : null };
+        const campos = ['ultimo_valor', 'ultima_unidad', 'ultimo_timestamp_captura', 'estado_calidad',
+          'estado_semaforo', 'estado_calidad_valor_operativo', 'timestamp_estado_actual',
+          'indicador_anomalia', 'es_valor_operativo', 'etiqueta_estado', 'id_alerta',
+          'nivel_bateria_pct', 'calidad_senal_rssi', 'calidad_senal_snr'];
+        const resumir = (id) => {
+          const sensor = Array.isArray(cuerpo?.sensores)
+            ? cuerpo.sensores.find((x) => Number(x.id_sensor) === Number(id)) : null;
+          return sensor ? Object.fromEntries(campos.map((k) => [k, Object.hasOwn(sensor, k) ? sensor[k] : 'CAMPO_AUSENTE'])) : null;
+        };
+        (r.datos.contrato_dashboard ??= {})[rolDashboard] = { s1: s1 ? resumir(s1.id) : null, s2: s2 ? resumir(s2.id) : null };
+      }
       const extracto = Array.isArray(cuerpo?.sensores)
-        ? cuerpo.sensores.filter((x) => [s1?.id, s2.id].includes(x.id_sensor)).map((x) => ({ id_sensor: x.id_sensor, ultimo_valor: x.ultimo_valor,
+        ? cuerpo.sensores.filter((x) => [s1?.id, s2?.id].includes(x.id_sensor)).map((x) => ({ id_sensor: x.id_sensor, ultimo_valor: x.ultimo_valor,
           ultima_unidad: x.ultima_unidad, ultimo_timestamp_captura: x.ultimo_timestamp_captura, estado_calidad: x.estado_calidad, estado_semaforo: x.estado_semaforo,
+          estado_calidad_valor_operativo: x.estado_calidad_valor_operativo, timestamp_estado_actual: x.timestamp_estado_actual,
+          indicador_anomalia: x.indicador_anomalia, es_valor_operativo: x.es_valor_operativo, etiqueta_estado: x.etiqueta_estado,
           id_alerta: x.id_alerta, nivel_bateria_pct: x.nivel_bateria_pct, calidad_senal_rssi: x.calidad_senal_rssi, calidad_senal_snr: x.calidad_senal_snr }))
         : cuerpo;
       bitacora.push({ etiqueta: `Newman: ${ex.item?.name}`, metodo: ex.request?.method, en_run: true, status: http, error: ex.requestError?.code,
         respuesta: sanear(JSON.stringify(extracto)).slice(0, 900) });
-      for (const a of ex.assertions ?? []) registrar(r, a.assertion, 'API', a.error ? false : true, http === null ? 'SIN_RESPUESTA' : null, a.error?.message, ex.item?.name);
+      for (const a of ex.assertions ?? []) registrar(r, a.assertion, 'API', a.error ? false : true,
+        http === null ? 'SIN_RESPUESTA' : http === 403 || http >= 500 ? 'ENTORNO' : null,
+        a.error?.message, ex.item?.name);
     }
     actualizarMarcador();
     guardar();
 
     // 4. UI: mismo RUN visto desde el host del frontend y Cypress.
-    const front = await api('GET', `/iot/monitoreo/dashboard?id_infraestructura=${area.id_infraestructura}&por_pagina=50`,
-      { token: tokens.eng, run, base: API_FRONT, etiqueta: 'Host del frontend dentro del RUN' });
-    const hostRun = front.status === 200 && front.eco === runId && Array.isArray(front.json?.sensores);
-    const visible = (id) => hostRun && front.json.sensores.some((x) => Number(x.id_sensor) === Number(id));
-    const ui177 = !bloqueoS1 && uiHabilitada(r.comprobaciones, 'TC-M03-177', ['PRE-177-01', 'PRE-177-02', 'PRE-177-03'], hostRun, visible(s1.id));
-    const ui178 = uiHabilitada(r.comprobaciones, 'TC-M03-178', ['PRE-178-01', 'PRE-178-02', 'PRE-178-03'], hostRun, visible(s2.id));
-    const motivosUi = {
-      'TC-M03-177': !hostRun ? `El host frontend no confirmó el mismo RUN (HTTP ${front.status}).`
-        : bloqueoS1 ? bloqueoS1 : !visible(s1.id) ? 'S1 no aparece en el dashboard del host frontend.' : 'PRE-177-* o preparación S1 no aprobadas.',
-      'TC-M03-178': !hostRun ? `El host frontend no confirmó el mismo RUN (HTTP ${front.status}).`
-        : !visible(s2.id) ? 'S2 no aparece en el dashboard del host frontend.' : 'PRE-178-* o preparación S2 no aprobadas.',
-    };
-    if (ui177 || ui178) {
+    const rutaDashboard = `/iot/monitoreo/dashboard?id_infraestructura=${area.id_infraestructura}&por_pagina=50`;
+    const frontProd = await api('GET', rutaDashboard,
+      { token: tokens[rolApi.prod], run, base: API_FRONT, etiqueta: 'Host frontend Productor en RUN' });
+    const frontEng = await api('GET', rutaDashboard,
+      { token: tokens[rolApi.eng], run, base: API_FRONT, etiqueta: 'Host frontend Ingeniero en RUN' });
+    const hostProd = frontProd.status === 200 && frontProd.eco === runId && Array.isArray(frontProd.json?.sensores);
+    const hostEng = frontEng.status === 200 && frontEng.eco === runId && Array.isArray(frontEng.json?.sensores);
+    const visibleProd = (id) => hostProd && frontProd.json.sensores.some((x) => Number(x.id_sensor) === Number(id));
+    const visibleEng = (id) => hostEng && frontEng.json.sensores.some((x) => Number(x.id_sensor) === Number(id));
+    const ui177 = (!escenarioV2 || !alcance.prod.motivo) && !bloqueoS1 && uiHabilitada(r.comprobaciones, 'TC-M03-177', ['PRE-177-01', 'PRE-177-02', 'PRE-177-03'], hostProd, visibleProd(s1.id));
+    const ui178Prod = (!escenarioV2 || !alcance.prod.motivo) && !bloqueoS2 && uiHabilitada(r.comprobaciones, 'TC-M03-178', ['PRE-178-01', 'PRE-178-02'], hostProd, visibleProd(s2.id));
+    const ui178Eng = (!escenarioV2 || !alcance.eng.motivo) && !bloqueoS2 && uiHabilitada(r.comprobaciones, 'TC-M03-178', ['PRE-178-01', 'PRE-178-03'], hostEng, visibleEng(s2.id));
+    const motivo177 = !hostProd ? `Host frontend Productor sin eco RUN (HTTP ${frontProd.status}).`
+      : bloqueoS1 ? bloqueoS1 : !visibleProd(s1.id) ? 'S1 no aparece para Productor en el host frontend.' : 'PRE-177-* o preparación S1 no aprobadas.';
+    const motivo178Prod = !hostProd ? `Host frontend Productor sin eco RUN (HTTP ${frontProd.status}).`
+      : bloqueoS2 ? bloqueoS2 : !visibleProd(s2.id) ? 'S2 no aparece para Productor en el host frontend.' : 'PRE-178-* o preparación S2 no aprobadas.';
+    const motivo178Eng = !hostEng ? `Host frontend Ingeniero sin eco RUN (HTTP ${frontEng.status}).`
+      : bloqueoS2 ? bloqueoS2 : !visibleEng(s2.id) ? 'S2 no aparece para Ingeniero en el host frontend.' : 'PRE-178-* o preparación S2 no aprobadas.';
+    if (ui177 || ui178Prod || ui178Eng) {
       const fSes = path.join(os.tmpdir(), `g87-${process.pid}-sesiones-ui.json`);
       temporales.push(fSes);
-      const capturas = path.join(dir, 'cypress');
+       const capturas = fs.mkdtempSync(path.join(os.tmpdir(), 'g87-capturas-'));
+       temporales.push(capturas);
       const chrome = chromeLocal();
       let res;
       if (!chrome.disponible) res = { status: 'failed', total_pruebas: 0, navegador: 'chrome',
         motivo: `BLOQUEO_ENTORNO: ${chrome.motivo}`, runs: [] };
-      else res = await ejecutarCypressControlado({ timeoutMs: TIMEOUT_UI_MS, signal: abortarUi.signal, opciones: {
+       else try { res = await ejecutarCypressControlado({ timeoutMs: TIMEOUT_UI_MS, signal: abortarUi.signal, opciones: {
         config: { baseUrl: FRONT, specPattern: 'g87.cy.js', screenshotsFolder: capturas,
           downloadsFolder: path.join(os.tmpdir(), `g87-${process.pid}-dl`), trashAssetsBeforeRuns: false,
-          retries: 0, defaultCommandTimeout: 15000, responseTimeout: 30000, viewportWidth: 1366, viewportHeight: 900 },
+          retries: 0, defaultCommandTimeout: 15000, responseTimeout: 30000, viewportWidth: 1440, viewportHeight: 900 },
         env: { AUTORIZADO: 'SI', RUN_ID: runId, SANDBOX_SECRET: V.QA_SANDBOX_SECRET, API_BASE: API_FRONT, AREA_ID: area.id_infraestructura,
-          UI_177: ui177, UI_178: ui178,
-          S1_NOMBRE: s1?.nombre ?? '', S2_NOMBRE: s2.nombre, VALOR_25: valores.v_a3 ?? 25, VALOR_FUERA: valores.v_fuera ?? 0, VALORES_ERROR: [valores.v_c1, valores.v_c2],
-          PROD_EMAIL: c.ui_prod.correo, PROD_PASSWORD: c.ui_prod.clave, ENG_EMAIL: c.ui_eng.correo, ENG_PASSWORD: c.ui_eng.clave, SESIONES_UI: fSes } } })
-        .catch((e) => ({ status: 'failed', total_pruebas: 0, navegador: 'chrome', motivo: e.message, runs: [] }));
+           UI_177: ui177, UI_178_PROD: ui178Prod, UI_178_ENG: ui178Eng,
+           S1_NOMBRE: s1?.nombre ?? '', S2_NOMBRE: s2?.nombre ?? '', VALOR_25: valores.v_a3 ?? 25, VALOR_FUERA: valores.v_fuera ?? 0, VALORES_ERROR: [valores.v_c1, valores.v_c2],
+          PROD_EMAIL: c.ui_prod.correo, PROD_PASSWORD: escenarioV2 ? null : c.ui_prod.clave,
+          ENG_EMAIL: c.ui_eng.correo, ENG_PASSWORD: escenarioV2 ? null : c.ui_eng.clave,
+          PROD_LOGIN: escenarioV2 ? respuestasLoginUi.ui_prod : null,
+          ENG_LOGIN: escenarioV2 ? respuestasLoginUi.ui_eng : null,
+           SESIONES_UI: fSes } } })
+         .catch((e) => ({ status: 'failed', total_pruebas: 0, navegador: 'chrome', motivo: e.message, runs: [] }));
+       } finally {
+         // Conservar capturas incluso si Cypress falla, agota el tiempo o no devuelve reporte.
+         if (fs.existsSync(capturas)) fs.cpSync(capturas, path.join(dir, 'cypress'), { recursive: true });
+       }
       r.cypress = { navegador: 'chrome', ruta: chrome.ruta ?? null, version: res.version ?? chrome.version ?? null,
         duracion_ms: res.duracion_ms ?? 0, exit_code: res.exit_code ?? null, total_pruebas: res.total_pruebas ?? 0,
         motivo: res.motivo ?? null, reconocido_cypress: (res.total_pruebas ?? 0) > 0 };
-      if (fs.existsSync(fSes)) for (const [rol, tk] of Object.entries(JSON.parse(fs.readFileSync(fSes, 'utf8')))) { tokens[`ui_${rol}`] = tk; secretos.push(tk); }
+      if (!escenarioV2 && fs.existsSync(fSes)) for (const [rol, tk] of Object.entries(JSON.parse(fs.readFileSync(fSes, 'utf8')))) { tokens[`ui_${rol}`] = tk; secretos.push(tk); }
       const problemaUi = problemaCypress(res);
       if (problemaUi) r.incidencias.push(`ERROR_QA: Cypress: ${sanear(problemaUi)}`);
       for (const t2 of (res.runs ?? []).flatMap((x) => x.tests ?? [])) {
         const titulo = t2.title.at(-1);
         registrar(r, titulo, 'UI', t2.state === 'passed' ? true : t2.state === 'failed' ? false : null,
-          t2.state === 'failed' && /cy\.(visit|wait)\(\)|ECONN|ESOCKET|net::ERR|BLOQUEO_G87|before all/i.test(t2.displayError || '') ? 'AUTOMATIZACION' : null,
+          t2.state === 'failed' && (titulo?.includes('[PRE-UI-01]') || /ERROR_QA_EVIDENCIA|cy\.(visit|wait|screenshot)\(\)|ECONN|ESOCKET|net::ERR|BLOQUEO_G87|before all/i.test(t2.displayError || '')) ? 'AUTOMATIZACION' : null,
           t2.state === 'failed' ? String(t2.displayError || '').split('\n')[0] : t2.state !== 'passed' ? `Cypress: ${t2.state}` : null);
+        if (t2.state === 'failed' && /ERROR_QA_EVIDENCIA|cy\.screenshot\(\)/.test(t2.displayError || ''))
+          r.incidencias.push(`ERROR_QA: ${sanear(String(t2.displayError).split('\n')[0])}`);
       }
-      for (const caso of [ui177 ? 'TC-M03-177' : null, ui178 ? 'TC-M03-178' : null].filter(Boolean)) {
-        const ids = caso === 'TC-M03-177' ? ['PRE-UI-01', 'UI-177-01', 'UI-177-02', 'UI-177-03']
-          : ['PRE-UI-01', 'UI-178-01', 'UI-178-02', 'UI-178-03', 'UI-178-04', 'UI-178-05'];
+      if (problemaUi && !r.comprobaciones.some((x) => x.id === 'PRE-UI-01' && x.fuente === 'UI')) {
+        for (const caso of [ui177 ? 'TC-M03-177' : null, ui178Prod || ui178Eng ? 'TC-M03-178' : null].filter(Boolean))
+          r.comprobaciones.push({ caso, tipo: 'PRE', id: 'PRE-UI-01', descripcion: 'Navegación UI al dashboard',
+            fuente: 'UI', ok: false, naturaleza: 'AUTOMATIZACION', obtenido: `Cypress: ${sanear(problemaUi)}` });
+      }
+       for (const [caso, ids] of [
+         ui177 ? ['TC-M03-177', ['PRE-UI-01', 'UI-177-01', 'UI-177-02', 'UI-177-03']] : [null, []],
+         ui178Prod ? ['TC-M03-178', ['PRE-UI-01', 'UI-178-01', 'UI-178-02', 'UI-178-03']] : [null, []],
+         ui178Eng ? ['TC-M03-178', ['UI-178-04', 'UI-178-05']] : [null, []],
+       ].filter(([id]) => id)) {
         for (const id of comprobacionesUiFaltantes(r.comprobaciones, caso, ids))
           r.comprobaciones.push({ caso, tipo: id.startsWith('PRE-') ? 'PRE' : 'ASSERT', id,
             descripcion: 'Comprobación UI', fuente: 'UI', ok: null, naturaleza: 'AUTOMATIZACION',
             obtenido: 'NO_EJECUTADA: Cypress no produjo esta comprobación.' });
       }
     }
-    for (const [caso, ejecutarUi] of [['TC-M03-177', ui177], ['TC-M03-178', ui178]]) {
+     for (const [caso, ejecutarUi, ids, motivo] of [
+       ['TC-M03-177', ui177, ['PRE-UI-01', 'UI-177-01', 'UI-177-02', 'UI-177-03'], motivo177],
+       ['TC-M03-178', ui178Prod, ['PRE-UI-01', 'UI-178-01', 'UI-178-02', 'UI-178-03'], motivo178Prod],
+       ['TC-M03-178', ui178Eng, ['UI-178-04', 'UI-178-05'], motivo178Eng],
+     ]) {
       if (ejecutarUi) continue;
-      const ids = caso === 'TC-M03-177' ? ['PRE-UI-01', 'UI-177-01', 'UI-177-02', 'UI-177-03']
-        : ['PRE-UI-01', 'UI-178-01', 'UI-178-02', 'UI-178-03', 'UI-178-04', 'UI-178-05'];
       for (const id of ids) r.comprobaciones.push({ caso, tipo: id.startsWith('PRE-') ? 'PRE' : 'ASSERT', id,
         descripcion: 'Comprobación UI', fuente: 'UI', ok: null, naturaleza: null,
-        obtenido: `NO_EJECUTADA: ${motivosUi[caso]}` });
+         obtenido: `NO_EJECUTADA: ${motivo}` });
     }
-    r.estado = bloqueoS1 ? 'PARCIAL' : 'CONCLUIDA';
+    r.estado = bloqueoS1 || bloqueoS2 ? 'PARCIAL' : 'CONCLUIDA';
   } catch (e) {
     r.estado = e instanceof Detener ? (r.consume_version ? 'INTERRUMPIDA' : 'DETENIDA_EN_PRECONDICIONES') : 'ERROR_AUTOMATIZACION';
     r.incidencias.push(sanear(e instanceof Detener ? e.message : e.stack));
@@ -570,7 +681,7 @@ const DEPENDE = {
   'UI-178-03': ['PRE-178-01', 'PRE-UI-01'], 'UI-178-04': ['PRE-178-01', 'PRE-UI-01'], 'UI-178-05': ['PRE-178-01', 'PRE-UI-01'],
 };
 
-function veredictos(r) {
+export function veredictos(r) {
   for (const caso of Object.keys(CASOS)) {
     const cs = r.comprobaciones.filter((x) => x.caso === caso);
     const prepFallida = cs.some((x) => x.tipo === 'SETUP' && x.ok === false);
@@ -578,7 +689,7 @@ function veredictos(r) {
     for (const x of cs) {
       const deps = (DEPENDE[x.id] ?? []).filter((d) => preFallidas.has(d));
       if (x.tipo === 'SETUP') { x.estado = x.ok ? 'APROBADO' : 'BLOQUEADO'; x.motivo = x.ok ? undefined : 'Preparación del escenario fallida.'; }
-      else if (x.ok === null) { x.estado = x.fuente === 'UI' ? 'NO_EJECUTADA' : 'NO EJECUTADO'; x.motivo = x.obtenido ?? 'Sin resultado.'; }
+      else if (x.ok === null) { x.estado = x.fuente === 'UI' && deps.length ? 'BLOQUEADO' : x.fuente === 'UI' ? 'NO_EJECUTADA' : 'NO EJECUTADO'; x.motivo = deps.length ? `Depende de ${deps.join(', ')}.` : x.obtenido ?? 'Sin resultado.'; }
       else if (x.tipo === 'PRE') {
         x.estado = x.ok ? 'APROBADO' : x.naturaleza === 'AUTOMATIZACION' ? 'ERROR_QA' : 'BLOQUEADO';
         if (!x.ok) x.motivo = x.naturaleza ? `Automatización o infraestructura (${x.naturaleza}).` : 'El sistema no produjo la precondición: hallazgo de la funcionalidad de la que depende.';
@@ -589,11 +700,27 @@ function veredictos(r) {
       else if (x.naturaleza) { x.estado = x.naturaleza === 'AUTOMATIZACION' ? 'ERROR_QA' : 'BLOQUEADO'; x.motivo = `Automatización o infraestructura (${x.naturaleza}).`; }
       else x.estado = 'RECHAZADO';
     }
+    const v = r.datos?.visibilidad_por_rol;
+    const alcanceV2 = r.operacion === 'REEVALUAR' && r.version >= 2 ? r.datos?.alcance_cuentas : null;
+    const problemasCuenta = [alcanceV2?.prod?.motivo,
+      ...(caso === 'TC-M03-178' ? [alcanceV2?.eng?.motivo] : [])].filter(Boolean);
+    const sinFinca = caso === 'TC-M03-178' && v?.eng?.http === 200
+      && v.eng.s2 === false && v.eng.finca_asignada === false;
+    if (problemasCuenta.length) for (const x of cs.filter((c) => c.tipo === 'ASSERT')) {
+      x.estado = 'NO_CONCLUYENTE';
+      x.motivo = problemasCuenta.join(' ');
+    }
+    else if (sinFinca) for (const x of cs.filter((c) => ['API-178-05', 'API-178-06', 'API-178-07', 'UI-178-04', 'UI-178-05'].includes(c.id))) {
+      x.estado = 'NO_CONCLUYENTE';
+      x.motivo = `La cuenta de Ingeniero no tiene asignada por API pública la finca ${r.datos.finca}; S2 no aparece en su dashboard HTTP 200.`;
+    }
     const ids = (e) => [...new Set(cs.filter((x) => x.estado === e && x.tipo !== 'SETUP').map((x) => x.id))];
     const faltaUi = CASOS[caso].ui && (!cs.some((x) => x.fuente === 'UI' && x.ok !== null)
       || !r.cypress?.total_pruebas);
     let estado; let motivo;
-    if (!cs.length) { estado = r.consume_version ? 'BLOQUEADO' : 'NO EJECUTADO'; motivo = r.incidencias.join(' ') || 'Sin comprobaciones.'; }
+    if (problemasCuenta.length) { estado = 'NO_CONCLUYENTE'; motivo = `Precondición de cuenta UI para API/UI: ${problemasCuenta.join(' ')}`; }
+    else if (!cs.length) { estado = r.consume_version ? 'BLOQUEADO' : 'NO EJECUTADO'; motivo = r.incidencias.join(' ') || 'Sin comprobaciones.'; }
+    else if (sinFinca) { estado = 'NO_CONCLUYENTE'; motivo = `S2 no aparece para el Ingeniero: la finca ${r.datos.finca} no está asignada a su cuenta según /usuarios/me; falta una cuenta con alcance de finca para comprobar el detalle técnico.`; }
     else if (ids('RECHAZADO').length) { estado = 'RECHAZADO'; motivo = `Criterios incumplidos: ${ids('RECHAZADO').join(', ')}.`; }
     else if (ids('BLOQUEADO').length || ids('NO EJECUTADO').length || ids('NO_EJECUTADA').length || faltaUi || prepFallida) {
       estado = ids('BLOQUEADO').length || prepFallida
@@ -625,7 +752,6 @@ function comprobar() {
   const leerFuenteUi = (ruta) => {
     try { return fs.readFileSync(path.resolve(RAIZ, '..', 'SGPMP-FRONT-END-PWA', 'src', ruta), 'utf8'); } catch { return ''; }
   };
-  const sidebar = leerFuenteUi('shared/design-system/Sidebar.tsx');
   const telemetria = leerFuenteUi('telemetry/pages/TelemetryPage.tsx');
   const spec = fs.readFileSync(path.join(DIR, 'g87.cy.js'), 'utf8');
   const worker = fs.readFileSync(path.join(DIR, 'lib', 'g87_cypress_worker.mjs'), 'utf8');
@@ -633,11 +759,12 @@ function comprobar() {
   const res = [
     ok('Colección Newman legible', (() => { try { return JSON.parse(fs.readFileSync(path.join(DIR, 'G87.postman_collection.json'), 'utf8')).item.length > 0; } catch { return false; } })()),
     ...['g87.cy.js', 'g87.cypress.config.cjs'].map((f) => ok(`Sintaxis ${f}`, (() => { try { new vm.Script(fs.readFileSync(path.join(DIR, f), 'utf8'), { filename: f }); return true; } catch { return false; } })())),
-    ok('Navegación Cypress coincide con Sidebar y pestaña Monitoreo, sin clic forzado ni recarga',
-      sidebar.includes("path: '/telemetria'") && telemetria.includes("path: '/telemetria/monitoreo'")
-      && spec.includes('nav.ds-sidebar a[href$="/telemetria"]') && spec.includes('button[title="Monitoreo"]')
-      && spec.includes(".should('have.attr', 'aria-disabled', 'false').click()")
-      && !/click\(\{ force: true \}\)/.test(spec.slice(spec.indexOf('// El menú abre Telemetría'), spec.indexOf("cy.wait('@dashboard')")))),
+    ok('Navegación SPA directa a En vivo conserva la sesión y espera dashboard',
+      telemetria.includes("label: 'En vivo', path: '/telemetria/monitoreo'")
+      && spec.includes("win.history.pushState({}, '', `${BASE}/telemetria/monitoreo`)")
+      && spec.includes("win.dispatchEvent(new win.PopStateEvent('popstate'))")
+      && spec.includes("cy.wait('@dashboard', { requestTimeout: DASHBOARD_REQUEST_TIMEOUT })")
+      && !/click\(\{ force: true \}\)/.test(spec)),
     ok('Newman disponible', newmanDisponible()),
     ok('Newman HTML (htmlextra) disponible', reporterHtmlDisponible()),
     ok('Cypress resoluble', (() => { try { createRequire(path.join(RAIZ, 'package.json')).resolve('cypress'); return true; } catch { return false; } })()),
@@ -652,7 +779,10 @@ function comprobar() {
   const reintento = versionSiguiente('reintento');
   const reintentoOk = ok('Reintento técnico conserva V1 histórica y salida Resultados/RUN-<id>', !reintento.error && reintento.version === 1
     && dirResultados(1) === path.join(DIR, 'Resultados'), reintento.error ?? `V${reintento.version}; intento identificado por timestamp`);
-  return res.every(Boolean) && reintentoOk ? 0 : 1;
+  const v2Ok = ok('Reevaluar V2 usa EvaluacionV2/Resultados y el informe de reevaluación',
+    dirResultados(2) === path.join(DIR, 'EvaluacionV2', 'Resultados')
+    && nombreInforme(2) === 'TC-M03-G87_reevaluacion_V2.md');
+  return res.every(Boolean) && reintentoOk && v2Ok ? 0 : 1;
 }
 
 async function recuperar(runNombre, ref, contrato = null) {

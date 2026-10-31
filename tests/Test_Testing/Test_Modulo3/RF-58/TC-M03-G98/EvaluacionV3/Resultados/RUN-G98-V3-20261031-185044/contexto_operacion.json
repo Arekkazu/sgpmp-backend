@@ -1,0 +1,22 @@
+{
+  "grupo": "G98",
+  "version": 3,
+  "intento": 6,
+  "run_id": "RUN-G98-V3-20261031-185044",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G98-V3-20261031",
+  "casos": [
+    "TC-M03-191"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M03-191"
+    ],
+    "version_anterior": 2,
+    "motivo": "Reevaluación V3 por falso positivo del oráculo automatizado en V2. RUN-G98-V2-20261031-183417 (OFICIAL, RECHAZADO, rollback CONFIRMADO): el panel real del área 702 cumplió total 3, orden CRITICO → MODERADO → LEVE, campos y activo 928 (API-191-02/03/04 APROBADO). Solo falló API-191-01 porque minutos_transcurridos valía -1 en las 3 alertas. Causa: el backend calcula floor((now() - fecha_generacion)/60) en SQL (indicadores_alertas_repository.py:70); en el sandbox del RUN, now() queda fijo al abrirlo, y fecha_generacion sale del reloj de Python en el POST (generar_alerta_use_case.py:110), unos 10 s después. Es un artefacto del sandbox, no un defecto del producto. INC-M03-191-G98-02 no se envía a Desarrollo y el informe V3 la anula. ORD-G98-015: el oráculo admite la ventana de la fórmula del backend con now() entre el inicio del sandbox (con 120 s de margen) y la respuesta, y documenta los negativos del sandbox; fuera de esa ventana sigue siendo RECHAZADO. Ejecutor con REEVALUAR V3. Validación: 16/16 pruebas; ensayo real con Newman del responsable QA 7/7; la respuesta real del RUN 183417 pasa el nuevo oráculo. SHA-256 g98.mjs ff39cc6bec5f33e702876c83448b19f88fda57ff37827de1dd9c5be9998d4442; colección c0e936e75c1a5f5f8e0222f6643cacc9b43635c7849c339041ba04bf2a711c89.",
+    "incumplimientos_previos": "V2 oficial RUN-G98-V2-20261031-183417: TC-M03-191 RECHAZADO por INC-M03-191-G98-02 (minutos_transcurridos = -1), que fue un falso positivo del oráculo QA por el now() fijo del sandbox; total, orden, campos y activo cumplían. V1 oficial RUN-G98-V1-20261026-181259: RECHAZADO por INC-M03-191-G98-01 (Desarrollo, ALTA), panel ausente; en V2 se observó corregido.",
+    "correcciones_informadas": "Producto: Desarrollo, issue #788 / PR #864 (backend) y #456 (frontend), con panel integrado de alertas activas. QA: ORD-G98-015 corrige el oráculo de tiempo para el sandbox (ejecutor y colección), sin relajar los demás oráculos.",
+    "resultado_esperado": "TC-M03-191 APROBADO: HTTP 200 con panel_alertas_activas cuyo total coincide con las alertas ACTIVAS del alcance y cuya lista está ordenada por severidad con CRITICO primero, con tipo de alerta, variable afectada, tiempo transcurrido coherente con la fórmula del backend e identificación del activo biológico. INC-M03-191-G98-01 CORREGIDA e INC-M03-191-G98-02 ANULADA."
+  },
+  "version_anterior": 2
+}

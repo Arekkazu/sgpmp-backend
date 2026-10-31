@@ -1,0 +1,15 @@
+{
+  "grupo": "G94",
+  "version": 1,
+  "intento": 3,
+  "run_id": "RUN-G94-V1-20261031-090629",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G94-V1-R3-20261031",
+  "casos": [
+    "TC-M03-185"
+  ],
+  "alcance_reevaluacion": {
+    "motivo": "Reintento V1 (intento 3) de G94. Intentos 1 y 2: API-185-01/02 APROBADO; UI-185-01 sin veredicto (intento 1: 500 de sesión dentro del sandbox; intento 2, sesión fuera del sandbox: perfil y permisos sin respuesta ~34 s). En el RUN oficial de G93 (2026-10-31) el patrón login del ejecutor + cola serializada dentro del sandbox dio 200 en todas las llamadas de sesión. ORD-G94-010..012: g94.cy.js con ese patrón, verificación de /usuarios/me sin fincas antes de Cypress, detección de texto visible y fin de carga compatible con el frontend real, informe por caso. Validación: 5/5 local; ensayo Cypress real del responsable QA 6/6 válido. SHA-256 g94.mjs d219a5be268e3210cc723b6e077b0b7d0501844ed0b0dc6f082228cb5cab275e; g94.cy.js b1d0d422c5cef5ef8c7fc38570cec0df7e0d0f8e53a97c36bffd6e673ca3e538; colección 5af001d265312acedd0287c23ee9710c87f5d8eef4a876323ad9c360642e4fca. El intento 2 conserva su historial."
+  },
+  "version_anterior": null
+}

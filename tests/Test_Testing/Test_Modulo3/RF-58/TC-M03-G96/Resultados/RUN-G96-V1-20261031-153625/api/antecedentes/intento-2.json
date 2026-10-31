@@ -1,0 +1,196 @@
+{
+  "grupo": "G96",
+  "caso": "TC-M03-187",
+  "intento": 2,
+  "run_origen": "RUN-G96-V1-20261031-150253",
+  "veredicto": "NO_CONCLUYENTE",
+  "motivo": "ACTIVO: APROBADO; SIN_SEÑAL: APROBADO; BUFFER_ACTIVO: APROBADO; INACTIVO: APROBADO; EN_MANTENIMIENTO: NO_CONCLUYENTE",
+  "listados_por_estado": [
+    {
+      "estado": "TODOS_PRODUCTOR",
+      "rol": "Productor",
+      "http": 200,
+      "eco": true,
+      "cantidad": 186
+    },
+    {
+      "estado": "ACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 4
+    },
+    {
+      "estado": "SIN_SEÑAL",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 1
+    },
+    {
+      "estado": "BUFFER_ACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 21
+    },
+    {
+      "estado": "INACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 33
+    },
+    {
+      "estado": "EN_MANTENIMIENTO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 3
+    }
+  ],
+  "canarios": [
+    {
+      "area": 389,
+      "rol": "Productor",
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 701,
+      "rol": "Productor",
+      "http": 200,
+      "eco": true,
+      "total": 1
+    },
+    {
+      "area": 1,
+      "rol": "Productor",
+      "http": 200,
+      "eco": true,
+      "total": 4
+    },
+    {
+      "area": 6,
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 664,
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "total": 2
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "total": 13
+    }
+  ],
+  "areas_descartadas": {
+    "registradas_en_resultado": false,
+    "filas": []
+  },
+  "cobertura_por_estado": {
+    "ACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 341 y 1 sensor(es) concordantes",
+      "dispositivo": 341,
+      "area": 347,
+      "rol": "Administrador"
+    },
+    "SIN_SEÑAL": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 787 y 1 sensor(es) concordantes",
+      "dispositivo": 787,
+      "area": 701,
+      "rol": "Productor"
+    },
+    "BUFFER_ACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 3 y 1 sensor(es) concordantes",
+      "dispositivo": 3,
+      "area": 1,
+      "rol": "Productor"
+    },
+    "INACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 1 y 3 sensor(es) concordantes",
+      "dispositivo": 1,
+      "area": 1,
+      "rol": "Productor"
+    },
+    "EN_MANTENIMIENTO": {
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "No hay sensor asociado visible para el rol consultado en las áreas candidatas"
+    }
+  },
+  "valores_observados": [
+    {
+      "unidad": 701,
+      "valor": "SIN_SEÑAL",
+      "cantidad": 1
+    },
+    {
+      "unidad": 1,
+      "valor": "INACTIVO",
+      "cantidad": 3
+    },
+    {
+      "unidad": 1,
+      "valor": "BUFFER_ACTIVO",
+      "cantidad": 1
+    },
+    {
+      "unidad": 664,
+      "valor": "DESCONOCIDO",
+      "cantidad": 2
+    },
+    {
+      "unidad": 347,
+      "valor": "DESCONOCIDO",
+      "cantidad": 8
+    },
+    {
+      "unidad": 347,
+      "valor": "ACTIVO",
+      "cantidad": 1
+    },
+    {
+      "unidad": 347,
+      "valor": "INACTIVO",
+      "cantidad": 3
+    },
+    {
+      "unidad": 347,
+      "valor": "BUFFER_ACTIVO",
+      "cantidad": 1
+    }
+  ],
+  "sensores_area_664": [
+    {
+      "id_sensor": 1065,
+      "id_dispositivo_iot": 731,
+      "id_infraestructura": 664,
+      "estado_conectividad": "DESCONOCIDO",
+      "estado_semaforo": "GRIS",
+      "dato_desactualizado": false,
+      "sin_umbral": true
+    },
+    {
+      "id_sensor": 1068,
+      "id_dispositivo_iot": 734,
+      "id_infraestructura": 664,
+      "estado_conectividad": "DESCONOCIDO",
+      "estado_semaforo": "GRIS",
+      "dato_desactualizado": false,
+      "sin_umbral": true
+    }
+  ]
+}

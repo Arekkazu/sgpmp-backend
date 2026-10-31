@@ -24,10 +24,11 @@ export async function ejecutarCypressControlado({ opciones, timeoutMs = TIMEOUT_
   const inicio = Date.now();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g88-cypress-'));
   const salida = path.join(tmp, 'resultado.json');
+  const tokenRefresco = path.join(tmp, 'token-refresco');
   try {
     const hijo = spawnFn(process.execPath, [worker, salida], { windowsHide: true, stdio: ['pipe', 'ignore', 'ignore'] });
     hijo.stdin?.on('error', () => {});
-    hijo.stdin?.end(JSON.stringify(opciones));
+    hijo.stdin?.end(JSON.stringify({ ...opciones, env: { ...opciones.env, TOKEN_REFRESH_FILE: tokenRefresco } }));
     const fin = await new Promise((resolve) => {
       let terminado = false;
       const completar = (x) => { if (!terminado) { terminado = true; clearTimeout(reloj); signal?.removeEventListener('abort', abortar); resolve(x); } };
@@ -39,19 +40,22 @@ export async function ejecutarCypressControlado({ opciones, timeoutMs = TIMEOUT_
           return t?.status && t.status !== 0 ? `taskkill exit ${t.status}` : null;
         } catch (e) { return `taskkill: ${e.message}`; }
       };
-      const abortar = () => { const error = terminar(); completar({ exitCode: null, motivo: `SeÃ±al de interrupciÃ³n${error ? `; ${error}` : ''}` }); };
+      const abortar = () => { const error = terminar(); completar({ exitCode: null, motivo: `Señal de interrupción${error ? `; ${error}` : ''}` }); };
       const reloj = setTimeout(() => {
         const error = terminar();
         completar({ timeout: true, exitCode: null, motivo: `Timeout Cypress ${timeoutMs} ms${error ? `; ${error}` : ''}` });
       }, timeoutMs);
       hijo.once('error', (e) => completar({ exitCode: null, motivo: e.message }));
-      hijo.once('exit', (code, signal) => completar({ exitCode: code, motivo: signal ? `SeÃ±al ${signal}` : null }));
+      hijo.once('exit', (code, signal) => completar({ exitCode: code, motivo: signal ? `Señal ${signal}` : null }));
       signal?.addEventListener('abort', abortar, { once: true });
       if (signal?.aborted) abortar();
     });
     let reporte = {};
     if (fs.existsSync(salida)) try { reporte = JSON.parse(fs.readFileSync(salida, 'utf8')); } catch { /* informe incompleto */ }
-    return { navegador: 'chrome', version: reporte.browserVersion ?? null, duracion_ms: Date.now() - inicio,
+    const tokenActualizado = fs.existsSync(tokenRefresco) ? fs.readFileSync(tokenRefresco, 'utf8') : null;
+    return { navegador: 'chrome', version: reporte.browserVersion ?? null,
+      cypress_version: reporte.cypressVersion ?? null, duracion_ms: Date.now() - inicio,
+      token_refresco: tokenActualizado,
       exit_code: fin.exitCode, total_pruebas: reporte.totalTests ?? 0, fallidas: reporte.totalFailed ?? 0,
       motivo: fin.motivo ?? reporte.message ?? (reporte.totalTests ? null : 'Cypress no produjo comprobaciones'),
       timeout: !!fin.timeout, status: reporte.status ?? 'failed', runs: [{ tests: reporte.tests ?? [] }] };

@@ -1,0 +1,118 @@
+{
+  "grupo": "G96",
+  "caso": "TC-M03-187",
+  "intento": 1,
+  "run_origen": "RUN-G96-V1-20261031-095744",
+  "veredicto": "NO_CONCLUYENTE",
+  "motivo": "ACTIVO: NO_CONCLUYENTE; SIN_SEÑAL: NO_CONCLUYENTE; BUFFER_ACTIVO: APROBADO; INACTIVO: NO_CONCLUYENTE; EN_MANTENIMIENTO: NO_CONCLUYENTE",
+  "listados_por_estado": [
+    {
+      "estado": "ACTIVO",
+      "http": 200,
+      "eco": true,
+      "cantidad": 4
+    },
+    {
+      "estado": "SIN_SEÑAL",
+      "http": 200,
+      "eco": true,
+      "cantidad": 0
+    },
+    {
+      "estado": "BUFFER_ACTIVO",
+      "http": 200,
+      "eco": true,
+      "cantidad": 21
+    },
+    {
+      "estado": "INACTIVO",
+      "http": 200,
+      "eco": true,
+      "cantidad": 33
+    },
+    {
+      "estado": "EN_MANTENIMIENTO",
+      "http": 200,
+      "eco": true,
+      "cantidad": 3
+    }
+  ],
+  "canarios": [
+    {
+      "area": 6,
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 1,
+      "http": 200,
+      "eco": true,
+      "total": 4
+    },
+    {
+      "area": 664,
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 622,
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 390,
+      "http": 200,
+      "eco": true,
+      "total": 0
+    },
+    {
+      "area": 479,
+      "http": 200,
+      "eco": true,
+      "total": 0
+    }
+  ],
+  "areas_descartadas": {
+    "registradas_en_resultado": false,
+    "filas": []
+  },
+  "cobertura_por_estado": {
+    "ACTIVO": {
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "No hay sensor asociado visible para el Productor en las áreas candidatas"
+    },
+    "SIN_SEÑAL": {
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "Sin dispositivo en el estado; no se crean datos"
+    },
+    "BUFFER_ACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 3 y 1 sensor(es) concordantes",
+      "dispositivo": 3,
+      "area": 1
+    },
+    "INACTIVO": {
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "No hay sensor asociado visible para el Productor en las áreas candidatas"
+    },
+    "EN_MANTENIMIENTO": {
+      "estado": "NO_CONCLUYENTE",
+      "motivo": "No hay sensor asociado visible para el Productor en las áreas candidatas"
+    }
+  },
+  "valores_observados": [
+    {
+      "unidad": 1,
+      "valor": "INACTIVO",
+      "cantidad": 3
+    },
+    {
+      "unidad": 1,
+      "valor": "BUFFER_ACTIVO",
+      "cantidad": 1
+    }
+  ]
+}

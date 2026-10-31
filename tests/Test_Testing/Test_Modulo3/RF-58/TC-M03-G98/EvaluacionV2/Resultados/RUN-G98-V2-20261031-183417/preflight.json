@@ -1,0 +1,45 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G98",
+  "run_id": "RUN-G98-V2-20261031-183417",
+  "version": 2,
+  "barreras": [],
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    }
+  ],
+  "efectos_declarados": [
+    "login_productor_y_auditoria_fuera_run",
+    "lecturas_dashboard_y_posible_correo_E7",
+    "hasta_tres_POST_alertas_ACTIVA_en_sandbox_con_rollback_DELETE"
+  ],
+  "presupuesto": {
+    "fincas_descubrimiento": 2,
+    "unidades_candidatas": 6,
+    "alertas_por_pagina": 200,
+    "canario_por_pagina": 1,
+    "por_pagina": 50,
+    "dispositivos_por_area": 8,
+    "historiales_maximos": 24,
+    "solicitudes_en_run": 224,
+    "escrituras_alerta": 3,
+    "lecturas_cierre": 3,
+    "margen_cierre": 1,
+    "duracion_segundos": 900
+  },
+  "ok": true
+}

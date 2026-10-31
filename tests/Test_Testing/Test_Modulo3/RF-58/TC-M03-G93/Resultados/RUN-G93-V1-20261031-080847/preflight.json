@@ -1,0 +1,88 @@
+{
+  "fase": "PREFLIGHT_LOCAL",
+  "grupo": "G93",
+  "run_id": "RUN-G93-V1-20261031-080847",
+  "version": 1,
+  "operacion": "reintentar",
+  "variables": [
+    {
+      "nombre": "SIGAB_API_TEST_BASE",
+      "presente": true
+    },
+    {
+      "nombre": "SIGAB_FRONT_TEST_URL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_SANDBOX_SECRET",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_ADMIN_PASSWORD",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_EMAIL",
+      "presente": true
+    },
+    {
+      "nombre": "QA_PROD_PASSWORD",
+      "presente": true
+    }
+  ],
+  "plan": {
+    "finca_candidata": 184,
+    "area_referencia": 349,
+    "especie": 126,
+    "areas_nuevas": 1,
+    "sensores_nuevos": 0,
+    "dispositivos_nuevos": 0,
+    "candidatas_v2_max": 10,
+    "validacion": "GET de alcance Productor, finca y área de referencia antes del POST"
+  },
+  "limite": {
+    "candidatas": 10,
+    "paginas_adicionales_v2": 12,
+    "solicitudes_directas": 56,
+    "margen_cierre": 5,
+    "ui_api": 25,
+    "newman": 1
+  },
+  "barreras": [],
+  "ok": true,
+  "herramientas": {
+    "coleccion": true,
+    "spec": true,
+    "newman": true,
+    "cypress": true,
+    "navegador_chrome": true
+  },
+  "diagnostico_herramientas": {
+    "newman": {
+      "comando": "node v22.15.1 newman --version",
+      "status": 0,
+      "signal": null,
+      "error_code": null,
+      "duracion_ms": 2277,
+      "vencio_tiempo": false,
+      "stdout": "6.2.2\n",
+      "stderr": "",
+      "version": "6.2.2"
+    },
+    "cypress": {
+      "comando": "node v22.15.1 cypress --version",
+      "status": 0,
+      "signal": null,
+      "error_code": null,
+      "duracion_ms": 391,
+      "vencio_tiempo": false,
+      "stdout": "Cypress package version: 14.5.4\nCypress binary version: 14.5.4\nElectron version: 33.2.1",
+      "stderr": "",
+      "version": "14.5.4"
+    }
+  }
+}
