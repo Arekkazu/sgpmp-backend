@@ -7,6 +7,7 @@
 # | 2026-10-26 | Arekkazu | Lote fixes M03 RF-58: resumen con unidades sin sensores (G93) y calidad actual (ISSUE-678) juntos |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-29 | Arekkazu | INC-M03-211-G98 RF-58: panel integrado de alertas activas en el dashboard |
+# | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: semáforos base con su unidad para el estado general |
 from __future__ import annotations
 
 from datetime import datetime
@@ -126,7 +127,8 @@ WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestr
 # G57B: mismo alcance que _SQL_ESTADOS (sensores visibles, área vigente, fincas), sin las
 # laterales sobre telemetrias: el conteo del semáforo solo usa la caché y la alerta activa.
 _SQL_SEMAFOROS = text("""
-SELECT eas.estado_semaforo, eas.dato_desactualizado, a.id_alerta, a.severidad AS severidad_alerta
+SELECT eas.estado_semaforo, eas.dato_desactualizado, a.id_alerta, a.severidad AS severidad_alerta,
+       saa_lat.id_infraestructura
 FROM modulo3.estados_actuales_sensores eas
 JOIN modulo9.sensores s ON s.id_sensores = eas.id_sensor
 LEFT JOIN LATERAL (
@@ -280,6 +282,7 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
                 dato_desactualizado=bool(f['dato_desactualizado']),
                 id_alerta=f['id_alerta'],
                 severidad_alerta=f['severidad_alerta'],
+                id_infraestructura=f['id_infraestructura'],
             )
             for f in filas
         ]

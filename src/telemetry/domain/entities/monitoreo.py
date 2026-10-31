@@ -6,6 +6,7 @@
 # | 2026-10-26 | Leandro | ISSUE-678 G87 RF-58: distinguir calidad del valor operativo y momento de la condición actual. |
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato como filtro único |
+# | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: unidad de cada semáforo base para el estado general |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -62,6 +63,9 @@ class SemaforoBaseSensor:
     dato_desactualizado: bool
     id_alerta: Optional[int]
     severidad_alerta: Optional[str]
+    # G92: unidad productiva vigente del sensor; el estado general de la unidad
+    # se calcula con todos sus sensores, no con los de la página consultada.
+    id_infraestructura: Optional[int] = None
 
 
 @dataclass
