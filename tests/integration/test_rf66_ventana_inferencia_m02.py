@@ -1,11 +1,13 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: ventana de lecturas del activo, contra PostgreSQL real    |
+# | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos RF-17 de la especie del activo            |
 """``VentanaInferenciaM02Adapter`` contra PostgreSQL real (como usuario de servicio, bajo RLS).
 
 Un activo con dos sensores ``directa`` (temperatura y cardiaca) y uno ``ambiental``: la ventana
 trae solo las lecturas de los directos, de las variables de ET-02, dentro de las 2 h previas al
-paquete y con el nombre de ET-02. Un sensor sin activo queda sin ventana.
+paquete y con el nombre de ET-02. Un sensor sin activo queda sin ventana. La ventana lleva las
+bandas RF-17 (sano = tramo normal, plausible = valor_min–valor_max) de la especie del activo.
 """
 from __future__ import annotations
 
@@ -67,6 +69,18 @@ def escenario(db_session, crear_usuario_db):
     lectura(s_temp, TEMP, 150, 38.4)        # fuera de la ventana de 2 h
     lectura(s_temp, TEMP, -5, 39.5)         # posterior al paquete
     lectura(s_amb, HUMEDAD, 5, 60.0)        # sensor ambiental: no es del animal
+
+    # Umbral RF-17 de temperatura corporal para la especie del activo (C3 de ET-02).
+    umbral = db.execute(text(
+        "INSERT INTO modulo9.umbrales_ambientales (id_especie, id_variable_ambiental, unidad_medida, "
+        "valor_min, valor_max, es_activo, fecha_actualizacion) SELECT id_especie, :v, '°C', 35.5, 42.5, true, now() "
+        "FROM modulo2.activos_biologicos WHERE id_activo_biologico = :a RETURNING id_umbral_ambiental"),
+        {"v": TEMP, "a": activo}).scalar_one()
+    for nivel, inf, sup in (("normal", 38.0, 39.5), ("precaucion", 39.5, 40.5), ("critico", 40.5, 42.5)):
+        db.execute(text(
+            "INSERT INTO modulo9.niveles_alerta_ambientales (id_umbral_ambiental, nivel, limite_inferior, "
+            "limite_superior) VALUES (:u, CAST(:n AS modulo9.enum_nivel_alerta), :i, :s)"),
+            {"u": umbral, "n": nivel, "i": inf, "s": sup})
     db.execute(text("SET LOCAL session_replication_role = origin"))
     declarar_identidad_sistema(db)
     return dict(activo=activo, s_temp=s_temp, s_fc=s_fc, s_suelto=s_suelto)
@@ -85,7 +99,9 @@ def test_ventana_del_activo_con_las_lecturas_de_et02(db_session, escenario):
         ("frecuencia_cardiaca", 72.0, False),
         ("temperatura_corporal", 39.1, True),
     ]
-    assert (ventanas[3].id_activo_biologico, ventanas[3].lecturas) == (None, [])
+    assert ventanas[2].rangos_especie["temperatura_corporal"] == {"sano": [38.0, 39.5], "plausible": [35.5, 42.5]}
+    assert "actividad_indice" not in ventanas[2].rangos_especie
+    assert (ventanas[3].id_activo_biologico, ventanas[3].lecturas, ventanas[3].rangos_especie) == (None, [], {})
 
 
 def test_lote_vacio(db_session):
