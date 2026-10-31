@@ -7,6 +7,7 @@
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: tipo de alerta RIESGO_CONTAGIO |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 # | 2026-10-28 | Arekkazu | BE-0/BE-3 RF-55: conducta de ReglaAlerta y regla Edge {id, nombre} en la alerta |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-06 RF-57: acción sugerida en las alertas ambientales |
 # | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: tipo REGLA_SIMPLE para la lectura aislada fuera de NORMAL |
 from __future__ import annotations
 
@@ -60,6 +61,45 @@ class ConflictoResolucion(str, Enum):
 #: RF-60: alertas técnicas de dispositivos IoT (batería, conectividad,
 #: sobrecalentamiento). Comparten ``modulo3.alertas`` con las operativas.
 TIPO_ALERTA_TECNICA = "TECNICA"
+
+
+# M3-06 (RF-57 salida 2, accion_sugerida, ej. "Activar ventilación forzada"): qué hacer
+# según la variable y si el valor quedó por encima o por debajo de la banda normal.
+_ACCION_SUGERIDA_AMBIENTAL: dict[str, dict[str, str]] = {
+    'TEMPERATURA_AMBIENTAL': {'alto': 'Activar ventilación forzada o nebulización y revisar la sombra.',
+                              'bajo': 'Encender la calefacción y cerrar cortinas o entradas de aire frío.'},
+    'HUMEDAD_RELATIVA': {'alto': 'Aumentar la ventilación para bajar la humedad.',
+                         'bajo': 'Activar nebulizadores o humedecer el ambiente.'},
+    'NH3': {'alto': 'Ventilar el área y retirar o cambiar la cama.'},
+    'CO2': {'alto': 'Aumentar la renovación de aire (ventilación).'},
+    'PH_AGUA': {'alto': 'Hacer un recambio parcial de agua y revisar la alcalinidad.',
+                'bajo': 'Aplicar cal agrícola y hacer un recambio parcial de agua.'},
+    'OXIGENO_DISUELTO': {'bajo': 'Encender los aireadores y suspender la alimentación.',
+                         'alto': 'Revisar el sensor y reducir la aireación.'},
+    'TDS': {'alto': 'Hacer un recambio parcial de agua.', 'bajo': 'Revisar la fuente de agua y el sensor.'},
+    'TEMP_CORPORAL': {'alto': 'Aislar al animal y avisar al veterinario.',
+                      'bajo': 'Abrigar al animal y avisar al veterinario.'},
+}
+_ACCION_GENERICA = 'Revisar el área y verificar que el sensor esté bien instalado.'
+
+
+def accion_sugerida_ambiental(tipo_variable: Optional[str], valor, niveles: Optional[list]) -> str:
+    """Acción para el productor; sin banda normal conocida usa la primera del catálogo."""
+    acciones = _ACCION_SUGERIDA_AMBIENTAL.get((tipo_variable or '').upper())
+    if not acciones:
+        return _ACCION_GENERICA
+    direccion = None
+    normal = next((n for n in (niveles or []) if str(n.get('nivel')).lower() == 'normal'), None)
+    if normal is not None and valor is not None:
+        try:
+            v = Decimal(str(valor))
+            if v > Decimal(str(normal['limite_superior'])):
+                direccion = 'alto'
+            elif v < Decimal(str(normal['limite_inferior'])):
+                direccion = 'bajo'
+        except (KeyError, ArithmeticError, ValueError):
+            direccion = None
+    return acciones.get(direccion) or next(iter(acciones.values()))
 
 
 def regla_umbral(id_umbral, tipo_variable, estado_semaforo, version_umbral) -> dict:

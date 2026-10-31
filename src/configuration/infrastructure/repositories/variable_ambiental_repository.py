@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: persiste es_critica (RFC-016) |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: catálogo de variables con código de telemetría |
 """Implementación SQLAlchemy del puerto VariableAmbientalRepository."""
 from __future__ import annotations
 
@@ -53,4 +54,5 @@ class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
             valor_fisico_max=orm.valor_fisico_max,
             es_activo=orm.es_activo,
             es_critica=orm.es_critica,
+            codigo_telemetria=orm.codigo_telemetria,
         )

@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: fakes con alertas correlacionadas y validación de variables |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: el fake de umbral responde también por área |
 """DEV-38 (RF-59, G-10): zona horaria, truncado con aviso, bitácora de consultas y vacíos.
 
 E2: "hoy" y los límites del rango son días en Colombia.
@@ -67,6 +68,9 @@ class _Repo:
 
 class _Umbral:
     def obtener_umbral_vigente(self, **kw):
+        return None
+
+    def obtener_umbral_vigente_area(self, **kw):  # M3-09/N-06
         return None
 
 

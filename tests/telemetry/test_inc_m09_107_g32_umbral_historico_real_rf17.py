@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-23 | destroyerban | DEV-38 RF-59: zona horaria, truncado con aviso, bitácora y vacíos temporales |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58/59: sin activo se usa el umbral de la especie del área |
 """INC-M09-107-G32 (#298): el semáforo histórico (RF-59) debe consumir el umbral RF-17 real.
 
 Cubre `SemaforoCalculator.calcular_por_niveles` y `ConsultarHistorialUseCase._semaforo_historico`
@@ -40,6 +41,10 @@ class _UmbralPortFake:
             "id_especie": id_especie,
             "timestamp": timestamp,
         })
+        return self.umbral
+
+    def obtener_umbral_vigente_area(self, id_variable_ambiental, id_infraestructura, timestamp, id_sensor=None):
+        self.llamadas.append({"area": id_infraestructura})
         return self.umbral
 
 
@@ -105,7 +110,8 @@ class TestSemaforoCalculatorPorNiveles:
 
 
 class TestSemaforoHistoricoConsumeUmbralReal:
-    def test_sin_especie_resuelta_no_consulta_el_puerto_y_queda_gris(self) -> None:
+    def test_sin_especie_ni_umbral_del_area_queda_gris(self) -> None:
+        # M3-09 / N-06: sin activo se busca el umbral de una especie del área.
         lectura = _lectura(id_especie=None, valor=Decimal("19.5"))
         port = _UmbralPortFake(umbral=None)
         caso_uso = ConsultarHistorialUseCase(
@@ -116,7 +122,7 @@ class TestSemaforoHistoricoConsumeUmbralReal:
         lecturas, _stats, _total, _meta = caso_uso.execute(_filtros())
 
         assert lecturas[0].estado_semaforo_historico == "GRIS"
-        assert port.llamadas == []
+        assert port.llamadas == [{"area": 1}]
 
     def test_sin_valor_queda_gris(self) -> None:
         lectura = _lectura(id_especie=39, valor=None)

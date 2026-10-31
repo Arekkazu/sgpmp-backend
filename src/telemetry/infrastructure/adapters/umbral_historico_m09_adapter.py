@@ -1,9 +1,11 @@
-# | Fecha      | Nombre | Que se hizo |
-# |------------|--------|-------------|
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58/59: mismo semáforo que el dashboard (bandas RF-17 + tolerancia T) |
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import (
@@ -25,6 +27,7 @@ class UmbralHistoricoM09Adapter(UmbralHistoricoPort):
     """
 
     def __init__(self, db: Session) -> None:
+        self._db = db
         self._umbral_repo = SqlAlchemyUmbralAmbientalRepository(db)
 
     def obtener_umbral_vigente(
@@ -55,3 +58,26 @@ class UmbralHistoricoM09Adapter(UmbralHistoricoPort):
             ],
             "version": umbral.fecha_actualizacion,
         }
+
+    def obtener_umbral_vigente_area(
+        self,
+        id_variable_ambiental: int,
+        id_infraestructura: Optional[int],
+        timestamp: datetime,
+        id_sensor: Optional[int] = None,
+    ) -> Optional[dict]:
+        if id_infraestructura is None and id_sensor is None:
+            return None
+        id_especie = self._db.execute(text(
+            "SELECT ie.id_especie FROM modulo9.infraestructuras_especies ie "
+            "JOIN modulo9.umbrales_ambientales u ON u.id_especie = ie.id_especie "
+            "AND u.id_variable_ambiental = :var AND u.es_activo "
+            "WHERE ie.id_infraestructura = COALESCE(CAST(:infra AS integer), ("
+            "  SELECT saa.id_infraestructura FROM modulo9.sensores_areas_asociadas saa "
+            "  WHERE saa.id_sensor = :sensor AND saa.fecha_asociacion <= :ts "
+            "    AND (saa.fecha_finalizacion IS NULL OR saa.fecha_finalizacion > :ts) "
+            "  ORDER BY saa.fecha_asociacion DESC LIMIT 1)) "
+            "ORDER BY ie.id_especie LIMIT 1"
+        ), {"var": id_variable_ambiental, "infra": id_infraestructura,
+            "sensor": id_sensor, "ts": timestamp}).scalar()
+        return self.obtener_umbral_vigente(id_variable_ambiental, id_especie, timestamp)
