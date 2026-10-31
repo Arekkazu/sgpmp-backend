@@ -1,6 +1,11 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: clasificar con el umbral activo conservando mínimos sanitarios. |
+# | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: aplicar ocupación histórica ante error de densidad sin alterar la entrada nula. |
+# | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: exigir 60 % de individuos con inferencia reciente y preservar score poblacional. |
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
+# | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura cuenta como observación cada salida con el id del lote |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
@@ -14,8 +19,10 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
 
-#: Discretización (Salida): 0 Bajo, 1 Medio, 2 Alto. Las fronteras exactas del 50 % y
-#: 70 % (TC-M04-G027) caen en la clase superior.
+from src.prediction.domain.entities.ocupacion_lote import MuestraOcupacion, promediar_ocupacion
+
+#: La frontera de Medio se conserva en 0.50; la de Alto procede de RF-65.
+#: Los porcentajes sanitarios obligatorios de RF-68 conservan sus cortes propios.
 FRONTERA_MEDIO = Decimal("0.50")
 FRONTERA_ALTO = Decimal("0.70")
 NIVELES = {0: "BAJO", 1: "MEDIO", 2: "ALTO"}
@@ -30,8 +37,8 @@ SINCRONIA_MAXIMA = timedelta(seconds=35)
 #: E5/E9: inferencias de RF-66 de más de 30 min no se usan; ambiente de más de 10 min, sin Fa.
 VIGENCIA_INFERENCIA = timedelta(minutes=30)
 VIGENCIA_AMBIENTAL = timedelta(minutes=10)
-#: E1: con RF-66 para menos del 50 % del lote se calcula sin Fs.
-COBERTURA_MINIMA_FS = Decimal("0.50")
+#: E8 / CA-10: mínimo confirmado del 60 % para inferencias individuales; sustituye E1.
+COBERTURA_MINIMA_FS = Decimal("0.60")
 #: E4 / Validación de Modelo: con menos del 60 % de sensores operativos no se ejecuta.
 SENSORES_MINIMOS_PCT = Decimal("60")
 #: Paso 5: data_quality_score < 0.6 → modo degradado.
@@ -46,10 +53,11 @@ SCORE_POBLACIONAL = "SCORE_POBLACIONAL"
 class DatosContagioError(Exception):
     """El modelo no se ejecuta. ``codigo`` es el evento de RF-73 que corresponde."""
 
-    def __init__(self, codigo: str, mensaje: str) -> None:
+    def __init__(self, codigo: str, mensaje: str, contexto: Optional[dict] = None) -> None:
         super().__init__(mensaje)
         self.codigo = codigo
         self.mensaje = mensaje
+        self.contexto = contexto or {}
 
 
 @dataclass(frozen=True)
@@ -78,6 +86,7 @@ class ParametrosContagio:
     hr_min: Optional[Decimal]
     hr_max: Optional[Decimal]
     densidad_maxima: Optional[Decimal]
+    umbral_riesgo_alto: Decimal
 
 
 @dataclass
@@ -107,6 +116,9 @@ class ResultadoRiesgoContagio:
     desde_cache: bool = False
     huella_entradas: str = ""
     variables_ambientales: dict = field(default_factory=dict)
+    umbrales_aplicados: dict[str, Decimal] = field(default_factory=dict)
+    contexto_densidad: dict = field(default_factory=dict)
+    perfil_calculo_contagio: str = "ESTANDAR"
 
     @property
     def nivel_texto(self) -> str:
@@ -139,12 +151,50 @@ def validar_pesos(p: ParametrosContagio) -> None:
         )
 
 
-def discretizar(probabilidad: Decimal) -> int:
-    if probabilidad >= FRONTERA_ALTO:
+def discretizar(probabilidad: Decimal, umbral_riesgo_alto: Decimal) -> int:
+    if probabilidad >= umbral_riesgo_alto:
         return 2
     if probabilidad >= FRONTERA_MEDIO:
         return 1
     return 0
+
+
+def validar_cobertura_rf66(
+    *, salidas_rf66: list[SalidaInferencia], total_activos_lote: Optional[int],
+    ahora: datetime, score_anomalia: Optional[Decimal], id_lote: Optional[int] = None,
+) -> tuple[list[SalidaInferencia], Optional[int]]:
+    """E8/CA-10: cada individuo identificado cuenta una vez, con su última salida reciente.
+
+    #857: M02 no relaciona individuos con su lote, así que las salidas propias llegan con
+    el id del lote. Esas no identifican a un individuo: cada una cuenta como observación,
+    igual que las salidas sin id del contrato legado.
+
+    Se conserva el contrato legado sin IDs/total y el score poblacional de RFC-009.
+    La aplicación también valida antes de reutilizar resultados anteriores en caché.
+    """
+    vigentes = []
+    por_activo: dict[int, SalidaInferencia] = {}
+    for salida in salidas_rf66:
+        if not timedelta(0) <= ahora - salida.fecha_inferencia <= VIGENCIA_INFERENCIA:
+            continue
+        if salida.id_activo_biologico is None or salida.id_activo_biologico == id_lote:
+            vigentes.append(salida)
+        else:
+            anterior = por_activo.get(salida.id_activo_biologico)
+            if anterior is None or salida.fecha_inferencia > anterior.fecha_inferencia:
+                por_activo[salida.id_activo_biologico] = salida
+    vigentes.extend(por_activo.values())
+    total = total_activos_lote or (len(vigentes) or None)
+    cobertura = Decimal(len(vigentes)) / Decimal(total) if total else Decimal('0')
+    if score_anomalia is None and cobertura < COBERTURA_MINIMA_FS:
+        raise DatosContagioError(
+            'ERROR_DATOS_INSUFICIENTES',
+            f'RF-66 dispone de {len(vigentes)} inferencias individuales recientes '
+            f'para {total or 0} activos del lote (mínimo 60%): no se ejecuta el modelo.',
+            contexto={'inferencias_recientes': len(vigentes), 'total_activos_lote': total,
+                      'cobertura_rf66': str(cobertura), 'cobertura_minima_rf66': str(COBERTURA_MINIMA_FS)},
+        )
+    return vigentes, total
 
 
 def calcular_riesgo_contagio(
@@ -158,6 +208,7 @@ def calcular_riesgo_contagio(
     score_anomalia: Optional[Decimal] = None,
     ambiente: Optional[LecturaAmbiental] = None,
     densidad_poblacional: Optional[Decimal] = None,
+    muestras_ocupacion: Optional[list[MuestraOcupacion]] = None,
     porcentaje_sensores_activos: Decimal = Decimal("100"),
 ) -> ResultadoRiesgoContagio:
     """RF-68 pasos 1–7 con sus flujos alternos. Lanza ``DatosContagioError`` cuando no se ejecuta."""
@@ -172,14 +223,12 @@ def calcular_riesgo_contagio(
 
     motivos: list[str] = []
 
-    # E5: inferencias de más de 30 min se descartan.
-    vigentes = [s for s in salidas_rf66 if ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA]
-    if salidas_rf66 and not vigentes and score_anomalia is None:
-        raise DatosContagioError(
-            "ERROR_DATOS_INSUFICIENTES",
-            "Las salidas de RF-66 tienen más de 30 minutos: no se ejecuta el modelo.",
-        )
-    if len(vigentes) < len(salidas_rf66):
+    # E5/E8: solo individuos con inferencia reciente contribuyen a la cobertura.
+    vigentes, total = validar_cobertura_rf66(
+        salidas_rf66=salidas_rf66, total_activos_lote=total_activos_lote,
+        ahora=ahora, score_anomalia=score_anomalia, id_lote=id_lote,
+    )
+    if any(not timedelta(0) <= ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA for s in salidas_rf66):
         motivos.append("INFERENCIAS_DESACTUALIZADAS_DESCARTADAS")
 
     # Precondición 5 / CA-8: sincronización entre las salidas y el dato ambiental.
@@ -200,20 +249,13 @@ def calcular_riesgo_contagio(
     # Fs: proporción de enfermos (RF-66) o score de anomalía del área (POBLACIONAL, RFC-009).
     fs: Optional[Decimal] = None
     definicion_fs: Optional[str] = None
-    total = total_activos_lote or (len(vigentes) or None)
     enfermos = n_enfermos_detectados
     if score_anomalia is not None:
         fs, definicion_fs = _acotar(Decimal(score_anomalia)), SCORE_POBLACIONAL
     elif vigentes and total:
         if enfermos is None:
             enfermos = sum(1 for s in vigentes if s.probabilidad_riesgo_alto > PROBABILIDAD_ENFERMO)
-        cobertura = Decimal(len(vigentes)) / Decimal(total)
-        if cobertura >= COBERTURA_MINIMA_FS:
-            fs, definicion_fs = _acotar(Decimal(enfermos) / Decimal(total)), CONTEO_INDIVIDUAL
-        else:
-            motivos.append("COBERTURA_RF66_MENOR_AL_50")  # E1
-    else:
-        motivos.append("SIN_SALIDAS_RF66")  # CA-5
+        fs, definicion_fs = _acotar(Decimal(enfermos) / Decimal(total)), CONTEO_INDIVIDUAL
 
     # Fa: temperatura y humedad normalizadas con los rangos de RF-65 (CA-12).
     fa: Optional[Decimal] = None
@@ -234,16 +276,35 @@ def calcular_riesgo_contagio(
     else:
         motivos.append("DATOS_AMBIENTALES_INCOMPLETOS")  # E3
 
-    # Fd: densidad / densidad máxima. Densidad desconocida → capacidad máxima (preventivo).
+    # E2: error de sensor finito → histórico registrado; nulo conserva el preventivo.
+    densidad_aplicada = densidad_poblacional
+    contexto_densidad = {
+        "densidad_solicitada": str(densidad_poblacional) if densidad_poblacional is not None else None,
+        "fuente": "ENTRADA" if densidad_poblacional is not None else "CAPACIDAD_MAXIMA_NULA",
+    }
+    if densidad_poblacional is not None and densidad_poblacional < 0:
+        historico = promediar_ocupacion(muestras_ocupacion or [], hasta=ahora)
+        densidad_aplicada = historico.densidad_promedio
+        contexto_densidad.update(historico=historico.snapshot(), fuente="HISTORICO_OCUPACION_M02")
+        if densidad_aplicada is None:
+            contexto_densidad["fuente"] = "CAPACIDAD_MAXIMA_SIN_HISTORICO"
+            motivos.append("SIN_HISTORICO_OCUPACION")
+
+    # Fd: densidad / densidad máxima. Desconocida → capacidad máxima (preventivo).
     fd: Optional[Decimal] = None
     densidad_asumida = False
     if parametros.densidad_maxima and parametros.densidad_maxima > 0:
-        if densidad_poblacional is None:
+        if densidad_aplicada is None:
             fd, densidad_asumida = Decimal("1"), True
         else:
-            fd = _acotar(Decimal(densidad_poblacional) / parametros.densidad_maxima)
+            fd = _acotar(Decimal(densidad_aplicada) / parametros.densidad_maxima)
     else:
         motivos.append("DENSIDAD_MAXIMA_NO_CONFIGURADA")
+
+    contexto_densidad["densidad_aplicada"] = (
+        str(parametros.densidad_maxima) if densidad_asumida else
+        str(densidad_aplicada) if densidad_aplicada is not None else None
+    )
 
     factores = {"fs": fs, "fa": fa, "fd": fd}
     pesos_config = {"fs": parametros.w_fs, "fa": parametros.w_fa, "fd": parametros.w_fd}
@@ -259,7 +320,7 @@ def calcular_riesgo_contagio(
         pesos = {k: (pesos_config[k] / suma_disponible if k in disponibles else Decimal("0")) for k in factores}
 
     probabilidad = _acotar(sum(pesos[k] * factores[k] for k in disponibles))
-    nivel = discretizar(probabilidad)
+    nivel = discretizar(probabilidad, parametros.umbral_riesgo_alto)
     # Consistencia con la inferencia individual (CA-7, E6, RNF-03).
     if fs is not None and definicion_fs == CONTEO_INDIVIDUAL:
         if fs > FRONTERA_ALTO:
@@ -294,5 +355,6 @@ def calcular_riesgo_contagio(
         total_activos_lote=total,
         porcentaje_sensores_activos=porcentaje_sensores_activos,
         densidad_asumida=densidad_asumida,
+        contexto_densidad=contexto_densidad,
         fecha_calculo=ahora,
     )
