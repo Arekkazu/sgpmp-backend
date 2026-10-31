@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-25 | Arekkazu | INC-M04-143/144/145/146 RF-67: historial diagnóstico contra Postgres |
+# | 2026-10-30 | Arekkazu | INC-M04-223-G034 RF-68: evento CONTAGIO en el historial |
 """RF-67 contra PostgreSQL real.
 
 - 143-G010: con alertas, la página sigue ordenada por (fecha_evento, id_evento) DESC.
@@ -25,6 +26,7 @@ from sqlalchemy.exc import DBAPIError
 from src.prediction.infrastructure.repositories.historial_diagnostico_repository import (
     SqlAlchemyHistorialDiagnosticoRepository,
     id_evento_alerta,
+    id_evento_contagio,
 )
 from tests.integration.test_control_acceso_f4_aislamiento import _finca_con_activo
 
@@ -78,8 +80,15 @@ def escenario(db_session, crear_usuario_db):
         "id_activo_biologico, estado_retroalimentacion, id_usuario_veterinario, fecha_retroalimentacion) "
         "VALUES (gen_random_uuid(), :r, :a, 'CORRECTO', 1, :f) RETURNING id_retroalimentacion"),
         {"r": ri1, "a": activo, "f": _t(6)}).scalar_one()
+    # RF-68 paso 9: el cálculo de contagio del lote también es parte del historial (INC-M04-223-G034).
+    contagio = db.execute(text(
+        "INSERT INTO modulo4.resultados_riesgo_contagio (id_activo_biologico, id_configuracion_motor, "
+        "factor_sanitario_fs, w_fs_aplicado, w_fa_aplicado, w_fd_aplicado, probabilidad_contagio, "
+        "nivel_riesgo_contagio, fecha_calculo) VALUES (:a, 1, 0.4, 0.5, 0.3, 0.2, 0.55, 2, :f) "
+        "RETURNING id_resultado_contagio"), {"a": activo, "f": _t(7)}).scalar_one()
     db.execute(text("SET LOCAL session_replication_role = origin"))
-    return dict(activo=activo, ri1=ri1, ri2=ri2, ri3=ri3, alerta=alerta, retro=retro, viejo=viejo, nuevo=nuevo)
+    return dict(activo=activo, ri1=ri1, ri2=ri2, ri3=ri3, alerta=alerta, retro=retro, viejo=viejo, nuevo=nuevo,
+                contagio=contagio)
 
 
 def _consultar(db, e, cursor=None, limite=51):
@@ -92,7 +101,7 @@ def test_con_alertas_la_pagina_sigue_ordenada_y_el_nombre_es_el_historico(db_ses
     e = escenario
     eventos = _consultar(db_session, e)
     assert [(ev.tipo_evento, ev.id_evento) for ev in eventos] == [
-        ("RETROALIMENTACION", e["retro"]), ("INFERENCIA", e["ri3"]), ("ALERTA", id_evento_alerta(e["alerta"])),
+        ("CONTAGIO", id_evento_contagio(e["contagio"])), ("RETROALIMENTACION", e["retro"]), ("INFERENCIA", e["ri3"]), ("ALERTA", id_evento_alerta(e["alerta"])),
         ("INFERENCIA", e["ri2"]), ("INFERENCIA", e["ri1"])]
     nombres = {ev.id_evento: ev.payload.get("nombre_patologia") for ev in eventos}
     assert nombres[e["ri1"]] == e["viejo"]  # inferida antes del renombre
@@ -119,7 +128,19 @@ def test_id_evento_estable_y_materializacion_sin_duplicados(db_session, escenari
     filas = db_session.execute(text(
         "SELECT tipo_evento, count(*) FROM modulo4.historial_diagnostico_eventos "
         "WHERE id_activo_biologico = :a GROUP BY 1"), {"a": escenario["activo"]}).all()
-    assert dict(filas) == {"INFERENCIA": 3, "ALERTA": 1, "RETROALIMENTACION": 1}
+    assert dict(filas) == {"INFERENCIA": 3, "ALERTA": 1, "RETROALIMENTACION": 1}  # CONTAGIO no se materializa
+
+
+def test_contagio_respeta_los_filtros_del_historial(db_session, escenario):
+    def tipos(**filtros):
+        base = dict(id_activo_biologico=escenario["activo"], fecha_inicio=_t(-1), fecha_fin=_t(10),
+                    nivel_riesgo=None, id_patologia=None, incluir_alertas=False, cursor=None, limite=51)
+        return [ev.tipo_evento for ev in SqlAlchemyHistorialDiagnosticoRepository(db_session).consultar(**base | filtros)]
+
+    assert "CONTAGIO" in tipos()
+    assert "CONTAGIO" in tipos(nivel_riesgo=2)
+    assert "CONTAGIO" not in tipos(nivel_riesgo=1)
+    assert "CONTAGIO" not in tipos(fecha_fin=_t(6))
 
 
 @pytest.mark.parametrize("sentencia", [

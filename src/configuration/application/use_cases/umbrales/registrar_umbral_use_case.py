@@ -1,3 +1,6 @@
+# | Fecha      | Nombre | Que se hizo |
+# |------------|--------|-------------|
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
 """Caso de uso: Registrar umbral ambiental con niveles de alerta (Flujo A — RF-17)."""
 from __future__ import annotations
 
@@ -167,6 +170,7 @@ class RegistrarUmbralUseCase:
             valor_max=dto.valor_max,
             niveles=niveles,
             id_usuario=usuario_actual.id_usuario,
+            tolerancia_semaforo=dto.tolerancia_semaforo,
         )
 
         try:

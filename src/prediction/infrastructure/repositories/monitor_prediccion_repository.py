@@ -1,6 +1,9 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 N-04 RF-68: el listado de contagio tolera JSONB con otra forma |
+# | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -19,7 +22,11 @@ _SQL_INFERENCIAS = text("""
            r.id_patologia, p.nombre AS nombre_patologia, r.probabilidad_enfermedad, r.confianza_global,
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
            r.fecha_inicio_ventana, r.fecha_fin_ventana, r.fecha_inferencia,
-           r.tiene_alerta_generada, r.id_alerta_generada
+           r.tiene_alerta_generada, r.id_alerta_generada, r.modo_sombra,
+           (SELECT jsonb_object_agg(k.clave, pp.nombre)
+              FROM jsonb_object_keys(r.probabilidad_enfermedad) AS k(clave)
+              JOIN modulo9.patologias pp ON pp.id_patologia::text = k.clave
+             WHERE jsonb_typeof(r.probabilidad_enfermedad) = 'object') AS nombres_patologias
     FROM modulo4.resultados_inferencia r
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
     JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
@@ -58,6 +65,21 @@ _SQL_CONTAGIO = text("""
 """)
 
 
+def _normalizar_contagio(fila: dict) -> dict:
+    """N-04: filas escritas fuera de este backend (siembras, versiones previas) traían
+    ``factores_ausentes`` como objeto o texto y ``variables_ambientales_snap`` como lista;
+    el schema esperaba lista y dict, y una sola fila así tumbaba el listado con 500."""
+    ausentes = fila.get("factores_ausentes")
+    if isinstance(ausentes, dict):
+        fila["factores_ausentes"] = sorted(ausentes)
+    elif isinstance(ausentes, str):
+        fila["factores_ausentes"] = [ausentes]
+    detalle = fila.get("detalle_calculo")
+    if detalle is not None and not isinstance(detalle, dict):
+        fila["detalle_calculo"] = {"valor": detalle}
+    return fila
+
+
 class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
 
     def __init__(self, db: Session) -> None:
@@ -71,7 +93,7 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
     def listar_riesgo_contagio(self, *, ids_fincas, nivel_riesgo, desde, hasta, limite):
         filas = self._leer(_SQL_CONTAGIO, ids_fincas=ids_fincas, nivel=nivel_riesgo,
                            desde=desde, hasta=hasta, limite=limite)
-        return [RiesgoContagioMonitor(**f) for f in filas]
+        return [RiesgoContagioMonitor(**_normalizar_contagio(f)) for f in filas]
 
     def _leer(self, sql, *, ids_fincas, **parametros):
         try:

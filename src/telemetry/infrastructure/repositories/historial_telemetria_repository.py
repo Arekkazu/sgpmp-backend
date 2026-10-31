@@ -4,6 +4,10 @@
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-09 RF-58/59: unidad del catálogo I3P-1 antes que la reportada por la lectura |
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-59: filtros (código, área, activo), estadísticas por umbral y alertas |
+# | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del sensor o activo del periodo aunque no estén en las lecturas |
+# | 2026-10-30 | Arekkazu | INC-M04-226-G117 RF-59: alertas del periodo con SQL fijo y parámetros (Bearer CWE-89) |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
+# | 2026-10-31 | Claude | INC-M03-242-G117 RF-59: alertas correlacionadas por fecha del evento, no de generación |
 from __future__ import annotations
 
 from datetime import datetime, time, timedelta
@@ -144,9 +148,17 @@ LEFT JOIN modulo9.infraestructuras i
 LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = vl_lat.id_activo_biologico
 LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
 LEFT JOIN LATERAL (
+    -- N-06: sin activo vinculado se usa el umbral de una especie del área, igual que el
+    -- semáforo de cada lectura (consultar_historial_use_case). Antes esas lecturas no
+    -- contaban y el resumen quedaba en "—".
     SELECT true AS existe, ua.id_umbral_ambiental
     FROM modulo9.umbrales_ambientales ua
-    WHERE ua.id_especie = ab.id_especie AND ua.id_variable_ambiental = t.id_variable AND ua.es_activo
+    WHERE ua.id_variable_ambiental = t.id_variable AND ua.es_activo
+      AND (ua.id_especie = ab.id_especie
+           OR (ab.id_especie IS NULL AND ua.id_especie IN (
+               SELECT ie.id_especie FROM modulo9.infraestructuras_especies ie
+               WHERE ie.id_infraestructura = i.id_infraestructura)))
+    ORDER BY ua.id_especie
     LIMIT 1
 ) um ON true
 LEFT JOIN LATERAL (
@@ -220,14 +232,25 @@ LIMIT :max_vacios
 """
 
 # RF-59 Salida 5 / CA-8 (INC-M03-186-G117): alertas de RF-57 del periodo ligadas a las
-# lecturas que cumplen los filtros (mismo alcance de finca que el historial).
+# lecturas que cumplen los filtros (mismo alcance de finca que el historial). Fase 4
+# (INC-M04-226-G117): también las del sensor o activo consultado ocurridas en el periodo,
+# aunque su lectura no esté en el resultado o no tengan lectura asociada.
 _ALERTAS_HISTORIAL = """
 SELECT al.id_alerta, al.tipo_alerta::text AS tipo_alerta, al.severidad::text AS severidad,
        COALESCE(al.fecha_generacion, al.fecha_evento) AS timestamp_generacion,
        al.tipo_variable AS variable_afectada, al.estado_alerta::text AS estado_final
 FROM modulo3.alertas al
 WHERE al.tipo_alerta::text <> 'TECNICA'
-  AND al.id_telemetria IN ({ids_lecturas})
+  AND (al.id_telemetria IN ({ids_lecturas})
+       -- G117 (#883): "ocurrieron en el periodo" es cuándo pasó el evento, no cuándo se generó la
+       -- alerta: una alerta del 12/05 generada después quedaba fuera de un historial del 11 al 13/05.
+       OR (COALESCE(al.fecha_evento, al.fecha_generacion) >= :fecha_inicio
+           AND COALESCE(al.fecha_evento, al.fecha_generacion) < :fecha_fin_ex
+           AND (al.id_sensor = CAST(:alerta_sensor_id AS integer)
+                OR al.id_activo_biologico = CAST(:alerta_id_activo AS integer))
+           AND (CAST(:alerta_ids_fincas AS integer[]) IS NULL
+                OR al.id_infraestructura IN (SELECT i2.id_infraestructura FROM modulo9.infraestructuras i2
+                                             WHERE i2.id_finca = ANY(CAST(:alerta_ids_fincas AS integer[]))))))
 ORDER BY timestamp_generacion DESC
 LIMIT :max_alertas
 """
@@ -364,6 +387,10 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
         sql_ids, params = _build_query(filtros, _COUNT_HISTORIAL.replace('SELECT COUNT(*)', 'SELECT t.id_telemetria', 1))
         params = {k: v for k, v in params.items() if k not in ('por_pagina', 'offset')}
         params['max_alertas'] = _MAX_ALERTAS
+        # Sin sensor ni activo las dos igualdades con NULL son falsas: solo las alertas de las lecturas.
+        params['alerta_sensor_id'] = filtros.sensor_id
+        params['alerta_id_activo'] = filtros.id_activo_biologico
+        params['alerta_ids_fincas'] = filtros.ids_fincas_permitidas
         filas = self.db.execute(text(_ALERTAS_HISTORIAL.format(ids_lecturas=sql_ids)), params).mappings().all()
         return [AlertaCorrelacionada(**f) for f in filas]
 

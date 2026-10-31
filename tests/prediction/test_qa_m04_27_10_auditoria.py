@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU05 H-03, CU06 H-02, CU09 H-01/H-02/H-03 RF-69/70/73 |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-70: el despliegue trae el nombre del dispositivo |
 """Reporte de pruebas manuales M04 (27-10): eventos de auditoría y activación.
 
 CU09 H-01: los eventos del catálogo de patologías llegan sin id_patologia y quedan
@@ -164,6 +165,9 @@ def test_despliegues_traen_nombre_de_version_y_de_la_anterior():
 
     class _DbVersiones:
         def execute(self, sentencia):
+            # T-18: además de las versiones se resuelve el nombre del dispositivo.
+            if "dispositivos_iot" in str(sentencia):
+                return type("R", (), {"all": lambda _s: [(347, "Edge galpón 2", "EDGE-QA-02")]})()
             assert "versiones_modelos" in str(sentencia)
             return type("R", (), {"all": lambda _s: [(43, "qa-sem-aprobado-medianas-v1.1"), (44, "qa-v1.0")]})()
 
@@ -178,3 +182,4 @@ def test_despliegues_traen_nombre_de_version_y_de_la_anterior():
     (respuesta,) = _con_nombre_version(_DbVersiones(), [DespliegueOtaResponse.from_entity(despliegue)])
     assert respuesta.nombre_version == "qa-sem-aprobado-medianas-v1.1"
     assert respuesta.nombre_version_anterior == "qa-v1.0"
+    assert respuesta.nombre_dispositivo == "Edge galpón 2"

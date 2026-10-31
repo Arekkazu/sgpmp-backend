@@ -1,8 +1,12 @@
+# | Fecha      | Nombre   | Que se hizo                                                  |
+# |------------|----------|--------------------------------------------------------------|
+# | 2026-10-30 | Arekkazu | INC-M03-137-G09 RF-24: offset negativo validado contra su propio límite |
 """Caso de uso: Registrar calibración de sensor (POST /{id}/calibrar RF-24).
 
 Valida: dispositivo activo, sensor pertenece al dispositivo, sensor tiene
-asociación activa con el área indicada, y que valor_referencia/offset caigan
-dentro del rango de seguridad definido para el tipo de sensor (categoria).
+asociación activa con el área indicada, que valor_referencia caiga dentro del
+rango de seguridad del tipo de sensor (categoria) y que el offset no supere ± la
+amplitud de ese rango (es una corrección y puede ser negativo).
 
 RF-24 v1.1 (RFC-006, OWASP A09): todo intento rechazado (404/422/400 aquí, 403 en
 el router) queda en el historial de RF-10 con resultado FALLIDO.
@@ -267,8 +271,7 @@ class RegistrarCalibracionUseCase:
         # RF-24: rango de seguridad por tipo de sensor (categoria).
         rango = self.rango_repo.obtener_por_categoria(sensor.categoria) if sensor.categoria else None
         if rango is not None:
-            for campo, candidato in (("valor_referencia", valor), ("offset", offset)):
-                viol = rango.verificar(candidato)
+            for campo, viol in (("valor_referencia", rango.verificar(valor)), ("offset", rango.verificar_offset(offset))):
                 if viol is not None:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",

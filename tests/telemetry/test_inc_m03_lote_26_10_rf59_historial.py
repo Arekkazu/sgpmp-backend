@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M03 lote 26-10 RF-58/59: combinaciones, variables, E3, series, filtros y 422 |
+# | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato solos |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: el fake de umbral responde también por área |
 """RF-59 (INC-M03-180..193): combinaciones de la Restricción 12, varias variables,
 estado vacío, series, filtros de área/activo y 422 en parámetros inválidos."""
 from __future__ import annotations
@@ -59,6 +61,9 @@ class _Umbral:
     def obtener_umbral_vigente(self, **kw):
         return None
 
+    def obtener_umbral_vigente_area(self, **kw):  # M3-09/N-06
+        return None
+
 
 def _filtros(**cambios):
     base = dict(fecha_inicio=date(2026, 10, 18), fecha_fin=date(2026, 10, 25))
@@ -75,6 +80,8 @@ def _ejecutar(repo, **filtros):
     dict(especie='Tilapia'), dict(tipo_variable='X', id_infraestructura=1), dict(tipo_variable='X', especie='E'),
     dict(sensor_id=1, estado_dato='LECTURA_VALIDA'), dict(categoria_variable='AMBIENTAL', id_infraestructura=1),
     dict(id_activo_biologico=829),
+    # INC-M04-225-G112 (#860): filtros opcionales de las Entradas, usados solos.
+    dict(categoria_variable='HIDRICA'), dict(estado_dato='FUERA_DE_RANGO'), dict(origen_dato='BUFFER_LOCAL'),
 ])
 def test_combinaciones_de_la_restriccion_12_se_aceptan(filtros):
     _ejecutar(_Repo(), **filtros)

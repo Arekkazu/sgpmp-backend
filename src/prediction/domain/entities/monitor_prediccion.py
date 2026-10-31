@@ -1,6 +1,8 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
+# | 2026-10-30 | Arekkazu | RF-66: modo_sombra del resultado                                   |
 """Read-models del monitor de predicción (RF-66) y del riesgo de contagio (RF-68).
 
 El monitor y la pestaña de contagio pintaban datos simulados (monitorMock.ts,
@@ -43,6 +45,9 @@ class InferenciaMonitor:
     fecha_inferencia: datetime
     tiene_alerta_generada: bool
     id_alerta_generada: Optional[int]
+    modo_sombra: bool
+    # T-18: probabilidad_enfermedad viene por id_patologia ("8"); su nombre para mostrarlo.
+    nombres_patologias: Optional[dict] = None
 
 
 @dataclass(frozen=True)

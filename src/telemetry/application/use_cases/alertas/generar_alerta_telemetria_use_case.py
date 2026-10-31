@@ -2,6 +2,7 @@
 # |------------|---------|--------------------------------------------------|
 # | 2026-10-21 | Leandro | DEV-41 RF-53/57: alerta critica del origen confirmado |
 # | 2026-10-26 | Arekkazu | INC-M03-179-G57F RF-57: la alerta guarda el umbral que la disparó en reglas_activas |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/M3-12 RF-57/58: sin activo se clasifica con la especie del área |
 """Orquesta RF-17 → RF-57 dentro de la unidad post-commit existente."""
 from src.shared.errors import ServiceUnavailableError
 from src.telemetry.domain.entities.alerta import regla_umbral
@@ -24,8 +25,11 @@ class GenerarAlertaTelemetriaUseCase:
         if self.lecturas.evaluacion_vigente(identificador) is None:
             raise ServiceUnavailableError('CALIDAD_PENDIENTE', 'Falta la evaluación vigente RF-62.')
         vinculo = self.lecturas.vinculacion(identificador)
-        if vinculo is None or vinculo['id_activo_biologico'] is None:
+        if vinculo is None:
             raise ServiceUnavailableError('CONTEXTO_ALERTA_PENDIENTE', 'Falta resolver el contexto RF-61 para clasificar la lectura.')
+        # M3-12: sin activo (sensor ambiental del área) se clasifica con la especie del área.
+        # Antes esto también era CONTEXTO_ALERTA_PENDIENTE: la lectura nunca tendrá activo,
+        # así que se reintentaba para siempre y dejaba millones de FALLIDO en la bitácora.
         clasificacion = self.clasificador.clasificar_lectura(identificador, vinculo['id_activo_biologico'])
         if clasificacion is None:
             return {'decision': 'SIN_CLASIFICACION_RF17'}

@@ -10,6 +10,7 @@
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
 # | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
+# | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: reevalúa eventos pendientes cuando la regla ya tiene umbral |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
 # | 2026-10-26 | Arekkazu | FW-06 RF-60: la etapa de diagnostico devuelve su resultado a la bitacora |
@@ -38,6 +39,11 @@ from src.telemetry.application.use_cases.ingesta.procesar_postcommit_use_case im
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
 from src.telemetry.application.use_cases.alertas.generar_alerta_telemetria_use_case import GenerarAlertaTelemetriaUseCase
+from src.telemetry.application.use_cases.alertas.reprocesar_pendientes_e9_use_case import ReprocesarPendientesE9UseCase
+from src.telemetry.infrastructure.adapters.variable_alerta_m09_adapter import VariableAlertaM09Adapter
+from src.telemetry.infrastructure.adapters.lectura_companera_m03_adapter import LecturaCompaneraM03Adapter
+from src.telemetry.infrastructure.adapters.contexto_activo_alerta_m02_adapter import ContextoActivoAlertaM02Adapter
+from src.telemetry.infrastructure.adapters.umbral_configurado_m09_adapter import UmbralConfiguradoM09Adapter
 from src.telemetry.domain.repositories.postcommit_port import EtapaPostcommit
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_vision_use_case import EvaluarCalidadVisionUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_ventanas_vision_use_case import EvaluarVentanasVisionUseCase
@@ -175,6 +181,29 @@ def construir_procesador(engine_bd=engine, *, identidad=True, parametros_heartbe
     )
 
 
+def _generar_alerta_rf57(db):
+    """Mismo ensamblado que POST /iot/alertas (alerta_router._build_generar_use_case)."""
+    return GenararAlertaUseCase(
+        db, SqlAlchemyAlertaRepository(db), SqlAlchemyHistoricoEstadoAlertaRepository(db),
+        SqlAlchemyReglaAlertaRepository(db), ParametrosAlertasMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        variable_port=VariableAlertaM09Adapter(db), lectura_port=LecturaCompaneraM03Adapter(db),
+        contexto_port=ContextoActivoAlertaM02Adapter(db), umbral_port=UmbralConfiguradoM09Adapter(db),
+    )
+
+
+def reprocesar_pendientes_e9(engine_bd=engine, *, identidad=True, limite=20):
+    """RF-57 E9 (#878): reevalúa los eventos PENDIENTE_EVALUACION cuya regla ya se configuró."""
+    with unidad_postcommit(engine_bd, identidad=identidad) as unidad:
+        db = unidad.db
+        resumen = ReprocesarPendientesE9UseCase(
+            db, SqlAlchemyAlertaRepository(db), UmbralConfiguradoM09Adapter(db),
+            lambda: _generar_alerta_rf57(db), SqlAlchemyBitacoraAuditoriaIotRepository(db),
+        ).execute(limite)
+        unidad.confirmar()
+    return resumen
+
+
 async def procesar_postcommit_periodicamente():
     procesador = construir_procesador(
         limite=int(os.getenv('IOT_POSTCOMMIT_LOTE', '50')),
@@ -194,4 +223,11 @@ async def procesar_postcommit_periodicamente():
             raise
         except Exception:
             logger.exception('No se pudo consultar el trabajo postcommit; se reintentará.')
+        # RF-57 E9 (#878): un evento sin regla se reevalúa solo cuando la regla ya existe.
+        try:
+            await asyncio.to_thread(reprocesar_pendientes_e9)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception('No se pudieron reevaluar los eventos E9 pendientes; se reintentará.')
         await asyncio.sleep(intervalo)

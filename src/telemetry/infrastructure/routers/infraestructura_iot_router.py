@@ -9,6 +9,7 @@
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: aplicar el alcance por finca existente a la consulta de estado usada por G27. |
 # | 2026-10-29 | Arekkazu | TC-DIS-148 RF-54: listado del buffer de todos los dispositivos del alcance |
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: filtros del listado validados contra el catálogo (400 VAL_ENTRADA) |
+# | 2026-10-31 | Arekkazu | CP58 RF-60: nombre del responsable de cada transición de estado |
 """Router FastAPI para infraestructura IoT y alertas técnicas.
 
 RF-60 — CU05 Dev scope:
@@ -29,6 +30,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.broker_auth import require_token_servicio_broker
@@ -72,6 +74,22 @@ from src.telemetry.infrastructure.schema.estado_buffer_schema import EstadoBuffe
 
 router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 
+
+
+def _con_responsable(db: Session, historial: list[HistoricoTransicionSchema]) -> list[HistoricoTransicionSchema]:
+    """CP58: nombre de quien hizo cada transición manual (una consulta por respuesta)."""
+    ids = list({h.id_usuario_responsable for h in historial if h.id_usuario_responsable is not None})
+    if not ids:
+        return historial
+    try:
+        nombres = dict(db.execute(text(
+            "SELECT id_usuario, trim(nombre || ' ' || coalesce(apellidos, '')) FROM modulo1.usuarios "
+            "WHERE id_usuario = ANY(:ids)"), {'ids': ids}).all())
+    except Exception:
+        return historial  # el nombre es de presentación; la transición sale con su id
+    for h in historial:
+        h.nombre_usuario_responsable = nombres.get(h.id_usuario_responsable)
+    return historial
 
 @router.post(
     "/heartbeat",
@@ -181,7 +199,7 @@ def obtener_estado_dispositivo(
     )
     return EstadoDispositivoDetalleSchema(
         estado=EstadoDispositivoIoTSchema.model_validate(resultado.estado),
-        historial=[HistoricoTransicionSchema.model_validate(t) for t in resultado.historial],
+        historial=_con_responsable(db, [HistoricoTransicionSchema.model_validate(t) for t in resultado.historial]),
     )
 
 
@@ -204,7 +222,7 @@ def listar_historial_dispositivo(
 ) -> list[HistoricoTransicionSchema]:
     repo = SqlAlchemyHistoricoTransicionDispositivoRepository(db)
     transiciones = repo.listar_por_dispositivo(id_dispositivo_iot, limite=limite)
-    return [HistoricoTransicionSchema.model_validate(t) for t in transiciones]
+    return _con_responsable(db, [HistoricoTransicionSchema.model_validate(t) for t in transiciones])
 
 
 @router.patch(

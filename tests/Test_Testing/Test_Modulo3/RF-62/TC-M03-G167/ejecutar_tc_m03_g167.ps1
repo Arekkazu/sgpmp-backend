@@ -77,8 +77,17 @@ if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resul
 if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
 
 $collectionPath = Join-Path $scriptDir "test_tc_m03_g167.json"
-$reportHtml     = Join-Path $resultadosDir "resultado_TC-M03-G167.html"
-$consoleLog     = Join-Path $evidenciasDir "console_run.log"
+$sufijo = ""
+if (Test-Path "$resultadosDir/resultado_TC-M03-G167_reintento1.json") {
+    $n = 1
+    while (Test-Path "$resultadosDir/resultado_TC-M03-G167_reintento$($n+1).json") { $n++ }
+    $sufijo = "_reintento$($n+1)"
+} elseif (Test-Path "$resultadosDir/resultado_TC-M03-G167.json") {
+    $sufijo = "_reintento1"
+}
+
+    $reportHtml     = Join-Path $resultadosDir "resultado_TC-M03-G167$sufijo.html"
+    $consoleLog     = Join-Path $evidenciasDir "console_run$sufijo.log"
 
 if (-not (Test-Path $collectionPath)) {
     Write-Host "ERROR: no se encontró $collectionPath" -ForegroundColor Red
@@ -89,6 +98,7 @@ if (-not (Test-Path $collectionPath)) {
 # Construir args de Newman
 $newmanArgs = @(
     "run", $collectionPath,
+    "--timeout-request", "45000",
     "--env-var", "baseUrl=$BaseUrl",
     "--env-var", "run_id=$runId",
     "--env-var", "sandbox_secret=$sandboxSecret",
@@ -96,7 +106,7 @@ $newmanArgs = @(
     "--env-var", "broker_token=$brokerToken",
     "-r", "cli,htmlextra",
     "--reporter-htmlextra-export", $reportHtml,
-    "--reporter-htmlextra-title", "TC-M03-G167 — Detección de drift (RF-62)",
+    "--reporter-htmlextra-title", "TC-M03-G167 - Deteccion de drift (RF-62) $sufijo",
     "--reporter-htmlextra-omitRequestBodies",
     "--reporter-htmlextra-omitHeaders",
     "--reporter-htmlextra-hideRequestBody", "00.01-Login-Admin",

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU06 H-02 RF-70: nombre de la versión desplegada |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-70: nombre del dispositivo en los despliegues |
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,6 +20,8 @@ class DespliegueOtaResponse(BaseModel):
     # CU06 H-02: sin el nombre, la pantalla mostraba "v43" y no se sabía qué modelo se desplegó.
     nombre_version: Optional[str] = None
     id_dispositivo_iot: int
+    # T-18: nombre del equipo (descripción o serial), no "#347".
+    nombre_dispositivo: Optional[str] = None
     tipo_modelo: str
     paradigma: Optional[str] = None
     componente: Optional[str] = None

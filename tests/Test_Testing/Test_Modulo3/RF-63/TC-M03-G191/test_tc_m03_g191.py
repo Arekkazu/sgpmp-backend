@@ -1,3 +1,6 @@
+# | Fecha      | Nombre                   | Que se hizo                                                                   |
+# |------------|--------------------------|-------------------------------------------------------------------------------|
+# | 2026-10-30 | Juan Sebastian Gutierrez | TC-M03-G191 RF-63: correccion payload test_367b y skip documentado test_367c |
 """TC-M03-G191 — Tests de CA-13 (tolerancia a eventos incompletos).
 
 Origen: migracion de Newman a Pytest por Restriccion 4.4 de RF-63
@@ -62,8 +65,8 @@ def test_367b_sin_componente_origen_se_registra_incompleto(db_session):
     use_case = construir_use_case(db_session)
     payload = payload_base_completo()
     payload["componente_origen"] = None
-    payload["registro_incompleto"] = True  # debe venir del llamador
-    payload["accion_detallada"] = {"campo_faltante": "componente_origen"}
+    payload["registro_incompleto"] = False  # El use case debe detectarlo de forma autonoma
+    payload["accion_detallada"] = None      # El use case debe autoconstruir campos_faltantes
     payload["descripcion"] = "TEST_367b_sin_componente_origen"
 
     try:
@@ -79,8 +82,19 @@ def test_367b_sin_componente_origen_se_registra_incompleto(db_session):
 
     registro = buscar_evento_por_descripcion(db_session, "TEST_367b_sin_componente_origen")
     assert registro is not None, "Evento sin componente_origen NO persistido"
-    assert registro.registro_incompleto is True
-    assert registro.componente_origen is None
+    assert registro.registro_incompleto is True, (
+        f"registro_incompleto esperado=True, obtenido={registro.registro_incompleto}"
+    )
+    assert registro.componente_origen is None, (
+        f"componente_origen esperado=None, obtenido={registro.componente_origen}"
+    )
+    assert registro.accion_detallada is not None, "accion_detallada no debe ser None"
+    assert "campos_faltantes" in registro.accion_detallada, (
+        f"campos_faltantes no encontrado en accion_detallada: {registro.accion_detallada}"
+    )
+    assert "rf_origen" in registro.accion_detallada["campos_faltantes"], (
+        f"'rf_origen' no encontrado en campos_faltantes: {registro.accion_detallada['campos_faltantes']}"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -88,13 +102,13 @@ def test_367b_sin_componente_origen_se_registra_incompleto(db_session):
 # ═══════════════════════════════════════════════════════════════
 def test_367c_sin_timestamp_se_registra_incompleto(db_session):
     """CA-13: evento sin timestamp_evento debe persistirse.
-    GAP conocido: use_case autogenera fecha_hora con now(). No es
-    parametrizable. El test no es ejecutable sin ese parametro.
+    Decisión de diseño en commit 79075257a4 (2026-10-25): fecha_evento por omisión
+    toma datetime.now(timezone.utc) y no se evalúa como faltante.
     """
     pytest.skip(
-        "GAP 2: use_case.execute() no expone parametro fecha_hora; "
-        "siempre asigna datetime.now(). No es posible simular 'evento sin "
-        "timestamp_evento' desde el llamador. Requiere cambio en el use case."
+        "Decisión de diseño de Desarrollo (commit 79075257a4, 2026-10-25): "
+        "fecha_evento opcional con fallback a now(timezone.utc). No se considera "
+        "campo faltante ni activa registro_incompleto=True. Caso no evaluable como incompleto."
     )
 
 

@@ -1,41 +1,142 @@
-# Runner PowerShell para TC-M03-G192 (Calidad Visión RFC-011 - BLOQUEADO POR ENDPOINT NO IMPLEMENTADO)
-param(
-    [string]$BaseUrl = "https://api.inmero.co/back-sigab-test"
+# | Fecha      | Nombre   | Que se hizo                                                 |
+# |------------|----------|-------------------------------------------------------------|
+# | 2026-10-30 | QA Senior | Runner PowerShell TC-M03-G192 (AIOT-SPEC-01 RF-62 V1 Oficial)|
+# | 2026-10-30 | QA Senior | Configuración para reintentos futuros (_reintento1)         |
+<#
+.SYNOPSIS
+    Runner PowerShell para TC-M03-G192 (Calidad de observaciones de VISIÓN, AIOT-SPEC-01).
+.DESCRIPTION
+    Ejecuta la colección Newman de TC-M03-G192 bajo Sandbox transaccional.
+    Subcasos: TC-369 a TC-373 + Extras (configurabilidad, evento RF-63).
+.PARAMETER BaseUrl
+    URL base de la API. Por defecto https://www.api.inmero.co/api-sgpmp-test.
+.EXAMPLE
+    .\ejecutar_tc_m03_g192.ps1
+#>
+[CmdletBinding()]
+param (
+    [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 )
 
-$CurrentDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ResultadosDir = Join-Path $CurrentDir "resultados"
+$ErrorActionPreference = "Stop"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-if (-not (Test-Path $ResultadosDir)) {
-    New-Item -ItemType Directory -Path $ResultadosDir -Force | Out-Null
+# Cargar .env.test si existe
+$envTestPath = Join-Path $scriptDir "..\..\..\..\..\.env.test"
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = Join-Path $scriptDir "..\..\..\..\.env.test"
+}
+if (-not (Test-Path $envTestPath)) {
+    $envTestPath = ".env.test"
 }
 
-$Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$RunDir = Join-Path $CurrentDir "RESULTADOS/run-$Timestamp"
-New-Item -ItemType Directory -Path $RunDir -Force | Out-Null
-
-Write-Host "==========================================================" -ForegroundColor Magenta
-Write-Host "  EJECUTANDO RUNNER TC-M03-G192 (RFC-011 Calidad Vision)" -ForegroundColor Magenta
-Write-Host "==========================================================" -ForegroundColor Magenta
-
-Write-Host "[BLOQUEADO] Endpoint para evaluación de calidad de observaciones de visión computacional NO IMPLEMENTADO." -ForegroundColor Red
-Write-Host "  - OpenAPI y backend solo exponen evaluación de telemetría escalar (POST /iot/calidad/{id_telemetria}/evaluar en calidad_router.py:105)." -ForegroundColor Yellow
-Write-Host "  - No existe /iot/calidad/vision/{id}/evaluar ni caso de uso asociado a RFC-011 en backend TEST." -ForegroundColor Yellow
-Write-Host "  - Subcasos TC-369 a TC-373 marcados como BLOQUEADOS con motivo explícito." -ForegroundColor Yellow
-Write-Host "`nReporte detallado disponible en: resultados/resultado_TC-M03-G192.html" -ForegroundColor Cyan
-
-Copy-Item (Join-Path $ResultadosDir "resultado_TC-M03-G192.html") (Join-Path $RunDir "resultado_TC-M03-G192.html") -Force -ErrorAction SilentlyContinue
-
-Write-Host "`nConsultando estado en qa-dashboard scanner..." -ForegroundColor Yellow
-$DashboardDir = Join-Path $CurrentDir "../../../qa-dashboard"
-if (Test-Path $DashboardDir) {
-    Push-Location $DashboardDir
-    try {
-        python3 -c "import scanner as s; print([c for c in s.scan()['casos'] if c['tc_id']=='TC-M03-G192'])"
-    } catch {
-        Write-Warning "No se pudo ejecutar scanner: $_"
+if (Test-Path $envTestPath) {
+    Get-Content $envTestPath | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $parts = $line.Split("=", 2)
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            if (-not [System.Environment]::GetEnvironmentVariable($k)) {
+                [System.Environment]::SetEnvironmentVariable($k, $v, "Process")
+            }
+        }
     }
-    Pop-Location
 }
 
-exit 0
+$sandboxSecret  = [System.Environment]::GetEnvironmentVariable("TEST_SANDBOX_SECRET")
+$adminPassword  = [System.Environment]::GetEnvironmentVariable("TEST_ADMIN_PASSWORD")
+$brokerToken    = [System.Environment]::GetEnvironmentVariable("BROKER_SERVICE_TOKEN")
+if (-not $brokerToken) {
+    $brokerToken = [System.Environment]::GetEnvironmentVariable("BROKER_TOKEN")
+}
+
+if (-not $sandboxSecret) {
+    Write-Error "TEST_SANDBOX_SECRET no configurada. Abortando."
+}
+if (-not $adminPassword) {
+    Write-Error "TEST_ADMIN_PASSWORD no configurada. Abortando."
+}
+if (-not $brokerToken) {
+    Write-Error "BROKER_SERVICE_TOKEN (o BROKER_TOKEN) no configurada. Abortando."
+}
+
+$collectionPath = Join-Path $scriptDir "test_tc_m03_g192.json"
+if (-not (Test-Path $collectionPath)) {
+    Write-Error "Colección no encontrada: $collectionPath. Ejecutá 'node build_collection.cjs' primero."
+}
+
+$runId = "test-g192-" + [System.Guid]::NewGuid().ToString().Substring(0, 8)
+
+$resultadosDir = Join-Path $scriptDir "resultados"
+$evidenciasDir = Join-Path $scriptDir "evidencias"
+if (-not (Test-Path $resultadosDir)) { New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null }
+if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null }
+
+$runDate = Get-Date -Format "yyyyMMdd"
+$runEvidenciasDir = Join-Path $evidenciasDir "run-$runDate"
+if (-not (Test-Path $runEvidenciasDir)) {
+    New-Item -ItemType Directory -Path $runEvidenciasDir -Force | Out-Null
+}
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G192_reintento1.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G192_reintento1.json"
+$consoleLog = Join-Path $runEvidenciasDir "console_run.log"
+
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "TC-M03-G192 - Calidad de observaciones de VISION (Reintento 1)" -ForegroundColor Cyan
+Write-Host "BaseUrl:      $BaseUrl"
+Write-Host "Run ID:       $runId"
+Write-Host "Coleccion:    $collectionPath"
+Write-Host "Reporte HTML: $reportHtml"
+Write-Host "Reporte JSON: $reportJson"
+Write-Host "==========================================================" -ForegroundColor Cyan
+
+$newmanArgs = @(
+    "run", $collectionPath,
+    "--timeout-request", "45000",
+    "--env-var", "baseUrl=$BaseUrl",
+    "--env-var", "run_id=$runId",
+    "--env-var", "sandbox_secret=$sandboxSecret",
+    "--env-var", "admin_password=$adminPassword",
+    "--env-var", "broker_token=$brokerToken",
+    "-r", "cli,htmlextra,json",
+    "--reporter-htmlextra-export", $reportHtml,
+    "--reporter-json-export", $reportJson,
+    "--reporter-htmlextra-title", "TC-M03-G192 - Calidad de observaciones de VISION (Reintento 1)",
+    "--reporter-htmlextra-omitRequestBodies",
+    "--reporter-htmlextra-omitHeaders"
+)
+
+$exitCode = 0
+try {
+    & npx -y newman @newmanArgs 2>&1 | Tee-Object -FilePath $consoleLog
+    $exitCode = $LASTEXITCODE
+} catch {
+    Write-Warning "Fallo durante la ejecucion de Newman: $_"
+    $exitCode = 1
+} finally {
+    Write-Host "`nVerificando cierre de sandbox..." -ForegroundColor Cyan
+    try {
+        $delUri = "$BaseUrl/test-control/runs/$runId"
+        $delHeaders = @{ "X-Sandbox-Secret" = $sandboxSecret }
+        $delResp = Invoke-RestMethod -Method DELETE -Uri $delUri -Headers $delHeaders -ErrorAction SilentlyContinue
+        Write-Host "Sandbox cerrado via runner: $($delResp | ConvertTo-Json -Compress)" -ForegroundColor Green
+    } catch {
+        Write-Host "Sandbox ya habia sido cerrado por la coleccion." -ForegroundColor Gray
+    }
+}
+
+Write-Host "`nConsolidando resultados en formato normativo (checkpoints)..." -ForegroundColor Cyan
+$consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
+if (Test-Path $consolidarScript) {
+    & node $consolidarScript --input $reportJson --output $reportJson
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Fallo durante la consolidacion de resultados."
+        $exitCode = 1
+    }
+} else {
+    Write-Warning "Script consolidador no encontrado: $consolidarScript"
+}
+
+exit $exitCode
+
