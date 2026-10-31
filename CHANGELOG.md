@@ -1,3 +1,9 @@
+## [1.4.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.24...v1.4.0-rc.25) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** solicitar el reentrenamiento del modelo individual queda en la auditoría ([5cd1583](https://github.com/Arekkazu/sgpmp-backend/commit/5cd15831cdacdd078e0da014fee2b8e457f7f2d3))
+
 ## [1.4.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.23...v1.4.0-rc.24) (2026-10-31)
 
 ### Features
