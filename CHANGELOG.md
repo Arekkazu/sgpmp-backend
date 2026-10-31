@@ -1,3 +1,22 @@
+## [1.4.0-rc.21](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.20...v1.4.0-rc.21) (2026-10-31)
+
+### Features
+
+* **rf57-telemetry:** accion sugerida en las alertas ambientales segun variable y direccion del valor (M3-06) ([ed6341f](https://github.com/Arekkazu/sgpmp-backend/commit/ed6341f68124b9b8890e4482d795186fc294e477))
+* **rf60-telemetry:** las transiciones de estado traen el nombre del responsable (CP58) ([88f5071](https://github.com/Arekkazu/sgpmp-backend/commit/88f5071b86cd05c0aa552e6edbcff57e42d1a168))
+* **rf61-telemetry:** filtro por modelo de manejo y rango de fechas invertido rechazado en vinculaciones (CP74, CP84) ([f9cc82e](https://github.com/Arekkazu/sgpmp-backend/commit/f9cc82e30fbe28b343611191031fe98f8f6bbd52))
+* **rf62-telemetry:** las evaluaciones de calidad traen el sensor y la lectura por nombre (T-18) ([22fe85a](https://github.com/Arekkazu/sgpmp-backend/commit/22fe85a6b1a3699d00696bfdeae7bec0ed8f0bc6))
+* **rf70-prediction:** equipos objetivo compatibles con el tipo de modelo y nombre del dispositivo en los despliegues (M4-05, T-18) ([9ac1e36](https://github.com/Arekkazu/sgpmp-backend/commit/9ac1e3626a95a5a379dc6574467326fb011b9238))
+
+### Bug Fixes
+
+* **rf57-telemetry:** sin activo vinculado el semaforo y la alerta usan la especie del area (M3-12, M3-09, N-06) ([87faa25](https://github.com/Arekkazu/sgpmp-backend/commit/87faa25c88668a199731265aed37f3def82dcc1d))
+* **rf58-telemetry:** conectividad viva del dispositivo y contador de alertas por area con el criterio del panel (CP06, M3-08) ([41d798d](https://github.com/Arekkazu/sgpmp-backend/commit/41d798d2e07ab4fffb45c7ba434e5780a732b101))
+* **rf59-telemetry:** mas de 90 dias solo con filtro de variable, sensor o especie e indices del historial (TC-DIS-160, CP17) ([04fd2f9](https://github.com/Arekkazu/sgpmp-backend/commit/04fd2f918136d426488bed661f082de89e143a84))
+* **rf63-telemetry:** sin permiso de datos tecnicos la bitacora IoT solo muestra y exporta registros NIC 41 (M3-14) ([b950743](https://github.com/Arekkazu/sgpmp-backend/commit/b9507439046c797e10e4e4b0c2779662582ece85))
+* **rf64-prediction:** las patologias solo admiten las 11 variables del RF-64 (M4-02) ([50a02b4](https://github.com/Arekkazu/sgpmp-backend/commit/50a02b4e84fc3c0950c3d7dc5c4d6dec0528c644))
+* **rf68-prediction:** el listado de contagio tolera JSONB con otra forma y las inferencias traen el nombre de cada patologia (N-04, T-18) ([6b1d789](https://github.com/Arekkazu/sgpmp-backend/commit/6b1d7893cedd4c01b9f1ee36aefb80d430d59486))
+
 ## [1.4.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.19...v1.4.0-rc.20) (2026-10-31)
 
 ### Bug Fixes
