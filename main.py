@@ -17,6 +17,7 @@
 # | 2026-10-29 | Arekkazu | INC-M03-82-G192 RF-62: router de la política de visión |
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: router de la ventana de retroalimentación |
+# | 2026-10-31 | Arekkazu | PR-891 RF-61: tarea diaria que crea las particiones mensuales de telemetrias |
 import asyncio
 import logging
 import os
@@ -250,6 +251,33 @@ async def _ejecutar_batch_ica_diario() -> None:
             logger.exception("Error en el batch ICA nocturno.")
         finally:
             db.close()
+
+
+async def _asegurar_particiones_telemetrias_diariamente() -> None:
+    """RF-61: crea por adelantado las particiones mensuales de ``modulo3.telemetrias``.
+
+    Corre al iniciar y luego cada 24 h; la función de BD crea el mes actual y los 6
+    siguientes y es idempotente. Si deja de correr más de 6 meses, las lecturas caen
+    en la partición DEFAULT y ese mes ya no se puede particionar sin mover filas.
+    """
+    from sqlalchemy import text
+
+    from src.shared.database import sesion_sistema
+
+    def asegurar() -> None:
+        db = sesion_sistema()
+        try:
+            db.execute(text("SELECT modulo3.fn_asegurar_particiones_telemetrias()"))
+            db.commit()
+        finally:
+            db.close()
+
+    while True:
+        try:
+            await asyncio.to_thread(asegurar)
+        except Exception:
+            logger.exception("Error creando las particiones mensuales de telemetrias.")
+        await asyncio.sleep(24 * 60 * 60)
 
 
 async def _revertir_retiros_vencidos_diariamente() -> None:
@@ -736,6 +764,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_notificar_alertas_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
+        asyncio.create_task(_asegurar_particiones_telemetrias_diariamente()),
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),

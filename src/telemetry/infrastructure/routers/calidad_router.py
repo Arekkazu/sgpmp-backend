@@ -8,6 +8,7 @@
 # | 2026-10-26 | Arekkazu | Lote fixes M03/M04 RF-62: 422 por ruta con la clave común x-codigo-validacion |
 # | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: pasar a RF62 el reloj de la lectura original sin consultar estado actual. |
 # | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: restringir lote al administrador e inyectar contexto y alertas reales. |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-62: sensor y lectura por nombre en calidad |
 """Router FastAPI para evaluación de calidad de telemetría.
 
 RF-62 — CU06 Dev scope:
@@ -25,6 +26,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
+import logging
+
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
@@ -60,8 +64,33 @@ from src.telemetry.infrastructure.schema.telemetria_calidad_schema import (
 )
 from src.shared.fechas import FechaHoraUtc
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/iot/calidad", tags=["Telemetría IoT - Calidad RF-62"])
 
+
+
+def _con_nombres(db: Session, items: list[TelemetriaCalidadSchema]) -> list[TelemetriaCalidadSchema]:
+    """T-18: sensor y lectura por nombre, una consulta por página (mismo patrón que vinculaciones)."""
+    ids = list({e.id_telemetria for e in items})
+    if not ids:
+        return items
+    try:
+        filas = db.execute(text(
+        'SELECT t.id_telemetria, s.nombre, va.nombre, coalesce(t.valor_ajustado, t.valor_crudo), '
+        'coalesce(va.unidad, t.unidad_medida) FROM modulo3.telemetrias t '
+        'LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable '
+        'LEFT JOIN modulo9.sensores s ON s.id_sensores = t.id_sensor '
+        'WHERE t.id_telemetria = ANY(:ids)'), {'ids': ids}).all()
+        lecturas = {f[0]: tuple(f[1:]) for f in filas}
+    except Exception:
+        # Los nombres son de presentación: si no se resuelven, la evaluación sale con sus IDs.
+        logger.warning('No se resolvieron los nombres de sensor y lectura de calidad.', exc_info=True)
+        return items
+    for e in items:
+        e.nombre_sensor, e.nombre_variable, valor, e.unidad_lectura = lecturas.get(e.id_telemetria, (None,) * 4)
+        e.valor_lectura = float(valor) if valor is not None else None
+    return items
 
 @router.get(
     "",
@@ -102,7 +131,7 @@ def listar_calidad(
         total=total,
         pagina=pagina,
         por_pagina=por_pagina,
-        items=[TelemetriaCalidadSchema.model_validate(e) for e in items],
+        items=_con_nombres(db, [TelemetriaCalidadSchema.model_validate(e) for e in items]),
     )
 
 
@@ -126,7 +155,7 @@ def obtener_calidad(
     use_case = ConsultarCalidadUseCase(
         calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
     )
-    return TelemetriaCalidadSchema.model_validate(use_case.get(id_telemetria))
+    return _con_nombres(db, [TelemetriaCalidadSchema.model_validate(use_case.get(id_telemetria))])[0]
 
 
 @router.post(

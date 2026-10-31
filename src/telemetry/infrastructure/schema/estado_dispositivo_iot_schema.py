@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-24 | Arekkazu | USAB-M03 M3-10 RF-60: schema del listado de dispositivos con estado |
+# | 2026-10-31 | Arekkazu | CP58 RF-60: nombre del responsable de cada transición de estado |
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -18,6 +19,8 @@ class HistoricoTransicionSchema(BaseModel):
     causa_primaria: Optional[str] = None
     causa_secundaria: Optional[Any] = None
     id_usuario_responsable: Optional[int] = None
+    # CP58 / T-18: quién hizo la transición manual; sin responsable fue automática.
+    nombre_usuario_responsable: Optional[str] = None
     notas: Optional[str] = None
     fecha_transicion: datetime
 

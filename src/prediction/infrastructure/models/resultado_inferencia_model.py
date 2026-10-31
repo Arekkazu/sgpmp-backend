@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                             |
+# |------------|----------|---------------------------------------------------------|
+# | 2026-10-30 | Arekkazu | RF-66: columna modo_sombra (motor IA)                    |
 from __future__ import annotations
 
 import uuid
@@ -36,3 +39,4 @@ class ResultadoInferenciaModel(Base):
     fecha_inferencia: Mapped[datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     tiene_alerta_generada: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     id_alerta_generada: Mapped[Optional[int]] = mapped_column(Integer)
+    modo_sombra: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))

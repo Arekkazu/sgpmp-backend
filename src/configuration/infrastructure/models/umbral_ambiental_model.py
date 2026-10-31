@@ -1,3 +1,6 @@
+# | Fecha      | Nombre | Que se hizo |
+# |------------|--------|-------------|
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en el umbral |
 """Modelo ORM para `modulo9.umbrales_ambientales` (agregado raíz de CU03 RF-17)."""
 from __future__ import annotations
 
@@ -53,6 +56,8 @@ class UmbralAmbientalModel(Base):
     valor_min: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     valor_max: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
+    # INC-M03-246-G88 (RF-58 Fase 3): tolerancia T del semáforo; NULL = 10 % del rango.
+    tolerancia_semaforo: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
     # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
     # Mismo vocabulario que configuraciones_remotas (RF-23): PENDIENTE (recién
     # guardado o broker inalcanzable) / APLICADA (ACK del Edge) / NO_CONF (se

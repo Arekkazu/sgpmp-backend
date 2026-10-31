@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-09/N-06 RF-59: semáforo y % en rango con el umbral de la especie del área |
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
@@ -23,3 +26,19 @@ class UmbralHistoricoPort(ABC):
         Retorna None si no existe umbral configurado o no se pudo resolver la especie
         (semáforo queda GRIS).
         """
+
+    def obtener_umbral_vigente_area(
+        self,
+        id_variable_ambiental: int,
+        id_infraestructura: Optional[int],
+        timestamp: datetime,
+        id_sensor: Optional[int] = None,
+    ) -> Optional[dict]:
+        """M3-09 / M3-12 / N-06: umbral de una especie del área cuando la lectura no tiene
+        activo vinculado (sensores ambientales de un área). Misma regla que el trigger del
+        dashboard para decidir GRIS: sensor → área → especies del área → umbral. Sin
+        ``id_infraestructura`` se usa el área del sensor vigente en ``timestamp``.
+
+        Por defecto no resuelve (adaptadores de prueba); el adaptador de M09 sí.
+        """
+        return None

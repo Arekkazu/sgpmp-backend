@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-25 | Arekkazu | INC-M04-142-G004/139-G001 RF-64: variables repetidas no cuentan y versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -60,12 +61,13 @@ class RegistrarPatologiaUseCase:
             )
 
         # FA-03: todas las variables existen en I3P-1
-        ids_validos = self._variable_port.obtener_ids_activos(ids_solicitados)
+        # M4-02: activas en I3P-1 y entre las 11 del RF-64.
+        ids_validos = self._variable_port.obtener_ids_para_patologia(ids_solicitados)
         ids_invalidos = [i for i in ids_solicitados if i not in ids_validos]
         if ids_invalidos:
             raise BusinessRuleError(
                 code="VARIABLE_NO_EN_I3P1",
-                message=f"Las siguientes variables no están en el catálogo I3P-1: {ids_invalidos}.",
+                message=f"Las variables {ids_invalidos} no están entre las que admite una patología (RF-64).",
                 field="variables_sensoricas_asociadas",
             )
 
