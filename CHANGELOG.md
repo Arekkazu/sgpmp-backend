@@ -1,3 +1,9 @@
+## [1.4.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.25...v1.4.0-rc.26) (2026-10-31)
+
+### Features
+
+* **rf17-mod4:** el paquete al motor IA lleva los rangos RF-17 de la especie del activo ([9ed1ac1](https://github.com/Arekkazu/sgpmp-backend/commit/9ed1ac15b94a472b151ab09ea3b9512771fa69f1))
+
 ## [1.4.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.24...v1.4.0-rc.25) (2026-10-31)
 
 ### Features
