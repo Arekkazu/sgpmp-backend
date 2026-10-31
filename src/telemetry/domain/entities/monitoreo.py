@@ -7,12 +7,29 @@
 # | 2026-10-28 | destroyerban | INC-M03-177-G57B RF-58: conteo del semáforo sin repetir la consulta de estados |
 # | 2026-10-30 | Arekkazu | INC-M04-225-G112 RF-59: categoria_variable, estado_dato y origen_dato como filtro único |
 # | 2026-10-31 | Arekkazu | TC-DIS-160 RF-59: más de 90 días solo con filtro de variable, sensor o especie |
+# | 2026-10-31 | Claude | INC-M03-247-G92 RF-58: unidad de cada semáforo base para el estado general |
+# | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: semáforo con la última lectura, el umbral vigente y su tolerancia T |
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+
+
+# RF-58 Fase 3: T por defecto cuando el umbral de M09 no la configura (10 % del rango).
+TOLERANCIA_SEMAFORO_DEFECTO_PCT = Decimal('0.10')
+# Calidades cuyo valor sí describe la condición actual del sensor (ERROR_CALIBRACION no).
+CALIDADES_CON_VALOR_SEMAFORO = ('LECTURA_VALIDA', 'FUERA_DE_RANGO')
+
+
+@dataclass
+class UmbralSemaforo:
+    """G88: umbral RF-17 vigente de una especie del área, lo que necesita el semáforo RF-58."""
+    valor_min: Decimal
+    valor_max: Decimal
+    tolerancia_semaforo: Optional[Decimal] = None
+    niveles: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -50,6 +67,11 @@ class EstadoSensorActual:
     indicador_anomalia: bool = False    # FUERA_DE_RANGO / ERROR_CALIBRACION
     es_valor_operativo: bool = True     # Describe el valor mostrado, no la condición posterior.
     etiqueta_estado: Optional[str] = None  # "Sin umbral configurado", "Requiere calibración"...
+    # G88 (RF-58 Fase 3): el semáforo se calcula en cada consulta con la última lectura
+    # (también FUERA_DE_RANGO) y el umbral vigente; None = sin lectura para resolverlo.
+    valor_condicion_actual: Optional[Decimal] = None
+    calidad_condicion_actual: Optional[str] = None
+    umbrales_vigentes: Optional[list[UmbralSemaforo]] = None
 
 
 @dataclass(frozen=True)
@@ -63,6 +85,13 @@ class SemaforoBaseSensor:
     dato_desactualizado: bool
     id_alerta: Optional[int]
     severidad_alerta: Optional[str]
+    # G92: unidad productiva vigente del sensor; el estado general de la unidad
+    # se calcula con todos sus sensores, no con los de la página consultada.
+    id_infraestructura: Optional[int] = None
+    # G88: mismos datos que EstadoSensorActual para el semáforo calculado.
+    valor_condicion_actual: Optional[Decimal] = None
+    calidad_condicion_actual: Optional[str] = None
+    umbrales_vigentes: Optional[list[UmbralSemaforo]] = None
 
 
 @dataclass
@@ -290,6 +319,37 @@ class SemaforoCalculator:
             if nivel['limite_inferior'] <= valor <= nivel['limite_superior']:
                 return mapa_color.get(nivel['nivel'], 'ROJO')
         return 'ROJO'
+
+    @staticmethod
+    def calcular_rf58(
+        valor: Decimal,
+        valor_min: Decimal,
+        valor_max: Decimal,
+        niveles: Optional[list[dict]] = None,
+        tolerancia: Optional[Decimal] = None,
+    ) -> str:
+        """G88 — RF-58 Fase 3 sobre un umbral RF-17.
+
+        Dentro de [valor_min, valor_max] manda la banda RF-17 (normal / precaución /
+        crítico; sin bandas, VERDE). Fuera del rango: AMARILLO si la distancia al borde
+        es menor que la tolerancia T y ROJO si la alcanza o la supera. Sin T configurada
+        se usa el 10 % del rango, lo que el semáforo aplicaba antes de ser configurable.
+        """
+        if valor_min <= valor <= valor_max:
+            if niveles:
+                return SemaforoCalculator.calcular_por_niveles(valor=valor, niveles=niveles)
+            return 'VERDE'
+        T = tolerancia if tolerancia is not None else (valor_max - valor_min) * TOLERANCIA_SEMAFORO_DEFECTO_PCT
+        distancia = (valor_min - valor) if valor < valor_min else (valor - valor_max)
+        return 'AMARILLO' if distancia < T else 'ROJO'
+
+    @staticmethod
+    def calcular_con_umbrales(valor: Decimal, umbrales: list['UmbralSemaforo']) -> str:
+        """G88: con varias especies en el área, el peor color entre sus umbrales vigentes."""
+        return SemaforoCalculator.peor_semaforo([
+            SemaforoCalculator.calcular_rf58(valor, u.valor_min, u.valor_max, u.niveles, u.tolerancia_semaforo)
+            for u in umbrales
+        ])
 
     @staticmethod
     def aplicar_reglas_alerta(

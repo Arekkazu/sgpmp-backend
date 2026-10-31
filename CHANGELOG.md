@@ -1,3 +1,44 @@
+## [1.4.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.19...v1.4.0-rc.20) (2026-10-31)
+
+### Bug Fixes
+
+* **rf54-telemetry:** lectura con reloj adelantado y reloj_sincronizado=false se guarda TIME_DESYNC (INC-M03-238-G30) ([dcc3f41](https://github.com/Arekkazu/sgpmp-backend/commit/dcc3f4191f62986f6eace672c8360d59adbc4318)), closes [#877](https://github.com/Arekkazu/sgpmp-backend/issues/877)
+* **rf54-telemetry:** sin reloj_sincronizado la captura futura la rechaza la funcion con su bitacora (INC-M03-238-G30) ([8cded5a](https://github.com/Arekkazu/sgpmp-backend/commit/8cded5a42152828d0c6708642dfe6178f7c00922)), closes [#877](https://github.com/Arekkazu/sgpmp-backend/issues/877)
+* **rf57-mod9:** umbrales ambientales los configuran Administrador e Ingeniero de Campo, no el Veterinario (INC-M03-175-G57A) ([adb60f2](https://github.com/Arekkazu/sgpmp-backend/commit/adb60f23db4dbf34d3918ee378dcb9e803af5f9d)), closes [#880](https://github.com/Arekkazu/sgpmp-backend/issues/880)
+* **rf57-telemetry:** el evento PENDIENTE_EVALUACION se reevalua cuando la regla ya tiene umbral (INC-M03-173-G85) ([7d2d48c](https://github.com/Arekkazu/sgpmp-backend/commit/7d2d48c506d809ed1623cc035d2141a088c37e25)), closes [#878](https://github.com/Arekkazu/sgpmp-backend/issues/878)
+* **rf57-telemetry:** lectura aislada fuera de la banda NORMAL genera alerta REGLA_SIMPLE en vez de 422 (INC-M03-240-G69) ([8d0cd7a](https://github.com/Arekkazu/sgpmp-backend/commit/8d0cd7a24f38a5410eac631d9ddd8099eb130750)), closes [#881](https://github.com/Arekkazu/sgpmp-backend/issues/881)
+* **rf57-telemetry:** PREDICCION_PATOLOGIA se deduplica por tipo de alerta y activo biologico (INC-M03-241-G74) ([ee67a7e](https://github.com/Arekkazu/sgpmp-backend/commit/ee67a7e36525723ef77026a4ee04712f437a3429)), closes [#882](https://github.com/Arekkazu/sgpmp-backend/issues/882)
+* **rf58-telemetry:** estado general de la unidad con todos sus sensores, no la pagina (INC-M03-247-G92) ([224aaa1](https://github.com/Arekkazu/sgpmp-backend/commit/224aaa1b5b1c5a55df19aa6923f946a8e572a1ea)), closes [#897](https://github.com/Arekkazu/sgpmp-backend/issues/897)
+* **rf58-telemetry:** la cadena de migraciones del lote 31-10 cuelga de 785022cc8ef9 para no dejar dos heads (INC-M03-246-G88) ([7bc2176](https://github.com/Arekkazu/sgpmp-backend/commit/7bc21769821ce4ba39dd125127241b92552c9991))
+* **rf58-telemetry:** semaforo con la ultima lectura, el umbral vigente y tolerancia T configurable (INC-M03-246-G88) ([1eb6ab2](https://github.com/Arekkazu/sgpmp-backend/commit/1eb6ab2bfea4331b56744af09173ada63b902298)), closes [#889](https://github.com/Arekkazu/sgpmp-backend/issues/889)
+* **rf59-telemetry:** alertas correlacionadas del historial por la fecha del evento, no de generacion (INC-M03-242-G117) ([e6d8912](https://github.com/Arekkazu/sgpmp-backend/commit/e6d8912763b7ac5d19814383594bff7ea0bd51aa)), closes [#883](https://github.com/Arekkazu/sgpmp-backend/issues/883)
+* **rf62-telemetry:** ERROR_CALIBRACION corre congelado, outlier y gap, y FUERA_DE_RANGO guarda la version de limites fisicos (INC-M03-243-G169) ([f6a24d3](https://github.com/Arekkazu/sgpmp-backend/commit/f6a24d38e369f29cb6222f921792234ca64fdf0e)), closes [#885](https://github.com/Arekkazu/sgpmp-backend/issues/885)
+* **rf62-telemetry:** la evaluacion de calidad automatica vuelve a correr bajo RLS (INC-M03-235-G16) ([f9d012f](https://github.com/Arekkazu/sgpmp-backend/commit/f9d012f3d04e362985d6c42c042fd4a4ddd4f422)), closes [#875](https://github.com/Arekkazu/sgpmp-backend/issues/875)
+* **rf62-telemetry:** politica RLS UPDATE para marcar SUPERADA la evaluacion de calidad (INC-M03-239-G165) ([87583e5](https://github.com/Arekkazu/sgpmp-backend/commit/87583e5c6463a4752dc7adfd0444854cb91cd7c9)), closes [#874](https://github.com/Arekkazu/sgpmp-backend/issues/874)
+* **rf62-telemetry:** posible_drift se calcula contra el valor de referencia de la calibracion vigente (INC-M03-236-G16) ([ea6ec4b](https://github.com/Arekkazu/sgpmp-backend/commit/ea6ec4bfe875244f6dc5f167e3f6763a0f628508)), closes [#876](https://github.com/Arekkazu/sgpmp-backend/issues/876)
+
+## [1.4.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.18...v1.4.0-rc.19) (2026-10-31)
+
+### Features
+
+* **rf66-prediction:** el motor IA registra sus resultados en POST /prediccion/inferencias ([c59f3a0](https://github.com/Arekkazu/sgpmp-backend/commit/c59f3a0df610dfef7ad8fa7416d864864d66dd5c))
+
+### Bug Fixes
+
+* **rf66-prediction:** la migracion 785022cc8ef9 cuelga de e5a1c7d39f62 para no dejar dos heads ([166604f](https://github.com/Arekkazu/sgpmp-backend/commit/166604fe9b9b65589da99a42bee100780cb6f4a6))
+
+## [1.4.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.17...v1.4.0-rc.18) (2026-10-31)
+
+### Bug Fixes
+
+* **rf61-telemetry:** particiones con RLS, tarea diaria y piso de frecuencia sin romper la config activa (PR [#891](https://github.com/Arekkazu/sgpmp-backend/issues/891)) ([be74bb0](https://github.com/Arekkazu/sgpmp-backend/commit/be74bb0b4e601dbb39dc0e25899ab8f87014fc9d)), closes [#870](https://github.com/Arekkazu/sgpmp-backend/issues/870)
+
+## [1.4.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.16...v1.4.0-rc.17) (2026-10-31)
+
+### Bug Fixes
+
+* **m03:** Optimizar triggers de telemetría para alta concurrencia [INC-M03-79-G166] ([86e6fc7](https://github.com/Arekkazu/sgpmp-backend/commit/86e6fc7392d231d0be0dfbb35e3aeb3afe0c8ebb))
+
 ## [1.4.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.15...v1.4.0-rc.16) (2026-10-30)
 
 ### Features

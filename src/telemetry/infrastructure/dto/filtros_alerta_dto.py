@@ -1,6 +1,7 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-171-G78 RF-57: catálogo de los filtros del listado de alertas (400 en vez de 500) |
+# | 2026-10-31 | Claude | INC-M03-240-G69 RF-57: tipo REGLA_SIMPLE para la lectura aislada fuera de NORMAL |
 """Valores admitidos en los filtros de ``GET /iot/alertas`` y ``GET /iot/alertas-tecnicas``.
 
 Son los enums de ``modulo3.alertas`` en la BD. Un valor fuera del catálogo llegaba al ``CAST`` a enum de
@@ -26,5 +27,6 @@ FiltroSeveridadAlerta = _filtro("LEVE", "MODERADO", "CRITICO")
 FiltroTipoAlerta = _filtro(
     "ESTRES_TERMICO", "SINDROME_RESPIRATORIO", "RIESGO_HIDRICO", "FIEBRE", "INACTIVIDAD_ANORMAL", "FALLO_AMBIENTAL",
     "PREDICCION_PATOLOGIA", "TORMENTA_DE_ALERTAS", "TECNICA", "CONVERSION_ALIMENTICIA", "RIESGO_CONTAGIO",
+    "REGLA_SIMPLE",
 )
 FiltroOrigenEventoAlerta = _filtro("EDGE", "BACKEND", "IA", "HEARTBEAT", "EVALUACION_PERIODICA")

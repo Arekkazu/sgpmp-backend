@@ -3,6 +3,7 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 N-04 RF-68: el listado de contagio tolera JSONB con otra forma |
+# | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -21,7 +22,7 @@ _SQL_INFERENCIAS = text("""
            r.id_patologia, p.nombre AS nombre_patologia, r.probabilidad_enfermedad, r.confianza_global,
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
            r.fecha_inicio_ventana, r.fecha_fin_ventana, r.fecha_inferencia,
-           r.tiene_alerta_generada, r.id_alerta_generada,
+           r.tiene_alerta_generada, r.id_alerta_generada, r.modo_sombra,
            (SELECT jsonb_object_agg(k.clave, pp.nombre)
               FROM jsonb_object_keys(r.probabilidad_enfermedad) AS k(clave)
               JOIN modulo9.patologias pp ON pp.id_patologia::text = k.clave

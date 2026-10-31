@@ -1,6 +1,7 @@
 # | Fecha | Nombre | Que se hizo |
 # |-------|--------|-------------|
 # | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: validar HTTP, JWT/RBAC y trazabilidad persistida sobre dev actualizado en PostgreSQL real. |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: R7/R9, serie sin calibración evaluada y versión de límites físicos |
 """Solo TEST_DATABASE_URL exclusiva; usa las protecciones y rollback del fixture común."""
 from datetime import timedelta, timezone
 
@@ -83,10 +84,15 @@ def test_evaluar_persistir_y_consultar_conserva_parametros(
     parametros = resultado['parametros_aplicados']
     assert parametros
     if estado == 'FUERA_DE_RANGO':
+        limites = parametros.pop('limites_fisicos_aplicados')
+        assert limites['fuente'] == 'modulo9.variables_ambientales'
         assert parametros == {
             'regla_aplicada': 'FUERA_DE_RANGO_RF53', 'indice_calidad': 0,
             'fases_estadisticas_omitidas': True, 'id_variable': 9,
         }
+        parametros['limites_fisicos_aplicados'] = limites
+        # G169 (R7/R9): la rama FUERA_DE_RANGO también guarda la versión de límites físicos.
+        assert resultado['version_limites_fisicos_aplicada'].startswith('va9:')
         assert resultado['indice_calidad'] == 0 and not resultado['apto_para_ia']
     else:
         assert {'k', 'M', 'N', 'umbral_drift', 'P', 'frecuencia_muestreo_min'} <= parametros.keys()
