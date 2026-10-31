@@ -6,6 +6,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-14 RF-63: bitácora limitada a las fincas del usuario salvo para el auditor |
 # | 2026-10-27 | destroyerban | INC-M03-116-G59 RF-56 CA-8: filtro entidad_afectada_tipo y alcance por finca de PAQUETE_IA |
 # | 2026-10-29 | Arekkazu | H-M3-18/19 RF-63: la exportación respeta los mismos filtros y el alcance por finca del listado |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M3-14 RF-63: sin datos técnicos solo se ven y exportan registros NIC 41 |
 """Router FastAPI para bitácora de auditoría IoT.
 
 RF-63 — CU06 Dev scope:
@@ -34,7 +35,7 @@ from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
-from src.shared.rbac import require_permission, tiene_permiso
+from src.shared.rbac import require_permission, tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.telemetry.application.use_cases.auditoria.consultar_bitacora_iot_use_case import ConsultarBitacoraIotUseCase
@@ -61,6 +62,15 @@ def _fincas_de_la_bitacora(db: Session, usuario_actual: UsuarioActual) -> Option
     if tiene_permiso(db, usuario_actual.id_rol, 39, 5):
         return None
     return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
+
+
+def _clasificacion_de_la_bitacora(db: Session, usuario_actual: UsuarioActual, pedida: Optional[str]) -> Optional[str]:
+    """M3-14 (RF-63, actor Contador / Revisor Fiscal): sin acceso a datos técnicos solo se
+    consultan y exportan los registros NIC 41. Por permiso (datos_tecnicos_dashboard, R),
+    no por id_rol: hoy lo tienen Administrador, Veterinario e Ingeniero; el Contador no."""
+    if tiene_permiso_sobre(db, usuario_actual.id_rol, 'datos_tecnicos_dashboard', 2):
+        return pedida
+    return 'NIC41'
 
 
 @router.get(
@@ -101,7 +111,7 @@ def listar_auditoria(
         fecha_hasta=fecha_hasta,
         tipo_evento=tipo_evento,
         severidad_log=severidad_log,
-        clasificacion_registro=clasificacion_registro,
+        clasificacion_registro=_clasificacion_de_la_bitacora(db, usuario_actual, clasificacion_registro),
         entidad_afectada_id=entidad_afectada_id,
         resultado=resultado,
         pagina=pagina,
@@ -153,7 +163,7 @@ def exportar_auditoria(
         fecha_hasta=fecha_hasta,
         tipo_evento=tipo_evento,
         severidad_log=severidad_log,
-        clasificacion_registro=clasificacion_registro,
+        clasificacion_registro=_clasificacion_de_la_bitacora(db, usuario_actual, clasificacion_registro),
         entidad_afectada_id=entidad_afectada_id,
         resultado=resultado,
         pagina=1,
