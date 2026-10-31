@@ -1,10 +1,11 @@
 # | Fecha      | Nombre | Que se hizo                                                        |
 # |------------|--------|--------------------------------------------------------------------|
 # | 2026-10-31 | Claude | INC-M03-246-G88 RF-58: tolerancia T del semáforo configurable en M09 |
+# | 2026-10-31 | Arekkazu | INC-M03-246-G88 RF-58: encadena tras 785022cc8ef9 (#870/#891/#890) para no dejar dos heads |
 """rf58: tolerancia T del semáforo configurable en el umbral (M09)
 
 Revision ID: b7d2e4f6a813
-Revises: 6bd01d026ac4
+Revises: 785022cc8ef9
 Create Date: 2026-10-31
 
 INC-M03-246-G88 (#889, TC-M03-172). RF-58 Fase 3 clasifica la lectura contra el
@@ -25,7 +26,7 @@ from alembic import op
 
 
 revision: str = 'b7d2e4f6a813'
-down_revision: Union[str, Sequence[str], None] = '6bd01d026ac4'
+down_revision: Union[str, Sequence[str], None] = '785022cc8ef9'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
