@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: ventana desde M09 y ampliación por resultado |
+# | 2026-10-31 | Arekkazu | RF-71: la sección también trae los mínimos de reentrenamiento     |
 """RF-72 (#865): ventana global administrable (7..365) y excepción para un resultado."""
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ def test_ventana_global_respeta_7_a_365(dias, aceptado):
     parametros = _Parametros()
     use_case = ParametrosRetroalimentacionUseCase(Mock(), parametros)
     if aceptado:
-        [p] = use_case.actualizar({RF72_VENTANA: dias}, 1)
+        p = next(x for x in use_case.actualizar({RF72_VENTANA: dias}, 1) if x.nombre == RF72_VENTANA)
         assert (p.valor, p.fuente) == (dias, "CONFIGURADO")
     else:
         with pytest.raises(ValidationError):
