@@ -1,10 +1,11 @@
 # | Fecha      | Nombre     | Que se hizo                                                        |
 # |------------|------------|--------------------------------------------------------------------|
 # | 2026-10-30 | SamuelPR21 | CARGA-FREC RF-23/53/60: piso de 5 minutos y unidades en minutos     |
+# | 2026-10-31 | Arekkazu   | PR-891 RF-23: encadena tras c94c177b885a; sube la config global activa al piso |
 """rf23/rf60: ningún sensor se configura por debajo de 5 minutos
 
 Revision ID: b7c2e4f19a30
-Revises: 6bd01d026ac4
+Revises: c94c177b885a
 Create Date: 2026-10-30
 
 Sustento: estudio de carga en `scripts/carga_frecuencia/` (piso de 5 min, 10 min por defecto).
@@ -22,6 +23,10 @@ a toda fila nueva o actualizada, pero conservan las filas históricas por debajo
 piso, que son registro de lo que se configuró. Un NO_CONF viejo por debajo del piso
 no se puede reintentar, que es lo deseado.
 
+La configuración global activa sí se sube al piso (y su heartbeat, que no puede
+quedar por debajo de la frecuencia): un CHECK NOT VALID se evalúa en todo UPDATE, así
+que con la fila activa por debajo no se podría ni editar ni desactivar.
+
 El downgrade no revive las PENDIENTE canceladas: reactivar un comando viejo hacia un
 dispositivo sería peor que perderlo.
 """
@@ -31,7 +36,7 @@ from alembic import op
 
 
 revision: str = 'b7c2e4f19a30'
-down_revision: Union[str, Sequence[str], None] = '6bd01d026ac4'
+down_revision: Union[str, Sequence[str], None] = 'c94c177b885a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -97,6 +102,15 @@ def upgrade() -> None:
             ADD CONSTRAINT ck_configuracion_remota_piso_frecuencia
             CHECK (fps IS NOT NULL
                    OR (frecuencia_captura >= 5 AND intervalo_transmision >= 5)) NOT VALID
+        """
+    )
+    op.execute(
+        """
+        UPDATE modulo9.configuraciones_globales
+        SET frecuencia_muestreo = 5,
+            heartbeat = GREATEST(heartbeat, 5),
+            fecha_actualizacion = now()
+        WHERE es_activo AND frecuencia_muestreo < 5
         """
     )
     op.execute(

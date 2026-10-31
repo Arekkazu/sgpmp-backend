@@ -1,6 +1,7 @@
 # | Fecha      | Nombre     | Que se hizo                                                    |
 # |------------|------------|----------------------------------------------------------------|
 # | 2026-10-30 | SamuelPR21 | CARGA-FREC RF-61: particiona telemetrias por mes de captura     |
+# | 2026-10-31 | Arekkazu   | PR-891 RF-61: RLS en particiones y telemetrias_registradas sin DML de la app |
 """rf61: telemetrias pasa a ser una tabla particionada por mes
 
 Revision ID: e5a1c7d39f62
@@ -23,6 +24,12 @@ Decisiones:
   partición se guarda en lugar de perderse.
 - `fn_asegurar_particiones_telemetrias()` crea los meses siguientes. La llama a
   diario `main.py`; si deja de correr, las lecturas caen en la DEFAULT, sin error.
+
+Las particiones no heredan el RLS del padre y sí los privilegios por defecto del
+esquema: se les activa RLS sin políticas, así que nadie las lee directo y por el padre
+todo sigue igual. `telemetrias_registradas` solo la escribe el trigger (SECURITY
+DEFINER); se le retiran los privilegios a los demás roles para que nadie registre ids
+sin lectura.
 
 El modelo ORM sigue declarando id_telemetria como PK a propósito: `db.get()` busca
 por ese id y sigue siendo único, pues lo da una secuencia.
@@ -63,6 +70,8 @@ BEGIN
     EXECUTE format(
         'CREATE TABLE modulo3.%I PARTITION OF modulo3.telemetrias FOR VALUES FROM (%L) TO (%L)',
         v_nombre, v_inicio::text || ' 00:00:00+00', v_fin::text || ' 00:00:00+00');
+    EXECUTE format('ALTER TABLE modulo3.%I ENABLE ROW LEVEL SECURITY', v_nombre);
+    EXECUTE format('ALTER TABLE modulo3.%I FORCE ROW LEVEL SECURITY', v_nombre);
 END;
 $funcion$;
 
@@ -196,6 +205,14 @@ $migracion$
 _CARGA_PARTICIONADA = """
     CREATE TABLE modulo3.telemetrias_registradas (id_telemetria integer PRIMARY KEY);
     EXECUTE format('ALTER TABLE modulo3.telemetrias_registradas OWNER TO %s', v_dueno);
+    FOR v_sentencia IN
+        SELECT DISTINCT format('REVOKE ALL ON modulo3.telemetrias_registradas FROM %s',
+                               CASE a.grantee WHEN 0 THEN 'PUBLIC' ELSE a.grantee::regrole::text END)
+        FROM pg_class c, aclexplode(c.relacl) a
+        WHERE c.oid = 'modulo3.telemetrias_registradas'::regclass AND a.grantee <> c.relowner
+    LOOP
+        EXECUTE v_sentencia;
+    END LOOP;
     INSERT INTO modulo3.telemetrias_registradas SELECT id_telemetria FROM modulo3.telemetrias_previa;
 
     EXECUTE format('ALTER FUNCTION modulo3.fn_crear_particion_telemetria(date) OWNER TO %s', v_dueno);
@@ -207,6 +224,8 @@ _CARGA_PARTICIONADA = """
     PERFORM modulo3.fn_asegurar_particiones_telemetrias();
     CREATE TABLE modulo3.telemetrias_fuera_de_rango PARTITION OF modulo3.telemetrias DEFAULT;
     EXECUTE format('ALTER TABLE modulo3.telemetrias_fuera_de_rango OWNER TO %s', v_dueno);
+    ALTER TABLE modulo3.telemetrias_fuera_de_rango ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE modulo3.telemetrias_fuera_de_rango FORCE ROW LEVEL SECURITY;
 
     INSERT INTO modulo3.telemetrias SELECT * FROM modulo3.telemetrias_previa;
 """

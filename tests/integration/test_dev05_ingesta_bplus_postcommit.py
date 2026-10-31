@@ -8,6 +8,7 @@
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: la espera entre reintentos se duplica con cada fallo |
 # | 2026-10-27 | Leandro | INC-M03-127-G27 RF-54/60: alinear buffer pendiente y fijar el reloj de la comprobación inmediata de reintento. |
 # | 2026-10-29 | Arekkazu | RFC-020 RF-58/60: el dashboard copia el estado del dispositivo |
+# | 2026-10-31 | Arekkazu | PR-891 RF-23: config global de respaldo respeta el piso de 5 min |
 """PostgreSQL real; MQTT se representa por la misma función SQL, sin broker real."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -153,7 +154,7 @@ def parametros_rf62(db_session):
         {'rf62_k':3,'rf62_m':5,'rf62_n':20,'rf62_umbral_drift':5,'rf62_p':3},usuario)
     if db_session.execute(text('SELECT count(*) FROM modulo9.configuraciones_globales WHERE es_activo')).scalar_one()==0:
         db_session.execute(text('''INSERT INTO modulo9.configuraciones_globales(frecuencia_muestreo,heartbeat,fecha_actualizacion,id_usuario,es_activo)
-            VALUES (1,14,now(),:uid,true)'''),{'uid':usuario})
+            VALUES (5,14,now(),:uid,true)'''),{'uid':usuario})
     db_session.commit()
 
 
