@@ -5,6 +5,7 @@
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: conservar regresiones existentes con el puerto explícito de ocupación. |
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: sustituir E1 por el rechazo de cobertura mínima confirmado. |
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: sustituir el bloqueo 429 por el recálculo de entradas diferentes confirmado. |
+# | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: identificar las salidas propias en los fakes del contrato RF-68. |
 """RF-68: fórmula, discretización, consistencia, datos incompletos y orquestación."""
 from __future__ import annotations
 
@@ -199,7 +200,7 @@ def _use_case(resultados=None, config=_config(), accesible=True):
 
 def _dto(probabilidades=("0.9", "0.9", "0.9", "0.9"), **cambios):
     ahora = datetime.now(timezone.utc).isoformat()
-    base = dict(id_lote=1, salidas_rf66=[{"probabilidad_riesgo_alto": p, "fecha_inferencia": ahora} for p in probabilidades],
+    base = dict(id_lote=1, salidas_rf66=[{"id_activo_biologico": 1, "probabilidad_riesgo_alto": p, "fecha_inferencia": ahora} for p in probabilidades],
                 densidad_poblacional="8", variables_ambientales={"temperatura": "38", "humedad_relativa": "95",
                                                                  "fecha_captura": ahora})
     base.update(cambios)
