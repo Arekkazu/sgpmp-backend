@@ -1,3 +1,9 @@
+## [1.4.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.16...v1.4.0-rc.17) (2026-10-31)
+
+### Bug Fixes
+
+* **m03:** Optimizar triggers de telemetría para alta concurrencia [INC-M03-79-G166] ([86e6fc7](https://github.com/Arekkazu/sgpmp-backend/commit/86e6fc7392d231d0be0dfbb35e3aeb3afe0c8ebb))
+
 ## [1.4.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.15...v1.4.0-rc.16) (2026-10-30)
 
 ### Features
