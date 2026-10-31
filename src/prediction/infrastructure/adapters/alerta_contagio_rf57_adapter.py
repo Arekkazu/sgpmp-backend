@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: preservar RF-63 de alertas por riesgo propio con identidad de servicio y restauración. |
 """RF-68 paso 8 → RF-57: alerta RIESGO_CONTAGIO del lote en ``modulo3.alertas``.
 
 Usa el repositorio de alertas de M03: la alerta entra al mismo ciclo que las demás
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.prediction.domain.entities.riesgo_contagio import ResultadoRiesgoContagio
 from src.prediction.domain.repositories.alerta_contagio_port import AlertaContagioPort
+from src.shared.database import como_sistema
 from src.telemetry.domain.entities.alerta import Alerta, EstadoAlerta, OrigenEventoAlerta, TipoAlerta
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
 
@@ -36,6 +38,11 @@ class AlertaContagioRf57Adapter(AlertaContagioPort):
         ).scalar_one_or_none()
 
     def emitir(self, resultado: ResultadoRiesgoContagio) -> int:
+        # El caso de uso ya autorizó el lote; la emisión RF-57/RF-63 es de sistema.
+        with como_sistema(self.db):
+            return self._emitir(resultado)
+
+    def _emitir(self, resultado: ResultadoRiesgoContagio) -> int:
         ahora = datetime.now(timezone.utc)
         existente = self.db.execute(text(
             "SELECT id_alerta FROM modulo3.alertas WHERE tipo_alerta = 'RIESGO_CONTAGIO' "

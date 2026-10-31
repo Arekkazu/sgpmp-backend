@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-26 | Arekkazu | INC-M04-196-G026 RF-68: modelo de estimación de riesgo de contagio |
+# | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: filtrar inferencias por identidad del lote antes de calcular y reutilizar caché. |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración activa de RF-65 → caché/frecuencia (5.1) →
@@ -74,6 +75,27 @@ class EstimarRiesgoContagioUseCase:
                 message="No hay una configuración activa de MODELO_RIESGO_CONTAGIO en RF-65 (pesos y rangos).",
             )
 
+        recibidas = len(dto.salidas_rf66)
+        propias = [s for s in dto.salidas_rf66 if s.id_activo_biologico == dto.id_lote]
+        aislamiento = {
+            "recibidas": recibidas,
+            "conservadas": len(propias),
+            "descartadas_otro_lote": sum(s.id_activo_biologico is not None
+                                        and s.id_activo_biologico != dto.id_lote for s in dto.salidas_rf66),
+            "descartadas_sin_identidad": sum(s.id_activo_biologico is None for s in dto.salidas_rf66),
+        }
+        # RF-68: el conteo de una lista recibida se deriva de sus salidas propias;
+        # un agregado enviado por el cliente no puede reincorporar enfermos ajenos.
+        dto = dto.model_copy(update={
+            "salidas_rf66": propias,
+            "n_enfermos_detectados": None if recibidas else dto.n_enfermos_detectados,
+        })
+        if recibidas and not propias and dto.score_anomalia is None:
+            exc = DatosContagioError("ERROR_DATOS_INSUFICIENTES",
+                                     "No hay salidas RF-66 identificadas para el lote solicitado.")
+            self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor, aislamiento)
+            raise BusinessRuleError(code=exc.codigo, message=exc.mensaje)
+
         ahora = datetime.now(timezone.utc)
         huella = self._huella(dto, config.config_version)
         anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
@@ -108,7 +130,7 @@ class EstimarRiesgoContagioUseCase:
                 porcentaje_sensores_activos=dto.porcentaje_sensores_activos,
             )
         except DatosContagioError as exc:
-            self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor)
+            self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor, aislamiento)
             raise BusinessRuleError(code=exc.codigo, message=exc.mensaje) from exc
 
         resultado.id_configuracion_motor = config.id_configuracion_motor
@@ -126,7 +148,8 @@ class EstimarRiesgoContagioUseCase:
         try:
             self.resultado_repo.guardar(resultado)
             self._auditar("RIESGO_CONTAGIO_CALCULADO", resultado, id_usuario, "EXITOSO",
-                          "WARNING" if resultado.confianza_baja else "INFO")
+                          "WARNING" if resultado.confianza_baja else "INFO",
+                          extra={"aislamiento_rf66": aislamiento})
             calidad_suspendida = resultado.confianza_baja and degradadas + 1 > MAX_DEGRADADAS_CONSECUTIVAS
             if calidad_suspendida:
                 self._auditar("ALERTA_CALIDAD_DATOS", resultado, id_usuario, "ADVERTENCIA", "WARNING",
@@ -146,7 +169,8 @@ class EstimarRiesgoContagioUseCase:
     @staticmethod
     def _huella(dto: EstimarRiesgoContagioDTO, config_version: int) -> str:
         """5.1: mismas entradas (Fs, ambiente, densidad) y misma configuración."""
-        cuerpo = json.dumps({"dto": dto.model_dump(mode="json"), "config_version": config_version}, sort_keys=True)
+        cuerpo = json.dumps({"dto": dto.model_dump(mode="json"), "config_version": config_version,
+                             "version_aislamiento_rf66": 1}, sort_keys=True)
         return hashlib.sha256(cuerpo.encode()).hexdigest()
 
     def _auditar(self, tipo_evento, resultado, id_usuario, resultado_operacion, severidad, extra=None) -> None:
@@ -168,7 +192,7 @@ class EstimarRiesgoContagioUseCase:
             severidad_evento=severidad, resultado_operacion=resultado_operacion, payload_evento=payload,
         )
 
-    def _registrar_no_ejecutado(self, exc: DatosContagioError, dto, id_usuario: int, id_configuracion: int) -> None:
+    def _registrar_no_ejecutado(self, exc: DatosContagioError, dto, id_usuario: int, id_configuracion: int, aislamiento: dict) -> None:
         """E4/E8/CA-10 y sincronización: el intento queda en RF-73 aunque el modelo no corra."""
         tipo = exc.codigo if exc.codigo in ("ERROR_DATOS_INSUFICIENTES", "ERROR_DATOS_DESINCRONIZADOS") \
             else "RIESGO_CONTAGIO_CALCULADO"
@@ -178,7 +202,7 @@ class EstimarRiesgoContagioUseCase:
                 id_referencia=str(dto.id_lote), entidad_referencia="lote", severidad_evento="WARNING",
                 resultado_operacion="FALLIDO", codigo_error=exc.codigo, descripcion_error=exc.mensaje,
                 payload_evento={"id_lote": dto.id_lote, "id_configuracion_motor": id_configuracion,
-                                "motivo": exc.mensaje},
+                                "motivo": exc.mensaje, "aislamiento_rf66": aislamiento},
             )
             self.db.commit()
         except Exception:
