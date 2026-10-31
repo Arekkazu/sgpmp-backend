@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu     | INC-M04-139-G001 RF-64: la versión viene del catálogo |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: el fake de variables responde también las admitidas por patología |
 """DEV-35 (RF-64 E2 y CA-3, G-04): una patología base no se edita (405) ni se inactiva.
 
 P-7: la Restricción 3 de la ficha se contradice con CA-3; se aplica la propuesta de
@@ -59,6 +60,7 @@ class _Modelos:
 
 class _Variables:
     def obtener_ids_activos(self, ids): return list(ids)
+    def obtener_ids_para_patologia(self, ids): return list(ids)  # M4-02
 
 
 def _editar(entidad):

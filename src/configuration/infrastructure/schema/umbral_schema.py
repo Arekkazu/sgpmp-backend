@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-25 RF-17: la variable ambiental devuelve es_critica (RFC-016) |
+# | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: catálogo de variables con código de telemetría |
 """Schemas de respuesta para los endpoints de umbrales ambientales (RF-17)."""
 from __future__ import annotations
 
@@ -64,6 +65,8 @@ class VariableAmbientalResponse(BaseModel):
     valor_fisico_max: Decimal
     # RFC-016 B.7: siempre crítica para la priorización bajo saturación (RF-53 E15).
     es_critica: bool = False
+    # M4-02: el formulario de patologías ofrece solo las variables del RF-64 por este código.
+    codigo_telemetria: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
