@@ -1,61 +1,150 @@
-# TC-M03-089
+# TC-M03-089 — Resultado (cierre documental G46)
 
-Solo este caso. Convención Markdown (Módulo 3 no usa `.docx`).
+Cierre respaldado por la ejecución del **firmware Edge**. El wrapper pytest del backend **no** se declara aprobado.
 
-## Identificador y nombre
+Fecha de la ejecución firmware: **2026-10-31**.  
+Evidencia previa del wrapper (2026-10-25, SKIPPED) conservada en `evidencias/` (no se borró).
 
-- **ID:** TC-M03-089 (grupo G46)  
-- **Función:** `test_tc_m03_089_max_severidad_entre_niveles_edge`  
-- **Archivo:** `tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G46/test_tc_m03_g46.py` líneas 19–25  
-- **Nombre:** si la severidad de RF-55.1 (simple) y RF-55.2 (compuesto) difieren, el evento en el **nodo** lleva el máximo (`LEVE` < `MODERADO` < `CRITICO`)
+---
 
-## RF y caso de uso
+## 1. Identificación del caso
 
-Script: **RF-55.1 / RF-55.2 / CU-02**. Copiar `severidad` ya asignada en RF-56 **no** cubre este cálculo. No se reasignó el RF. Matriz de diseño no versionada en `Test_Modulo3/`.
+| Campo | Valor |
+|---|---|
+| Grupo | **TC-M03-G46** |
+| Caso | **TC-M03-089** |
+| RF | **RF-55.1** (nivel simple) / **RF-55.2** (nivel compuesto) |
+| Caso de uso | CU-02 |
+| Tipo | Prueba funcional |
+| Prioridad | Alta |
+| Criterio de aceptación | Consolidar la mayor severidad entre niveles Edge RF-55.1 y RF-55.2 (`LEVE` < `MODERADO` < `CRITICO`) |
 
-## Objetivo y precondiciones
+---
 
-Evaluar ambos niveles en el firmware y consolidar la mayor severidad.  
-Precondiciones no disponibles: motor Edge que calcule simple y compuesto. `localizar_motor_edge()` retorna `None`.
+## 2. Objetivo
 
-## Datos de prueba
+Verificar que, cuando los niveles Edge simple y compuesto producen severidades diferentes, el evento consolidado conserva la **mayor** severidad.
 
-Ninguno aplicado. Sin credenciales.
+Copiar `severidad` ya asignada en RF-56 **no** cubre este cálculo.
 
-## Herramienta y comando
+---
+
+## 3. Entorno
+
+| Ítem | Valor |
+|---|---|
+| Python | 3.13.7 (`C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe`) |
+| pytest | 9.0.3 |
+| Plataforma | win32 / Windows-11-10.0.26200-SP0 |
+| Raíz de ejecución | `.worktrees/sgpmp-rf55-validation/raspberry` |
+| Config | `pyproject.toml` (`pythonpath = ["."]`) |
+| Docker | No usado |
+| PostgreSQL | No usado |
+| MQTT real | No usado |
+| Conexiones externas | Ninguna |
+
+---
+
+## 4. Archivo y función ejecutados
+
+`raspberry/tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad`
+
+Ruta absoluta del firmware:
+
+`c:\Users\ll529\OneDrive\Documentos\integrador\.worktrees\sgpmp-rf55-validation\raspberry`
+
+Motor: `edge_agent.reglas.evaluador.evaluar_lote` → `_evaluar_rf55_2` → `_con_maxima_severidad`.  
+Sin mocks de la consolidación.
+
+---
+
+## 5. Comando exacto y resultado real
+
+Desde la raíz del firmware:
 
 ```
-python -m pytest --noconftest -p no:cacheprovider -v -rs --tb=short
-  tests/.../test_tc_m03_g46.py::test_tc_m03_089_max_severidad_entre_niveles_edge
+python -m pytest tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad -v
 ```
 
-Skip local (`skip_sin_motor_edge`). Sin MQTT, PostgreSQL ni POST.
+| Métrica | Valor |
+|---|---|
+| Recolectados | 5 |
+| Aprobados | 5 |
+| Fallidos | 0 |
+| Omitidos | 0 |
+| Duración pytest | **5 passed in 0.07s** |
+| Código de salida | **EXIT=0** |
 
-## Resultado esperado
+Transcripción literal de consola: `TC-M03-089_evidencia_ejecucion.txt`.
 
-Evento consolidado en el nodo con `max(severidad_simple, severidad_compuesta)`.
+---
 
-## Resultado obtenido (runner)
+## 6. Tabla de los cinco escenarios ejecutables
 
-**SKIPPED.** `rf55_preparacion.py:62`.
+| Escenario | RF-55.2 | RF-55.1 | Final | Origen | Resultado |
+|---|---|---|---|---|---|
+| 1 | MODERADO | CRITICO | CRITICO | RF-55.1 | PASS |
+| 2 | LEVE | CRITICO | CRITICO | RF-55.1 | PASS |
+| 3 | CRITICO | MODERADO | CRITICO | RF-55.2 | PASS |
+| 4 | CRITICO | CRITICO | CRITICO | RF-55.2 | PASS |
+| 5 | LEVE | None | LEVE | RF-55.2 | PASS |
 
-- Inicio: 2026-10-25T16:17:19.586351-05:00  
-- Fin: 2026-10-25T16:17:20.712301-05:00  
-- pytest: **1 skipped in 0.08s**  
-- **EXIT=0** (omitido, no PASSED)
+Ids pytest (nodos del parametrize):
 
-## Estado funcional
+1. `[cuerpo0-lecturas0-umbral_t0-CRITICO-MODERADO-CRITICO-RF-55.1]` — Tipo A MODERADO; T 32,5 °C crítica.
+2. `[cuerpo1-lecturas1-umbral_t1-CRITICO-LEVE-CRITICO-RF-55.1]` — THI 72,82 LEVE; 25 °C crítica.
+3. `[cuerpo2-lecturas2-umbral_t2-CRITICO-CRITICO-MODERADO-RF-55.2]` — THI ~86,57 CRITICO; T en precaución = MODERADO.
+4. `[cuerpo3-lecturas3-umbral_t3-CRITICO-CRITICO-CRITICO-RF-55.2]` — empate CRITICO; decide RF-55.2.
+5. `[cuerpo4-lecturas4-umbral_t4-LEVE-LEVE-None-RF-55.2]` — THI LEVE; T en banda `normal` (sin severidad RF-55.1).
 
-**BLOQUEADO.** No es defecto funcional confirmado: falta hardware/firmware. No es PASSED por EXIT=0.
+En todos, `prevalece_sobre_regla_simple` es **True**.
 
-## Evidencias
+No se ejecutó (ni se presenta como PASS) el vector **RF-55.1 = LEVE / RF-55.2 = MODERADO**: RF-55.1 no produce `LEVE` en esta implementación (`_SEVERIDAD`: `precaucion` → MODERADO, `critico` / `fuera_de_rango` → CRITICO).
 
-- `evidencias/pytest.txt`  
-- `evidencias/pytest.html`  
-- `evidencias/pytest.xml`
+---
 
-## Dependencias y siguiente acción
+## 7. Evidencia de los asserts
 
-- **IoT/AIOT:** max de severidad entre niveles en el nodo.  
-- **Backend:** recepción RF-56 de `severidad` ya calculada no sustituye este CA.  
-- **QA:** confirmar ejemplos de matriz simple vs compuesto.
+Cada escenario comprueba:
+
+| Assert | Esperado |
+|---|---|
+| `evento.clasificacion` | `DESVIACION_COMPUESTA` |
+| `evento.severidad` | severidad final de la tabla |
+| `a_payload(evento)["severidad"]` | misma severidad final |
+| `metadata_edge.severidad_regla` | valor RF-55.2 (antes de consolidar) |
+| `metadata_edge.severidad_rf55_1` | valor RF-55.1 o `None` |
+| `metadata_edge.severidad_origen` | `RF-55.1` o `RF-55.2` |
+| `metadata_edge.id_regla_alerta` | `12` |
+
+---
+
+## 8. Consolidación en firmware
+
+La consolidación **existe** en producción del Edge:
+
+- `_con_maxima_severidad` en `edge_agent/reglas/evaluador.py`.
+- Invocada desde `_evaluar_rf55_2` cuando el evento es `DESVIACION_COMPUESTA` y `prevalece_sobre_regla_simple is True`.
+- Compara con `SEVERIDADES = (LEVE, MODERADO, CRITICO)` (`SEVERIDADES.index`): **LEVE < MODERADO < CRITICO**.
+- Solo **sube** la severidad; en empate deja RF-55.2 y `severidad_origen = "RF-55.2"`.
+- Si RF-55.1 no clasifica (`None`), se conserva RF-55.2.
+
+No se sustituyó esta lógica por un `max` inventado en el test.
+
+---
+
+## 9. Limitaciones
+
+1. **RF-55.1 no produce LEVE** en el nodo. El escenario 55.1 LEVE / 55.2 MODERADO **no** se ejecutó y **no** forma parte del 5/5.
+2. El test del backend `tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G46/test_tc_m03_g46.py::test_tc_m03_089_max_severidad_entre_niveles_edge` **continúa SKIPPED** (`skip_sin_motor_edge` / `localizar_motor_edge()` retorna `None`). Evidencia 2026-10-25: `evidencias/pytest.txt`, `evidencias/pytest.html`, `evidencias/pytest.xml`, `evidencias/TC-M03-089_resultado_backend_skipped_2026-10-25.md`. **No se declara aprobado el wrapper del backend.**
+3. Esta ejecución valida el **cálculo y la consolidación en el nodo**, no la persistencia en PostgreSQL (`modulo3.eventos_edge_computing`) ni MQTT físico / laboratorio Raspberry.
+
+---
+
+## 10. Veredicto
+
+**APROBADO — 100 % de los escenarios ejecutables de consolidación cubiertos y superados (5/5).**
+
+El cierre documental del caso queda respaldado por la ejecución del firmware (`evaluar_lote`, EXIT=0).
+
+No se afirma que `test_tc_m03_g46.py` haya pasado. No se afirma validación del entorno físico ni de RF-56.
