@@ -1,3 +1,9 @@
+## [1.4.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.23...v1.4.0-rc.24) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** aviso de datos insuficientes para reentrenar el modelo individual ([422ef7a](https://github.com/Arekkazu/sgpmp-backend/commit/422ef7a55ceaa8eb69cd2cd2038a74670f057ba6))
+
 ## [1.4.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.22...v1.4.0-rc.23) (2026-10-31)
 
 ### Bug Fixes
