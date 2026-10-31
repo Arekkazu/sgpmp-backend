@@ -1,0 +1,88 @@
+{
+  "id": "P2",
+  "entrada": [
+    {
+      "variable": "ph",
+      "valor": "abc",
+      "unidad": "pH"
+    },
+    {
+      "variable": "oxigeno_disuelto",
+      "valor": true,
+      "unidad": "mg/L"
+    }
+  ],
+  "validacion": [
+    {
+      "variable": "ph",
+      "valor": "abc",
+      "es_finito": false,
+      "invalida": true,
+      "motivo": "valor no numérico o no finito: 'abc'"
+    },
+    {
+      "variable": "oxigeno_disuelto",
+      "valor": true,
+      "es_finito": false,
+      "invalida": true,
+      "motivo": "valor no numérico o no finito: True"
+    }
+  ],
+  "lecturas_es_finito": [
+    {
+      "variable": "ph",
+      "valor_repr": "'abc'",
+      "es_finito": false
+    },
+    {
+      "variable": "oxigeno_disuelto",
+      "valor_repr": "True",
+      "es_finito": false
+    }
+  ],
+  "historial": [
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "ph",
+          "valor": "'abc'",
+          "unidad": "pH"
+        }
+      ],
+      "detalle": {
+        "motivo": "valor no numérico o no finito: 'abc'"
+      }
+    },
+    {
+      "clasificacion": "LECTURA_INVALIDA",
+      "severidad": null,
+      "ruta": "LOCAL",
+      "estado": "LOCAL",
+      "variables": [
+        {
+          "tipo_variable": "oxigeno_disuelto",
+          "valor": "True",
+          "unidad": "mg/L"
+        }
+      ],
+      "detalle": {
+        "motivo": "valor no numérico o no finito: True"
+      }
+    }
+  ],
+  "eventos": [],
+  "telemetria": [],
+  "warnings_rf55": [
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (ph): valor no numérico o no finito: 'abc'",
+    "Lectura de QA-G45-HARNESS descartada para RF-55 (oxigeno_disuelto): valor no numérico o no finito: True"
+  ],
+  "paths": {
+    "tmp": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P2",
+    "historial": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P2\\historial.db",
+    "buffer": "C:\\Users\\ll529\\AppData\\Local\\Temp\\g45-harness-z6g0spd8\\P2\\buffer.db"
+  }
+}
