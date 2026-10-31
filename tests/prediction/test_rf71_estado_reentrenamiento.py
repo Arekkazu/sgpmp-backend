@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71: aviso de datos insuficientes para reentrenar el modelo individual |
+# | 2026-10-31 | Arekkazu | RF-71/RF-73: solicitud de reentrenamiento como evento de auditoría |
 """RF-71: estado de datos para reentrenar los modelos individuales (aviso por debajo de 200)."""
 from __future__ import annotations
 
@@ -95,3 +96,61 @@ def test_m09_expone_y_cambia_los_minimos():
     assert por_nombre[RF71_MIN_REENTRENAMIENTO].valor == 500
     por_nombre = {p.nombre: p for p in use_case.actualizar({RF71_MIN_SOLICITUD: 150}, id_usuario=1)}
     assert (por_nombre[RF71_MIN_SOLICITUD].valor, por_nombre[RF71_MIN_SOLICITUD].fuente) == (150, "CONFIGURADO")
+
+
+# ── Solicitud (RF-71/RF-73) ─────────────────────────────────────────────────
+
+class _Auditoria:
+    def __init__(self, aceptado=True):
+        self.eventos, self.aceptado = [], aceptado
+
+    def registrar(self, **evento):
+        from uuid import uuid4
+        from src.prediction.domain.services.validacion_auditoria_m04 import ResultadoRegistroAuditoriaM04, validar_evento
+        assert not validar_evento(tipo_evento=evento["tipo_evento"], tipo_actor=evento["tipo_actor"],
+                                  id_usuario=evento.get("id_usuario"), id_sistema=evento.get("id_sistema"),
+                                  id_referencia=evento.get("id_referencia"), payload_evento=evento["payload_evento"])
+        self.eventos.append(evento)
+        return ResultadoRegistroAuditoriaM04(self.aceptado, uuid4())
+
+
+def _solicitar(conteo, auditoria=None, tipo="MODELO_ESPECIES_GRANDES"):
+    from src.prediction.application.use_cases.versiones_modelo.solicitar_reentrenamiento_use_case import (
+        SolicitarReentrenamientoUseCase,
+    )
+    db, auditoria = Mock(), auditoria or _Auditoria()
+    estado = ConsultarEstadoReentrenamientoUseCase(
+        retroalimentacion_repo=_Retro({"MODELO_ESPECIES_GRANDES": (conteo, DESDE)}), parametros_port=_Parametros())
+    resultado = SolicitarReentrenamientoUseCase(db=db, estado_use_case=estado, auditoria_repo=auditoria).execute(
+        tipo, "Brote en lote 3", 7)
+    return resultado, auditoria, db
+
+
+def test_solicitud_queda_en_la_bitacora():
+    (estado, _), auditoria, db = _solicitar(230)
+    assert estado.estado == "PUEDE_SOLICITARSE"
+    [evento] = auditoria.eventos
+    assert (evento["tipo_evento"], evento["id_usuario"], evento["id_referencia"]) == (
+        "REENTRENAMIENTO_SOLICITADO", 7, "MODELO_ESPECIES_GRANDES")
+    assert evento["payload_evento"]["registros_nuevos"] == 230
+    assert evento["payload_evento"]["motivo"] == "Brote en lote 3"
+    db.commit.assert_called_once()
+
+
+def test_por_debajo_del_minimo_no_se_puede_solicitar():
+    from src.shared.errors import BusinessRuleError
+    with pytest.raises(BusinessRuleError) as exc:
+        _solicitar(199)
+    assert exc.value.code == "DATOS_INSUFICIENTES_REENTRENAMIENTO"
+
+
+def test_solo_modelos_individuales():
+    from src.shared.errors import ValidationError
+    with pytest.raises(ValidationError):
+        _solicitar(300, tipo="MODELO_AVES")
+
+
+def test_evento_rechazado_no_confirma():
+    from src.shared.errors import InfrastructureError
+    with pytest.raises(InfrastructureError):
+        _solicitar(300, auditoria=_Auditoria(aceptado=False))

@@ -3,6 +3,7 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: probar rechazo E1, catalogo cerrado y continuidad del emisor. |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02 RF-73: NOTAS_REGISTRADAS en el catálogo |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: VENTANA_RETROALIMENTACION_AMPLIADA en el catálogo |
+# | 2026-10-31 | Arekkazu | RF-71/RF-73: REENTRENAMIENTO_SOLICITADO en el catálogo |
 """Pruebas unitarias con fakes, sin PostgreSQL."""
 from __future__ import annotations
 
@@ -125,7 +126,7 @@ def test_tipo_valido_sin_minimos_especificos_no_se_confunde_con_desconocido():
     assert campos_requeridos("HISTORIAL_CONSULTADO", {}) == []
     with pytest.raises(ValueError):
         campos_requeridos("EVENTO_INVENTADO", {})
-    assert len(TipoEventoM04) == 43
+    assert len(TipoEventoM04) == 44
 
 
 class ErrorPG(Exception):
