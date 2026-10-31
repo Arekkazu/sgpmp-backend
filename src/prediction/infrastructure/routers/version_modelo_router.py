@@ -5,11 +5,13 @@
 # | 2026-10-29 | Arekkazu     | RLS modulo4 RF-69/71: el registro interno actúa como usuario de servicio |
 # | 2026-10-29 | Arekkazu     | INC-M04-214 RF-69: campos obligatorios ausentes responden 422 |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-04 RF-73: consultar versiones no deja evento |
+# | 2026-10-31 | Arekkazu     | RF-71: estado de datos para reentrenar los modelos individuales |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
   POST  /prediccion/modelos                     — Registro interno desde RF-71 (multipart/form-data)
   GET   /prediccion/modelos                     — Listar versiones (filtros: tipo_modelo, estado)
+  GET   /prediccion/modelos/reentrenamiento     — Datos nuevos para reentrenar (RF-71)
   GET   /prediccion/modelos/{id_version}        — Obtener versión por id
   PATCH /prediccion/modelos/{id_version}/notas  — Registrar notas de validación clínica
   POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA (atómico)
@@ -28,6 +30,9 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.versiones_modelo.activar_version_modelo_use_case import ActivarVersionModeloUseCase
+from src.prediction.application.use_cases.versiones_modelo.consultar_estado_reentrenamiento_use_case import (
+    ConsultarEstadoReentrenamientoUseCase,
+)
 from src.prediction.application.use_cases.versiones_modelo.consultar_versiones_use_case import ConsultarVersionesUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_notas_version_use_case import RegistrarNotasVersionUseCase
 from src.prediction.application.use_cases.versiones_modelo.registrar_version_modelo_use_case import RegistrarVersionModeloUseCase
@@ -35,8 +40,13 @@ from src.prediction.infrastructure.adapters.aviso_version_modelo_email_adapter i
 from src.prediction.infrastructure.adapters.variable_i3p1_m09_adapter import VariableI3P1M09Adapter
 from src.prediction.infrastructure.dto.registrar_notas_version_dto import RegistrarNotasVersionDTO
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
+from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+from src.prediction.infrastructure.repositories.retroalimentacion_clinica_repository import (
+    SqlAlchemyRetroalimentacionClinicaRepository,
+)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+from src.prediction.infrastructure.schema.estado_reentrenamiento_schema import EstadoReentrenamientoResponse
 from src.prediction.infrastructure.schema.version_modelo_schema import VersionModeloListResponse, VersionModeloResponse
 from src.shared.database import get_db, get_db_sistema
 from src.shared.rbac import require_permission
@@ -110,6 +120,34 @@ def listar_versiones(
         total=total,
         items=[VersionModeloResponse.from_entity(e) for e in items],
     )
+
+
+@router.get(
+    "/reentrenamiento",
+    response_model=list[EstadoReentrenamientoResponse],
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        503: {"model": ErrorResponse, "description": "Mínimo configurado en M09 inválido"},
+    },
+    summary="Datos nuevos para reentrenar los modelos individuales (RF-71)",
+)
+def consultar_estado_reentrenamiento(
+    db: Session = Depends(get_db),
+) -> list[EstadoReentrenamientoResponse]:
+    """Por modelo individual: retroalimentaciones RF-72 desde su última versión y si alcanzan.
+
+    ``INSUFICIENTE`` (por debajo de ``minimo_solicitud``, 200 por defecto) → el front avisa que
+    no hay datos para reentrenar; ``PUEDE_SOLICITARSE`` → ya se puede pedir; ``LISTO`` → cumple
+    la precondición de RF-71 (``minimo_reentrenamiento``, 500). Cuenta bajo la RLS del usuario:
+    el Administrador ve todas las fincas.
+    """
+    use_case = ConsultarEstadoReentrenamientoUseCase(
+        retroalimentacion_repo=SqlAlchemyRetroalimentacionClinicaRepository(db),
+        parametros_port=SqlAlchemyParametrosMLOpsRepository(db),
+    )
+    return [EstadoReentrenamientoResponse.from_entity(e) for e in use_case.execute()]
 
 
 @router.get(

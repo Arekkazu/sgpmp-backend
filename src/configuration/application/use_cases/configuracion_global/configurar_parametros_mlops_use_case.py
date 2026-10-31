@@ -6,12 +6,13 @@
 # | 2026-10-28 | destroyerban | INC-M03-166-G73 RF-57 CA-2: valida el umbral mínimo de confianza de IA |
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: valida la ventana de reevaluación |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: valida la ventana de deduplicación y los plazos SLA |
+# | 2026-10-31 | Arekkazu | RF-71: valida los mínimos de registros para solicitar y reentrenar |
 """Carga administrativa explícita; ninguna inicialización ocurre en un request."""
 from decimal import Decimal
 
 from src.configuration.domain.entities.parametro_mlops import (
     PARAMETROS_CALIDAD, RF57_CONFIANZA, RF57_CONFIANZA_MINIMA, RF57_SLA_BASE, RF57_TORMENTA_SISTEMA, RF57_VENTANA_DEDUPLICACION, RF57_VENTANA_REEVALUACION, RF57_TORMENTA_UNIDAD, RF62_DRIFT, RF62_K, RF62_M, RF62_N, RF62_P,
-    RF72_VENTANA, ParametroMLOps, calidad_configurada, numero_configurado,
+    RF71_MIN_REENTRENAMIENTO, RF71_MIN_SOLICITUD, RF72_VENTANA, ParametroMLOps, calidad_configurada, numero_configurado,
 )
 from src.shared.errors import ServiceUnavailableError, ValidationError
 from src.configuration.domain.entities.parametros_heartbeat import (
@@ -29,6 +30,7 @@ _LIMITES = {
     **{nombre: (1, None) for nombre in RF57_SLA_BASE},
     RF57_TORMENTA_SISTEMA: (1, None), RF57_TORMENTA_UNIDAD: (1, None),
     RF72_VENTANA: (7, 365),
+    RF71_MIN_SOLICITUD: (1, None), RF71_MIN_REENTRENAMIENTO: (1, None),
     **LIMITES_HEARTBEAT,
     **LIMITES_VISION,
 }
@@ -75,6 +77,9 @@ class ConfigurarParametrosMLOpsUseCase:
                     numero_configurado(nuevos, nombre, minimo=1, entero=True)
             if RF72_VENTANA in nuevos:
                 numero_configurado(nuevos, RF72_VENTANA, minimo=7, maximo=365, entero=True)
+            for nombre in (RF71_MIN_SOLICITUD, RF71_MIN_REENTRENAMIENTO):
+                if nombre in nuevos:
+                    numero_configurado(nuevos, nombre, minimo=1, entero=True)
             if set(nuevos).intersection(LIMITES_HEARTBEAT):
                 configuracion = self.configuracion_repo.obtener_activo() if self.configuracion_repo is not None else None
                 if set(nuevos).intersection(TEMPORALES) and configuracion is None:
