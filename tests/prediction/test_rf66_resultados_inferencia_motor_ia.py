@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA registra resultados en el backend             |
 # | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64                           |
+# | 2026-10-31 | Arekkazu | RFC-010 RF-69: llave con animal, SOMBRA y fuente_datos en los dobles |
 """RF-66: ``POST /prediccion/inferencias`` — el motor IA entrega sus resultados."""
 from __future__ import annotations
 
@@ -49,7 +50,7 @@ def _cuerpo(**cambios) -> dict:
     return cuerpo
 
 
-def _use_case(*, existente=None, llave=("APROBADO", "MODELO_ESPECIES_GRANDES", None), especie=4):
+def _use_case(*, existente=None, llave=("APROBADO", "MODELO_ESPECIES_GRANDES", None, None), especie=4):
     repo = Mock()
     repo.obtener.return_value = existente
     version = Mock()
@@ -107,8 +108,8 @@ def test_mismo_id_devuelve_el_guardado_sin_escribir():
     [
         ({}, {"modo_sombra": False}, BusinessRuleError, "INFERENCIA_VINCULANTE_NO_DISPONIBLE"),
         ({"llave": None}, {}, NotFoundError, "VERSION_MODELO_NO_ENCONTRADA"),
-        ({"llave": ("DEPRECADO", "MODELO_ESPECIES_GRANDES", None)}, {}, BusinessRuleError, "VERSION_MODELO_NO_UTILIZABLE"),
-        ({"llave": ("ACTIVO", "MODELO_AVES", None)}, {}, BusinessRuleError, "TIPO_MODELO_NO_COINCIDE"),
+        ({"llave": ("DEPRECADO", "MODELO_ESPECIES_GRANDES", None, None)}, {}, BusinessRuleError, "VERSION_MODELO_NO_UTILIZABLE"),
+        ({"llave": ("ACTIVO", "MODELO_AVES", None, None)}, {}, BusinessRuleError, "TIPO_MODELO_NO_COINCIDE"),
         ({"especie": None}, {}, NotFoundError, "ACTIVO_NO_ENCONTRADO"),
     ],
 )

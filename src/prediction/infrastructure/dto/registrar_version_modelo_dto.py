@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 # | 2026-10-29 | Arekkazu | INC-M04-214 RF-69: tipo_modelo vacío llega al caso de uso (422 con los tipos admitidos) |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import json
@@ -51,6 +52,10 @@ class RegistrarVersionModeloDTO:
         archivo_modelo: UploadFile = File(...),
         # RF-69 v2.0 (RFC-009): obligatorio para modelos POBLACIONAL.
         componente: Optional[str] = Form(None),
+        # RFC-010: obligatorio para modelos INDIVIDUAL (un modelo por animal).
+        id_activo_biologico: Optional[int] = Form(None),
+        # RFC-010: REAL, SINTETICA, EXTERNA o MIXTA. SINTETICA solo puede correr en SOMBRA.
+        fuente_datos: str = Form("REAL"),
     ) -> None:
         self.tipo_modelo = tipo_modelo
         self.hash_artefacto_sha256 = hash_artefacto_sha256
@@ -64,3 +69,5 @@ class RegistrarVersionModeloDTO:
         self.version_referencia = version_referencia
         self.archivo_modelo = archivo_modelo
         self.componente = componente
+        self.id_activo_biologico = id_activo_biologico
+        self.fuente_datos = fuente_datos

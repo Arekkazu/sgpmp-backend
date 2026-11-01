@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA devuelve sus resultados al backend            |
 # | 2026-10-30 | Arekkazu | RF-66: resuelve la patología base por código RF-64               |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 """RF-66 — Registrar un resultado del motor IA (`motor-ia`) en ``modulo4.resultados_inferencia``.
 
 Postcondición 1: el resultado queda persistido de forma inmutable y alimenta RF-67
@@ -85,7 +86,7 @@ class RegistrarResultadoInferenciaUseCase:
                 message=f"No existe la versión de modelo {dto.id_version_modelo} en RF-69.",
                 field="id_version_modelo",
             )
-        estado, tipo_modelo, _componente = llave
+        estado, tipo_modelo, _componente, id_activo_version = llave
         if estado in _ESTADOS_NO_UTILIZABLES:
             raise BusinessRuleError(
                 code="VERSION_MODELO_NO_UTILIZABLE",
@@ -97,6 +98,17 @@ class RegistrarResultadoInferenciaUseCase:
                 code="TIPO_MODELO_NO_COINCIDE",
                 message=f"La versión {dto.id_version_modelo} es de {tipo_modelo}, no de {dto.tipo_modelo}.",
                 field="tipo_modelo",
+            )
+
+        # RFC-010: el modelo INDIVIDUAL de un animal no produce resultados de otro.
+        if id_activo_version is not None and id_activo_version != dto.id_activo_biologico:
+            raise BusinessRuleError(
+                code="VERSION_DE_OTRO_ACTIVO",
+                message=(
+                    f"La versión {dto.id_version_modelo} es del activo {id_activo_version}, "
+                    f"no del {dto.id_activo_biologico}."
+                ),
+                field="id_activo_biologico",
             )
 
         id_especie = self.activo_port.obtener_especie(dto.id_activo_biologico)

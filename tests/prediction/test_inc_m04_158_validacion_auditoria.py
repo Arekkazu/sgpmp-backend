@@ -4,6 +4,7 @@
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-02 RF-73: NOTAS_REGISTRADAS en el catálogo |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: VENTANA_RETROALIMENTACION_AMPLIADA en el catálogo |
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: REENTRENAMIENTO_SOLICITADO en el catálogo |
+# | 2026-10-31 | Arekkazu | RFC-010 RF-69: llave con animal, SOMBRA y fuente_datos en los dobles |
 """Pruebas unitarias con fakes, sin PostgreSQL."""
 from __future__ import annotations
 
@@ -126,7 +127,7 @@ def test_tipo_valido_sin_minimos_especificos_no_se_confunde_con_desconocido():
     assert campos_requeridos("HISTORIAL_CONSULTADO", {}) == []
     with pytest.raises(ValueError):
         campos_requeridos("EVENTO_INVENTADO", {})
-    assert len(TipoEventoM04) == 44
+    assert len(TipoEventoM04) == 45
 
 
 class ErrorPG(Exception):

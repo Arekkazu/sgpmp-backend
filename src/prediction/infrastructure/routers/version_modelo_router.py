@@ -7,6 +7,7 @@
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU09 H-04 RF-73: consultar versiones no deja evento |
 # | 2026-10-31 | Arekkazu     | RF-71: estado de datos para reentrenar los modelos individuales |
 # | 2026-10-31 | Arekkazu     | RF-71/RF-73: solicitar el reentrenamiento (evento de auditoría) |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -16,7 +17,8 @@ RF-69 CU-05: Validar y versionar modelos de IA.
   POST  /prediccion/modelos/reentrenamiento/solicitudes — Solicitar reentrenamiento (RF-71/RF-73)
   GET   /prediccion/modelos/{id_version}        — Obtener versión por id
   PATCH /prediccion/modelos/{id_version}/notas  — Registrar notas de validación clínica
-  POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA (atómico)
+  POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA o en SOMBRA (atómico)
+  POST  /prediccion/modelos/{id_version}/sombra  — Poner en SOMBRA una versión APROBADA (RFC-010)
 
 Autorización RBAC:
   recurso version_modelo = id_recurso 43
@@ -261,4 +263,37 @@ def activar_version(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario)
+    return VersionModeloResponse.from_entity(entidad)
+
+
+@router.post(
+    "/{id_version}/sombra",
+    response_model=VersionModeloResponse,
+    # Mismo permiso que activar: decide qué versión corre en el motor.
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "La versión no está en estado APROBADO"},
+        422: {"model": ErrorResponse},
+    },
+    summary="Poner en SOMBRA una versión APROBADA de modelo IA (RFC-010 — atómico)",
+)
+def poner_en_sombra_version(
+    id_version: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> VersionModeloResponse:
+    """La versión corre en el motor y registra resultados, pero no genera alertas.
+
+    Una versión SOMBRA por llave (tipo_modelo, componente, id_activo_biologico): la anterior
+    pasa a DEPRECADO. Después se puede promover con ``/activar`` (salvo fuente SINTETICA).
+    """
+    use_case = ActivarVersionModeloUseCase(
+        db=db,
+        repo=SqlAlchemyVersionModeloRepository(db),
+        auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+    )
+    entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario, en_sombra=True)
     return VersionModeloResponse.from_entity(entidad)

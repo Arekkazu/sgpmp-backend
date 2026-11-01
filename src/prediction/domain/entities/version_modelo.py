@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-34 RF-69: códigos HTTP de E2, E3 y E4             |
 # | 2026-10-24 | Arekkazu     | USAB-M04 M4-06 RF-69: las notas clínicas no se sobrescriben (409) |
 # | 2026-10-29 | Arekkazu     | QA-M04-27-10 CU05 H-06/H-03 RF-69: terminales sin notas; POBLACIONAL sin componente no se activa |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import uuid
@@ -17,6 +18,8 @@ from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, es_poblacional, para
 _UMBRAL_F1 = Decimal("0.80")
 _UMBRAL_RECALL = Decimal("0.85")
 _MAX_BYTES = 500 * 1024 * 1024  # 500 MB
+# RFC-010: de dónde salen los datos de entrenamiento. Un modelo SINTETICA solo corre en SOMBRA.
+FUENTES_DATOS = frozenset({"REAL", "SINTETICA", "EXTERNA", "MIXTA"})
 
 
 @dataclass(eq=False)
@@ -54,6 +57,10 @@ class VersionModelo:
     metricas_poblacionales: Optional[dict] = None
     # DEV-15 / DB-04: firma del artefacto que el nodo verifica antes de instalar (D6).
     firma_artefacto: Optional[str] = None
+    # RFC-010: los INDIVIDUAL se versionan por animal; la llave es (tipo_modelo, componente,
+    # id_activo_biologico). SOMBRA calcula y registra resultados, pero no alerta.
+    id_activo_biologico: Optional[int] = None
+    fuente_datos: str = "REAL"
 
     @property
     def paradigma(self) -> Optional[str]:
@@ -82,15 +89,19 @@ class VersionModelo:
         version_referencia: Optional[int] = None,
         componente: Optional[str] = None,
         metricas_poblacionales: Optional[dict] = None,
+        id_activo_biologico: Optional[int] = None,
+        fuente_datos: str = "REAL",
     ) -> VersionModelo:
         # El componente entra al nombre: un mismo proceso RF-71 registra varios
-        # componentes de un modelo POBLACIONAL y nombre_version es único.
-        # ponytail: nombre_version es varchar(40) y 6 vistas de M04 dependen de la
-        # columna; en vez de recrearlas se quita el prefijo MODELO_ y la fecha va en
-        # aammdd (peor caso ACUICULTURA_SEGUIMIENTO_aammdd_xxxxxxxx = 39).
+        # componentes de un modelo POBLACIONAL y nombre_version es único. El formato
+        # corto (sin MODELO_, fecha en aammdd) viene de cuando la columna era varchar(40);
+        # desde H2 es varchar(100) y se conserva para no cambiar los nombres existentes.
         prefijo = tipo_modelo.removeprefix("MODELO_")
         if componente:
             prefijo = f"{prefijo}_{componente}"
+        # RFC-010: un proceso RF-71 puede registrar un modelo por animal.
+        if id_activo_biologico is not None:
+            prefijo = f"{prefijo}_{id_activo_biologico}"
         nombre_version = (
             f"{prefijo}_{fecha_entrenamiento.strftime('%y%m%d')}_{str(id_proceso_rf71)[:8]}"
         )
@@ -122,10 +133,17 @@ class VersionModelo:
             fecha_despliegue=None,
             componente=componente,
             metricas_poblacionales=metricas_poblacionales,
+            id_activo_biologico=id_activo_biologico,
+            fuente_datos=fuente_datos,
         )
 
     def validar_y_asignar_estado(self) -> None:
-        """Evalúa métricas y asigna APROBADO o RECHAZADO. Llena detalle_validacion si RECHAZADO."""
+        """Evalúa métricas y asigna APROBADO o RECHAZADO. Llena detalle_validacion si RECHAZADO.
+
+        RFC-010 punto 3: un modelo SINTETICA que no alcanza los umbrales queda APROBADO solo
+        para SOMBRA (activar() ya lo rechaza): sus métricas salen de datos simulados y no son
+        evidencia clínica, y en sombra no alerta. detalle_validacion registra qué no cumple.
+        """
         defectos = []
         if es_poblacional(self.tipo_modelo):
             # ponytail: RF-69 v2.0 nombra las métricas poblacionales pero no fija umbrales
@@ -141,7 +159,10 @@ class VersionModelo:
                 defectos.append(
                     f"recall_clase_riesgo_alto={self.recall_clase_riesgo_alto} < umbral requerido {_UMBRAL_RECALL}"
                 )
-        if defectos:
+        if defectos and self.fuente_datos == "SINTETICA":
+            self.estado_version = "APROBADO"
+            self.detalle_validacion = "APROBADO SOLO PARA SOMBRA (fuente SINTETICA): " + "; ".join(defectos)
+        elif defectos:
             self.estado_version = "RECHAZADO"
             self.detalle_validacion = "; ".join(defectos)
         else:
@@ -149,10 +170,42 @@ class VersionModelo:
             self.detalle_validacion = None
 
     def activar(self) -> None:
-        """Transiciona a ACTIVO. Solo válido desde APROBADO y con notas_validacion.
+        """Transiciona a ACTIVO. Válido desde APROBADO o SOMBRA y con notas_validacion.
 
-        RF-69 E4 (DEV-34): activar una versión en estado distinto de APROBADO es 409.
+        RF-69 E4 (DEV-34): activar una versión en otro estado es 409.
         """
+        self._exigir_activable("ACTIVO")
+        if self.fuente_datos == "SINTETICA":
+            raise BusinessRuleError(
+                code="MODELO_SINTETICO_SOLO_SOMBRA",
+                message=(
+                    "Un modelo entrenado con datos sintéticos solo puede correr en SOMBRA: "
+                    "no genera alertas hasta reentrenarse con datos reales (RFC-010)."
+                ),
+                field="fuente_datos",
+            )
+        if not self.notas_validacion or not self.notas_validacion.strip():
+            raise BusinessRuleError(
+                code="NOTAS_VALIDACION_REQUERIDAS",
+                message=(
+                    "Se requieren notas de validación clínica antes de activar la versión. "
+                    "Use PATCH /prediccion/modelos/{id}/notas para registrarlas."
+                ),
+            )
+        self.estado_version = "ACTIVO"
+        self.esta_produccion = True
+        self.fecha_despliegue = datetime.now(tz=timezone.utc)
+
+    def poner_en_sombra(self) -> None:
+        """RFC-010: APROBADO → SOMBRA. Corre en el motor y registra resultados, sin alertar.
+
+        No exige notas clínicas: en sombra el modelo no decide nada sobre el animal.
+        """
+        self._exigir_activable("SOMBRA")
+        self.estado_version = "SOMBRA"
+        self.esta_produccion = False
+
+    def _exigir_activable(self, destino: str) -> None:
         if self.estado_version in ("DEPRECADO", "RECHAZADO"):
             raise ConflictError(
                 code="TRANSICION_ESTADO_INVALIDA",
@@ -161,11 +214,13 @@ class VersionModelo:
                     "y no pueden reactivarse."
                 ),
             )
-        if self.estado_version != "APROBADO":
+        # A ACTIVO se llega desde APROBADO o desde SOMBRA (promoción); a SOMBRA, solo desde APROBADO.
+        origenes = ("APROBADO", "SOMBRA") if destino == "ACTIVO" else ("APROBADO",)
+        if self.estado_version not in origenes:
             raise ConflictError(
                 code="VERSION_NO_APROBADA",
                 message=(
-                    f"Solo las versiones en estado APROBADO pueden activarse. "
+                    f"Solo las versiones en estado {' o '.join(origenes)} pueden pasar a {destino}. "
                     f"Estado actual: {self.estado_version}."
                 ),
             )
@@ -180,25 +235,14 @@ class VersionModelo:
                 ),
                 field="componente",
             )
-        if not self.notas_validacion or not self.notas_validacion.strip():
-            raise BusinessRuleError(
-                code="NOTAS_VALIDACION_REQUERIDAS",
-                message=(
-                    "Se requieren notas de validación clínica antes de activar la versión. "
-                    "Use PATCH /prediccion/modelos/{id}/notas para registrarlas."
-                ),
-            )
-        self.estado_version = "ACTIVO"
-        self.esta_produccion = True
-        self.fecha_despliegue = datetime.now(tz=timezone.utc)
 
     def deprecar(self) -> None:
-        """Transiciona a DEPRECADO. Solo válido desde ACTIVO."""
-        if self.estado_version != "ACTIVO":
+        """Transiciona a DEPRECADO. Válido desde ACTIVO o SOMBRA (la reemplaza otra de su llave)."""
+        if self.estado_version not in ("ACTIVO", "SOMBRA"):
             raise BusinessRuleError(
                 code="TRANSICION_ESTADO_INVALIDA",
                 message=(
-                    f"Solo los modelos ACTIVOS pueden deprecarse. "
+                    f"Solo los modelos ACTIVO o SOMBRA pueden deprecarse. "
                     f"Estado actual: {self.estado_version}."
                 ),
             )
@@ -242,6 +286,8 @@ class VersionModelo:
             "tipo_modelo": self.tipo_modelo,
             "paradigma": self.paradigma,
             "componente": self.componente,
+            "id_activo_biologico": self.id_activo_biologico,
+            "fuente_datos": self.fuente_datos,
             "estado_version": self.estado_version,
             "formato_artefacto": self.formato_artefacto,
             "f1_score_global": str(self.f1_score) if self.f1_score is not None else None,
