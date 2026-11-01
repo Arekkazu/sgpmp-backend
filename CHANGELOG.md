@@ -1,3 +1,15 @@
+## [1.4.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.26...v1.4.0-rc.27) (2026-11-01)
+
+### Features
+
+* **rfc-010:** RF-69 sintético aprobado solo para sombra y nombre_version de 100 (H2) ([a138ea1](https://github.com/Arekkazu/sgpmp-backend/commit/a138ea18a3509f16c55eaa4a171c6964d7f006e7))
+* **rfc-010:** RF-69 versión de modelo por animal, estado SOMBRA y fuente de datos ([dc1bbf0](https://github.com/Arekkazu/sgpmp-backend/commit/dc1bbf0c374ba3588e8f6d00764d6c5fb850b6ba))
+* **rfc-010:** script que registra ET-02 en RF-69 y arma el catálogo del motor (RF-66) ([85e19a7](https://github.com/Arekkazu/sgpmp-backend/commit/85e19a72004081bc8a95ff77f101ff13770887dc)), closes [#54](https://github.com/Arekkazu/sgpmp-backend/issues/54)
+
+### Bug Fixes
+
+* **rf-66:** pasar las variables del motor de inferencia M04 al contenedor del backend ([5e87d61](https://github.com/Arekkazu/sgpmp-backend/commit/5e87d61e80c322a8a64f55d84bac72838706dd1f))
+
 ## [1.4.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.25...v1.4.0-rc.26) (2026-10-31)
 
 ### Features
