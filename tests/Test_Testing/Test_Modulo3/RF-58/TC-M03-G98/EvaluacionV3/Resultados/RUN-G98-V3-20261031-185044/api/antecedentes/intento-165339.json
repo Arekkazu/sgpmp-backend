@@ -1,0 +1,66 @@
+{
+  "run_origen": "RUN-G98-V2-20261031-165339",
+  "estado": "BLOQUEADO",
+  "motivo": "No se encontró área segura con tres alertas ACTIVA de severidad mixta en sensores distintos; sin datos no se acredita el incumplimiento",
+  "areas_exploradas": [
+    1,
+    2,
+    3,
+    268,
+    389,
+    390
+  ],
+  "descartes": [
+    {
+      "motivo": "faltan tres severidades ACTIVA en sensores distintos",
+      "areas": [
+        1,
+        2,
+        3,
+        268,
+        389,
+        390
+      ]
+    }
+  ],
+  "peticiones_por_ruta_http": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": "no_aplica",
+      "total": 2
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "http": 200,
+      "eco": "si",
+      "total": 2
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras",
+      "http": 200,
+      "eco": "si",
+      "total": 4
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/alertas",
+      "http": 200,
+      "eco": "si",
+      "total": 6
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/{RUN}",
+      "http": 200,
+      "eco": "no_aplica",
+      "total": 1
+    }
+  ],
+  "post_alertas": 0,
+  "cierre_http": 200,
+  "rollback_verificado": true
+}

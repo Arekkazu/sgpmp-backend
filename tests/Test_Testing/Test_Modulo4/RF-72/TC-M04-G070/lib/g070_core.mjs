@@ -1,14 +1,19 @@
 export const CASOS=['TC-M04-214','TC-M04-215','TC-M04-216','TC-M04-217','TC-M04-218'];
 export const IDS=CASOS.map((_,i)=>`API-${214+i}-01`);
-// 2 sesiones + activo + 40 páginas iniciales + 8 modelos + 2 superficies + 7 POST
-// + 40 páginas de verificación + auditoría + DELETE + 40 páginas poscierre = 142.
-export const PRESUPUESTO=Object.freeze({solicitudes_totales:142,paginas_historial:40,
-  versiones_maximas:8,posts_maximos:7,dias_busqueda:125,timeout_login_ms:120000,
-  timeout_ms:30000,duracion_segundos:900});
+// V2, máximo: 2 sesiones + activo + 4 recorridos de historial de 40 páginas
+// + 8 modelos + OpenAPI + configuración inicial + 6 Newman + auditoría de
+// registros + 16 operaciones 216 + 10 operaciones 217 + DELETE + 2 lecturas
+// poscierre = 209.
+export const PRESUPUESTO=Object.freeze({solicitudes_totales:209,paginas_historial:40,
+  versiones_maximas:8,posts_maximos:15,dias_busqueda:125,timeout_login_ms:120000,
+  timeout_ms:30000,timeout_escritura_ms:120000,duracion_segundos:1800});
 export const CAPACIDADES=Object.freeze({contrato:'sigab-qa-ejecutor/1',grupo:'G070',casos:CASOS,
   operaciones:['evaluar','reintentar','reevaluar','recuperar'],versiones:{min:1,max:99},
   comprobaciones_obligatorias:Object.fromEntries(CASOS.map((c,i)=>[c,{API:[IDS[i]]}])),
-  limite:{solicitudes_totales:PRESUPUESTO.solicitudes_totales,duracion_segundos:900},
+  limite:{solicitudes_totales:PRESUPUESTO.solicitudes_totales,duracion_segundos:PRESUPUESTO.duracion_segundos,
+    timeout_escritura_ms:PRESUPUESTO.timeout_escritura_ms},
+  secuencia_v2:['214','215','218','216','restaurar_90','217'],
+  conciliacion:'POST/PATCH sin respuesta: consultar estado público; no reintentar la misma escritura',
   baja_automatizada:false});
 export const DIAS=86400000;
 export function antiguedad(fecha,ahora=Date.now()){
@@ -18,15 +23,17 @@ export function antiguedad(fecha,ahora=Date.now()){
 export function tramo(clave,a){
   if(!a||a.ms<0)return false;
   if(clave==='reciente')return a.dias_backend>=1&&a.dias_backend<=21;
-  if(clave==='d89')return a.dias_backend===89;
-  if(clave==='d90')return a.dias_backend===90&&a.horas<90*24+12;
-  if(clave==='d90h')return a.dias_backend===90&&a.horas>=90*24+12;
-  if(clave==='d91')return a.dias_backend===91;
-  return clave.startsWith('d120')&&a.dias_backend===120;
+  // La hora del sandbox se fija al inicio; toleramos hasta diez horas de espera
+  // desde el COMMIT, sin solapar los tramos 90 y 90H.
+  if(clave==='d89')return a.horas>=89*24&&a.horas<90*24;
+  if(clave==='d90')return a.horas>=90*24&&a.horas<90*24+12;
+  if(clave==='d90h')return a.horas>=90*24+12&&a.horas<91*24;
+  if(clave==='d91')return a.horas>=91*24&&a.horas<92*24;
+  return clave.startsWith('d120')&&a.dias_backend>91&&a.dias_backend<=PRESUPUESTO.dias_busqueda;
 }
 export function elegir(eventos,usuario,modelos,ahora=Date.now()){
-  const ocupados=new Set(eventos.filter(e=>e.tipo_evento==='RETROALIMENTACION'
-    &&String(e.payload?.id_usuario_veterinario)===String(usuario)).map(e=>String(e.id_resultado_inferencia)));
+  const ocupados=new Set(eventos.filter(e=>e.tipo_evento==='RETROALIMENTACION')
+    .map(e=>String(e.id_resultado_inferencia)));
   const resultados=eventos.filter(e=>e.tipo_evento==='INFERENCIA'&&e.id_activo_biologico===885
     &&!ocupados.has(String(e.id_resultado_inferencia))
     &&['MODELO_ESPECIES_MEDIANAS','MODELO_ESPECIES_GRANDES'].includes(
@@ -35,8 +42,10 @@ export function elegir(eventos,usuario,modelos,ahora=Date.now()){
   const seleccion={};const usados=new Set();
   for(const clave of ['reciente','d89','d90','d90h','d91','d120a','d120b']){
     const x=resultados.filter(e=>!usados.has(String(e.id_resultado_inferencia))&&tramo(clave,e.antiguedad))
-      .sort((a,b)=>Math.abs(a.antiguedad.horas-({reciente:24,d89:89*24+1,d90:90*24+1,d90h:90*24+12,d91:91*24+1,d120a:120*24,d120b:120*24}[clave]))-
-        Math.abs(b.antiguedad.horas-({reciente:24,d89:89*24+1,d90:90*24+1,d90h:90*24+12,d91:91*24+1,d120a:120*24,d120b:120*24}[clave])))[0];
+      .sort((a,b)=>clave.startsWith('d120')
+        ?b.antiguedad.ms-a.antiguedad.ms||String(a.id_resultado_inferencia).localeCompare(String(b.id_resultado_inferencia))
+        :Math.abs(a.antiguedad.horas-({reciente:24,d89:89*24+1,d90:90*24+1,d90h:90*24+12,d91:91*24+1}[clave]))-
+          Math.abs(b.antiguedad.horas-({reciente:24,d89:89*24+1,d90:90*24+1,d90h:90*24+12,d91:91*24+1}[clave])))[0];
     if(x){seleccion[clave]=x;usados.add(String(x.id_resultado_inferencia));}
   }
   return seleccion;

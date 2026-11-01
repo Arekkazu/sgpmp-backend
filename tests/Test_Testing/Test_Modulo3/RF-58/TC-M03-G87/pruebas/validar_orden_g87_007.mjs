@@ -11,7 +11,7 @@ test('S1 bloqueado y S2 válido: Newman prepara y consulta 178; Cypress registra
   const ejecutadas = [];
   for (const item of coleccion.item) {
     let omitida = false;
-    const pm = { environment: { get: (k) => ({ s1_ejecutar: 'NO' })[k] }, execution: { skipRequest: () => { omitida = true; } } };
+    const pm = { environment: { get: (k) => ({ s1_ejecutar: 'NO', s2_ejecutar: 'SI' })[k] }, execution: { skipRequest: () => { omitida = true; } } };
     for (const evento of item.event ?? []) if (evento.listen === 'prerequest') {
       vm.runInNewContext(`(function () { ${evento.script.exec.join('\n')} })()`, { pm });
       if (omitida) break;
@@ -39,7 +39,7 @@ test('S1 bloqueado y S2 válido: Newman prepara y consulta 178; Cypress registra
   assert.equal(ui178, true);
   const titulos = [];
   vm.runInNewContext(leer('../g87.cy.js'), {
-    Cypress: { env: (k) => ({ UI_177: ui177, UI_178: ui178 })[k], config: () => 'https://front.test' },
+    Cypress: { env: (k) => ({ UI_177: ui177, UI_178_PROD: ui178, UI_178_ENG: ui178 })[k], config: () => 'https://front.test' },
     describe: (_n, o, f) => (typeof o === 'function' ? o() : f()), it: (n) => titulos.push(n),
     before: () => {}, beforeEach: () => {}, Promise,
   });
@@ -50,6 +50,6 @@ test('S1 bloqueado y S2 válido: Newman prepara y consulta 178; Cypress registra
     'TC-M03-178': { estado: 'APROBADO' },
   }), 'PARCIAL');
   const runner = leer('../g87.mjs');
-  assert.match(runner, /r\.estado = bloqueoS1 \? 'PARCIAL' : 'CONCLUIDA'/);
-  assert.match(runner, /obtenido: `NO_EJECUTADA: \$\{motivosUi\[caso\]\}`/);
+  assert.match(runner, /r\.estado = bloqueoS1 \|\| bloqueoS2 \? 'PARCIAL' : 'CONCLUIDA'/);
+  assert.match(runner, /obtenido: `NO_EJECUTADA: \$\{motivo\}`/);
 });

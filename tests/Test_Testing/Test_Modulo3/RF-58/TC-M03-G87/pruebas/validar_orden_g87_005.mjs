@@ -52,7 +52,7 @@ test('T3: UI 178 puede ejecutarse aunque PRE-177 falle', () => {
   assert.equal(uiHabilitada(cs, 'TC-M03-178', ['PRE-178-01', 'PRE-178-02', 'PRE-178-03'], false, true), false);
   const spec = fs.readFileSync(new URL('../g87.cy.js', import.meta.url), 'utf8');
   const titulos = [];
-  const contexto = { Cypress: { env: (k) => ({ UI_177: false, UI_178: true })[k], config: () => 'https://front.test' },
+  const contexto = { Cypress: { env: (k) => ({ UI_177: false, UI_178_PROD: true, UI_178_ENG: true })[k], config: () => 'https://front.test' },
     describe: (_n, o, f) => (typeof o === 'function' ? o() : f()), it: (n) => titulos.push(n), before: () => {}, beforeEach: () => {}, Promise };
   vm.runInNewContext(spec, contexto);
   assert.equal(titulos.some((x) => x.includes('[TC-M03-177]')), false);

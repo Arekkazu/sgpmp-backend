@@ -1,0 +1,26 @@
+{
+  "grupo": "G050",
+  "version": 2,
+  "intento": 2,
+  "run_id": "RUN-G050-V2-20261101-021157",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G050-V2-20261101",
+  "casos": [
+    "TC-M04-118",
+    "TC-M04-119",
+    "TC-M04-120"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-118",
+      "TC-M04-119",
+      "TC-M04-120"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M04-119 con regresión de TC-M04-118 y TC-M04-120, tras la corrección de Desarrollo (issue #819, PR #864, en las ramas dev y test). _detectar_formato distingue por estructura protobuf: SavedModel tiene solo los campos 1 y 2, y meta_graphs empieza por 0x0a (registrar_version_modelo_use_case.py:88-93 y 303-327 en el código local). ORD-G050-006/007: formato y hash comprobados en el POST, si vienen, y en el GET; artefactos verificados localmente contra la regla del backend (saved_model.pb → TENSORFLOW_SAVED_MODEL; g050.onnx → ONNX); TC-M04-120 con el criterio de V1, donde el formato solo se observa; informe V2 por caso. Validación: prueba local OK; ensayo real del responsable QA 10/10 (v2_corregido APROBADO/APROBADO/APROBADO; v2_defecto APROBADO/RECHAZADO/APROBADO). SHA-256 g050.mjs 4296cdbf6c53077114e2c6bc9284515053c493396b8c1544bd0bcfc9acc1f105; colección 85ea1e8ec396ad9e1f8fc2eb51e57252c47803077252be78c3b1fb472db154e3; lib/g050_escenario.mjs cc1b96c4e9c2a0c01363e575e70f4f2d34cc5fc6d024c26c053329a12eb8cbf6; lib/artefactos.mjs 1ee995461d07a85548864120494ee0565312ac9b4b89f4b393e313a64a0acf29; lib/contrato_ejecutor.mjs 7e114dc48d7b2fca2469db86ed9f295a023efcf5ad55f1d8be0e6488a25f0aed; lib/seguridad.mjs e9a5172fc06fd9115c519dcf0adb31fff0e7f481de08814e5548c386f53bca0a; g050.onnx 7004471518983d131c924f96a30662bb4bf5e1324321ed60aacbd3c452e30fd9; saved_model.pb 6f76bdabbc9789b1ae227386e90a2cfc46343f657ec98098390a766691f90bd0.",
+    "incumplimientos_previos": "V1 oficial RUN-G050-V1-20261028-005856: RECHAZADO solo por TC-M04-119 (INC-M04-G050-119, Desarrollo, MEDIA): un saved_model.pb válido se registró con formato_artefacto ONNX (POST 201, GET 200, hash fiel). TC-M04-118 y TC-M04-120 APROBADO.",
+    "correcciones_informadas": "Desarrollo, issue #819 / PR #864 (en dev y test): _detectar_formato identifica SavedModel por saved_model_schema_version y meta_graphs y lo registra como TENSORFLOW_SAVED_MODEL; ONNX sigue clasificándose como ONNX; se mantiene la validación del hash SHA-256. La validación corresponde al archivo saved_model.pb, no a cargar un directorio en un runtime TensorFlow.",
+    "resultado_esperado": "TC-M04-118 APROBADO: ONNX con hash fiel. TC-M04-119 APROBADO: POST 201 y GET 200 con formato_artefacto TENSORFLOW_SAVED_MODEL y hash fiel. TC-M04-120 APROBADO: seis tipos con POST 201, GET 200, ID propio, paradigma, componente y métricas. INC-M04-G050-119 CORREGIDA si 119 aprueba."
+  },
+  "version_anterior": 1
+}

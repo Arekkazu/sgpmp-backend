@@ -7,11 +7,20 @@ export function cierreUnico(accion) {
   return () => (pendiente ??= Promise.resolve().then(accion));
 }
 
+export function sinEscriturasQueRevertir({ escriturasIntentadas, lecturas, umbralRun266 }) {
+  return !escriturasIntentadas && lecturas.length === 0
+    && !umbralRun266?.alta_intentada && !umbralRun266?.id;
+}
+
 export async function cerrarYVerificar({ runId, secreto, solicitar, autenticar, anteriores = [], lecturas = [],
-  umbralRun266 = null, solicitarCierre = true, cierrePrevioHttp = null, ahora = Date.now() }) {
+  umbralRun266 = null, escriturasIntentadas = false, solicitarCierre = true,
+  cierrePrevioHttp = null, ahora = Date.now() }) {
   const salida = { cierre_http: null, rollback: { verificado: false, asociaciones: [], dashboard: [],
     umbrales: [], umbral_run_266: { estado: 'SIN_UMBRAL_DEL_RUN_QUE_VERIFICAR' },
+    umbral_qa_91: { estado: 'NO_VERIFICADO' },
     historial: [], conclusion: 'NO_CONCLUYENTE' }, errores: [] };
+  const sinEscrituras = sinEscriturasQueRevertir({ escriturasIntentadas, lecturas, umbralRun266 });
+  if (sinEscrituras) salida.rollback.conclusion = 'SIN_ESCRITURAS_QUE_REVERTIR';
   if (solicitarCierre) {
     try { salida.cierre_http = (await solicitar('DELETE', `/test-control/runs/${runId}`, { secreto })).status; }
     catch (e) { salida.errores.push(`DELETE: ${e.message}`); }
@@ -56,11 +65,23 @@ export async function cerrarYVerificar({ runId, secreto, solicitar, autenticar, 
       salida.errores.push(`266: GET posterior al DELETE: ${e.message}`);
     }
   }
+  // El umbral histórico QA 91 también debe permanecer ausente tras cualquier cierre G88.
+    try {
+      const ruta = '/configuracion/umbrales?id_especie=220';
+      const x = await solicitar('GET', ruta, { token });
+      const items = x.json?.items;
+      const completo = x.status === 200 && Array.isArray(items)
+        && (x.json.total == null || Number(x.json.total) === items.length);
+      const ausente = completo && !items.some((u) => Number(u.id_umbral_ambiental) === 91);
+      salida.rollback.umbral_qa_91 = { ruta, http: x.status, completo, ausente,
+        estado: ausente ? 'REVERTIDO_VERIFICADO' : 'NO_CONFIRMADO' };
+      if (!ausente) salida.errores.push('266: umbral QA 91 no acreditado ausente tras DELETE.');
+    } catch (e) { salida.errores.push(`266: umbral QA 91: ${e.message}`); }
   for (const lectura of lecturas) {
     try {
-      const hoy = rangoHistorial(ahora).fin;
-      const q = new URLSearchParams({ sensor_id: String(lectura.sensor_id), fecha_inicio: lectura.fecha_inicio,
-        fecha_fin: lectura.fecha_fin > hoy ? hoy : lectura.fecha_fin });
+      const { inicio, fin } = rangoHistorial(ahora);
+      const q = new URLSearchParams({ sensor_id: String(lectura.sensor_id),
+        fecha_inicio: lectura.fecha_inicio < inicio ? lectura.fecha_inicio : inicio, fecha_fin: fin });
       const ruta = `/iot/monitoreo/historial?${q}`;
       const x = await solicitar('GET', ruta, { token });
       const items = x.json?.items;
@@ -73,7 +94,8 @@ export async function cerrarYVerificar({ runId, secreto, solicitar, autenticar, 
   salida.rollback.verificado = salida.errores.length === 0 && anteriores.length > 0 && lecturas.length > 0
     && comparaciones.length >= anteriores.length && comparaciones.every((x) => x.coincide)
     && salida.rollback.historial.length === lecturas.length && salida.rollback.historial.every((x) => x.ausente);
-  salida.rollback.conclusion = salida.rollback.verificado ? 'ROLLBACK_CONFIRMADO'
+  salida.rollback.conclusion = sinEscrituras ? 'SIN_ESCRITURAS_QUE_REVERTIR'
+    : salida.rollback.verificado ? 'ROLLBACK_CONFIRMADO'
     : salida.rollback.umbral_run_266.estado === 'PRESENTE_ROLLBACK_NO_CONFIRMADO'
       ? 'ROLLBACK_NO_CONFIRMADO_UMBRAL_266' : 'NO_CONCLUYENTE';
   return salida;

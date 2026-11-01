@@ -1,0 +1,408 @@
+{
+  "grupo": "G049",
+  "run_id": "RUN-G049-V2-20261101-014729",
+  "version": 2,
+  "operacion": "reevaluar",
+  "autorizacion": "AUT-G049-V2-20261101",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M04-114": {
+      "estado": "APROBADO",
+      "motivo": "VERSION_REGISTRADA y VERSION_APROBADA de sistema con fuente id_proceso_rf71 (RF-69 Fase 6)",
+      "observacion": "payload_evento de VERSION_REGISTRADA refleja APROBADO; es una foto del estado final, no la transición. El historial de transiciones no se expone por API pública."
+    },
+    "TC-M04-115": {
+      "estado": "APROBADO",
+      "motivo": "Tres identificadores enteros positivos distintos; GET de V1 devuelve el mismo identificador"
+    },
+    "TC-M04-116": {
+      "estado": "APROBADO",
+      "motivo": "Salida 1 completa e igual a la enviada"
+    },
+    "TC-M04-117": {
+      "estado": "APROBADO",
+      "motivo": "V3 refiere V2 y V1 se registró sin referencia"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M04-114",
+      "fuente": "API",
+      "id": "API-114-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "VERSION_REGISTRADA y VERSION_APROBADA de sistema con fuente id_proceso_rf71 (RF-69 Fase 6)",
+      "evidencia": "resultado.json",
+      "observado": {
+        "eventos": [
+          {
+            "tipo_evento": "VERSION_APROBADA",
+            "tipo_actor": "SISTEMA",
+            "id_usuario": null,
+            "id_sistema": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+            "id_referencia": "128",
+            "estado": "APROBADO"
+          },
+          {
+            "tipo_evento": "VERSION_REGISTRADA",
+            "tipo_actor": "SISTEMA",
+            "id_usuario": null,
+            "id_sistema": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+            "id_referencia": "128",
+            "estado": "APROBADO"
+          }
+        ]
+      },
+      "observacion": "payload_evento de VERSION_REGISTRADA refleja APROBADO; es una foto del estado final, no la transición. El historial de transiciones no se expone por API pública."
+    },
+    {
+      "caso": "TC-M04-115",
+      "fuente": "API",
+      "id": "API-115-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Tres identificadores enteros positivos distintos; GET de V1 devuelve el mismo identificador",
+      "evidencia": "newman/newman-G049.json",
+      "observado": {
+        "ids": [
+          128,
+          129,
+          130
+        ],
+        "get_v1": 128
+      }
+    },
+    {
+      "caso": "TC-M04-116",
+      "fuente": "API",
+      "id": "API-116-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Salida 1 completa e igual a la enviada",
+      "evidencia": "resultado.json",
+      "observado": {
+        "id_version": 128,
+        "f1_score_global": "0.9100",
+        "recall_clase_riesgo_alto": "0.9300",
+        "precision_global": "0.9200",
+        "accuracy": "0.9400",
+        "roc_auc_score": "0.9500",
+        "recall_por_clase": {
+          "riesgo_alto": 0.93,
+          "riesgo_bajo": 0.92
+        },
+        "matriz_confusion": [
+          [
+            9,
+            1
+          ],
+          [
+            1,
+            9
+          ]
+        ],
+        "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+        "estado": "APROBADO",
+        "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+        "hash_artefacto_modelo": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+        "fecha_entrenamiento": "2026-10-31T01:47:33.387000Z",
+        "timestamp_registro": "2026-11-01T01:47:34.032130Z",
+        "id_proceso_rf71": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+        "notas_validacion": null
+      }
+    },
+    {
+      "caso": "TC-M04-117",
+      "fuente": "API",
+      "id": "API-117-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "V3 refiere V2 y V1 se registró sin referencia",
+      "evidencia": "resultado.json",
+      "observado": {
+        "v1_sin_referencia": true,
+        "v2_id": 129,
+        "v3_referencia": 129
+      }
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G049.json",
+    "newman/newman-G049.html",
+    "TC-M04-G049_reevaluacion_V2.md",
+    "resultado.json"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/variables-ambientales",
+      "http": 200,
+      "eco": true,
+      "en_run": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G049-V2-20261101-014729",
+      "http": 200,
+      "eco": null,
+      "en_run": false
+    }
+  ],
+  "datos": {
+    "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+    "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+    "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+    "metricas_validacion": {
+      "f1_score_global": 0.91,
+      "recall_clase_riesgo_alto": 0.93,
+      "precision_global": 0.92,
+      "accuracy": 0.94,
+      "roc_auc_score": 0.95,
+      "recall_por_clase": {
+        "riesgo_alto": 0.93,
+        "riesgo_bajo": 0.92
+      },
+      "matriz_confusion": [
+        [
+          9,
+          1
+        ],
+        [
+          1,
+          9
+        ]
+      ]
+    },
+    "fecha_entrenamiento": "2026-10-31T01:47:33.387Z",
+    "compatibilidad_variables": [
+      16
+    ],
+    "procesos": [
+      "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+      "8968c608-f162-40a5-85a4-217ba40330e6",
+      "216b1815-b262-4a14-9140-a1784a468496"
+    ]
+  },
+  "respuestas": {
+    "posts": [
+      {
+        "http": 201,
+        "eco": true,
+        "id": 128,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 129,
+        "estado": "APROBADO",
+        "error": null
+      },
+      {
+        "http": 201,
+        "eco": true,
+        "id": 130,
+        "estado": "APROBADO",
+        "error": null
+      }
+    ],
+    "gets": [
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 128,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T01:47:33.387000Z",
+          "fecha_registro": "2026-11-01T01:47:34.032130Z",
+          "fecha_despliegue": null
+        }
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 129,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "8968c608-f162-40a5-85a4-217ba40330e6",
+          "version_referencia": null,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T01:47:33.387000Z",
+          "fecha_registro": "2026-11-01T01:47:34.032130Z",
+          "fecha_despliegue": null
+        }
+      },
+      {
+        "http": 200,
+        "eco": true,
+        "cuerpo": {
+          "id_version_modelo": 130,
+          "nombre_version": "[REDACTADO]",
+          "tipo_modelo": "MODELO_ESPECIES_GRANDES",
+          "paradigma": "INDIVIDUAL",
+          "componente": null,
+          "metricas_poblacionales": null,
+          "estado_version": "APROBADO",
+          "formato_artefacto": "ONNX",
+          "tamanio_artefacto_bytes": 84,
+          "hash_artefacto_sha256": "46f971b933a3a104fedaa6058f6d1188b6ad97dc1ac9a9642d59df8518a1e470",
+          "dataset_entrenamiento_hash": "8d45c09b8b3048cb154542532ee9b1295078367ebbcf23ed25afaa60e5b46d88",
+          "id_proceso_rf71": "216b1815-b262-4a14-9140-a1784a468496",
+          "version_referencia": 129,
+          "f1_score": "0.9100",
+          "recall_clase_riesgo_alto": "0.9300",
+          "precision_modelo": "0.9200",
+          "accuracy": "0.9400",
+          "roc_auc_score": "0.9500",
+          "recall_por_clase": {
+            "riesgo_alto": 0.93,
+            "riesgo_bajo": 0.92
+          },
+          "matriz_confusion": [
+            [
+              9,
+              1
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "compatibilidad_variables": [
+            16
+          ],
+          "notas_validacion": null,
+          "detalle_validacion": null,
+          "esta_produccion": false,
+          "fecha_entrenamiento": "2026-10-31T01:47:33.387000Z",
+          "fecha_registro": "2026-11-01T01:47:34.032130Z",
+          "fecha_despliegue": null
+        }
+      }
+    ],
+    "auditoria": {
+      "http": 200,
+      "eco": true,
+      "total": 2,
+      "items": [
+        {
+          "tipo_evento": "VERSION_APROBADA",
+          "tipo_actor": "SISTEMA",
+          "id_usuario": null,
+          "id_sistema": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+          "id_referencia": "128",
+          "estado": "APROBADO"
+        },
+        {
+          "tipo_evento": "VERSION_REGISTRADA",
+          "tipo_actor": "SISTEMA",
+          "id_usuario": null,
+          "id_sistema": "32ba4557-24d8-4f0a-bcbd-85ba014f15aa",
+          "id_referencia": "128",
+          "estado": "APROBADO"
+        }
+      ]
+    }
+  },
+  "incidencias": [],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "Transacción externa del sandbox cerrada; artefactos en disco y posible respaldo local fuera de alcance"
+    }
+  }
+}

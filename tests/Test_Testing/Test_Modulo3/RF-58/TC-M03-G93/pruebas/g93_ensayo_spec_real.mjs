@@ -14,76 +14,108 @@ const grupo = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const spec = path.join(grupo, 'g93.cy.js');
 const token = 'LOCAL_FICTICIO';
 const html = `<!doctype html><html lang="es"><meta charset="utf-8"><body>
-<button id="auto">Auto ON</button><input type="number" id="filtro">
+<form id="login"><input type="email"><input type="password"><button type="submit">Entrar</button></form>
+<button id="auto">Auto ON</button><input type="text" id="monitoreo-area">
 <main id="panel">Cargando…</main><script>
 const fase = '__FASE__';
 const escenario = '__ESCENARIO__';
 const panel = document.getElementById('panel');
 document.getElementById('auto').onclick = e => { e.currentTarget.textContent = 'Auto OFF'; };
 const pill = (texto, color) => '<span style="border-radius:var(--r-full);color:' + color + '"><svg width="12" height="12"></svg>' + texto + '</span>';
-const unidad = (nombre, sensores) => '<section><div class="unidad-card"><div><div>Icono</div><div><div>' + nombre + '</div><div>Finca local' + (fase === 'V2' ? ' · último dato 25/10/2020 12:34' : '') + '</div></div></div><div><span>Contador</span>' + pill('Sin datos', 'var(--text-muted)') + '</div></div><div class="rejilla">' + sensores + '</div></section>';
+const unidad = (nombre, sensores, datoExtra = '') => '<section><button class="ds-option"><div><div>Icono</div><div><div>' + nombre + '</div><div>Finca local' + (fase === 'V2' ? ' · último dato 25/10/2020 12:34' : '') + '</div></div></div><div>' + pill('Sin datos', 'var(--text-muted)') + datoExtra + '</div></button><div id="area-93">' + sensores + '</div></section>';
 async function cargar(id) {
   const res = await fetch('/iot/monitoreo/dashboard' + (id ? '?id_infraestructura=' + id : ''));
   const j = await res.json();
-  const tarjetas = fase === 'V2' && id ? '<button class="ds-option">Sensor INACTIVO desactualizado ' + pill('Requiere calibración', 'var(--sem-warning)') + '</button>' : '';
+  if (escenario === 'cargainfinita') return;
+  const tarjetas = fase === 'V2' && id ? '<button class="ds-option">Sensor INACTIVO desactualizado ' + pill('Requiere calibración', 'var(--sem-warning)') + '</button>'
+    + (escenario === 'v2lectura' ? '<span>Temperatura: 12.5 °C</span>' : '') : '';
+  const datoExtra = escenario === 'v2contador' && !id ? '<span>0 sensores en línea</span>' : '';
   panel.innerHTML = j.resumen_unidades.length
-    ? unidad('Unidad local G93 ampliada', fase === 'V2' && !id ? '<button class="ds-option">Sensor ajeno desactualizado</button>' : '') + unidad('Unidad local G93', tarjetas)
+    ? unidad('Unidad local G93', tarjetas, datoExtra) + unidad('Unidad local G93 ampliada', '')
     : '<p>Sin unidades visibles</p>';
 }
-document.getElementById('filtro').oninput = e => cargar(e.target.value);
-fetch('/sesiones/refresh', { method: 'POST' }).then(r => {
-  if (!r.ok) throw Error('refresh local falló');
-  return r.json();
-}).then(() => fetch('/sesiones/refresh', { method: 'POST' })).then(r => {
-  if (!r.ok) throw Error('segundo refresh local falló');
-  return cargar('');
-}).catch(e => { panel.innerHTML = '<div role="alert">' + e.message + '</div>'; });
+document.getElementById('monitoreo-area').oninput = e => cargar(e.target.value);
+document.getElementById('login').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const login = await fetch('/sesiones/', { method: 'POST' });
+    if (!login.ok) throw Error('login local falló');
+    await login.json();
+    const respuestas = await Promise.all([fetch('/usuarios/me'), fetch('/sesiones/me/permisos')]);
+    if (respuestas.some(r => !r.ok)) throw Error('sesión local falló');
+  } catch (error) { panel.innerHTML = '<div role="alert">' + error.message + '</div>'; }
+};
+window.addEventListener('popstate', () => { if (location.pathname.endsWith('/telemetria/monitoreo')) cargar(''); });
 </script></body></html>`;
 
 if (!isMainThread) {
   let actual = { escenario: 'v1', fase: 'V1' };
-  let refreshActual = token;
-  let rotaciones = 0;
+  let simulacion = { consultas_dashboard_retenidas: 0, respuestas_dashboard_lentas: 0,
+    respuestas_sesion_503: 0,
+    respuestas_concurrencia_500: 0, max_solicitudes_simultaneas: 0 };
+  let activas = 0;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
     const escenario = actual.escenario;
-    if (url.pathname === '/telemetria/monitoreo') {
+    if (url.pathname === '/login' || url.pathname === '/telemetria/monitoreo') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(html.replace('__FASE__', actual.fase).replace('__ESCENARIO__', actual.escenario)); return;
     }
-    if (url.pathname === '/sesiones/refresh') {
-      const recibido = /(?:^|;\s*)refresh_token=([^;]+)/.exec(req.headers.cookie || '')?.[1];
-      const status = escenario === 'fallo' ? 503 : recibido === refreshActual ? 200 : 401;
-      const cabeceras = { 'content-type': 'application/json', 'x-test-run-id': req.headers['x-test-run-id'] ?? '' };
-      if (status === 200) {
-        refreshActual = `LOCAL_FICTICIO_${++rotaciones}`;
-        cabeceras['set-cookie'] = `refresh_token=${refreshActual}; Path=/; HttpOnly`;
-      }
-      res.writeHead(status, cabeceras);
-      res.end(JSON.stringify(status === 401 ? { error_code: 'REFRESH_TOKEN_REUTILIZADO' } : { token })); return;
+    if (url.pathname === '/usuarios/me' || url.pathname === '/sesiones/me/permisos') {
+      activas++;
+      simulacion.max_solicitudes_simultaneas = Math.max(simulacion.max_solicitudes_simultaneas, activas);
+      const status = escenario === 'fallo' && url.pathname === '/sesiones/me/permisos' ? 503
+        : activas > 1 ? 500 : 200;
+      if (status === 503) simulacion.respuestas_sesion_503++;
+      if (status === 500) simulacion.respuestas_concurrencia_500++;
+      setTimeout(() => {
+        activas--;
+        res.writeHead(status, { 'content-type': 'application/json',
+          'x-test-run-id': req.headers['x-test-run-id'] ?? '' });
+        res.end(JSON.stringify({ ok: status === 200 }));
+      }, 20);
+      return;
     }
     if (url.pathname === '/iot/monitoreo/dashboard') {
-      if (escenario === 'vencimiento' && !url.searchParams.has('id_infraestructura')) return;
-      res.writeHead(200, { 'content-type': 'application/json',
-        'x-test-run-id': req.headers['x-test-run-id'] ?? '' });
-      res.end(JSON.stringify({ resumen_unidades: escenario === 'v1rechazado' ? [] : [{ id_infraestructura: 93,
-        nombre_infraestructura: 'Unidad local G93', estado_general: 'GRIS',
-        total_sensores: actual.fase === 'V2' ? 1 : 0 }],
-      sensores: actual.fase === 'V2' ? [{ id_infraestructura: 93,
-        estado_conectividad: 'INACTIVO', dato_desactualizado: true }] : [] })); return;
+      if (escenario === 'vencimiento' && url.searchParams.get('id_infraestructura') === '93') {
+        simulacion.consultas_dashboard_retenidas++;
+        return;
+      }
+      const responder = () => {
+        res.writeHead(200, { 'content-type': 'application/json',
+          'x-test-run-id': req.headers['x-test-run-id'] ?? '' });
+        res.end(JSON.stringify({ resumen_unidades: escenario === 'v1rechazado' ? [] : [{ id_infraestructura: 93,
+          nombre_infraestructura: 'Unidad local G93', estado_general: 'GRIS',
+          total_sensores: actual.fase === 'V2' ? 1 : 0 }],
+        sensores: actual.fase === 'V2' ? [{ id_infraestructura: 93,
+          estado_conectividad: 'INACTIVO', dato_desactualizado: true }] : [] }));
+      };
+      if (escenario === 'cargalenta') {
+        simulacion.respuestas_dashboard_lentas++;
+        setTimeout(responder, 1000);
+      } else responder();
+      return;
     }
     res.writeHead(404); res.end();
   });
   server.listen(0, '127.0.0.1', () => parentPort.postMessage({ port: server.address().port }));
   parentPort.on('message', mensaje => {
     if (mensaje === 'cerrar') server.close();
-    else { actual = mensaje; parentPort.postMessage({ escenario_listo: mensaje.escenario }); }
+    else if (mensaje === 'estado_simulacion') parentPort.postMessage({ simulacion });
+    else {
+      actual = mensaje;
+      activas = 0;
+      simulacion = { consultas_dashboard_retenidas: 0, respuestas_dashboard_lentas: 0,
+        respuestas_sesion_503: 0,
+        respuestas_concurrencia_500: 0, max_solicitudes_simultaneas: 0 };
+      parentPort.postMessage({ escenario_listo: mensaje.escenario });
+    }
   });
 } else {
   const temporal = fs.mkdtempSync(path.join(os.tmpdir(), 'g93-spec-real-'));
   const worker = new Worker(fileURLToPath(import.meta.url), { workerData: true });
   const resumen = { spec_real: spec, frontend_real: false, escenarios: [],
-    artefactos_v1_preservados: false, temporal_eliminado: true };
+    artefactos_v1_preservados: false, temporal_eliminado: true, directorio_temporal_conservado: null };
   const hash = archivo => crypto.createHash('sha256').update(fs.readFileSync(archivo)).digest('hex');
   try {
     const port = await new Promise((resolve, reject) => {
@@ -109,6 +141,7 @@ if (!isMainThread) {
         CYPRESS_FECHA_HISTORICA: fase === 'V2' ? '2020-10-25T12:34:00' : '',
         CYPRESS_API_BASE: base, CYPRESS_FRONT_BASE: base,
         CYPRESS_SANDBOX_SECRET: token, CYPRESS_REFRESH_COOKIE: cookieVigente,
+        CYPRESS_PROD_LOGIN_TOKEN: token,
         CYPRESS_REFRESH_COOKIE_FILE: cookieFile,
         CYPRESS_ARTIFACTS_DIR: carpeta,
       });
@@ -123,12 +156,16 @@ if (!isMainThread) {
         cookieVigente = fs.readFileSync(cookieFile, 'utf8').trim();
         fs.rmSync(cookieFile, { force: true });
       }
+      const estadoSimulacion = new Promise(resolve => worker.once('message', resolve));
+      worker.postMessage('estado_simulacion');
+      const { simulacion } = await estadoSimulacion;
       const actaPath = path.join(carpeta, `UI-184-${fase}.json`);
       const acta = fs.existsSync(actaPath) ? JSON.parse(fs.readFileSync(actaPath, 'utf8')) : null;
       const log = fs.readFileSync(path.join(carpeta, `UI-184-${fase}-${nombre}.diagnostico.log`), 'utf8');
       const capturas = fs.readdirSync(carpeta, { recursive: true }).map(x => String(x))
         .filter(x => x.endsWith('.png') && x.includes(`UI-184-${fase}`));
       const dato = { nombre, fase, esperado, duracion_ms,
+        simulacion,
         codigo_salida: proceso.status, error_spawn: proceso.error?.code ?? null,
         version: diagnostico.version_cypress, navegador: diagnostico.navegador,
         pruebas_ejecutadas: /1 (passing|failing)/i.test(log) ? 1 : 0,
@@ -147,6 +184,19 @@ if (!isMainThread) {
           .slice(-4).map(x => x.trim().slice(0, 180)),
         diagnostico: path.basename(path.join(carpeta, `UI-184-${fase}-${nombre}.diagnostico.log`)) };
       resumen.escenarios.push(dato);
+      if (nombre === 'vencimiento')
+        assert.ok(simulacion.consultas_dashboard_retenidas > 0,
+          'vencimiento: ninguna consulta filtrada del dashboard quedó retenida');
+      if (nombre === 'cargalenta')
+        assert.ok(simulacion.respuestas_dashboard_lentas > 0,
+          'cargalenta: ninguna respuesta del dashboard tuvo retraso');
+      if (nombre === 'fallo')
+        assert.ok(simulacion.respuestas_sesion_503 > 0,
+          'fallo: ninguna respuesta HTTP 503 de permisos fue emitida');
+      assert.equal(simulacion.respuestas_concurrencia_500, 0,
+        `${nombre}: hubo peticiones de sesión simultáneas`);
+      assert.ok(simulacion.max_solicitudes_simultaneas <= 1,
+        `${nombre}: la cola permitió concurrencia`);
       assert.equal(dato.error_spawn, null, `${nombre}: Cypress no arrancó`);
       assert.equal(dato.pruebas_ejecutadas, 1, `${nombre}: spec en skip o sin prueba`);
       assert.equal(dato.cy_visit, true, `${nombre}: no llegó a cy.visit`);
@@ -154,6 +204,7 @@ if (!isMainThread) {
       assert.equal(dato.captura, true, `${nombre}: falta captura`);
       assert.doesNotMatch(log, /LOCAL_FICTICIO(?:_\d+)?/);
       assert.doesNotMatch(JSON.stringify(acta), /LOCAL_FICTICIO(?:_\d+)?/);
+      assert.equal(acta.estado, esperado, `${nombre}: estado ${acta.estado}; esperado ${esperado}`);
       return { dato, acta };
     };
     const v1 = await ejecutar('v1', 'V1', 'APROBADO');
@@ -161,6 +212,10 @@ if (!isMainThread) {
     assert.equal(v1.dato.interfaz_observada, true);
     assert.equal(v1.acta.estado, 'APROBADO', 'V1 normal no emitió APROBADO');
     assert.ok(v1.dato.duracion_ms < 45000, 'V1 normal se acercó al vencimiento global');
+    const lenta = await ejecutar('cargalenta', 'V1', 'APROBADO');
+    assert.equal(lenta.dato.codigo_salida, 0);
+    assert.equal(lenta.acta?.ui_inicial?.cargando, false);
+    assert.equal(lenta.acta?.ui_objetivo?.cargando, false);
     const v1Archivos = fs.readdirSync(path.join(temporal, 'cypress'), { recursive: true })
       .map(x => path.join(temporal, 'cypress', String(x)))
       .filter(x => fs.statSync(x).isFile() && /V1/.test(path.basename(x)));
@@ -169,7 +224,19 @@ if (!isMainThread) {
     assert.equal(v2.dato.codigo_salida, 0);
     assert.equal(v2.dato.interfaz_observada, true);
     assert.equal(v2.acta.estado, 'APROBADO', 'V2 normal no emitió APROBADO');
+    assert.equal(v2.acta.ui_inicial?.sin_valores_fabricados, true,
+      'Fecha histórica y Sin datos en el panel global se marcaron como valor fabricado');
+    assert.equal(v2.acta.ui_objetivo?.sin_valores_fabricados, true,
+      'La vista filtrada no aplicó el mismo criterio de ausencia');
     assert.ok(v2.dato.duracion_ms < 45000, 'V2 normal se acercó al vencimiento global');
+    const contador = await ejecutar('v2contador', 'V2', 'RECHAZADO');
+    assert.equal(contador.dato.codigo_salida, 0);
+    assert.equal(contador.acta?.ui_inicial?.sin_valores_fabricados, false);
+    assert.equal(contador.acta?.criterio, 'ORACULO_PANEL_GLOBAL_INCUMPLIDO');
+    const lectura = await ejecutar('v2lectura', 'V2', 'RECHAZADO');
+    assert.equal(lectura.dato.codigo_salida, 0);
+    assert.equal(lectura.acta?.ui_objetivo?.sin_valores_fabricados, false);
+    assert.equal(lectura.acta?.criterio, 'ORACULO_UI_INCUMPLIDO');
     for (const normal of [v1, v2]) {
       for (const alias of ['dashboardGlobal', 'dashboardObjetivo']) {
         assert.ok(normal.dato.peticiones_acta.some(p => p.alias === alias && p.fin_presente
@@ -187,10 +254,16 @@ if (!isMainThread) {
     assert.equal(vence.dato.codigo_salida, 0);
     assert.equal(vence.acta?.estado, 'NO_CONCLUYENTE');
     assert.equal(vence.acta?.criterio?.includes('CARGA_SIN_RESPUESTA'), true);
-    const fallo = await ejecutar('fallo', 'V2', 'ERROR_QA');
-    assert.notEqual(fallo.dato.codigo_salida, 0);
-    assert.equal(fallo.acta?.estado, 'ERROR_QA');
-    assert.ok(fallo.dato.peticiones_acta.some(p => p.alias === 'refresh' && p.http === 503
+    assert.ok(vence.dato.peticiones_acta.some(p => p.alias === 'dashboardGlobal' && !p.fin_presente),
+      'vencimiento: la petición esperada por el spec no quedó pendiente');
+    const sinRender = await ejecutar('cargainfinita', 'V1', 'NO_CONCLUYENTE', true);
+    assert.equal(sinRender.dato.codigo_salida, 0);
+    assert.equal(sinRender.acta?.criterio, 'INICIAL:CARGA_SIN_TERMINAR');
+    assert.equal(sinRender.acta?.ui_inicial?.cargando, true);
+    const fallo = await ejecutar('fallo', 'V2', 'NO_CONCLUYENTE', true);
+    assert.equal(fallo.dato.codigo_salida, 0);
+    assert.equal(fallo.acta?.estado, 'NO_CONCLUYENTE');
+    assert.ok(fallo.dato.peticiones_acta.some(p => p.alias === 'permisosSesion' && p.http === 503
       && p.fin_presente), 'fallo deliberado: HTTP 503 no registrado');
     resumen.valido = true;
   } catch (error) {
@@ -198,7 +271,12 @@ if (!isMainThread) {
     process.exitCode = 2;
   } finally {
     worker.postMessage('cerrar'); await worker.terminate();
-    fs.rmSync(temporal, { recursive: true, force: true });
+    if (resumen.valido) fs.rmSync(temporal, { recursive: true, force: true });
+    else {
+      // El fallo conserva acta, captura y diagnóstico para reproducir la discrepancia.
+      resumen.temporal_eliminado = false;
+      resumen.directorio_temporal_conservado = temporal;
+    }
     console.log(JSON.stringify(resumen, null, 2));
   }
 }

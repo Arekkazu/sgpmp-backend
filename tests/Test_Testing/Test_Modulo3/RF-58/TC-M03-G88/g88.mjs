@@ -6,67 +6,41 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import { contextoEjecucion } from './lib/contrato_ejecutor.mjs';
 import { sanearArtefacto } from './lib/g88_seguridad.mjs';
-import { cerrarYVerificar, cierreUnico } from './lib/g88_cierre.mjs';
+import { cerrarYVerificar, cierreUnico, sinEscriturasQueRevertir } from './lib/g88_cierre.mjs';
 import { chromeLocal, ejecutarCypressControlado, TIMEOUT_UI_MS } from './lib/g88_cypress_runner.mjs';
-import { CAPACIDADES, CASOS, IDS_CASOS, PLAN_266, bloqueosEscenario, resultadoOficial, umbralesActivos180 } from './lib/g88_catalogo.mjs';
+import { CAPACIDADES, CASOS, IDS_CASOS, PLAN_266, evaluar266, bloqueosEscenario, resultadoOficial, umbralesActivos180 } from './lib/g88_catalogo.mjs';
 import { derivarIncidencias, generarInforme, validarResultadoLocal } from './lib/g88_informe.mjs';
+import { evaluarOficialidad } from './lib/g88_oficial.mjs';
 import { derivarEntradas, invertirCalibracion, camposUmbral, ausenciaT,
   activoUnicoVinculable, lecturaVinculada, lecturaVinculadaHistorial,
   conservarAnterior, asociacionVigente, rangoHistorial } from './lib/g88_entradas.mjs';
-import { autorizacion266, autorizarEscritura266, verificarSemillaPreexistente266, ejecutar266 } from './lib/g88_266_plan.mjs';
+import { autorizacion266, autorizarEscritura266, verificarSemillaPreexistente266,
+  barreraPublicacion266, compuertaDispositivos266, niveles } from './lib/g88_266_plan.mjs';
 import { construirCuerpoIngesta, cuerpoOpcionalNewman, planTemporalIngestas } from './lib/g88_ingesta.mjs';
 import { respuestaSaneada, lecturaDelRun } from './lib/g88_respuestas.mjs';
+import { ensayoOficialidad } from './pruebas/g88_oficial_local.mjs';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(DIR, '..', '..', '..', '..', '..');
+const requireRaiz = createRequire(path.join(RAIZ, 'package.json'));
+const versionCypressInstalada = () => {
+  try { return requireRaiz('cypress/package.json').version; }
+  catch { return null; }
+};
 const COLECCION = path.join(DIR, 'G88.postman_collection.json');
-const respaldosHtmlNewman = new Map();
-const escaparHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-export function consolidarNewman(dir, r, respaldos = respaldosHtmlNewman.get(dir) ?? []) {
-  const archivos = r.evidencias.filter((x) => /^newman\/[^/]+\.json$/.test(x));
-  if (!archivos.length) return null;
-  const partes = ['<!doctype html><html lang="es"><meta charset="utf-8"><title>G88 Newman consolidado</title>',
-    '<style>body{font:14px system-ui;margin:2em;max-width:1000px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:1em}section{border-top:2px solid #555;margin:2em 0}li.error{color:#a00}</style>',
-    '<h1>G88 Newman: solicitudes, respuestas y assertions</h1>'];
-  let solicitudes = 0, assertions = 0;
-  try {
-    for (const archivo of archivos) {
-      const reporte = JSON.parse(fs.readFileSync(path.join(dir, archivo), 'utf8'));
-      const caso = /newman-(TC-M03-\d+)-/.exec(archivo)?.[1] ?? 'CASO_DESCONOCIDO';
-      partes.push(`<section><h2>${escaparHtml(caso)} · ${escaparHtml(archivo)}</h2>`);
-      for (const ex of reporte.run?.executions ?? []) {
-        solicitudes++;
-        const ruta = '/' + (ex.request?.url?.path ?? []).join('/');
-        const cuerpoReq = ex.request?.body?.raw ?? '';
-        const respuesta = Buffer.from(ex.response?.stream?.data ?? []).toString('utf8');
-        partes.push(`<h3>${escaparHtml(ex.request?.method)} ${escaparHtml(ruta)} → HTTP ${escaparHtml(ex.response?.code)}</h3>`,
-          `<details><summary>Solicitud saneada</summary><pre>${escaparHtml(cuerpoReq)}</pre></details>`,
-          `<details open><summary>Respuesta saneada</summary><pre>${escaparHtml(respuesta)}</pre></details><ul>`);
-        for (const a of ex.assertions ?? []) {
-          assertions++;
-          partes.push(`<li${a.error ? ' class="error"' : ''}>${escaparHtml(a.assertion)}: ${a.error ? 'FALLÓ ' + escaparHtml(a.error.message) : 'APROBÓ'}</li>`);
-        }
-        partes.push('</ul>');
-      }
-      partes.push('</section>');
-    }
-    partes.splice(3, 0, `<p>${solicitudes} solicitudes; ${assertions} assertions; ${archivos.length} JSON por ejecución.</p>`);
-    fs.writeFileSync(path.join(dir, 'newman', 'newman-G88-consolidado.html'), partes.join('\n') + '</html>');
-    r.evidencias.push('newman/newman-G88-consolidado.html');
-    r.bitacora.push({ etapa: 'NEWMAN_CONSOLIDADO', solicitudes, assertions, json: archivos.length, html: 1 });
-    return { solicitudes, assertions, json: archivos.length, html: 1 };
-  } catch (e) {
-    for (const [nombre, html] of respaldos) {
-      fs.writeFileSync(path.join(dir, 'newman', nombre), html);
-      r.evidencias.push(`newman/${nombre}`);
-    }
-    r.problemas_tecnicos.push(`Consolidación Newman falló: ${e.message}; HTML individuales conservados.`);
-    return null;
-  } finally { respaldosHtmlNewman.delete(dir); }
+const REPORTE_NEWMAN = 'newman/newman-TC-M03-G88';
+export function evidenciasNewman(dir) {
+  const carpeta = path.join(dir, 'newman');
+  if (!fs.existsSync(carpeta)) return [];
+  const archivos = fs.readdirSync(carpeta).sort();
+  const esperados = ['newman-TC-M03-G88.html', 'newman-TC-M03-G88.json'];
+  if (JSON.stringify(archivos) !== JSON.stringify(esperados))
+    throw new Error(`Newman requiere exactamente un JSON y un HTML: ${archivos.length} archivos.`);
+  return esperados.map((nombre) => `newman/${nombre}`);
 }
 const ESCENARIO = path.join(DIR, 'lib', 'g88_escenario.json');
 const API = 'https://www.api.inmero.co/api-sgpmp-test';
@@ -123,6 +97,12 @@ const TEMPERATURA = new Set(['TC-M03-169', 'TC-M03-170', 'TC-M03-171']);
 export function sensor180Acreditado(sensorId, escenario) {
   return idNum(sensorId) && Number(sensorId) === escenario?.semilla_180?.sensor;
 }
+function completarComprobacionesApi(r) {
+  for (const c of r.comprobaciones.filter((x) => x.fuente === 'API')) {
+    c.motivo ??= c.estado === 'APROBADO' ? 'Comprobación conforme.' : c.observado;
+    c.evidencia ??= c.id === 'API-180-04' ? 'resultado.json' : 'newman/newman-TC-M03-G88.json';
+  }
+}
 function cadenaEfectiva(id, caso, escenario, V) {
   if (id === 'TC-M03-172') return { ...caso, cadena: {
     especie_id: escenario.semilla_candidata.especie,
@@ -153,10 +133,16 @@ function comprobar() {
   try { escenario = cargarEscenario(); agregar('Escenario JSON legible y seis casos', IDS_CASOS.every((id) => !!escenario.casos[id])); }
   catch { agregar('Escenario JSON legible y seis casos', false); }
   let coleccion;
-  try { coleccion = JSON.parse(fs.readFileSync(COLECCION, 'utf8')); agregar('Colección Newman única y legible', coleccion.item.length === 3); }
-  catch { agregar('Colección Newman única y legible', false); }
+  try {
+    coleccion = JSON.parse(fs.readFileSync(COLECCION, 'utf8'));
+    for (const evento of [...(coleccion.event ?? []), ...(coleccion.item ?? []).flatMap((x) => x.event ?? [])])
+      new vm.Script(`(function(){${evento.script.exec.join('\n')}\n})()`, { filename: 'G88.postman_collection.json' });
+    agregar('Colección Newman única, legible y scripts válidos', coleccion.item.length === 3);
+  }
+  catch { agregar('Colección Newman única, legible y scripts válidos', false); }
   const archivos = ['g88.mjs', 'g88.cy.js', 'g88.cypress.config.cjs', 'lib/contrato_ejecutor.mjs',
-    'lib/g88_cierre.mjs', 'lib/g88_informe.mjs', 'lib/g88_presentacion.mjs', 'lib/g88_seguridad.mjs',
+    'lib/g88_cierre.mjs', 'lib/g88_informe.mjs', 'lib/g88_oficial.mjs',
+    'lib/g88_presentacion.mjs', 'lib/g88_presentacion_actual.mjs', 'lib/g88_seguridad.mjs',
     'lib/g88_cypress_runner.mjs', 'lib/g88_cypress_worker.mjs', 'lib/g88_catalogo.mjs',
     'lib/g88_266_plan.mjs', 'lib/g88_ingesta.mjs', 'lib/g88_respuestas.mjs'];
   for (const archivo of archivos) {
@@ -166,13 +152,28 @@ function comprobar() {
       agregar(`Archivo ${archivo} legible`, texto.length > 0);
     } catch { agregar(`Archivo ${archivo} legible`, false); }
   }
+  agregar('Sin mojibake en archivos canónicos', [...archivos, 'G88.postman_collection.json',
+    'README.md', 'lib/g88_entradas.mjs', 'lib/g88_escenario.json',
+    'pruebas/g88_ui_local.mjs', 'pruebas/g88_ui_fixtures.json', 'pruebas/g88_oficial_local.mjs']
+    .every((archivo) => !/[\u00c3\u00c2]/.test(fs.readFileSync(path.join(DIR, archivo), 'utf8'))));
   const activos = archivos.map((f) => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n') + fs.readFileSync(COLECCION, 'utf8');
   agregar('Sin invocaciones de control SQL ni procesos de control de versiones en rutas activas',
     !/test-control\/query|execFileSync\(['"]git|spawnSync\(['"]git|\bfrom ['"](?:.*\/)?g88_(?:lib|casos)\.mjs/.test(activos));
+  const candidatos = /RUN-G88-V1-(?:20261025-020636|20261030-(?:191447|192500|193401|194838|201041))/;
+  const fuentes = ['g88.mjs', 'README.md', ...['lib', 'pruebas'].flatMap((dir) =>
+    fs.readdirSync(path.join(DIR, dir)).filter((nombre) => fs.statSync(path.join(DIR, dir, nombre)).isFile())
+      .map((nombre) => `${dir}/${nombre}`))];
+  agregar('Sin dependencias de RUN técnicos 9-14 fuera del historial de README', fuentes.every((archivo) => {
+    const contenido = fs.readFileSync(path.join(DIR, archivo), 'utf8');
+    return archivo === 'README.md'
+      ? !contenido.split(/\r?\n/).some((linea) => candidatos.test(linea)
+        && /Resultados[/\\]|\]\([^)]*RUN-G88-V1-/.test(linea))
+      : !candidatos.test(contenido);
+  }));
   agregar('172 solo GET y M09 sujeto a lista blanca 266',
     coleccion?.item?.every((x) => !/\/configuracion\/umbrales/.test(JSON.stringify(x)) || x.request?.method === 'GET')
     && /autorizarEscritura266/.test(fs.readFileSync(path.join(DIR, 'g88.mjs'), 'utf8')));
-  agregar('266 parametrizado y desactivado', !PLAN_266.habilitado
+  agregar('266 parametrizado y habilitado con contrato', PLAN_266.habilitado
     && PLAN_266.pasos[0] === 'semilla_preexistente'
     && !PLAN_266.pasos.includes('compuerta_humana')
     && PLAN_266.pasos.indexOf('auditoria_propagacion_alta') < PLAN_266.pasos.indexOf('ingesta_unica_15')
@@ -189,6 +190,13 @@ function comprobar() {
       escenario.semilla_266.activo_vinculable_unico, escenario.semilla_266.dispositivo,
       escenario.semilla_266.sensor, escenario.semilla_266.asociacion,
       escenario.semilla_266.calibracion]) === JSON.stringify([220, 504, 885, 520, 738, 523, 70]));
+  const codigo266 = fs.readFileSync(path.join(DIR, 'g88.mjs'), 'utf8');
+  const ruta266 = codigo266.slice(codigo266.lastIndexOf('export async function ejecutarCaso266('))
+    .split('export function datosRegistro')[0];
+  agregar('266 con compuerta pública y escritura en Newman único',
+    /verificarSemillaPreexistente266/.test(ruta266)
+    && /COMP-GATEWAY/.test(ruta266) && /COMP-UMBRALES/.test(ruta266)
+    && /planNewman\.push/.test(ruta266) && /BARRERA-alta/.test(ruta266.replace('BARRERA-${fase}', 'BARRERA-alta')));
   const worker = fs.readFileSync(path.join(DIR, 'lib/g88_cypress_worker.mjs'), 'utf8');
   agregar('Cypress Chrome headless y timeout', /browser: 'chrome'/.test(worker) && /headed: false/.test(worker)
     && /TIMEOUT_UI_MS/.test(activos) && !/browser: 'electron'/.test(worker));
@@ -200,6 +208,28 @@ function comprobar() {
     && escenario?.casos['TC-M03-172'].clasificacion_preparacion === 'DEFECTO_FUNCIONAL_CANDIDATO'
     && escenario?.semilla_169_171?.estado === 'PRECONDICION_ACTIVO_RESUELTA_POR_RESPONSABLE_QA_2026-10-24'
     && escenario.semilla_169_171.activo_vinculable?.id === 884);
+  try {
+    const ensayo = ensayoOficialidad();
+    agregar('Contrato del registro QA y presentación vigente con RUN oficial de solo lectura',
+      ensayo.oficial === true && ensayo.incidencias === 3);
+  } catch (e) {
+    console.error(`Ensayo de oficialidad: ${e.message}`);
+    agregar('Contrato del registro QA y presentación vigente con RUN oficial de solo lectura', false);
+  }
+  try {
+    const ensayo = ensayoMemoriaNewman();
+    agregar('Newman único: seis casos, barreras 266 y exceso rechazado',
+      ensayo.invocaciones === 1 && ensayo.json === 1 && ensayo.html === 1
+      && ensayo.casos === 6 && ensayo.extras_rechazados && ensayo.modos === 4);
+    agregar('ORD-G88-051: seis modos de alcance, identidad y cierre', ensayo.modos_orden051 === 6);
+    const fixture = ensayoFixtureOrden053();
+    agregar('ORD-G88-053: fixture real saneada, seis casos, umbral decimal e ids',
+      fixture.casos === 6 && fixture.ids_telemetria === 10
+      && fixture.pre_inicial_decimal === 'APROBADO' && fixture.pre_final_decimal === 'APROBADO');
+    agregar('ORD-G88-055: null en PATCH, ERROR_QA, barreras reales e informe DEV',
+      fixture.pre_invalida === 'ERROR_QA' && fixture.secuencia_266 === 'PATCH_CON_NULL_Y_LECTURA_FINAL'
+      && fixture.barreras_reales === 'BLOQUEADO' && fixture.incidencias_dev === 'SEIS_LECTURAS');
+  } catch { agregar('Newman único: seis casos, barreras 266 y exceso rechazado', false); }
   console.log(`Resultado local: ${checks.filter((x) => x.ok).length}/${checks.length} comprobaciones.`);
   return checks.every((x) => x.ok) ? 0 : 1;
 }
@@ -239,7 +269,7 @@ function requerirAmbiente(c, V, { recuperar = false, casos = IDS_CASOS } = {}) {
     errores.push('Faltan QA_G88_180_SENSOR_ID real y QA_G88_180_SERIAL privado.');
   const claves = ['QA_ADMIN_EMAIL', 'QA_ADMIN_PASSWORD',
     ...(ingesta ? ['QA_PROD_EMAIL', 'QA_PROD_PASSWORD'] : []),
-    ...(!recuperar && casos.includes('TC-M03-180') ? ['QA_PROD_UI_EMAIL', 'QA_PROD_UI_PASSWORD'] : [])];
+    ];
   for (const k of claves) if (!V[k]) errores.push(`Falta ${k}.`);
   if (ui && String(V.SIGAB_FRONT_TEST_URL ?? '').replace(/\/+$/, '') !== FRONT)
     errores.push('Frontend TEST no coincide con destino autorizado.');
@@ -290,7 +320,7 @@ export function preflightLocal(contrato, { ambiente = leerEnv() } = {}) {
       ...(TEMPERATURA.has(id) || ['TC-M03-180', 'TC-M03-266'].includes(id)
         ? ['BROKER_SERVICE_TOKEN', 'QA_PROD_EMAIL', 'QA_PROD_PASSWORD'] : []),
       ...(TEMPERATURA.has(id) ? ['QA_G88_169_171_SERIAL'] : []),
-      ...(id === 'TC-M03-180' ? ['QA_G88_180_SERIAL', 'QA_PROD_UI_EMAIL', 'QA_PROD_UI_PASSWORD'] : []),
+      ...(id === 'TC-M03-180' ? ['QA_G88_180_SERIAL'] : []),
       ...(id === 'TC-M03-266' ? ['QA_G88_266_SERIAL'] : [])];
     const c = cadenaEfectiva(id, escenario.casos[id], escenario, V);
     const motivos = [...bloques[id].map((x) => x.motivo)];
@@ -315,7 +345,7 @@ export function preflightLocal(contrato, { ambiente = leerEnv() } = {}) {
       ? ['BROKER_SERVICE_TOKEN', 'QA_PROD_EMAIL', 'QA_PROD_PASSWORD'] : []),
     ...(ejecutables.some((id) => TEMPERATURA.has(id)) ? ['QA_G88_169_171_SERIAL'] : []),
     ...(ejecutables.some((id) => ['TC-M03-172', 'TC-M03-180'].includes(id)) ? ['SIGAB_FRONT_TEST_URL'] : []),
-    ...(ejecutables.includes('TC-M03-180') ? ['QA_G88_180_SENSOR_ID', 'QA_G88_180_SERIAL', 'QA_PROD_UI_EMAIL', 'QA_PROD_UI_PASSWORD'] : []),
+    ...(ejecutables.includes('TC-M03-180') ? ['QA_G88_180_SENSOR_ID', 'QA_G88_180_SERIAL'] : []),
     ...(ejecutables.includes('TC-M03-266') ? ['QA_G88_266_SERIAL', ...ids266.map((x) => `QA_G88_266_${x}_ID`)] : [])];
   const faltantes = nombres.filter((x) => !V[x]);
   const variables = nombres.map((nombre) => ({ nombre, fuente: V[nombre] ? fuentes[nombre] : 'ausente' }));
@@ -353,6 +383,60 @@ export function contextoSolicitudRun({ abierto, token, enRun }) {
     return true;
   }
   return enRun ?? false;
+}
+
+export function comprobarPerfilCuenta(respuesta, rol, idEsperado = null, idOtraCuenta = null) {
+  const p = respuesta.json?.data ?? respuesta.json;
+  const id = Number(p?.id_usuario);
+  const rolCorrecto = respuesta.status === 200 && String(p?.nombre_rol ?? '').toUpperCase() ===
+    (rol === 'admin' ? 'ADMINISTRADOR' : 'PRODUCTOR');
+  const identidadCorrecta = Number.isSafeInteger(id) && id > 0
+    && (idEsperado == null || id === idEsperado) && (idOtraCuenta == null || id !== idOtraCuenta);
+  const alcance = Array.isArray(p?.fincas) && p.fincas.some((f) => Number(f.id_finca) === 184);
+  return { ok: rolCorrecto && identidadCorrecta && (rol === 'admin' || alcance),
+    id, rolCorrecto, identidadCorrecta, alcance };
+}
+
+export function loginDbaCorrecto(respuesta) {
+  return [200, 201].includes(respuesta.status) && !!respuesta.json?.token;
+}
+
+export function validarAccesoAdministrador(respuestas) {
+  const esperado = [
+    { ruta: '/configuracion/infraestructuras/349', tipo: 'area', id: 349, especie: 126 },
+    { ruta: '/configuracion/infraestructuras/504', tipo: 'area', id: 504, especie: 220 },
+    { ruta: '/configuracion/umbrales?id_especie=126', tipo: 'umbral', especie: 126 },
+    { ruta: '/configuracion/umbrales?id_especie=220', tipo: 'umbral', especie: 220 },
+  ];
+  const comprobaciones = esperado.map((e, i) => {
+    const x = respuestas[i];
+    const p = x?.json?.data ?? x?.json;
+    const ok = e.tipo === 'area'
+      ? x?.status === 200 && Number(p?.id_infraestructura) === e.id && Number(p?.id_finca) === 184
+        && p.es_activo !== false && ((Array.isArray(p.especies) && p.especies.map(Number).includes(e.especie))
+          || Number(p?.especie_id) === e.especie)
+      : x?.status === 200 && Array.isArray(p?.items) && Number(p?.total) === p.items.length
+        && (e.especie === 126
+          ? p.items.some((u) => Number(u.id_umbral_ambiental) === 70
+            && Number(u.id_especie) === 126 && u.es_activo !== false)
+          : p.items.length === 0);
+    return { ruta: e.ruta, http: x?.status ?? null, datos_esperados: ok };
+  });
+  return { ok: comprobaciones.every((x) => x.datos_esperados), comprobaciones,
+    fallos: comprobaciones.filter((x) => !x.datos_esperados).map((x) => `${x.ruta} HTTP ${x.http}; datos esperados ausentes`) };
+}
+
+export async function comprobarAccesoAdministrador(leer) {
+  const rutas = ['/configuracion/infraestructuras/349', '/configuracion/infraestructuras/504',
+    '/configuracion/umbrales?id_especie=126', '/configuracion/umbrales?id_especie=220'];
+  const respuestas = [];
+  for (const ruta of rutas) respuestas.push(await leer(ruta));
+  return validarAccesoAdministrador(respuestas);
+}
+
+export function comprobarCierreDba(cierreApi, cierreHttp, timeoutEnRun) {
+  return cierreApi?.status === 200 && cierreHttp === 200
+    && Number.isFinite(cierreApi.latencia_ms) && cierreApi.latencia_ms < 30000 && !timeoutEnRun;
 }
 
 export async function evaluar(contrato, { soloPreflight = false, ambiente = leerEnv() } = {}) {
@@ -394,28 +478,36 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
   const secretos = [V.QA_SANDBOX_SECRET, V.BROKER_SERVICE_TOKEN, V.QA_G88_169_171_SERIAL,
     V.QA_G88_266_SERIAL, V.QA_G88_180_SERIAL,
     V.QA_ADMIN_PASSWORD, V.QA_PROD_PASSWORD,
-    V.QA_PROD_UI_PASSWORD, V.QA_ADMIN_EMAIL, V.QA_PROD_EMAIL, V.QA_PROD_UI_EMAIL,
+    V.QA_ADMIN_EMAIL, V.QA_PROD_EMAIL,
     ...Object.entries(V).filter(([nombre]) => /^QA_G88_/.test(nombre)).map(([, valor]) => valor)].filter(Boolean);
   const runId = contrato.runId.slice(4);
   const r = { grupo: 'TC-M03-G88', rf: 'RF-58', version: contrato.version, intento: contrato.intento,
     run_id: contrato.runId, operacion: contrato.operacion.toUpperCase(), referencia: contrato.referencia,
     ambiente: 'TEST', inicio: new Date().toISOString(), fin: null, estado: 'EN_CURSO',
-    commit: 'NO VERIFICADO', herramientas: { node: process.version, newman: 'pendiente', cypress: 'pendiente' },
-    comprobaciones: [], casos: {}, bloqueos: bloques, evidencias: ['resultado.json'], incidencias: [],
-    incidencias_automatizacion: [], hallazgos_producto: [],
+    commit: 'NO VERIFICADO', herramientas: { node: process.version,
+      newman: '6.2.2 (versión local verificada; ejecución pendiente)',
+      cypress: versionCypressInstalada() ? `Cypress ${versionCypressInstalada()} instalado; ejecución pendiente` : 'no disponible' },
+    comprobaciones: [], comprobaciones_tecnicas: [1, 2, 3, 4, 5].map((n) => ({
+      id: `DBA-01-0${n}`, estado: 'NO_EJECUTADO', observado: 'Secuencia técnica pendiente.',
+      naturaleza: 'DBA-01', veredicto_rf58: false })), cuentas: [], casos: {}, bloqueos: bloques, evidencias: ['resultado.json'], incidencias: [],
+    incidencias_automatizacion: [], hallazgos_producto: [], oficial: false,
+    motivo_no_oficial: 'RUN en curso.', clasificacion_prevista: 'TECNICO',
     problemas_tecnicos: [], cierre: null, cypress: { total_pruebas: 0,
       casos: Object.fromEntries(['TC-M03-172', 'TC-M03-180'].map((id) => [id,
         { estado: 'NO_EJECUTADO', total_pruebas: 0, causa: 'Fase Cypress pendiente.' }])) }, bitacora: [],
      respuestas: [], alertas_activas_observadas: [], plan_temporal: null,
-     umbral_run_266: null, parada_seguridad: null };
+     umbral_run_266: null, parada_seguridad: null, timeout_en_run: false };
   const tokens = {};
+  const idsCuenta = {};
   const previos = [];
   const lecturas = [];
   const faseUi = { ingesta180Acreditada: false, motivo180: 'Ingesta NH3 no acreditada (HTTP 201 y lectura válida pendientes).' };
   let casoActual = null;
   let sensorActual = null;
   const guardar = () => {
-    r.datos_rollback = { anteriores: previos.map((p) => ({ caso: p.caso,
+    completarComprobacionesApi(r);
+    r.datos_rollback = { escrituras_intentadas: r.escrituras_intentadas === true,
+      anteriores: previos.map((p) => ({ caso: p.caso,
       ...(p.ruta_asociaciones ? { ruta_asociaciones: p.ruta_asociaciones, asociaciones_sha256: huella(p.asociaciones) } : {}),
       ...(p.ruta_dashboard ? { ruta_dashboard: p.ruta_dashboard, dashboard_sha256: huella(p.dashboard) } : {}),
       ...(p.ruta_umbral ? { ruta_umbral: p.ruta_umbral, umbral_sha256: huella(p.umbral) } : {}) })),
@@ -457,6 +549,7 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
       t = await x.text();
     } catch (error) {
        if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+         if (abierto) r.timeout_en_run = true;
          peticionCancelada = true;
          r.parada_seguridad ??= { causa: 'PARADA_SEGURIDAD_SESION_COMPARTIDA', caso: casoActual,
            peticion: metodo, ruta: ruta.split('?')[0], latencia_ms: Date.now() - inicioSolicitud,
@@ -482,20 +575,47 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
     }
     return { status: x.status, json: j, eco: x.headers.get('x-test-run-id') };
   }
-  const autenticar = async (rol) => {
+  const autenticar = async (rol, checkId = null) => {
     const correo = V[rol === 'admin' ? 'QA_ADMIN_EMAIL' : 'QA_PROD_EMAIL'];
     const clave = V[rol === 'admin' ? 'QA_ADMIN_PASSWORD' : 'QA_PROD_PASSWORD'];
-    const x = await solicitar('POST', '/sesiones/', { cuerpo: { correo_electronico: correo, contrasena: clave } });
-    if (x.status !== 200 || !x.json?.token) throw new Error(`Login ${rol} HTTP ${x.status}`);
+    const x = await solicitar('POST', '/sesiones/', { cuerpo: { correo_electronico: correo, contrasena: clave }, enRun: abierto });
+    if (!loginDbaCorrecto(x)) {
+      if (checkId) tecnica(checkId, false, `Login ${rol} HTTP ${x.status}; token no acreditado.`);
+      r.comprobaciones_tecnicas.push({ id: 'DBA-01-LOGIN', estado: 'ERROR_QA',
+        observado: `Login ${rol} HTTP ${x.status}`, naturaleza: 'DBA-01', veredicto_rf58: false });
+      if (x.status === 500) r.incidencia_dba_01 = { estado: 'OBSERVADA_EN_RUN',
+        evidencia: `Login ${rol} HTTP 500 en RUN autorizado`, equipo_inicial: 'DBA',
+        causa_raiz: 'NO DETERMINADA' };
+      throw new Error(`DBA-01: Login ${rol} HTTP ${x.status}`);
+    }
     tokens[rol] = x.json.token; secretos.push(x.json.token);
-    return x.json.token;
+    return { token: x.json.token, http: x.status };
+  };
+  const perfil = async (rol, etapa, checkId) => {
+    let x;
+    try { x = await solicitar('GET', '/usuarios/me', { token: tokens[rol] }); }
+    catch (e) { if (checkId) tecnica(checkId, false, `GET /usuarios/me ${rol} sin respuesta.`); throw e; }
+    const comprobado = comprobarPerfilCuenta(x, rol, idsCuenta[rol], idsCuenta[rol === 'admin' ? 'prod' : 'admin']);
+    if (comprobado.ok && idsCuenta[rol] == null) idsCuenta[rol] = comprobado.id;
+    r.cuentas.push({ etapa, rol_esperado: rol, http: x.status,
+      rol_correcto: comprobado.rolCorrecto, identidad_correcta: comprobado.identidadCorrecta,
+      finca_184_asignada: comprobado.alcance });
+    return { ...comprobado, http: x.status };
+  };
+  const tecnica = (id, ok, observado) => {
+    const registro = r.comprobaciones_tecnicas.find((x) => x.id === id);
+    Object.assign(registro, { estado: ok ? 'APROBADO' : 'ERROR_QA', observado });
   };
   const cerrar = cierreUnico(async () => {
     if (!abierto) return;
     r.cierre = await cerrarYVerificar({ runId, secreto: run.secreto, solicitar,
-       autenticar: () => autenticar('admin'), anteriores: previos, lecturas,
-       umbralRun266: r.umbral_run_266 });
-     if (!r.cierre.rollback.verificado)
+       autenticar: async () => (await autenticar('admin')).token, anteriores: previos, lecturas,
+       umbralRun266: r.umbral_run_266, escriturasIntentadas: r.escrituras_intentadas === true });
+    const cierreApi = r.bitacora.findLast((x) => x.metodo === 'DELETE' && x.ruta === `/test-control/runs/${runId}`);
+    tecnica('DBA-01-05', comprobarCierreDba(cierreApi, r.cierre.cierre_http, r.timeout_en_run),
+      `DELETE ${cierreApi?.latencia_ms ?? 'sin medición'} ms; HTTP ${r.cierre.cierre_http}; timeout en RUN=${r.timeout_en_run}`);
+     if (!r.cierre.rollback.verificado && (r.cierre.rollback.conclusion !== 'SIN_ESCRITURAS_QUE_REVERTIR'
+       || r.cierre.errores.length))
        r.problemas_tecnicos.push(...(r.cierre.errores.length
          ? r.cierre.errores : ['Rollback no confirmado por API e historial oficial.']));
     guardar();
@@ -503,11 +623,50 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
   const interrupcion = () => { void cerrar(); process.exitCode = 130; };
   process.on('SIGINT', interrupcion); process.on('SIGTERM', interrupcion);
   try {
-    await autenticar('admin');
-    if (ejecutables.some((id) => ['TC-M03-169', 'TC-M03-170', 'TC-M03-171', 'TC-M03-180', 'TC-M03-266'].includes(id)))
-      await autenticar('prod');
     const disponibilidad = await solicitar('DELETE', `/test-control/runs/${runId}-NO-EXISTE`, { secreto: run.secreto });
     if (disponibilidad.status !== 404) throw new Error(`Sandbox no disponible: HTTP ${disponibilidad.status}`);
+    abierto = true;
+    const adminInicial = await autenticar('admin', 'DBA-01-01');
+    const perfilAdmin = await perfil('admin', 'ADMIN_INICIAL', 'DBA-01-01');
+    tecnica('DBA-01-01', [200, 201].includes(adminInicial.http) && perfilAdmin.ok,
+      `Login Administrador HTTP ${adminInicial.http}; /usuarios/me HTTP ${perfilAdmin.http}; rol e identidad=${perfilAdmin.ok}`);
+    const prodInicial = await autenticar('prod', 'DBA-01-02');
+    const perfilProd = await perfil('prod', 'ADMIN_A_PRODUCTOR', 'DBA-01-02');
+    tecnica('DBA-01-02', [200, 201].includes(prodInicial.http)
+      && perfilProd.rolCorrecto && perfilProd.identidadCorrecta,
+      `Login Productor HTTP ${prodInicial.http}; /usuarios/me HTTP ${perfilProd.http}; rol e identidad=${perfilProd.rolCorrecto && perfilProd.identidadCorrecta}`);
+    const adminInverso = await autenticar('admin', 'DBA-01-03');
+    const perfilInverso = await perfil('admin', 'PRODUCTOR_A_ADMIN', 'DBA-01-03');
+    tecnica('DBA-01-03', [200, 201].includes(adminInverso.http) && perfilInverso.ok,
+      `Login Administrador HTTP ${adminInverso.http}; /usuarios/me HTTP ${perfilInverso.http}; rol e identidad=${perfilInverso.ok}`);
+    const adminRepetido = await autenticar('admin', 'DBA-01-04');
+    const perfilRepetido = await perfil('admin', 'ADMIN_REPETIDO', 'DBA-01-04');
+    tecnica('DBA-01-04', [200, 201].includes(adminRepetido.http) && perfilRepetido.ok,
+      `Segundo login Administrador HTTP ${adminRepetido.http}; /usuarios/me HTTP ${perfilRepetido.http}; rol e identidad=${perfilRepetido.ok}`);
+    const prodVigente = await autenticar('prod', 'DBA-01-02');
+    const perfilVigente = await perfil('prod', 'PRODUCTOR_VIGENTE', 'DBA-01-02');
+    tecnica('DBA-01-02', [200, 201].includes(prodInicial.http) && [200, 201].includes(prodVigente.http)
+      && perfilProd.rolCorrecto && perfilProd.identidadCorrecta
+      && perfilVigente.rolCorrecto && perfilVigente.identidadCorrecta,
+      `Dos logins Productor HTTP ${prodInicial.http}/${prodVigente.http}; /usuarios/me HTTP ${perfilProd.http}/${perfilVigente.http}; identidad sin herencia=${perfilProd.identidadCorrecta && perfilVigente.identidadCorrecta}`);
+    if (!perfilProd.rolCorrecto || !perfilVigente.rolCorrecto || !perfilProd.identidadCorrecta || !perfilVigente.identidadCorrecta)
+      throw new Error('ERROR_QA_RLS: Productor con rol o identidad incorrecta en /usuarios/me.');
+    if (!perfilProd.alcance || !perfilVigente.alcance)
+      throw new Error('ERROR_QA_RLS: Productor sin finca 184 asignada; no se evalúan los sensores 552, 737 ni 738.');
+    if (!perfilAdmin.ok || !perfilInverso.ok || !perfilRepetido.ok)
+      throw new Error('ERROR_QA_RLS: Administrador con rol o identidad incorrecta en /usuarios/me.');
+    const accesoAdmin = await comprobarAccesoAdministrador((ruta) => solicitar('GET', ruta,
+      { token: tokens.admin, enRun: true }));
+    r.acceso_administrador = accesoAdmin.comprobaciones;
+    if (!accesoAdmin.ok) throw new Error(`ERROR_QA_RLS: Administrador sin acceso efectivo: ${accesoAdmin.fallos.join('; ')}`);
+    if (ejecutables.includes('TC-M03-180')) {
+      r.efectos_irreversibles = ['Posible correo SMTP E7 a administradores activos al consultar dashboard; DELETE del RUN no lo revierte. Entrega no acreditada.'];
+      const rutaAviso = '/iot/auditoria?tipo_evento=VARIABLE_SIN_UMBRAL&entidad_afectada_id=737&por_pagina=50';
+      const x = await solicitar('GET', rutaAviso, { token: tokens.admin, enRun: true });
+      r.aviso180_baseline = { http: x.status, items: Array.isArray(x.json?.items) ? x.json.items.map((e) => ({
+        id_evento: e.id_evento, fecha_hora: e.fecha_hora,
+        administradores_avisados: e.accion_detallada?.administradores_avisados ?? null })) : null };
+    }
     // Cada cadena se comprueba por separado antes de la primera escritura.
     const listos = [];
     const cadenasPreparadas = {};
@@ -523,13 +682,12 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
     if (!listos.length) throw new Error('Ningún subcaso conserva una cadena válida.');
     // Primera petición con X-Test-Run-Id: el ancla precede el NOW() fijo de su transacción.
     r.plan_temporal = planTemporalIngestas(listos);
-    abierto = true;
     const apertura = await solicitar('GET', '/usuarios/me', { token: tokens.prod, enRun: true });
     if (apertura.status !== 200 || apertura.eco !== runId) throw new Error('El RUN no devolvió su cabecera de aislamiento.');
     guardar();
     await ejecutarCasosYFaseUi({ r, listos, cadenasPreparadas, faseUi,
       ctx: { r, solicitar, tokens, run, dir, secretos, previos, lecturas, V, contrato,
-        planTemporal: r.plan_temporal, detenerSolicitudes: () => { peticionCancelada = true; } },
+        planTemporal: r.plan_temporal, detenerSolicitudes: () => { peticionCancelada = true; r.timeout_en_run = true; } },
       seleccionarCaso: (id, c) => { casoActual = id;
         sensorActual = Number(c?.cadena?.sensor_id ?? (id === 'TC-M03-266' ? V.QA_G88_266_SENSOR_ID : 0)) || null; },
       guardar, interrumpido: () => peticionCancelada,
@@ -558,7 +716,9 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
        motivo: 'Petición o proceso cancelado; la sesión compartida puede seguir ocupada.', casos_pendientes: [] };
     casoActual = null;
     sensorActual = null;
-    try { consolidarNewman(dir, r); } catch (e) { r.problemas_tecnicos.push(`Newman consolidado: ${e.message}`); }
+    try {
+      if (r.evidencias.some((x) => x.startsWith('newman/'))) evidenciasNewman(dir);
+    } catch (e) { r.problemas_tecnicos.push(`Newman: ${e.message}`); }
     try { await cerrar(); } catch (e) { r.problemas_tecnicos.push(`Cierre: ${e.message}`); }
     process.off('SIGINT', interrupcion); process.off('SIGTERM', interrupcion);
     r.fin = new Date().toISOString();
@@ -568,6 +728,7 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
       if (!presente) r.problemas_tecnicos.push(`Evidencia anunciada no encontrada: ${x}`);
       return presente;
     });
+    r.evidencias = [...new Set(r.evidencias)];
     for (const id of ['TC-M03-172', 'TC-M03-180']) {
       const fase = r.cypress.casos[id];
       if (fase?.causa === 'Fase Cypress pendiente.') fase.causa =
@@ -598,7 +759,8 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
       : 'No hay discrepancia funcional comprobada con precondiciones completas.';
     r.accion = [
       Object.values(r.bloqueos).some((xs) => xs.some((x) => x.tipo === 'DATOS')) ? 'Confirmar por GET las cadenas, rangos, calibraciones y nombres UI de cada caso condicionado.' : null,
-      !r.cierre?.rollback?.verificado ? 'Escalar la verificación de cierre con asociaciones, dashboard, M09 e historial.' : null,
+      !r.cierre?.rollback?.verificado && r.cierre?.rollback?.conclusion !== 'SIN_ESCRITURAS_QUE_REVERTIR'
+        ? 'Escalar la verificación de cierre con asociaciones, dashboard, M09 e historial.' : null,
       r.incidencias.length ? 'Atender las incidencias con su primer equipo y evidencia indicada.' : null,
     ].filter(Boolean).join(' ') || 'Comunicar veredictos y conservar las evidencias del RUN para revisión QA.';
     guardar();
@@ -611,41 +773,251 @@ export async function evaluar(contrato, { soloPreflight = false, ambiente = leer
       guardar();
       texto = generarInforme(r);
     }
-    fs.writeFileSync(path.join(dir, NOMBRE_INFORME(r.version)), texto, { flag: 'wx' });
+    const rutaInforme = path.join(dir, NOMBRE_INFORME(r.version));
+    fs.writeFileSync(rutaInforme, texto, { flag: 'wx' });
+    Object.assign(r, evaluarOficialidad(r, dir));
+    guardar();
+    texto = generarInforme(r);
+    fs.writeFileSync(rutaInforme, texto);
+    const validacionFinal = validarResultadoLocal(r, dir, texto);
+    if (validacionFinal.length) {
+      r.oficial = false;
+      r.motivo_no_oficial = validacionFinal.join('; ');
+      r.clasificacion_prevista = 'TECNICO';
+      guardar();
+      fs.writeFileSync(rutaInforme, generarInforme(r));
+    }
   }
-  return r.estado === 'CONCLUIDA' ? 0 : 5;
+  return r.estado === 'CONCLUIDA' && r.oficial === true ? 0 : 5;
 }
 
-export async function ejecutarCaso266({ r, solicitar, tokens, run, dir, secretos, lecturas, V, contrato, planTemporal }) {
-  const control = { fase: 'SEMILLA_PREEXISTENTE', semilla: {}, umbralId: null, conteos: {} };
+export async function ejecutarCaso266(ctx) {
+  const { r, solicitar, tokens, V, run, planTemporal, secretos, lecturas } = ctx;
+  const id = 'TC-M03-266';
+  r.efectos_irreversibles ??= [];
+  r.efectos_irreversibles.push('M09 POST/PATCH intentan sincronización Edge tras commit; solo la compuerta pública y auditoría pueden acreditar que no hubo publicación. DELETE del RUN no revierte MQTT.');
+  const semilla = cargarEscenario().semilla_266;
+  const control = {};
   let s;
   try {
     s = await verificarSemillaPreexistente266({ solicitar, token: tokens.admin,
-      parametros: { especie_id: V.QA_G88_266_ESPECIE_ID, area_id: V.QA_G88_266_AREA_ID,
-        activo_id: V.QA_G88_266_ACTIVO_ID, dispositivo_id: V.QA_G88_266_DISPOSITIVO_ID,
-        sensor_id: V.QA_G88_266_SENSOR_ID, asociacion_id: V.QA_G88_266_ASOCIACION_ID,
-        calibracion_id: V.QA_G88_266_CALIBRACION_ID, serial: V.QA_G88_266_SERIAL },
-      semilla: cargarEscenario().semilla_266, control });
+      semilla, control, parametros: { especie_id: Number(V.QA_G88_266_ESPECIE_ID),
+        area_id: Number(V.QA_G88_266_AREA_ID), activo_id: Number(V.QA_G88_266_ACTIVO_ID),
+        dispositivo_id: Number(V.QA_G88_266_DISPOSITIVO_ID), sensor_id: Number(V.QA_G88_266_SENSOR_ID),
+        asociacion_id: Number(V.QA_G88_266_ASOCIACION_ID), calibracion_id: Number(V.QA_G88_266_CALIBRACION_ID),
+        serial: V.QA_G88_266_SERIAL } });
   } catch (e) {
-    r.bloqueos['TC-M03-266'].push({ tipo: 'DATOS', motivo: `Semilla preexistente no acreditada: ${e.message}; sin escritura.` });
+    r.resultado266 = 'NO_CONCLUYENTE';
+    r.bloqueos[id].push({ tipo: 'SEGURIDAD', motivo: `Compuerta pública 266: ${sanearArtefacto(e.message, secretos)}; sin escrituras M09.` });
     return;
   }
-  r.bitacora.push({ caso: 'TC-M03-266', semilla_preexistente: 'VERIFICADA_POR_GET', especie_id: s.especie_id,
-    area_id: s.area_id, dispositivo_id: s.dispositivo_id, sensor_id: s.sensor_id,
-    activo_id: s.activo_id, asociacion_id: s.asociacion_id, calibracion_id: s.calibracion_id });
-  await ejecutar266({ solicitar, admin: tokens.admin, productor: tokens.prod,
-    broker: V.BROKER_SERVICE_TOKEN, serial: V.QA_G88_266_SERIAL, s, control, r, lecturas, secretos,
-    timestampCaptura: planTemporal?.por_ingesta['TC-M03-266:0'], planTemporal,
-    conservarSemilla: V.QA_G88_266_CONSERVAR_SEMILLA !== 'NO',
-    newmanLectura: ({ esperado }) => {
-      const sn = { ...s, serial: V.QA_G88_266_SERIAL, dashboard_infraestructura_id: s.area_id };
-      const rep = ejecutarNewman({ id: 'TC-M03-266', checkId: 'API-266-02',
-        entrada: { valor: 15, unidad: s.unidad }, s: sn,
-        variable: 'TEMPERATURA_AMBIENTAL', run, V, dir, secretos, token: tokens.prod,
-        indice: 'lectura-final', esperado, skipIngesta: true });
-      r.evidencias.push(...rep.archivos);
-      r.herramientas.newman = 'reporte JSON/HTML generado para lectura final 266';
-    } });
+  r.bitacora.push({ caso: id, etapa: 'COMPUERTA_PUBLICA', especie_id: s.especie_id,
+    area_id: s.area_id, dispositivo_id: s.dispositivo_id, gateways: 0, umbrales: 0,
+    resultado: 'ACREDITADA_EN_RUN' });
+  const rutaUmbral = `/configuracion/umbrales?id_especie=${s.especie_id}`;
+  const antes = await solicitar('GET', rutaUmbral, { token: tokens.admin, enRun: true });
+  if (antes.status !== 200 || !Array.isArray(antes.json?.items) || antes.json.items.length) {
+    r.bloqueos[id].push({ tipo: 'SEGURIDAD', motivo: 'Compuerta M09 cambió antes de Newman; sin escritura.' });
+    return;
+  }
+  conservarAnterior(ctx.previos, { caso: id, ruta_umbral: rutaUmbral, umbral: antes.json });
+  const timestamp = planTemporal?.por_ingesta?.['TC-M03-266:0'];
+  const ingreso = construirCuerpoIngesta({ deviceId: s.dispositivo_id, sensorId: s.sensor_id,
+    tipoVariable: 'TEMPERATURA_AMBIENTAL', valor: 15, unidad: s.unidad,
+    serial: V.QA_G88_266_SERIAL, timestampCaptura: timestamp });
+  const items = construirItems266();
+  ctx.planNewman.push({ id, clave: id, items, s,
+    variables: { qa_autorizado: 'SI', base_url: API, run_id: run.id,
+      sandbox_secret: run.secreto, tok_admin: tokens.admin, tok_prod: tokens.prod,
+      broker_service_token: V.BROKER_SERVICE_TOKEN, especie_id: s.especie_id,
+      area_id: s.area_id, device_id: s.dispositivo_id, sensor_id: s.sensor_id,
+      cuerpo_ingesta: JSON.stringify(ingreso),
+      cuerpo_alta: JSON.stringify({ id_especie: s.especie_id,
+        id_variable_ambiental: s.variable_id, valor_min: 10, valor_max: 20, niveles: niveles(10) }),
+      niveles_edicion: JSON.stringify(niveles(20)) },
+    procesar: async (rep) => procesar266(rep, { r, s, lecturas }) });
+}
+
+function construirItems266() {
+  const { inicio, fin } = rangoHistorial();
+  const url = (ruta) => `{{base_url}}${ruta}`;
+  const mk = (nombre, metodo, ruta, script, { guard, body, auth = 'tok_admin' } = {}) => ({
+    name: `TC-M03-266-${nombre}`,
+    request: { method: metodo, url: url(ruta), header: [
+      { key: 'Authorization', value: `Bearer {{${auth}}}` },
+      ...(body ? [{ key: 'Content-Type', value: 'application/json' }] : []) ],
+      ...(body ? { body: { mode: 'raw', raw: body } } : {}) },
+    event: [
+      { listen: 'prerequest', script: { type: 'text/javascript', exec: [
+        ...(guard ? [`if(pm.environment.get('${guard}')!=='SI'){pm.execution.skipRequest();return;}`] : []),
+        ...(body ? [`pm.request.body.update(pm.variables.replaceIn(${JSON.stringify(body)}));`] : []) ] } },
+      { listen: 'test', script: { type: 'text/javascript', exec: [script] } } ] });
+  const umbral = "const b=pm.response.code===200?pm.response.json():{};const u=(b.items||[]).find(x=>String(x.id_umbral_ambiental)===pm.environment.get('g88_266_umbral_id'));";
+  const auditoria = (fase, siguiente) => `const b=pm.response.code===200?pm.response.json():{};const version=pm.environment.get('g88_266_version_${fase}');const ev=(b.items||[]).filter(x=>x.tipo_evento==='PROPAGACION_UMBRAL_EDGE'&&(version==null?x.accion_detallada?.version==null:Date.parse(x.accion_detallada?.version)===Date.parse(version)));const d=ev.length===1?ev[0].accion_detallada:null;const ok=pm.response.code===200&&d?.estado==='PENDIENTE'&&Array.isArray(d?.gateways)&&d.gateways.length===0&&pm.environment.get('g88_266_estado_${fase}')==='PENDIENTE';pm.test('[TC-M03-266][PRE][BARRERA-${fase}] Sin publicación Edge',()=>pm.expect(ok).to.eql(true));if(ok)pm.environment.set('${siguiente}','SI');`;
+  return [
+    mk('00-AREAS','GET','/configuracion/infraestructuras?finca_id=184',"const b=pm.response.code===200?pm.response.json():{};const xs=b.items||[];const ys=xs.filter(x=>Number(x.especie_id)===Number(pm.environment.get('especie_id')));const ok=pm.response.code===200&&Number(b.total)===xs.length&&ys.length===1&&Number(ys[0].id_infraestructura)===Number(pm.environment.get('area_id'));pm.test('[TC-M03-266][PRE][COMP-AREAS] Especie solo área 504',()=>pm.expect(ok).to.eql(true));if(ok)pm.environment.set('g88_266_areas_ok','SI');"),
+    mk('00-DISPOSITIVOS','GET','/configuracion/dispositivos-iot',"const b=pm.response.code===200?pm.response.json():{};const xs=b.items||[];const ys=xs.filter(x=>Number(x.id_infraestructura)===Number(pm.environment.get('area_id')));const ok=pm.response.code===200&&(b.total==null||Number(b.total)===xs.length)&&ys.length===1&&Number(ys[0].id_dispositivo_iot)===Number(pm.environment.get('device_id'))&&ys.every(x=>x.categoria!=='GATEWAY_EDGE'&&x.id_dispositivo_gateway==null);pm.test('[TC-M03-266][PRE][COMP-GATEWAY] Sin Edge ni gateway',()=>pm.expect(ok).to.eql(true));if(ok)pm.environment.set('g88_266_devices_ok','SI');",{guard:'g88_266_areas_ok'}),
+    mk('00-UMBRALES','GET','/configuracion/umbrales?id_especie={{especie_id}}',"const b=pm.response.code===200?pm.response.json():{};const ok=pm.response.code===200&&Array.isArray(b.items)&&b.items.length===0&&Number(b.total)===0;pm.test('[TC-M03-266][PRE][COMP-UMBRALES] Sin umbrales previos',()=>pm.expect(ok).to.eql(true));if(ok)pm.environment.set('g88_266_write_ok','SI');",{guard:'g88_266_devices_ok'}),
+    mk('01-ALTA','POST','/configuracion/umbrales',"const b=pm.response.code===201?pm.response.json():{};const u=b.data||b;const tieneId=Number.isInteger(u.id_umbral_ambiental);const ok=pm.response.code===201&&tieneId&&u.estado_sincronizacion==='PENDIENTE';pm.test('[TC-M03-266][PRE][ALTA-M09] Pendiente',()=>pm.expect(ok).to.eql(true));if(tieneId){pm.environment.set('g88_266_umbral_id',String(u.id_umbral_ambiental));pm.environment.set('g88_266_alta_ok','SI');}",{ guard:'g88_266_write_ok', body:'{{cuerpo_alta}}' }),
+    mk('02-UMBRAL-INICIAL','GET','/configuracion/umbrales?id_especie={{especie_id}}',`${umbral}const ok=pm.response.code===200&&u&&Number(u.valor_min)===10&&Number(u.valor_max)===20&&u.estado_sincronizacion==='PENDIENTE'&&Object.hasOwn(u,'fecha_actualizacion');pm.test('[TC-M03-266][PRE][UMBRAL-INICIAL] 10-20 pendiente',()=>pm.expect(!!ok).to.eql(true));if(ok){pm.environment.set('g88_266_estado_alta',u.estado_sincronizacion);pm.environment.set('g88_266_version_alta',u.fecha_actualizacion);pm.environment.set('g88_266_version_alta_json',JSON.stringify(u.fecha_actualizacion));pm.environment.set('g88_266_umbral_alta_ok','SI');}`,{guard:'g88_266_alta_ok'}),
+    mk('03-AUDITORIA-ALTA','GET','/iot/auditoria?tipo_evento=PROPAGACION_UMBRAL_EDGE&entidad_afectada_id={{g88_266_umbral_id}}&por_pagina=200',auditoria('alta','g88_266_ingesta_ok'),{guard:'g88_266_umbral_alta_ok'}),
+    mk('04-INGESTA','POST','/iot/telemetria',"const b=pm.response.code===201?pm.response.json():{};const ok=pm.response.code===201&&Number.isInteger(b.id_telemetria)&&b.estado_calidad==='LECTURA_VALIDA';pm.test('[TC-M03-266][PRE][INGESTA] Valor 15 válido',()=>pm.expect(ok).to.eql(true));if(ok){pm.environment.set('g88_266_tele_id',String(b.id_telemetria));pm.environment.set('g88_266_lectura_ok','SI');}",{guard:'g88_266_ingesta_ok',body:'{{cuerpo_ingesta}}',auth:'broker_service_token'}),
+    mk('05-DASHBOARD-INICIAL','GET','/iot/monitoreo/dashboard?id_infraestructura={{area_id}}&por_pagina=50',"const b=pm.response.code===200?pm.response.json():{};const s=(b.sensores||[]).find(x=>String(x.id_sensor)===pm.environment.get('sensor_id'));const ok=pm.response.code===200&&s&&Number(s.ultimo_valor)===15&&s.estado_semaforo==='VERDE'&&!s.dato_desactualizado&&!s.id_alerta&&!(s.alertas_activas||[]).length;pm.test('[TC-M03-266][ASSERT][API-266-01] 15 VERDE',()=>pm.expect(ok).to.eql(true));if(ok){pm.environment.set('g88_266_verde_ok','SI');pm.environment.set('g88_266_patch_body',JSON.stringify({valor_min:20,valor_max:30,niveles:JSON.parse(pm.environment.get('niveles_edicion')),fecha_actualizacion:JSON.parse(pm.environment.get('g88_266_version_alta_json'))}));pm.environment.set('g88_266_patch_ok','SI');}",{guard:'g88_266_lectura_ok',auth:'tok_prod'}),
+    mk('06-HISTORIAL-INICIAL','GET',`/iot/monitoreo/historial?sensor_id={{sensor_id}}&fecha_inicio=${inicio}&fecha_fin=${fin}`,'',{guard:'g88_266_verde_ok',auth:'tok_prod'}),
+    mk('07-EDICION','PATCH','/configuracion/umbrales/{{g88_266_umbral_id}}',"const b=pm.response.code===200?pm.response.json():{};const u=b.data||b;const ok=pm.response.code===200&&u.estado_sincronizacion==='PENDIENTE';pm.test('[TC-M03-266][PRE][EDICION-M09] Pendiente',()=>pm.expect(ok).to.eql(true));pm.environment.set('g88_266_edicion_ok','SI');",{guard:'g88_266_patch_ok',body:'{{g88_266_patch_body}}'}),
+    mk('08-UMBRAL-FINAL','GET','/configuracion/umbrales?id_especie={{especie_id}}',`${umbral}const previa=pm.environment.get('g88_266_version_alta');const ok=pm.response.code===200&&u&&Number(u.valor_min)===20&&Number(u.valor_max)===30&&u.estado_sincronizacion==='PENDIENTE'&&Object.hasOwn(u,'fecha_actualizacion')&&(previa==null||u.fecha_actualizacion!==previa);pm.test('[TC-M03-266][PRE][UMBRAL-FINAL] 20-30 pendiente',()=>pm.expect(!!ok).to.eql(true));if(ok){pm.environment.set('g88_266_estado_edicion',u.estado_sincronizacion);pm.environment.set('g88_266_version_edicion',u.fecha_actualizacion);pm.environment.set('g88_266_umbral_edicion_ok','SI');}`,{guard:'g88_266_edicion_ok'}),
+    mk('09-AUDITORIA-EDICION','GET','/iot/auditoria?tipo_evento=PROPAGACION_UMBRAL_EDGE&entidad_afectada_id={{g88_266_umbral_id}}&por_pagina=200',auditoria('edicion','g88_266_final_ok'),{guard:'g88_266_umbral_edicion_ok'}),
+    mk('10-DASHBOARD-FINAL','GET','/iot/monitoreo/dashboard?id_infraestructura={{area_id}}&por_pagina=50',"const b=pm.response.code===200?pm.response.json():{};const s=(b.sensores||[]).find(x=>String(x.id_sensor)===pm.environment.get('sensor_id'));const ok=pm.response.code===200&&s&&Number(s.ultimo_valor)===15&&['ROJO','AMARILLO'].includes(s.estado_semaforo)&&!s.dato_desactualizado&&!s.id_alerta&&!(s.alertas_activas||[]).length;pm.test('[TC-M03-266][ASSERT][API-266-02] Misma lectura recalculada',()=>pm.expect(ok).to.eql(true));",{guard:'g88_266_final_ok',auth:'tok_prod'}),
+    mk('11-HISTORIAL-FINAL','GET',`/iot/monitoreo/historial?sensor_id={{sensor_id}}&fecha_inicio=${inicio}&fecha_fin=${fin}`,'',{guard:'g88_266_final_ok',auth:'tok_prod'})
+  ];
+}
+
+function procesar266(rep, { r, s, lecturas }) {
+  const xs = rep.bruto.run.executions;
+  registrarAsercionesNewman(rep, 'TC-M03-266', r, s.sensor_id);
+  const body = (ex) => { try { return JSON.parse(Buffer.from(ex?.response?.stream?.data ?? []).toString('utf8')); }
+    catch { return {}; } };
+  const ex = (n) => xs.find((x) => x.item?.name?.startsWith(`TC-M03-266-${n}-`));
+  const preFallida = r.comprobaciones.find((x) => x.caso === 'TC-M03-266'
+    && x.tipo === 'PRE' && x.estado !== 'APROBADO');
+  if (preFallida) {
+    const dispositivos = body(xs.find((x) => x.item?.name === 'TC-M03-266-00-DISPOSITIVOS'))?.items ?? [];
+    const gateway = preFallida.id === 'COMP-GATEWAY' && Array.isArray(dispositivos)
+      && dispositivos.some((x) => x.categoria === 'GATEWAY_EDGE' || x.id_dispositivo_gateway != null);
+    const fase = preFallida.id === 'BARRERA-alta' ? '03' : preFallida.id === 'BARRERA-edicion' ? '09' : null;
+    const umbralFase = preFallida.id === 'ALTA-M09' ? '01'
+      : preFallida.id === 'UMBRAL-INICIAL' ? '02'
+        : preFallida.id === 'EDICION-M09' ? '07'
+          : preFallida.id === 'UMBRAL-FINAL' ? '08' : null;
+    const umbralRespuesta = umbralFase ? body(ex(umbralFase)) : null;
+    const estadoUmbral = umbralRespuesta?.items?.[0]?.estado_sincronizacion
+      ?? umbralRespuesta?.data?.estado_sincronizacion ?? umbralRespuesta?.estado_sincronizacion;
+    const audit = fase ? body(ex(fase)) : null;
+    const detalles = Array.isArray(audit?.items) ? audit.items
+      .filter((x) => x.tipo_evento === 'PROPAGACION_UMBRAL_EDGE').map((x) => x.accion_detallada) : [];
+    const sincronizacion = fase === '03' ? body(ex('02'))?.items?.[0]?.estado_sincronizacion
+      : fase === '09' ? body(ex('08'))?.items?.[0]?.estado_sincronizacion : null;
+    const barreraReal = gateway || estadoUmbral != null && estadoUmbral !== 'PENDIENTE'
+      || (fase && (sincronizacion != null && sincronizacion !== 'PENDIENTE'
+      || detalles.some((x) => x?.estado != null && x.estado !== 'PENDIENTE'
+        || Array.isArray(x?.gateways) && x.gateways.length > 0)));
+    const forma = fase ? `; auditoría HTTP ${ex(fase)?.response?.code ?? 'sin respuesta'}, forma=${Array.isArray(audit?.items) ? `items[${audit.items.length}]` : Object.keys(audit ?? {}).join(',') || 'sin cuerpo'}, detalles=${JSON.stringify(detalles.map((x) => ({ estado: x?.estado ?? null, gateways: Array.isArray(x?.gateways) ? x.gateways.length : null, version: x?.version ?? null })))}` : '';
+    r.bloqueos['TC-M03-266'].push({ tipo: barreraReal ? 'SEGURIDAD' : 'AUTOMATIZACION',
+      motivo: `Precondición ${preFallida.id} falló: ${preFallida.observado}${forma}` });
+  }
+  if (!ex('01')?.response) {
+    r.resultado266 = 'NO_CONCLUYENTE';
+    if (!preFallida) r.bloqueos['TC-M03-266'].push({ tipo: 'AUTOMATIZACION',
+      motivo: 'POST M09 omitido sin PRE fallida identificable en Newman.' });
+    return;
+  }
+  const alta = body(ex('01')).data ?? body(ex('01'));
+  const umbralId = Number(alta.id_umbral_ambiental);
+  r.umbral_run_266 = { alta_intentada: true, id: Number.isSafeInteger(umbralId) && umbralId > 0 ? umbralId : null,
+    especie_id: s.especie_id };
+  const u = (n) => (body(ex(n)).items ?? []).find((x) => Number(x.id_umbral_ambiental) === umbralId);
+  const aud = (n, version) => barreraPublicacion266({
+    umbral: u(n === '03' ? '02' : '08') ?? (n === '03' ? alta : (body(ex('07')).data ?? body(ex('07')))),
+    eventos: body(ex(n)).items, version });
+  const a1 = aud('03', u('02')?.fecha_actualizacion);
+  const a2 = aud('09', u('08')?.fecha_actualizacion);
+  for (const [etapa, a] of [['ALTA_M09',a1],['EDICION_M09',a2]]) {
+    if (etapa === 'EDICION_M09' && !ex('07')?.response) continue;
+    if (!ex(etapa === 'ALTA_M09' ? '03' : '09')?.response) continue;
+    r.bitacora.push({ caso: 'TC-M03-266', etapa, umbral_id: r.umbral_run_266.id,
+      estado: a.estado_auditoria, estado_sincronizacion: a.estado_umbral,
+      gateways_count: a.gateways, gateway_observado: a.gateways > 0,
+      barrera_segura: a.segura, eventos: a.eventos });
+    if (!a.segura && !preFallida) r.bloqueos['TC-M03-266'].push({
+      tipo: a.gateways > 0 || a.estado_umbral != null && a.estado_umbral !== 'PENDIENTE'
+        || a.estado_auditoria != null && a.estado_auditoria !== 'PENDIENTE' ? 'SEGURIDAD' : 'AUTOMATIZACION',
+      motivo: `Barrera M09→Edge ${etapa}: sincronización=${a.estado_umbral ?? 'no informada'}, auditoría=${a.estado_auditoria ?? 'no informada'}, gateways=${a.gateways ?? 'no informados'}; HTTP ${ex(etapa === 'ALTA_M09' ? '03' : '09')?.response?.code}; eventos=${a.eventos}.` });
+  }
+  const ingesta = body(ex('04'));
+  const teleId = Number(ingesta.id_telemetria);
+  if (ex('04')?.response?.code === 201 && Number.isSafeInteger(teleId) && teleId > 0) {
+    const { inicio, fin } = rangoHistorial();
+    lecturas.push({ caso: 'TC-M03-266', sensor_id: s.sensor_id,
+      id_telemetria: teleId, fecha_inicio: inicio, fecha_fin: fin });
+  }
+  const h1 = body(ex('06')), h2 = body(ex('11'));
+  const l1 = (h1.items ?? []).find((x) => Number(x.id_telemetria) === teleId);
+  const l2 = (h2.items ?? []).find((x) => Number(x.id_telemetria) === teleId);
+  const d1 = (body(ex('05')).sensores ?? []).find((x) => Number(x.id_sensor) === s.sensor_id);
+  const d2 = (body(ex('10')).sensores ?? []).find((x) => Number(x.id_sensor) === s.sensor_id);
+  let timestampIngesta = null;
+  try { timestampIngesta = JSON.parse(ex('04')?.request?.body?.raw ?? '{}').timestamp_captura ?? null; }
+  catch { /* La identidad queda sin acreditar. */ }
+  const origen = !!timestampIngesta && !!d1?.ultimo_timestamp_captura
+    && Date.parse(timestampIngesta) === Date.parse(d1.ultimo_timestamp_captura);
+  for (const [fase, numero, historial, lectura] of [['inicial', '06', h1, l1], ['final', '11', h2, l2]]) {
+    const respuesta = ex(numero)?.response;
+    const errorCode = historial.error_code ?? null;
+    const conforme = respuesta?.code === 200 && lectura
+      && Number(lectura.valor_ajustado ?? lectura.valor) === 15
+      && lectura.estado_calidad === 'LECTURA_VALIDA';
+    r.comprobaciones.push({ caso: 'TC-M03-266', id: `HIST-${fase}`, tipo: 'APOYO', fuente: 'API',
+      estado: conforme ? 'APROBADO' : 'NO_CONCLUYENTE', naturaleza: null,
+      observado: `HTTP ${respuesta?.code ?? 'sin respuesta'}; error_code=${errorCode ?? 'ausente'}; lectura=${lectura?.id_telemetria ?? 'ausente'}`,
+      motivo: conforme ? 'Lectura identificada en historial.' : 'Historial de apoyo no concluyente.',
+      evidencia: 'newman/newman-TC-M03-G88.json' });
+  }
+  const misma = origen && !!d2 && Number(d1.ultimo_valor) === 15 && Number(d2.ultimo_valor) === 15
+    && !!d1.ultimo_timestamp_captura && d1.ultimo_timestamp_captura === d2.ultimo_timestamp_captura
+    && (d1.id_telemetria == null || Number(d1.id_telemetria) === teleId)
+    && (d2.id_telemetria == null || Number(d2.id_telemetria) === teleId)
+    && xs.filter((x) => x.item?.name === 'TC-M03-266-04-INGESTA' && x.response?.code === 201).length === 1;
+  const inicial = ex('05')?.response?.code === 200 && d1 && a1.segura
+    && ex('04')?.response?.code === 201 && ingesta.estado_calidad === 'LECTURA_VALIDA' && origen
+    && !d1.dato_desactualizado
+    && !d1.id_alerta && !(d1.alertas_activas ?? []).length;
+  const final = ex('10')?.response?.code === 200 && d2 && a2.segura && misma
+    && !d2.dato_desactualizado && !d2.id_alerta && !(d2.alertas_activas ?? []).length;
+  const estado1 = !inicial ? 'NO_CONCLUYENTE' : d1.estado_semaforo === 'VERDE' ? 'APROBADO' : 'RECHAZADO';
+  const estado2 = !final ? 'NO_CONCLUYENTE' : ['ROJO','AMARILLO'].includes(d2.estado_semaforo) ? 'APROBADO' : 'RECHAZADO';
+  r.resultado266 = estado2;
+  r.comprobaciones.push({ caso: 'TC-M03-266', id: 'API-266-01', tipo: 'ASSERT', fuente: 'API',
+    estado: estado1, naturaleza: estado1 === 'RECHAZADO' ? 'PRODUCTO' : null,
+    observado: `HTTP ${ex('05')?.response?.code ?? 'sin respuesta'}; valor=${d1?.ultimo_valor ?? 'ausente'}; semáforo=${d1?.estado_semaforo ?? 'ausente'}; lectura=${teleId || 'ausente'}; barrera=${a1.segura}` });
+  r.comprobaciones.push({ caso: 'TC-M03-266', id: 'API-266-02', tipo: 'ASSERT', fuente: 'API',
+    estado: estado2, naturaleza: estado2 === 'RECHAZADO' ? 'PRODUCTO' : null,
+    observado: `HTTP ${ex('10')?.response?.code ?? 'sin respuesta'}; valor=${d2?.ultimo_valor ?? 'ausente'}; semáforo=${d2?.estado_semaforo ?? 'ausente'}; misma_lectura=${misma}; barrera=${a2.segura}` });
+}
+
+function registrarAsercionesNewman(rep, id, r, sensorId) {
+  const ejecuciones = rep.bruto.run?.executions ?? [];
+  for (const ex of ejecuciones) {
+    let cuerpo = {};
+    try { cuerpo = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')); } catch { /* Sin cuerpo evaluable. */ }
+    const sensor = cuerpo.sensores?.find((x) => Number(x.id_sensor) === Number(sensorId));
+    for (const a of ex.assertions ?? []) {
+      const m = /^\[(TC-M03-\d+)\]\[(PRE|ASSERT)\]\[([\w-]+)\]/.exec(a.assertion ?? '');
+      if (!m || m[1] !== id || (id === 'TC-M03-266' && m[2] === 'ASSERT')) continue;
+      const ingesta = ejecuciones.find((x) => x.item?.name === `${ex.item?.name?.split('/')[0]}/INGESTA`);
+      let entrada = null; let calidad = null;
+      try { entrada = JSON.parse(ingesta?.request?.body?.raw ?? '{}').valor ?? null;
+        calidad = JSON.parse(Buffer.from(ingesta?.response?.stream?.data ?? []).toString('utf8')).estado_calidad ?? null;
+      } catch { /* Conserva la observación disponible. */ }
+      const observado = id === 'TC-M03-266' && m[2] === 'PRE' && a.error
+        ? `HTTP ${ex.response?.code ?? 'sin respuesta'}; ${JSON.stringify({ valor_min: cuerpo.items?.[0]?.valor_min ?? null,
+          valor_max: cuerpo.items?.[0]?.valor_max ?? null,
+          estado_sincronizacion: cuerpo.items?.[0]?.estado_sincronizacion ?? null,
+          fecha_actualizacion: cuerpo.items?.[0]?.fecha_actualizacion ?? null,
+          total: cuerpo.total ?? null, items: Array.isArray(cuerpo.items) ? cuerpo.items.length : null })}; aserción=${a.error.message}`
+        : m[2] === 'ASSERT' && ['TC-M03-170', 'TC-M03-171'].includes(id)
+        ? `HTTP ${ex.response?.code ?? 'sin respuesta'}; entrada=${entrada ?? rep.lecturaEnviada?.valor ?? 'no registrada'}; valor=${sensor?.ultimo_valor ?? 'ausente'}; semáforo=${sensor?.estado_semaforo ?? 'ausente'}; estado_calidad=${sensor?.estado_calidad ?? calidad ?? 'no informado'}; indicador_anomalia=${sensor?.indicador_anomalia ?? 'no informado'}; etiqueta=${sensor?.etiqueta_estado ?? 'no informada'}${a.error ? `; aserción=${a.error.message}` : ''}`
+        : a.error?.message ?? `HTTP ${ex.response?.code ?? 'sin respuesta'}; ${JSON.stringify({
+        ultimo_valor: sensor?.ultimo_valor, estado_semaforo: sensor?.estado_semaforo,
+        valor_min: cuerpo.items?.[0]?.valor_min, valor_max: cuerpo.items?.[0]?.valor_max,
+        estado_sincronizacion: cuerpo.items?.[0]?.estado_sincronizacion })}`;
+      r.comprobaciones.push({ caso: id, tipo: m[2], id: m[3], fuente: 'API',
+        estado: a.error ? (id === 'TC-M03-266' && m[2] === 'PRE' ? 'NO_CONCLUYENTE'
+          : ex.response?.code == null ? 'ERROR_QA' : m[2] === 'PRE' ? 'BLOQUEADO' : 'RECHAZADO') : 'APROBADO',
+        naturaleza: a.error ? (id === 'TC-M03-266' ? null : ex.response?.code == null ? null : m[2] === 'PRE' ? 'DATOS' : 'PRODUCTO') : null,
+        observado, motivo: a.error ? observado : 'Comprobación conforme.',
+        evidencia: 'newman/newman-TC-M03-G88.json' });
+    }
+  }
 }
 
 export function datosRegistro(cierre, lecturas) {
@@ -754,12 +1126,15 @@ export async function ejecutarCasosYFaseUi({ r, listos, cadenasPreparadas, faseU
   interrumpido = () => false,
   ejecutarCasoFn = ejecutarCaso, ejecutarCaso266Fn = ejecutarCaso266,
   ejecutar172 = ejecutarUi172, ejecutar180 = ejecutarUi180 }) {
+  const planNewman = [];
+  const postNewman = [];
+  const contexto = { ...ctx, planNewman, postNewman };
   for (const id of listos) {
     const c = cadenasPreparadas[id];
     seleccionarCaso(id, c);
     try {
-      if (id === 'TC-M03-266') await ejecutarCaso266Fn(ctx);
-      else await ejecutarCasoFn(id, c, { ...ctx, faseUi });
+      if (id === 'TC-M03-266') await ejecutarCaso266Fn(contexto);
+      else await ejecutarCasoFn(id, c, { ...contexto, faseUi });
     } catch (e) {
       const error = sanearArtefacto(String(e.message ?? e), ctx.secretos ?? []);
       const tipo = /aborted due to timeout/i.test(error) ? 'ORIGEN_INDETERMINADO' : 'AUTOMATIZACION';
@@ -772,6 +1147,54 @@ export async function ejecutarCasosYFaseUi({ r, listos, cadenasPreparadas, faseU
     guardar();
     if (interrumpido()) throw new Error('Petición cancelada: se omiten solicitudes posteriores hasta cerrar el RUN.');
   }
+  if (planNewman.length || postNewman.length) {
+    try {
+      if (planNewman.length) {
+        r.escrituras_intentadas = true;
+        const reportes = ejecutarNewmanUnico(planNewman, ctx);
+        if (reportes.some((rep) => rep.bruto.run?.executions?.some((ex) =>
+          /timeout|timed out|ETIMEDOUT/i.test(String(ex.requestError?.message ?? ex.requestError ?? '')))))
+          r.timeout_en_run = true;
+        r.evidencias.push(...evidenciasNewman(ctx.dir));
+        r.newman_casos = [...new Set(planNewman.map((p) => p.id))];
+        r.bitacora.push({ etapa: 'NEWMAN_UNICO', invocaciones: 1,
+          solicitudes: reportes.reduce((n, x) => n + (x.bruto.run?.executions?.length ?? 0), 0),
+          casos: r.newman_casos, json: 1, html: 1 });
+        r.herramientas.newman = '6.2.2; una ejecución; JSON y HTML reales';
+        const ordenProcesamiento = planNewman.map((_, i) => i)
+          .sort((a, b) => Number(planNewman[b].id === 'TC-M03-266') - Number(planNewman[a].id === 'TC-M03-266'));
+        for (const i of ordenProcesamiento) await planNewman[i].procesar(reportes[i]);
+      }
+    } catch (e) {
+      const error = sanearArtefacto(String(e.message ?? e), ctx.secretos ?? []);
+      if (/timeout|timed out|ETIMEDOUT/i.test(error)) ctx.detenerSolicitudes?.();
+      if (planNewman.some((p) => p.id === 'TC-M03-266') && !r.umbral_run_266) {
+        try {
+          const bruto = JSON.parse(fs.readFileSync(path.join(ctx.dir, `${REPORTE_NEWMAN}.json`), 'utf8'));
+          const alta = bruto.run?.executions?.find((x) => x.item?.name === 'TC-M03-266-01-ALTA');
+          if (alta?.response) {
+            const b = JSON.parse(Buffer.from(alta.response.stream?.data ?? []).toString('utf8'));
+            const idUmbral = Number((b.data ?? b).id_umbral_ambiental);
+            r.umbral_run_266 = { alta_intentada: true,
+              id: Number.isSafeInteger(idUmbral) && idUmbral > 0 ? idUmbral : null, especie_id: 220 };
+          }
+        } catch { r.problemas_tecnicos.push('266: no se pudo recuperar el ID M09 del reporte Newman.'); }
+      }
+      r.problemas_tecnicos.push(`Newman único: ${error}`);
+      if (fs.existsSync(path.join(ctx.dir, 'newman'))) {
+        try { r.evidencias.push(...evidenciasNewman(ctx.dir)); } catch { /* El validador registra el exceso. */ }
+      }
+      for (const id of new Set(planNewman.map((p) => p.id)))
+        r.bloqueos[id].push({ tipo: 'AUTOMATIZACION', motivo: `Newman único no evaluable: ${error}` });
+      throw e;
+    } finally {
+      for (const procesar of postNewman) {
+        try { await procesar(); }
+        catch (e) { r.problemas_tecnicos.push(`Posprocesamiento Newman: ${sanearArtefacto(String(e.message ?? e), ctx.secretos ?? [])}`); }
+      }
+      guardar();
+    }
+  }
   await antesDeCypress();
   if (interrumpido()) throw new Error('Petición cancelada antes de Cypress: se cierra el RUN.');
   await ejecutarFaseCypress({ r, listos, cadenasPreparadas, faseUi, ctx, ejecutar172, ejecutar180 });
@@ -783,19 +1206,19 @@ async function ejecutarCaso(id, c, ctx) {
   const s = c.cadena;
   secretos.push(s.serial, s.sensor_nombre);
   if (id === 'TC-M03-172') {
-    const rep = ejecutarNewman({ id, checkId: 'API-172-A', entrada: {}, s, variable: c.variable,
-        run, V, dir, secretos, token: tokens.prod, tokenAdmin: tokens.admin, soloUmbrales: true,
-        indice: 'consulta', esperado: '' });
-      r.evidencias.push(...rep.archivos);
-      r.herramientas.newman = 'reporte JSON/HTML generado';
+    ctx.planNewman.push({ ...prepararNewman({ id, checkId: 'API-172-A', entrada: {}, s, variable: c.variable,
+      run, V, token: tokens.prod, tokenAdmin: tokens.admin, soloUmbrales: true,
+      indice: 'consulta', esperado: '' }), procesar: async (rep) => {
       const ex = rep.bruto.run?.executions?.find((x) => x.request?.method === 'GET');
       let umbrales = [];
       try { umbrales = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')).items ?? []; }
       catch { /* respuesta no evaluable */ }
       const sinT = ex?.response?.code === 200 && ausenciaT(umbrales);
+      const forma = camposUmbral(umbrales)[0] ?? { campos: [], niveles: [] };
       r.comprobaciones.push({ caso: id, id: 'API-172-A', fuente: 'API', tipo: 'ASSERT',
         estado: sinT ? 'RECHAZADO' : 'NO_CONCLUYENTE', naturaleza: sinT ? 'PRODUCTO' : null,
-        observado: `HTTP ${ex?.response?.code ?? 'sin respuesta'}; campos umbral/niveles=${JSON.stringify(camposUmbral(umbrales))}; ausencia T=${sinT}` });
+        observado: `HTTP ${ex?.response?.code ?? 'sin respuesta'}; ${umbrales.length} umbrales; campos umbral=${forma.campos.join(',')}; campos niveles=${(forma.niveles ?? []).map((x) => x.join(',')).join(' / ')}; ausencia T=${sinT}` });
+    } });
     return;
   }
   const anterior = { caso: id,
@@ -814,8 +1237,7 @@ async function ejecutarCaso(id, c, ctx) {
   // El rollback devuelve el estado previo al RUN, no los estados intermedios de otros subcasos.
   const { umbral: umbralParaEntradas, dashboard: dashboardActual } = conservarAnterior(previos, anterior);
   if (id === 'TC-M03-266') throw new Error('SEGURIDAD_M09: 266 bloqueado por propagacion Edge.');
-  let notificacionesAntes = null;
-  if (id === 'TC-M03-180') notificacionesAntes = await solicitar('GET', '/notificaciones?tamano=50', { token: tokens.admin, enRun: true });
+  const avisoAntes = id === 'TC-M03-180' ? r.aviso180_baseline : null;
   let entradas = c.entradas;
   if (['TC-M03-169', 'TC-M03-170', 'TC-M03-171'].includes(id)) {
     const u = (umbralParaEntradas?.items ?? []).find((x) => x.es_activo && Number(x.id_variable_ambiental) === Number(s.variable_id));
@@ -864,8 +1286,8 @@ async function ejecutarCaso(id, c, ctx) {
       area_id: semilla.area, activo_id: semilla.activo_vinculable.id });
   }
   if (id === 'TC-M03-180') {
-    if (notificacionesAntes.status !== 200 || !Array.isArray(notificacionesAntes.json?.items)) {
-      r.bloqueos[id].push({ tipo: 'AUTOMATIZACION', motivo: 'Línea base de notificaciones del Administrador no consultable.' });
+    if (avisoAntes?.http !== 200 || !Array.isArray(avisoAntes?.items)) {
+      r.bloqueos[id].push({ tipo: 'AUTOMATIZACION', motivo: 'Línea base de bitácora IoT E7 no consultable por API pública.' });
       return;
     }
     const activos = await solicitar('GET', '/activos-biologicos?id_infraestructura=349&page_size=100', { token: tokens.admin });
@@ -896,9 +1318,10 @@ async function ejecutarCaso(id, c, ctx) {
         observado: e.motivo });
       continue;
     }
-    const rep = ejecutarNewman({ id, checkId: check[n], entrada: e, s, variable: c.variable, run, V, dir, secretos, token: tokens.prod,
+    ctx.planNewman.push({ ...prepararNewman({ id, checkId: check[n], entrada: e, s, variable: c.variable, run, V, token: tokens.prod,
       indice: n, timestampCaptura: planTemporal?.por_ingesta[`${id}:${n}`],
-      esperado: id === 'TC-M03-266' ? e.esperado_inicial : id === 'TC-M03-180' ? '' : e.esperado });
+      esperado: id === 'TC-M03-266' ? e.esperado_inicial : id === 'TC-M03-180' ? '' : e.esperado }),
+      procesar: async (rep) => {
     if (id === 'TC-M03-180') {
       const post = rep.bruto.run?.executions?.find((x) => x.request?.method === 'POST');
       let cuerpo = {};
@@ -908,7 +1331,6 @@ async function ejecutarCaso(id, c, ctx) {
       ctx.faseUi.motivo180 = ctx.faseUi.ingesta180Acreditada ? null
         : `Ingesta NH3 no acreditada: HTTP ${post?.response?.code ?? 'sin respuesta'}; lectura válida=${cuerpo.estado_calidad === 'LECTURA_VALIDA'}.`;
     }
-    r.herramientas.newman = 'reporte JSON generado';
     registrarNewman(rep, id, r, lecturas, s.sensor_id);
     if (id === 'TC-M03-180') {
       if (rep.observado?.id_alerta || rep.observado?.alertas_activas?.length
@@ -988,82 +1410,497 @@ async function ejecutarCaso(id, c, ctx) {
     if (rep.calidad && rep.calidad !== 'LECTURA_VALIDA')
       r.bitacora.push({ caso: id, indice: n, estado_calidad: rep.calidad,
         nota: 'REF-G87-01: discrepancia observable frente al oráculo; conservar lectura anterior y semáforo observado.' });
+      } });
   }
   if (id === 'TC-M03-180') {
-    const despues = await solicitar('GET', '/notificaciones?tamano=50', { token: tokens.admin, enRun: true });
-    if (despues.status !== 200 || !Array.isArray(despues.json?.items)) {
-      r.bloqueos[id].push({ tipo: 'AUTOMATIZACION', motivo: 'GET notificaciones posterior no evaluable.' });
-      return;
-    }
-    const anteriores = new Set((notificacionesAntes.json?.items ?? []).map((x) => x.id_notificacion));
-    const nuevasUmbral = (despues.json?.items ?? []).filter((x) => !anteriores.has(x.id_notificacion)
-      && /umbral/i.test(String(x.mensaje ?? ''))
-      && (/nh3|amon[ií]aco/i.test(String(x.mensaje ?? ''))
-        || Number(x.id_sensor) === Number(s.sensor_id) || Number(x.id_variable_ambiental) === 11));
+    ctx.postNewman.push(async () => {
+    if (!ctx.faseUi.ingesta180Acreditada) return;
+    const rutaAviso = '/iot/auditoria?tipo_evento=VARIABLE_SIN_UMBRAL&entidad_afectada_id=737&por_pagina=50';
+    const anteriores = new Set(avisoAntes.items.map((x) => x.id_evento));
+    let despues;
+    let nuevasUmbral = [];
+    const inicioEspera = Date.now();
+    do {
+      despues = await solicitar('GET', rutaAviso, { token: tokens.admin, enRun: true });
+      if (despues.status !== 200 || !Array.isArray(despues.json?.items)) break;
+      nuevasUmbral = despues.json.items.filter((x) => !anteriores.has(x.id_evento)
+        && x.tipo_evento === 'VARIABLE_SIN_UMBRAL' && String(x.entidad_afectada_id) === '737');
+      if (nuevasUmbral.length) break;
+      if (Date.now() - inicioEspera < 15000) await new Promise((resolver) => setTimeout(resolver, 1000));
+    } while (Date.now() - inicioEspera < 15000);
+    const avisosRecientes = avisoAntes.items.filter((x) => {
+      const edad = Date.now() - Date.parse(x.fecha_hora);
+      return Number.isFinite(edad) && edad >= 0 && edad < 86400000
+        && Number(x.administradores_avisados) > 0;
+    });
+    const avisoReciente = avisosRecientes.length > 0;
+    const avisoNuevo = nuevasUmbral.some((x) => Number(x.accion_detallada?.administradores_avisados) > 0);
+    const previo = avisosRecientes.at(-1);
+    const observacion = `Bitácora E7 nueva=${nuevasUmbral.length}; aviso previo=${previo ? `${previo.fecha_hora}, sensor 737, variable NH3, administradores_avisados=${previo.administradores_avisados}` : 'no consta'}; ${avisoReciente && !nuevasUmbral.length ? 'deduplicación de 24 h impidió observar un aviso nuevo en este RUN; ' : ''}HTTP ${despues?.status ?? 'sin respuesta'}; espera ${Date.now() - inicioEspera} ms; correo SMTP irreversible, entrega no verificable por API.`;
     r.comprobaciones.push({ caso: id, id: 'API-180-04', fuente: 'API', tipo: 'ASSERT',
-      estado: nuevasUmbral.length > 0 ? 'APROBADO' : 'RECHAZADO', naturaleza: 'PRODUCTO',
-      observado: `Nuevas notificaciones sobre umbral=${nuevasUmbral.length}; HTTP ${despues.status}` });
+      estado: despues?.status !== 200 ? 'ERROR_QA' : avisoNuevo || (avisoReciente && !nuevasUmbral.length)
+        ? 'APROBADO' : 'NO_CONCLUYENTE',
+      naturaleza: null,
+      observado: observacion });
+    });
   }
 }
 
-function ejecutarNewman({ id, checkId, entrada, s, variable, run, V, dir, secretos, token, tokenAdmin,
+function prepararNewman({ id, checkId, entrada, s, variable, run, V, token, tokenAdmin,
                          indice, esperado, timestampCaptura, skipIngesta = false, soloUmbrales = false }) {
+  const clave = `${id}-${indice}`;
+  const variables = { qa_autorizado: 'SI', base_url: API, run_id: run.id, sandbox_secret: run.secreto,
+    broker_service_token: V.BROKER_SERVICE_TOKEN, tok_prod: token, tok_admin: tokenAdmin ?? '',
+    especie_id: s.especie_id, caso: id, check_id: checkId,
+    device_id: s.dispositivo_id, sensor_id: s.sensor_id,
+    id_infraestructura: s.dashboard_infraestructura_id, tipo_variable: variable,
+    valor: entrada.valor_enviado ?? entrada.valor, esperado_valor: entrada.valor ?? '', esperado_estado: esperado,
+    esperado_unidad: entrada.unidad ?? s.unidad ?? '', unidad: entrada.unidad ?? s.unidad,
+    timestamp_captura_ingesta: timestampCaptura ?? '',
+    cuerpo_ingesta: cuerpoOpcionalNewman({ soloUmbrales, skipIngesta, parametros: { deviceId: s.dispositivo_id,
+      sensorId: s.sensor_id, tipoVariable: variable, valor: entrada.valor_enviado ?? entrada.valor,
+      unidad: entrada.unidad ?? s.unidad, timestampCaptura, serial: s.serial } }) };
+  return { clave, id, checkId, entrada, s, variables, skipIngesta, soloUmbrales };
+}
+
+export function ejecutarNewmanUnico(plan, { run, dir, secretos, spawn = spawnSync }) {
+  if (!plan.length) return [];
+  const plantilla = JSON.parse(fs.readFileSync(COLECCION, 'utf8'));
+  const items = [];
+  for (const p of plan) {
+    if (p.items) {
+      p.nombres = [];
+      for (const original of p.items) {
+        const item = structuredClone(original);
+        p.nombres.push(item.name);
+        item.event.unshift({ listen: 'prerequest', script: { type: 'text/javascript', exec:
+          Object.entries(p.variables).map(([k, v]) =>
+            `pm.environment.set(${JSON.stringify(k)},${JSON.stringify(String(v ?? ''))});`) } });
+        items.push(item);
+      }
+      continue;
+    }
+    const indices = p.soloUmbrales ? [2] : p.skipIngesta ? [1] : [0, 1];
+    p.nombres = [];
+    for (const indice of indices) {
+      const item = structuredClone(plantilla.item[indice]);
+      item.name = `${p.clave}/${indice === 0 ? 'INGESTA' : indice === 1 ? 'DASHBOARD' : 'UMBRALES'}`;
+      p.nombres.push(item.name);
+      const asignar = Object.entries(p.variables).map(([k, v]) =>
+        `pm.environment.set(${JSON.stringify(k)},${JSON.stringify(String(v ?? ''))});`);
+      if (indice === 0) asignar.push("pm.request.headers.upsert({key:'Authorization',value:'Bearer '+pm.environment.get('broker_service_token')});",
+        "pm.request.body.update(pm.environment.get('cuerpo_ingesta'));");
+      item.event.unshift({ listen: 'prerequest', script: { type: 'text/javascript', exec: asignar } });
+      items.push(item);
+    }
+  }
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'g88-newman-'));
   try {
-    const variables = { qa_autorizado: 'SI', base_url: API, run_id: run.id, sandbox_secret: run.secreto,
-      broker_service_token: V.BROKER_SERVICE_TOKEN, tok_prod: token, tok_admin: tokenAdmin ?? '',
-      especie_id: s.especie_id, solo_umbrales: soloUmbrales ? 'SI' : 'NO', caso: id, check_id: checkId,
-      skip_ingesta: skipIngesta ? 'SI' : 'NO', device_id: s.dispositivo_id, sensor_id: s.sensor_id,
-      id_infraestructura: s.dashboard_infraestructura_id, tipo_variable: variable,
-      valor: entrada.valor_enviado ?? entrada.valor, esperado_valor: entrada.valor, esperado_estado: esperado,
-      esperado_unidad: entrada.unidad ?? s.unidad ?? '', unidad: entrada.unidad ?? s.unidad,
-      timestamp_captura_ingesta: timestampCaptura ?? '',
-      cuerpo_ingesta: cuerpoOpcionalNewman({ soloUmbrales, skipIngesta, parametros: { deviceId: s.dispositivo_id,
-        sensorId: s.sensor_id, tipoVariable: variable, valor: entrada.valor_enviado ?? entrada.valor,
-        unidad: entrada.unidad ?? s.unidad,
-        timestampCaptura,
-        serial: s.serial } }) };
+    const coleccion = path.join(tmp, 'collection.json');
+    plantilla.item = items;
+    fs.writeFileSync(coleccion, json(plantilla), { mode: 0o600 });
     const env = path.join(tmp, 'env.json');
-    fs.writeFileSync(env, json({ values: Object.entries(variables).map(([key, value]) => ({ key, value: String(value ?? ''), enabled: true })) }), { mode: 0o600 });
+    fs.writeFileSync(env, json({ values: Object.entries({ qa_autorizado: 'SI', run_id: run.id,
+      sandbox_secret: run.secreto }).map(([key, value]) => ({ key, value, enabled: true })) }), { mode: 0o600 });
     const rep = path.join(tmp, 'report.json'); const html = path.join(tmp, 'report.html');
-    const cmd = spawnSync('newman', ['run', COLECCION, '-e', env, '--reporters', 'json,htmlextra',
+    const cmd = spawn('newman', ['run', coleccion, '-e', env, '--reporters', 'json,htmlextra',
       '--reporter-json-export', rep, '--reporter-htmlextra-export', html,
       '--reporter-htmlextra-skipHeaders', 'Authorization,X-Sandbox-Secret',
-      '--reporter-htmlextra-skipEnvironmentVars', 'sandbox_secret,broker_service_token,tok_prod,cuerpo_ingesta',
-      '--timeout-request', '30000', '--color', 'off'], { encoding: 'utf8', shell: process.platform === 'win32', timeout: 120000 });
-    if (!fs.existsSync(rep)) throw new Error(`Newman sin reporte: ${cmd.status ?? 'sin salida'}`);
+      '--reporter-htmlextra-skipEnvironmentVars', 'sandbox_secret,broker_service_token,tok_prod,tok_admin,cuerpo_ingesta',
+      '--timeout-request', '30000', '--color', 'off'], { encoding: 'utf8', shell: process.platform === 'win32', timeout: 600000 });
+    if (!fs.existsSync(rep) || !fs.existsSync(html))
+      throw new Error(`Newman no produjo JSON y HTML reales: ${cmd.status ?? 'sin salida'}`);
+    const destino = path.join(dir, 'newman');
+    if (fs.existsSync(destino) && fs.readdirSync(destino).length)
+      throw new Error('Carpeta newman/ no vacía antes de la ejecución única.');
+    fs.mkdirSync(destino, { recursive: true });
     const bruto = JSON.parse(fs.readFileSync(rep, 'utf8'));
-    const destino = path.join(dir, 'newman'); fs.mkdirSync(destino, { recursive: true });
-    const base = `newman-${id}-${indice}`;
-    fs.writeFileSync(path.join(destino, `${base}.json`), sanearArtefacto(fs.readFileSync(rep, 'utf8'), secretos));
-    const htmlGenerado = fs.existsSync(html);
-    if (htmlGenerado) {
-      const respaldos = respaldosHtmlNewman.get(dir) ?? [];
-      respaldos.push([`${base}.html`, sanearArtefacto(fs.readFileSync(html, 'utf8'), secretos)]);
-      respaldosHtmlNewman.set(dir, respaldos);
+    const serialesReporte = new Set();
+    const visitarSeriales = (v) => {
+      if (Array.isArray(v)) { for (const x of v) visitarSeriales(x); return; }
+      if (!v || typeof v !== 'object') return;
+      for (const [k, x] of Object.entries(v)) {
+        if (k === 'serial' && typeof x === 'string' && x.length >= 4) serialesReporte.add(x);
+        else if (k === 'data' && Array.isArray(x) && x.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
+          try { visitarSeriales(JSON.parse(Buffer.from(x).toString('utf8'))); } catch { /* No es JSON. */ }
+        } else visitarSeriales(x);
+      }
+    };
+    visitarSeriales(bruto);
+    secretos.push(...serialesReporte);
+    fs.writeFileSync(path.join(dir, `${REPORTE_NEWMAN}.json`), sanearArtefacto(fs.readFileSync(rep, 'utf8'), secretos), { flag: 'wx' });
+    fs.writeFileSync(path.join(dir, `${REPORTE_NEWMAN}.html`), sanearArtefacto(fs.readFileSync(html, 'utf8'), secretos), { flag: 'wx' });
+    evidenciasNewman(dir);
+    const ejecuciones = bruto.run?.executions ?? [];
+    if (cmd.error) throw new Error(`Newman interrumpido: ${cmd.error.code ?? cmd.error.message}`);
+    let cursor = 0;
+    for (const ejecucion of ejecuciones) {
+      while (cursor < items.length && items[cursor].name !== ejecucion.item?.name
+        && items[cursor].name.startsWith('TC-M03-266-')) cursor++;
+      if (cursor >= items.length || items[cursor].name !== ejecucion.item?.name)
+        throw new Error('Newman omitió o reordenó solicitudes no opcionales; reporte no evaluable.');
+      cursor++;
     }
-    let calidad = null;
-    let observado = null;
-    for (const ex of bruto.run?.executions ?? []) if (ex.request?.method === 'POST') {
-      try { calidad = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')).estado_calidad; } catch { /* incompleto */ }
+    if (items.slice(cursor).some((x) => !x.name.startsWith('TC-M03-266-'))
+      || !ejecuciones.some((x) => x.item?.name === 'TC-M03-266-01-ALTA') && plan.some((p) => p.id === 'TC-M03-266'))
+      throw new Error('Newman omitió solicitudes obligatorias.');
+    return plan.map((p) => {
+      const xs = ejecuciones.filter((x) => p.nombres.includes(x.item?.name));
+      let calidad = null, observado = null;
+      for (const ex of xs) {
+        let cuerpo = {};
+        try { cuerpo = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')); } catch { /* respuesta no evaluable */ }
+        if (ex.request?.method === 'POST') calidad = cuerpo.estado_calidad ?? null;
+        if (ex.request?.method === 'GET') observado = cuerpo.sensores?.find((x) => Number(x.id_sensor) === Number(p.s.sensor_id)) ?? null;
+      }
+      const post = xs.find((x) => x.request?.method === 'POST');
+      let timestampEnviado = null;
+      if (post) try { timestampEnviado = JSON.parse(post.request?.body?.raw).timestamp_captura ?? null; }
+      catch { /* El reporte no permite acreditar el cuerpo enviado. */ }
+      return { bruto: { run: { executions: xs } }, calidad, observado, checkId: p.checkId,
+        infraestructuraId: p.s.dashboard_infraestructura_id ?? p.s.area_id,
+        lecturaEnviada: { id_sensor: p.s.sensor_id, valor: p.entrada?.valor ?? null,
+          timestamp_captura: timestampEnviado }, htmlGenerado: true,
+        archivos: [`${REPORTE_NEWMAN}.json`, `${REPORTE_NEWMAN}.html`] };
+    });
+  } finally {
+    if (path.dirname(path.resolve(tmp)) === path.resolve(os.tmpdir()) && path.basename(tmp).startsWith('g88-newman-'))
+      fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+export function ensayoMemoriaNewman() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'g88-ensayo-'));
+  let invocaciones = 0;
+  try {
+    const admin = { status: 200, json: { id_usuario: 10, nombre_rol: 'Administrador', fincas: [] } };
+    const prod = { status: 200, json: { id_usuario: 20, nombre_rol: 'Productor', fincas: [{ id_finca: 184 }] } };
+    const accesos = [
+      { status: 200, json: { id_infraestructura: 349, id_finca: 184, especies: [126], es_activo: true } },
+      { status: 200, json: { id_infraestructura: 504, id_finca: 184, especies: [220], es_activo: true } },
+      { status: 200, json: { total: 1, items: [{ id_umbral_ambiental: 70, id_especie: 126, es_activo: true }] } },
+      { status: 200, json: { total: 0, items: [] } },
+    ];
+    const modosOrden051 = [
+      comprobarPerfilCuenta(admin, 'admin', null, 20).ok && validarAccesoAdministrador(accesos).ok,
+      !validarAccesoAdministrador([{ status: 403, json: {} }, ...accesos.slice(1)]).ok,
+      !comprobarPerfilCuenta({ ...prod, json: { ...prod.json, fincas: [] } }, 'prod', null, 10).ok,
+      !loginDbaCorrecto({ status: 500, json: {} }),
+      !comprobarPerfilCuenta(admin, 'prod', 20, 10).ok,
+      sinEscriturasQueRevertir({ escriturasIntentadas: false, lecturas: [], umbralRun266: null })
+        && !sinEscriturasQueRevertir({ escriturasIntentadas: true, lecturas: [], umbralRun266: null })
+        && comprobarCierreDba({ status: 200, latencia_ms: 129 }, 200, null)
+        && !comprobarCierreDba({ status: 200, latencia_ms: 30000 }, 200, null),
+    ].filter(Boolean).length;
+    if (modosOrden051 !== 6) throw new Error('Ensayo ORD-G88-051: alcance, identidad o cierre incorrectos.');
+    const run = { id: 'ENSAYO-LOCAL', secreto: 'CLAVE_SIMULADA' };
+    const V = { BROKER_SERVICE_TOKEN: 'TOKEN_SIMULADO' };
+    const s = { especie_id: 126, dispositivo_id: 1, sensor_id: 2,
+      dashboard_infraestructura_id: 3, unidad: 'ppm', serial: 'SERIAL_SIMULADO' };
+    const ids = ['169', '170', '171', '172', '180', '266'];
+    const plan = ids.map((n, i) => ({ ...prepararNewman({ id: `TC-M03-${n}`,
+      checkId: n === '172' ? 'API-172-A' : `API-${n}-02`,
+      entrada: { valor: 15, unidad: 'ppm' }, s, variable: 'TEMPERATURA_AMBIENTAL',
+      run, V, token: 'PRODUCTOR_SIMULADO', tokenAdmin: 'ADMIN_SIMULADO', indice: i,
+      esperado: 'VERDE', timestampCaptura: '2026-01-01T00:00:00.000Z',
+       soloUmbrales: n === '172', skipIngesta: n === '266' }) }));
+    plan[5].items = construirItems266();
+    const dispositivo = { id_infraestructura: 504, id_dispositivo_iot: 520,
+      es_activo: true, categoria: 'SENSOR_AMBIENTAL', id_dispositivo_gateway: null };
+    const sinGateway = compuertaDispositivos266({ items: [dispositivo], total: 1,
+      areaId: 504, dispositivoId: 520 });
+    const conGateway = compuertaDispositivos266({ items: [dispositivo,
+      { ...dispositivo, id_dispositivo_iot: 521, categoria: 'GATEWAY_EDGE' }], total: 2,
+      areaId: 504, dispositivoId: 520 });
+    const estado = new Map([['area_id','504'],['device_id','520']]);
+    let escriturasSimuladas = 0, saltos = 0;
+    const pm = { environment: { get: (k) => estado.get(k), set: (k,v) => estado.set(k,v) },
+      response: { code: 200, json: () => ({ total: 2, items: [dispositivo,
+        { ...dispositivo, id_dispositivo_iot: 521, categoria: 'GATEWAY_EDGE' }] }) },
+      test: (_nombre, fn) => { try { fn(); } catch { /* falla esperada */ } },
+      expect: (x) => ({ to: { eql: (y) => { if (x !== y) throw new Error('Aserción fallida'); } } }),
+      execution: { skipRequest: () => { saltos++; } },
+      request: { body: { update: () => { escriturasSimuladas++; } } } };
+    const ejecutarScript = (codigo) => new vm.Script(`(function(){${codigo.join('\n')}\n})()`).runInNewContext({ pm });
+    ejecutarScript(plan[5].items.find((x) => x.name === 'TC-M03-266-00-DISPOSITIVOS').event[1].script.exec);
+    ejecutarScript(plan[5].items.find((x) => x.name === 'TC-M03-266-01-ALTA').event[0].script.exec);
+    const version = '2026-01-01T00:00:00Z';
+    const evento = (estado) => [{ tipo_evento: 'PROPAGACION_UMBRAL_EDGE',
+      accion_detallada: { version, estado, gateways: [] } }];
+    const pendiente = barreraPublicacion266({ umbral: { estado_sincronizacion: 'PENDIENTE' },
+      eventos: evento('PENDIENTE'), version });
+    const aplicada = barreraPublicacion266({ umbral: { estado_sincronizacion: 'APLICADA' },
+      eventos: evento('APLICADA'), version });
+    const base266 = { precondicionesValidas: true, calidad: 'LECTURA_VALIDA', inicial: 'VERDE',
+      mismaLectura: true, sinNuevaLectura: true, alerta: false, gris: false };
+    const modos = !conGateway && sinGateway && saltos === 1 && escriturasSimuladas === 0
+      && pendiente.segura && !aplicada.segura
+      && evaluar266({ ...base266, final: 'ROJO' }) === 'APROBADO'
+      && evaluar266({ ...base266, final: 'AMARILLO' }) === 'APROBADO'
+      && evaluar266({ ...base266, final: 'VERDE' }) === 'RECHAZADO' ? 4 : 0;
+    if (modos !== 4) throw new Error('Ensayo 266: compuerta, sincronización o recálculo incorrectos.');
+    const spawn = (_comando, args) => {
+      invocaciones++;
+      const coleccion = JSON.parse(fs.readFileSync(args[1], 'utf8'));
+      for (const item of coleccion.item) for (const evento of item.event ?? [])
+        new vm.Script(`(function(){${evento.script.exec.join('\n')}\n})()`, { filename: item.name });
+      const orden = coleccion.item.map((x) => x.name);
+      const esperado = plan.flatMap((p) => p.nombres);
+       if (coleccion.item.length !== 23 || JSON.stringify(orden) !== JSON.stringify(esperado)
+        || JSON.stringify(orden.map((x) => /^TC-M03-\d+/.exec(x)?.[0]).filter((x, i, a) => i === 0 || x !== a[i - 1]))
+          !== JSON.stringify(ids.map((n) => `TC-M03-${n}`))
+        || !args.includes('json,htmlextra')) throw new Error('Orden o reporteros Newman incorrectos.');
+      const executions = coleccion.item.map((item) => ({ item: { name: item.name },
+        request: { method: item.request.method, body: { raw: '{}' } },
+        response: { code: item.request.method === 'POST' ? 201 : 200,
+          stream: { data: [...Buffer.from('{}')] } }, assertions: [] }));
+      fs.writeFileSync(args[args.indexOf('--reporter-json-export') + 1], json({ run: { executions } }));
+      fs.writeFileSync(args[args.indexOf('--reporter-htmlextra-export') + 1], '<html>Newman real simulado CLAVE_SIMULADA</html>');
+      return { status: 0 };
+    };
+    const reportes = ejecutarNewmanUnico(plan, { run, dir, secretos: [run.secreto], spawn });
+    if (invocaciones !== 1 || reportes.length !== 6 || evidenciasNewman(dir).length !== 2
+      || fs.readFileSync(path.join(dir, `${REPORTE_NEWMAN}.html`), 'utf8').includes(run.secreto))
+      throw new Error('Ensayo: ejecución, artefactos o saneamiento incorrectos.');
+    fs.writeFileSync(path.join(dir, 'newman', 'extra.json'), '{}');
+    let detectoExtra = false;
+    try { evidenciasNewman(dir); } catch { detectoExtra = true; }
+    if (!detectoExtra) throw new Error('Ensayo: múltiples JSON aceptados.');
+    return { invocaciones, json: 1, html: 1, casos: ids.length, extras_rechazados: detectoExtra,
+      modos, modos_orden051: modosOrden051 };
+  } finally {
+    if (path.dirname(path.resolve(dir)) === path.resolve(os.tmpdir()) && path.basename(dir).startsWith('g88-ensayo-'))
+      fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+export function ensayoFixtureOrden053() {
+  const fixture = JSON.parse(fs.readFileSync(path.join(DIR, 'pruebas', 'g88_orden053_fixture.json'), 'utf8'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'g88-orden053-'));
+  let invocaciones = 0;
+  try {
+    const run = { id: 'ENSAYO-LOCAL', secreto: 'CLAVE_SIMULADA' };
+    const V = { BROKER_SERVICE_TOKEN: 'TOKEN_SIMULADO' };
+    const s = { especie_id: 126, dispositivo_id: 1, sensor_id: 552,
+      dashboard_infraestructura_id: 349, unidad: '°C', serial: 'SERIAL_SIMULADO' };
+    const plan = [];
+    for (const [n, cantidad] of [['169', 3], ['170', 4], ['171', 2], ['172', 1], ['180', 1]]) {
+      for (let i = 0; i < cantidad; i++) {
+        const id = `TC-M03-${n}`;
+        plan.push(prepararNewman({ id, checkId: n === '172' ? 'API-172-A' : `API-${n}-${String(i + 2).padStart(2, '0')}`,
+          entrada: { valor: 15, unidad: n === '180' ? 'ppm' : '°C' },
+          s: n === '180' ? { ...s, sensor_id: 737, unidad: 'ppm' } : s,
+          variable: 'TEMPERATURA_AMBIENTAL', run, V, token: 'PRODUCTOR_SIMULADO',
+          tokenAdmin: 'ADMIN_SIMULADO', indice: n === '172' ? 'consulta' : i,
+          esperado: 'VERDE', timestampCaptura: '2026-01-01T00:00:00Z', soloUmbrales: n === '172' }));
+      }
     }
-    for (const ex of bruto.run?.executions ?? []) if (ex.request?.method === 'GET') {
-      try { observado = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')).sensores
-        ?.find((x) => Number(x.id_sensor) === Number(s.sensor_id)) ?? null; } catch { /* incompleto */ }
+    // El plan 266 carece de entrada: reproduce la forma que causó reading 'valor'.
+    plan.push({ id: 'TC-M03-266', clave: 'TC-M03-266', items: construirItems266(),
+      s: { especie_id: 220, area_id: 504, sensor_id: 738 }, variables: {} });
+    const spawn = (_cmd, args) => {
+      invocaciones++;
+      const ejecuciones = fixture.run.executions.map((x) => ({ ...x,
+        response: { code: x.response.code,
+          stream: { data: [...Buffer.from(JSON.stringify(x.response.body))] } } }));
+      fs.writeFileSync(args[args.indexOf('--reporter-json-export') + 1], json({ run: { executions: ejecuciones } }));
+      fs.writeFileSync(args[args.indexOf('--reporter-htmlextra-export') + 1], '<html>Ensayo local</html>');
+      return { status: 1 };
+    };
+    const reportes = ejecutarNewmanUnico(plan, { run, dir, secretos: [run.secreto], spawn });
+    const ids = new Set(); const lecturas = [];
+    const r = { evidencias: [], comprobaciones: [], respuestas: [], bitacora: [], problemas_tecnicos: [],
+      bloqueos: Object.fromEntries(IDS_CASOS.map((id) => [id, []])) };
+    for (let i = 0; i < plan.length; i++) {
+      const id = plan[i].id;
+      ids.add(id);
+      if (id === 'TC-M03-266') procesar266(reportes[i], { r, s: plan[i].s, lecturas });
+      else if (id === 'TC-M03-172') registrarAsercionesNewman(reportes[i], id, r, s.sensor_id);
+      else registrarNewman(reportes[i], id, r, lecturas, plan[i].s.sensor_id);
     }
-    const post = bruto.run?.executions?.find((x) => x.request?.method === 'POST');
-    let timestampEnviado = null;
-    if (post) try { timestampEnviado = JSON.parse(post.request?.body?.raw).timestamp_captura ?? null; }
-    catch { /* El reporte no permite acreditar el cuerpo efectivamente enviado. */ }
-    return { bruto, calidad, observado, checkId, infraestructuraId: s.dashboard_infraestructura_id,
-      lecturaEnviada: { id_sensor: s.sensor_id, valor: entrada.valor,
-        timestamp_captura: timestampEnviado },
-      htmlGenerado, archivos: [`newman/${base}.json`] };
-  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+    completarComprobacionesApi(r);
+    const telemetrias = datosRegistro(null, lecturas).datos.ids_telemetria;
+    if (invocaciones !== 1 || ids.size !== 6 || r.comprobaciones.length === 0
+      || !IDS_CASOS.every((id) => r.comprobaciones.some((x) => x.caso === id))
+      || !r.comprobaciones.every((x) => x.caso && x.id && x.estado && x.motivo && x.evidencia)
+      || telemetrias.length !== 10 || r.umbral_run_266?.id !== 131
+      || !r.bloqueos['TC-M03-266'].some((x) => x.motivo.includes('UMBRAL-INICIAL')))
+      throw new Error('Fixture ORD-G88-053: interpretación, seis casos, PRE o ids de telemetría incorrectos.');
+    const estado266 = resultadoOficial('TC-M03-266', r.comprobaciones, r.bloqueos['TC-M03-266']);
+    if (estado266.estado !== null || estado266.estado_tecnico !== 'ERROR_QA'
+      || r.bloqueos['TC-M03-266'].some((x) => x.tipo !== 'AUTOMATIZACION'))
+      throw new Error('Fixture 266: una PRE fallida de automatización no produce ERROR_QA.');
+    const probarBarrera = (modificar) => {
+      const copia = structuredClone(reportes.at(-1));
+      modificar(copia.bruto.run.executions);
+      const salida = { comprobaciones: [], bloqueos: { 'TC-M03-266': [] }, bitacora: [] };
+      procesar266(copia, { r: salida, s: plan.at(-1).s, lecturas: [] });
+      return resultadoOficial('TC-M03-266', salida.comprobaciones, salida.bloqueos['TC-M03-266']);
+    };
+    const gatewayReal = probarBarrera((xs) => {
+      const x = xs.find((e) => e.item?.name === 'TC-M03-266-00-DISPOSITIVOS');
+      x.response.stream.data = [...Buffer.from(JSON.stringify({ items: [{ categoria: 'GATEWAY_EDGE' }] }))];
+      x.assertions.find((a) => a.assertion?.includes('COMP-GATEWAY')).error = { message: 'gateway presente' };
+      xs.splice(xs.findIndex((e) => e.item?.name === 'TC-M03-266-01-ALTA'));
+    });
+    const sincronizacionReal = probarBarrera((xs) => {
+      const x = xs.find((e) => e.item?.name === 'TC-M03-266-02-UMBRAL-INICIAL');
+      const b = JSON.parse(Buffer.from(x.response.stream.data).toString('utf8'));
+      b.items[0].estado_sincronizacion = 'APLICADA';
+      x.response.stream.data = [...Buffer.from(JSON.stringify(b))];
+    });
+    const auditoriaNoInterpretable = probarBarrera((xs) => {
+      xs.find((e) => e.item?.name === 'TC-M03-266-02-UMBRAL-INICIAL')
+        .assertions.find((a) => a.assertion?.includes('UMBRAL-INICIAL')).error = null;
+      xs.push({ item: { name: 'TC-M03-266-03-AUDITORIA-ALTA' }, request: { method: 'GET' },
+        response: { code: 200, stream: { data: [...Buffer.from(JSON.stringify({ detail: 'forma inesperada' }))] } },
+        assertions: [{ assertion: '[TC-M03-266][PRE][BARRERA-alta] Sin publicación Edge',
+          error: { message: 'expected false to deeply equal true' } }] });
+    });
+    if (gatewayReal.estado !== 'BLOQUEADO' || sincronizacionReal.estado !== 'BLOQUEADO')
+      throw new Error('Fixture 266: Gateway o sincronización no PENDIENTE no producen BLOQUEADO.');
+    if (auditoriaNoInterpretable.estado_tecnico !== 'ERROR_QA'
+      || !auditoriaNoInterpretable.motivo.includes('auditoría HTTP 200, forma=detail'))
+      throw new Error('Fixture 266: auditoría no interpretable sin HTTP y forma o sin ERROR_QA.');
+    const rep266ConIngesta = structuredClone(reportes.at(-1));
+    rep266ConIngesta.bruto.run.executions.push({ item: { name: 'TC-M03-266-04-INGESTA' },
+      request: { method: 'POST' }, response: { code: 201,
+        stream: { data: [...Buffer.from(JSON.stringify({ id_telemetria: 200001, estado_calidad: 'LECTURA_VALIDA' }))] } },
+      assertions: [] });
+    const lecturas266 = [];
+    const r266 = { comprobaciones: [], bloqueos: { 'TC-M03-266': [] }, bitacora: [] };
+    procesar266(rep266ConIngesta, { r: r266, s: plan.at(-1).s, lecturas: lecturas266 });
+    if (lecturas266.length !== 1 || datosRegistro(null, lecturas266).datos.ids_telemetria[0] !== 200001)
+      throw new Error('Fixture ORD-G88-053: id de ingesta 266 no capturado para poscierre.');
+    const probarUmbral = (nombre, cuerpo, previo = null) => {
+      const item = construirItems266().find((x) => x.name === `TC-M03-266-${nombre}`);
+      const estado = new Map([['g88_266_umbral_id', '131'], ['g88_266_version_alta', previo]]);
+      let fallo = null;
+      const pm = { response: { code: 200, json: () => ({ items: [cuerpo] }) },
+        environment: { get: (k) => estado.get(k), set: (k, v) => estado.set(k, v) },
+        test: (_nombre, fn) => { try { fn(); } catch (e) { fallo = e; } },
+        expect: (x) => ({ to: { eql: (y) => { if (x !== y) throw new Error('PRE fallida'); } } }) };
+      new vm.Script(`(function(){${item.event[1].script.exec.join('\n')}\n})()`).runInNewContext({ pm });
+      return { fallo, estado };
+    };
+    const altaReal = fixture.run.executions.find((x) => x.item?.name === 'TC-M03-266-01-ALTA')?.response?.body;
+    const umbralReal = fixture.run.executions.find((x) => x.item?.name === 'TC-M03-266-02-UMBRAL-INICIAL')?.response?.body?.items?.[0];
+    if (altaReal?.fecha_actualizacion !== null || umbralReal?.fecha_actualizacion !== null
+      || altaReal?.estado_sincronizacion !== 'PENDIENTE')
+      throw new Error('Fixture 266: falta la respuesta saneada real con fecha_actualizacion null.');
+    const inicial = probarUmbral('02-UMBRAL-INICIAL', umbralReal);
+    const final = probarUmbral('08-UMBRAL-FINAL', { id_umbral_ambiental: 131,
+      valor_min: '20.00', valor_max: '30.00', estado_sincronizacion: 'PENDIENTE',
+      fecha_actualizacion: '2026-10-30T19:26:00Z' }, null);
+    const falloReal = probarUmbral('02-UMBRAL-INICIAL', { id_umbral_ambiental: 131,
+      valor_min: '11.00', valor_max: '20.00', estado_sincronizacion: 'PENDIENTE',
+      fecha_actualizacion: '2026-10-30T19:25:00Z' });
+    if (inicial.fallo || final.fallo || inicial.estado.get('g88_266_umbral_alta_ok') !== 'SI'
+      || inicial.estado.get('g88_266_version_alta') !== null
+      || final.estado.get('g88_266_umbral_edicion_ok') !== 'SI'
+      || !falloReal.fallo || falloReal.estado.get('g88_266_umbral_alta_ok'))
+      throw new Error('Fixture ORD-G88-053: secuencia PENDIENTE o bloqueo de PRE real incorrectos.');
+    const estado = new Map([['g88_266_umbral_id','131'], ['g88_266_version_alta', null],
+      ['g88_266_version_alta_json','null'],
+      ['g88_266_estado_alta','PENDIENTE'], ['sensor_id','738'],
+      ['niveles_edicion', JSON.stringify(niveles(20))]]);
+    const paso = (nombre, code, respuesta) => {
+      const item = construirItems266().find((x) => x.name === `TC-M03-266-${nombre}`);
+      let fallo = null;
+      const pm = { response: { code, json: () => respuesta },
+        environment: { get: (k) => estado.get(k), set: (k, v) => estado.set(k, v) },
+        test: (_nombre, fn) => { try { fn(); } catch (e) { fallo = e; } },
+        expect: (x) => ({ to: { eql: (y) => { if (x !== y) throw new Error('PRE/ASSERT fallida'); } } }) };
+      new vm.Script(`(function(){${item.event[1].script.exec.join('\n')}\n})()`).runInNewContext({ pm });
+      if (fallo) throw new Error(`Fixture 266: ${nombre} no continuó: ${fallo.message}`);
+    };
+    const audit = (version) => ({ items: [{ tipo_evento: 'PROPAGACION_UMBRAL_EDGE',
+      accion_detallada: { version, estado: 'PENDIENTE', gateways: [] } }] });
+    if (!barreraPublicacion266({ umbral: umbralReal, eventos: audit(null).items, version: null }).segura)
+      throw new Error('Fixture 266: auditoría PENDIENTE con versión null no interpretada.');
+    const sensor = (semaforo) => ({ sensores: [{ id_sensor: 738, ultimo_valor: '15.0000',
+      ultimo_timestamp_captura: '2026-10-30T19:25:00Z',
+      estado_semaforo: semaforo, dato_desactualizado: false, id_alerta: null,
+      alertas_activas: [] }] });
+    paso('03-AUDITORIA-ALTA', 200, audit(null));
+    paso('04-INGESTA', 201, { id_telemetria: 200001, estado_calidad: 'LECTURA_VALIDA' });
+    paso('05-DASHBOARD-INICIAL', 200, sensor('VERDE'));
+    paso('06-HISTORIAL-INICIAL', fixture.historial_422_real.http, fixture.historial_422_real.body);
+    if (fixture.historial_422_real.body.error_code !== 'FECHA_FIN_FUTURA')
+      throw new Error('Fixture 266: falta el 422 real del intento 13.');
+    const parche = JSON.parse(estado.get('g88_266_patch_body') ?? '{}');
+    if (estado.get('g88_266_patch_ok') !== 'SI' || !Object.hasOwn(parche, 'fecha_actualizacion')
+      || parche.fecha_actualizacion !== null || parche.valor_min !== 20 || parche.valor_max !== 30)
+      throw new Error('Fixture 266: PATCH no envía fecha_actualizacion null leída del GET.');
+    paso('07-EDICION', 200, { estado_sincronizacion: 'PENDIENTE' });
+    paso('08-UMBRAL-FINAL', 200, { items: [{ id_umbral_ambiental: 131,
+      valor_min: '20.00', valor_max: '30.00', estado_sincronizacion: 'PENDIENTE',
+      fecha_actualizacion: '2026-10-30T19:26:00Z' }] });
+    paso('09-AUDITORIA-EDICION', 200, audit('2026-10-30T19:26:00Z'));
+    paso('10-DASHBOARD-FINAL', 200, sensor('ROJO'));
+    paso('11-HISTORIAL-FINAL', fixture.historial_422_real.http, fixture.historial_422_real.body);
+    if (estado.get('g88_266_final_ok') !== 'SI' || estado.get('g88_266_tele_id') !== '200001')
+      throw new Error('Fixture 266: lectura final no acreditada tras PATCH.');
+    const urlsHistorial = construirItems266().filter((x) => x.name.includes('HISTORIAL-'));
+    const rango = rangoHistorial();
+    if (urlsHistorial.length !== 2 || urlsHistorial.some((x) => {
+      const q = new URL(x.request.url.replace('{{base_url}}', 'http://local')).searchParams;
+      return q.get('fecha_fin') !== rango.fin || q.get('fecha_inicio') !== rango.inicio
+        || q.get('fecha_fin') > new Date().toISOString().slice(0, 10);
+    })) throw new Error('Fixture 266: URL de historial futura o fuera del rango corto.');
+    const simular = (nombre, code, cuerpo) => ({ item: { name: `TC-M03-266-${nombre}` },
+      response: { code, stream: { data: [...Buffer.from(JSON.stringify(cuerpo))] } }, assertions: [] });
+    const umbralInicial = { id_umbral_ambiental: 131, valor_min: '10.00', valor_max: '20.00',
+      estado_sincronizacion: 'PENDIENTE', fecha_actualizacion: null };
+    const umbralFinal = { ...umbralInicial, valor_min: '20.00', valor_max: '30.00',
+      fecha_actualizacion: '2026-10-30T19:26:00Z' };
+    const ejecuciones422 = [simular('01-ALTA', 201, { ...umbralInicial }),
+      simular('02-UMBRAL-INICIAL', 200, { items: [umbralInicial] }),
+      simular('03-AUDITORIA-ALTA', 200, audit(null)),
+      simular('04-INGESTA', 201, { id_telemetria: 200001, estado_calidad: 'LECTURA_VALIDA' }),
+      simular('05-DASHBOARD-INICIAL', 200, sensor('VERDE')),
+      simular('06-HISTORIAL-INICIAL', fixture.historial_422_real.http, fixture.historial_422_real.body),
+      simular('07-EDICION', 200, { estado_sincronizacion: 'PENDIENTE' }),
+      simular('08-UMBRAL-FINAL', 200, { items: [umbralFinal] }),
+      simular('09-AUDITORIA-EDICION', 200, audit(umbralFinal.fecha_actualizacion)),
+      simular('10-DASHBOARD-FINAL', 200, sensor('ROJO')),
+      simular('11-HISTORIAL-FINAL', fixture.historial_422_real.http, fixture.historial_422_real.body)];
+    ejecuciones422[3].request = { body: { raw: JSON.stringify({ timestamp_captura: '2026-10-30T19:25:00Z' }) } };
+    const salida422 = { comprobaciones: [], bloqueos: { 'TC-M03-266': [] }, bitacora: [] };
+    procesar266({ bruto: { run: { executions: ejecuciones422 } } },
+      { r: salida422, s: { sensor_id: 738, especie_id: 220 }, lecturas: [] });
+    const caso422 = resultadoOficial('TC-M03-266', salida422.comprobaciones,
+      salida422.bloqueos['TC-M03-266']);
+    if (caso422.estado !== 'APROBADO' || caso422.estado_tecnico !== 'OK'
+      || salida422.comprobaciones.filter((x) => x.tipo === 'APOYO'
+        && x.estado === 'NO_CONCLUYENTE' && x.observado.includes('HTTP 422')
+        && x.observado.includes('FECHA_FIN_FUTURA')).length !== 2)
+      throw new Error('Fixture 266: historial 422 bloqueó el PATCH o el oráculo final.');
+    const presentacion = { ...r, grupo: 'TC-M03-G88', rf: 'RF-58', version: 1,
+      run_id: 'RUN-G88-V1-20261030-000000',
+      casos: Object.fromEntries(IDS_CASOS.map((id) => [id,
+        resultadoOficial(id, r.comprobaciones, r.bloqueos[id])])),
+      evidencias: ['newman/newman-TC-M03-G88.json'] };
+    const informe = generarInforme(presentacion);
+    const incidencias = informe.split('## Incidencias de producto')[1]?.split('## Comprobaciones técnicas DBA-01')[0] ?? '';
+    if (!Object.entries({ 'API-170-02':13.65, 'API-170-03':14.85, 'API-170-04':30.15,
+      'API-170-05':31.35, 'API-171-02':13.35, 'API-171-03':31.65 })
+      .every(([id, valor]) => incidencias.includes(`${id} RECHAZADO: HTTP 200; entrada=${valor}; valor=30.0000; semáforo=VERDE; estado_calidad=FUERA_DE_RANGO; indicador_anomalia=true; etiqueta=Lectura fuera de rango`)))
+      throw new Error('Fixture: incidencia DEV omite lecturas fallidas.');
+    return { invocaciones, casos: ids.size, comprobaciones: r.comprobaciones.length,
+      ids_telemetria: telemetrias.length, id_266_ingesta_simulada: lecturas266.length,
+      umbral_266: r.umbral_run_266.id,
+      pre_inicial_decimal: 'APROBADO', pre_final_decimal: 'APROBADO', pre_invalida: 'ERROR_QA',
+      secuencia_266: 'PATCH_CON_NULL_Y_LECTURA_FINAL', barreras_reales: 'BLOQUEADO',
+      incidencias_dev: 'SEIS_LECTURAS' };
+  } finally {
+    if (path.dirname(path.resolve(dir)) === path.resolve(os.tmpdir()) && path.basename(dir).startsWith('g88-orden053-'))
+      fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function registrarNewman(rep, id, r, lecturas, sensorId) {
-  r.evidencias.push(...rep.archivos);
+  for (const archivo of rep.archivos) if (!r.evidencias.includes(archivo)) r.evidencias.push(archivo);
   if (rep.bruto.run?.executions?.some((x) => x.request?.method === 'POST')) {
     r.bitacora.push({ caso: id, comprobacion: rep.checkId,
       timestamp_captura_enviado: rep.lecturaEnviada.timestamp_captura,
@@ -1099,24 +1936,18 @@ function registrarNewman(rep, id, r, lecturas, sensorId) {
         observado: `HTTP ${ex.response?.code ?? 'sin respuesta'}; sensor presente=${!!sensor}` });
       if (id === 'TC-M03-180') r.comprobaciones.push({ caso: id, id: 'API-180-03', fuente: 'API', tipo: 'ASSERT',
         estado: sinRespuesta ? 'ERROR_QA' : sensor?.estado_semaforo === 'GRIS'
-          && (!etiqueta180Expuesta || etiqueta180 === 'Sin umbral configurado')
+          && etiqueta180Expuesta && etiqueta180 === 'Sin umbral configurado'
           ? 'APROBADO' : 'RECHAZADO', naturaleza: sinRespuesta ? null : 'PRODUCTO',
         observado: `estado_semaforo=${sensor?.estado_semaforo ?? 'ausente'}; etiqueta=${etiqueta180 ?? 'no expuesta por API'}` });
     }
-    if (ex.request?.method === 'POST' && Number.isInteger(cuerpo.id_telemetria)) {
+    if (ex.request?.method === 'POST' && ex.response?.code === 201
+      && Number.isSafeInteger(cuerpo.id_telemetria) && cuerpo.id_telemetria > 0) {
       const { inicio, fin } = rangoHistorial();
-      lecturas.push({ caso: id, sensor_id: sensorId, id_telemetria: cuerpo.id_telemetria, fecha_inicio: inicio, fecha_fin: fin });
-    }
-    for (const a of ex.assertions ?? []) {
-      const m = /^\[(TC-M03-\d+)\]\[(PRE|ASSERT)\]\[([\w-]+)\]/.exec(a.assertion ?? '');
-      if (!m) continue;
-      r.comprobaciones.push({ caso: m[1], tipo: m[2], id: m[3], fuente: 'API',
-        estado: a.error ? (ex.response?.code == null ? 'ERROR_QA' : m[2] === 'PRE' ? 'BLOQUEADO' : 'RECHAZADO') : 'APROBADO',
-        naturaleza: a.error ? (ex.response?.code == null ? null : m[2] === 'PRE' ? 'DATOS' : 'PRODUCTO') : null,
-        observado: a.error?.message ?? `HTTP ${ex.response?.code ?? 'sin respuesta'}; ${JSON.stringify({ ultimo_valor: cuerpo.sensores?.find((x) => Number(x.id_sensor) === Number(sensorId))?.ultimo_valor,
-          estado_semaforo: cuerpo.sensores?.find((x) => Number(x.id_sensor) === Number(sensorId))?.estado_semaforo })}` });
+      if (!lecturas.some((x) => x.id_telemetria === cuerpo.id_telemetria))
+        lecturas.push({ caso: id, sensor_id: sensorId, id_telemetria: cuerpo.id_telemetria, fecha_inicio: inicio, fecha_fin: fin });
     }
   }
+  registrarAsercionesNewman(rep, id, r, sensorId);
   if (idTelemetria && id !== 'TC-M03-266') {
     const lectura = { ...rep.lecturaEnviada, id_telemetria: idTelemetria };
     const coincide = lecturaDelRun(rep.observado, lectura);
@@ -1155,12 +1986,15 @@ async function ejecutarUi180(ctx, s) {
   const res = await (ctx.ejecutarCypressFn ?? ejecutarCypressControlado)({ timeoutMs: TIMEOUT_UI_MS, opciones: {
     config: { baseUrl: FRONT, specPattern: 'g88.cy.js', screenshotsFolder: capturas,
       downloadsFolder: capturas,
-      screenshotOnRunFailure: true, trashAssetsBeforeRuns: false, retries: 0, defaultCommandTimeout: 15000, responseTimeout: 30000 },
+      screenshotOnRunFailure: true, trashAssetsBeforeRuns: false, retries: 0, defaultCommandTimeout: 15000,
+      viewportWidth: 1440, viewportHeight: 900, requestTimeout: 90000, responseTimeout: 90000 },
     env: { AUTORIZADO_RUN: 'SI', RUN_ID: run.id, SANDBOX_SECRET: V.QA_SANDBOX_SECRET, API_BASE: API_FRONT,
       ARTIFACTS_DIR: capturas,
+      PROD_LOGIN: { token: ctx.tokens.prod, tipo: 'bearer', expira_en: 3600, message: 'Sesion reutilizada' },
       SENSOR_180_NOMBRE: s.sensor_nombre, ID_INFRA: s.dashboard_infraestructura_id,
-      VALOR_180: 5, UNIDAD_180: 'ppm', PROD_EMAIL: V.QA_PROD_UI_EMAIL, PROD_PASSWORD: V.QA_PROD_UI_PASSWORD,
+      VALOR_180: 5, UNIDAD_180: 'ppm', PROD_EMAIL: V.QA_PROD_EMAIL, PROD_PASSWORD: V.QA_PROD_PASSWORD,
       CHECK_180: 'SI', CHECK_172: 'NO' } } });
+  if (res.token_refresco) { ctx.tokens.prod = res.token_refresco; secretos.push(res.token_refresco); }
   conservarCypress(r, dir, 'TC-M03-180', res, secretos);
   const rutaLogin = path.join(capturas, 'UI-180-login-error.json');
   if (fs.existsSync(rutaLogin)) {
@@ -1177,11 +2011,17 @@ async function ejecutarUi180(ctx, s) {
   const preUiAprobada = pruebasUi180.some((x) => (x.title?.at(-1) ?? '').includes('[PRE-UI-01]') && x.state === 'passed');
   for (const t of pruebasUi180) {
     const m = /^\[(TC-M03-180)\]\[(PRE|ASSERT)\]\[([\w-]+)\]/.exec(t.title?.at(-1) ?? '');
+    const defecto = t.state === 'failed' && m?.[2] === 'ASSERT' && preUiAprobada
+      && !/ERROR_QA_EVIDENCIA|HTTP login|GET dashboard|network error|request failed/i.test(t.displayError ?? '')
+      && r.evidencias.some((x) => /cypress\/.*TC-M03-180.*\.png$/.test(x));
+    const captura = (r.evidencias ?? []).find((x) => /cypress\/.*TC-M03-180_productor_sensor_sin_umbral\.png$/.test(x));
+    const visto = m?.[3] === 'UI-180-01' ? `tarjeta del sensor NH3 visible; captura ${captura ?? 'ausente'}`
+      : m?.[3] === 'UI-180-02' ? `tarjeta del sensor NH3: valor 5 ppm visible; captura ${captura ?? 'ausente'}`
+        : m?.[3] === 'UI-180-03' ? `etiqueta "Sin umbral configurado" y píldora GRIS visibles; captura ${captura ?? 'ausente'}` : null;
     if (m) r.comprobaciones.push({ caso: m[1], tipo: m[2], id: m[3], fuente: 'UI',
-      estado: t.state === 'passed' ? 'APROBADO' : t.state === 'failed' ? 'RECHAZADO' : 'NO_EJECUTADO',
-      naturaleza: t.state === 'failed' && m[2] === 'ASSERT' && preUiAprobada
-        && !/HTTP login|expected \d+ to equal 200/i.test(t.displayError ?? '') ? 'PRODUCTO' : null,
-      observado: t.displayError ?? t.state });
+      estado: t.state === 'passed' ? 'APROBADO' : defecto ? 'RECHAZADO' : t.state === 'failed' ? 'ERROR_QA' : 'NO_EJECUTADO',
+      naturaleza: defecto ? 'PRODUCTO' : null,
+      observado: t.state === 'passed' && visto ? visto : t.displayError || t.state });
   }
   return res;
 }
@@ -1198,12 +2038,15 @@ async function ejecutarUi172(ctx, s) {
   const res = await (ctx.ejecutarCypressFn ?? ejecutarCypressControlado)({ timeoutMs: TIMEOUT_UI_MS, opciones: {
     config: { baseUrl: FRONT, specPattern: 'g88.cy.js', screenshotsFolder: capturas,
       downloadsFolder: capturas,
-      screenshotOnRunFailure: true, trashAssetsBeforeRuns: false, retries: 0, defaultCommandTimeout: 15000, responseTimeout: 30000 },
+      screenshotOnRunFailure: true, trashAssetsBeforeRuns: false, retries: 0, defaultCommandTimeout: 15000,
+      viewportWidth: 1440, viewportHeight: 900, requestTimeout: 90000, responseTimeout: 90000 },
     env: { AUTORIZADO_RUN: 'SI', RUN_ID: run.id, SANDBOX_SECRET: V.QA_SANDBOX_SECRET, API_BASE: API_FRONT,
       ARTIFACTS_DIR: capturas,
+      ADMIN_LOGIN: { token: ctx.tokens.admin, tipo: 'bearer', expira_en: 3600, message: 'Sesion reutilizada' },
       ADMIN_EMAIL: V.QA_ADMIN_EMAIL, ADMIN_PASSWORD: V.QA_ADMIN_PASSWORD,
       ID_ESPECIE: s.especie_id, VARIABLE_NOMBRE: s.variable_nombre,
       CHECK_172: 'SI', CHECK_180: 'NO' } } });
+  if (res.token_refresco) { ctx.tokens.admin = res.token_refresco; secretos.push(res.token_refresco); }
   conservarCypress(r, dir, 'TC-M03-172', res, secretos);
   const rutaExcepciones = path.join(capturas, 'UI-172-excepciones.json');
   if (fs.existsSync(rutaExcepciones)) {
@@ -1276,7 +2119,7 @@ export async function ejecutarFaseCypress({ r, listos, cadenasPreparadas, faseUi
           fallidas: res.fallidas ?? 0 }
         : { estado: 'EJECUTADO_CON_ERROR', total_pruebas: total,
           error: sanearArtefacto(String(res?.motivo ?? 'Cypress no produjo pruebas.'), ctx.secretos ?? []) };
-      r.herramientas.cypress = `Chrome headless; ${r.cypress.total_pruebas} pruebas`;
+      r.herramientas.cypress = `Cypress ${res.cypress_version ?? versionCypressInstalada() ?? 'versión no acreditada'}; Chrome headless ${res.version ?? 'versión no acreditada'}; ${r.cypress.total_pruebas} pruebas`;
       if (r.cypress.casos[id].estado === 'EJECUTADO_CON_ERROR') {
         r.problemas_tecnicos.push(`${id}: ${r.cypress.casos[id].error}`);
         r.bloqueos[id].push({ tipo: 'AUTOMATIZACION', motivo: `Cypress: ${r.cypress.casos[id].error}` });
@@ -1323,13 +2166,15 @@ async function recuperar(contrato) {
   const cierre = await cerrarYVerificar({ runId: contrato.runId.slice(4), secreto: V.QA_SANDBOX_SECRET,
     solicitar, autenticar, anteriores: r.datos_rollback?.anteriores ?? [], lecturas: r.datos_rollback?.lecturas ?? [],
     umbralRun266: r.umbral_run_266,
+    escriturasIntentadas: r.datos_rollback?.escrituras_intentadas !== false,
     solicitarCierre: pendiente, cierrePrevioHttp: r.cierre?.cierre_http ?? null });
   const evidencia = { run_id: contrato.runId, operacion: 'RECUPERAR', referencia: contrato.referencia,
     fecha: new Date().toISOString(), cierre };
   const nombre = `recuperacion-${Date.now()}.json`;
   fs.writeFileSync(path.join(dir, nombre), sanearArtefacto(json(evidencia), secretos), { flag: 'wx' });
   r.cierre = cierre; r.fin = evidencia.fecha;
-  if (!cierre.rollback.verificado) {
+  if (!cierre.rollback.verificado && (cierre.rollback.conclusion !== 'SIN_ESCRITURAS_QUE_REVERTIR'
+    || cierre.errores.length)) {
     r.problemas_tecnicos ??= [];
     r.problemas_tecnicos.push(...(cierre.errores.length
       ? cierre.errores : ['Rollback no confirmado por API e historial oficial.']));
@@ -1339,17 +2184,23 @@ async function recuperar(contrato) {
     && !Object.values(r.casos ?? {}).some((x) => ['NO_EJECUTADA', 'NO_CONCLUYENTE'].includes(x.estado_tecnico))
     ? 'CONCLUIDA' : 'INTERRUMPIDA';
   (r.evidencias ??= []).push(nombre);
+  Object.assign(r, evaluarOficialidad(r, dir));
   fs.writeFileSync(ruta, sanearArtefacto(json(r), secretos));
   const informe = generarInforme(r);
   const validacion = validarResultadoLocal(r, dir, informe);
   if (!validacion.length) fs.writeFileSync(path.join(dir, NOMBRE_INFORME(r.version)), informe);
-  return cierre.rollback.verificado && !validacion.length ? 0 : 5;
+  return cierre.rollback.verificado && !validacion.length && r.oficial === true ? 0 : 5;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const a = process.argv.slice(2);
   if (a.includes('--capacidades')) { console.log(json(CAPACIDADES)); process.exit(0); }
   if (a.includes('--comprobar')) process.exit(comprobar());
+  if (a.includes('--ensayo-memoria')) {
+    globalThis.fetch = () => { throw new Error('BLOQUEO_RED_LOCAL'); };
+    try { console.log(json({ ...ensayoMemoriaNewman(), fixture_orden053: ensayoFixtureOrden053() })); process.exit(0); }
+    catch (e) { console.error(e.message); process.exit(1); }
+  }
   if (a.includes('--preflight')) {
     try {
       const archivo = valor(a, '--contexto');

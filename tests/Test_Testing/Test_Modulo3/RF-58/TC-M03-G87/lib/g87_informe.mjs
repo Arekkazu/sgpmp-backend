@@ -323,6 +323,7 @@ function incidencia(r, id, indice, prefijo, triaje) {
 }
 
 export function generarInforme(r, definiciones, opciones = {}) {
+  if (r.version >= 2) return generarInformeV2(r, definiciones, opciones);
   const prefijo = opciones.prefijoEvidencia ?? '';
   const triaje = opciones.triaje ?? cargarTriaje();
   const estados = ['APROBADO', 'RECHAZADO', 'BLOQUEADO', 'ERROR_QA', 'NO EJECUTADO'];
@@ -387,5 +388,119 @@ export function generarInforme(r, definiciones, opciones = {}) {
     'Los mensajes siguientes se conservan para trazabilidad; los campos JSON se recortan a lo observado en la comprobación.');
   if (!fallos.length) L.push('Sin mensajes de fallos funcionales.');
   for (const x of fallos) L.push('', `### ${x.caso} ${x.id} (${x.fuente})`, '', '```text', String(x.obtenido ?? x.motivo ?? 'sin detalle').slice(0, 1200), '```');
+  return L.join('\n') + '\n';
+}
+
+function generarInformeV2(r, definiciones, opciones = {}) {
+  const prefijo = opciones.prefijoEvidencia ?? '';
+  const casos = r.casos ?? {};
+  const total = (estado) => Object.values(casos).filter((x) => x.estado === estado).length;
+  const limpio = (x) => String(x ?? 'sin determinar').replace(/[\r\n|]+/g, ' ');
+  const evidencia = (r.evidencias ?? []).filter((x) => x === 'resultado.json' || x.startsWith('newman/') || x.startsWith('cypress/'));
+  const estadoRef = (ids) => {
+    const checks = ids.map((id) => r.comprobaciones.find((x) => x.id === id));
+    if (r.cierre?.run?.cierre_http !== 200 || r.cierre?.rollback?.verificado !== true) return 'NO_CONCLUYENTE';
+    return checks.some((x) => x?.estado === 'RECHAZADO') ? 'PERSISTE'
+      : checks.every((x) => x?.estado === 'APROBADO') ? 'CORREGIDA' : 'NO_CONCLUYENTE';
+  };
+  const ref01 = estadoRef(['API-177-03', 'UI-177-03']);
+  const ref02 = estadoRef(['API-178-06', 'UI-178-05']);
+  const alcance = r.alcance_reevaluacion ?? {};
+  const L = [`# REEVALUACIÓN V2 — TC-M03-G87 — ${r.oficial ? r.veredicto_grupo : 'TÉCNICA NO OFICIAL'}`, '',
+    '## Identificación', '',
+    `SIGAB/SGPMP; módulo 3; RF-58; TC-M03-G87; ${CASOS_G87.join(', ')}.`,
+    'Responsable QA de la matriz: Juan Esteban.',
+    `RUN ${r.run_id}; V${r.version}; intento ${r.intento ?? 'sin determinar'}; operación ${r.operacion ?? 'sin determinar'}; ambiente ${r.ambiente ?? 'sin determinar'}; autorización ${limpio(r.referencia)}.`,
+    `Inicio ${r.inicio ?? 'sin determinar'}; fin ${r.fin ?? 'sin determinar'}. Rama local ${opciones.gitLocal?.rama ?? 'sin determinar'}; commit local ${opciones.gitLocal?.commit ?? 'sin determinar'}; revisión desplegada en TEST sin acreditar por código local.`,
+    `Herramientas: Node ${r.herramientas?.node ?? 'sin determinar'}; Newman ${r.herramientas?.newman ?? 'sin determinar'}; Cypress/Chrome ${r.cypress?.version ?? 'sin determinar'}.`,
+    'Identidades de comprobación V2: API (dashboard, Newman, visibilidad y lecturas por rol) y Cypress usan las mismas cuentas UI de Productor e Ingeniero de Campo, con un inicio de sesión por cuenta antes del RUN. La RLS forzada desde 2026-10-29 exige alcance sobre la finca 184; rol y finca se comprueban por /usuarios/me. No se incluyen correos.',
+    '', '## Resumen de veredictos', '',
+    `Aprobados ${total('APROBADO')}; rechazados ${total('RECHAZADO')}; bloqueados ${total('BLOQUEADO')}; ERROR_QA ${total('ERROR_QA')}; NO_CONCLUYENTE ${total('NO_CONCLUYENTE')}; no ejecutados ${total('NO EJECUTADO')}.`,
+    `Veredicto grupal ${r.veredicto_grupo}; estado ${r.estado}; Oficialidad: ${r.oficial ? 'OFICIAL' : 'NO OFICIAL'}.`,
+    '', '| Caso | Veredicto | V1 → V2 | Motivo V2 |', '| --- | --- | --- | --- |'];
+  for (const id of CASOS_G87) L.push(`| ${id} | ${casos[id]?.estado ?? 'sin determinar'} | ${id === 'TC-M03-168' ? 'APROBADO' : 'RECHAZADO'} → ${casos[id]?.estado ?? 'sin determinar'} | ${limpio(casos[id]?.motivo)} |`);
+  L.push('', '## Alcance de reevaluación', '',
+    `V${alcance.version_anterior ?? 'sin determinar'} → V2; casos ${Array.isArray(alcance.casos) ? alcance.casos.join(', ') : CASOS_G87.join(', ')}; motivo ${limpio(alcance.motivo ?? alcance.descripcion ?? 'correcciones informadas del issue #678 y regresión de TC-M03-168')}.`,
+    '',
+    '## Referencia V1 y correcciones informadas por Desarrollo', '',
+    'V1 oficial: Resultados/RUN-G87-V1-20261023-145303/TC-M03-G87_resultado.md. TC-M03-168 APROBADO; TC-M03-177 RECHAZADO (REF-G87-01); TC-M03-178 RECHAZADO (REF-G87-02).',
+    'Comparación de identidad: V1 empleó cuentas API separadas para Productor e Ingeniero. V2 usa las cuentas UI del mismo rol también en API porque las cuentas API V1 no tienen la finca 184 bajo la RLS forzada desde 2026-10-29. Los oráculos y los IDs de comprobación se conservan.',
+    'Reporte transmitido por el responsable QA, issue #678: backend PR #793 separó la última lectura válida de la condición reciente y añadió estado_calidad_valor_operativo, timestamp_estado_actual, indicador_anomalia y datos según permiso. Frontend PR #453 adaptó el dashboard, «Última lectura válida», anomalía visible para Productor y «Requiere calibración» para Ingeniero. Su despliegue en TEST se juzga con la respuesta y la UI servidas en este RUN.',
+    `Correcciones informadas por el responsable QA: ${limpio(alcance.correcciones_informadas ?? 'issue #678; backend PR #793; frontend PR #453')}.`,
+    `Alcance autorizado: V${alcance.version_anterior ?? 'sin determinar'} → V2; ${limpio(alcance.motivo ?? 'comprobar correcciones y regresión de los tres casos')}.`,
+    '', '## Resultado por caso');
+  const v1 = { 'TC-M03-168': 'APROBADO', 'TC-M03-177': 'RECHAZADO', 'TC-M03-178': 'RECHAZADO' };
+  for (const id of CASOS_G87) {
+    const s = id === 'TC-M03-178' ? 's2' : 's1';
+    const sensor = r.datos?.[s];
+    const lect = r.datos?.lecturas ?? {};
+    const escenario = s === 's1'
+      ? `Sensor ${sensor?.id ?? 'sin determinar'}, área ${r.datos?.area ?? 'sin determinar'}, válidas ${[lect.v_a1, lect.v_a2, lect.v_a3].join(', ')} °C y posterior ${lect.v_fuera ?? 'sin determinar'} °C FUERA_DE_RANGO.`
+      : `Sensor ${sensor?.id ?? 'sin determinar'}, área ${r.datos?.area ?? 'sin determinar'}, sin calibración; ${lect.v_c1 ?? 'sin determinar'} y ${lect.v_c2 ?? 'sin determinar'} °C ERROR_CALIBRACION.`;
+    const roles = id === 'TC-M03-178' ? ['prod', 'eng'] : ['prod'];
+    const vistas = roles.map((rol) => {
+      const c = r.datos?.contrato_dashboard?.[rol]?.[s];
+      const v = r.datos?.visibilidad_por_rol?.[rol];
+      return `${rol === 'prod' ? 'Productor' : 'Ingeniero'}: HTTP ${v?.http ?? 'sin dato'}, finca asignada ${v?.finca_asignada ?? 'sin dato'}, sensor visible ${v?.[s] ?? 'sin dato'}; contrato ${c ? limpio(JSON.stringify(c)) : 'sin sensor o respuesta no disponible'}`;
+    });
+    const checks = r.comprobaciones.filter((x) => x.caso === id && x.tipo === 'ASSERT');
+    const capturas = evidencia.filter((x) => x.startsWith('cypress/') && x.includes(id.slice(-3)));
+    L.push('', `### ${id} — ${definiciones[id]?.titulo ?? id}`, '',
+      `**Resultado V1 → Resultado V2:** ${v1[id]} → ${casos[id]?.estado ?? 'sin determinar'}. ${limpio(casos[id]?.motivo)}`,
+      `**Esperado:** ${criterio[id]}`, `**Escenario:** ${escenario}`,
+      `**Observado por API pública:** ${vistas.join(' ')}`,
+      `**Observado por UI servida:** ${capturas.length ? capturas.map((x) => enlace(x, prefijo)).join(', ') : 'sin captura real para este caso'}; ${checks.filter((x) => x.fuente === 'UI').map((x) => `${x.id}=${x.estado}`).join(', ') || 'UI no requerida o no ejecutada'}.`,
+      `**Qué cambió:** ${id === 'TC-M03-168' ? 'se comprobó regresión de valor, unidad y hora' : id === 'TC-M03-177' ? `REF-G87-01 ${ref01}` : `REF-G87-02 ${ref02}`}.`,
+      `**Qué falta:** ${casos[id]?.estado === 'APROBADO' ? 'Ninguna comprobación obligatoria del caso; el despliegue exacto sigue sin acreditar por código local.' : limpio(casos[id]?.motivo)}`,
+      '', '| Comprobación | Fuente | Estado | Observado |', '| --- | --- | --- | --- |');
+    for (const x of r.comprobaciones.filter((y) => y.caso === id)) {
+      const rol = /Ingeniero/i.test(x.descripcion ?? '') || /^API-178-0[567]$|^UI-178-0[45]$/.test(x.id) ? 'eng' : 'prod';
+      const contrato = r.datos?.contrato_dashboard?.[rol]?.[s];
+      const observado = x.obtenido && x.obtenido !== 'conforme' ? x.obtenido
+        : x.tipo === 'SETUP' ? `Petición ${x.peticion ?? 'del RUN'} con eco del RUN validado.`
+          : x.tipo === 'PRE' ? `Precondición ${x.id} aprobada; ver ingestas y HTTP en resultado.json y Newman.`
+            : x.fuente === 'API' ? `HTTP ${r.datos?.visibilidad_por_rol?.[rol]?.http ?? 'sin dato'}; ${contrato ? JSON.stringify(contrato) : 'sensor no presente en extracto del dashboard'}`
+              : `Aserción Cypress ${x.estado}; ${capturas.length ? capturas.map((cap) => cap.split('/').at(-1)).join(', ') : 'captura no disponible'}.`;
+      L.push(`| ${limpio(`${x.id} ${x.descripcion}`)} | ${x.fuente} | ${x.estado} | ${limpio(observado)} |`);
+    }
+    L.push('', `Evidencias del caso: ${evidencia.filter((x) => x === 'resultado.json' || x.startsWith('newman/') || (x.startsWith('cypress/') && x.includes(id.slice(-3)))).map((x) => enlace(x, prefijo)).join(', ') || 'sin archivos generados'}.`);
+  }
+  L.push('', '## Estado de incidencias V1', '',
+    `REF-G87-01: ${ref01}. ${ref01 === 'CORREGIDA' ? 'API-177-03 y UI-177-03 aprobaron.' : ref01 === 'PERSISTE' ? 'API-177-03 o UI-177-03 rechazó; ver tabla del caso.' : 'Faltan comprobaciones concluyentes de API o UI.'}`,
+    `REF-G87-02: ${ref02}. ${ref02 === 'CORREGIDA' ? 'API-178-06 y UI-178-05 aprobaron.' : ref02 === 'PERSISTE' ? 'API-178-06 o UI-178-05 rechazó; ver tabla del caso.' : 'Faltan comprobaciones concluyentes de API o UI.'}`);
+  for (const [referencia, id, estado] of [['REF-G87-01', 'TC-M03-177', ref01], ['REF-G87-02', 'TC-M03-178', ref02]]) {
+    if (estado !== 'PERSISTE') continue;
+    const atencion = asignarAtencion(r, id, { triaje: opciones.triaje ?? cargarTriaje() });
+    L.push(`${referencia} persiste en ${id}. Impacto parcial en la interpretación del dashboard; severidad MEDIA en el escenario observado, certeza CONFIRMADA si el RUN es oficial. Primera discrepancia ${atencion.primera}; atención inicial ${atencion.equipo}; causa raíz NO DETERMINADA. Evidencia: comprobaciones API/UI del caso y archivos reales citados arriba.`);
+  }
+  L.push('', '## Incidencias funcionales nuevas', '');
+  for (const id of CASOS_G87.filter((caso) => r.comprobaciones.some((x) => x.caso === caso && x.tipo === 'ASSERT' && x.estado === 'RECHAZADO' && !x.naturaleza))) {
+    const atencion = asignarAtencion(r, id, { triaje: opciones.triaje ?? cargarTriaje() });
+    if (atencion.escalamiento) L.push(`**Escalamiento de asignación:** a ${atencion.escalamiento.responsable_qa}; falta ${atencion.escalamiento.evidencia_requerida}. Caso ${id}.`);
+  }
+  let nueva = 0;
+  for (const id of CASOS_G87) {
+    const rechazadas = r.comprobaciones.filter((x) => x.caso === id && x.tipo === 'ASSERT' && x.estado === 'RECHAZADO' && !x.naturaleza);
+    const previas = id === 'TC-M03-177' ? ['API-177-03', 'UI-177-03'] : id === 'TC-M03-178' ? ['API-178-06', 'UI-178-05'] : [];
+    const nuevas = rechazadas.filter((x) => !previas.includes(x.id));
+    if (!nuevas.length) continue;
+    const atencion = asignarAtencion(r, id, { triaje: opciones.triaje ?? cargarTriaje() });
+    L.push(`### REF-G87-V2-${String(++nueva).padStart(2, '0')} — ${id}`, '',
+      `Discrepancias ${nuevas.map((x) => `${x.id}: ${limpio(x.obtenido ?? x.motivo)}`).join('; ')}.`,
+      `Severidad MEDIA: impacto parcial observado en este escenario; alcance general sin determinar. Certeza del incumplimiento CONFIRMADA por el RUN si es oficial; causa raíz NO DETERMINADA.`,
+      `Atención inicial ${atencion.equipo}; fundamento ${limpio(atencion.fundamento)}. Esta derivación no confirma la causa raíz.`,
+      ...(atencion.escalamiento ? [`**Escalamiento de asignación:** a ${atencion.escalamiento.responsable_qa}; falta ${atencion.escalamiento.evidencia_requerida}.`] : []), '');
+  }
+  if (!nueva) L.push('Ninguna nueva confirmada.');
+  L.push('', '## Bloqueos, automatización y análisis de causas', '',
+    `Comprobaciones no concluyentes: ${r.comprobaciones.filter((x) => x.estado === 'NO_CONCLUYENTE').map((x) => `${x.caso} ${x.id}: ${limpio(x.motivo)}`).join('; ') || 'ninguna'}.`,
+    `Problemas técnicos: ${(r.incidencias ?? []).map(limpio).join('; ') || 'ninguno registrado'}. Los fallos de herramienta o de alcance de cuenta no prueban un defecto funcional.`,
+    'La causa raíz de cualquier discrepancia funcional requiere contraste del despliegue TEST, la ingesta, la respuesta pública y la UI servida; la revisión local no acredita el despliegue.',
+    '', '## Cierre, rollback y evidencias', '',
+    `Newman ${r.newman?.solicitudes ?? 0} solicitudes, ${r.newman?.aserciones ?? 0} aserciones, ${r.newman?.fallidas ?? 0} fallidas; Cypress ${r.cypress?.total_pruebas ?? 0} pruebas.`,
+    `Archivos reales: ${evidencia.map((x) => enlace(x, prefijo)).join(', ') || 'ninguno'}.`,
+    `Cierre RUN HTTP ${r.cierre?.run?.cierre_http ?? 'no abierto'}; rollback ${r.cierre?.rollback?.verificado ? 'verificado por API e historial' : 'NO VERIFICADO'}; sensores con historial ${Object.keys(r.cierre?.rollback?.historial ?? {}).length}; sesiones HTTP ${Object.values(r.cierre?.sesiones ?? {}).join(', ') || 'sin determinar'}.`,
+    '', '## Conclusión y acciones', '',
+    `${r.veredicto_grupo ?? 'PARCIAL'}; oficialidad ${r.oficial ? 'confirmada' : 'pendiente'}. ${ref01 === 'PERSISTE' || ref02 === 'PERSISTE' || nueva ? 'Remitir discrepancias con las evidencias del RUN al equipo inicial indicado.' : 'Conservar las evidencias y cerrar las referencias V1 solo si el RUN es oficial.'} ${total('NO_CONCLUYENTE') ? 'Revisar el rol y alcance de finca de la cuenta UI afectada según /usuarios/me antes de otro RUN autorizado.' : ''}`);
   return L.join('\n') + '\n';
 }

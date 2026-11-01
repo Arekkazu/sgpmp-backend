@@ -1,0 +1,32 @@
+{
+  "grupo": "G070",
+  "version": 2,
+  "intento": 4,
+  "run_id": "RUN-G070-V2-20261101-045537",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G070-V2-R3-20261101",
+  "casos": [
+    "TC-M04-214",
+    "TC-M04-215",
+    "TC-M04-216",
+    "TC-M04-217",
+    "TC-M04-218"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-214",
+      "TC-M04-215",
+      "TC-M04-216",
+      "TC-M04-217",
+      "TC-M04-218"
+    ],
+    "version_anterior": 1,
+    "semilla_commit": "2026-11-01T04:30:40.915Z",
+    "alembic_test": "c31f8a6d920e",
+    "motivo": "Reintento de la reevaluación V2 (intento 3 de V2). El intento 2, RUN-G070-V2-20261101-044513 (TÉCNICO; DELETE 200; rollback verificado con configuración en 90), dio 214, 215 y 216 APROBADO, pero 217 y 218 NO_CONCLUYENTE: el tramo de selección de 88 a 121 días excluyó V120A y V120B (ya con 122 días). ORD-G070-011: A y B se eligen entre vencidos libres de más de 91 días que no usa 215 (candidatos reales 11e12f40, ac952c1d, fb07d478 y 7d597a54), con búsqueda de 125 días; ensayo de Codex 40/40. Intento 1: El intento 1, RUN-G070-V2-20261101-043336, se detuvo en el preflight local en 1 s, sin peticiones a TEST ni efectos (registro INCIERTO): el ejecutor esperaba semilla_commit y commit en campos del contexto que el lanzador no transmite. ORD-G070-009: semilla_commit y alembic_test se leen de alcance_reevaluacion; el commit desplegado es opcional y se declara no verificado; REINTENTAR V2 admitido; un preflight fallido deja evidencia; barrera SEMILLA_CADUCADA a las 10 h del COMMIT (14:30:40 UTC). Reevaluación V2 de TC-M04-216 y 217 con regresión de 214, 215 y 218, tras la corrección de Desarrollo (issue #865, PR #871, presente en test). La IA de BD confirmó en TEST Alembic c31f8a6d920e, la tabla modulo4.ampliaciones_ventana_retroalimentacion (6bd01d026ac4), el evento VENTANA_RETROALIMENTACION_AMPLIADA y ventana_retroalimentacion_dias = 90. Semilla insertada el 2026-11-01 a las 04:30:40.915 UTC en el 885: W89 d929c162…, W90 7c215bf1…, W90H 8f7c7542… y W91 50e68201…. A y B de 217/218: dos vencidos libres de más de 91 días elegidos por el ejecutor (los más antiguos disponibles). W90H pasa a 91 días hacia las 16:30 UTC del 2026-11-01. ORD-G070-006/007: secuencia 214 → 215 → 218 → 216 → restaurar 90 → 217; RBAC; verificación dinámica (W91 con 365); caducidad y fronteras de registro 7/8 y 365/366 declaradas como limitación; informe sin matriz. Ensayo del responsable QA 38/38 (antes de ORD-G070-009); ensayo de Codex tras ORD-G070-009, 39/39 con reintentar_v2 OFICIAL. SHA-256 g070.mjs 16856f76cfdf2940eafd0a0637449e4fec6ff5bfcb2b512bb45aab4c92cf3167; lib/g070_core.mjs 076f15e0f0b2a56f40fda29280eb351518d97f5e3fc8e91ca1231edad08c8462; colección b4c7e92c2e79def0eb43487fe0c310f373a0e9ffdc41a38b0d0c67ca29e683ee.",
+    "incumplimientos_previos": "V1 oficial RUN-G070-V1-20261029-133841: RECHAZADO por TC-M04-216 (ventana no configurable desde M09; INC-M04-G070-216-01, MEDIA) y TC-M04-217 (sin ampliación por resultado; INC-M04-G070-217-01, MEDIA). 214, 215 y 218 APROBADO; OBS-M04-G070-215: 90 d + 12 h aceptado por días completos.",
+    "correcciones_informadas": "Desarrollo, issue #865 / PR #871: GET y PATCH /configuracion/parametros-retroalimentacion (recurso 21; 7-365; 6 y 366 → 400; decimales y parámetros ajenos rechazados; RF-72 lee el valor en cada registro). POST /prediccion/retroalimentacion/ampliaciones (1-365 días, justificación de 10-1000 caracteres, solo actualización administrativa del recurso 21; solo el resultado autorizado; global sin cambios; evento VENTANA_RETROALIMENTACION_AMPLIADA). Migración 6bd01d026ac4.",
+    "resultado_esperado": "Los 5 casos APROBADO. 216: rango 7-365 con rechazos de 6, 366, decimales y parámetros ajenos; GET refleja el valor; RF-72 aplica el nuevo valor (W91 registrable con 365); Veterinario sin permiso de PATCH; restaurado a 90. 217: ampliación de A aceptada con auditoría (autorizador y justificación); A → 201; B → 422 FUERA_DE_VENTANA_TEMPORAL; global sigue en 90; validaciones y RBAC. 214, 215 y 218 como en V1. INC-M04-G070-216-01 e INC-M04-G070-217-01 CORREGIDAS si se cumple."
+  },
+  "version_anterior": 1
+}

@@ -1,0 +1,413 @@
+{
+  "grupo": "G94",
+  "run_id": "RUN-G94-V1-20261031-090629",
+  "version": 1,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G94-V1-R3-20261031",
+  "oficial": true,
+  "consume_version": true,
+  "preflight_herramientas": {
+    "newman": {
+      "status": 0,
+      "codigo": null,
+      "vencio_tiempo": false,
+      "duracion_ms": 3159,
+      "version": "6.2.2"
+    },
+    "cypress": {
+      "status": 0,
+      "codigo": null,
+      "vencio_tiempo": false,
+      "duracion_ms": 381,
+      "version": "14.5.4"
+    },
+    "chrome": {
+      "disponible": true
+    }
+  },
+  "casos": {
+    "TC-M03-185": {
+      "id": "TC-M03-185",
+      "estado": "RECHAZADO",
+      "estado_tecnico": "OK",
+      "motivo": "Discrepancia pública acreditada"
+    }
+  },
+  "datos": {
+    "id_usuario": 35,
+    "ids_fincas_originales": [
+      1,
+      57,
+      80,
+      184
+    ],
+    "id_area_previa": 3,
+    "retiro_realizado": true
+  },
+  "observado": {
+    "perfil_post_put": {
+      "http": 200,
+      "fincas": 0,
+      "eco_run": true
+    },
+    "ui": {
+      "dashboard": {
+        "http": 200,
+        "eco_run": true
+      },
+      "peticiones": [
+        {
+          "metodo": "POST",
+          "ruta": "/sesiones/",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": false,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.385Z",
+          "fin": "2026-10-31T09:06:54.385Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/configuracion/interfaz/contexto",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.474Z",
+          "fin": "2026-10-31T09:06:54.634Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/usuarios/me",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.477Z",
+          "fin": "2026-10-31T09:06:54.789Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/sesiones/me/permisos",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.480Z",
+          "fin": "2026-10-31T09:06:55.031Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/configuracion/personalizacion/tema",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.849Z",
+          "fin": "2026-10-31T09:06:55.183Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/configuracion/personalizacion/idioma",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.851Z",
+          "fin": "2026-10-31T09:06:55.342Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/notificaciones",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:54.856Z",
+          "fin": "2026-10-31T09:06:55.514Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/configuracion/personalizacion/tema",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:55.634Z",
+          "fin": "2026-10-31T09:06:55.775Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/configuracion/personalizacion/idioma",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:55.656Z",
+          "fin": "2026-10-31T09:06:55.914Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/notificaciones",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:55.727Z",
+          "fin": "2026-10-31T09:06:56.058Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/iot/monitoreo/dashboard",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:55.786Z",
+          "fin": "2026-10-31T09:06:56.204Z"
+        },
+        {
+          "metodo": "GET",
+          "ruta": "/iot/monitoreo/dashboard",
+          "http": 200,
+          "en_sandbox": true,
+          "cabecera_run_enviada": true,
+          "eco_run": true,
+          "inicio": "2026-10-31T09:06:55.787Z",
+          "fin": "2026-10-31T09:06:56.354Z"
+        }
+      ],
+      "criterio": "ORACULO_UI_INCUMPLIDO",
+      "fincas_perfil": 0,
+      "canario_e7": "SIN_SENSORES_OBSERVADOS",
+      "captura": true,
+      "motivo_captura": null,
+      "mensaje_exacto": false,
+      "contacto_admin": false,
+      "sin_tarjetas": false,
+      "sin_error_interno": true,
+      "texto_observado": "0 sensores · actualizado 04:06:56 a. m. | Tus fincas aún no tienen sensores. Se registran en Configuración › IoT."
+    },
+    "api": [
+      {
+        "id": "API-185-01",
+        "estado": "APROBADO",
+        "motivo": "HTTP 200, total 0 y arreglos vacíos",
+        "http": 200
+      },
+      {
+        "id": "API-185-02",
+        "estado": "APROBADO",
+        "motivo": "HTTP 200, total 0 y arreglos vacíos",
+        "http": 200
+      }
+    ]
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-185",
+      "id": "API-185-01",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "HTTP 200, total 0 y arreglos vacíos",
+      "evidencia": "newman/newman-G94.json"
+    },
+    {
+      "caso": "TC-M03-185",
+      "id": "API-185-02",
+      "fuente": "API",
+      "herramienta": "Newman",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "HTTP 200, total 0 y arreglos vacíos",
+      "evidencia": "newman/newman-G94.json"
+    },
+    {
+      "caso": "TC-M03-185",
+      "id": "UI-185-01",
+      "fuente": "UI",
+      "herramienta": "Cypress",
+      "tipo": "ASSERT",
+      "estado": "RECHAZADO",
+      "motivo": "La pantalla cargó y difiere del oráculo visual",
+      "evidencia": "cypress/UI-185-01.json"
+    }
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 1032
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 642
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 152
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/35/detalle",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 149
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 143
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 164
+    },
+    {
+      "metodo": "PUT",
+      "ruta": "/usuarios/35/fincas",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 142
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/35/detalle",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 146
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/configuracion/fincas",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 138
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/me",
+      "http": 200,
+      "en_run": true,
+      "eco_correcto": true,
+      "ms": 149
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G94-V1-20261031-090629",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 134
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/usuarios/35/detalle",
+      "http": 200,
+      "en_run": false,
+      "eco_correcto": null,
+      "ms": 157
+    }
+  ],
+  "newman": [
+    {
+      "archivo": "newman/newman-G94.json",
+      "proceso": 0,
+      "fallos": 0,
+      "respuestas": [
+        {
+          "id": "API-185-01",
+          "http": 200,
+          "eco_run": true,
+          "datos_presentes": false
+        },
+        {
+          "id": "API-185-02",
+          "http": 200,
+          "eco_run": true,
+          "datos_presentes": false
+        }
+      ]
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 1,
+    "detalle": [
+      {
+        "estado": "RECHAZADO",
+        "motivo": "La pantalla cargó y difiere del oráculo visual",
+        "proceso": 0,
+        "error": null,
+        "archivo": "cypress/UI-185-01.json",
+        "resumen": "cypress/UI-185-01-cypress.json"
+      }
+    ],
+    "resumen": {
+      "totalTests": 1,
+      "totalPassed": 1,
+      "totalFailed": 0,
+      "totalPending": 0,
+      "totalSkipped": 0,
+      "specs": 1
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "resultado.json",
+    "newman/newman-G94.json",
+    "newman/newman-G94.html",
+    "cypress/UI-185-01.log",
+    "cypress/UI-185-01.json",
+    "cypress/UI-185-01-cypress.json",
+    "cypress/g94.cy.js/UI-185-01.png"
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "estado": "CONFIRMADO",
+      "ids_fincas_posteriores": [
+        1,
+        57,
+        80,
+        184
+      ],
+      "comprobaciones": [
+        {
+          "recurso": "fincas_productor",
+          "http": 200,
+          "ok": true
+        }
+      ]
+    },
+    "motivo": "Conjunto exacto de fincas restituido por DELETE"
+  },
+  "codigo_salida": 0
+}

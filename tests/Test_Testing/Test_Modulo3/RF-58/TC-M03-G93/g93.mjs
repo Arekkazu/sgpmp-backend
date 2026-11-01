@@ -70,7 +70,7 @@ export async function buscarCandidataV2({ dispositivos, fincasVisibles, idAreaV1
     }
     if (candidatasRevisadas >= maxCandidatas) break;
     candidatasRevisadas++;
-    const primera = await get(`/iot/monitoreo/dashboard/${id}?pagina=1&por_pagina=50`);
+    const primera = await get(`/iot/monitoreo/dashboard?id_infraestructura=${id}&pagina=1&por_pagina=50`);
     const cuerpo = primera.cuerpo ?? {};
     const unidad = (Array.isArray(cuerpo.resumen_unidades) ? cuerpo.resumen_unidades : [])
       .find(x => Number(x.id_infraestructura) === id);
@@ -82,7 +82,7 @@ export async function buscarCandidataV2({ dispositivos, fincasVisibles, idAreaV1
       for (let pagina = 2; pagina <= paginas; pagina++) {
         if (paginasRestantes === 0) { completa = false; break; }
         paginasRestantes--;
-        const siguiente = await get(`/iot/monitoreo/dashboard/${id}?pagina=${pagina}&por_pagina=50`);
+        const siguiente = await get(`/iot/monitoreo/dashboard?id_infraestructura=${id}&pagina=${pagina}&por_pagina=50`);
         if (siguiente.http !== 200) { completa = false; break; }
         sensores.push(...(Array.isArray(siguiente.cuerpo?.sensores) ? siguiente.cuerpo.sensores : []));
       }
@@ -277,6 +277,13 @@ export function comprobar() {
       new vm.Script((e.script?.exec ?? []).join('\n'));
     const texto = JSON.stringify(c);
     const spec = fs.readFileSync(SPEC, 'utf8');
+    const fuentesActivas = ['g93.mjs', 'README.md',
+      ...['lib', 'pruebas'].flatMap(carpeta => fs.readdirSync(path.join(DIR, carpeta))
+        .filter(nombre => fs.statSync(path.join(DIR, carpeta, nombre)).isFile())
+        .map(nombre => `${carpeta}/${nombre}`))];
+    const rutasTecnicas = /Resultados[\\/]RUN-G93-V1-(?:20261026-014819|20261031-064927)(?:[\\/]|\b)/;
+    const dependenciasRunsTecnicos = fuentesActivas.filter(rel =>
+      rutasTecnicas.test(fs.readFileSync(path.join(DIR, rel), 'utf8')));
     const resultadoSintetico = { casos: { [CASO]: { estado: 'APROBADO', motivo: 'API y UI verificadas' } },
       comprobaciones: IDS.map(id => ({ caso: CASO, id, tipo: 'ASSERT', estado: 'APROBADO' })),
       cypress: { total_pruebas: 2 }, cierre: { rollback: { verificado: true } }, oficial: true };
@@ -287,23 +294,33 @@ export function comprobar() {
       hallazgos_rendimiento: [], observaciones_documentales: [], consume_version: false,
       cierre: { run: { cierre_http: 200 }, rollback: { verificado: true,
         estado: 'CONFIRMADO', comprobaciones: [] }, motivo: 'Cierre sintético' } });
-    const decisionPrimero = encabezado.startsWith('# TC-M03-G93 — APROBADO\n\n## Decisión del caso\n')
-      && encabezado.includes('**¿RUN oficial?** Sí') && encabezado.includes('| UI-184-02 | APROBADO |')
-      && encabezado.indexOf('## Identificación') > encabezado.indexOf('## Decisión del caso');
+    const decisionPrimero = encabezado.startsWith('# TC-M03-G93 — APROBADO\n\n## 1. Identificación\n')
+      && encabezado.includes('| TC-M03-184 | APROBADO |')
+      && encabezado.includes('## 3. Detalle por caso y comprobaciones API/UI')
+      && encabezado.includes('### TC-M03-184');
     let aprobacionIncompletaBloqueada = false;
     try { bloqueDecisionCaso({ ...resultadoSintetico,
       comprobaciones: resultadoSintetico.comprobaciones.filter(x => x.id !== 'UI-184-02') }); }
     catch (e) { aprobacionIncompletaBloqueada = e.message === 'INFORME_APROBADO_CON_COMPROBACIONES_PENDIENTES'; }
-    const valido = !faltan.length && CAPACIDADES.contrato === 'sigab-qa-ejecutor/1'
+    const valido = !faltan.length && !dependenciasRunsTecnicos.length
+      && CAPACIDADES.contrato === 'sigab-qa-ejecutor/1'
       && decisionPrimero && aprobacionIncompletaBloqueada
       && IDS.every(x => texto.includes(x) || spec.includes(x)) && CAPACIDADES.comprobaciones_obligatorias[CASO].UI.length === 2
-      && c.item.length === 1 && texto.includes('X-Test-Run-Id') && texto.includes('X-Sandbox-Secret')
-      && /dashboard\/\{\{id_infraestructura\}\}/.test(c.item[0].request?.url ?? '')
-      && !/req\.url\s*=|req\.destroy\(|req\.reply|fixture\(|test-control\/query|--yolo/.test(spec + texto)
+      && c.item.length === 2 && texto.includes('X-Test-Run-Id') && texto.includes('X-Sandbox-Secret')
+      && c.item.every(x => /dashboard\?id_infraestructura=/.test(x.request?.url ?? ''))
+      && !/req\.destroy\(|fixture\(|test-control\/query|--yolo/.test(spec + texto)
+      && spec.includes("ruta === '/sesiones/' || ruta === '/sesiones/refresh'")
+      && (spec.match(/req\.reply\(/g) ?? []).length === 1
+      && spec.includes('colaApi.tomar(liberar => {') && spec.includes('req.continue(res => {')
+      && spec.includes("esperarSesion('@usuarioSesion')")
+      && spec.includes("esperarSesion('@permisosSesion')")
+      && spec.includes("if (acta.criterio === 'SESION_5XX') return;")
       && spec.includes("'dashboardGlobal'") && spec.includes("'dashboardFiltrado'")
-      && spec.includes("? 2000 : 60000)") && spec.includes('crearEspera(40000)')
-      && spec.includes("req.headers['X-Test-Run-Id'] = RUN");
+      && spec.includes("? 2000 : 90000)") && spec.includes('crearEspera(40000)')
+      && spec.includes("req.headers['x-test-run-id'] = RUN")
+      && spec.includes('registro.cabecera_run_enviada = true');
     console.log(JSON.stringify({ comprobacion: 'G93_LOCAL_SIN_RED', valido, faltan,
+      dependencias_runs_tecnicos: dependenciasRunsTecnicos,
       decision_primero: decisionPrimero, aprobacion_incompleta_bloqueada: aprobacionIncompletaBloqueada,
       comprobaciones_obligatorias: CAPACIDADES.comprobaciones_obligatorias, limite: LIMITE }, null, 2));
     return valido ? 0 : 2;
@@ -423,11 +440,13 @@ export function transporte({ base, runId, secreto, bitacora, fetcher = fetch, li
       exigir(abierto || (cerrado && metodo === 'GET'), 'PETICION_FUERA_RUN');
       if (!cerrado && cuenta >= limite - LIMITE.margen_cierre) fallo('LIMITE_SOLICITUDES_FUNCIONALES');
       if (metodo === 'GET') {
-        exigir(/^\/configuracion\/fincas\/\d+$/.test(ruta)
+        exigir(ruta === '/usuarios/me'
+          || /^\/configuracion\/fincas\/\d+$/.test(ruta)
           || ruta === '/configuracion/fincas?solo_activas=true'
           || /^\/configuracion\/infraestructuras\/\d+$/.test(ruta)
-          || ['/iot/dispositivos?estado=SIN_SEÑAL', '/iot/dispositivos?estado=INACTIVO'].includes(ruta)
-          || /^\/iot\/monitoreo\/dashboard\/\d+(?:\?pagina=\d+&por_pagina=50)?$/.test(ruta),
+          || ['/iot/dispositivos?estado=SIN_SEÑAL', '/iot/dispositivos?estado=INACTIVO',
+            '/iot/dispositivos?estado=BUFFER_ACTIVO'].includes(ruta)
+          || /^\/iot\/monitoreo\/dashboard\?id_infraestructura=\d+&pagina=\d+&por_pagina=(?:1|50)$/.test(ruta),
         'LECTURA_FUERA_LISTA_BLANCA');
       } else {
         exigir(metodo === 'POST' && pathname === '/configuracion/infraestructuras', 'ESCRITURA_FUERA_LISTA_BLANCA');
@@ -468,12 +487,12 @@ export function extraerCookie(cabecera) {
   return m[1];
 }
 
-export function newman(contrato, { fase, id, base, token, secreto, secretos,
+export function newman(contrato, { idV1, idV2, base, token, secreto, secretos,
   invocar = invocarNewman, tempDir = os.tmpdir() }) {
   const tmp = fs.mkdtempSync(path.join(tempDir, 'g93-newman-'));
   try {
     const envPath = path.join(tmp, 'env.json'); const repPath = path.join(tmp, 'reporte.json');
-    const vals = { qa_autorizado: 'SI', fase, id_infraestructura: id, base_url: base,
+    const vals = { qa_autorizado: 'SI', id_v1: idV1, id_v2: idV2 ?? '', base_url: base,
       token_productor: token, run_id: contrato.runId, sandbox_secret: secreto };
     guardar(envPath, { values: Object.entries(vals).map(([key, value]) => ({ key, value: String(value), enabled: true })) });
     const p = invocar(['run', COLECCION, '-e', envPath, '--reporters', 'json',
@@ -481,17 +500,20 @@ export function newman(contrato, { fase, id, base, token, secreto, secretos,
       45000);
     exigir(fs.existsSync(repPath), `NEWMAN_SIN_REPORTE_${p.error?.code ?? p.status}`);
     const rep = JSON.parse(fs.readFileSync(repPath, 'utf8'));
-    exigir(rep.run?.executions?.length === 1, 'NEWMAN_EJECUCIONES_INVALIDAS');
-    exigir(rep.run.executions[0]?.response?.code != null, 'NEWMAN_SIN_RESPUESTA_API');
-    const rel = `newman/newman-${fase}-${id}.json`;
+    exigir(rep.run?.executions?.length === Number(Boolean(idV1)) + Number(Boolean(idV2)), 'NEWMAN_EJECUCIONES_INVALIDAS');
+    exigir(rep.run.executions.every(x => x.response?.code != null), 'NEWMAN_SIN_RESPUESTA_API');
+    const rel = 'newman/newman-G93.json';
     fs.mkdirSync(path.join(contrato.directorio, 'newman'), { recursive: true });
     fs.writeFileSync(path.join(contrato.directorio, rel), sanearArtefacto(JSON.stringify(rep), secretos));
-    const ex = rep.run.executions[0]; let cuerpo = null;
-    try { cuerpo = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')); } catch { /* sin JSON */ }
-    return { rel, http: ex.response?.code ?? null, cuerpo, fallos: (rep.run?.failures ?? [])
+    const respuestas = rep.run.executions.map(ex => {
+      let cuerpo = null;
+      try { cuerpo = JSON.parse(Buffer.from(ex.response?.stream?.data ?? []).toString('utf8')); } catch { /* sin JSON */ }
+      return { http: ex.response?.code ?? null, cuerpo,
+        eco: (ex.response?.header ?? []).some(x => x.key?.toLowerCase() === 'x-test-run-id' && x.value === contrato.runId) };
+    });
+    return { rel, respuestas, fallos: (rep.run?.failures ?? [])
       .map(x => ({ id: /\[([^\]]+)\]$/.exec(x.source?.name ?? '')?.[1] ?? null,
         mensaje: limpio(x.error?.message ?? '', secretos) })),
-      eco: (ex.response?.header ?? []).some(x => x.key?.toLowerCase() === 'x-test-run-id' && x.value === contrato.runId),
       proceso: p.status };
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 }
@@ -499,7 +521,7 @@ export function newman(contrato, { fase, id, base, token, secreto, secretos,
 function htmlNewman(r, dir) {
   if (!r.newman.length) return;
   const esc = x => String(x).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  const filas = r.newman.map(x => `<tr><td>${esc(x.fase)}</td><td>${esc(x.http)}</td><td>${esc(x.fallos.length)}</td><td>${esc(x.archivo)}</td></tr>`).join('');
+  const filas = r.newman.map(x => `<tr><td>V1/V2</td><td>${esc(x.respuestas.join(', '))}</td><td>${esc(x.fallos.length)}</td><td>${esc(x.archivo)}</td></tr>`).join('');
   const rel = 'newman/newman-G93-consolidado.html';
   fs.writeFileSync(path.join(dir, rel), `<!doctype html><html lang="es"><meta charset="utf-8"><title>Newman G93</title><h1>Newman G93: ejecuciones reales</h1><table border="1"><tr><th>Variante</th><th>HTTP</th><th>Fallos</th><th>JSON</th></tr>${filas}</table></html>`);
   r.evidencias.push(rel);
@@ -553,12 +575,13 @@ export function invocarCypressLocal({ proyecto = DIR, spec = SPEC, carpeta, env 
   return { proceso: p, diagnostico, args, cli };
 }
 
-export function cypress(contrato, { fase, id, nombre, fecha, base, front, cookie, cookieFile, secreto,
+export function cypress(contrato, { fase, id, nombre, fecha, base, front, cookie, cookieFile, login, secreto,
   secretos = [], invocar = invocarCypressLocal }) {
   const dir = path.join(contrato.directorio, 'cypress'); fs.mkdirSync(dir, { recursive: true });
   const variables = { AUTORIZADO_RUN: 'SI', FASE: fase, ID_INFRA: String(id), NOMBRE_INFRA: nombre,
     FECHA_HISTORICA: fecha ?? '', API_BASE: base, RUN_ID: contrato.runId, SANDBOX_SECRET: secreto,
-    FRONT_BASE: front, REFRESH_COOKIE: cookie, REFRESH_COOKIE_FILE: cookieFile ?? '', ARTIFACTS_DIR: dir };
+    FRONT_BASE: front, REFRESH_COOKIE: cookie, REFRESH_COOKIE_FILE: cookieFile ?? '',
+    PROD_LOGIN_TOKEN: login?.token ?? '', ARTIFACTS_DIR: dir };
   const env = { ...process.env, ...Object.fromEntries(Object.entries(variables).map(([k, v]) => [`CYPRESS_${k}`, String(v)])) };
   // Proceso Node directo: conserva el tope de 150 s y captura el error antes del acta.
   const { proceso: p } = invocar({ carpeta: dir, env, prefijo: `UI-184-${fase}`,
@@ -570,10 +593,15 @@ export function cypress(contrato, { fase, id, nombre, fecha, base, front, cookie
     motivo: `Cypress sin acta: ${p.error?.code ?? p.status}; ver ${diagnosticoRel}`,
     rel: diagnosticoRel, log_rel: logRel, ejecutadas: 0, proceso_fallido: true };
   const acta = JSON.parse(fs.readFileSync(path.join(contrato.directorio, rel), 'utf8'));
+  if (acta.caso !== CASO || acta.fase !== fase || acta.id !== `UI-184-${fase === 'V2' ? '02' : '01'}`
+    || !['APROBADO', 'RECHAZADO', 'NO_CONCLUYENTE', 'ERROR_QA'].includes(acta.estado)
+    || typeof acta.motivo !== 'string' || !Array.isArray(acta.peticiones))
+    return { estado: 'ERROR_QA', motivo: `Cypress con acta inválida; ver ${diagnosticoRel}`,
+      rel: diagnosticoRel, log_rel: logRel, ejecutadas: 0, proceso_fallido: true };
   const procesoOk = p.status === 0 && !p.error;
-  return { estado: procesoOk ? acta.estado : 'ERROR_QA', ejecutadas: 1,
+  return { estado: acta.estado, ejecutadas: 1,
     proceso_fallido: !procesoOk,
-    motivo: procesoOk ? acta.motivo : `${acta.motivo}; proceso Cypress ${p.error?.code ?? p.status}`,
+    motivo: acta.motivo,
     criterio: acta.criterio, rel, http: acta.http, error_red: acta.error_red, ui_inicial: acta.ui_inicial,
     ui_objetivo: acta.ui_objetivo, peticiones: acta.peticiones,
     incidencias_tecnicas: acta.incidencias_tecnicas ?? [],
@@ -595,34 +623,216 @@ function bloqueDecisionCaso(r) {
   const decision = r.casos[CASO].estado;
   exigir(decision !== 'APROBADO' || (!pendientes.length && r.cypress.total_pruebas > 0),
     'INFORME_APROBADO_CON_COMPROBACIONES_PENDIENTES');
-  const limpioTabla = valor => String(valor).replaceAll('|', '\\|').replaceAll(/\r?\n/g, ' ');
-  const tabla = requeridas.map(id => `| ${id} | ${limpioTabla(comprobacion(id)?.estado ?? 'NO_EJECUTADA')} |`).join('\n');
-  const rechazos = r.comprobaciones.filter(x => x.caso === CASO && x.tipo === 'ASSERT'
-    && x.estado === 'RECHAZADO');
-  const motivo = rechazos.length
-    ? `${r.casos[CASO].motivo}. ${rechazos.map(x => `${x.id}: ${x.motivo}`).join('; ')}.`
-    : `${r.casos[CASO].motivo}.`;
-  const faltan = [
-    ...(rechazos.length ? [`Atender las discrepancias de ${rechazos.map(x => x.id).join(', ')}`] : []),
-    ...(pendientes.length ? [`Emitir veredicto para ${pendientes.join(', ')}`] : []),
-    ...(!r.cierre.rollback.verificado ? ['Acreditar cierre y rollback'] : []),
-  ];
-  if (!faltan.length && !r.oficial) faltan.push('Revisar las barreras de oficialidad del RUN');
-  return `# TC-M03-G93 — ${decision}\n\n## Decisión del caso\n\n- **Caso agrupado:** TC-M03-G93.\n- **Caso original:** ${CASO} (RF-58 / CU04 E1) — unidad sin lecturas mostrada en GRIS con «Sin datos disponibles».\n- **Decisión:** **${decision}**.\n\n${motivo}\n\n| Comprobación | Resultado |\n|---|---|\n${tabla}\n\n**¿RUN oficial?** ${r.oficial ? 'Sí' : 'No'}${!r.oficial && pendientes.length ? `; faltan veredictos de ${pendientes.join(', ')}` : ''}.\n\n**Qué falta para cerrar:** ${faltan.length ? `${faltan.join('; ')}.` : 'Ninguna comprobación pendiente en este RUN.'}\n`;
+  return `# TC-M03-G93 — ${decision}`;
 }
 
-function informe(r) {
-  const tabla = r.comprobaciones.map(x => `| ${x.id} | ${x.fuente} | ${x.tipo} | ${x.estado} | ${x.motivo} | ${x.evidencia ?? 'sin evidencia'} |`).join('\n');
-  const rechazos = r.comprobaciones.filter(x => x.tipo === 'ASSERT' && x.estado === 'RECHAZADO');
-  const incidencias = rechazos.map(x => `- ${x.id}: requisito incumplido: ${x.id.startsWith('API') ? 'unidad visible y GRIS, histórico o ausencia de valores/5xx según la matriz' : 'unidad visible, GRIS y mensaje de ausencia de datos equivalente al esperado, además de fecha y ausencia de valores fabricados'}. Observado: ${x.motivo}. Evidencia: ${x.evidencia}. Equipo inicial: Desarrollo por primera discrepancia pública; severidad MEDIA (panel parcial); certeza CONFIRMADA para la respuesta observada, causa raíz NO DETERMINADA. Incidencia definitiva pendiente de triaje.`).join('\n') || 'Ninguna confirmada.';
-  const tecnico = (r.problemas_tecnicos.map(x => `- ${x}`).join('\n') || 'Ninguno registrado.')
-    + '\n\n## Dependencias de datos y entorno\n\n'
-    + (r.dependencias.map(x => `- ${x}`).join('\n') || 'Ninguna registrada.')
-    + '\n\n## Hallazgos de rendimiento pendientes de diagnóstico\n\n'
-    + (r.hallazgos_rendimiento.map(x => `- ${x}`).join('\n') || 'Ninguno registrado.')
-    + '\n\n## Criterio de carga inicial UI\n\nDecisión QA de 2026-10-25: se permite el GET global real con límite de 60 s, sin reescritura, simulación ni reintento del ejecutor. El acta Cypress registra ruta relativa, inicio, fin, duración, HTTP, error de red si consta, eco RUN, estado visible y posible petición pendiente. HTTP 200 permite evaluar el panel real y el filtro usado por el Productor; unidad ausente con respuesta válida, GRIS/texto/fecha/valores discordantes o HTTP 5xx son RECHAZADO. 401/403 o eco RUN ausente son técnicos de sesión. Sin respuesta o error de red se registra rendimiento pendiente de diagnóstico como UI NO_CONCLUYENTE salvo incumplimiento visual acreditado; nunca se aprueba. El ejecutor espera la salida del proceso Cypress antes de la siguiente petición propia o del DELETE.\n';
-  const ev = r.evidencias.filter(x => fs.existsSync(path.join(r.directorio, x))).map(x => `- [${x}](${x})`).join('\n');
-  return `${bloqueDecisionCaso(r)}\n## Identificación\n\nGrupo G93; caso ${CASO}; RF-58/CU04 E1; V${r.version}; RUN ${r.run_id}; ambiente TEST; autorización ${r.autorizacion}; commit ${r.commit ?? 'NO VERIFICADO (sin Git)'}; Node ${process.version}; Newman ${r.newman.length} ejecuciones; Cypress ${r.cypress.total_pruebas} pruebas.\n\n## Resumen de veredictos\n\n${CASO}: funcional ${r.casos[CASO].estado}; técnico ${r.casos[CASO].estado_tecnico}; motivo: ${r.casos[CASO].motivo}.\n\n## Esperado y observado por caso\n\nEsperado literal de la matriz: ${ORACULO}\n\nDecisión QA de 2026-10-25: «Sin datos» y «Sin datos disponibles» son equivalentes como mensaje visible de ausencia de información; la diferencia de redacción no afecta al veredicto.\n\nObservado: ${JSON.stringify(r.casos[CASO].observado)}. Variante V1: ${r.variantes.V1}; variante V2: ${r.variantes.V2}.\n\n## Comprobaciones API/UI\n\n| ID | Fuente | Tipo | Estado | Observado | Evidencia |\n|---|---|---|---|---|---|\n${tabla}\n\n## Observación de carga UI\n\n${JSON.stringify(r.cypress.detalle.map(({ fase, criterio, http, error_red, ui_inicial, ui_objetivo, pendiente_al_terminar, peticiones }) => ({ fase, criterio, http, error_red, ui_inicial, ui_objetivo, pendiente_al_terminar, peticiones })))}.\n\n## Evidencias reales\n\n${ev}\n\n## Incidencias de producto\n\n${incidencias}\n\n## Incidencias técnicas QA\n\n${tecnico}\n\n## Observaciones documentales\n\n${r.observaciones_documentales.map(x => `- ${x}`).join('\n') || 'Ninguna diferencia de redacción equivalente observada.'}\n\nEl código local sugiere ausencia de unidades sin sensores en el resumen; solo TEST autorizado decide el veredicto.\n\n## Análisis de causas\n\nLa causa raíz no se atribuye por inferencia de código. La primera discrepancia pública orienta el equipo inicial; los fallos de automatización se registran aparte.\n\n## Efectos externos\n\n${r.consume_version ? 'Solicitudes acreditadas: ver bitácora y evidencias; POST de área solo cuando figura datos.id_area_v1.' : 'No constan solicitudes remotas dentro del RUN; sin POST de área.'} RF-58 E7 puede auditar y enviar correo síncrono si aparece sensor GRIS no desactualizado; correos E7 aceptados por decisión QA, sin reversión por DELETE. Las lecturas de configuración pueden auditar GET. No se asume ausencia de propagación M09 ni reversión de efectos externos.\n\n## Cierre y rollback\n\nDELETE HTTP ${r.cierre.run.cierre_http ?? 'NO CONSTA'}; rollback verificado ${r.cierre.rollback.verificado}; estado ${r.cierre.rollback.estado}. ${r.cierre.motivo}. Comprobaciones: ${JSON.stringify(r.cierre.rollback.comprobaciones)}.\n\n## Conclusión y acción concreta\n\n${r.casos[CASO].estado}. ${r.cierre.rollback.verificado ? 'Responsable QA: revisar incidencias y decidir cierre del caso.' : 'Responsable QA: revisar cierre antes de otra ejecución.'}\n`;
+function observacionBreve(r, id) {
+  const comprobacion = r.comprobaciones.find(x => x.id === id);
+  const v1 = r.casos[CASO].observado?.V1;
+  const v2 = r.casos[CASO].observado?.V2;
+  const ui = r.cypress.detalle.find(x => x.fase === (id === 'UI-184-01' ? 'V1' : 'V2'));
+  const vista = ui?.ui_objetivo;
+  if (id === 'API-184-01' && v1)
+    return `HTTP ${v1.http}; área #${v1.id} incluida en resumen_unidades; estado ${v1.estado_general}`;
+  if (id === 'API-184-02' && v1)
+    return `${v1.total_sensores} sensores; mensaje «${v1.mensaje_estado}»; sin valores actuales fabricados; último dato ${v1.ultimo_dato_recibido ?? 'no registrado'}`;
+  if (id === 'API-184-03' && v2) {
+    const estados = r.datos?.candidatas_v2?.find(x => x.id_infraestructura === v2.id
+      && x.estados_conectividad)?.estados_conectividad;
+    const sensores = estados ? Object.entries(estados).map(([k, n]) => `${n} ${k}`).join(', ') : `${v2.total_sensores} sin señal`;
+    return `HTTP ${v2.http}; área #${v2.id}, ${sensores}; estado ${v2.estado_general}; último dato ${v2.ultimo_dato_recibido ?? 'no registrado'}`;
+  }
+  if (id === 'UI-184-01' && vista) {
+    const resumen = `área #${r.datos?.id_area_v1 ?? 'NO CONSTA'} seleccionada; ${vista.unidad_objetivo_presente ? 'tarjeta visible' : 'no aparece la tarjeta GRIS de la unidad'}`;
+    return r.run_id === 'RUN-G93-V1-20261031-080847'
+      ? `${resumen}; KPI en 0, «0 alertas activas» y «No hay sensores para mostrar con los filtros actuales»`
+      : resumen;
+  }
+  if (id === 'UI-184-02' && vista)
+    return `área #${r.datos?.id_area_v2 ?? 'NO CONSTA'}; tarjeta ${vista.unidad_objetivo_presente ? 'visible' : 'ausente'}, ${vista.gris ? 'GRIS' : 'sin GRIS'}, «${vista.mensaje_ausencia || vista.texto_estado || 'sin texto'}»; fecha histórica ${vista.fecha_visible ? 'visible' : 'no visible'}; ${vista.sin_valores_fabricados ? 'sin valores fabricados' : 'valores por revisar'}`;
+  return comprobacion?.motivo && !comprobacion.motivo.includes('{')
+    ? comprobacion.motivo : 'sin observación resumible; consultar el acta';
+}
+
+export function informe(r) {
+  const safe = x => String(x ?? 'NO CONSTA').replaceAll('|', '\\|').replaceAll(/\r?\n/g, ' ');
+  const antecedente = (archivo, texto) => {
+    const rel = `api/antecedentes/${archivo}`;
+    return fs.existsSync(path.join(r.directorio, rel)) ? `[${texto}](${rel})` : null;
+  };
+  const antecedenteApi6 = antecedente('intento-6-api-area-519.json', 'API del intento 6');
+  const antecedenteSesion6 = antecedente('intento-6-sesion-ui.json', 'sesión UI del intento 6');
+  const antecedenteSesion7 = antecedente('intento-7-sesion-ui.json', 'sesión UI concurrente del intento 7');
+  const antecedenteV2 = antecedente('intento-7-candidatas-v2.json', 'candidatas V2 del intento 7');
+  const indiceAntecedentes = antecedente('indice.json', 'índice con SHA-256 de originales');
+  const esperado = {
+    'API-184-01': 'HTTP 200; unidad nueva presente en resumen_unidades, GRIS',
+    'API-184-02': 'cero sensores; mensaje Sin datos disponibles; fecha histórica válida si existe; sin valores fabricados',
+    'API-184-03': 'unidad con todos los sensores SIN_SEÑAL/INACTIVO/BUFFER_ACTIVO, GRIS; histórico real si existe',
+    'UI-184-01': 'tarjeta nueva GRIS y Sin datos/Sin datos disponibles; sin valores de sensores fabricados',
+    'UI-184-02': 'tarjeta de unidad sin señal visible, GRIS y fecha histórica si existe',
+  };
+  const detalle = CAPACIDADES.comprobaciones_obligatorias[CASO];
+  const filas = [...detalle.API, ...detalle.UI].map(id => {
+    const x = r.comprobaciones.find(c => c.id === id);
+    const enlaces = [x?.evidencia];
+    if (id.startsWith('UI-')) enlaces.push(`cypress/g93.cy.js/UI-184-${id.endsWith('01') ? 'V1' : 'V2'}.png`);
+    const evidencia = enlaces.filter(rel => rel && fs.existsSync(path.join(r.directorio, rel)))
+      .map(rel => `[${safe(rel)}](${rel})`).join(', ') || 'Sin evidencia';
+    const http = id.startsWith('API-')
+      ? r.casos[CASO].observado?.[id === 'API-184-03' ? 'V2' : 'V1']?.http
+      : r.cypress.detalle.find(ui => ui.fase === (id === 'UI-184-01' ? 'V1' : 'V2'))?.http;
+    return `| ${id} | ${id.startsWith('API-') ? 'API' : 'UI'} | ${safe(esperado[id])} | ${safe(observacionBreve(r, id))} | ${safe(http)} | ${safe(x?.estado ?? 'NO_EJECUTADA')} | ${evidencia} |`;
+  }).join('\n');
+  const datos = [...detalle.API, ...detalle.UI].map(id =>
+    `- **${id}:** ${safe(observacionBreve(r, id))}.`).join('\n');
+  const sesiones5xx = r.cypress.detalle.some(ui => ui.peticiones?.some(p =>
+    ['/sesiones/refresh', '/usuarios/me', '/sesiones/me/permisos'].includes(p.ruta) && p.http >= 500));
+  const inc01 = ['API-184-01', 'API-184-02'].every(id =>
+    r.comprobaciones.some(x => x.id === id && x.estado === 'APROBADO')) ? 'CORREGIDA'
+    : r.comprobaciones.some(x => ['API-184-01', 'API-184-02'].includes(x.id) && x.estado === 'RECHAZADO')
+      ? 'NO CORREGIDA' : 'NO COMPROBADA';
+  const inc02 = sesiones5xx ? 'REPRODUCIDA'
+    : r.cypress.detalle.length === 2 && r.cypress.detalle.every(ui =>
+      ['/usuarios/me', '/sesiones/me/permisos'].every(ruta =>
+        ui.peticiones?.some(p => p.ruta === ruta && p.http === 200 && p.eco_run))
+      && ui.peticiones.filter(p => ['/usuarios/me', '/sesiones/me/permisos'].includes(p.ruta))
+        .every(p => p.http === 200 && p.eco_run))
+      ? 'NO REPRODUCIDA con peticiones serializadas' : 'NO COMPROBADA';
+  const inc03 = r.comprobaciones.some(x => x.id === 'UI-184-01' && x.estado === 'RECHAZADO');
+  const capturaV1 = 'cypress/g93.cy.js/UI-184-V1.png';
+  const actaV1 = 'cypress/UI-184-V1.json';
+  const evidencia03 = [actaV1, capturaV1].filter(rel => fs.existsSync(path.join(r.directorio, rel)))
+    .map(rel => `[${rel}](${rel})`).join(' y ');
+  const incidencias = [
+    `### INC-M03-184-G93-01 — ${inc01} en API (#785)\n\n${inc01 === 'CORREGIDA' ? 'La unidad nueva figura en el resumen de la API, con cero sensores, estado GRIS y «Sin datos disponibles» ([Newman](newman/newman-G93.json)).' : 'Revisar las comprobaciones API del RUN antes de cerrar esta incidencia.'} Equipo inicial: Desarrollo. Severidad MEDIA por la afectación parcial observada antes; certeza ${inc01 === 'NO COMPROBADA' ? 'NO DETERMINADA' : 'CONFIRMADA'} del estado API en este RUN. Esto no acredita la UI ni una causa raíz.${antecedenteApi6 ? `\n\nAntecedente previo a #785: el área 519 faltó en resumen_unidades (${antecedenteApi6}); el intento 7 confirmó API-184-01/02 APROBADO (${antecedenteV2}). ${indiceAntecedentes}. Los RUN técnicos de origen se eliminan después de preservar estos extractos; los enlaces apuntan al RUN oficial.` : ''}`,
+    `### INC-M03-184-G93-02 — ${inc02}\n\n${inc02.startsWith('NO REPRODUCIDA') ? `Sesión UI: /usuarios/me y /sesiones/me/permisos respondieron HTTP 200 con eco del RUN en ambas vistas ([acta V1](${actaV1}), [acta V2](cypress/UI-184-V2.json)).` : 'Revisar las actas de sesión para precisar el estado observado.'} Equipo inicial: DBA, por la discrepancia previa del sandbox (DBA-01). La concurrencia sobre una conexión/transacción única es una hipótesis ${inc02.startsWith('NO REPRODUCIDA') ? 'reforzada por la serialización, ' : ''}NO CONFIRMADA como causa. Severidad MEDIA por el bloqueo visual del intento 7; ${inc02.startsWith('NO REPRODUCIDA') ? 'en este RUN no se reprodujo' : 'estado actual por revisar'}. Certeza ${inc02 === 'NO COMPROBADA' ? 'NO DETERMINADA' : 'CONFIRMADA'} del estado de sesión bajo estas condiciones, sin extrapolar a concurrencia libre.${antecedenteSesion6 && antecedenteSesion7 ? `\n\nAntecedentes de sandbox: ${antecedenteSesion6} registra refresh 200 seguido de /usuarios/me y /sesiones/me/permisos 500; ${antecedenteSesion7} registra respuestas concurrentes 500/401. ${antecedenteV2} documenta candidatas V2 descartadas antes de la decisión QA sobre BUFFER_ACTIVO. Las [capturas del intento 6](api/antecedentes/intento-6-ui.png) y [intento 7](api/antecedentes/intento-7-ui.png) no muestran datos personales. En este RUN oficial, con cola de peticiones, esos 500/401 no se reprodujeron. Los RUN técnicos de origen se eliminan después de preservar estos extractos.` : ''}`,
+    ...(inc03 ? [`### INC-M03-184-G93-03 — La unidad sin sensores no aparece en el panel; se muestran KPI en cero\n\n- **Esperado:** Con el área #${safe(r.datos?.id_area_v1)} seleccionada, tarjeta de la unidad en GRIS con «Sin datos disponibles» (o «Sin datos» por decisión QA), aunque no tenga sensores; la unidad no desaparece.\n- **Obtenido:** ${safe(observacionBreve(r, 'UI-184-01'))}. Las respuestas filtradas del dashboard fueron HTTP 200 y la API incluyó el área en resumen_unidades.\n- **Evidencia:** ${evidencia03}; [Newman](newman/newman-G93.json). Discrepancia UI confirmada en TEST; causa técnica NO CONFIRMADA.\n- **Impacto y severidad:** MEDIA. El Productor no ve la unidad en el panel, aunque puede recuperarse por la API; el alcance comprobado es esta variante.\n- **Equipo inicial:** Desarrollo. La primera discrepancia está en la interfaz con respuesta API correcta; no se atribuye causa raíz.\n- **Relación:** issue #779 / PR #452; solicitar reapertura o seguimiento de corrección incompleta de la UI.\n- **Hipótesis por lectura local:** \`SGPMP-FRONT-END-PWA/src/telemetry/pages/MonitoreoView.tsx:208-214\` muestra el mensaje cuando \`sensores.length === 0 && !error\` antes de los grupos con \`UnidadCard\` (líneas 215-230); \`src/telemetry/components/UnidadCard.tsx:4\` registra INC-M03-205-G93. Esto orienta la investigación y no prueba qué código exacto se desplegó en TEST.\n\n**Reproducción y acción correctiva:**\n\n1. Abrir Monitoreo como Productor con el área #${safe(r.datos?.id_area_v1)} sin sensores.\n2. Seleccionar el área en el filtro.\n3. Comparar la tarjeta ausente, los KPI y el mensaje con \`GET /iot/monitoreo/dashboard?id_infraestructura=${safe(r.datos?.id_area_v1)}\`.\n4. Revisar la rama de render, mostrar la tarjeta aunque la lista de sensores esté vacía y repetir la comprobación API/UI en un RUN autorizado.`] : []),
+  ].join('\n\n');
+  const evidencias = r.evidencias.filter(x => x !== 'resultado.json' && fs.existsSync(path.join(r.directorio, x)))
+    .map(x => `- [${x}](${x})`).join('\n') || '- Ninguna generada.';
+  const rollback = r.cierre.rollback.comprobaciones.map(x =>
+    `| ${safe(x.recurso)} | ${safe(x.http)} | ${x.ok ? 'Sí' : 'No'} |`).join('\n') || '| Sin comprobaciones | NO CONSTA | No |';
+  const tecnico = r.problemas_tecnicos.map(x => `- ${safe(x)}`).join('\n') || '- Ninguno registrado.';
+  const dependencias = r.dependencias.map(x => `- ${safe(x)}`).join('\n') || '- Ninguna registrada.';
+  const decision = r.casos[CASO].estado;
+  const cuentas = Object.fromEntries(['APROBADO', 'RECHAZADO', 'BLOQUEADO', 'NO_CONCLUYENTE']
+    .map(estado => [estado, Number(decision === estado)]));
+  const marca = r.run_id?.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+  const fecha = marca ? `${marca[1]}-${marca[2]}-${marca[3]} ${marca[4]}:${marca[5]}:${marca[6]} (marca del RUN; zona no acreditada)` : 'NO_VERIFICADA';
+  let estadisticas;
+  try { estadisticas = JSON.parse(fs.readFileSync(path.join(r.directorio,
+    'newman/newman-G93.json'), 'utf8')).run?.stats; } catch { /* artefacto no disponible */ }
+  const v1 = r.casos[CASO].observado?.V1;
+  const v2 = r.casos[CASO].observado?.V2;
+  const estadosV2 = r.datos?.candidatas_v2?.find(x => x.id_infraestructura === v2?.id
+    && x.estados_conectividad)?.estados_conectividad;
+  const distribucionV2 = estadosV2
+    ? Object.entries(estadosV2).map(([estado, cantidad]) => `${cantidad} ${estado}`).join(' y ')
+    : 'distribución no registrada';
+  const pendientes = [...detalle.API, ...detalle.UI].filter(id =>
+    !['APROBADO', 'RECHAZADO'].includes(r.comprobaciones.find(x => x.id === id)?.estado));
+  const motivoDecision = inc03
+    ? `**${safe(decision)}.** API-184-01/02/03 y UI-184-02 cumplen; UI-184-01 incumple el oráculo: «la unidad no desaparece del panel» y «se muestra con estado GRIS y Sin datos disponibles». Con el área #${safe(r.datos?.id_area_v1)} seleccionada no aparece la tarjeta GRIS ni el mensaje de estado en la unidad. Los KPI en cero y el mensaje genérico no sustituyen esa presentación.`
+    : `**${safe(decision)}.** ${safe(r.casos[CASO].motivo)}. Revisar los estados de las cinco comprobaciones de este caso.`;
+  const falta = inc03
+    ? 'Corregir la presentación de la unidad nueva sin sensores y acreditar la tarjeta GRIS y el mensaje en una reevaluación API/UI autorizada; la causa raíz en TEST no está determinada.'
+    : pendientes.length ? `Faltan veredictos de ${pendientes.join(', ')}.` : 'No hay comprobaciones pendientes registradas en este RUN.';
+  const bitacora = r.bitacora?.length
+    ? `${r.bitacora.length} solicitudes directas registradas; ${r.bitacora.filter(x => x.en_run).length} dentro del RUN. El detalle saneado está en [resultado.json](resultado.json).`
+    : 'Sin solicitudes directas registradas en resultado.json.';
+  return `${bloqueDecisionCaso(r)}
+
+## 1. Identificación
+
+Proyecto SIGAB/SGPMP; módulo 3, RF-58/CU04, flujo alterno E1; grupo G93; caso ${CASO}; versión V${r.version}; ambiente TEST según el registro del RUN; fecha y hora ${fecha}; RUN ${safe(r.run_id)}; autorización ${safe(r.autorizacion)}. Rama NO_VERIFICADA; commit ${r.commit ?? 'NO_VERIFICADO'}. Node de regeneración ${process.version} (verificado localmente); versiones de Node, Newman, Cypress y Postman del RUN: NO_VERIFICADAS en los artefactos. Newman: ${r.newman.length} ejecución registrada, ${estadisticas?.requests?.total ?? 'NO CONSTA'} solicitudes y ${estadisticas?.assertions?.total ?? 'NO CONSTA'} aserciones. Cypress: ${r.cypress.total_pruebas} pruebas registradas.
+
+## 2. Resumen ejecutivo y decisión del grupo
+
+**Decisión del caso del grupo:** ${safe(decision)}. RUN ${r.oficial ? 'oficial' : 'no oficial'}; estado técnico ${safe(r.casos[CASO].estado_tecnico)}. Total 1 caso: aprobados ${cuentas.APROBADO}, rechazados ${cuentas.RECHAZADO}, bloqueados ${cuentas.BLOQUEADO} y no concluyentes ${cuentas.NO_CONCLUYENTE}. ${inc03 ? `La API mostró el área nueva #${safe(r.datos?.id_area_v1)} en GRIS y sin sensores; la UI omitió su tarjeta. La variante del área #${safe(r.datos?.id_area_v2)} sí mostró tarjeta GRIS, «Sin datos» y fecha histórica.` : `El motivo registrado para ${CASO} es: ${safe(r.casos[CASO].motivo)}.`} Estas son cinco comprobaciones de un mismo caso.
+
+| Caso | Funcional | Técnico |
+|---|---|---|
+| ${CASO} | ${safe(decision)} | ${safe(r.casos[CASO].estado_tecnico)} |
+
+## 3. Detalle por caso y comprobaciones API/UI
+
+### ${CASO}
+
+**Caso original y objetivo:** Verificar que una unidad sin lecturas se muestre en GRIS con el mensaje "Sin datos disponibles".
+
+**Precondiciones:** Cero lecturas válidas en el periodo esperado. Unidad autorizada recién creada sin lecturas y una segunda unidad con todos sus sensores sin señal. En el RUN: área #${safe(r.datos?.id_area_v1)} con ${safe(v1?.total_sensores)} sensores; área #${safe(r.datos?.id_area_v2)} con ${safe(v2?.total_sensores)} sensores (${distribucionV2}, según el registro de candidata).
+
+**Pasos ejecutados:** Se creó y consultó el área nueva; se consultó la segunda área con sensores sin datos actuales. Newman verificó ambas respuestas del dashboard; Cypress comprobó el panel global y la vista filtrada de ambas variantes. Se consultó la restricción por finca y se verificó el cierre público del RUN.
+
+**Entradas:** \`GET /iot/monitoreo/dashboard?id_infraestructura=${safe(r.datos?.id_area_v1)}&pagina=1&por_pagina=50\`; \`GET /iot/monitoreo/dashboard?id_infraestructura=${safe(r.datos?.id_area_v2)}&pagina=1&por_pagina=50\`; filtros de Monitoreo para las áreas #${safe(r.datos?.id_area_v1)} y #${safe(r.datos?.id_area_v2)}.
+
+**Esperado:** ${ORACULO}
+
+**Observado por API pública:** ${datos.split('\n').filter(x => x.startsWith('- **API-')).map(x => x.slice(2)).join(' ')}
+
+**Observado por UI:** ${datos.split('\n').filter(x => x.startsWith('- **UI-')).map(x => x.slice(2)).join(' ')}
+
+**Decisión del caso:** ${motivoDecision}
+
+**Qué falta o cambió:** ${falta}
+
+| Comprobación | Tipo | Esperado | Observado | HTTP | Estado | Evidencia |
+|---|---|---|---|---|---|---|
+${filas}
+
+El spec registró \`filtro_aplicado_por_spec\` cuando añadió el ID a una petición inicial del frontend. La respuesta procede de la API real filtrada; la segunda vista utilizó el selector de la página. La matriz exige Cypress y Postman/Newman para ${CASO}.
+
+## 4. Incidencias y observaciones
+
+### Incidencias funcionales y antecedentes
+
+${incidencias}
+
+### RLS y decisiones QA
+
+**RLS-G93-01:** ${safe(r.rls?.estado ?? 'NO EJECUTADA')}; ${safe(r.rls?.motivo ?? 'sin observación')}; HTTP ${safe(r.rls?.http)}. Es una comprobación técnica, separada del oráculo del caso.
+
+Decisión QA 2026-10-25: en UI, «Sin datos» y «Sin datos disponibles» son equivalentes; INACTIVO acredita ausencia de señal. Decisión QA 2026-10-31: BUFFER_ACTIVO también acredita ausencia de señal en la variante 2 solo si todos los sensores están en SIN_SEÑAL, INACTIVO o BUFFER_ACTIVO y ninguno ACTIVO. La fecha histórica se exige solo si existe. ${r.observaciones_documentales?.length ? r.observaciones_documentales.map(safe).join(' ') : ''}
+
+### Problemas técnicos QA
+
+${tecnico}
+
+### Dependencias y rendimiento
+
+${dependencias}
+
+${r.hallazgos_rendimiento?.map(x => `- ${safe(x)}`).join('\n') || 'Sin hallazgos adicionales registrados.'}
+
+## 5. Análisis de fallos
+
+**Primer punto de discrepancia:** la API pública devolvió HTTP 200 e incluyó el área #${safe(r.datos?.id_area_v1)} en \`resumen_unidades\` con GRIS y cero sensores; Cypress registró HTTP 200 y mostró que su tarjeta no apareció en la interfaz. INC-03 se deriva inicialmente a Desarrollo por la presentación UI; la causa raíz de lo desplegado en TEST sigue NO DETERMINADA. **Hipótesis por lectura local anterior:** \`SGPMP-FRONT-END-PWA/src/telemetry/pages/MonitoreoView.tsx:208-230\` podría mostrar el estado vacío antes de renderizar \`UnidadCard\`; no se leyó el checkout frontend en esta orden ni se verificó su versión en TEST. INC-02 no se reprodujo con la sesión serializada y su explicación por concurrencia sigue como hipótesis. Código del producto consultado en esta orden: ninguna ruta; se leyeron la matriz, la referencia local RF-58/CU04 y las evidencias del RUN.
+
+## 6. Conclusiones y acciones
+
+${safe(decision)}: ${inc03 ? 'la API y UI-184-02 cumplieron, pero UI-184-01 no mostró la unidad nueva en GRIS con el mensaje requerido. Desarrollo debe atender INC-03 y comprobar la tarjeta en una reevaluación API/UI autorizada; relacionar el seguimiento con #779 / PR #452.' : safe(r.casos[CASO].motivo)} Responsable QA: cerrar documentalmente INC-01 en API y conservar INC-02 como no reproducida bajo estas condiciones. Esta edición documental no ejecutó pruebas ni cambia veredictos.
+
+## 7. Herramientas, evidencias, bitácora y rollback
+
+**Newman:** ${r.newman.length} ejecución registrada, ${estadisticas?.requests?.total ?? 'NO CONSTA'} solicitudes y ${estadisticas?.assertions?.total ?? 'NO CONSTA'} aserciones (${estadisticas?.assertions?.failed ?? 'NO CONSTA'} fallidas): [JSON](newman/newman-G93.json) y [HTML](newman/newman-G93-consolidado.html). **Cypress:** ${r.cypress.total_pruebas} pruebas; [acta V1](cypress/UI-184-V1.json), [captura V1](cypress/g93.cy.js/UI-184-V1.png), [acta V2](cypress/UI-184-V2.json) y [captura V2](cypress/g93.cy.js/UI-184-V2.png).
+
+**Evidencias existentes del RUN:**
+
+${evidencias}
+
+**Antecedentes:** ${[indiceAntecedentes, antecedenteApi6, antecedenteSesion6, antecedenteSesion7, antecedenteV2].filter(Boolean).join(', ')}; [captura del intento 6](api/antecedentes/intento-6-ui.png) y [captura del intento 7](api/antecedentes/intento-7-ui.png).
+
+**Bitácora resumida:** ${bitacora}
+
+**Cierre y rollback:** DELETE HTTP ${safe(r.cierre.run.cierre_http)}; rollback ${safe(r.cierre.rollback.estado)} con ${r.cierre.rollback.comprobaciones.filter(x => x.ok).length}/${r.cierre.rollback.comprobaciones.length} comprobaciones conformes. ${safe(r.cierre.motivo)}.
+
+| Recurso | HTTP | Conforme |
+|---|---|---|
+${rollback}
+
+El área #${safe(r.datos?.id_area_v1)} devolvió 404 tras el cierre; la lectura pública del dashboard y la semilla estable de la variante 2 quedaron conformes. No consta reversión de auditoría ni de posibles efectos externos en las evidencias de rollback.
+`;
 }
 
 // Punto único de serialización usado por el recorrido y por la regresión local.
@@ -753,6 +963,7 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
     }
   };
   let tokenAdmin, tokenProd, refreshCookie, snapshotV2;
+  let idV1 = null, nombreV1 = null, fechaV1 = null, idV2 = null, nombreV2 = null, fechaV2 = null;
   try {
     if (!previo.ok) fallo(`PREFLIGHT_LOCAL: ${previo.barreras.join(', ')}`);
     if (modoEnsayo === 'hijo') {
@@ -768,7 +979,27 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
     tokenAdmin = a.cuerpo.token; tokenProd = p.cuerpo.token; refreshCookie = extraerCookie(p.cookie);
     secretos.push(tokenAdmin, tokenProd, refreshCookie);
     t.abrir();
-    const get = (ruta, token = tokenProd) => t.solicitar('GET', ruta, { token });
+    const canarios = new Set();
+    const get = async (ruta, token = tokenProd) => {
+      const grande = /^\/iot\/monitoreo\/dashboard\?id_infraestructura=(\d+)&pagina=\d+&por_pagina=50$/.exec(ruta);
+      if (grande && !canarios.has(grande[1])) {
+        const id = grande[1];
+        const previo = await t.solicitar('GET', `/iot/monitoreo/dashboard?id_infraestructura=${id}&pagina=1&por_pagina=1`, { token });
+        const sensor = previo.cuerpo?.sensores?.[0];
+        const riesgo = sensor?.sin_umbral === true
+          || sensor?.estado_semaforo === 'GRIS' && sensor?.dato_desactualizado !== true;
+        r.datos.candidatas_v2.push({ id_infraestructura: Number(id), momento: 'canario_E7',
+          http: previo.http, seguro: previo.http === 200 && !riesgo });
+        exigir(previo.http === 200 && !riesgo, `E7_CANARIO_INSEGURO_${id}`);
+        canarios.add(id);
+      }
+      return t.solicitar('GET', ruta, { token });
+    };
+    const perfilAdmin = await get('/usuarios/me', tokenAdmin);
+    const perfilProd = await get('/usuarios/me', tokenProd);
+    exigir(perfilAdmin.http === 200 && perfilAdmin.cuerpo?.nombre_rol === 'Administrador'
+      && perfilProd.http === 200 && perfilProd.cuerpo?.nombre_rol === 'Productor',
+    'ROLES_NO_ACREDITADOS');
     // V1 y V2 son independientes. Un fallo de preparación de V1 no impide el descubrimiento de V2.
     try {
       const fincaP = await get('/configuracion/fincas/184');
@@ -787,45 +1018,9 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
           descripcion_infraestructura: 'QA TC-M03-184 sin sensores' } });
       exigir(alta.http === 201 && Number.isSafeInteger(Number(alta.cuerpo?.id_infraestructura)), 'PRE_ALTA_AREA_FALLIDA');
       const id = Number(alta.cuerpo.id_infraestructura); t.permitir(id); r.datos.id_area_v1 = id;
+      idV1 = id; nombreV1 = nombre;
       const alcance = await get(`/configuracion/infraestructuras/${id}`);
       exigir(alcance.http === 200 && Number(alcance.cuerpo?.id_infraestructura) === id, 'PRE_ALCANCE_PRODUCTOR_NO_ACREDITADO');
-      try {
-        const n = await runNewman(contrato, { fase: 'V1', id, base, token: tokenProd,
-          secreto: env.QA_SANDBOX_SECRET, secretos });
-        r.newman.push({ fase: 'V1', archivo: n.rel, http: n.http, fallos: n.fallos }); r.evidencias.push(n.rel);
-        exigir(n.eco === true, 'NEWMAN_ECO_RUN_AUSENTE');
-        const api = evaluarApi('V1', n, id);
-        const visibleV1 = n.http === 200 && (n.cuerpo?.resumen_unidades ?? [])
-          .some(x => Number(x.id_infraestructura) === id && x.estado_general === 'GRIS');
-        registrar(r, 'API-184-01', 'API', visibleV1 ? 'APROBADO' : 'RECHAZADO',
-          visibleV1 ? 'HTTP 200; unidad presente en resumen_unidades y GRIS' : api.motivo, n.rel);
-        const unidadV1 = (n.cuerpo?.resumen_unidades ?? []).find(x => Number(x.id_infraestructura) === id);
-        const limpioV1 = n.http === 200 && Boolean(unidadV1) && (n.cuerpo?.sensores ?? []).length === 0
-          && unidadV1.ultimo_dato_recibido == null;
-        registrar(r, 'API-184-02', 'API', limpioV1 ? 'APROBADO' : 'RECHAZADO',
-          !unidadV1 ? 'La unidad no figura; imposible acreditar ausencia de valores fabricados en su resumen'
-            : limpioV1 ? 'Cero sensores y último dato histórico nulo'
-              : 'Se observaron sensores o una fecha histórica impropia de una unidad recién creada', n.rel);
-        r.casos[CASO].observado.V1 = { http: n.http, id, api: api.motivo };
-        r.variantes.V1 = api.estado;
-      } catch (e) { errorEjecutor = true; r.problemas_tecnicos.push(`API V1: ${limpio(e.message, secretos)}`); r.variantes.V1 = 'NO_CONCLUYENTE'; }
-      const ui = await ejecutarUi({ fase: 'V1', id, nombre, fecha: null, base: API_FRONT_TEST,
-        front: env.SIGAB_FRONT_TEST_URL, cookie: refreshCookie, secreto: env.QA_SANDBOX_SECRET, secretos });
-      r.cypress.detalle.push({ fase: 'V1', ...ui });
-      r.cypress.total_pruebas += ui.ejecutadas ?? (ui.rel ? 1 : 0);
-      if (ui.proceso_fallido || ui.estado === 'ERROR_QA' && !ui.rel) errorEjecutor = true;
-      r.casos[CASO].observado.UI_V1 = { panel_global: ui.ui_inicial?.mensaje_ausencia ?? null,
-        vista_filtrada: ui.ui_objetivo?.mensaje_ausencia ?? null,
-        texto_estado_global: ui.ui_inicial?.texto_estado ?? null,
-        texto_estado_filtrado: ui.ui_objetivo?.texto_estado ?? null };
-      r.observaciones_documentales.push(...(ui.observaciones_documentales ?? []));
-      for (const incidencia of ui.incidencias_tecnicas ?? []) r.problemas_tecnicos.push(`UI V1: ${incidencia}`);
-      if (ui.estado === 'ERROR_QA' || ui.estado === 'NO_EJECUTADA') r.problemas_tecnicos.push(`UI V1: ${ui.motivo}`);
-      if (ui.estado === 'NO_CONCLUYENTE') r.hallazgos_rendimiento.push(`UI V1: ${ui.motivo}; diagnóstico pendiente, sin atribuir causa raíz`);
-      if (ui.pendiente_al_terminar) r.problemas_tecnicos.push('UI V1: petición sin respuesta observada al terminar el spec, posiblemente pendiente; DELETE posterior a la salida del proceso Cypress');
-      registrar(r, 'UI-184-01', 'UI', ui.estado, ui.motivo, ui.rel);
-      for (const rel of [ui.diagnostico_rel, ui.log_rel].filter(Boolean))
-        if (fs.existsSync(path.join(contrato.directorio, rel)) && !r.evidencias.includes(rel)) r.evidencias.push(rel);
     } catch (e) { r.problemas_tecnicos.push(`V1: ${limpio(e.message, secretos)}`); r.variantes.V1 = 'NO_CONCLUYENTE'; }
 
     try {
@@ -852,7 +1047,7 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
         if (!alternativas) {
           alternativas = [];
           r.datos.descubrimiento_v2 = [];
-          for (const estado of ['SIN_SEÑAL', 'INACTIVO']) {
+          for (const estado of ['SIN_SEÑAL', 'INACTIVO', 'BUFFER_ACTIVO']) {
             const ruta = `/iot/dispositivos?estado=${estado}`;
             const d = await get(ruta, tokenAdmin);
             r.datos.descubrimiento_v2.push({ ruta, http: d.http,
@@ -878,65 +1073,125 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
         return b.encontrada;
       };
       let encontrada = await siguiente();
-      while (encontrada && ejecucionesV2 < LIMITE.newman - 1) {
-        let { id } = encontrada;
-        let vigente = await revalidar(id, 'antes_newman');
-        if (!vigente) { encontrada = await siguiente(); continue; }
-        r.datos.id_area_v2 = id;
-        const detalle = await get(`/configuracion/infraestructuras/${id}`);
-        exigir(detalle.http === 200, 'PRE_DETALLE_V2_NO_DISPONIBLE');
-        snapshotV2 = Object.fromEntries(['id_infraestructura', 'nombre_infraestructura', 'id_finca', 'es_activo', 'especies']
-          .map(k => [k, detalle.cuerpo[k]]));
-        let n = null;
-        try {
-          n = await runNewman(contrato, { fase: 'V2', id, base, token: tokenProd,
-            secreto: env.QA_SANDBOX_SECRET, secretos });
-          ejecucionesV2++;
-          r.newman.push({ fase: 'V2', id_infraestructura: id, archivo: n.rel, http: n.http, fallos: n.fallos });
-          r.evidencias.push(n.rel);
-          exigir(n.eco === true, 'NEWMAN_ECO_RUN_AUSENTE');
-        } catch (e) { errorEjecutor = true; r.problemas_tecnicos.push(`API V2: ${limpio(e.message, secretos)}`); r.variantes.V2 = 'NO_CONCLUYENTE'; }
-        vigente = await revalidar(id, 'antes_cypress');
-        if (!vigente) {
-          r.casos[CASO].observado.V2 = { id, motivo: r.datos.candidatas_v2.at(-1).evento };
-          encontrada = await siguiente();
-          continue;
+      while (encontrada && !idV2) {
+        const vigente = await revalidar(encontrada.id, 'antes_newman');
+        if (vigente) {
+          idV2 = encontrada.id;
+          r.datos.id_area_v2 = idV2;
+          const unidad = vigente.pagina.cuerpo.resumen_unidades
+            .find(x => Number(x.id_infraestructura) === idV2);
+          nombreV2 = unidad.nombre_infraestructura;
+          fechaV2 = unidad.ultimo_dato_recibido ?? null;
+          const detalle = await get(`/configuracion/infraestructuras/${idV2}`);
+          exigir(detalle.http === 200, 'PRE_DETALLE_V2_NO_DISPONIBLE');
+          snapshotV2 = Object.fromEntries(['id_infraestructura', 'nombre_infraestructura', 'id_finca', 'es_activo', 'especies']
+            .map(k => [k, detalle.cuerpo[k]]));
+        } else encontrada = await siguiente();
+      }
+      if (!idV2) {
+        r.variantes.V2 = 'BLOQUEADO';
+        r.dependencias.push('V2: ninguna candidata elegible y estable entre las unidades revisadas; no se puede acreditar la variante con todos los sensores sin señal.');
+      }
+      r.datos.fincas_productor = idsFinca;
+    } catch (e) { r.problemas_tecnicos.push(`V2: ${limpio(e.message, secretos)}`); r.variantes.V2 = 'NO_CONCLUYENTE'; }
+    // Todas las comprobaciones API anteceden a cualquier Cypress.
+    if (idV1) {
+      try {
+        const canario = await get(`/iot/monitoreo/dashboard?id_infraestructura=${idV1}&pagina=1&por_pagina=1`);
+        const sensor = canario.cuerpo?.sensores?.[0];
+        exigir(canario.http === 200 && sensor?.sin_umbral !== true
+          && !(sensor?.estado_semaforo === 'GRIS' && sensor?.dato_desactualizado !== true),
+        'E7_CANARIO_V1_INSEGURO');
+      } catch (e) { errorEjecutor = true; r.problemas_tecnicos.push(`E7: ${limpio(e.message, secretos)}`); }
+    }
+    if ((idV1 || idV2) && !r.problemas_tecnicos.some(x => x.startsWith('E7:'))) {
+      try {
+        const n = await runNewman(contrato, { idV1, idV2, base, token: tokenProd,
+          secreto: env.QA_SANDBOX_SECRET, secretos });
+        r.newman.push({ archivo: n.rel, respuestas: n.respuestas.map(x => x.http), fallos: n.fallos });
+        r.evidencias.push(n.rel);
+        exigir(n.respuestas.every(x => x.eco), 'NEWMAN_ECO_RUN_AUSENTE');
+        let indice = 0;
+        if (idV1) {
+          const respuesta = n.respuestas[indice++];
+          const unidad = respuesta.cuerpo?.resumen_unidades?.find(x => Number(x.id_infraestructura) === idV1);
+          fechaV1 = unidad?.ultimo_dato_recibido ?? null;
+          const api = evaluarApi('V1', respuesta, idV1);
+          const visible = respuesta.http === 200 && unidad?.estado_general === 'GRIS';
+          registrar(r, 'API-184-01', 'API', visible ? 'APROBADO' : 'RECHAZADO',
+            visible ? 'HTTP 200; unidad presente y GRIS' : api.motivo, n.rel);
+          registrar(r, 'API-184-02', 'API', api.estado,
+            api.motivo, n.rel);
+          r.variantes.V1 = api.estado;
+          r.casos[CASO].observado.V1 = { http: respuesta.http, id: idV1,
+            total_sensores: unidad?.total_sensores ?? null, estado_general: unidad?.estado_general ?? null,
+            mensaje_estado: unidad?.mensaje_estado ?? null, ultimo_dato_recibido: unidad?.ultimo_dato_recibido ?? null };
         }
-        if (n?.eco === true) {
-          const api = evaluarApi('V2', n, id);
+        if (idV2) {
+          const respuesta = n.respuestas[indice++];
+          const api = evaluarApi('V2', respuesta, idV2);
           registrar(r, 'API-184-03', 'API', api.estado, api.motivo, n.rel);
-          r.casos[CASO].observado.V2 = { http: n.http, id, api: api.motivo };
           r.variantes.V2 = api.estado;
+          const unidad = respuesta.cuerpo?.resumen_unidades?.find(x => Number(x.id_infraestructura) === idV2);
+          fechaV2 = unidad?.ultimo_dato_recibido ?? null;
+          r.casos[CASO].observado.V2 = { http: respuesta.http, id: idV2,
+            total_sensores: unidad?.total_sensores ?? null, estado_general: unidad?.estado_general ?? null,
+            ultimo_dato_recibido: unidad?.ultimo_dato_recibido ?? null };
         }
-        const unidad = vigente.pagina.cuerpo.resumen_unidades.find(x => Number(x.id_infraestructura) === id);
+      } catch (e) { errorEjecutor = true; r.problemas_tecnicos.push(`NEWMAN: ${limpio(e.message, secretos)}`); }
+    }
+    // Observaci?n RLS separada del or?culo del caso; sin candidato queda NO_CONCLUYENTE.
+    r.rls = { id: 'RLS-G93-01', estado: 'NO_CONCLUYENTE', motivo: 'Sin unidad de otra finca identificada' };
+    try {
+      const dispositivos = await get('/iot/dispositivos?estado=INACTIVO', tokenAdmin);
+      if (dispositivos.http === 200 && Array.isArray(dispositivos.cuerpo)
+        && Array.isArray(r.datos.fincas_productor)) {
+        for (const id of [...new Set(dispositivos.cuerpo.map(x => Number(x.id_infraestructura))
+          .filter(x => Number.isSafeInteger(x) && x > 0))].slice(0, 3)) {
+          const area = await get(`/configuracion/infraestructuras/${id}`, tokenAdmin);
+          if (area.http !== 200 || r.datos.fincas_productor?.includes(Number(area.cuerpo?.id_finca))) continue;
+          const vista = await get(`/iot/monitoreo/dashboard?id_infraestructura=${id}&pagina=1&por_pagina=1`);
+          const visible = vista.cuerpo?.resumen_unidades?.some(x => Number(x.id_infraestructura) === id);
+          r.rls = { id: 'RLS-G93-01', id_infraestructura: id, http: vista.http,
+            estado: vista.http >= 500 ? 'ERROR_5XX'
+              : vista.http === 200 || vista.http === 403 ? visible ? 'NO_CUMPLE' : 'CUMPLE' : 'NO_CONCLUYENTE',
+            motivo: visible ? 'Productor ve unidad de finca no autorizada' : 'Unidad ajena ausente del resumen' };
+          break;
+        }
+      }
+    } catch (e) { r.problemas_tecnicos.push(`RLS-G93-01: ${limpio(e.message, secretos)}`); }
+    const ejecutarVista = async (fase, id, nombre, fecha, comprobacion) => {
+      if (!id) return;
+      try {
         exigir(refreshCookie, 'COOKIE_REFRESH_NO_DISPONIBLE');
-        const ui = await ejecutarUi({ fase: 'V2', id, nombre: unidad.nombre_infraestructura,
-          fecha: unidad.ultimo_dato_recibido, base: API_FRONT_TEST, front: env.SIGAB_FRONT_TEST_URL,
-          cookie: refreshCookie, secreto: env.QA_SANDBOX_SECRET, secretos });
-        r.cypress.detalle.push({ fase: 'V2', ...ui });
-        r.cypress.total_pruebas += ui.ejecutadas ?? (ui.rel ? 1 : 0);
-        if (ui.proceso_fallido || ui.estado === 'ERROR_QA' && !ui.rel) errorEjecutor = true;
-        r.casos[CASO].observado.UI_V2 = { panel_global: ui.ui_inicial?.mensaje_ausencia ?? null,
+        const ui = await ejecutarUi({ fase, id, nombre, fecha, base: API_FRONT_TEST,
+          front: env.SIGAB_FRONT_TEST_URL, cookie: refreshCookie, login: { token: tokenProd },
+          secreto: env.QA_SANDBOX_SECRET, secretos });
+        r.cypress.detalle.push({ fase, ...ui });
+        r.cypress.total_pruebas += ui.ejecutadas ?? 0;
+        if (ui.proceso_fallido) {
+          errorEjecutor = true;
+          r.problemas_tecnicos.push(`UI ${fase}: proceso Cypress ${ui.proceso ?? 'sin código'}; ${ui.motivo}`);
+        }
+        r.casos[CASO].observado[`UI_${fase}`] = {
+          panel_global: ui.ui_inicial?.mensaje_ausencia ?? null,
           vista_filtrada: ui.ui_objetivo?.mensaje_ausencia ?? null,
           texto_estado_global: ui.ui_inicial?.texto_estado ?? null,
-          texto_estado_filtrado: ui.ui_objetivo?.texto_estado ?? null };
+          texto_estado_filtrado: ui.ui_objetivo?.texto_estado ?? null,
+          gris: ui.ui_objetivo?.gris ?? null,
+          fecha_visible: ui.ui_objetivo?.fecha_visible ?? null,
+          sin_valores_fabricados: ui.ui_objetivo?.sin_valores_fabricados ?? null };
         r.observaciones_documentales.push(...(ui.observaciones_documentales ?? []));
-        for (const incidencia of ui.incidencias_tecnicas ?? []) r.problemas_tecnicos.push(`UI V2: ${incidencia}`);
-        if (ui.estado === 'ERROR_QA' || ui.estado === 'NO_EJECUTADA') r.problemas_tecnicos.push(`UI V2: ${ui.motivo}`);
-        if (ui.estado === 'NO_CONCLUYENTE') r.hallazgos_rendimiento.push(`UI V2: ${ui.motivo}; diagnóstico pendiente, sin atribuir causa raíz`);
-        if (ui.pendiente_al_terminar) r.problemas_tecnicos.push('UI V2: petición sin respuesta observada al terminar el spec, posiblemente pendiente; DELETE posterior a la salida del proceso Cypress');
-        registrar(r, 'UI-184-02', 'UI', ui.estado, ui.motivo, ui.rel);
+        if (!ui.proceso_fallido && ['ERROR_QA', 'NO_CONCLUYENTE'].includes(ui.estado))
+          r.problemas_tecnicos.push(`UI ${fase}: ${ui.motivo}`);
+        registrar(r, comprobacion, 'UI', ui.estado, ui.motivo, ui.rel);
         for (const rel of [ui.diagnostico_rel, ui.log_rel].filter(Boolean))
-          if (fs.existsSync(path.join(contrato.directorio, rel)) && !r.evidencias.includes(rel)) r.evidencias.push(rel);
-        break;
-      }
-      if (!r.comprobaciones.some(x => x.id === 'UI-184-02')) {
-        r.variantes.V2 = 'BLOQUEADO';
-        r.datos.id_area_v2 = null;
-        snapshotV2 = null;
-        r.dependencias.push('V2: ninguna candidata elegible o estable entre áreas 1, 2, 3 y hasta 10 áreas de dispositivos SIN_SEÑAL/INACTIVO; cambios de estado registrados; no se ejecuta UI sin elegibilidad revalidada.');
-      }
-    } catch (e) { r.problemas_tecnicos.push(`V2: ${limpio(e.message, secretos)}`); r.variantes.V2 = 'NO_CONCLUYENTE'; }
+          if (fs.existsSync(path.join(contrato.directorio, rel)) && !r.evidencias.includes(rel))
+            r.evidencias.push(rel);
+      } catch (e) { errorEjecutor = true; r.problemas_tecnicos.push(`UI ${fase}: ${limpio(e.message, secretos)}`); }
+    };
+    await ejecutarVista('V1', idV1, nombreV1, fechaV1, 'UI-184-01');
+    await ejecutarVista('V2', idV2, nombreV2, fechaV2, 'UI-184-02');
   } catch (e) { r.problemas_tecnicos.push(limpio(e.message, secretos)); }
   finally {
     if (t.estado().abierto) {
@@ -944,11 +1199,20 @@ export async function evaluar(contrato, { env = leerEnv(), fetcher = fetch, runN
         const fin = await t.solicitar('DELETE', `/test-control/runs/${contrato.runId}`, { cierre: true });
         r.cierre.run.cierre_http = fin.http;
         const revisiones = [];
+        if (fin.http === 200 && r.cypress.detalle.length > 0) {
+          const nuevoLogin = await t.solicitar('POST', '/sesiones/', { login: true,
+            cuerpo: { correo_electronico: env.QA_PROD_EMAIL, contrasena: env.QA_PROD_PASSWORD } });
+          exigir(nuevoLogin.http === 200 && nuevoLogin.cuerpo?.token, 'LOGIN_CIERRE_FALLIDO');
+          tokenProd = nuevoLogin.cuerpo.token;
+          secretos.push(tokenProd);
+        }
         if (fin.http === 200 && tokenAdmin && r.datos.id_area_v1) {
           const area = await t.solicitar('GET', `/configuracion/infraestructuras/${r.datos.id_area_v1}`, { token: tokenAdmin });
           revisiones.push({ recurso: 'area_v1', http: area.http, ok: area.http === 404 });
           if (area.http === 404) {
-            const dashboard = await t.solicitar('GET', `/iot/monitoreo/dashboard/${r.datos.id_area_v1}?pagina=1&por_pagina=50`, { token: tokenProd });
+            const dashboard = await t.solicitar('GET',
+              `/iot/monitoreo/dashboard?id_infraestructura=${r.datos.id_area_v1}&pagina=1&por_pagina=50`,
+              { token: tokenProd });
             revisiones.push({ recurso: 'dashboard_area_v1', http: dashboard.http,
               ok: dashboard.http === 200 && dashboard.cuerpo?.total === 0
                 && dashboard.cuerpo?.resumen_unidades?.length === 0 });

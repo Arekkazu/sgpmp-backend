@@ -1,0 +1,26 @@
+{
+  "grupo": "G068",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G068-V2-20261101-033408",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G068-V2-20261101",
+  "casos": [
+    "TC-M04-210",
+    "TC-M04-211",
+    "TC-M04-245"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-210",
+      "TC-M04-211",
+      "TC-M04-245"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M04-245, con regresión de 210 y 211, tras la corrección de Desarrollo (issue #863, PR #871, presente en test). resultado_inferencia_adapter.py consulta el estado vigente del activo, y el caso de uso rechaza un activo en BAJA con 422 ACTIVO_EN_BAJA antes de persistir (código local: registrar_retroalimentacion_use_case.py:110). RLS del historial corregida en TEST (migración 7efe47d6c76a, #869; confirmado en G067 V2). ORD-G068-008: 245 exige la baja acreditada y el rechazo sin persistencia; 422 ACTIVO_EN_BAJA esperado; otro 4xx completo aprueba con observación; timeout de 120 s en los POST y conciliación sin reintento; informe por caso; citas de RF-72 verificadas en Especificacion-Requerimientos-Modulo4 (1).md (4112-4113, 4161, 4234-4239). Validación: prueba local OK; ensayo real del responsable QA 49/49 (presupuesto 59, Newman único verificado). SHA-256 g068.mjs a8a41b92c9da7c2de09a7c0c0a9a63710bf9e966612882e9d56a3b56da4087d8; lib/g068_core.mjs 3373914d91b9d08ce6bd008db201cb4fda39d0b0db892b235366a4c241c5bf56; colección 1ab1bc14556ec2fe75abfd40a3d63aa0b651dce83c9c7da56f04e05087055cc0.",
+    "incumplimientos_previos": "V1 oficial RUN-G068-V1-20261029-121139: RECHAZADO solo por TC-M04-245 (INC-M04-G068-245-01, Desarrollo, MEDIA): con el 885 en BAJA dentro del sandbox, la retroalimentación sobre f056f99d se aceptó con 201 y RETROALIMENTACION_REGISTRADA. 210 (404 RESULTADO_INFERENCIA_NO_ENCONTRADO) y 211 (422 ACTIVO_BIOLOGICO_INCONSISTENTE) APROBADO.",
+    "correcciones_informadas": "Desarrollo, issue #863 / PR #871: activo vigente en BAJA → 422 ACTIVO_EN_BAJA, identificando id_activo_biologico, antes de guardar o de auditar el éxito; se conservan 404 RESULTADO_INFERENCIA_NO_ENCONTRADO y 422 ACTIVO_BIOLOGICO_INCONSISTENTE.",
+    "resultado_esperado": "245 APROBADO: con la baja acreditada, rechazo (422 ACTIVO_EN_BAJA esperado) sin retroalimentación ni RETROALIMENTACION_REGISTRADA. 210 APROBADO: 404 con el significado de E1. 211 APROBADO: rechazo por activo no correspondiente, sin registro. Tras el DELETE, el 885 vuelve a ACTIVO. INC-M04-G068-245-01 CORREGIDA si se cumple."
+  },
+  "version_anterior": 1
+}

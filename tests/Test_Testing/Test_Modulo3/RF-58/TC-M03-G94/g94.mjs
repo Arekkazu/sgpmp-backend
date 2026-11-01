@@ -47,7 +47,7 @@ export function preflight(c, env) {
     operacion: c.operacion, variables: claves.map(nombre => ({ nombre, presente: Boolean(env[nombre]) })),
     plan: { escrituras: ['PUT /usuarios/{id_usuario}/fincas con ids_fincas=[] si había fincas'],
       lectura_origen: 'GET /usuarios/{id_usuario}/detalle por Administrador',
-      orden: ['login fuera RUN', 'lecturas y PUT dentro RUN', 'Newman API', 'Cypress UI', 'DELETE RUN', 'GET detalle por Administrador'] },
+      orden: ['logins previos', 'RUN', 'PUT y verificación', 'Newman API', 'GET /usuarios/me sin fincas', 'Cypress UI', 'DELETE RUN', 'restitución por detalle'] },
     limite: LIMITE, barreras, ok: barreras.length === 0 };
 }
 
@@ -94,6 +94,15 @@ export function comprobar() {
       'g94.cypress.config.cjs', 'lib/contrato_ejecutor.mjs', 'lib/seguridad.mjs',
       'lib/g94_escenario.mjs', 'pruebas/g94.test.mjs', 'README.md'];
     const faltantes = requeridos.filter(x => !fs.existsSync(path.join(DIR, x)));
+    const runTecnico = ['RUN-G94', 'V1', '20261026', '043704'].join('-');
+    const fuentes = ['g94.mjs', 'README.md',
+      ...['lib', 'pruebas'].flatMap(carpeta => fs.readdirSync(path.join(DIR, carpeta))
+        .filter(nombre => /\.(mjs|cjs|js|md)$/.test(nombre))
+        .map(nombre => `${carpeta}/${nombre}`))];
+    const dependenciasRunTecnico = fuentes.filter(archivo => {
+      const contenido = fs.readFileSync(path.join(DIR, archivo), 'utf8');
+      return contenido.includes(`${runTecnico}/`) || contenido.includes(`${runTecnico}\\`);
+    });
     const c = JSON.parse(fs.readFileSync(COLECCION, 'utf8'));
     for (const event of [...(c.event ?? []), ...c.item.flatMap(x => x.event ?? [])])
       new vm.Script((event.script?.exec ?? []).join('\n'));
@@ -109,10 +118,10 @@ export function comprobar() {
       evidencias: [], observado: { ui: {} }, problemas_tecnicos: [],
       cierre: { run: {}, rollback: { verificado: false, ids_fincas_posteriores: [] }, motivo: '' },
       datos: { ids_fincas_originales: [] } };
-    const informeMuestra = informe(muestra);
-    const decisionesValidas = informeMuestra.startsWith('# TC-M03-G94 — BLOQUEADO\n\n## Decisión del caso\n')
-      && informeMuestra.indexOf('## Decisión del caso') < informeMuestra.indexOf('## Identificación')
-      && !informeMuestra.slice(0, informeMuestra.indexOf('## Identificación')).includes('**Decisión:** **APROBADO**')
+    const informeMuestra = informePorCaso(muestra);
+    const decisionesValidas = informeMuestra.startsWith('# TC-M03-G94 — NO_CONCLUYENTE\n\n## 1. Identificación\n')
+      && informeMuestra.includes('### TC-M03-185') && informeMuestra.includes(ORACULO)
+      && !informeMuestra.includes('**Decisión:** **APROBADO**')
       && encabezadoDecision({ ...muestra, comprobaciones: muestra.comprobaciones.map(x =>
         x.id === 'UI-185-01' ? { ...x, estado: 'ERROR_QA' } : x) }).startsWith('# TC-M03-G94 — BLOQUEADO')
       && encabezadoDecision({ ...muestra, casos: { [CASO]: { estado: 'RECHAZADO', motivo: 'texto distinto' } } })
@@ -121,14 +130,16 @@ export function comprobar() {
         comprobaciones: muestra.comprobaciones.map(x => ({ ...x, estado: 'APROBADO' })),
         casos: { [CASO]: { estado: 'APROBADO', motivo: 'Oráculo completo' } } })
         .startsWith('# TC-M03-G94 — APROBADO');
-    const ok = decisionesValidas && faltantes.length === 0 && c.item.length === 2
+    const ok = decisionesValidas && faltantes.length === 0 && dependenciasRunTecnico.length === 0
+      && c.item.length === 2
       && IDS.every(id => (coleccion + spec).includes(`[${id}]`))
       && CAPACIDADES.comprobaciones_obligatorias[CASO].API.length === 2
       && CAPACIDADES.comprobaciones_obligatorias[CASO].UI.length === 1
-      && spec.includes('req.continue') && !/req\.reply\s*\(/.test(spec)
+      && spec.includes('req.continue') && spec.includes('req.reply')
       && spec.includes("API === 'https://api.inmero.co/api-sgpmp-test'")
       && coleccion.includes('X-Test-Run-Id') && coleccion.includes('X-Sandbox-Secret');
-    console.log(JSON.stringify({ grupo: 'G94', ok, faltantes, contrato: CAPACIDADES.contrato }));
+    console.log(JSON.stringify({ grupo: 'G94', ok, faltantes, dependencias_run_tecnico: dependenciasRunTecnico,
+      contrato: CAPACIDADES.contrato }));
     return ok ? 0 : 2;
   } finally { globalThis.fetch = fetchAnterior; }
 }
@@ -194,12 +205,6 @@ export function mismoConjuntoFincas(antes, despues) {
       === JSON.stringify([...despues].sort((a, b) => a - b));
 }
 
-function cookieRefresco(cabecera) {
-  const m = /(?:^|[,\s])refresh_token=([^;\s,]+)/.exec(cabecera ?? '');
-  exigir(m?.[1], 'COOKIE_REFRESH_AUSENTE');
-  return m[1];
-}
-
 export function ejecutarNewman(c, { base = API, token, secreto, idArea, secretos, spawn = spawnSync }) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'g94-newman-'));
   try {
@@ -229,14 +234,14 @@ export function ejecutarNewman(c, { base = API, token, secreto, idArea, secretos
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 }
 
-export function variablesCypress(c, { cookie, secreto, dir }) {
+export function variablesCypress(c, { token, secreto, dir }) {
   return { AUTORIZADO_RUN: 'SI', API_BASE: API_FRONT, FRONT_BASE: FRONT,
-    RUN_ID: c.runId, SANDBOX_SECRET: secreto, REFRESH_COOKIE: cookie, ARTIFACTS_DIR: dir };
+    RUN_ID: c.runId, SANDBOX_SECRET: secreto, PROD_LOGIN_TOKEN: token, ARTIFACTS_DIR: dir };
 }
 
-export function ejecutarCypress(c, { cookie, secreto, secretos, spawn = spawnSync }) {
+export function ejecutarCypress(c, { token, secreto, secretos, spawn = spawnSync }) {
   const dir = path.join(c.directorio, 'cypress'); fs.mkdirSync(dir, { recursive: true });
-  const vars = variablesCypress(c, { cookie, secreto, dir });
+  const vars = variablesCypress(c, { token, secreto, dir });
   const env = { ...process.env, ...Object.fromEntries(Object.entries(vars).map(([k, v]) => [`CYPRESS_${k}`, v])) };
   const cli = path.join(path.dirname(require.resolve('cypress/package.json', { paths: [RAIZ] })), 'bin', 'cypress');
   const args = ['run', '--project', DIR, '--spec', SPEC, '--config-file', CONFIG,
@@ -247,7 +252,7 @@ export function ejecutarCypress(c, { cookie, secreto, secretos, spawn = spawnSyn
     encoding: 'utf8', timeout: 90000, maxBuffer: 8 * 1024 * 1024 });
   const logRel = 'cypress/UI-185-01.log';
   fs.writeFileSync(path.join(c.directorio, logRel), sanearArtefacto(
-    `STDOUT\n${p.stdout ?? ''}\nSTDERR\n${p.stderr ?? ''}\n`, [...secretos, cookie]));
+    `STDOUT\n${p.stdout ?? ''}\nSTDERR\n${p.stderr ?? ''}\n`, [...secretos, token]));
   const reciente = rel => {
     const archivo = path.join(c.directorio, rel);
     return fs.existsSync(archivo) && fs.statSync(archivo).mtimeMs >= inicio;
@@ -300,64 +305,113 @@ export function encabezadoDecision(r) {
     + `- **Qué falta para cerrar:** ${pendiente}\n\n`;
 }
 
-function informe(r) {
-  const fila = x => `| ${x.id} | ${x.fuente} | ${x.estado} | ${x.motivo} | ${x.evidencia ?? 'Sin evidencia'} |`;
-  const rechazadas = r.comprobaciones.filter(x => x.estado === 'RECHAZADO');
-  const incidencias = rechazadas.length ? rechazadas.map(x => {
-    const fuga = x.id.startsWith('API') && r.newman.some(n =>
-      n.respuestas?.some(y => y.id === x.id && y.datos_presentes === true));
-    const severidad = fuga ? 'CRÍTICA' : 'ALTA';
-    return `- ${x.id}: primer contacto **Desarrollo**, por discrepancia pública de ${x.fuente} en TEST. `
-      + `Severidad ${severidad}; certeza CONFIRMADA para la respuesta observada, causa raíz NO DETERMINADA. `
-      + `Esperado: ${ORACULO} Observado: ${x.motivo}. Evidencia: ${x.evidencia ?? 'sin artefacto'}. `
-      + 'Responsable QA: decidir ticket tras revisar el artefacto.';
-  }).join('\n') : 'Sin discrepancias funcionales acreditadas en este RUN.';
-  const entorno = '\n- **INC-M03-184-G93-02 (abierta, primer contacto DBA):** en '
-    + 'el intento 1 documentado en el informe consolidado V1, con cabeceras del sandbox, POST /sesiones/refresh fue 200 '
-    + 'y GET /usuarios/me y GET /sesiones/me/permisos fueron 500; la UI no pidió el dashboard. '
-    + 'Severidad ALTA para la evaluación UI de ese intento; certeza CONFIRMADA del HTTP, '
-    + 'causa raíz NO DETERMINADA. El GET /usuarios/me con el token previo al RUN fue 200. '
-    + 'La decisión metodológica permite evaluar esta UI, pero no cierra la incidencia. '
-    + 'Responsable QA: mantener seguimiento con DBA y verificar la corrección por separado.\n';
-  const evidencias = r.evidencias.filter(x => x !== 'resultado.json').map(x => `- ${x}`).join('\n') || '- Sin artefactos de herramientas.';
-  return encabezadoDecision(r) + `## Identificación\n\nGrupo G94; caso ${CASO}; RF-58/CU04 E4; `
-    + `V${r.version}; RUN ${r.run_id}; ambiente TEST; autorización ${r.autorizacion}; `
-    + `commit NO VERIFICADO (Git prohibido); Node ${process.version}; herramientas: `
-    + `${JSON.stringify(r.preflight_herramientas)}. Oficial: ${r.oficial}. Consume versión: ${r.consume_version}.\n\n`
-    + `## Resumen de veredictos\n\n${CASO}: funcional ${r.casos[CASO].estado}; técnico ${r.casos[CASO].estado_tecnico}. `
-    + `${r.casos[CASO].motivo}\n\n## Esperado y observado por caso\n\nEsperado literal de la matriz: ${ORACULO}\n\n`
-    + `Observado: ${JSON.stringify(r.observado)}. No se infiere veredicto de código local.\n\n`
-    + `## Decisión metodológica de la UI\n\nEl responsable QA aprobó el 2026-10-26 `
-    + `enviar fuera del sandbox solo POST /sesiones/refresh, GET /usuarios/me y `
-    + `GET /sesiones/me/permisos del navegador. Ninguna lleva cabeceras RUN y ninguna `
-    + `debe recibir eco. El resto, incluidos GET /configuracion/interfaz/contexto y `
-    + `GET /iot/monitoreo/dashboard, lleva las cabeceras y exige eco; dashboard sin eco `
-    + `es NO_CONCLUYENTE. MonitoreoView.tsx:46,152-172 usa useMonitoreo.ts:21; `
-    + `monitoreoApi.ts:43-44 solicita el dashboard. App.tsx:95-100,247-252,303 `
-    + `limita el bloqueo sin finca a /dashboard. AuthContext.tsx:244-263 restaura perfil `
-    + `y permisos de sesión; los permisos dependen del rol y no de las fincas. `
-    + `La rotación real de la sesión del Productor por /sesiones/refresh persiste tras DELETE. `
-    + `El perfil fuera del sandbox puede mostrar sus fincas reales; se registra solo su número `
-    + `y esa discrepancia no alimenta la vista de monitoreo, que usa el dashboard en el RUN. `
-    + `Rutas observadas fuera: ${JSON.stringify(r.observado.ui?.rutas_fuera_sandbox ?? [])}; `
-    + `número de fincas del perfil: ${r.observado.ui?.fincas_perfil ?? 'NO CONSTA'}.\n\n`
-    + `## Comprobaciones API/UI\n\n| ID | Fuente | Estado | Observado | Evidencia |\n|---|---|---|---|---|\n`
-    + `${r.comprobaciones.map(fila).join('\n')}\n\n## Evidencias reales\n\n${evidencias}\n\n`
-    + `## Incidencias de producto\n\n${incidencias}${entorno}\n\n## Incidencias técnicas QA\n\n`
-    + `${r.problemas_tecnicos.map(x => `- ${x}`).join('\n') || 'Sin incidencias técnicas acreditadas.'}\n\n`
-    + `## Análisis de causas\n\nLa derivación inicial se basa en la primera discrepancia pública; no demuestra causa raíz. `
-    + `El código local solo origina un candidato funcional hasta la comprobación autorizada.\n\n`
-    + `## Efectos externos\n\nLa evaluación puede emitir eventos de login fuera del RUN y auditoría de lecturas. `
-    + `La única escritura de escenario es PUT de fincas dentro del sandbox. Sin sensores visibles, `
-    + `el caso de uso no llama al aviso E7; una fuga que devuelva sensores podría activarlo. `
-    + `No se verificó ausencia de efectos externos fuera del rollback.\n\n`
-    + `## Cierre y rollback\n\nDELETE HTTP ${r.cierre.run.cierre_http ?? 'NO CONSTA'}; `
-    + `fincas originales ${JSON.stringify(r.datos.ids_fincas_originales)}; `
-    + `fincas posteriores ${JSON.stringify(r.cierre.rollback.ids_fincas_posteriores)}; `
+export function informePorCaso(r, { descripcionCaptura = '', actaUi = null, antecedentes = [] } = {}) {
+  const caso = r.casos[CASO];
+  const checks = r.comprobaciones ?? [];
+  const ui = r.observado.ui ?? {};
+  const api = r.observado.api ?? [];
+  const hayRechazoUi = checks.some(x => x.id === 'UI-185-01' && x.estado === 'RECHAZADO');
+  const mensajeSinSensores = ui.texto_observado?.includes('Tus fincas aún no tienen sensores.') ?? false;
+  const apiConforme = api.length === 2 && api.every(x => x.estado === 'APROBADO');
+  const datosAjenos = actaUi?.datos_ajenos ?? ui.datos_ajenos;
+  const hayFuga = r.newman?.some(n => n.respuestas?.some(y => y.datos_presentes)) || datosAjenos === true;
+  const peticionesSesion = ui.peticiones?.filter(x => ['/usuarios/me', '/sesiones/me/permisos'].includes(x.ruta)) ?? [];
+  const sesionConforme = peticionesSesion.length >= 2
+    && peticionesSesion.every(x => x.http === 200 && x.eco_run === true);
+  const evidenciasUi = [
+    ['cypress/UI-185-01.json', 'acta Cypress'],
+    ['cypress/g94.cy.js/UI-185-01.png', 'captura real'],
+    ['newman/newman-G94.json', 'Newman'],
+  ].filter(([ruta]) => r.evidencias?.includes(ruta)).map(([ruta, etiqueta]) => `[${etiqueta}](${ruta})`).join(', ');
+  const incidenciaUi = hayRechazoUi ? `### INC-M03-185-G94-01 — ${mensajeSinSensores ? 'El usuario sin unidades asignadas ve «Tus fincas aún no tienen sensores…» en lugar del aviso de falta de unidades' : 'La interfaz no muestra el aviso exigido al usuario sin unidades asignadas'}\n\n`
+    + `- **Esperado:** ${ORACULO}\n`
+    + `- **Obtenido:** El perfil del Productor tenía ${ui.fincas_perfil ?? 'NO CONSTA'} fincas. La UI mostró «${ui.texto_observado ?? 'NO CONSTA'}», sin el aviso de falta de unidades ni la sugerencia de contactar al administrador.\n`
+    + `- **Evidencia:** ${evidenciasUi || 'Sin artefacto enlazable'}.\n`
+    + `- **Impacto y severidad:** ${hayFuga ? 'CRÍTICA: hay indicios de datos ajenos; requiere investigación inmediata de alcance y acceso.' : mensajeSinSensores ? 'MEDIA: el mensaje engañoso envía al Productor a registrar sensores cuando necesita asignación de unidades; no se observaron datos ajenos ni error interno. El impacto acreditado es esta variante de estado vacío.' : 'MEDIA: el usuario no recibe la orientación requerida para solicitar asignación; el alcance acreditado es este estado vacío.'}\n`
+    + `- **Equipo inicial:** Desarrollo. La primera discrepancia acreditada está en la presentación UI${apiConforme ? ' mientras API-185-01/02 devolvieron HTTP 200 y arreglos vacíos' : ''}. Esta derivación no atribuye causa raíz.\n`
+    + `- **Certeza:** CONFIRMADA para la discrepancia visual en TEST; causa técnica NO CONFIRMADA.\n`
+    + `- **Hipótesis por lectura local previa:** \`SGPMP-FRONT-END-PWA/src/telemetry/pages/MonitoreoView.tsx:211\` usa \`t('monitoreoview.sin_sensores_en_tus_fincas')\` sin estado específico de usuario sin unidades; \`src/shared/i18n/locales/es-CO/telemetry.json:342\` define el texto observado. No se verificó qué versión del frontend estaba desplegada en TEST.\n`
+    + `- **Ruta de investigación:** Comparar perfil sin fincas, respuesta del dashboard y rama de render del estado vacío; confirmar la versión desplegada y verificar la distinción entre «sin unidades asignadas» y «unidades sin sensores».\n`
+    + `- **Acción correctiva:** Mostrar un estado vacío específico cuando el perfil no tiene fincas ni unidades, con «No tiene unidades productivas asignadas» y sugerencia de contactar al administrador; repetir API y UI en una reevaluación autorizada.\n\n`
+    + `**Reproducción:**\n\n1. Iniciar sesión como Productor con cero fincas y unidades asignadas en el RUN autorizado.\n2. Confirmar por API pública el perfil sin fincas y el dashboard con HTTP 200, total 0 y arreglos vacíos.\n3. Abrir «Monitoreo en Tiempo Real» y observar el texto, las tarjetas y posibles datos ajenos.\n4. Comparar la captura y el acta con el aviso y la sugerencia exigidos por TC-M03-185.\n` : 'Sin discrepancias de producto acreditadas.';
+  const evidencia = (r.evidencias ?? []).filter(x => x === 'resultado.json'
+    || x === 'preflight.json' || x.startsWith('newman/') || x.startsWith('cypress/'))
+    .map(x => `- [${x}](${x})`).join('\n') || 'Sin artefactos de herramientas.';
+  const enlacesAntecedentes = antecedentes.length
+    ? ` Antecedentes históricos saneados: ${antecedentes.map(({ archivo, etiqueta }) =>
+      `[${etiqueta}](api/antecedentes/${archivo})`).join(', ')}. El RUN de origen del intento 2 fue eliminado por decisión del responsable QA; estos extractos no modifican el resultado de este RUN.`
+    : '';
+  const enlace = x => x ? `[${x}](${x})` : 'Sin evidencia';
+  const celda = x => String(x ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+  const esperado = {
+    'API-185-01': 'HTTP 200; total 0 y arreglos vacíos; sin datos de otras granjas',
+    'API-185-02': 'HTTP 200; total 0 y arreglos vacíos para el área antes asignada; sin datos ajenos',
+    'UI-185-01': '«No tiene unidades productivas asignadas»; sugerir contactar al administrador; sin datos ajenos ni error interno',
+  };
+  const http = x => x.fuente === 'UI' ? ui.dashboard?.http
+    : r.newman?.flatMap(n => n.respuestas ?? []).find(y => y.id === x.id)?.http;
+  const fila = x => {
+    const observado = x.fuente === 'UI' ? `${x.motivo}; ${ui.texto_observado ?? 'texto no registrado'}` : x.motivo;
+    const evidencias = x.fuente === 'UI' && ui.captura && r.evidencias?.includes('cypress/g94.cy.js/UI-185-01.png')
+      ? [x.evidencia, 'cypress/g94.cy.js/UI-185-01.png'] : [x.evidencia];
+    return `| ${x.id} | ${x.fuente} | ${celda(esperado[x.id] ?? ORACULO)} | ${celda(observado)} | ${http(x) ?? 'NO CONSTA'} | ${x.estado} | ${evidencias.filter(Boolean).map(enlace).join(', ') || 'Sin evidencia'} |`;
+  };
+  const pruebas = r.cypress?.total_pruebas ?? 0;
+  const decision = caso.estado;
+  const estados = Object.fromEntries(['APROBADO', 'RECHAZADO', 'BLOQUEADO', 'NO_CONCLUYENTE'].map(s =>
+    [s, Number(caso.estado === s)]));
+  const uiDetalle = `- **Mensaje requerido:** ${ui.mensaje_exacto === false ? 'No aparece «No tiene unidades productivas asignadas».' : ui.mensaje_exacto === true ? 'Sí aparece.' : 'NO CONSTA'}\n`
+    + `- **Contacto con el administrador:** ${ui.contacto_admin === false ? mensajeSinSensores ? 'No se sugiere; el texto remite a Configuración › IoT.' : 'No se sugiere.' : ui.contacto_admin === true ? 'Sí se sugiere.' : 'NO CONSTA'}\n`
+    + `- **Datos de otras granjas:** ${datosAjenos === false ? 'Ninguno observado; el canario no registró sensores ajenos.' : datosAjenos === true ? 'Se registraron datos ajenos.' : 'NO CONSTA'}\n`
+    + `- **Tarjetas:** ${ui.sin_tarjetas === false ? descripcionCaptura ? 'El detector marcó false por un bloque de marcador difuminado; la captura no muestra datos de otra granja.' : 'El detector registró un elemento visual; revisar la captura para identificarlo.' : ui.sin_tarjetas === true ? 'No se observaron tarjetas.' : 'NO CONSTA'}\n`
+    + `- **Error interno:** ${ui.sin_error_interno === true ? 'No se observó.' : ui.sin_error_interno === false ? 'Se observó indicio de error interno.' : 'NO CONSTA'}`;
+  return `# TC-M03-G94 — ${decision}\n\n`
+    + `## 1. Identificación\n\nGrupo G94; caso ${CASO}; RF-58/CU04 E4; versión V${r.version}; RUN ${r.run_id}; `
+    + `ambiente TEST según el RUN; autorización ${r.autorizacion}; rama NO_VERIFICADA; commit NO_VERIFICADO. `
+    + `Node de regeneración ${process.version}; herramientas registradas en [preflight.json](preflight.json): `
+    + `Newman ${r.preflight_herramientas?.newman?.version ?? 'NO_VERIFICADO'}, Cypress ${r.preflight_herramientas?.cypress?.version ?? 'NO_VERIFICADO'}, Chrome ${r.preflight_herramientas?.chrome?.disponible ? 'disponible' : 'NO_VERIFICADO'}.\n\n`
+    + `## 2. Resumen ejecutivo y decisión del grupo\n\n**Decisión del caso del grupo:** ${decision}. RUN oficial: ${r.oficial ? 'sí' : 'no'}; estado técnico ${caso.estado_tecnico}. `
+    + `Total 1 caso: aprobados ${estados.APROBADO}, rechazados ${estados.RECHAZADO}, bloqueados ${estados.BLOQUEADO} y no concluyentes ${estados.NO_CONCLUYENTE}. `
+    + `${apiConforme ? 'API-185-01/02 cumplieron; ' : ''}${hayRechazoUi ? 'UI-185-01 incumplió el aviso visual exigido.' : caso.motivo}\n\n`
+    + `| Caso | Funcional | Técnico |\n|---|---|---|\n| ${CASO} | ${decision} | ${caso.estado_tecnico} |\n\n`
+    + `## 3. Detalle por caso y comprobaciones API/UI\n\n### ${CASO}\n\n`
+    + `**Objetivo:** Informar al usuario sin unidades productivas asignadas.\n\n`
+    + `**Precondiciones:** Usuario con sesión válida y sin ninguna granja ni unidad productiva vinculada. `
+    + `Se verificó el detalle del Productor y /usuarios/me tras el PUT dentro del RUN: `
+    + `${r.observado.perfil_post_put ? 'HTTP 200, cero fincas' : 'NO ACREDITADO'}.\n\n`
+    + `**Pasos:** Preflight, logins, RUN, PUT de fincas vacías, verificación, Newman, perfil posterior, Cypress, DELETE y restitución.\n\n`
+    + `**Entradas:** Productor de QA; IDs originales de fincas ${r.datos.ids_fincas_originales?.join(', ') || 'ninguno'}; `
+    + `área previa ${r.datos.id_area_previa ?? 'NO DISPONIBLE'}.\n\n`
+    + `**Esperado literal:** ${ORACULO}\n\n`
+    + `**Observado por API pública:** ${api.length ? api.map(x => `${x.id}: ${x.estado}, ${x.motivo} (HTTP ${x.http ?? 'sin respuesta'})`).join('; ') : 'Sin comprobación API registrada'}.\n\n`
+    + `**Observado por UI:** ${pruebas} prueba(s); dashboard HTTP ${ui.dashboard?.http ?? 'no solicitado/recibido'}; `
+    + `perfil ${ui.fincas_perfil ?? 'NO CONSTA'} fincas; texto «${ui.texto_observado || 'NO CONSTA'}»; `
+    + `canario E7 ${ui.canario_e7 ?? 'NO CONSTA'}. ${descripcionCaptura}\n\n${uiDetalle}\n\n`
+    + `**Decisión del caso:** **${decision}.** ${hayRechazoUi ? `${apiConforme ? 'La API cumplió; ' : ''}la UI no mostró el aviso exigido ni sugirió contactar al administrador; por eso se rechaza el caso.` : caso.motivo}\n\n`
+    + `**Qué falta:** ${hayRechazoUi ? 'Corregir el estado vacío de usuario sin unidades y acreditarlo en una reevaluación API/UI autorizada; la causa raíz sigue sin confirmar.' : decision === 'APROBADO' ? 'Nada para este caso.' : 'Completar la comprobación pendiente en un RUN autorizado.'}\n\n`
+    + `| Comprobación | Tipo | Esperado | Observado | HTTP | Estado | Evidencia |\n|---|---|---|---|---|---|---|\n${checks.map(fila).join('\n')}\n\n`
+    + `## 4. Incidencias y antecedentes\n\n${incidenciaUi}\n\n`
+    + `INC-M03-184-G93-02: sesión 5xx en antecedentes del [RUN oficial G93](../../../TC-M03-G93/Resultados/RUN-G93-V1-20261031-080847/TC-M03-G93_resultado.md); `
+    + `en G93 no se reprodujo con peticiones serializadas. ${sesionConforme ? 'En este RUN G94, las peticiones de sesión fueron HTTP 200 con eco; no se reproduce aquí.' : 'En este RUN G94 no se acredita el estado de sesión con esta información.'} Causa raíz NO DETERMINADA.${enlacesAntecedentes}\n\n`
+    + `**Problemas técnicos QA:** ${r.problemas_tecnicos?.join('; ') || 'ninguno registrado'}.\n\n`
+    + `## 5. Análisis de causas\n\n${hayRechazoUi ? `La primera discrepancia pública aparece en la UI: el perfil tiene cero fincas${apiConforme ? ' y las dos consultas Newman devuelven arreglos vacíos' : ''}, pero el aviso visual no corresponde al requerido. Por ello la atención inicial corresponde a Desarrollo. ` : 'No hay discrepancia funcional de UI acreditada en este resultado. '}`
+    + `La lectura local previa de \`SGPMP-FRONT-END-PWA/src/telemetry/pages/MonitoreoView.tsx:211\` y `
+    + `\`src/shared/i18n/locales/es-CO/telemetry.json:342\` orienta la hipótesis de una rama de render sin estado específico; `
+    + `no confirma el código desplegado ni la causa raíz. Rutas de producto consultadas en esta orden: ninguna; `
+    + `se revisaron la matriz, la automatización de G94, el informe G93 y las evidencias saneadas del RUN.\n\n`
+    + `## 6. Conclusiones y acciones\n\n${decision}: ${hayRechazoUi ? `${apiConforme ? 'la API cumplió y ' : ''}la UI mostró un mensaje distinto del requerido, sin sugerencia de contactar al administrador.` : caso.motivo} `
+    + `${hayRechazoUi ? 'Desarrollo debe atender INC-M03-185-G94-01; el responsable QA decide el seguimiento y una reevaluación autorizada tras la corrección.' : 'El responsable QA revisa las comprobaciones pendientes o conformes según el estado del caso.'} `
+    + `Esta regeneración documental no repitió pruebas ni cambió veredictos.\n\n`
+    + `## 7. Herramientas, evidencias, bitácora y rollback\n\nNewman: ${r.newman?.length ?? 0} ejecución(es); `
+    + `Cypress: ${pruebas} prueba(s). Evidencias reales:\n\n${evidencia}\n\n`
+    + `Bitácora saneada: ${r.bitacora?.length ?? 0} solicitudes directas. `
+    + `Efectos previstos: dos logins previos, lecturas públicas, un PUT de fincas vacías dentro del RUN `
+    + `y DELETE; la UI no pulsa controles de sensores. No se acredita ausencia de efectos externos por este informe. `
+    + `DELETE HTTP ${r.cierre.run.cierre_http ?? 'NO CONSTA'}; fincas originales `
+    + `${r.datos.ids_fincas_originales?.join(', ') || 'ninguna'}; posteriores `
+    + `${r.cierre.rollback.ids_fincas_posteriores?.join(', ') ?? 'NO CONSTA'}; `
     + `rollback ${r.cierre.rollback.verificado ? 'CONFIRMADO por lectura pública' : 'NO VERIFICADO'}. `
-    + `${r.cierre.motivo}. No se declara reversible la auditoría ni los login.\n\n`
-    + `## Conclusión y acción concreta\n\n${r.casos[CASO].estado}. `
-    + `Responsable QA: revisar evidencias, incidencias y cierre antes de decidir el siguiente RUN.\n`;
+    + `${r.cierre.motivo}. Logins y auditoría no se declaran revertidos.\n`;
 }
 
 export function serializarResultado(c, r) {
@@ -393,7 +447,9 @@ export function serializarResultado(c, r) {
   const archivo = c.version === 1 ? 'TC-M03-G94_resultado.md'
     : `TC-M03-G94_reevaluacion_V${c.version}.md`;
   guardar(path.join(c.directorio, 'resultado.json'), r);
-  fs.writeFileSync(path.join(c.directorio, archivo), informe(r));
+  const rutaActa = path.join(c.directorio, 'cypress/UI-185-01.json');
+  const actaUi = fs.existsSync(rutaActa) ? JSON.parse(fs.readFileSync(rutaActa, 'utf8')) : null;
+  fs.writeFileSync(path.join(c.directorio, archivo), informePorCaso(r, { actaUi }));
   return r;
 }
 
@@ -424,7 +480,7 @@ export async function evaluar(c, { env = leerEnv(), fetcher = fetch,
     env.QA_ADMIN_PASSWORD, env.QA_PROD_PASSWORD].filter(Boolean);
   const t = crearTransporte({ runId: c.runId, secreto: env.QA_SANDBOX_SECRET,
     bitacora: r.bitacora, fetcher });
-  let admin, productor, cookie;
+  let admin, productor;
   try {
     exigir(previo.ok, `PREFLIGHT_LOCAL_${previo.barreras.join('_')}`);
     // Ambos login terminan antes de abrir el sandbox. Un fallo aborta sin PUT.
@@ -434,8 +490,8 @@ export async function evaluar(c, { env = leerEnv(), fetcher = fetch,
     const p = await t.pedir('POST', '/sesiones/', { login: true,
       cuerpo: { correo_electronico: env.QA_PROD_EMAIL, contrasena: env.QA_PROD_PASSWORD } });
     exigir(p.http === 200 && p.cuerpo?.token, 'LOGIN_PRODUCTOR_PRE_RUN_FALLIDO');
-    admin = a.cuerpo.token; productor = p.cuerpo.token; cookie = cookieRefresco(p.cookie);
-    secretos.push(admin, productor, cookie);
+    admin = a.cuerpo.token; productor = p.cuerpo.token;
+    secretos.push(admin, productor);
     t.abrir();
     const perfil = await t.pedir('GET', '/usuarios/me', { token: productor });
     const id = Number(perfil.cuerpo?.id_usuario);
@@ -488,10 +544,16 @@ export async function evaluar(c, { env = leerEnv(), fetcher = fetch,
         registrar(r, idApi, evaluacion.estado, evaluacion.motivo, n.rel);
       }
     } catch (e) { r.problemas_tecnicos.push(`NEWMAN: ${seguro(e.message, secretos)}`); }
+    // El token usado por Cypress debe reflejar cero fincas tras el PUT.
+    const perfilUi = await t.pedir('GET', '/usuarios/me', { token: productor });
+    exigir(perfilUi.http === 200 && Number(perfilUi.cuerpo?.id_usuario) === id
+      && Array.isArray(perfilUi.cuerpo?.fincas) && perfilUi.cuerpo.fincas.length === 0,
+    'PRE_PERFIL_PRODUCTOR_POST_PUT_NO_ACREDITADO');
+    r.observado.perfil_post_put = { http: perfilUi.http, fincas: 0, eco_run: true };
     // La UI es la última actividad funcional. Después solo Admin cierra y verifica.
     try {
       t.iniciarUi();
-      const ui = runCypress(c, { cookie, secreto: env.QA_SANDBOX_SECRET, secretos });
+      const ui = runCypress(c, { token: productor, secreto: env.QA_SANDBOX_SECRET, secretos });
       const evaluacion = evaluarResultadoCypress(ui);
       r.cypress.total_pruebas = Number.isInteger(ui.resumen?.totalPassed)
         && Number.isInteger(ui.resumen?.totalFailed)
@@ -505,11 +567,12 @@ export async function evaluar(c, { env = leerEnv(), fetcher = fetch,
         r.problemas_tecnicos.push(`CAPTURA_UI_185_01: ${seguro(ui.acta?.motivo_captura || 'PNG ausente', secretos)}`);
       registrar(r, 'UI-185-01', evaluacion.estado, evaluacion.motivo, ui.rel);
       r.observado.ui = ui.acta ? { dashboard: ui.acta.dashboard,
-        peticiones: ui.acta.peticiones, rutas_fuera_sandbox: ui.acta.rutas_fuera_sandbox,
-        fincas_perfil: ui.acta.fincas_perfil,
+        peticiones: ui.acta.peticiones, criterio: ui.acta.criterio,
+        fincas_perfil: ui.acta.fincas_perfil, canario_e7: ui.acta.canario_e7,
         captura: ui.acta.captura, motivo_captura: ui.acta.motivo_captura,
         mensaje_exacto: ui.acta.mensaje_exacto, contacto_admin: ui.acta.contacto_admin,
-        sin_tarjetas: ui.acta.sin_tarjetas, texto_observado: ui.acta.texto_observado } : null;
+        sin_tarjetas: ui.acta.sin_tarjetas, sin_error_interno: ui.acta.sin_error_interno,
+        texto_observado: ui.acta.texto_observado } : null;
       if (evaluacion.estado === 'ERROR_QA') r.problemas_tecnicos.push(evaluacion.motivo);
     } catch (e) {
       const motivo = `CYPRESS_ERROR_QA: ${seguro(e.message, secretos)}`;

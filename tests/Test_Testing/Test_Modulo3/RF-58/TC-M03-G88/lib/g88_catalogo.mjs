@@ -28,7 +28,7 @@ export const CAPACIDADES = Object.freeze({ contrato: 'sigab-qa-ejecutor/1',
 
 export function estadoCaso(id, comprobaciones = [], bloqueos = [], totalUi = 0) {
   if (!CASOS[id]) throw new Error(`Caso desconocido: ${id}`);
-  const propios = comprobaciones.filter((x) => x.caso === id);
+  const propios = comprobaciones.filter((x) => x.caso === id && x.tipo !== 'APOYO');
   const faltantes = [...CASOS[id].api, ...CASOS[id].ui].filter((c) => !propios.some((x) => x.id === c && x.estado !== 'NO_EJECUTADO'));
   const uiFaltante = CASOS[id].ui.length > 0 && totalUi === 0;
   if (id === 'TC-M03-266') {
@@ -72,7 +72,7 @@ export function estadoCaso(id, comprobaciones = [], bloqueos = [], totalUi = 0) 
 // Los estados de ejecución no son veredictos funcionales del RUN.
 export function resultadoOficial(id, comprobaciones = [], bloqueos = [], totalUi = 0, hallazgos = [], evidencias = []) {
   const calculado = estadoCaso(id, comprobaciones, bloqueos, totalUi);
-  const propios = comprobaciones.filter((x) => x.caso === id);
+  const propios = comprobaciones.filter((x) => x.caso === id && x.tipo !== 'APOYO');
   const parada = bloqueos.some((x) => x.tipo === 'PARADA_SEGURIDAD_SESION_COMPARTIDA');
   const obligatorias = [...CASOS[id].api, ...CASOS[id].ui];
   const faltantes = obligatorias.filter((clave) => !propios.some((x) => x.id === clave
@@ -102,7 +102,7 @@ export function resultadoOficial(id, comprobaciones = [], bloqueos = [], totalUi
     justificacion_veredicto: veredicto ? calculado.motivo : null,
     evidencia_veredicto: veredicto ? [...new Set([
       ...propios.filter((x) => obligatorias.includes(x.id)).map((x) => x.id),
-      ...evidencias.filter((x) => x.startsWith(`newman/newman-${id}-`)
+      ...evidencias.filter((x) => x === 'newman/newman-TC-M03-G88.json'
         || x.startsWith('cypress/') && x.includes(id))])] : [],
     faltantes, incidencias_automatizacion: errores.map((x) => x.motivo), hallazgos_producto: hallazgos };
 }

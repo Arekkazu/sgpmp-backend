@@ -1,0 +1,810 @@
+{
+  "grupo": "G96",
+  "run_id": "RUN-G96-V1-20261031-153625",
+  "version": 1,
+  "operacion": "reintentar",
+  "autorizacion": "AUT-G96-V1-R4-20261031",
+  "ambiente": "TEST",
+  "oficial": true,
+  "consume_version": true,
+  "casos": {
+    "TC-M03-187": {
+      "estado": "APROBADO",
+      "motivo": "Catálogo y cinco coberturas acreditadas"
+    }
+  },
+  "comprobaciones": [
+    {
+      "caso": "TC-M03-187",
+      "fuente": "API",
+      "id": "API-187-01",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "Todos los estados observados pertenecen al catálogo; DESCONOCIDO se informa aparte",
+      "evidencia": "newman/newman-G96.json"
+    },
+    {
+      "caso": "TC-M03-187",
+      "fuente": "API",
+      "id": "API-187-02",
+      "tipo": "ASSERT",
+      "estado": "APROBADO",
+      "motivo": "ACTIVO: APROBADO; SIN_SEÑAL: APROBADO; BUFFER_ACTIVO: APROBADO; INACTIVO: APROBADO; EN_MANTENIMIENTO: APROBADO",
+      "evidencia": "newman/newman-G96.json"
+    }
+  ],
+  "cypress": {
+    "total_pruebas": 0
+  },
+  "preflight_herramientas": {
+    "newman": {
+      "ok": true,
+      "version": "6.2.2",
+      "error": null
+    }
+  },
+  "evidencias": [
+    "preflight.json",
+    "newman/newman-G96.json",
+    "newman/newman-G96.html",
+    "resultado.json",
+    "TC-M03-G96_resultado.md"
+  ],
+  "bitacora": [
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "POST",
+      "ruta": "/sesiones/",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=ACTIVO",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=SIN_SE%C3%91AL",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=BUFFER_ACTIVO",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=INACTIVO",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/dispositivos?estado=EN_MANTENIMIENTO",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=389&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=701&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=701&pagina=2&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=2&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=3&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=4&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=390&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=6&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=664&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=479&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=2&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=3&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=4&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=5&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=6&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=7&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=8&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=665&pagina=1&por_pagina=1",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=701&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=1&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "GET",
+      "ruta": "/iot/monitoreo/dashboard?id_infraestructura=347&pagina=1&por_pagina=50",
+      "http": 200,
+      "en_run": true,
+      "eco": true
+    },
+    {
+      "metodo": "DELETE",
+      "ruta": "/test-control/runs/RUN-G96-V1-20261031-153625",
+      "http": 200,
+      "en_run": false,
+      "eco": null
+    }
+  ],
+  "paginas": [
+    {
+      "unidad": 701,
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 2,
+      "rol": "Productor",
+      "cantidad": 2
+    },
+    {
+      "unidad": 1,
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 4,
+      "rol": "Productor",
+      "cantidad": 4
+    },
+    {
+      "unidad": 347,
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "rol": "Administrador",
+      "cantidad": 13
+    }
+  ],
+  "valores": [
+    {
+      "unidad": 701,
+      "valor": "SIN_SEÑAL",
+      "cantidad": 1
+    },
+    {
+      "unidad": 701,
+      "valor": "EN_MANTENIMIENTO",
+      "cantidad": 1
+    },
+    {
+      "unidad": 1,
+      "valor": "INACTIVO",
+      "cantidad": 3
+    },
+    {
+      "unidad": 1,
+      "valor": "BUFFER_ACTIVO",
+      "cantidad": 1
+    },
+    {
+      "unidad": 347,
+      "valor": "DESCONOCIDO",
+      "cantidad": 8
+    },
+    {
+      "unidad": 347,
+      "valor": "ACTIVO",
+      "cantidad": 1
+    },
+    {
+      "unidad": 347,
+      "valor": "INACTIVO",
+      "cantidad": 3
+    },
+    {
+      "unidad": 347,
+      "valor": "BUFFER_ACTIVO",
+      "cantidad": 1
+    }
+  ],
+  "unidades": [
+    {
+      "area": 701,
+      "rol": "Productor"
+    },
+    {
+      "area": 1,
+      "rol": "Productor"
+    },
+    {
+      "area": 347,
+      "rol": "Administrador"
+    }
+  ],
+  "dispositivos": {
+    "ACTIVO": [
+      {
+        "id_dispositivo_iot": 341,
+        "id_infraestructura": 347,
+        "rol": "Administrador"
+      }
+    ],
+    "SIN_SEÑAL": [
+      {
+        "id_dispositivo_iot": 787,
+        "id_infraestructura": 701,
+        "rol": "Productor"
+      }
+    ],
+    "BUFFER_ACTIVO": [
+      {
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 1,
+        "rol": "Productor"
+      }
+    ],
+    "INACTIVO": [
+      {
+        "id_dispositivo_iot": 1,
+        "id_infraestructura": 1,
+        "rol": "Productor"
+      }
+    ],
+    "EN_MANTENIMIENTO": [
+      {
+        "id_dispositivo_iot": 788,
+        "id_infraestructura": 701,
+        "rol": "Productor"
+      }
+    ]
+  },
+  "disponibles": {
+    "ACTIVO": 4,
+    "SIN_SEÑAL": 1,
+    "BUFFER_ACTIVO": 21,
+    "INACTIVO": 33,
+    "EN_MANTENIMIENTO": 4
+  },
+  "listados": [
+    {
+      "estado": "TODOS_PRODUCTOR",
+      "rol": "Productor",
+      "http": 200,
+      "eco": true,
+      "cantidad": 187
+    },
+    {
+      "estado": "ACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 4
+    },
+    {
+      "estado": "SIN_SEÑAL",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 1
+    },
+    {
+      "estado": "BUFFER_ACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 21
+    },
+    {
+      "estado": "INACTIVO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 33
+    },
+    {
+      "estado": "EN_MANTENIMIENTO",
+      "rol": "Administrador",
+      "http": 200,
+      "eco": true,
+      "cantidad": 4
+    }
+  ],
+  "cobertura": {
+    "ACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 341 y 1 sensor(es) concordantes",
+      "dispositivo": 341,
+      "area": 347,
+      "rol": "Administrador",
+      "sensores_cotejados": 1
+    },
+    "SIN_SEÑAL": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 787 y 1 sensor(es) concordantes",
+      "dispositivo": 787,
+      "area": 701,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    },
+    "BUFFER_ACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 3 y 1 sensor(es) concordantes",
+      "dispositivo": 3,
+      "area": 1,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    },
+    "INACTIVO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 1 y 3 sensor(es) concordantes",
+      "dispositivo": 1,
+      "area": 1,
+      "rol": "Productor",
+      "sensores_cotejados": 3
+    },
+    "EN_MANTENIMIENTO": {
+      "estado": "APROBADO",
+      "motivo": "Dispositivo 788 y 1 sensor(es) concordantes",
+      "dispositivo": 788,
+      "area": 701,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    }
+  },
+  "cobertura_detalle": [
+    {
+      "estado": "ACTIVO",
+      "dispositivo": 341,
+      "area": 347,
+      "rol": "Administrador",
+      "sensores_cotejados": 1
+    },
+    {
+      "estado": "SIN_SEÑAL",
+      "dispositivo": 787,
+      "area": 701,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    },
+    {
+      "estado": "BUFFER_ACTIVO",
+      "dispositivo": 3,
+      "area": 1,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    },
+    {
+      "estado": "INACTIVO",
+      "dispositivo": 1,
+      "area": 1,
+      "rol": "Productor",
+      "sensores_cotejados": 3
+    },
+    {
+      "estado": "EN_MANTENIMIENTO",
+      "dispositivo": 788,
+      "area": 701,
+      "rol": "Productor",
+      "sensores_cotejados": 1
+    }
+  ],
+  "canarios": [
+    {
+      "area": 389,
+      "rol": "Productor",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 0,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 701,
+      "rol": "Productor",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 2,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 701,
+      "rol": "Productor",
+      "pagina": 2,
+      "http": 200,
+      "eco": true,
+      "total": 2,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 1,
+      "rol": "Productor",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 4,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 1,
+      "rol": "Productor",
+      "pagina": 2,
+      "http": 200,
+      "eco": true,
+      "total": 4,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 1,
+      "rol": "Productor",
+      "pagina": 3,
+      "http": 200,
+      "eco": true,
+      "total": 4,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 1,
+      "rol": "Productor",
+      "pagina": 4,
+      "http": 200,
+      "eco": true,
+      "total": 4,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 390,
+      "rol": "Productor",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 0,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 6,
+      "rol": "Administrador",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 0,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 664,
+      "rol": "Administrador",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 2,
+      "excluida_e7": true,
+      "desconocido": 1
+    },
+    {
+      "area": 479,
+      "rol": "Administrador",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 0,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 1
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 2,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 1
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 3,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 1
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 4,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 5,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 6,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 7,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 347,
+      "rol": "Administrador",
+      "pagina": 8,
+      "http": 200,
+      "eco": true,
+      "total": 13,
+      "excluida_e7": false,
+      "desconocido": 0
+    },
+    {
+      "area": 665,
+      "rol": "Administrador",
+      "pagina": 1,
+      "http": 200,
+      "eco": true,
+      "total": 1,
+      "excluida_e7": true,
+      "desconocido": 1
+    }
+  ],
+  "descartadas": [
+    {
+      "area": 389,
+      "rol": "Productor",
+      "dispositivo": 353,
+      "estado": "ACTIVO",
+      "motivo": "Sin sensores propios en el área"
+    },
+    {
+      "area": 390,
+      "rol": "Productor",
+      "dispositivo": 354,
+      "estado": "INACTIVO",
+      "motivo": "Sin sensores propios en el área"
+    },
+    {
+      "area": 6,
+      "rol": "Administrador",
+      "dispositivo": 114,
+      "estado": "ACTIVO",
+      "motivo": "Sin sensores propios en el área"
+    },
+    {
+      "area": 664,
+      "rol": "Administrador",
+      "motivo": "E7: GRIS no desactualizado o sin umbral"
+    },
+    {
+      "area": 6,
+      "rol": "Administrador",
+      "dispositivo": 348,
+      "estado": "ACTIVO",
+      "motivo": "Sin sensores propios en el área"
+    },
+    {
+      "area": 479,
+      "rol": "Administrador",
+      "dispositivo": 482,
+      "estado": "EN_MANTENIMIENTO",
+      "motivo": "Sin sensores propios en el área"
+    },
+    {
+      "area": 665,
+      "rol": "Administrador",
+      "motivo": "E7: GRIS no desactualizado o sin umbral"
+    }
+  ],
+  "observaciones": [
+    {
+      "tipo": "REQUISITO_PENDIENTE",
+      "asunto": "DESCONOCIDO",
+      "sensores": 10,
+      "areas": [
+        347,
+        664,
+        665
+      ]
+    }
+  ],
+  "problemas_tecnicos": [],
+  "cierre": {
+    "run": {
+      "cierre_http": 200
+    },
+    "rollback": {
+      "verificado": true,
+      "motivo": "SIN_ESCRITURAS_QUE_REVERTIR: 29 GET con eco y DELETE 200; efectos externos de login/E7 no verificados"
+    }
+  },
+  "inicio": "2026-10-31T15:36:25.436Z",
+  "desconocido": 10,
+  "desconocido_areas": [
+    347,
+    664,
+    665
+  ],
+  "fin": "2026-10-31T15:36:47.756Z"
+}

@@ -1,0 +1,30 @@
+{
+  "grupo": "G067",
+  "version": 2,
+  "intento": 2,
+  "run_id": "RUN-G067-V2-20261101-031801",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G067-V2-20261101",
+  "casos": [
+    "TC-M04-205",
+    "TC-M04-206",
+    "TC-M04-207",
+    "TC-M04-208",
+    "TC-M04-209"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-205",
+      "TC-M04-206",
+      "TC-M04-207",
+      "TC-M04-208",
+      "TC-M04-209"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M04-205 con la observación de 206 y regresión de 207-209, tras la corrección de Desarrollo (issue #862, PR #871, presente en test): se eliminó .upper() y el dominio de estado_retroalimentacion se valida de forma estricta. Código local: registrar_retroalimentacion_dto.py:18 y retroalimentacion_clinica.py:24. La RLS del historial (INC-M04-G072-230-01) se corrigió con la migración 7efe47d6c76a (#869), que está en la cadena de c31f8a6d920e, la versión de TEST. ORD-G067-005: 205 con 7 variantes (DESCONOCIDO, '', 123, 'correcto', 'Correcto', null, lista); en 206, un 422 cierra la observación; un historial 5xx se trata como técnico; timeout de 120 s en POST y login; informe por caso. Validación: prueba local OK; ensayo real del responsable QA 35/35 (presupuesto 287, Newman único verificado). SHA-256 g067.mjs 33ea02b65b88cdbfce5ccccc2346c29c98737cf09872165e03b2f87aa2d97717; lib/g067_core.mjs 193712c0d87184d17e0ebf1532522672863de936e67475e4ae1d8820d58a91ad; colección 9ae8a9172a6616479b6fdd93a515e8b7d454e6893f07659c799cc207b3105205.",
+    "incumplimientos_previos": "V1 oficial RUN-G067-V1-20261029-055824: RECHAZADO solo por TC-M04-205. 'correcto' → 201 y persistido como CORRECTO (INC-M04-G067-205-01, BAJA); 123 → 400 VAL_ENTRADA (INC-M04-G067-205-02, BAJA). TC-M04-206 APROBADO con observación (ausente → 400; OBS-M04-G067-206). 207-209 APROBADO.",
+    "correcciones_informadas": "Desarrollo, issue #862 / PR #871: 'correcto', 'Correcto', 123, null, listas y valores desconocidos → 422 ESTADO_RETROALIMENTACION_INVALIDO; ausente → 422 VAL_ENTRADA identificando estado_retroalimentacion; las entradas inválidas no se persisten; se conservan los cuatro valores admitidos y el diagnóstico obligatorio para PARCIAL e INCORRECTO.",
+    "resultado_esperado": "205 APROBADO: las 7 variantes → 422 ESTADO_RETROALIMENTACION_INVALIDO sin registro. 206 APROBADO: ausente → 422 identificando el campo (cierra OBS-M04-G067-206; 400 completo sigue siendo APROBADO con observación). 207 y 208 → 422 DIAGNOSTICO_REQUERIDO sin registro. 209 → cuatro 201 registrados. INC-M04-G067-205-01 y 205-02 CORREGIDAS si se cumple."
+  },
+  "version_anterior": 1
+}

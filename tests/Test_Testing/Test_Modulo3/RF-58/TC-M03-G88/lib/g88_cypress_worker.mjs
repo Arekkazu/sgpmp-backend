@@ -23,10 +23,12 @@ const errorPublico = (valor) => String(valor ?? '').split('\n')
   .join('\n').slice(0, 3000);
 const escribir = (valor) => fs.writeFileSync(salida, sanearArtefacto(JSON.stringify(valor), [
   opciones.env?.SANDBOX_SECRET, opciones.env?.PROD_PASSWORD, opciones.env?.ADMIN_PASSWORD,
-  opciones.env?.PROD_EMAIL, opciones.env?.ADMIN_EMAIL, opciones.env?.SENSOR_180_NOMBRE]));
+  opciones.env?.PROD_EMAIL, opciones.env?.ADMIN_EMAIL, opciones.env?.SENSOR_180_NOMBRE,
+  opciones.env?.PROD_LOGIN?.token, opciones.env?.ADMIN_LOGIN?.token]));
 try {
   if (!carpetaValida) throw new Error('Carpeta Cypress fuera del RUN de G88.');
   const cy = createRequire(path.join(dir, '..', '..', '..', '..', '..', 'package.json'))('cypress');
+  const cypressVersion = cy.version ?? createRequire(path.join(dir, '..', '..', '..', '..', '..', 'package.json'))('cypress/package.json').version;
   const res = await cy.run({ project: dir, configFile: 'g88.cypress.config.cjs', spec: path.join(dir, 'g88.cy.js'),
     browser: 'chrome', headed: false, quiet: true, reporter: 'spec', ...opciones,
     config: { ...opciones.config, screenshotsFolder: carpeta, downloadsFolder: carpeta } });
@@ -36,7 +38,8 @@ try {
     .map((t) => ({ title: t.title, state: t.state, displayError: errorPublico(t.displayError) }));
   escribir({ status: res.status, totalTests: tests.length,
     totalFailed: tests.filter((t) => t.state === 'failed').length,
-    browserName: res.browserName ?? 'chrome', browserVersion: res.browserVersion ?? null, tests });
+    browserName: res.browserName ?? 'chrome', browserVersion: res.browserVersion ?? null,
+    cypressVersion, tests });
   process.exitCode = res.status === 'failed' || res.totalFailed ? 1 : 0;
 } catch (e) {
   escribir({ status: 'failed', totalTests: 0, tests: [], message: e.message });

@@ -5,14 +5,20 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { evaluar, informe, leerEnv } from '../g051.mjs';
-import { CASOS, CAPACIDADES } from '../lib/g051_escenario.mjs';
+import { evaluar, informe, leerEnv, parametrosTimeoutNewman } from '../g051.mjs';
+import { CASOS, CAPACIDADES, PRESUPUESTO } from '../lib/g051_escenario.mjs';
 import { contextoEjecucion } from '../lib/contrato_ejecutor.mjs';
 import { contieneMojibake } from '../lib/seguridad.mjs';
 import { clasificarRegistro } from './registro_qa.mjs';
 
 const MODOS = [
   ['todo_ok', null, 'APROBADO', true],
+  ['v2_corregido', null, 'APROBADO', true],
+  ['reintentar_v2', null, 'APROBADO', true],
+  ['v2_defecto', 1, 'RECHAZADO', true],
+  ['tipo_vacio_sin_catalogo', 2, 'RECHAZADO', true],
+  ['fecha_futura_sin_campo', 1, 'RECHAZADO', true],
+  ['hash_sin_campo', 6, 'RECHAZADO', true],
   ['fecha_futura_500', 1, 'RECHAZADO', true],
   ['fecha_futura_aceptada', 1, 'RECHAZADO', true],
   ['variable_inexistente_aceptada', 0, 'RECHAZADO', true],
@@ -21,8 +27,20 @@ const MODOS = [
   ['limite_rechazado', 4, 'RECHAZADO', true],
   ['clave_403', null, 'BLOQUEADO', false],
   ['error5xx', null, 'BLOQUEADO', false],
-  ['sin_respuesta', null, 'NO_CONCLUYENTE', false]
+  ['sin_respuesta', null, 'NO_CONCLUYENTE', false],
+  ['post_lento_conciliado', null, 'APROBADO', true],
+  ['post_lento_no_registrado', 4, 'NO_CONCLUYENTE', false]
 ];
+const fixture = JSON.parse(fs.readFileSync(new URL('./fixture_run_tecnico_v2.json', import.meta.url), 'utf8'));
+assert.equal(fixture.solicitud10.escenario.caso, 'TC-M04-125');
+assert.equal(fixture.solicitud10.escenario.dato, 'f1=0.0');
+assert.equal(fixture.solicitud10.post.http, null);
+assert.equal(fixture.solicitud10.aparece_en_listado_final, true);
+assert.deepEqual(fixture.conteo, { inicial: 1, final: 5, delta: 4,
+  aceptados: 3, rechazados_con_id: 0 });
+assert.deepEqual(parametrosTimeoutNewman(), ['--timeout-request', '120000', '--timeout', '1500000']);
+assert.equal(PRESUPUESTO.timeout_ms, 30000);
+assert.equal(CAPACIDADES.limite.timeout_post_ms, 120000);
 const CLAVE = 'ENSAYO_RF71_SECRETO_G051_123456';
 const SANDBOX = 'ENSAYO_SANDBOX_G051_123456';
 const PASSWORD = 'ENSAYO_PASSWORD_G051_123456';
@@ -35,7 +53,10 @@ function campo(raw, key) {
   return raw.match(re)?.[1] ?? null;
 }
 async function servidor(modo) {
-  const versiones = [], peticiones = [];
+  const versiones = modo.startsWith('post_lento_')
+    ? [{ id_version_modelo: 100, id_proceso_rf71: 'proceso_previo',
+      tipo_modelo: 'MODELO_ESPECIES_GRANDES', estado_version: 'APROBADO' }] : [];
+  const peticiones = [];
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
     const run = req.headers['x-test-run-id'];
@@ -74,30 +95,40 @@ async function servidor(modo) {
         const proceso = campo(raw, 'id_proceso_rf71');
         const error = (code, field, message, httpCode = 422) => responder(res, httpCode,
           { error_code: code, message, fields: field ? [{ field, message }] : [] }, run);
-        const crear = (httpCode = 201) => {
+        const crear = (httpCode = 201, responderHttp = true) => {
           const v = { id_version_modelo: 101 + versiones.length, tipo_modelo: tipo,
             id_proceso_rf71: proceso, estado_version: metricas.f1_score_global === 0 ? 'RECHAZADO' : 'APROBADO',
             fecha_entrenamiento: fecha, f1_score: metricas.f1_score_global,
             hash_artefacto_sha256: hash, dataset_entrenamiento_hash: dataset };
-          versiones.push(v); responder(res, httpCode, v, run);
+          versiones.push(v);
+          if (responderHttp) responder(res, httpCode, v, run);
+          else req.socket.destroy();
         };
         if (hash === null || dataset === null) {
           if (modo === 'rechazo_crea_version' && hash === null && dataset === null)
             versiones.push({ id_version_modelo: 101 + versiones.length, id_proceso_rf71: proceso,
               tipo_modelo: 'MODELO_ESPECIES_GRANDES' });
-          if (modo === 'fecha_futura_500') return responder(res, 400, {
+          if (['fecha_futura_500', 'v2_defecto'].includes(modo)) return responder(res, 400, {
             error_code: 'VAL_ENTRADA', message: 'Errores de validacion en la solicitud',
             fields: ['hash_artefacto_sha256', 'dataset_entrenamiento_hash']
               .filter(f => f === 'hash_artefacto_sha256' ? hash === null : dataset === null)
               .map(field => ({ field, message: 'Este campo es obligatorio.' })) }, run);
-          return error('VAL_ENTRADA', null, 'Errores de validacion en la solicitud', 422);
+          if (modo === 'hash_sin_campo')
+            return error('VAL_ENTRADA', null, 'Metadatos incompletos.');
+          return responder(res, 422, { error_code: 'VAL_ENTRADA',
+            message: 'Errores de validación en la solicitud',
+            fields: ['hash_artefacto_sha256', 'dataset_entrenamiento_hash']
+              .filter(f => f === 'hash_artefacto_sha256' ? hash === null : dataset === null)
+              .map(field => ({ field, message: 'Este campo es obligatorio.' })) }, run);
         }
         if (!/^[a-f0-9]{64}$/i.test(hash)) return error('HASH_SHA256_INVALIDO', 'hash_artefacto_sha256',
           'hash_artefacto_sha256 debe ser un hash SHA-256 de 64 caracteres hexadecimales.');
         if (!/^[a-f0-9]{64}$/i.test(dataset)) return error('HASH_SHA256_INVALIDO', 'dataset_entrenamiento_hash',
           'dataset_entrenamiento_hash debe ser un hash SHA-256 de 64 caracteres hexadecimales.');
-        if (tipo === '' && modo === 'fecha_futura_500')
+        if (tipo === '' && ['fecha_futura_500', 'v2_defecto'].includes(modo))
           return error('VAL_ENTRADA', 'tipo_modelo', 'Errores de validacion en la solicitud', 400);
+        if (tipo === '' && modo === 'tipo_vacio_sin_catalogo')
+          return error('TIPO_MODELO_INVALIDO', 'tipo_modelo', 'tipo_modelo es obligatorio; consulte el catálogo admitido.');
         if (tipo !== 'MODELO_ESPECIES_GRANDES') return error('TIPO_MODELO_INVALIDO', 'tipo_modelo',
           'tipo_modelo debe ser uno de: MODELO_ESPECIES_GRANDES, MODELO_ESPECIES_MEDIANAS, MODELO_RIESGO_CONTAGIO, MODELO_AVES, MODELO_PORCINOS, MODELO_ACUICULTURA.');
         for (const f of ['f1_score_global', 'recall_clase_riesgo_alto', 'matriz_confusion'])
@@ -109,13 +140,21 @@ async function servidor(modo) {
         if (variables.includes(8) && modo !== 'variable_inexistente_aceptada')
           return error('VARIABLE_I3P1_NO_ENCONTRADA', 'compatibilidad_variables',
             'La variable no existe en el catálogo I3P-1.');
-        if (new Date(fecha).getTime() > Date.now() && modo === 'fecha_futura_500')
+        if (new Date(fecha).getTime() > Date.now() && ['fecha_futura_500', 'v2_defecto'].includes(modo))
           return error('ERROR_INTERNO', null, 'Ocurrió un error interno.', 500);
+        if (new Date(fecha).getTime() > Date.now() && modo === 'fecha_futura_sin_campo')
+          return error('FECHA_FUTURA', null, 'La fecha no puede ser futura.');
         if (new Date(fecha).getTime() > Date.now() && modo !== 'fecha_futura_aceptada')
           return error('FECHA_FUTURA', 'fecha_entrenamiento', 'La fecha no puede ser futura.');
         if (metricas.f1_score_global === 1 && modo === 'limite_rechazado')
           return error('METRICA_FUERA_DE_RANGO', 'metricas_validacion',
             'f1_score_global debe estar en el rango [0.0, 1.0].');
+        if (modo.startsWith('post_lento_') && n === 11) {
+          assert.equal(metricas.f1_score_global, fixture.solicitud10.escenario.metricas_validacion.f1_score_global);
+          if (modo === 'post_lento_conciliado') crear(200, false);
+          else req.socket.destroy();
+          return;
+        }
         crear(metricas.f1_score_global === 0 ? 200 : 201);
       }); return;
     }
@@ -131,15 +170,34 @@ try {
     const s = await servidor(modo);
     try {
       const dir = path.join(temporal, modo); fs.mkdirSync(dir);
+      const v2 = ['v2_corregido', 'reintentar_v2', 'v2_defecto', 'tipo_vacio_sin_catalogo',
+        'post_lento_conciliado', 'post_lento_no_registrado'].includes(modo);
+      const operacion = modo === 'reintentar_v2' ? 'reintentar' : v2 ? 'reevaluar' : 'evaluar';
       const runId = `ENSAYO-G051-20261027-000000-${modo}`;
       const archivo = path.join(dir, 'contexto_operacion.json');
       const referencia = `ENSAYO_LOCAL_${modo}`;
-      fs.writeFileSync(archivo, JSON.stringify({ grupo: 'G051', version: 1, intento: 1,
-        run_id: runId, operacion: 'EVALUAR', referencia, casos: CASOS }));
-      const c = contextoEjecucion(['--operacion', 'evaluar', '--version', '1', '--intento', '1',
+      fs.writeFileSync(archivo, JSON.stringify({ grupo: 'G051', version: v2 ? 2 : 1, intento: 1,
+        run_id: runId, operacion: operacion.toUpperCase(), referencia, casos: CASOS,
+        ...(v2 ? { version_anterior: 1, alcance_reevaluacion: operacion === 'reintentar'
+          ? { casos: CASOS, version_anterior: 1 } : CASOS } : {}) }));
+      const c = contextoEjecucion(['--operacion', operacion, '--version', v2 ? '2' : '1', '--intento', '1',
         '--run-id', runId, '--autorizacion', referencia, '--contexto', archivo],
       { grupo: 'G051', casos: CASOS, directorio: path.resolve(fileURLToPath(import.meta.url), '../..'),
         modoEnsayo: true });
+      if (v2) {
+        assert.equal(c.operacion, operacion);
+        assert.equal(c.version, 2);
+        assert.equal(c.contexto.version_anterior, 1);
+        const contextoValido = fs.readFileSync(archivo, 'utf8');
+        if (operacion === 'reevaluar') {
+          fs.writeFileSync(archivo, JSON.stringify({ ...JSON.parse(contextoValido), version_anterior: 2 }));
+          assert.throws(() => contextoEjecucion(['--operacion', 'reevaluar', '--version', '2', '--intento', '1',
+            '--run-id', runId, '--autorizacion', referencia, '--contexto', archivo],
+          { grupo: 'G051', casos: CASOS, directorio: path.resolve(fileURLToPath(import.meta.url), '../..'),
+            modoEnsayo: true }), /Falta alcance de reevaluación/);
+        }
+        fs.writeFileSync(archivo, contextoValido);
+      }
       const variables = { SIGAB_API_TEST_BASE: s.base, QA_SANDBOX_SECRET: SANDBOX,
         RF71_INTERNAL_KEY: CLAVE, QA_ADMIN_EMAIL: 'admin@example.test',
         QA_ADMIN_PASSWORD: PASSWORD };
@@ -154,8 +212,9 @@ try {
       const r = await evaluar(c, { ensayo: true, env });
       const estados = CASOS.map(x => r.casos[x].estado);
       if (indice !== null) assert.equal(estados[indice], esperado, `${modo}: ${JSON.stringify(r.problemas_tecnicos)}`);
-      if (modo === 'todo_ok') assert.deepEqual(estados, Array(7).fill('APROBADO'), JSON.stringify(r.problemas_tecnicos));
-      if (modo === 'fecha_futura_500') {
+      if (['todo_ok', 'v2_corregido', 'reintentar_v2'].includes(modo))
+        assert.deepEqual(estados, Array(7).fill('APROBADO'), JSON.stringify(r.problemas_tecnicos));
+      if (['fecha_futura_500', 'v2_defecto'].includes(modo)) {
         assert.deepEqual(estados, ['APROBADO', 'RECHAZADO', 'RECHAZADO',
           ...Array(3).fill('APROBADO'), 'RECHAZADO']);
         assert.equal(r.incidencias.length, 2);
@@ -170,20 +229,66 @@ try {
         assert.equal(r.conteo.delta, 4);
         assert.equal(s.peticiones.filter(x => x.metodo === 'POST' && x.ruta === '/prediccion/modelos').length, 23);
       }
+      if (modo === 'tipo_vacio_sin_catalogo') {
+        assert.deepEqual(estados, ['APROBADO', 'APROBADO', 'RECHAZADO',
+          ...Array(4).fill('APROBADO')]);
+        assert.match(r.casos['TC-M04-123'].motivo, /seis tipos admitidos/);
+      }
+      if (modo === 'fecha_futura_sin_campo')
+        assert.match(r.casos['TC-M04-122'].motivo, /fecha_entrenamiento/);
+      if (modo === 'hash_sin_campo')
+        assert.match(r.casos['TC-M04-127'].motivo, /hash_artefacto_sha256/);
       if (modo === 'clave_403' || modo === 'error5xx') assert.deepEqual(estados, Array(7).fill('BLOQUEADO'));
       if (modo === 'sin_respuesta') assert.ok(estados.includes('NO_CONCLUYENTE'));
+      if (modo.startsWith('post_lento_')) {
+        const esperadoEstados = Array(7).fill('APROBADO');
+        if (modo === 'post_lento_no_registrado') esperadoEstados[4] = 'NO_CONCLUYENTE';
+        assert.deepEqual(estados, esperadoEstados);
+        assert.equal(s.peticiones.filter(x => x.metodo === 'POST'
+          && x.ruta === '/prediccion/modelos').length, 23);
+        assert.equal(r.solicitudes.filter(x => Number.isFinite(x.post?.duracion_ms)).length, 23);
+        assert.equal(r.solicitudes[10].post?.http ?? null, fixture.solicitud10.post.http);
+        assert.ok(r.solicitudes[10].post?.duracion_ms > 0);
+        assert.equal(r.solicitudes[10].post?.duracion_origen, 'iteracion_newman');
+        assert.equal(r.solicitudes[10].aparece_en_listado_final,
+          modo === 'post_lento_conciliado');
+        assert.equal(r.conteo.inicial, fixture.conteo.inicial);
+        assert.equal(r.conteo.aceptados, fixture.conteo.aceptados);
+        assert.equal(r.conteo.conciliados, modo === 'post_lento_conciliado' ? 1 : 0);
+        assert.equal(r.conteo.delta, modo === 'post_lento_conciliado' ? fixture.conteo.delta : 3);
+        assert.equal(r.problemas_tecnicos.length,
+          modo === 'post_lento_conciliado' ? 0 : 1);
+        if (modo === 'post_lento_conciliado') {
+          assert.equal(r.solicitudes[10].conciliacion.estado_version, 'RECHAZADO');
+          assert.ok(r.solicitudes[10].conciliacion.id_version_modelo);
+          assert.equal(r.solicitudes[10].get?.http, 200);
+          assert.match(r.casos['TC-M04-125'].motivo, /registro acreditado por id_proceso_rf71/);
+        }
+      }
       assert.equal(r.oficial, oficial, `${modo}: ${JSON.stringify(r.problemas_tecnicos)}`);
       assert.equal(r.cierre.run.cierre_http, 200);
       assert.equal(fs.readdirSync(dir).filter(x => x.endsWith('.md')).length, 1);
       const guardado = JSON.parse(fs.readFileSync(path.join(dir, 'resultado.json'), 'utf8'));
       assert.deepEqual(guardado.casos, r.casos);
       assert.equal(guardado.run_id, runId);
-      const md = fs.readFileSync(path.join(dir, 'TC-M04-G051_resultado.md'), 'utf8');
+      const nombreInforme = v2 ? 'TC-M04-G051_reevaluacion_V2.md' : 'TC-M04-G051_resultado.md';
+      const md = fs.readFileSync(path.join(dir, nombreInforme), 'utf8');
       assert.equal(md, informe(r));
       assert.equal(contieneMojibake(md), false);
+      if (v2) {
+        assert.doesNotMatch(md, /Matriz G051|según la matriz|matriz(?! de confusión|_confusion)/i);
+        assert.match(md, /INC-M04-G051-122: (CORREGIDA|PENDIENTE)/);
+        assert.match(md, /INC-M04-G051-VAL400: (CORREGIDA|PENDIENTE)/);
+        assert.match(md, /MODELOS_STORAGE_PATH/);
+        assert.match(md, /issue #820 \/ PR #864/i);
+        assert.match(md, /RUN-G051-V2-20261101-022937/);
+        assert.match(md, /RUN-G051-V2-20261101-024639/);
+        if (modo === 'reintentar_v2') assert.match(md, /operación REINTENTAR; intento 1/);
+        assert.match(md, /duración POST/);
+      }
       const presentes = new Set(r.evidencias.filter(x => fs.existsSync(path.join(dir, x))));
       assert.equal(clasificarRegistro(CAPACIDADES, r, presentes, c), oficial);
-      for (const f of ['resultado.json', 'TC-M04-G051_resultado.md', 'preflight.json',
+      for (const f of ['resultado.json', nombreInforme, 'preflight.json',
         'newman/newman-G051.json', 'newman/newman-G051.html']) {
         if (fs.existsSync(path.join(dir, f))) {
           const txt = fs.readFileSync(path.join(dir, f), 'utf8');
@@ -194,7 +299,7 @@ try {
       assert.ok(s.peticiones.every(x => x.ruta !== '/test-control/query'));
       assert.equal(s.peticiones.at(-1).metodo, 'DELETE');
       assert.ok(s.peticiones.length <= 33);
-      if (modo === 'todo_ok') {
+      if (['todo_ok', 'v2_corregido', 'reintentar_v2'].includes(modo)) {
         assert.equal(s.peticiones.filter(x => x.metodo === 'POST' && x.ruta === '/prediccion/modelos').length, 23);
         assert.equal(s.peticiones.length, 32);
         assert.equal(r.conteo.aceptados, 4);
@@ -206,7 +311,7 @@ try {
       console.log(`OK ${modo}: ${estados.join('/')} ${oficial ? 'OFICIAL' : 'TÉCNICO'}`);
     } finally { await new Promise(resolve => s.server.close(resolve)); }
   }
-  console.log('OK G051: 10/10 modos; resultado.json e informe coherentes; secretos ausentes; registro QA fiel');
+  console.log(`OK G051: ${MODOS.length}/${MODOS.length} modos`);
 } finally {
   if (!path.resolve(temporal).startsWith(path.resolve(os.tmpdir()) + path.sep)) throw Error('TEMP_FUERA_RAIZ');
   fs.rmSync(temporal, { recursive: true, force: true });

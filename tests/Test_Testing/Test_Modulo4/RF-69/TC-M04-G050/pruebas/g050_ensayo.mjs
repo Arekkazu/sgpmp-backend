@@ -10,9 +10,12 @@ import { CASOS, TIPOS, CAPACIDADES } from '../lib/g050_escenario.mjs';
 import { contextoEjecucion } from '../lib/contrato_ejecutor.mjs';
 import { contieneMojibake } from '../lib/seguridad.mjs';
 import { clasificarRegistro } from './registro_qa.mjs';
+import { camposProto } from '../lib/artefactos.mjs';
 
 const MODOS = [
   ['todo_ok', ['APROBADO', 'APROBADO', 'APROBADO'], true],
+  ['v2_corregido', ['APROBADO', 'APROBADO', 'APROBADO'], true],
+  ['v2_defecto', ['APROBADO', 'RECHAZADO', 'APROBADO'], true],
   ['tf_como_onnx', ['APROBADO', 'RECHAZADO', 'APROBADO'], true],
   ['tf_422', ['APROBADO', 'RECHAZADO', 'APROBADO'], true],
   ['tipo_422', ['APROBADO', 'APROBADO', 'RECHAZADO'], true],
@@ -31,6 +34,21 @@ const responder = (res, code, body, run = null) => {
 function campo(raw, key) {
   const re = new RegExp(`name="${key}"[^\\r\\n]*\\r\\n\\r\\n([^\\r\\n]*)`);
   return raw.match(re)?.[1] ?? null;
+}
+function archivoModelo(raw) {
+  const inicio = raw.indexOf('name="archivo_modelo"');
+  if (inicio < 0) return null;
+  const datos = raw.indexOf('\r\n\r\n', inicio) + 4;
+  const fin = raw.indexOf('\r\n--', datos);
+  return datos < 4 || fin < 0 ? null : Buffer.from(raw.slice(datos, fin), 'latin1');
+}
+function formatoPorEstructura(bytes) {
+  let campos;
+  try { campos = camposProto(bytes); } catch { campos = null; }
+  if (campos?.length && campos.every(x => [1, 2].includes(x.numero))
+    && campos.some(x => x.numero === 2 && x.wire === 2 && x.valor[0] === 0x0a))
+    return 'TENSORFLOW_SAVED_MODEL';
+  return bytes?.[0] === 0x08 ? 'ONNX' : 'FORMATO_ARTEFACTO_INVALIDO';
 }
 async function servidor(modo) {
   const versiones = [], peticiones = [];
@@ -55,6 +73,8 @@ async function servidor(modo) {
         assert.equal(req.headers['x-sandbox-secret'], SANDBOX);
         const raw = Buffer.concat(chunks).toString('latin1');
         assert.ok(raw.includes('name="archivo_modelo"'));
+        const formatoDetectado = modo === 'v2_corregido' ? formatoPorEstructura(archivoModelo(raw)) : null;
+        if (modo === 'v2_corregido') assert.notEqual(formatoDetectado, 'FORMATO_ARTEFACTO_INVALIDO');
         const tipo = campo(raw, 'tipo_modelo');
         const i = TIPOS.findIndex(x => x.tipo === tipo);
         assert.ok(i >= 0);
@@ -64,7 +84,8 @@ async function servidor(modo) {
         const d = TIPOS[i], met = JSON.parse(campo(raw, 'metricas_validacion'));
         const id = i + 101;
         const registro = { id_version_modelo: id, tipo_modelo: tipo, paradigma: d.paradigma,
-          estado_version: 'APROBADO', formato_artefacto: modo === 'tf_como_onnx' && i === 1 ? 'ONNX'
+          estado_version: 'APROBADO', formato_artefacto: modo === 'v2_corregido' ? formatoDetectado
+            : (modo === 'tf_como_onnx' || modo === 'v2_defecto') && i === 1 ? 'ONNX'
             : i === 1 && raw.includes('g050.onnx') ? 'ONNX' : d.formato,
           hash_artefacto_sha256: campo(raw, 'hash_artefacto_sha256'),
           componente: campo(raw, 'componente'),
@@ -104,9 +125,11 @@ try {
       const runId = `ENSAYO-G050-20261027-000000-${modo}`;
       const archivo = path.join(dir, 'contexto_operacion.json');
       const referencia = `ENSAYO_LOCAL_${modo}`;
-      fs.writeFileSync(archivo, JSON.stringify({ grupo: 'G050', version: 1, intento: 1,
-        run_id: runId, operacion: 'EVALUAR', referencia, casos: CASOS }));
-      const c = contextoEjecucion(['--operacion', 'evaluar', '--version', '1', '--intento', '1',
+      const v2 = modo === 'v2_corregido' || modo === 'v2_defecto';
+      fs.writeFileSync(archivo, JSON.stringify({ grupo: 'G050', version: v2 ? 2 : 1,
+        ...(v2 ? { version_anterior: 1, alcance_reevaluacion: 'TC-M04-119 y regresión 118/120' } : {}),
+        intento: 1, run_id: runId, operacion: v2 ? 'REEVALUAR' : 'EVALUAR', referencia, casos: CASOS }));
+      const c = contextoEjecucion(['--operacion', v2 ? 'reevaluar' : 'evaluar', '--version', v2 ? '2' : '1', '--intento', '1',
         '--run-id', runId, '--autorizacion', referencia, '--contexto', archivo],
       { grupo: 'G050', casos: CASOS, directorio: path.resolve(fileURLToPath(import.meta.url), '../..'),
         modoEnsayo: true });
@@ -122,12 +145,19 @@ try {
       const guardado = JSON.parse(fs.readFileSync(path.join(dir, 'resultado.json'), 'utf8'));
       assert.deepEqual(guardado.casos, r.casos);
       assert.equal(guardado.run_id, runId);
-      const md = fs.readFileSync(path.join(dir, 'TC-M04-G050_resultado.md'), 'utf8');
+      const nombreInforme = v2 ? 'TC-M04-G050_reevaluacion_V2.md' : 'TC-M04-G050_resultado.md';
+      const md = fs.readFileSync(path.join(dir, nombreInforme), 'utf8');
       assert.equal(md, informe(r));
       assert.equal(contieneMojibake(md), false);
+      if (v2) {
+        assert.ok(md.includes('Comparación V1 → V2'));
+        assert.ok(md.includes(modo === 'v2_corregido'
+          ? 'INC-M04-G050-119 CORREGIDA' : 'INC-M04-G050-119 sin corrección acreditada'));
+        assert.equal(/matriz/i.test(md.replaceAll('matriz_confusion', '')), false);
+      }
       const presentes = new Set(r.evidencias.filter(x => fs.existsSync(path.join(dir, x))));
       assert.equal(clasificarRegistro(CAPACIDADES, r, presentes, c), oficial);
-      for (const f of ['resultado.json', 'TC-M04-G050_resultado.md', 'preflight.json',
+      for (const f of ['resultado.json', nombreInforme, 'preflight.json',
         'newman/newman-G050.json', 'newman/newman-G050.html']) {
         if (fs.existsSync(path.join(dir, f))) {
           const txt = fs.readFileSync(path.join(dir, f), 'utf8');
@@ -142,6 +172,8 @@ try {
       assert.ok(s.peticiones.length <= 18);
       if (modo === 'tf_como_onnx' || modo === 'tf_422')
         assert.deepEqual(r.incidencias.map(x => x.id), ['INC-M04-G050-119']);
+      if (modo === 'v2_defecto') assert.deepEqual(r.incidencias.map(x => x.id),
+        ['INC-M04-G050-119']);
       if (modo === 'tf_como_onnx') {
         assert.ok(md.includes('Restricción 2, línea 1873: “Solo se aceptan artefactos en formato ONNX o TensorFlow SavedModel.”'));
         assert.ok(md.includes('GET 200, formato_artefacto ONNX'));
@@ -158,7 +190,7 @@ try {
       console.log(`OK ${modo}: ${esperados.join('/')} ${oficial ? 'OFICIAL' : 'TÉCNICO'}`);
     } finally { await new Promise(resolve => s.server.close(resolve)); }
   }
-  console.log('OK G050: 8/8 modos; resultado.json e informe coherentes; secretos ausentes; registro QA fiel');
+  console.log(`OK G050: ${MODOS.length}/${MODOS.length} modos`);
 } finally {
   if (!path.resolve(temporal).startsWith(path.resolve(os.tmpdir()) + path.sep)) throw Error('TEMP_FUERA_RAIZ');
   fs.rmSync(temporal, { recursive: true, force: true });

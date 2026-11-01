@@ -3,13 +3,23 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
-import {evaluar,leerEnv} from '../g072.mjs';
+import {evaluar,leerEnv,contextoVersionValido} from '../g072.mjs';
 import {CASOS,CAPACIDADES,PRESUPUESTO} from '../lib/g072_core.mjs';
 import {clasificarRegistro} from './registro_qa.mjs';
 
 const id=i=>{const h=Number(i).toString(16);return `${h.padStart(8,'0')}-${h.padStart(4,'0')}-4${h.padStart(3,'0')}-8${h.padStart(3,'0')}-${h.padStart(12,'0')}`;};
 const resultados=Array.from({length:9},(_,i)=>id(i+1));
+for(const operacion of ['reevaluar','reintentar']){
+  assert.equal(contextoVersionValido({version_anterior:1,alcance_reevaluacion:{casos:CASOS}},operacion,2),true);
+  assert.equal(contextoVersionValido({version_anterior:1},operacion,2),false);
+  assert.equal(contextoVersionValido({version_anterior:2,alcance_reevaluacion:{casos:CASOS}},operacion,2),false);
+}
 const modos=[
+  ['v2_corregido',{v2:true},{}],
+  ['v2_reintento',{v2:true,reintento:true},{}],
+  ['v2_defecto',{v2:true,hist500:'230a'},{0:'RECHAZADO',1:'RECHAZADO',2:'RECHAZADO'}],
+  ['aislamiento_falla',{v2:true,aislamientoFalla:true},{}],
+  ['sin_activo_ajeno',{v2:true,sinActivoAjeno:true},{}],
   ['historial_sin_500',{},{}],['historial_paginado',{muchas:true},{}],['sin_flag_conflicto',{sinFlag:true},{0:'RECHAZADO'}],
   ['sin_evento_conflicto',{sinEvento:true},{0:'RECHAZADO'}],['evento_sin_referencia',{eventoSinRef:true},{0:'RECHAZADO'}],
   ['b_rechazado',{bRechazado:true},{0:'RECHAZADO'}],['a_modificado',{aModificado:true},{0:'RECHAZADO'}],
@@ -23,9 +33,9 @@ const modos=[
   ['login_b_falla',{loginBFalla:true},{0:'NO_CONCLUYENTE',1:'NO_CONCLUYENTE',2:'NO_CONCLUYENTE'}],
   ['auditoria_no_disponible',{auditoriaFalla:true},{0:'BLOQUEADO',1:'BLOQUEADO',2:'BLOQUEADO'}],
   ['resultado_previo_con_retro',{ocupado:true},{}],['un_5xx',{un5xx:true},{1:'RECHAZADO'}],
-  ['historial_500_tras_230a',{hist500:'230a'},{2:'RECHAZADO'}],
-  ['historial_500_tras_230b',{hist500:'230b'},{2:'RECHAZADO'}],
-  ['historial_500_tras_226',{hist500:'226'},{0:'RECHAZADO'}],
+  ['historial_500_tras_230a',{hist500:'230a'},{0:'RECHAZADO',1:'RECHAZADO',2:'RECHAZADO'}],
+  ['historial_500_tras_230b',{hist500:'230b'},{0:'RECHAZADO',1:'RECHAZADO',2:'RECHAZADO'}],
+  ['historial_500_tras_226',{hist500:'226'},{0:'RECHAZADO',1:'RECHAZADO'}],
   ['historial_500_tras_227_parcial',{hist500:'227_parcial'},{1:'RECHAZADO'}],
   ['historial_500_tras_227_final',{hist500:'227_final'},{1:'RECHAZADO'}],
   ['historial_500_transitorio',{hist500:'230a',hist500Transitorio:true},{2:'RECHAZADO'}],
@@ -49,13 +59,22 @@ function servidor(m,s){return http.createServer(async(req,res)=>{
     if(m.loginSinRed&&s.logins===1){req.socket.destroy();return;}
     const correo=String(cuerpo.correo_electronico??'');
     if(m.loginBFalla&&correo==='b@local.test'||m.loginCFalla&&correo==='c@local.test'){enviar(401,{error_code:'NO_AUTORIZADO'},false);return;}
-    const sub=correo==='a@local.test'?91:correo==='b@local.test'?162:163;
+    const sub=correo==='a@local.test'?91:correo==='b@local.test'?162:correo==='c@local.test'?163:1;
     enviar(200,{token:`e30.${Buffer.from(JSON.stringify({sub})).toString('base64url')}.firma`},false);return;
   }
   if(req.method==='DELETE'&&u.pathname.startsWith('/test-control/runs/')){
     s.cierres++;s.retros=[];s.audit=[];s.cerrado=true;enviar(200,{status:'Rollback exitoso'},false);return;
   }
   if(m.clave403&&req.headers['x-test-run-id']){enviar(403,{error_code:'CLAVE_INVALIDA',message:'Clave sandbox inválida'});return;}
+  if(u.pathname==='/configuracion/fincas'){
+    enviar(200,{total:3,items:[{id_finca:84},{id_finca:184},{id_finca:185}]});return;}
+  if(u.pathname==='/configuracion/infraestructuras'){
+    enviar(200,{total:1,items:[{id_infraestructura:300,id_finca:185}]});return;}
+  if(u.pathname==='/activos-biologicos'){
+    enviar(200,{total_registros:m.sinActivoAjeno?0:1,registros:m.sinActivoAjeno?[]:[{id_activo_biologico:999,id_infraestructura:300}]});return;}
+  if(u.pathname==='/prediccion/historial/999'){
+    if(m.aislamientoFalla)enviar(200,{eventos:[{tipo_evento:'INFERENCIA',id_activo_biologico:999}],cursor_siguiente:null});
+    else enviar(403,{error_code:'SIN_ACCESO'});return;}
   if(u.pathname==='/prediccion/patologias'){enviar(200,{total:7,items:Array.from({length:7},(_,i)=>({id_patologia:i+8,es_activo:true}))});return;}
   if(u.pathname==='/prediccion/modelos/43'){enviar(200,{id_version_modelo:43,tipo_modelo:'MODELO_ESPECIES_MEDIANAS',paradigma:'INDIVIDUAL'});return;}
   if(u.pathname==='/prediccion/historial/885'){
@@ -124,24 +143,30 @@ function servidor(m,s){return http.createServer(async(req,res)=>{
   enviar(404,{detail:'Not Found'});
 });}
 const base={QA_AUTORIZADO:'SI',QA_SANDBOX_SECRET:'secreto-local',QA_VETERINARIO_EMAIL:'a@local.test',
-  QA_VETERINARIO_B_EMAIL:'b@local.test',QA_VETERINARIO_C_EMAIL:'c@local.test',QA_COMMON_PASSWORD:'clave-local'};
+  QA_VETERINARIO_B_EMAIL:'b@local.test',QA_VETERINARIO_C_EMAIL:'c@local.test',QA_ADMIN_EMAIL:'admin@local.test',QA_COMMON_PASSWORD:'clave-local'};
 let aprobados=0;
 for(const [nombre,m,esperados] of modos){
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'g072-ensayo-'));
   const state={inicio:Date.now(),logins:0,posts:0,cierres:0,historiales:0,historialConsultas:[],retros:[],audit:[]};
   const server=servidor(m,state);await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
   try{
-    const c={ensayo:true,runId:'RUN-G072-V1-20261029-000000',version:1,intento:1,referencia:'ENSAYO-LOCAL',directorio:path.join(tmp,'RUN-G072-V1-20261029-000000')};
+    const version=m.v2?2:1,runId=`RUN-G072-V${version}-20261029-000000`;
+    const c={ensayo:true,runId,version,intento:1,referencia:'ENSAYO-LOCAL',
+      operacion:m.reintento?'reintentar':m.v2?'reevaluar':'evaluar',version_anterior:m.v2?1:null,
+      alcance_reevaluacion:m.v2?{casos:CASOS,control_aislamiento:true}:null,
+      directorio:path.join(tmp,runId)};
     const env={...base,SIGAB_API_TEST_BASE:`http://127.0.0.1:${server.address().port}`};
     if(m.envSinC)delete env.QA_VETERINARIO_C_EMAIL;
     if(m.envArchivo){const archivo=path.join(tmp,'.env.qa');fs.writeFileSync(archivo,Object.entries(env).filter(([k])=>k!=='QA_AUTORIZADO').map(([k,v])=>`${k}=${v}`).join('\n'));
       Object.assign(env,leerEnv({QA_AUTORIZADO:'SI'},archivo));}
     const r=await evaluar(c,{env,newmanVersion:m.newmanNo?{ok:false,error:'NEWMAN_NO_DISPONIBLE'}:{ok:true,version:'6.2.2'}});
+    if(m.v2){assert.equal(c.version_anterior,1);assert.ok(c.alcance_reevaluacion);
+      assert.ok(['reevaluar','reintentar'].includes(c.operacion));}
     for(const [i,x] of CASOS.entries())assert.equal(r.casos[x].estado,esperados[i]??'APROBADO',`${nombre} ${x}: ${r.casos[x].motivo}`);
     assert.ok(r.solicitudes.length<=PRESUPUESTO.solicitudes_totales,`${nombre} presupuesto`);
     assert.ok(state.historialConsultas.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.fecha_inicio)&&/^\d{4}-\d{2}-\d{2}$/.test(x.fecha_fin)&&
       x.incluir_alertas==='false'&&x.autorizacion),`${nombre} parámetros historial y Veterinario A`);
-    assert.equal(state.logins,m.newmanNo||m.envSinC?0:3,`${nombre} logins`);
+    assert.equal(state.logins,m.newmanNo||m.envSinC?0:m.loginBFalla||m.loginSinRed?3:4,`${nombre} logins`);
     if(m.newmanNo||m.envSinC){assert.equal(r.solicitudes.length,0);assert.equal(fs.existsSync(c.directorio),false);}
     else if(m.loginBFalla){assert.equal(state.posts,0);assert.equal(state.cierres,0);}
     else if(m.loginSinRed){assert.equal(state.posts,0);assert.equal(state.cierres,0);}
@@ -149,11 +174,15 @@ for(const [nombre,m,esperados] of modos){
     if(fs.existsSync(c.directorio)){
       const files=fs.readdirSync(c.directorio),result=JSON.parse(fs.readFileSync(path.join(c.directorio,'resultado.json'),'utf8'));
       assert.deepEqual(result.casos,r.casos);assert.equal(files.filter(x=>x.endsWith('.md')).length,1);
-      const md=fs.readFileSync(path.join(c.directorio,'TC-M04-G072_resultado.md'),'utf8');
+      const informe=version===1?'TC-M04-G072_resultado.md':'TC-M04-G072_reevaluacion_V2.md';
+      const md=fs.readFileSync(path.join(c.directorio,informe),'utf8');
       for(const x of CASOS){assert.ok(md.includes(x));assert.ok(md.includes('Qué se hizo:'));assert.ok(md.includes('Qué se esperaba:'));assert.ok(md.includes('Qué se observó:'));assert.ok(md.includes('Por qué '));}
       assert.ok(md.includes('Decisión del caso')&&md.includes('Qué falta:')&&md.includes('Detalle por caso'));
       assert.ok(md.includes('Lecturas del historial')&&md.includes('Historial de intentos'));
       assert.ok(!md.includes('..')&&!md.includes('a@local.test')&&!md.includes('b@local.test')&&!md.includes('c@local.test'));
+      if(m.v2){assert.ok(!/matriz/i.test(md),`${nombre} sin mención de matriz`);
+        assert.ok(md.includes('Issue #869 / PR #871')&&md.includes('V1 → V2'));
+        assert.ok(md.includes('Control complementario de aislamiento RF-67'));}
       if(files.includes('newman')){
         assert.deepEqual(fs.readdirSync(path.join(c.directorio,'newman')).sort(),['newman-G072.html','newman-G072.json']);
         const n=fs.readFileSync(path.join(c.directorio,'newman','newman-G072.json'),'utf8');assert.ok(!n.includes('a@local.test')&&!n.includes('secreto-local'));
@@ -171,9 +200,8 @@ for(const [nombre,m,esperados] of modos){
       assert.equal(primero.momento,m.hist500,`${nombre} momento`);
       assert.equal(primero.codigo,'ERROR_INTERNO');
       assert.ok(r.incidencias.some(x=>x.caso===CASOS[Number(Object.keys(esperados)[0])]&&x.fundamento_derivacion.includes('HTTP 500')));
-      assert.equal(r.incidencias.length,1,`${nombre} una incidencia`);
-      assert.equal(r.incidencias[0].id,`INC-M04-G072-${CASOS[Number(Object.keys(esperados)[0])].slice(-3)}-01`);
-      assert.ok(r.incidencias[0].fundamento_derivacion.includes('HTTP 500'));
+      assert.equal(r.incidencias.length,Object.keys(esperados).length,`${nombre} incidencias por caso afectado`);
+      assert.ok(r.incidencias.every(x=>x.fundamento_derivacion.includes('HTTP 500')));
       assert.equal(r.oficial,true,`${nombre} RUN oficial`);
       const desde=['230a','230b','226','227_parcial','227_final'].indexOf(m.hist500);
       assert.deepEqual(r.lecturas_historial.map(x=>x.http),
@@ -184,9 +212,15 @@ for(const [nombre,m,esperados] of modos){
       if(m.hist500Transitorio)assert.ok(r.observaciones.some(x=>x.includes('transitorio')));
       else {assert.ok(r.observaciones.some(x=>x.includes('persistente')||x.includes('última lectura')));
         assert.ok(md.includes(m.hist500==='227_final'?'persistencia no se confirmó':'persistió en todas las lecturas siguientes'));
-        for(const [i,x] of CASOS.entries())if(i!==Number(Object.keys(esperados)[0])&&r.casos[x].observado_prosa.includes('sin lectura'))
-          assert.ok(r.casos[x].observado_prosa.includes('no estuvo disponible por la incidencia'),`${nombre} observación ${x}`);}
+      }
     }
+    if(nombre==='v2_corregido'){
+      assert.equal(r.control_aislamiento.estado,'APROBADO');assert.equal(r.casos['TC-M04-230'].estado,'APROBADO');
+      assert.ok(fs.readFileSync(path.join(c.directorio,'TC-M04-G072_reevaluacion_V2.md'),'utf8').includes('CORREGIDA'));}
+    if(nombre==='aislamiento_falla'){
+      assert.equal(r.control_aislamiento.estado,'RECHAZADO');
+      assert.ok(r.incidencias.some(x=>x.id==='INC-M04-G072-RF67-01'&&x.equipo==='Desarrollo'&&x.severidad==='CRÍTICA'));}
+    if(nombre==='sin_activo_ajeno')assert.equal(r.control_aislamiento.estado,'NO_CONCLUYENTE');
     if(nombre==='historial_sin_500')assert.ok(r.observaciones.some(x=>x.includes('OBS-M04-G072-HIST')));
     if(nombre==='historial_paginado')assert.ok(r.lecturas_historial.every(x=>x.paginas>=2&&x.completo));
     if(nombre==='ambiente_caido'){assert.equal(state.posts,4);assert.ok(r.problemas_tecnicos.includes('TRES_5XX_CONSECUTIVOS'));assert.equal(r.oficial,false);}
