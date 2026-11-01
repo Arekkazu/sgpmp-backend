@@ -208,5 +208,5 @@ def test_rfc010_reglas_de_llave_en_el_registro(cliente, activos):
     assert poblacional["error_code"] == "ACTIVO_BIOLOGICO_NO_APLICA"
     fuente = _registrar(cliente, "MODELO_ESPECIES_GRANDES", SUPERVISADAS, id_activo=activos[0], fuente="OTRA", estado_http=422)
     assert fuente["error_code"] == "FUENTE_DATOS_INVALIDA"
-    inexistente = _registrar(cliente, "MODELO_ESPECIES_GRANDES", SUPERVISADAS, id_activo=999_999, estado_http=400)
+    inexistente = _registrar(cliente, "MODELO_ESPECIES_GRANDES", SUPERVISADAS, id_activo=2_000_000_000, estado_http=400)
     assert inexistente["error_code"] == "REFERENCIA_INVALIDA"

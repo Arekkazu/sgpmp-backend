@@ -24,7 +24,7 @@ class VersionModeloModel(Base):
         Sequence("versiones_modelos_id_version_modelo_seq", schema="modulo4"),
         primary_key=True,
     )
-    nombre_version: Mapped[str] = mapped_column(String(40), nullable=False)  # varchar(40) en BD
+    nombre_version: Mapped[str] = mapped_column(String(100), nullable=False)  # varchar(100) desde H2 (RFC-010)
     algoritmo: Mapped[Optional[str]] = mapped_column(String(40))
     tipo_modelo: Mapped[Optional[str]] = mapped_column(String(40))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)

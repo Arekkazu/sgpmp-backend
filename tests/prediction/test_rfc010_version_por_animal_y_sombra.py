@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                        |
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-10-31 | Arekkazu | RFC-010 punto 3 y H2: sintético aprobado solo para sombra, nombre de 100 |
 """RFC-010 (§C1 puntos 1 y 2): llave (tipo_modelo, componente, id_activo_biologico) y SOMBRA.
 
 Fakes en memoria. La unicidad y el CHECK de la BD se prueban contra Postgres real en
@@ -30,7 +31,7 @@ from src.prediction.infrastructure.dto.registrar_resultado_inferencia_dto import
 from src.shared.errors import BusinessRuleError, ConflictError
 
 
-def _version(*, id_activo=885, fuente="REAL", estado="APROBADO", notas="Validada", id_version=7):
+def _version(*, id_activo=885, fuente="REAL", estado="APROBADO", notas="Validada", id_version=7, f1="0.9"):
     v = VersionModelo.crear(
         tipo_modelo="MODELO_ESPECIES_MEDIANAS",
         formato_artefacto="ONNX",
@@ -39,7 +40,7 @@ def _version(*, id_activo=885, fuente="REAL", estado="APROBADO", notas="Validada
         hash_artefacto_sha256="a" * 64,
         dataset_entrenamiento_hash="b" * 64,
         id_proceso_rf71=uuid.UUID("12345678-0000-0000-0000-000000000000"),
-        f1_score=Decimal("0.9"), recall_clase_riesgo_alto=Decimal("0.9"), precision_modelo=None,
+        f1_score=Decimal(f1), recall_clase_riesgo_alto=Decimal("0.9"), precision_modelo=None,
         accuracy=None, roc_auc_score=None, recall_por_clase=None, matriz_confusion=None,
         compatibilidad_variables=[], fecha_entrenamiento=datetime(2026, 10, 31, tzinfo=timezone.utc),
         id_activo_biologico=id_activo, fuente_datos=fuente,
@@ -50,10 +51,27 @@ def _version(*, id_activo=885, fuente="REAL", estado="APROBADO", notas="Validada
 
 # ── Entidad ───────────────────────────────────────────────────────────────
 
-def test_nombre_version_lleva_el_animal_y_cabe_en_varchar_40():
-    v = _version(id_activo=999999)
-    assert v.nombre_version == "ESPECIES_MEDIANAS_999999_261031_12345678"
-    assert len(v.nombre_version) <= 40
+def test_nombre_version_lleva_el_animal_y_cabe_en_varchar_100():
+    v = _version(id_activo=2_147_483_647)  # el mayor integer de Postgres
+    assert v.nombre_version == "ESPECIES_MEDIANAS_2147483647_261031_12345678"
+    assert len(v.nombre_version) <= 100  # H2: varchar(100)
+
+
+def test_sintetico_bajo_umbral_queda_aprobado_solo_para_sombra():
+    v = _version(fuente="SINTETICA", f1="0.6169")
+    v.validar_y_asignar_estado()
+    assert v.estado_version == "APROBADO"
+    assert v.detalle_validacion.startswith("APROBADO SOLO PARA SOMBRA (fuente SINTETICA): f1_score_global=0.6169")
+    with pytest.raises(BusinessRuleError):
+        v.activar()
+    v.poner_en_sombra()
+    assert v.estado_version == "SOMBRA"
+
+
+def test_real_bajo_umbral_sigue_rechazado():
+    v = _version(fuente="REAL", f1="0.6169")
+    v.validar_y_asignar_estado()
+    assert v.estado_version == "RECHAZADO"
 
 
 def test_sombra_desde_aprobado_sin_notas_y_fuera_de_produccion():

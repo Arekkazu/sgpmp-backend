@@ -93,16 +93,13 @@ class VersionModelo:
         fuente_datos: str = "REAL",
     ) -> VersionModelo:
         # El componente entra al nombre: un mismo proceso RF-71 registra varios
-        # componentes de un modelo POBLACIONAL y nombre_version es único.
-        # ponytail: nombre_version es varchar(40) y 6 vistas de M04 dependen de la
-        # columna; en vez de recrearlas se quita el prefijo MODELO_ y la fecha va en
-        # aammdd (peor caso ACUICULTURA_SEGUIMIENTO_aammdd_xxxxxxxx = 39).
+        # componentes de un modelo POBLACIONAL y nombre_version es único. El formato
+        # corto (sin MODELO_, fecha en aammdd) viene de cuando la columna era varchar(40);
+        # desde H2 es varchar(100) y se conserva para no cambiar los nombres existentes.
         prefijo = tipo_modelo.removeprefix("MODELO_")
         if componente:
             prefijo = f"{prefijo}_{componente}"
         # RFC-010: un proceso RF-71 puede registrar un modelo por animal.
-        # ponytail: ESPECIES_MEDIANAS_<id>_aammdd_xxxxxxxx = 34 + dígitos del id; cabe en
-        # varchar(40) hasta el id 999999. Más allá hay que ampliar la columna (H2, 6 vistas).
         if id_activo_biologico is not None:
             prefijo = f"{prefijo}_{id_activo_biologico}"
         nombre_version = (
@@ -141,7 +138,12 @@ class VersionModelo:
         )
 
     def validar_y_asignar_estado(self) -> None:
-        """Evalúa métricas y asigna APROBADO o RECHAZADO. Llena detalle_validacion si RECHAZADO."""
+        """Evalúa métricas y asigna APROBADO o RECHAZADO. Llena detalle_validacion si RECHAZADO.
+
+        RFC-010 punto 3: un modelo SINTETICA que no alcanza los umbrales queda APROBADO solo
+        para SOMBRA (activar() ya lo rechaza): sus métricas salen de datos simulados y no son
+        evidencia clínica, y en sombra no alerta. detalle_validacion registra qué no cumple.
+        """
         defectos = []
         if es_poblacional(self.tipo_modelo):
             # ponytail: RF-69 v2.0 nombra las métricas poblacionales pero no fija umbrales
@@ -157,7 +159,10 @@ class VersionModelo:
                 defectos.append(
                     f"recall_clase_riesgo_alto={self.recall_clase_riesgo_alto} < umbral requerido {_UMBRAL_RECALL}"
                 )
-        if defectos:
+        if defectos and self.fuente_datos == "SINTETICA":
+            self.estado_version = "APROBADO"
+            self.detalle_validacion = "APROBADO SOLO PARA SOMBRA (fuente SINTETICA): " + "; ".join(defectos)
+        elif defectos:
             self.estado_version = "RECHAZADO"
             self.detalle_validacion = "; ".join(defectos)
         else:
