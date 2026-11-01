@@ -1,0 +1,41 @@
+Hora comprobación: 2026-11-01 03:17 -05:00
+Método: docker exec g43-postgres psql -U g43_admin -d sgpmp_g43_test (SELECT only)
+Contenedor: g43-postgres healthy, host 127.0.0.1:5439
+No se usó puerto 5433 ni las bases sgpmp / sgpmp_pr14_test.
+
+-- 1) Identidad de la sesión
+SELECT current_database() AS db, inet_server_addr() AS addr;
+-- Resultado: db=sgpmp_g43_test
+
+SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY 1;
+-- Resultado: postgres, sgpmp_g43_test  (sin sgpmp ni sgpmp_pr14_test en este clúster)
+
+-- 2) Unicidad
+SELECT id_evento_edge, count(*)
+  FROM modulo3.eventos_edge_computing
+ WHERE id_evento_edge IN (
+   'edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a',
+   'edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2',
+   'edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7'
+ )
+ GROUP BY 1 ORDER BY 1;
+-- Resultado: tres filas, count=1 cada una
+
+-- 3) Campos de negocio
+SELECT id_evento_edge, tipo_evento, severidad,
+       metadatos->>'clasificacion_rf55' AS clasificacion_rf55,
+       metadatos->>'id_umbral_ambiental' AS umbral,
+       variables_involucradas->0->>'valor' AS valor,
+       variables_involucradas->0->>'unidad' AS unidad,
+       id_dispositivo_iot, id_sensor
+  FROM modulo3.eventos_edge_computing
+ WHERE id_evento_edge IN (
+   'edge-evt-813be948-1919-4175-b0b3-2ab0bfc03e3a',
+   'edge-evt-6063f185-ecb2-443a-ad4c-418f190749b2',
+   'edge-evt-0fe71210-6dcd-428e-a6be-ab40130f55e7'
+ )
+ ORDER BY id_evento_edge_computing;
+
+-- 076: NORMAL, severidad vacía, 21.0 C, 90043, DATOS_PROCESADOS, device 52, sensor 43
+-- 077: DESVIACION_SIMPLE, CRITICO, 35.0 C, 90043, ALERTA_GENERADA
+-- 078: DESVIACION_SIMPLE, CRITICO, 10.0 C, 90043, ALERTA_GENERADA
