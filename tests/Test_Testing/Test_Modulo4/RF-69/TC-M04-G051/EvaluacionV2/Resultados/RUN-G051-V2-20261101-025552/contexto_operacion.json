@@ -1,0 +1,34 @@
+{
+  "grupo": "G051",
+  "version": 2,
+  "intento": 6,
+  "run_id": "RUN-G051-V2-20261101-025552",
+  "operacion": "REINTENTAR",
+  "referencia": "AUT-G051-V2-R3-20261101",
+  "casos": [
+    "TC-M04-121",
+    "TC-M04-122",
+    "TC-M04-123",
+    "TC-M04-124",
+    "TC-M04-125",
+    "TC-M04-126",
+    "TC-M04-127"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-121",
+      "TC-M04-122",
+      "TC-M04-123",
+      "TC-M04-124",
+      "TC-M04-125",
+      "TC-M04-126",
+      "TC-M04-127"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reintento de la reevaluación V2 (intento 3 de V2). El intento 2, RUN-G051-V2-20261101-024639, se detuvo en PREFLIGHT_LOCAL por la barrera REEVALUACION_SIN_DECISION (g051.mjs:98 solo admitía reevaluar en V2), sin peticiones a TEST; ORD-G051-015 admite REINTENTAR V2 con alcance válido (ensayo 18/18, modo reintentar_v2 OFICIAL). El intento 1, RUN-G051-V2-20261101-022937 (TÉCNICO, DELETE 200), terminó con los 7 casos NO_CONCLUYENTE por un fallo QA. El POST de 125 f1=0.0 (versión RECHAZADO por umbral, con correo síncrono) superó el timeout de 30 s; la versión se creó y aparecía en el listado, pero el ejecutor no la concilió y el delta 4 frente a 3 anuló todo. Ese intento ya mostró en TEST las correcciones de #820: 122 → 422 FECHA_ENTRENAMIENTO_FUTURA; 123 vacío → 422 TIPO_MODELO_INVALIDO con catálogo; 127 → 422 VAL_ENTRADA (x3). ORD-G051-013: timeout de 120 s por petición en Newman (30 s en los fetch directos), duración máxima 1800 s, medición de cada POST y conciliación por id_proceso_rf71 sin reenviar. Validación: prueba local OK; ensayo real del responsable QA 18/18 (post_lento_conciliado decide los 7 casos). SHA-256 g051.mjs 4eb4e53ae7cebb584b286b68a9da195ac855866ee47db8b5d6dea1fd6565aa37; colección 6641bdf22f4abc713c85d01f7a094f6007b398e4355cee5d0a01fd3e325230a4; lib/g051_escenario.mjs fd3d1ae4952c7184d135d5499998b89a40e05e8dfe267a1b835b33c298b8d3e9; lib/artefactos.mjs 1ee995461d07a85548864120494ee0565312ac9b4b89f4b393e313a64a0acf29; lib/contrato_ejecutor.mjs 7b7ca108ad2294ffa68d8a90c941444a51f6e6056770e8d89b239af318696af0; lib/seguridad.mjs e9a5172fc06fd9115c519dcf0adb31fff0e7f481de08814e5548c386f53bca0a.",
+    "incumplimientos_previos": "V1 oficial RUN-G051-V1-20261028-032158: RECHAZADO. TC-M04-122: fecha futura → HTTP 500 ERROR_INTERNO (INC-M04-G051-122, Desarrollo, MEDIA). TC-M04-123: tipo vacío → 400 VAL_ENTRADA sin catálogo. TC-M04-127: tres omisiones de hash → 400 VAL_ENTRADA (123 y 127: INC-M04-G051-VAL400, Desarrollo, BAJA). 121, 124, 125 y 126 APROBADO.",
+    "correcciones_informadas": "Desarrollo, issue #820 / PR #864: fecha futura → 422 FECHA_ENTRENAMIENTO_FUTURA (campo fecha_entrenamiento), validada antes de guardar y con P0408 traducido; tipo vacío → 422 TIPO_MODELO_INVALIDO con tipo_modelo y tipos admitidos; obligatorios ausentes → 422 VAL_ENTRADA con los campos faltantes; las solicitudes inválidas no registran versiones. QA: ORD-G051-013 (timeout y conciliación).",
+    "resultado_esperado": "Los 7 casos APROBADO. 122: ayer y ahora → 201; mañana → 422 que identifica fecha_entrenamiento, sin versión. 123: las tres variantes → 422 con tipo_modelo y catálogo admitido. 127: las tres omisiones → 422 con los campos faltantes, sin versión. 121 y 124 a 126 como en V1. INC-M04-G051-122 e INC-M04-G051-VAL400 CORREGIDAS si se cumple."
+  },
+  "version_anterior": 1
+}

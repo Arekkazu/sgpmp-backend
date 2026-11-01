@@ -1,6 +1,6 @@
 ﻿# TC-M04-G049 — preparación local RF-69
 
-Órdenes `ORD-G049-001` y `ORD-G049-004`, fase `preparar`. Grupo G049, casos TC-M04-114 a TC-M04-117. La revisión QA de `RUN-G049-V1-20261027-170142` corrige TC-M04-114 a APROBADO con evidencia TEST ya obtenida; mantiene TC-M04-115 RECHAZADO y TC-M04-116/117 APROBADOS. Esta automatización tiene un ejecutor y una colección; Cypress no aplica porque la orden es solo API.
+Órdenes `ORD-G049-001`, `ORD-G049-004` y `ORD-G049-006`, fase `preparar`. Grupo G049, casos TC-M04-114 a TC-M04-117. El RUN V1 histórico dejó TC-M04-115 RECHAZADO bajo el oráculo UUID y los otros tres APROBADOS. La decisión de Análisis del 2026-10-31 permite `id_version` y `version_referencia` enteros para V2. Esta automatización tiene un ejecutor y una colección; Cypress no aplica porque la orden es solo API.
 
 ## Oráculos
 
@@ -9,17 +9,17 @@ Fuente vigente: `tests/Test_Testing/Test_Modulo4/Actualizacion_Matriz_RF69_RF72/
 | Caso | Esperado preservado | RF |
 |---|---|---|
 | TC-M04-114 | “La versión se registra con identificador único y sin intervención humana; su historial muestra el registro inicial en EN_VALIDACION (VERSION_REGISTRADA) seguido del resultado automático (APROBADO o RECHAZADO)” | Fases 1, 3 y 6, líneas 1972-2004, 2030-2043, 2089-2099 |
-| TC-M04-115 | “Los tres identificadores son UUID distintos entre sí” | Descripción 1794; Salida 1, 2207 |
+| TC-M04-115 | V1 histórico: “Los tres identificadores son UUID distintos entre sí”. V2: tres identificadores enteros positivos distintos y primera versión consultable por el mismo identificador | Decisión de Análisis 2026-10-31 sobre descripción 1794 y Salida 1, 2207 |
 | TC-M04-116 | “Se persisten todos los campos de la Salida 1 con notas_validacion en nulo” | Salida 1, 2204-2223; CA-11, 2327-2331 |
 | TC-M04-117 | “Con el campo, la relación es consultable; sin él, el registro procede igual” | Entrada `version_referencia`, 1965 |
 
-En API-116-01, `id_version` debe estar presente en el GET y coincidir con el valor devuelto por el POST de V1. Su formato UUID se evalúa en TC-M04-115; si falla, API-116-01 lo registra como observación sin duplicar el rechazo. Los demás metadatos de la Salida 1 conservan su comprobación de presencia y fidelidad.
+En API-116-01, `id_version` debe estar presente en el GET y coincidir con el valor devuelto por el POST de V1. Su formato entero se evalúa en TC-M04-115; si falla, API-116-01 lo registra como observación sin duplicar el rechazo. Los demás metadatos de la Salida 1 conservan su comprobación de presencia y fidelidad. V3 usa como `version_referencia` el identificador entero de V2; V1 carece de referencia.
 
-El DTO admite `version_referencia: Optional[int]`, la respuesta expone `id_version_modelo: int` y la ruta GET exige entero. El RUN autorizado confirmó la divergencia por API en TC-M04-115; el oráculo UUID sigue vigente.
+El DTO admite `version_referencia: Optional[int]`, la respuesta expone `id_version_modelo: int` y la ruta GET exige entero. La decisión de Análisis del 2026-10-31 sustituye las referencias a UUID de RF-69 en las líneas 1794, 1965 y 2207; el documento aún no está actualizado. La incidencia V1 `INC-M04-G049-115` se informa como **CERRADA POR CAMBIO DE REQUISITO** solo si TC-M04-115 aprueba en V2. Los identificadores secuenciales enumerables quedan como observación para Análisis sin afectar el veredicto.
 
 ## Diseño y contrato
 
-`node g049.mjs --capacidades` publica `sigab-qa-ejecutor/1` y las cuatro comprobaciones API obligatorias. `node g049.mjs --comprobar` valida la colección y los archivos sin red, RUN ni lectura de valores de `.env.qa`. La ejecución requiere el contexto canónico del lanzador con `--operacion evaluar|reintentar|reevaluar --version --intento --run-id --autorizacion --contexto`; solo el lanzador inyecta `QA_AUTORIZADO=SI`. `contexto_operacion.json` contiene únicamente grupo, versión, intento, run_id, operación, referencia, casos y, para reevaluación, alcance y versión anterior. No hay variables manuales adicionales.
+`node g049.mjs --capacidades` publica `sigab-qa-ejecutor/1` y las cuatro comprobaciones API obligatorias. `node g049.mjs --comprobar` valida la colección y los archivos sin red, RUN ni lectura de valores de `.env.qa`. La ejecución requiere el contexto canónico del lanzador con `--operacion evaluar|reintentar|reevaluar --version --intento --run-id --autorizacion --contexto`; solo el lanzador inyecta `QA_AUTORIZADO=SI`. Para V2 se exige `REEVALUAR`, `version_anterior: 1` y ruta `EvaluacionV2/Resultados`. No hay variables manuales adicionales.
 
 El flujo usa un login de Administrador antes del escenario, catálogo I3P-1 público dentro del RUN, tres POST multipart Newman con clave interna, hasta tres GET de versión, lectura de auditoría RF-73 para V1 y DELETE del RUN. Se usa un valor activo del catálogo, `MODELO_ESPECIES_GRANDES`, tres procesos RF-71 UUID, métricas aprobatorias, fecha pasada, hashes SHA-256 reales y un ONNX mínimo determinista. V3 referencia V2; V1 no envía referencia. El ONNX contiene un grafo Identity FLOAT[1]; no hay dependencia de descarga. Un 422 de `tipo_modelo` se informa como precondición y no consume un POST adicional: el límite de tres POST impide reintentar un cuarto sin otra autorización. La equivalencia permitida por RFC-009 se considera dato de precondición; nunca cambia el oráculo de los casos.
 
@@ -50,6 +50,6 @@ Tres versiones y sus eventos de historial/auditoría se insertan en BD y los `co
 
 ## Validación local
 
-`node pruebas/g049.test.mjs` (en este sandbox `node --test` falla al crear su proceso hijo); `node g049.mjs --capacidades`; `node g049.mjs --comprobar`; `node pruebas/g049_ensayo.mjs`. El ensayo usa nueve modos loopback, incluido `snapshot_final`, y guarda artefactos temporales fuera del grupo, que elimina al terminar. Si el sandbox local impide `spawn`, el ensayo usa la API local del paquete Newman; la ejecución futura autorizada usa su CLI JS mediante `process.execPath`. La regresión verifica coherencia entre `resultado.json`, informe y registro QA, así como ausencia del valor de la clave, secreto de sandbox y password en todas las salidas.
+`node pruebas/g049.test.mjs` (en este sandbox `node --test` falla al crear su proceso hijo); `node g049.mjs --capacidades`; `node g049.mjs --comprobar`; `node pruebas/g049_ensayo.mjs`. El ensayo usa dieciocho modos loopback, incluidos `id_uuid`, `id_cadena`, `id_repetido`, identificadores inválidos, `referencia_distinta`, `referencia_422` y `v2_reevaluacion`, y elimina sus artefactos temporales. Si el sandbox local impide `spawn`, el ensayo usa la API local del paquete Newman; la ejecución futura autorizada usa su CLI JS mediante `process.execPath`. La regresión verifica coherencia entre `resultado.json`, informe y registro QA, así como ausencia del valor de la clave, secreto de sandbox y password en todas las salidas.
 
 

@@ -1,5 +1,15 @@
 # TC-M04-G050 — preparación local RF-69
 
+## Reevaluación V2 preparada (ORD-G050-007)
+
+El RUN V1 oficial `RUN-G050-V1-20261028-005856` rechazó TC-M04-119 porque la API registró `saved_model.pb` como ONNX; TC-M04-118 y TC-M04-120 aprobaron. Desarrollo informó la corrección por estructura protobuf en issue #819 / PR #864. El despliegue en TEST queda por comprobar en un RUN V2 autorizado por el lanzador externo. Esta preparación no accedió a TEST ni creó RUN.
+
+El oráculo V2 exige POST 201 y GET 200, formato ONNX para 118 y `TENSORFLOW_SAVED_MODEL` para 119, con SHA-256 fiel; si el POST incluye formato o hash, también se comparan. Para 120 se comprueban los seis tipos RFC-009 con POST 201, GET 200, ID propio, tipo, paradigma, componente y métricas. El formato de cada versión queda como dato observado en la tabla del informe y se evalúa en 119, sin afectar el veredicto de 120. El informe V2 se genera solo dentro de `EvaluacionV2/Resultados/RUN-G050-V2-<timestamp>/TC-M04-G050_reevaluacion_V2.md`, con comparación V1 → V2 y referencia a issue #819 / PR #864. Si 119 aprueba, se registra `INC-M04-G050-119 CORREGIDA` en ese RUN. El archivo `saved_model.pb` se valida como binario; esta prueba no carga un directorio en un runtime TensorFlow.
+
+Las pruebas locales replican la detección del backend consultado en `src/prediction/application/use_cases/versiones_modelo/registrar_version_modelo_use_case.py:88-93,303-327`: solo campos protobuf 1 y 2, con el primer `meta_graphs` empezando por `0x0a`. El ensayo loopback incluye `v2_corregido`, `v2_defecto` y el modo histórico `tf_como_onnx`; no representa evidencia de TEST. Se conservan la colección, los dos artefactos y el presupuesto de 18 solicitudes.
+
+## Contexto de preparación V1
+
 Orden `ORD-G050-001` y `ORD-G050-002`, fase `preparar`. Casos TC-M04-118, TC-M04-119 y TC-M04-120, solo API. La carpeta contenía únicamente `.gitkeep`; no había ejecutor, colección, spec, módulos, tests, scripts, README, dependencias ni evidencias que consolidar. Quedan un ejecutor canónico (`g050.mjs`) y una colección Newman (`G050.postman_collection.json`). Cypress no aplica porque la matriz indica solo API. No se creó RUN ni informe en esta fase.
 
 ## Oráculos y requisito
@@ -39,7 +49,7 @@ Presupuesto único: hasta **2 logins antes del RUN + 1 catálogo + 7 POST + 7 GE
 | Respaldo local RF-73 ante falla de persistencia | `src/prediction/infrastructure/repositories/evento_auditoria_m04_repository.py:260-317` |
 | Sandbox de sesión con savepoints y rollback externo | `src/shared/rollback/infraestructure/testing_sandbox.py:47-79` |
 
-**DEFECTO_FUNCIONAL_CANDIDATO, sin veredicto:** el `saved_model.pb` válido comienza `08 01` porque `saved_model_schema_version` es varint. El use case interpreta cualquier primer byte `08` como ONNX. API-119-01 compara el GET y puede acreditar la discrepancia en TEST; la lectura de código y el ensayo loopback no constituyen rechazo real.
+**Hallazgo de preparación V1, posteriormente confirmado en el RUN oficial:** el `saved_model.pb` válido comienza `08 01` porque `saved_model_schema_version` es varint. El código local revisado en esa preparación interpretaba cualquier primer byte `08` como ONNX. La discrepancia se acreditó después por API en `RUN-G050-V1-20261028-005856`; la lectura de código y el ensayo loopback por sí solos no constituyeron ese rechazo.
 
 ## Efectos que requiere documentar el lanzador antes de TEST
 
@@ -47,4 +57,4 @@ Se registrarían hasta siete versiones y eventos sujetos al rollback de la trans
 
 ## Validación local
 
-Ejecutar `node pruebas/g050.test.mjs`, `node g050.mjs --capacidades`, `node g050.mjs --comprobar` y `node pruebas/g050_ensayo.mjs`. El ensayo usa ocho modos loopback; guarda su contexto y resultados temporales fuera del grupo y los elimina al concluir. Verifica `resultado.json`, informe simulado, registro QA, presupuesto y ausencia de secretos. La etiqueta OFICIAL del ensayo significa clasificación del emulador local; no es un veredicto de TEST.
+Ejecutar `node pruebas/g050.test.mjs`, `node g050.mjs --capacidades`, `node g050.mjs --comprobar` y `node pruebas/g050_ensayo.mjs`. El ensayo usa diez modos loopback; guarda su contexto y resultados temporales fuera del grupo y los elimina al concluir. Verifica `resultado.json`, informe simulado, registro QA, presupuesto y ausencia de secretos. La etiqueta OFICIAL del ensayo significa clasificación del emulador local; no es un veredicto de TEST.

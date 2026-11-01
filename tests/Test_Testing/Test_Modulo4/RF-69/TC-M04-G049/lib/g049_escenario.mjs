@@ -36,7 +36,14 @@ export const uuid = () => crypto.randomUUID();
 export const METRICAS = Object.freeze({ f1_score_global: 0.91, recall_clase_riesgo_alto: 0.93,
   precision_global: 0.92, accuracy: 0.94, roc_auc_score: 0.95,
   recall_por_clase: { riesgo_alto: 0.93, riesgo_bajo: 0.92 }, matriz_confusion: [[9, 1], [1, 9]] });
-export const esUuid = x => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
+export const esIdEntero = x => (typeof x === 'number' && Number.isInteger(x) && x > 0)
+  || (typeof x === 'string' && /^[1-9][0-9]*$/.test(x));
+export const idCanonico = x => esIdEntero(x) ? String(x) : null;
+export const idsValidosUnicos = ids => ids.length === 3 && ids.every(esIdEntero)
+  && new Set(ids.map(idCanonico)).size === 3;
+export const referenciaValida = (idV2, referenciaV3, referenciaV1) => referenciaV1 == null
+  && esIdEntero(idV2) && esIdEntero(referenciaV3)
+  && idCanonico(idV2) === idCanonico(referenciaV3);
 export const idVersion = x => x?.id_version ?? x?.id_version_modelo ?? null;
 export const estado = x => x?.estado ?? x?.estado_version ?? null;
 export const primera = (...xs) => xs.find(x => x !== undefined && x !== null);

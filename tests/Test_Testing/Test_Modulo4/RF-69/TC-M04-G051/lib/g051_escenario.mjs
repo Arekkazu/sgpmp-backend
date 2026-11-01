@@ -7,12 +7,17 @@ export const METRICAS = Object.freeze({ f1_score_global: 0.91, recall_clase_ries
   recall_por_clase: { riesgo_alto: 0.93, riesgo_bajo: 0.92 }, matriz_confusion: [[9, 1], [1, 9]] });
 export const PRESUPUESTO = Object.freeze({ logins_antes_run: 2, catalogos: 1, listados: 2,
   posts: 23, get_aceptados: 4, delete_run: 1, total: 33,
-  duracion_segundos: 900, timeout_ms: 30000, inactividad_maxima_segundos: 180 });
+  duracion_segundos: 1800, timeout_ms: 30000, timeout_post_ms: 120000,
+  timeout_newman_ms: 1500000, inactividad_maxima_segundos: 180 });
 export const CAPACIDADES = Object.freeze({ contrato: 'sigab-qa-ejecutor/1', grupo: 'G051', casos: CASOS,
   operaciones: ['evaluar', 'reintentar', 'reevaluar'], versiones: { min: 1, max: 99 },
   comprobaciones_obligatorias: Object.fromEntries(CASOS.map((caso, i) => [caso, { API: [IDS[i]] }])),
   limite: { solicitudes_directas: 10, solicitudes_newman: 23,
-    duracion_segundos: 900, inactividad_maxima_segundos: 180 } });
+    duracion_segundos: PRESUPUESTO.duracion_segundos,
+    timeout_post_ms: PRESUPUESTO.timeout_post_ms,
+    timeout_directo_ms: PRESUPUESTO.timeout_ms,
+    timeout_newman_ms: PRESUPUESTO.timeout_newman_ms,
+    inactividad_maxima_segundos: 180 } });
 
 export function escenarios({ variable, inexistente, hash, dataset, ahora = Date.now(), archivo }) {
   const base = { tipo_modelo: 'MODELO_ESPECIES_GRANDES', hash_artefacto_sha256: hash,

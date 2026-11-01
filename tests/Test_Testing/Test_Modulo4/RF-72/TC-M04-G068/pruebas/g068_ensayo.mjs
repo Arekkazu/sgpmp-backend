@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
-import { evaluar, leerEnv } from '../g068.mjs';
+import { evaluar, leerEnv, contextoValido } from '../g068.mjs';
 import { CASOS, CAPACIDADES, PRESUPUESTO } from '../lib/g068_core.mjs';
 import { clasificarRegistro } from './registro_qa.mjs';
 
@@ -12,8 +12,21 @@ const resultIds=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222
 const error=(status,code,message)=>({status,body:{error_code:code,message}});
 const ok210=error(404,'RESULTADO_INFERENCIA_NO_ENCONTRADO','El resultado de inferencia no existe o no está disponible.');
 const ok211=error(422,'ACTIVO_BIOLOGICO_INCONSISTENTE','El activo biológico no corresponde al resultado de inferencia indicado.');
-const ok245=error(422,'ACTIVO_EN_BAJA','El activo biológico está dado de baja.');
+const ok245={...error(422,'ACTIVO_EN_BAJA','El activo biológico 885 está dado de baja.'),
+  body:{...error(422,'ACTIVO_EN_BAJA','El activo biológico 885 está dado de baja.').body,
+    fields:[{field:'id_activo_biologico',message:'El activo 885 está en BAJA.'}]}};
+const contextoV2={grupo:'G068',run_id:'RUN-G068-V2-20261101-000000',version:2,intento:1,
+  operacion:'REEVALUAR',referencia:'ENSAYO_LOCAL',casos:CASOS,version_anterior:1,alcance_reevaluacion:'245; regresión 210 y 211'};
+const parametrosV2={operacion:'reevaluar',version:2,intento:1,runId:contextoV2.run_id,referencia:'ENSAYO_LOCAL'};
+assert(contextoValido(contextoV2,parametrosV2));
+assert(!contextoValido({...contextoV2,version_anterior:2},parametrosV2));
 const modos=[
+  ['v2_corregido',{v2:true}],
+  ['v2_defecto',{v2:true,e245:{status:201,body:{id_retroalimentacion:'r245'}},e245Estado:'RECHAZADO'}],
+  ['v2_otro_4xx',{v2:true,e245:error(409,'ACTIVO_INVALIDO','El activo biológico 885 está dado de baja.')}],
+  ['baja_no_acreditada',{v2:true,bitacoraSinEvento:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
+  ['baja_sin_respuesta',{v2:true,bajaSinRespuesta:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
+  ['post_lento_conciliado',{v2:true,postLentoSinRespuesta:true,e245Estado:'RECHAZADO',oficial:false}],
   ['todo_ok',{}],
   ['historial_real_con_libres',{historialReal:true}],
   ['baja_ok_retro_aceptada',{e245:{status:201,body:{id_retroalimentacion:'r245'}},e245Estado:'RECHAZADO'}],
@@ -22,7 +35,7 @@ const modos=[
   ['baja_403',{baja403:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
   ['baja_vet_403_admin_ok',{bajaVet403:true}],
   ['baja_no_reflejada',{bajaNoReflejada:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
-  ['bitacora_sin_evento',{bitacoraSinEvento:true}],
+  ['bitacora_sin_evento',{bitacoraSinEvento:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
   ['corte_tras_baja',{corteTrasBaja:true,e245Estado:'NO_CONCLUYENTE',oficial:false}],
   ['newman_403_clave',{e210:error(403,'CLAVE_INVALIDA','Secreto sandbox inválido'),
     e210Estado:'BLOQUEADO',e211Estado:'BLOQUEADO',e245Estado:'NO_CONCLUYENTE',oficial:false}],
@@ -131,12 +144,19 @@ function servidor(mode,estado) {
         {enviar(403,{message:'Permiso insuficiente'});return;}
       if(mode.baja500){enviar(503,{message:'Error interno'});return;}
       if(mode.bajaRechazada){enviar(422,{message:'Baja rechazada'});return;}
+      if(mode.bajaSinRespuesta){estado.baja=true;req.socket.destroy();return;}
       estado.baja=true;enviar(201,{id_eventos:77});return;
     }
     if(u.pathname==='/prediccion/retroalimentacion'&&req.method==='POST') {
       let raw='';for await(const chunk of req) raw+=chunk;
       const b=JSON.parse(raw),es210=!resultIds.includes(b.id_resultado_inferencia),es245=estado.baja&&b.id_activo_biologico===885;
       if(!es210&&mode.sinRespuesta){estado.posts.push({ruta:u.pathname,caso:'211',cabeceras:!!req.headers['x-test-run-id']&&!!req.headers['x-sandbox-secret']});req.socket.destroy();return;}
+      if(es245&&mode.postLentoSinRespuesta){
+        await new Promise(resolve=>setTimeout(resolve,80));
+        estado.persistidos.push({id:'r245-lento',resultado:b.id_resultado_inferencia,activo:885});
+        estado.posts.push({ruta:u.pathname,caso:'245',cabeceras:!!req.headers['x-test-run-id']&&!!req.headers['x-sandbox-secret']});
+        req.socket.destroy();return;
+      }
       let respuesta=es210?mode.e210??ok210:es245?mode.e245??ok245:mode.e211??ok211;
       if(!es210&&!es245&&mode.primer211&&estado.post211++===0) respuesta=mode.primer211;
       if(respuesta.status===201){
@@ -157,8 +177,11 @@ try {
     const estado={cerrado:false,cierres:0,persistidos:[],posts:[],bajas:0,baja:false,historiales:0,post211:0};
     const server=servidor(mode,estado);
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-    const directorio=path.join(temporal,nombre,'RUN-G068-V1-20261029-000000');
-    const c={operacion:'evaluar',version:1,intento:1,runId:'RUN-G068-V1-20261029-000000',
+    const version=mode.v2?2:1;
+    const runId=`RUN-G068-V${version}-20261029-000000`;
+    const informeNombre=version===2?'TC-M04-G068_reevaluacion_V2.md':'TC-M04-G068_resultado.md';
+    const directorio=path.join(temporal,nombre,version===2?'EvaluacionV2':'Resultados',runId);
+    const c={operacion:version===2?'reevaluar':'evaluar',version,intento:1,runId,
       referencia:'ENSAYO_LOCAL',directorio,ensayo:true};
     const env={SIGAB_API_TEST_BASE:`http://127.0.0.1:${server.address().port}`,QA_SANDBOX_SECRET:'secreto-local',
       QA_VETERINARIO_EMAIL:'qa@example.invalid',QA_ADMIN_EMAIL:'admin@example.invalid',QA_COMMON_PASSWORD:'local',QA_AUTORIZADO:'SI'};
@@ -172,22 +195,27 @@ try {
     assert.equal(r.casos[CASOS[0]].estado,mode.e210Estado??'APROBADO',nombre);
     assert.equal(r.casos[CASOS[1]].estado,mode.e211Estado??'APROBADO',nombre);
     assert.equal(r.casos[CASOS[2]].estado,mode.e245Estado??'APROBADO',nombre);
-    assert.equal(r.oficial,mode.oficial??true,nombre);
+    assert.equal(r.oficial,mode.oficial??true,`${nombre}: ${r.problemas_tecnicos.join('; ')}`);
     if(['todo_ok','baja_ok_retro_aceptada','baja_ok_retro_rechazada','baja_vet_403_admin_ok',
       'baja_rechazada','baja_403','baja_no_reflejada','bitacora_sin_evento','corte_tras_baja'].includes(nombre))
       assert(estado.bajas>=1,nombre);
     assert(estado.posts.every(x=>x.cabeceras),nombre);
     if(!mode.newmanNo&&!mode.loginSinRed) assert.equal(estado.cierres,1,nombre);
-    const presentes=new Set(['preflight.json','resultado.json','TC-M04-G068_resultado.md',
+    const presentes=new Set(['preflight.json','resultado.json',informeNombre,
       ...fs.existsSync(path.join(directorio,'newman'))?fs.readdirSync(path.join(directorio,'newman')).map(x=>`newman/${x}`):[]]);
     assert.equal(clasificarRegistro(CAPACIDADES,r,presentes,c),r.oficial,nombre);
-    assert.equal(fs.existsSync(path.join(directorio,'TC-M04-G068_resultado.md')),true,nombre);
+    assert.equal(fs.existsSync(path.join(directorio,informeNombre)),true,nombre);
     assert.equal(fs.readdirSync(directorio).filter(x=>x.endsWith('.md')).length,1,nombre);
     assert.equal(r.solicitudes.length<=PRESUPUESTO.solicitudes_totales,true,nombre);
     assert(r.incidencias.every(x=>['CRÍTICA','ALTA','MEDIA','BAJA'].includes(x.severidad)&&x.equipo_inicial==='Desarrollo'
       &&/^INC-M04-G068-(210|211|245)-\d{2}$/.test(x.id)),nombre);
     const postsNewman=r.solicitudes.filter(x=>x.ruta==='/prediccion/retroalimentacion');
     assert(postsNewman.every(x=>x.herramienta==='Newman'),nombre);
+    if(r.herramientas.newman.solicitudes>0){
+      assert.equal(r.herramientas.newman.plazos_por_metodo?.POST,PRESUPUESTO.timeout_post_ms,nombre);
+      if(r.solicitudes.some(x=>x.herramienta==='Newman'&&x.metodo==='GET'))
+        assert.equal(r.herramientas.newman.plazos_por_metodo?.GET,PRESUPUESTO.timeout_ms,nombre);
+    }
     if(['todo_ok','corte_tras_baja'].includes(nombre)) {
       const archivos=fs.readdirSync(path.join(directorio,'newman')).sort();
       assert.deepEqual(archivos,['newman-G068.html','newman-G068.json'],nombre);
@@ -195,7 +223,19 @@ try {
     }
     if(nombre==='bitacora_sin_evento')
       assert(r.observaciones.some(x=>x.includes('posible evento RF-52 en buffer local fuera del sandbox')),nombre);
-    const texto=fs.readFileSync(path.join(directorio,'TC-M04-G068_resultado.md'),'utf8');
+    const texto=fs.readFileSync(path.join(directorio,informeNombre),'utf8');
+    assert(!texto.includes('Matriz G068'),nombre);
+    if(version===2){assert(texto.includes('Comparación V1 → V2')&&texto.includes('issue #863 / PR #871'),nombre);
+      assert(texto.includes('Resultado esperado del caso y RF-72'),nombre);}
+    if(nombre==='v2_corregido') assert(texto.includes('INC-M04-G068-245-01: corrección simulada en loopback'),nombre);
+    if(nombre==='v2_otro_4xx') assert(r.observaciones.some(x=>x.includes('4xx distinto')),nombre);
+    if(nombre==='baja_no_acreditada') assert(!estado.posts.some(x=>x.caso==='245'),nombre);
+    if(nombre==='baja_sin_respuesta'){
+      assert(!estado.posts.some(x=>x.caso==='245'),nombre);
+      assert(r.problemas_tecnicos.some(x=>x.includes('conciliación de estado y bitácora')),nombre);
+      assert.equal(r.datos_elegidos.baja_885.estado,'BAJA',nombre);
+    }
+    if(nombre==='post_lento_conciliado') assert.equal(estado.posts.filter(x=>x.caso==='245').length,1,nombre);
     const porQue=[...texto.matchAll(/^- Por qué [^:]+: (.+)$/gm)];
     assert.equal(porQue.length,3,nombre);
     assert(porQue.every(x=>!x[1].includes('rechazo, historial y auditoría concordantes')),nombre);

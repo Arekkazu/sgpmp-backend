@@ -2,6 +2,12 @@
 import os from 'node:os';
 import path from 'node:path';
 
+export const rutaResultados = (directorio, grupo, version, runId) => path.join(
+  version === 1 ? path.join(directorio, 'Resultados')
+    : path.join(directorio, `EvaluacionV${version}`, 'Resultados'), runId);
+export const alcanceReevaluacionValido = (contexto, version) =>
+  Boolean(contexto.alcance_reevaluacion) && contexto.version_anterior === version - 1;
+
 // Validación local previa a credenciales, RUN o red. Utilidad sin lógica de G87.
 export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEnsayo = false }) {
   const a = argumentos;
@@ -21,8 +27,7 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEn
   if (operacion === 'reevaluar' ? version < 2 : operacion !== 'recuperar' && version < 1) throw new Error('Versión incompatible.');
   if (operacion === 'recuperar' && objetivo !== runId) throw new Error('RUN objetivo incoherente.');
   if (operacion !== 'recuperar' && objetivo) throw new Error('RUN objetivo inesperado.');
-  const esperado = path.join(version === 1 ? path.join(directorio, 'Resultados')
-    : path.join(directorio, `EvaluacionV${version}`, 'Resultados'), runId);
+  const esperado = rutaResultados(directorio, grupo, version, runId);
   const ruta = path.resolve(archivo);
   const temp = path.resolve(os.tmpdir());
   const directorioEnsayo = path.dirname(ruta);
@@ -37,7 +42,7 @@ export function contextoEjecucion(argumentos, { grupo, casos, directorio, modoEn
     || c.operacion !== operacion.toUpperCase() || c.referencia !== referencia
     || JSON.stringify(c.casos) !== JSON.stringify(casos)
     || (operacion === 'recuperar' && c.run_objetivo !== objetivo)) throw new Error('Contexto incoherente.');
-  if (operacion === 'reevaluar' && (!c.alcance_reevaluacion || c.version_anterior !== version - 1))
+  if (operacion === 'reevaluar' && !alcanceReevaluacionValido(c, version))
     throw new Error('Falta alcance de reevaluación.');
   return { operacion, version, intento, runId, objetivo, referencia, contexto: c,
     directorio: ensayo ? directorioEnsayo : esperado, ensayo };

@@ -1,0 +1,26 @@
+{
+  "grupo": "G072",
+  "version": 2,
+  "intento": 3,
+  "run_id": "RUN-G072-V2-20261101-052705",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G072-V2-20261101",
+  "casos": [
+    "TC-M04-226",
+    "TC-M04-227",
+    "TC-M04-230"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-226",
+      "TC-M04-227",
+      "TC-M04-230"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 de TC-M04-230 con regresión de 226 y 227, tras la corrección de Desarrollo y DBA (issue #869, PR #871): la migración 7efe47d6c76a crea pol_historial_diagnostico_evento_insert (materializar eventos solo de activos de infraestructuras autorizadas para el usuario; RLS forzada; sin BYPASSRLS). La migración está en la cadena de Alembic de c31f8a6d920e (versión de TEST confirmada por la IA de BD el 2026-11-01); en G067 V2 y G068 V2 el historial respondió 200 tras registrar. ORD-G072-007: 230 exige historial 200 con los cuatro registros; 226 y 227 verifican la coexistencia en el historial; control complementario RF-67 de aislamiento con un activo de una finca distinta de 84 y 184 descubierto por el Administrador QA; timeout de 120 s y conciliación; informe sin matriz. Validación: prueba local OK; ensayo real del responsable QA 42/42 (presupuesto 414, Newman único verificado). SHA-256 g072.mjs b735f8369daa5330b1a588f1c5ff311a695ee2ab955589102ee3cec3060af2e0; lib/g072_core.mjs 036930722423aaead442ad24220896d9d513ae71cc49feb421b129e520da8497; colección 77a510e8d15fea3a1da40df3de1db80a5de1c1ee4a1cc9e4bf43cc07521d0742.",
+    "incumplimientos_previos": "V1 oficial RUN-G072-V1-20261029-165112: RECHAZADO por TC-M04-230 (INC-M04-G072-230-01, Desarrollo, ALTA): GET /prediccion/historial/885 → 500 ERROR_INTERNO tras registrar retroalimentaciones; causa confirmada después: la RLS solo permitía el INSERT de materialización al usuario de servicio. 226 y 227 APROBADO con la limitación de no poder ver la coexistencia en el historial.",
+    "correcciones_informadas": "Desarrollo y DBA, issue #869 / PR #871: migración 7efe47d6c76a (pol_historial_diagnostico_evento_insert) con el mismo criterio de alcance que la lectura; RLS forzada; inmutabilidad intacta; aprobada por el responsable DBA en el issue.",
+    "resultado_esperado": "230 APROBADO: historial 200 antes y después de registrar, con los cuatro registros iguales coexistiendo, sin flag ni evento de conflicto y sin ERROR_INTERNO. 226 APROBADO: conflicto en B, CONFLICTO_RETROALIMENTACION referido a R1 y coexistencia en el historial. 227 APROBADO: tres registros independientes en el historial, sin consolidado. Control de aislamiento: un veterinario no consulta ni materializa el historial de un activo fuera de su alcance (403 o 404). INC-M04-G072-230-01 CORREGIDA si se cumple."
+  },
+  "version_anterior": 1
+}

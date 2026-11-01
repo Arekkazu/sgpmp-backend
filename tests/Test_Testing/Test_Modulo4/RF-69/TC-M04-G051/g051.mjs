@@ -18,7 +18,8 @@ const API = 'https://www.api.inmero.co/api-sgpmp-test';
 const COLECCION = path.join(DIR, 'G051.postman_collection.json');
 const ARCHIVOS = ['.gitkeep', 'g051.mjs', 'G051.postman_collection.json', 'README.md',
   'lib/contrato_ejecutor.mjs', 'lib/seguridad.mjs', 'lib/artefactos.mjs', 'lib/g051_escenario.mjs',
-  'pruebas/registro_qa.mjs', 'pruebas/g051_ensayo.mjs', 'pruebas/g051_env.test.mjs'];
+  'pruebas/registro_qa.mjs', 'pruebas/g051_ensayo.mjs', 'pruebas/g051_env.test.mjs',
+  'pruebas/fixture_run_tecnico_v2.json'];
 const limpio = x => String(x ?? '').replaceAll('|', '/').replace(/[\r\n]+/g, ' ').slice(0, 350);
 const celda = x => limpio(x === null || x === undefined ? 'nulo' : typeof x === 'object' ? JSON.stringify(x) : x);
 const guardar = (p, x) => fs.writeFileSync(p, JSON.stringify(x, null, 2), 'utf8');
@@ -74,12 +75,30 @@ export function comprobar() {
   const inesperados = presentes.filter(x => !ARCHIVOS.includes(x));
   const markdownSuperior = fs.existsSync(path.join(DIR, 'Resultados'))
     && fs.readdirSync(path.join(DIR, 'Resultados')).some(x => x.endsWith('.md'));
+  const fuentesLocales = ['g051.mjs', 'README.md',
+    ...['lib', 'pruebas'].flatMap(d => fs.readdirSync(path.join(DIR, d)).map(x => `${d}/${x}`))]
+    .filter(x => /\.(?:mjs|md|json)$/.test(x));
+  const runTecnico = /RUN-G051-V2-20261101-(?:022937|024639)/;
+  const referenciasRunTecnico = fuentesLocales.filter(x => {
+    const contenido = fs.readFileSync(path.join(DIR, x), 'utf8');
+    return /EvaluacionV2[\\/]Resultados[\\/]RUN-G051-V2-20261101-(?:022937|024639)/.test(contenido)
+      || /\]\([^)]*RUN-G051-V2-20261101-(?:022937|024639)[\\/]/.test(contenido)
+      || (x.endsWith('.mjs') && contenido.split(/\r?\n/).some(linea =>
+        runTecnico.test(linea) && /(?:readFile|existsSync|readdirSync|import\s|from\s)/.test(linea)));
+  });
   const e = escenarios({ variable: 1, inexistente: 999, hash: 'a'.repeat(64),
     dataset: 'b'.repeat(64), archivo: 'local.onnx' });
+  const presupuestoValido = PRESUPUESTO.timeout_post_ms === 120000
+    && PRESUPUESTO.timeout_ms === 30000
+    && PRESUPUESTO.timeout_newman_ms >= 4 * PRESUPUESTO.timeout_post_ms + 19 * PRESUPUESTO.timeout_ms
+    && PRESUPUESTO.duracion_segundos * 1000 >= PRESUPUESTO.timeout_newman_ms
+      + 10 * PRESUPUESTO.timeout_ms;
   const ok = coleccion && !faltantes.length && !inesperados.length && !markdownSuperior
-    && e.length === PRESUPUESTO.posts;
+    && !referenciasRunTecnico.length
+    && e.length === PRESUPUESTO.posts && presupuestoValido;
   console.log(JSON.stringify({ grupo: 'G051', ok, coleccion, escenarios: e.length,
-    faltantes, inesperados, markdownSuperior, presupuesto: PRESUPUESTO }));
+    faltantes, inesperados, markdownSuperior, referenciasRunTecnico,
+    presupuestoValido, presupuesto: PRESUPUESTO }));
   return ok ? 0 : 2;
 }
 export function preflight(c, env, ensayo = false) {
@@ -89,12 +108,19 @@ export function preflight(c, env, ensayo = false) {
   const barreras = claves.filter(k => !String(env[k] ?? '').trim());
   if (env.QA_AUTORIZADO !== 'SI') barreras.push('QA_AUTORIZADO');
   if (ensayo ? !/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base) : base !== API) barreras.push('API_NO_CANONICA');
-  if (c.version > 1 && c.operacion !== 'reevaluar') barreras.push('REEVALUACION_SIN_DECISION');
+  const alcance = c.contexto?.alcance_reevaluacion;
+  const reintentoValido = c.operacion === 'reintentar' && alcance
+    && !Array.isArray(alcance) && Array.isArray(alcance.casos)
+    && JSON.stringify(alcance.casos) === JSON.stringify(CASOS)
+    && alcance.version_anterior === c.version - 1
+    && c.contexto.version_anterior === c.version - 1;
+  if (c.version > 1 && c.operacion !== 'reevaluar' && !reintentoValido)
+    barreras.push('REEVALUACION_SIN_DECISION');
   return { fase: 'PREFLIGHT_LOCAL', grupo: 'G051', run_id: c.runId, version: c.version,
     ok: !barreras.length, barreras, presupuesto: PRESUPUESTO,
     efectos_declarados: ['4_versiones_aceptadas_segun_oraculo_BD_sujetas_a_rollback_externo',
-      '5_versiones_posibles_si_fecha_futura_se_acepta_segun_codigo_consultado',
-      'hasta_5_archivos_ONNX_en_MODELOS_STORAGE_PATH_no_revertidos_con_codigo_consultado_incluido_1_huerfano_por_fecha_futura_500',
+       'version_adicional_posible_si_fecha_futura_se_acepta_indebidamente',
+       'archivos_ONNX_en_MODELOS_STORAGE_PATH_no_verificables_por_API_ni_revertidos_por_sandbox',
       'posible_respaldo_local_RF73_no_revertido',
       'aviso_correo_Veterinarios_por_f1_0_0_RECHAZADO_despues_commit',
       'login_fuera_RUN_puede_persistir'] };
@@ -127,11 +153,18 @@ function extracto(ex, runId) {
   let cuerpo = null; try { cuerpo = JSON.parse(bytes.toString('utf8')); } catch { /* sin cuerpo */ }
   const http = ex?.response?.code ?? null;
   return { iteracion: ex?.cursor?.iteration ?? null, http, eco, cuerpo,
+    duracion_ms: Number.isFinite(ex?.response?.responseTime) ? ex.response.responseTime : null,
+    duracion_origen: Number.isFinite(ex?.response?.responseTime) ? 'newman_responseTime' : 'sin_medicion_newman',
     error: http >= 400 ? errorPublico(cuerpo) : null,
     fechaServidor: hs.find(h => String(h.key).toLowerCase() === 'date')?.value ?? null };
 }
+export function parametrosTimeoutNewman() {
+  return ['--timeout-request', String(PRESUPUESTO.timeout_post_ms),
+    '--timeout', String(PRESUPUESTO.timeout_newman_ms)];
+}
 async function ejecutarNewman(c, api, env, escenariosRun, secretos, temporal) {
   const raw = path.join(temporal, 'raw.json'), environment = path.join(temporal, 'environment.json');
+  const entornoFinal = path.join(temporal, 'environment-final.json');
   const datos = path.join(temporal, 'iteraciones.json');
   guardar(environment, { values: Object.entries({ autorizado_run: 'SI', ensayo_loopback: c.ensayo ? 'SI' : 'NO',
     base_url: api, run_id: c.runId, sandbox_secret: env.QA_SANDBOX_SECRET,
@@ -141,7 +174,8 @@ async function ejecutarNewman(c, api, env, escenariosRun, secretos, temporal) {
     compatibilidad_variables: JSON.stringify(x.compatibilidad_variables) })));
   const args = [binNewman(), 'run', COLECCION, '--environment', environment, '--iteration-data', datos,
     '--reporters', 'json', '--reporter-json-export', raw, '--working-dir', temporal,
-    '--timeout-request', String(PRESUPUESTO.timeout_ms), '--timeout', '850000', '--color', 'off'];
+    '--export-environment', entornoFinal,
+    ...parametrosTimeoutNewman(), '--color', 'off'];
   let salida = await new Promise(resolve => {
     let p; try { p = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); }
     catch (e) { resolve({ code: null, error: e.code ?? 'NEWMAN_SPAWN' }); return; }
@@ -153,13 +187,29 @@ async function ejecutarNewman(c, api, env, escenariosRun, secretos, temporal) {
     salida = await new Promise(resolve => require(paqueteNewman()).run({ collection: JSON.parse(fs.readFileSync(COLECCION, 'utf8')),
       environment: JSON.parse(fs.readFileSync(environment, 'utf8')),
       iterationData: JSON.parse(fs.readFileSync(datos, 'utf8')), reporters: ['json'],
-      reporter: { json: { export: raw } }, timeoutRequest: PRESUPUESTO.timeout_ms,
-      timeout: 850000, color: 'off' },
-    error => resolve({ code: error ? 1 : 0, error: null, modo: 'API_LOCAL_POR_SPAWN_EPERM' })));
+      reporter: { json: { export: raw } }, timeoutRequest: PRESUPUESTO.timeout_post_ms,
+      timeout: PRESUPUESTO.timeout_newman_ms, color: 'off' },
+    (error, summary) => {
+      if (summary?.environment) guardar(entornoFinal, summary.environment.toJSON());
+      resolve({ code: error ? 1 : 0, error: null, modo: 'API_LOCAL_POR_SPAWN_EPERM' });
+    }));
   }
   if (!fs.existsSync(raw)) return { salida, respuestas: [], fallos: [], artefactos: [] };
   const original = JSON.parse(fs.readFileSync(raw, 'utf8'));
   const respuestas = (original.run?.executions ?? []).map(ex => extracto(ex, c.runId));
+  const valores = fs.existsSync(entornoFinal)
+    ? new Map((JSON.parse(fs.readFileSync(entornoFinal, 'utf8')).values ?? [])
+      .map(x => [x.key, x.value])) : new Map();
+  for (const p of respuestas) {
+    if (p.duracion_ms !== null || !Number.isSafeInteger(p.iteracion)) continue;
+    const duracion = Number(valores.get(`g051_duracion_${p.iteracion}`));
+    const inicio = Number(valores.get(`g051_inicio_${p.iteracion}`));
+    if (Number.isFinite(duracion) && duracion > 0) {
+      p.duracion_ms = duracion; p.duracion_origen = 'iteracion_newman';
+    } else if (Number.isFinite(inicio) && inicio > 0) {
+      p.duracion_ms = Date.now() - inicio; p.duracion_origen = 'fin_newman_estimado';
+    }
+  }
   const fallos = (original.run?.failures ?? []).map(f => ({ name: limpio(f.error?.name),
     test: limpio(f.error?.test), mensaje: limpio(f.error?.message) }));
   fs.mkdirSync(path.join(c.directorio, 'newman'), { recursive: true });
@@ -167,9 +217,9 @@ async function ejecutarNewman(c, api, env, escenariosRun, secretos, temporal) {
   guardar(path.join(c.directorio, artefactos[0]), JSON.parse(sanearArtefacto(JSON.stringify({
     info: { nombre: 'Newman G051', generado: true, saneado: true },
     run: { stats: original.run?.stats ?? null, executions: respuestas, failures: fallos } }), secretos)));
-  const filas = respuestas.map(x => `<tr><td>${x.iteracion}</td><td>${x.http ?? 'sin respuesta'}</td><td>${x.eco}</td></tr>`).join('');
+  const filas = respuestas.map(x => `<tr><td>${x.iteracion}</td><td>${x.http ?? 'sin respuesta'}</td><td>${x.eco}</td><td>${x.duracion_ms ?? 'no medida'}</td></tr>`).join('');
   fs.writeFileSync(path.join(c.directorio, artefactos[1]),
-    `<!doctype html><html lang="es"><meta charset="utf-8"><title>Newman G051</title><h1>Newman G051</h1><table><tr><th>Iteración</th><th>HTTP</th><th>Eco RUN</th></tr>${filas}</table></html>`, 'utf8');
+    `<!doctype html><html lang="es"><meta charset="utf-8"><title>Newman G051</title><h1>Newman G051</h1><table><tr><th>Iteración</th><th>HTTP</th><th>Eco RUN</th><th>Duración ms</th></tr>${filas}</table></html>`, 'utf8');
   return { salida, respuestas, fallos, artefactos };
 }
 
@@ -181,8 +231,9 @@ function resultadoInicial(c) {
     comprobaciones: CASOS.map((caso, i) => ({ caso, fuente: 'API', id: IDS[i], tipo: 'ASSERT',
       estado: 'NO_CONCLUYENTE', motivo: 'Sin respuesta', evidencia: null })),
     cypress: { total_pruebas: 0 }, preflight_herramientas: {}, evidencias: [], bitacora: [],
-    datos: null, solicitudes: [], incidencias: [], problemas_tecnicos: [],
-    conteo: { inicial: null, final: null, delta: null, aceptados: 0, rechazados_con_id: 0 },
+    datos: null, solicitudes: [], incidencias: [], problemas_tecnicos: [], observaciones_tecnicas: [],
+    conteo: { inicial: null, final: null, delta: null, aceptados: 0, conciliados: 0,
+      rechazados_con_id: 0 },
     cierre: { run: { cierre_http: null }, rollback: { verificado: false,
       motivo: 'Sin cierre ni comprobación de reversión de BD' } } };
 }
@@ -195,7 +246,16 @@ const errorTexto = x => [x?.error?.codigo, x?.error?.mensaje,
   ...(x?.error?.campos ?? []).flatMap(f => [f.campo, f.mensaje])].join(' ').toLowerCase();
 function evaluarSolicitud(s) {
   const { escenario: e, post: p, get: g } = s;
-  if (!p?.http) return { estado: 'NO_CONCLUYENTE', motivo: 'POST sin respuesta' };
+  if (!p?.http) {
+    if (s.conciliacion?.registrado) return { estado: e.aceptado ? 'APROBADO' : 'RECHAZADO',
+      motivo: e.aceptado
+        ? 'POST sin respuesta en el límite; registro acreditado por id_proceso_rf71 en el listado'
+        : 'POST sin respuesta; se registró una solicitud que exigía rechazo' };
+    return { estado: 'NO_CONCLUYENTE',
+      motivo: e.aceptado
+        ? 'POST sin respuesta; id_proceso_rf71 ausente del listado; aceptación no acreditada'
+        : 'POST sin respuesta; id_proceso_rf71 ausente del listado; HTTP 422 no comprobable' };
+  }
   if (p.http === 403 || (e.aceptado && p.http >= 500))
     return { estado: 'BLOQUEADO', motivo: `POST válido/control HTTP ${p.http}; impedimento técnico` };
   if (!p.eco) return { estado: 'NO_CONCLUYENTE', motivo: 'POST sin eco del RUN' };
@@ -217,10 +277,13 @@ function evaluarSolicitud(s) {
   const t = errorTexto(p);
   if (e.caso === CASOS[0] && !/compatibilidad_variables|variable/.test(t))
     return { estado: 'RECHAZADO', motivo: '422 no identifica la variable' };
-  if (e.caso === CASOS[2] && (!/tipo_modelo/.test(t)
-    || !(/cat[aá]logo|admitid|uno de/.test(t)
-      || (t.match(/modelo_(?:especies_grandes|especies_medianas|riesgo_contagio|aves|porcinos|acuicultura)/g) ?? []).length >= 2)))
-    return { estado: 'RECHAZADO', motivo: '422 no identifica tipo_modelo y catálogo admitido' };
+  if (e.caso === CASOS[1] && e.dato === 'mañana' && !t.includes('fecha_entrenamiento'))
+    return { estado: 'RECHAZADO', motivo: '422 no identifica fecha_entrenamiento' };
+  if (e.caso === CASOS[2] && (!t.includes('tipo_modelo') || ![
+    'MODELO_AVES', 'MODELO_PORCINOS', 'MODELO_ACUICULTURA',
+    'MODELO_ESPECIES_MEDIANAS', 'MODELO_ESPECIES_GRANDES', 'MODELO_RIESGO_CONTAGIO'
+  ].every(tipo => t.includes(tipo.toLowerCase()))))
+    return { estado: 'RECHAZADO', motivo: '422 no identifica tipo_modelo y los seis tipos admitidos' };
   if (e.caso === CASOS[3]) {
     const campo = e.dato.slice(4);
     if (!t.includes(campo)) return { estado: 'RECHAZADO', motivo: `422 no identifica ${campo}` };
@@ -229,16 +292,18 @@ function evaluarSolicitud(s) {
     return { estado: 'RECHAZADO', motivo: '422 no indica el rango' };
   if (e.caso === CASOS[5] && !t.includes(e.dato.split(':')[0]))
     return { estado: 'RECHAZADO', motivo: '422 no identifica el hash afectado' };
+  if (e.caso === CASOS[6] && !e.omitir.every(campo => t.includes(campo)))
+    return { estado: 'RECHAZADO', motivo: `422 no identifica ${e.omitir.join(' y ')}` };
   return { estado: 'APROBADO', motivo: 'HTTP 422 sin identificador y detalle suficiente' };
 }
 const REQUISITOS = {
-  'TC-M04-121': 'Matriz G051: “Con variables existentes procede; con una inexistente HTTP 422 indicando el campo”. RF-69 Fase 2, líneas 2016-2017.',
-  'TC-M04-122': 'Matriz G051: “Las dos primeras se registran; la futura HTTP 422 sin crear la versión”. RF-69 Entrada fecha_entrenamiento, línea 1964: “No puede ser futura.”; E2, líneas 2142-2151: HTTP 422 y registro no creado.',
-  'TC-M04-123': 'Matriz G051: “Las tres HTTP 422 indicando el catálogo admitido”. RFC-009, línea 1784; RF-65, líneas 381-390.',
-  'TC-M04-124': 'Matriz G051: “Las tres HTTP 422 identificando el campo ausente”. RF-69 E2, líneas 2142-2151.',
-  'TC-M04-125': 'Matriz G051: “0.0 y 1.0 se aceptan; -0.01 y 1.01 HTTP 422 indicando el rango”. RF-69 Entrada métricas, línea 1962.',
-  'TC-M04-126': 'Matriz G051: “Las seis HTTP 422 identificando el hash afectado”. RF-69 E2, líneas 2142-2151.',
-  'TC-M04-127': 'Matriz G051: “Las tres HTTP 422 sin crear la versión”. RF-69 Restricción 8, líneas 1893-1897.'
+  'TC-M04-121': 'Resultado esperado del caso: “Con variables existentes procede; con una inexistente HTTP 422 indicando el campo”. RF-69, entrada compatibilidad_variables (línea 1966) y fase 2 (líneas 2016-2017).',
+  'TC-M04-122': 'Resultado esperado del caso: “Las dos primeras se registran; la futura HTTP 422 sin crear la versión”. RF-69, fecha_entrenamiento (línea 1964) y E2 (líneas 2142-2151).',
+  'TC-M04-123': 'Resultado esperado del caso: “Las tres HTTP 422 indicando el catálogo admitido”. RF-69, tipo_modelo (línea 1959), actualización RFC-009 (línea 1784) y RF-65 (líneas 381-390).',
+  'TC-M04-124': 'Resultado esperado del caso: “Las tres HTTP 422 identificando el campo ausente”. RF-69, métricas (línea 1962), fase 2 y E2 (líneas 2142-2151).',
+  'TC-M04-125': 'Resultado esperado del caso: “0.0 y 1.0 se aceptan; -0.01 y 1.01 HTTP 422 indicando el rango”. RF-69, métricas (línea 1962), fase 2 y E2 (líneas 2142-2151).',
+  'TC-M04-126': 'Resultado esperado del caso: “Las seis HTTP 422 identificando el hash afectado”. RF-69, hash del artefacto (línea 1961), hash del dataset (línea 1963), fase 2 y E2 (líneas 2142-2151).',
+  'TC-M04-127': 'Resultado esperado del caso: “Las tres HTTP 422 sin crear la versión”. RF-69, restricción 8 (líneas 1893-1897) y E2 (líneas 2142-2151): identificar cada hash omitido.'
 };
 function incidencia(r, caso, solicitudes) {
   const detalles = caso === CASOS[1] && solicitudes.some(x => x.escenario.dato === 'mañana')
@@ -266,16 +331,16 @@ function incidencia(r, caso, solicitudes) {
     severidad: alta ? 'ALTA' : esVal400 ? 'BAJA' : 'MEDIA', certeza: 'CONFIRMADA',
     sustento_severidad: alta
       ? 'Se creó una versión con metadatos prohibidos; la validación relevante quedó bloqueada sin alternativa.'
-      : fecha500 ? 'La fecha futura no creó una versión según el listado, pero el 500 genérico no identifica el campo ni permite a RF-71 distinguir el dato inválido de una caída; un ONNX huérfano es probable y no está verificado en TEST.'
-        : esVal400 ? 'Los cuatro datos se rechazaron, identificaron el campo y no crearon versión; solo difiere el HTTP 400 del 422 contractual, con impacto menor en clientes como RF-71.'
+       : fecha500 ? 'La fecha futura no creó una versión según el listado, pero el 500 genérico no identifica el campo ni permite a RF-71 distinguir el dato inválido de una caída; los archivos residuales no son verificables por API.'
+         : esVal400 ? `${solicitudes.length} solicitudes se rechazaron sin crear versión; el HTTP 400 difiere del 422 contractual, con impacto menor en clientes como RF-71.`
         : 'La validación o el detalle de error de un metadato difiere del requisito; impacto parcial en el registro.',
     requisito: esVal400
-      ? 'RF-69 E2, líneas 2142-2151: HTTP 422 — “Los metadatos del modelo son inválidos o incompletos: [detalle del campo específico].” y “El registro no se crea.” Restricción 8, líneas 1893-1897: “Cada versión debe estar asociada a:”, “hash SHA-256 del dataset de entrenamiento”, “hash SHA-256 del artefacto del modelo” y “No se registran versiones sin ambos hashes.” Matriz G051, subcaso 3: “Las tres HTTP 422 indicando el catálogo admitido”; subcaso 7: “Las tres HTTP 422 sin crear la versión”.'
+       ? 'RF-69 E2, líneas 2142-2151: HTTP 422 con detalle del campo específico y registro no creado. Restricción 8, líneas 1893-1897: ambos hashes son obligatorios. Resultado esperado de TC-M04-123: “Las tres HTTP 422 indicando el catálogo admitido”; de TC-M04-127: “Las tres HTTP 422 sin crear la versión”.'
       : REQUISITOS[caso],
     precondiciones: `RUN ${r.run_id} autorizado; catálogo I3P-1 leído; clave interna RF-71; artefacto ONNX y hash real.`,
     pasos: esFecha ? [
       'Consultar GET /prediccion/modelos?tipo_modelo=MODELO_ESPECIES_GRANDES&limit=100&offset=0 y conservar el total inicial.',
-      'Enviar POST /prediccion/modelos multipart con tipo_modelo=MODELO_ESPECIES_GRANDES, fecha_entrenamiento=2026-10-29T03:22:02.414Z, artefacto ONNX y hash SHA-256 real, id_proceso_rf71 único y cabecera X-RF71-Internal-Key.',
+       `Enviar POST /prediccion/modelos multipart con tipo_modelo=MODELO_ESPECIES_GRANDES, fecha_entrenamiento=${solicitudes.find(x => x.escenario.dato === 'mañana')?.escenario.fecha_entrenamiento ?? 'fecha futura'}, artefacto ONNX y hash SHA-256 real, id_proceso_rf71 único y cabecera X-RF71-Internal-Key.`,
       'Comparar la respuesta y el listado final con el inicial; comprobar que el proceso rechazado no aparece.'
     ] : esVal400 ? [
       'Consultar GET /prediccion/modelos?tipo_modelo=MODELO_ESPECIES_GRANDES&limit=100&offset=0 y conservar el total inicial.',
@@ -286,18 +351,21 @@ function incidencia(r, caso, solicitudes) {
       'Comprobar HTTP, error y campos; comparar los procesos RF-71 y el total del listado final con el inicial.'
     ],
     esperado: esVal400
-      ? 'HTTP 422 con detalle del campo inválido o incompleto y sin crear versión; para TC-M04-123, indicar el catálogo admitido según la matriz; para TC-M04-127, no registrar sin ambos hashes.'
+       ? 'HTTP 422 con detalle del campo inválido o incompleto y sin crear versión; para TC-M04-123, enumerar los seis tipos admitidos; para TC-M04-127, identificar cada hash omitido.'
       : REQUISITOS[caso], obtenido: observados,
     evidencia: ['newman/newman-G051.json', 'resultado.json'],
-    analisis: esFecha
+    analisis: r.version >= 2
+      ? 'La respuesta de la API acredita la discrepancia; issue #820 / PR #864 informan una corrección local, pero su despliegue y la causa raíz en TEST no están verificados.'
+      : esFecha
       ? 'Hipótesis local (no causa confirmada en TEST): el DTO y normalizador UTC no rechazan futuro (registrar_version_modelo_dto.py:45; src/shared/fechas.py:33-40); el use case guarda el archivo antes del INSERT (registrar_version_modelo_use_case.py:105-155), el trigger rechaza fecha futura con P0408 (alembic/baseline/esquema_baseline.sql:10642-10654) y ese código no figura en src/shared/db_error_translator.py:255-283, cuyo caso residual devuelve ERROR_INTERNO (:432-435). Puede quedar un ONNX huérfano; no se verificó el disco de TEST.'
       : esVal400 ? 'Hipótesis local, no causa raíz confirmada en TEST: Form(...) obligatorio para los hashes (src/prediction/infrastructure/dto/registrar_version_modelo_dto.py:42-43) y para tipo_modelo (:41), junto al manejador src/shared/error_handlers.py:193-200,298-324, que usa 400 por defecto si la ruta no declara x-codigo-validacion 422; la ruta revisada src/prediction/infrastructure/routers/version_modelo_router.py:47-77 no lo declara.'
         : 'El código local orienta la investigación, sin demostrar causa raíz en TEST.',
-    impacto: esFecha && fecha500 ? 'RF-71 no puede distinguir un dato inválido de una caída; probablemente queda un archivo ONNX huérfano, sin verificación del disco de TEST.'
+    impacto: esFecha && fecha500 ? 'RF-71 no puede distinguir un dato inválido de una caída; los archivos residuales no son verificables por API.'
       : esFecha ? 'Una fecha de entrenamiento futura podría quedar registrada.'
       : esVal400 ? 'Clientes como RF-71 que distinguen validación por HTTP 422 pueden manejar este rechazo como otra clase de error; los cuatro registros inválidos fueron rechazados y no aparecen en el listado.'
       : 'La validación del metadato o la respuesta exigida por E2 es divergente.',
-    cierre: esFecha ? 'Traducir P0408 a HTTP 422 E2 identificando fecha_entrenamiento, o validar antes del guardado; no guardar el ONNX antes de validar. Reevaluar TC-M04-122 en V2 autorizada.'
+    cierre: r.version >= 2 ? 'Atender la discrepancia observada y repetir el caso afectado en una ejecución autorizada.'
+      : esFecha ? 'Traducir P0408 a HTTP 422 E2 identificando fecha_entrenamiento, o validar antes del guardado; no guardar el ONNX antes de validar. Reevaluar TC-M04-122 en V2 autorizada.'
       : esVal400 ? 'Declarar HTTP 422 para la validación de esta ruta o tratar los campos vacíos/ausentes en el caso de uso; reevaluar TC-M04-123 y TC-M04-127 en V2 autorizada.'
         : 'Corregir la discrepancia y reevaluar el caso en RUN autorizado.' };
 }
@@ -384,11 +452,71 @@ function detallePorCaso(r) {
     const porQue = estado === 'APROBADO' || (estado === 'RECHAZADO' && incidenciaVigente) ? razones[i]
       : estado === 'RECHAZADO' ? `${r.casos[c].motivo}. ${r.incidencias.filter(x => (x.casos_afectados ?? [x.caso]).includes(c)).map(x => x.id).join('; ')}.`
         : `No se pudo completar el oráculo: ${r.casos[c].motivo}. Hace falta resolver el impedimento y repetir las solicitudes con evidencia de respuesta y listado final.`;
-    return `### ${c} — ${estado}\n\n**Qué se hizo:** ${hizo}\n**Qué se esperaba:** Matriz G051: “${criterios[i][0]}”. ${criterios[i][1]}\n**Qué se observó:** ${observacion}\n**Por qué ${estado}:** ${porQue}`;
+    return `### ${c} — ${estado}\n\n**Qué se hizo:** ${hizo}\n**Qué se esperaba:** Resultado esperado del caso: “${criterios[i][0]}”. ${criterios[i][1]}\n**Qué se observó:** ${observacion}\n**Por qué ${estado}:** ${porQue}`;
   }).join('\n\n');
 }
 
+function informeV2(r) {
+  const estados = CASOS.map(c => r.casos[c].estado);
+  const decision = estados.includes('BLOQUEADO') ? 'BLOQUEADO TÉCNICO'
+    : estados.includes('NO_CONCLUYENTE') ? 'NO_CONCLUYENTE TÉCNICO'
+      : estados.includes('RECHAZADO') ? 'RECHAZADO' : 'APROBADO';
+  const v1 = ['APROBADO', 'RECHAZADO', 'RECHAZADO', 'APROBADO', 'APROBADO', 'APROBADO', 'RECHAZADO'];
+  const comparacion = CASOS.map((caso, i) =>
+    `| ${caso} | ${IDS[i]} | ${v1[i]} | ${r.casos[caso].estado} | ${[0, 3, 4, 5].includes(i) ? 'Regresión' : 'Corrección informada'} |`).join('\n');
+  const esperado = e => e.aceptado
+    ? `Registro ${e.dato === 'f1=0.0' ? 'HTTP 200 o 201' : 'HTTP 201'} con ID y GET 200`
+    : `HTTP 422, sin ID ni versión en listado${e.caso === CASOS[1] ? ', fecha_entrenamiento' : ''}`
+      + (e.caso === CASOS[2] ? ', tipo_modelo y seis tipos admitidos' : '')
+      + (e.caso === CASOS[6] ? `, ${e.omitir.join(' y ')}` : '');
+  const observado = x => {
+    const p = x.post;
+    const duracion = `; duración POST ${p?.duracion_ms === null || p?.duracion_ms === undefined
+      ? `no medida (límite configurado ${PRESUPUESTO.timeout_post_ms / 1000} s)`
+      : `${p.duracion_ms} ms (${p.duracion_origen})`}`;
+    if (!p?.http) return (x.conciliacion?.registrado
+      ? `POST sin respuesta en el límite; registro acreditado por id_proceso_rf71 en el listado; ID ${x.conciliacion.id_version_modelo}; estado ${x.conciliacion.estado_version}${x.get ? `; GET ${x.get.http ?? 'sin respuesta'}` : ''}`
+      : `POST sin respuesta; ${x.conciliacion?.listado_completo ? 'proceso ausente del listado final' : 'listado final no exhaustivo'}; HTTP desconocido`) + duracion;
+    const campos = (p.error?.campos ?? []).map(f => `${f.campo}: ${f.mensaje}`).join('; ');
+    return `HTTP ${p.http}; código ${p.error?.codigo || 'sin error'}; ${p.error?.mensaje || 'sin mensaje de error'}`
+      + `${campos ? `; campos ${campos}` : '; sin campos detallados'}`
+      + `; ID ${idVersion(p.cuerpo) ?? 'ausente'}; ${x.aparece_en_listado_final ? 'presente' : 'ausente'} en listado final`
+      + `${x.get ? `; GET ${x.get.http ?? 'sin respuesta'}` : ''}` + duracion;
+  };
+  const detalle = CASOS.map((caso, i) => {
+    const xs = r.solicitudes.filter(x => x.escenario.caso === caso
+      || i === 1 && x.escenario.dato === 'variables existentes / ayer');
+    const filas = xs.map(x => `| ${limpio(x.escenario.dato)} | ${esperado(x.escenario)} | ${limpio(observado(x))} | ${evaluarSolicitud(x).estado} |`).join('\n');
+    const catalogo = r.bitacora.some(x => x.metodo === 'GET' && x.ruta?.startsWith('/configuracion/variables-ambientales'));
+    const listados = r.bitacora.filter(x => x.metodo === 'GET' && x.ruta?.startsWith('/prediccion/modelos?')).length;
+    const consultaId = xs.some(x => x.get);
+    return `### ${caso} — ${r.casos[caso].estado}\n\n**Qué se hizo:** ${xs.length} solicitudes POST de registro; ${catalogo ? 'se consultó' : 'no se consultó'} el catálogo, ${listados >= 2 ? 'se consultaron los listados inicial y final' : listados ? 'se consultó solo el listado inicial' : 'no se consultó el listado'} y ${consultaId ? 'se consultaron las versiones creadas por ID' : 'no hubo GET de versión por ID'}. ${i === 1 ? 'La solicitud válida de ayer se comparte con TC-M04-121. ' : ''}${[0, 3, 4, 5].includes(i) ? 'Comprobación de regresión.' : 'Comprobación de la corrección informada.'}\n\n**Qué se esperaba:** ${REQUISITOS[caso]}\n\n| Solicitud | Esperado | Observado | Evaluación |\n|---|---|---|---|\n${filas || '| Sin solicitud | Pendiente | Sin respuesta | NO_CONCLUYENTE |'}\n\n**Qué se observó:** ${xs.map(x => `${limpio(x.escenario.dato)}: ${limpio(observado(x))}`).join(' ') || 'No se obtuvo respuesta.'}\n\n**Por qué ${r.casos[caso].estado}:** ${limpio(r.casos[caso].motivo)}.`;
+  }).join('\n\n');
+  const estado122 = r.casos[CASOS[1]].estado === 'APROBADO' ? 'CORREGIDA' : 'PENDIENTE';
+  const estadoVal = [CASOS[2], CASOS[6]].every(c => r.casos[c].estado === 'APROBADO') ? 'CORREGIDA' : 'PENDIENTE';
+  const incidencias = r.incidencias.length ? r.incidencias.map(x =>
+    `- ${x.id}: ${x.titulo}. Casos ${x.casos_afectados.join(', ')}; severidad ${x.severidad}; certeza ${x.certeza}; primer contacto ${x.equipo}, por discrepancia observada en la API. La causa raíz no se determina con este RUN. Evidencia: newman/newman-G051.json y resultado.json.`).join('\n')
+    : 'Sin incidencias de producto nuevas confirmadas.';
+  const pendientes = CASOS.filter(c => r.casos[c].estado !== 'APROBADO');
+  const accion = pendientes.length ? `Atender ${pendientes.join(', ')} según las respuestas y repetir la reevaluación con autorización específica.`
+    : 'Registrar el cierre de las incidencias corregidas y conservar la evidencia del RUN.';
+  const f1 = r.solicitudes.find(x => x.escenario.dato === 'f1=0.0');
+  let efectoF1 = f1?.conciliacion?.registrado
+    ? `f1=0.0 quedó registrada por conciliación con ID ${f1.conciliacion.id_version_modelo} y estado ${f1.conciliacion.estado_version}, aunque el POST no respondió. La entrega de correo no se verificó.`
+    : idVersion(f1?.post?.cuerpo) !== null
+      ? 'La variante f1=0.0 creó una versión en estado RECHAZADO y puede enviar un aviso por correo; su entrega no se verificó.'
+      : 'No se comprobó una versión creada por la variante f1=0.0; la posible entrega de un aviso por correo queda sin verificar.';
+  const antecedenteTecnico = ' Antecedentes QA: RUN-G051-V2-20261101-022937 fue un intento técnico, exit 2; un POST f1=0.0 agotó 30 s, se registró y el ejecutor no concilió su id_proceso_rf71. El delta 4 frente a 3 respuestas aceptadas dejó los siete casos NO_CONCLUYENTE. RUN-G051-V2-20261101-024639 fue un reintento técnico detenido en PREFLIGHT_LOCAL por REEVALUACION_SIN_DECISION, sin peticiones a TEST ni cierre. Este parche usa 120 s para Newman, concilia el listado y admite REINTENTAR V2 con alcance válido; los antecedentes no son veredictos de producto.';
+  const respaldoAntecedentes = r.run_id === 'RUN-G051-V2-20261101-025552'
+    ? ' Los extractos saneados de [intento 1](api/antecedentes/intento-1.json) y [intento 2](api/antecedentes/intento-2.json), con [índice y SHA-256 de los originales](api/antecedentes/indice.json), quedan en este RUN oficial. Los dos RUN técnicos de origen fueron eliminados con autorización del responsable QA el 2026-11-01.'
+    : '';
+  const resumenConciliacion = ` Aceptados con respuesta ${r.conteo.aceptados}; registrados por conciliación ${r.conteo.conciliados}; delta ${celda(r.conteo.delta)}. ${r.observaciones_tecnicas.join('; ')}`;
+  efectoF1 += antecedenteTecnico + respaldoAntecedentes + resumenConciliacion;
+  return `# TC-M04-G051 — reevaluación V2 — ${decision}\n\n## Identificación\n\nGrupo G051; casos ${CASOS.join(', ')}; RF-69 v2.1; V2; RUN ${r.run_id}; operación ${r.operacion?.toUpperCase() ?? 'no indicada'}; intento ${r.intento ?? 'no indicado'}; ambiente ${r.ambiente}; autorización ${celda(r.autorizacion)}. Issue #820 / PR #864: corrección informada por Desarrollo; despliegue en TEST no verificado antes del RUN. Commit de despliegue: no verificado por esta orden, que excluye Git. Newman ${r.preflight_herramientas.newman?.version ?? 'no verificado'}; Cypress no aplica, pues los siete casos exigen API. Versión anterior: ${r.version - 1}.\n\n## Resumen y comparación V1 → V2\n\nV1: [RUN-G051-V1-20261028-032158](../../../Resultados/RUN-G051-V1-20261028-032158/TC-M04-G051_resultado.md). Decisión V2: ${decision}.\n\n| Caso | Comprobación | V1 | V2 | Propósito |\n|---|---|---|---|---|\n${comparacion}\n\nINC-M04-G051-122: ${estado122}. INC-M04-G051-VAL400: ${estadoVal}; requiere aprobación conjunta de 123 y 127. Estas etiquetas describen el resultado de V2 y no cambian los veredictos de V1.\n\n## Detalle por caso\n\n${detalle}\n\n## Comprobaciones API y efectos\n\nAPI-121-01 a API-127-01: 23 POST previstos. Fecha de servidor ${celda(r.datos?.fecha_servidor)}; la variante “ahora” usa el reloj del cliente menos 10 segundos. Conteo inicial ${celda(r.conteo.inicial)}, final ${celda(r.conteo.final)}, delta ${celda(r.conteo.delta)}, aceptados ${r.conteo.aceptados}, rechazados con ID ${r.conteo.rechazados_con_id}. ${efectoF1}\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis\n\n${r.problemas_tecnicos.length ? r.problemas_tecnicos.map(x => `- ${celda(x)}`).join('\n') : 'Sin problemas técnicos observados en este RUN.'} Las respuestas públicas acreditan el comportamiento observado; el código local y el PR no prueban por sí solos la causa raíz ni el despliegue.\n\n## Cierre y rollback\n\nDELETE RUN HTTP ${r.cierre.run.cierre_http ?? 'sin respuesta'}. ${r.cierre.rollback.verificado ? 'El sandbox respondió al cierre; la reversión de BD no se comprobó por consulta posterior.' : 'No se confirmó el cierre ni la reversión de BD.'} Los archivos residuales en MODELOS_STORAGE_PATH no se pueden verificar por esta API; si se requiere comprobarlos, correspondería a Implementación o DBA. Esto limita la comprobación de efectos persistentes y no cambia el veredicto de los casos. Tampoco se verificó la entrega de correo ni la eliminación de posibles respaldos RF-73.\n\n## Evidencias\n\n${r.evidencias.map(x => `- ${x}`).join('\n') || 'Sin evidencias registradas.'}\n\n## Conclusión y acción\n\n${decision}. ${accion}\n`;
+}
+
 export function informe(r) {
+  if (r.version >= 2) return informeV2(r);
   const estados = CASOS.map(c => r.casos[c].estado);
   const decision = estados.includes('BLOQUEADO') ? 'BLOQUEADO TÉCNICO'
     : estados.includes('NO_CONCLUYENTE') ? 'NO_CONCLUYENTE TÉCNICO'
@@ -506,9 +634,33 @@ export async function evaluar(c, { env, ensayo = false }) {
     if (final.http === 200 && final.eco && Number.isSafeInteger(final.cuerpo?.total)) {
       r.conteo.final = final.cuerpo.total; r.conteo.delta = final.cuerpo.total - r.conteo.inicial;
     } else r.problemas_tecnicos.push(`LISTADO_FINAL_NO_VERIFICABLE_HTTP_${final.http}`);
-    const idsFinales = new Set((final.cuerpo?.items ?? []).map(x => String(x.id_proceso_rf71 ?? '')));
+    const listadoValido = r.conteo.delta !== null && Array.isArray(final.cuerpo?.items);
+    const itemsFinales = listadoValido ? final.cuerpo.items : [];
+    const listadoCompleto = listadoValido && final.cuerpo.total <= itemsFinales.length;
+    const porProceso = new Map(itemsFinales.filter(x => x.id_proceso_rf71)
+      .map(x => [String(x.id_proceso_rf71), x]));
+    const idsFinales = new Set(porProceso.keys());
+    const conciliaciones = casos.map((escenario, i) => {
+      if (posts[i]?.http) return null;
+      const item = porProceso.get(escenario.id_proceso_rf71);
+      return { id_proceso_rf71: escenario.id_proceso_rf71,
+        registrado: !!item && idVersion(item) !== null && !!item.estado_version,
+        id_version_modelo: item ? idVersion(item) : null,
+        estado_version: item?.estado_version ?? null,
+        listado_completo: listadoCompleto };
+    });
+    for (let i = 0; i < casos.length; i++) {
+      const conciliacion = conciliaciones[i];
+      if (!casos[i].aceptado || !conciliacion?.registrado) continue;
+      if (get.filter(Boolean).length >= PRESUPUESTO.get_aceptados) break;
+      try { get[i] = await pedir(api, 'GET',
+        `/prediccion/modelos/${encodeURIComponent(conciliacion.id_version_modelo)}`,
+        { token, secreto: env.QA_SANDBOX_SECRET, runId: c.runId, bitacora: r.bitacora }); }
+      catch { r.observaciones_tecnicas.push(`GET_CONCILIADO_SIN_RESPUESTA_ITERACION_${i}`); }
+    }
     r.conteo.aceptados = posts.filter((p, i) => casos[i].aceptado && [200, 201].includes(p?.http)
       && idVersion(p.cuerpo) !== null).length;
+    r.conteo.conciliados = conciliaciones.filter((x, i) => casos[i].aceptado && x?.registrado).length;
     r.conteo.rechazados_con_id = posts.filter((p, i) => !casos[i].aceptado && idVersion(p?.cuerpo) !== null).length;
     r.solicitudes = casos.map((escenario, i) => ({ escenario: { caso: escenario.caso,
       dato: escenario.dato, aceptado: escenario.aceptado, omitir: escenario.omitir,
@@ -517,10 +669,15 @@ export async function evaluar(c, { env, ensayo = false }) {
       compatibilidad_variables: escenario.compatibilidad_variables,
       hash_artefacto_sha256: escenario.omitir.includes('hash_artefacto_sha256') ? null : escenario.hash_artefacto_sha256,
       dataset_entrenamiento_hash: escenario.omitir.includes('dataset_entrenamiento_hash') ? null : escenario.dataset_entrenamiento_hash },
-    post: posts[i], get: get[i], aparece_en_listado_final: idsFinales.has(escenario.id_proceso_rf71) }));
+    post: posts[i], get: get[i], conciliacion: conciliaciones[i],
+    aparece_en_listado_final: idsFinales.has(escenario.id_proceso_rf71) }));
     const bloqueo = posts.find((x, i) => casos[i].aceptado && x?.http >= 500);
     if (bloqueo) r.problemas_tecnicos.push(`POST_VALIDO_HTTP_${bloqueo.http}_SIN_REINTENTO`);
-    if (posts.some(x => !x?.http)) r.problemas_tecnicos.push('POST_SIN_RESPUESTA_O_NO_EJECUTADO');
+    conciliaciones.forEach((x, i) => {
+      if (!x) return;
+      if (x.registrado) r.observaciones_tecnicas.push(`POST_SIN_RESPUESTA_CONCILIADO_ITERACION_${i}`);
+      else r.problemas_tecnicos.push(`POST_SIN_RESPUESTA_NO_CONCILIADO_ITERACION_${i}`);
+    });
     for (let k = 0; k < CASOS.length; k++) {
       const xs = r.solicitudes.filter(x => x.escenario.caso === CASOS[k]
         || k === 1 && x.escenario.dato === 'variables existentes / ayer');
@@ -530,6 +687,11 @@ export async function evaluar(c, { env, ensayo = false }) {
           : evaluados.some(x => x.estado === 'RECHAZADO') ? 'RECHAZADO' : 'APROBADO';
       let motivo = evaluados.filter(x => x.estado !== 'APROBADO').map(x => x.motivo).join('; ')
         || `${xs.length} solicitudes cumplen el oráculo`;
+      if (estado === 'APROBADO') {
+        const conciliados = xs.filter(x => x.conciliacion?.registrado);
+        if (conciliados.length) motivo += `; ${conciliados.map(x =>
+          `POST sin respuesta en el límite; registro acreditado por id_proceso_rf71 en el listado (ID ${x.conciliacion.id_version_modelo}, estado ${x.conciliacion.estado_version})`).join('; ')}`;
+      }
       if (k === 1 && (!Number.isFinite(desfase) || desfase > 5000)) {
         estado = 'NO_CONCLUYENTE'; motivo = 'Desfase cliente-servidor mayor de 5 s o fecha HTTP ausente; instante actual no fiable';
         r.problemas_tecnicos.push('RELOJ_CLIENTE_SERVIDOR_NO_FIABLE');
@@ -541,9 +703,9 @@ export async function evaluar(c, { env, ensayo = false }) {
       else if (xs.some(x => !x.escenario.aceptado && x.aparece_en_listado_final)
         && estado !== 'BLOQUEADO' && estado !== 'NO_CONCLUYENTE') {
         estado = 'RECHAZADO'; motivo = 'Una solicitud rechazada aparece en el listado final por id_proceso_rf71';
-      } else if (r.conteo.delta !== r.conteo.aceptados && estado === 'APROBADO'
+      } else if (r.conteo.delta !== r.conteo.aceptados + r.conteo.conciliados && estado === 'APROBADO'
         && !r.solicitudes.some(x => !x.escenario.aceptado && x.aparece_en_listado_final)) {
-        estado = 'NO_CONCLUYENTE'; motivo = `Delta ${r.conteo.delta} no atribuible a los ${r.conteo.aceptados} aceptados`;
+        estado = 'NO_CONCLUYENTE'; motivo = `Delta ${r.conteo.delta} no atribuible a ${r.conteo.aceptados} aceptados con respuesta y ${r.conteo.conciliados} conciliados`;
       }
       asignar(r, k, estado, motivo);
     }

@@ -1,0 +1,28 @@
+{
+  "grupo": "G049",
+  "version": 2,
+  "intento": 2,
+  "run_id": "RUN-G049-V2-20261101-014729",
+  "operacion": "REEVALUAR",
+  "referencia": "AUT-G049-V2-20261101",
+  "casos": [
+    "TC-M04-114",
+    "TC-M04-115",
+    "TC-M04-116",
+    "TC-M04-117"
+  ],
+  "alcance_reevaluacion": {
+    "casos": [
+      "TC-M04-114",
+      "TC-M04-115",
+      "TC-M04-116",
+      "TC-M04-117"
+    ],
+    "version_anterior": 1,
+    "motivo": "Reevaluación V2 por cambio de requisito. Decisión de Análisis transmitida por el responsable QA (2026-10-31): 'Permite hacer el ajuste RF-69 a identificador entero, aún no está actualizado en el documento de requerimientos pero tengo en cuenta para la segunda evaluación' (estado/DECISION-G049-ID-ENTERO.md). Sustituye a 'UUID' en RF-69, líneas 1794, 1965 y 2207. Se reevalúan los 4 casos porque comparten los mismos 3 POST, y 116 y 117 dependen del formato del identificador. ORD-G049-006: oráculo de id entero positivo, único y consultable, con version_referencia entera igual a la de V2, en el ejecutor y la colección. Validación: 6/6 pruebas; ensayo real del responsable QA 18/18 modos. SHA-256 g049.mjs a10a00bb7b92333f33efd1ac368652d4fc631c2f5e4570ee8527b19146049840; G049.postman_collection.json 2f3128cbee1a4fdb5135288c0cb628fda6c1639fa4611760181257d9c01d43c8; lib/g049_escenario.mjs b47c1d47d3ef5c30811da37a0fc47842c7cf7f57044940f8fdf2f8e6fbb44db7; lib/contrato_ejecutor.mjs 9d522bc30db7e75ac28e0e7b561f81400d4832ca758b6b2a19a8b4977799a77c; lib/seguridad.mjs e9a5172fc06fd9115c519dcf0adb31fff0e7f481de08814e5548c386f53bca0a.",
+    "incumplimientos_previos": "V1 oficial RUN-G049-V1-20261027-170142: RECHAZADO solo por TC-M04-115 (INC-M04-G049-115, Desarrollo, MEDIA): los identificadores 58, 59 y 60 eran enteros y no UUID. TC-M04-114, 116 y 117 APROBADO.",
+    "correcciones_informadas": "Sin cambios en el producto. Análisis acepta el identificador entero (cambio de requisito, documento aún no actualizado).",
+    "resultado_esperado": "TC-M04-114 a 117 APROBADO: registro automático con auditoría de sistema; tres id_version enteros positivos distintos y consultables; Salida 1 fiel con id_version entero; V3 con version_referencia igual al entero de V2. Si 115 aprueba, INC-M04-G049-115 queda CERRADA POR CAMBIO DE REQUISITO."
+  },
+  "version_anterior": 1
+}

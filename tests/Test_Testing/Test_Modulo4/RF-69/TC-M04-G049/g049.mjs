@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { contextoEjecucion } from './lib/contrato_ejecutor.mjs';
 import { sanearArtefacto, contieneMojibake } from './lib/seguridad.mjs';
 import { CASOS, IDS, CAPACIDADES, PRESUPUESTO, onnxMinimo, sha256, uuid, METRICAS,
-  esUuid, idVersion, estado, metadatosIguales, evaluarAuditoria } from './lib/g049_escenario.mjs';
+  esIdEntero, idCanonico, idsValidosUnicos, referenciaValida, idVersion, estado, metadatosIguales, evaluarAuditoria } from './lib/g049_escenario.mjs';
 
 const require = createRequire(import.meta.url);
 const DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -194,33 +194,6 @@ function incidencia(caso, id, titulo, requisito, linea, esperado, obtenido, evid
     obtenido, evidencia, analisis: 'La observación acredita la discrepancia, no su causa técnica',
     impacto: titulo, cierre: 'Pendiente de corrección y reevaluación autorizada' };
 }
-export function incidencia115(r) {
-  const ids = r.respuestas.posts?.map(x => x?.id) ?? [];
-  const id = ids[0];
-  const get = r.respuestas.gets?.[0];
-  const ref = r.respuestas.gets?.[2]?.cuerpo?.version_referencia;
-  return {
-    id: 'INC-M04-G049-115', caso: CASOS[1],
-    titulo: 'El identificador de versión de modelo es un entero secuencial y no un UUID',
-    equipo: 'Desarrollo', derivacion: 'La primera discrepancia comprobada está en la respuesta del API público; se deriva a Desarrollo sin atribuir causa raíz.',
-    severidad: 'MEDIA',
-    sustento_severidad: 'El registro, la unicidad local y las consultas funcionan; la desviación del contrato afecta trazabilidad e interoperabilidad: identificadores secuenciales predecibles y enumerables, no únicos fuera de la base de datos. No bloquea el flujo.',
-    certeza: 'CONFIRMADA',
-    requisito: ['RF-69 línea 1794: “identificado de forma única mediante un id_version (UUID)”',
-      'Salida 1, línea 2207: “id_version (UUID)”',
-      'Entradas, línea 1965: “version_referencia | UUID (opcional)”'],
-    precondiciones: 'RUN autorizado, clave interna RF-71 válida, artefacto ONNX válido, metadatos completos y tipo MODELO_ESPECIES_GRANDES.',
-    pasos: ['Enviar tres POST /prediccion/modelos multipart con X-RF71-Internal-Key y procesos RF-71 distintos.',
-      'Registrar los tres identificadores devueltos y usar el segundo como version_referencia del tercero.',
-      'Consultar GET /prediccion/modelos/{id} para la primera y la tercera versión; contrastar id y version_referencia.'],
-    esperado: 'Tres UUID distintos para id_version; version_referencia de V3 es el UUID de V2.',
-    obtenido: `POST ${r.respuestas.posts?.map(x => `HTTP ${x?.http ?? 'sin respuesta'}: id_version_modelo ${x?.id ?? 'sin id'}`).join('; ') ?? 'sin respuestas'}; GET /prediccion/modelos/${id} HTTP ${get?.http ?? 'sin respuesta'} devuelve id_version_modelo ${get?.cuerpo?.id_version_modelo ?? get?.cuerpo?.id_version ?? 'sin id'}; V3 version_referencia ${ref ?? 'sin referencia'} (${typeof ref}).`,
-    evidencia: ['newman/newman-G049.json', 'resultado.json', r.run_id],
-    analisis: 'El DTO y el schema tipan el identificador como entero (registrar_version_modelo_dto.py:48; version_modelo_schema.py:14,26). Clave autoincremental probable; causa raíz no confirmada.',
-    impacto: 'Los consumidores que esperan UUID en version_referencia, correlación con RF-71/RF-73 y distribución RF-70 pueden recibir enteros; los identificadores expuestos son enumerables.',
-    cierre: 'Exponer id_version y version_referencia como UUID en respuesta, ruta GET y entrada; reevaluar TC-M04-115 en V2 autorizada.'
-  };
-}
 function detallePorCaso(r) {
   const dato = x => x === undefined || x === null ? 'sin dato verificable' : limpio(x);
   const posts = r.respuestas.posts ?? [];
@@ -265,13 +238,13 @@ function detallePorCaso(r) {
     ]),
     encabezado(1, [
       `**Qué se hizo:** ${posts.length ? `Se enviaron ${posts.length} versiones ${dato(r.datos?.tipo_modelo)} desde procesos RF-71 ${procesos.slice(0, posts.length).map(dato).join(', ')}, se compararon sus identificadores y se consultó la primera por GET.` : 'Se intentó iniciar el registro de tres versiones; no hay respuestas de creación verificables.'}`,
-      '**Qué se esperaba:** Tres identificadores UUID distintos para las tres versiones (RF-69, líneas 1794, 2001 y 2207).',
+       '**Qué se esperaba:** Tres identificadores enteros positivos distintos, consultables por GET (decisión de Análisis del 2026-10-31 sobre RF-69, líneas 1794 y 2207).',
       `**Qué se observó:** ${observacion115}`,
-      `**Por qué ${estado(1)}:** ${porQue(1, 'Los tres identificadores observados son UUID distintos y la primera versión se puede consultar con el identificador recibido.')}`
+       `**Por qué ${estado(1)}:** ${porQue(1, 'Los tres identificadores son enteros positivos distintos y la primera versión se puede consultar con el identificador recibido.')}`
     ]),
     encabezado(2, [
       `**Qué se hizo:** ${posts[0] ? `Se envió el modelo ${dato(r.datos?.tipo_modelo)} con proceso ${dato(procesos[0])}, F1 ${dato(metricas.f1_score_global)}, recall alto ${dato(metricas.recall_clase_riesgo_alto)}, precisión ${dato(metricas.precision_global)}, accuracy ${dato(metricas.accuracy)}, ROC AUC ${dato(metricas.roc_auc_score)}, hashes de dataset ${dato(r.datos?.dataset_entrenamiento_hash)} y artefacto ${dato(r.datos?.hash_artefacto_sha256)}, fecha ${dato(r.datos?.fecha_entrenamiento)}; se leyó la versión ${dato(posts[0]?.id)} por GET.` : 'Se intentó registrar el modelo para consultar sus metadatos; no hay versión verificable.'}`,
-      '**Qué se esperaba:** Persistencia fiel de todos los campos de Salida 1, incluidas métricas, hashes, fechas, origen RF-71 y notas de validación nulas hasta la revisión clínica (RF-69, líneas 2204-2223; formato UUID evaluado en TC-M04-115).',
+       '**Qué se esperaba:** Persistencia fiel de todos los campos de Salida 1, incluido id_version entero, métricas, hashes, fechas, origen RF-71 y notas de validación nulas hasta la revisión clínica (RF-69, líneas 2204-2223; decisión de Análisis del 2026-10-31).',
       `**Qué se observó:** ${resumen116}`,
       `**Por qué ${estado(2)}:** ${porQue(2, 'Los campos de Salida 1 y sus valores coinciden con lo enviado, las fechas están presentes y las notas siguen nulas; el formato del identificador se decide en TC-M04-115.')}`
     ]),
@@ -279,16 +252,33 @@ function detallePorCaso(r) {
       `**Qué se hizo:** ${posts[2] ? `Se registró V1 sin referencia, después V2 ${dato(posts[1]?.id)} y V3 con referencia a V2; se consultaron V1 y V3 por GET usando los procesos RF-71 ${dato(procesos[0])} y ${dato(procesos[2])}.` : 'Se intentó registrar una versión sin referencia y otra con referencia a la anterior; no hay tres respuestas de creación verificables.'}`,
       '**Qué se esperaba:** El registro sin version_referencia procede; cuando se envía, la versión anterior existe y la relación queda consultable (RF-69, línea 1965 y fase de recepción, líneas 1972-1985).',
       `**Qué se observó:** ${observacion117}`,
-      `**Por qué ${estado(3)}:** ${porQue(3, 'V1 se registró sin referencia y V3 expone en GET la misma referencia enviada para V2; el formato UUID de esa referencia se decide en TC-M04-115.')}`
+       `**Por qué ${estado(3)}:** ${porQue(3, 'V1 se registró sin referencia y V3 expone en GET el mismo entero positivo recibido como identificador de V2.')}`
     ])
   ].join('\n\n');
+}
+function comparacionV1V2(r) {
+  if (r.version < 2) return 'No aplica a V1.';
+  const previos = ['APROBADO', 'RECHAZADO', 'APROBADO', 'APROBADO'];
+  const motivos = [
+    'Registro y auditoría automáticos',
+    'V1 rechazó 58, 59 y 60 por UUID; V2 aplica la decisión de Análisis y comprueba entero positivo, unicidad y GET fiel',
+    'Persistencia fiel de la Salida 1 con id_version entero',
+    'V1 sin referencia y V3 con referencia entera igual a V2'
+  ];
+  return '| Caso | V1 | V2 | Comparación |\n|---|---|---|---|\n'
+    + CASOS.map((caso, i) => `| ${caso} | ${previos[i]} | ${r.casos[caso].estado} | ${motivos[i]}; V2: ${limpio(r.casos[caso].motivo)} |`).join('\n');
+}
+function cierreIncidencia115(r) {
+  return r.version > 1 && r.casos['TC-M04-115']?.estado === 'APROBADO'
+    ? '### INC-M04-G049-115 — CERRADA POR CAMBIO DE REQUISITO\n\nLa decisión de Análisis del 2026-10-31 acepta identificadores enteros; el producto no cambió. La incidencia V1 se cierra por cambio del oráculo, no por corrección del producto.'
+    : '';
 }
 export function informe(r) {
   const estados = Object.values(r.casos).map(x => x.estado);
   const decision = estados.every(x => x === 'APROBADO') ? 'APROBADO'
     : estados.includes('RECHAZADO') ? 'RECHAZADO'
       : estados.includes('BLOQUEADO') ? 'BLOQUEADO' : 'NO_CONCLUYENTE';
-  const celda = x => limpio(x === undefined || x === null ? 'nulo' : typeof x === 'object' ? JSON.stringify(x) : x);
+  const celda = x => limpio(x === undefined || x === null ? 'nulo' : typeof x === 'object' ? Array.isArray(x) ? x.map(celda).join(' / ') : Object.entries(x).map(([k, v]) => `${k}: ${celda(v)}`).join('; ') : x);
   const tabla = r.comprobaciones.map(x => `| ${x.caso} | ${x.id} | ${x.estado} | ${celda(x.motivo)} |`).join('\n');
   const ids = r.respuestas.posts?.map(x => x?.id) ?? [];
   const auditoria = r.respuestas.auditoria?.items ?? [];
@@ -300,7 +290,7 @@ export function informe(r) {
     'precision_global', 'accuracy', 'roc_auc_score', 'recall_por_clase', 'matriz_confusion',
     'dataset_entrenamiento_hash', 'hash_artefacto_modelo', 'fecha_entrenamiento',
     'timestamp_registro', 'id_proceso_rf71', 'notas_validacion'];
-  const esperado = k => k === 'id_version' ? 'UUID (formato evaluado en TC-M04-115)'
+   const esperado = k => k === 'id_version' ? 'entero positivo (formato evaluado en TC-M04-115)'
     : k === 'estado' ? 'APROBADO automático'
       : k === 'timestamp_registro' ? 'fecha válida'
         : k === 'id_proceso_rf71' ? enviado.procesos?.[0]
@@ -315,26 +305,27 @@ export function informe(r) {
     : 'Sin incidencias de producto confirmadas.';
   const motivo = decision === 'RECHAZADO' && r.casos['TC-M04-115']?.estado === 'RECHAZADO'
     && estados.filter(x => x === 'APROBADO').length === 3
-    ? 'TC-M04-115 incumple el formato UUID; los otros tres casos aprobaron.'
+     ? 'TC-M04-115 incumple el identificador entero único y consultable; los otros tres casos aprobaron.'
     : `Estados: ${estados.join(', ')}.`;
   const oficial = r.oficial
     ? `RUN oficial: sí (registro QA OFICIAL, DELETE ${r.cierre.run.cierre_http}, rollback confirmado).`
     : 'RUN oficial: no; falta completar las comprobaciones y el cierre requeridos por registro QA.';
-  const falta = r.casos['TC-M04-115']?.estado === 'RECHAZADO' && r.oficial
-    ? 'Qué falta: corrección de INC-M04-G049-115 por Desarrollo y reevaluación V2 autorizada de TC-M04-115.'
-    : 'Qué falta: resolver los casos o impedimentos indicados y completar una evaluación autorizada.';
+   const falta = decision === 'APROBADO' ? 'Qué sigue: cerrar la reevaluación V2 con su evidencia y revisión QA.'
+     : 'Qué falta: resolver los casos o impedimentos indicados y completar una evaluación autorizada.';
   const observaciones = [
     r.comprobaciones[0]?.observacion ? `VERSION_REGISTRADA: ${r.comprobaciones[0].observacion}` : null,
     r.respuestas.gets?.length && !r.comprobaciones[0]?.observacion
       ? 'El historial de transiciones no se expone por API pública; los eventos RF-73 acreditan registro y resultado automáticos.' : null,
     r.respuestas.posts?.every(x => [200, 201].includes(x?.http)) ? `El tipo ${celda(enviado.tipo_modelo)} fue aceptado en los tres POST.` : null,
-    r.respuestas.gets?.length === 3 && r.respuestas.gets.every(x => x?.cuerpo?.tamanio_artefacto_bytes === 84)
-      ? 'Tres artefactos ONNX de 84 bytes quedaron fuera del rollback de BD.' : null
+     r.respuestas.gets?.length === 3 && r.respuestas.gets.every(x => x?.cuerpo?.tamanio_artefacto_bytes === 84)
+       ? 'Tres artefactos ONNX de 84 bytes quedaron fuera del rollback de BD.' : null,
+     'Para Análisis: los identificadores secuenciales son enumerables; riesgo señalado en V1, sin efecto en el veredicto.',
+     r.comprobaciones[1]?.observacion ?? null
   ].filter(Boolean).map(x => `- ${x}`).join('\n') || 'Sin observaciones adicionales.';
   const revision = r.revision_qa
     ? `Fecha ${r.revision_qa.fecha}; realizada por ${r.revision_qa.realizada_por}; autorizada por ${r.revision_qa.autorizada_por}. ${r.revision_qa.motivo} Cambios: ${r.revision_qa.cambios.join('; ')}.`
     : 'Informe generado con los criterios vigentes del ejecutor; sin revisión QA posterior registrada.';
-  return `# TC-M04-G049 — ${decision}\n\n## Decisión del caso\n\nCaso agrupado TC-M04-G049 (RF-69); originales TC-M04-114, TC-M04-115, TC-M04-116 y TC-M04-117. Decisión: ${decision}. Motivo: ${motivo}\n\n| Caso | Comprobación | Decisión | Motivo breve |\n|---|---|---|---|\n${tabla}\n\n${oficial}\n\n${falta}\n\n## Detalle por caso\n\n${detallePorCaso(r)}\n\n## Identificación\n\nRF-69 v2.1; versión V${r.version}; RUN ${r.run_id}; ambiente ${r.ambiente}; autorización ${celda(r.autorizacion)}; código de referencia origin/test daefc3a5 (despliegue no verificado); Newman ${r.preflight_herramientas.newman?.version ?? 'no verificado'}; Cypress no requerido, ${r.cypress?.total_pruebas ?? 0} ejecuciones.\n\n## Esperado vs observado por caso\n\n### TC-M04-114 · API-114-01\n\nEsperado: VERSION_REGISTRADA (Fase 1, sistema, fuente id_proceso_rf71) y VERSION_APROBADA o VERSION_RECHAZADA (Fase 3, sistema). Observado para id_referencia ${celda(ids[0])}:\n\n| Evento | Actor | id_usuario | id_sistema | Estado del payload |\n|---|---|---|---|---|\n${tablaEventos || '| Sin evento verificable | — | — | — | — |'}\n\nDecisión: ${r.casos['TC-M04-114']?.estado}. ${celda(r.casos['TC-M04-114']?.motivo)}\n\n### TC-M04-115 · API-115-01\n\nEsperado: tres UUID distintos. Observado: POST ${r.respuestas.posts?.map(x => `${x?.http ?? 'sin respuesta'} → ${celda(x?.id)}`).join('; ') ?? 'sin respuestas'}; GET /prediccion/modelos/${celda(ids[0])} HTTP ${r.respuestas.gets?.[0]?.http ?? 'sin respuesta'} devuelve id_version_modelo ${celda(r.respuestas.gets?.[0]?.cuerpo?.id_version_modelo ?? r.respuestas.gets?.[0]?.cuerpo?.id_version)}. Decisión: ${r.casos['TC-M04-115']?.estado}.\n\n### TC-M04-116 · API-116-01\n\nEsperado: campos de Salida 1 presentes y fieles, con notas_validacion nulo. La comprobación de formato UUID corresponde a TC-M04-115.\n\n| Campo | Enviado / exigido | GET V1 observado |\n|---|---|---|\n${tablaMeta}\n\nDecisión: ${r.casos['TC-M04-116']?.estado}. ${celda(r.casos['TC-M04-116']?.motivo)}\n\n### TC-M04-117 · API-117-01\n\nEsperado: V1 sin referencia y V3 con version_referencia de V2, consultable. Observado: V1 sin referencia ${celda(r.comprobaciones[3]?.observado?.v1_sin_referencia)}; V2 id ${celda(r.comprobaciones[3]?.observado?.v2_id)}; V3 version_referencia ${celda(r.comprobaciones[3]?.observado?.v3_referencia)}. Decisión: ${r.casos['TC-M04-117']?.estado}.\n\n## Observaciones\n\n${observaciones}\n\n## Incidencias de producto\n\n${incidencias}\n\n## Problemas técnicos y análisis\n\n${r.problemas_tecnicos.length ? r.problemas_tecnicos.map(x => `- ${celda(x)}`).join('\n') : 'Sin problemas técnicos observados.'} La causa raíz de las incidencias de producto no está confirmada.\n\n## Cierre y rollback\n\nDELETE RUN HTTP ${r.cierre.run.cierre_http ?? 'sin respuesta'}. ${r.cierre.rollback.verificado ? 'Cierre de la transacción externa del sandbox confirmado' : 'Rollback de BD no confirmado'}: ${celda(r.cierre.rollback.motivo)}. Los artefactos en disco, posibles respaldos RF-73 y sesiones de login no se verificaron como eliminados.\n\n## Revisión QA\n\n${revision}\n\n## Evidencias\n\n${r.evidencias.map(x => `- ${x}`).join('\n') || 'Sin evidencias registradas.'}\n\n## Conclusión y acción\n\n${decision}. ${falta}\n`;
+  return `# TC-M04-G049 — ${decision}\n\n## Decisión del caso\n\nCaso agrupado TC-M04-G049 (RF-69); originales TC-M04-114, TC-M04-115, TC-M04-116 y TC-M04-117. Decisión: ${decision}. Motivo: ${motivo}\n\n| Caso | Comprobación | Decisión | Motivo breve |\n|---|---|---|---|\n${tabla}\n\n${oficial}\n\n${falta}\n\n## Detalle por caso\n\n${detallePorCaso(r)}\n\n## Comparación V1 → V2 por caso\n\n${comparacionV1V2(r)}\n\n## Identificación\n\nRF-69 v2.1; versión V${r.version}; RUN ${r.run_id}; ambiente ${r.ambiente}; autorización ${celda(r.autorizacion)}; código de referencia origin/test daefc3a5 (despliegue no verificado); Newman ${r.preflight_herramientas.newman?.version ?? 'no verificado'}; Cypress no requerido, ${r.cypress?.total_pruebas ?? 0} ejecuciones.\n\nDecisión de Análisis del 2026-10-31: id_version y version_referencia pueden ser enteros. Sustituye el texto UUID de RF-69 en las líneas 1794, 1965 y 2207; el documento de requerimientos aún no está actualizado.\n\n## Esperado vs observado por caso\n\n### TC-M04-114 · API-114-01\n\nEsperado: VERSION_REGISTRADA (Fase 1, sistema, fuente id_proceso_rf71) y VERSION_APROBADA o VERSION_RECHAZADA (Fase 3, sistema). Observado para id_referencia ${celda(ids[0])}:\n\n| Evento | Actor | id_usuario | id_sistema | Estado del payload |\n|---|---|---|---|---|\n${tablaEventos || '| Sin evento verificable | — | — | — | — |'}\n\nDecisión: ${r.casos['TC-M04-114']?.estado}. ${celda(r.casos['TC-M04-114']?.motivo)}\n\n### TC-M04-115 · API-115-01\n\nEsperado: tres identificadores enteros positivos distintos y consultables por GET. Observado: POST ${r.respuestas.posts?.map(x => `${x?.http ?? 'sin respuesta'} → ${celda(x?.id)}`).join('; ') ?? 'sin respuestas'}; GET /prediccion/modelos/${celda(ids[0])} HTTP ${r.respuestas.gets?.[0]?.http ?? 'sin respuesta'} devuelve id_version_modelo ${celda(r.respuestas.gets?.[0]?.cuerpo?.id_version_modelo ?? r.respuestas.gets?.[0]?.cuerpo?.id_version)}. Decisión: ${r.casos['TC-M04-115']?.estado}.\n\n### TC-M04-116 · API-116-01\n\nEsperado: campos de Salida 1 presentes y fieles, con notas_validacion nulo. El formato entero del identificador corresponde a TC-M04-115.\n\n| Campo | Enviado / exigido | GET V1 observado |\n|---|---|---|\n${tablaMeta}\n\nDecisión: ${r.casos['TC-M04-116']?.estado}. ${celda(r.casos['TC-M04-116']?.motivo)}\n\n### TC-M04-117 · API-117-01\n\nEsperado: V1 sin referencia y V3 con version_referencia entera igual al identificador de V2, consultable. Observado: V1 sin referencia ${celda(r.comprobaciones[3]?.observado?.v1_sin_referencia)}; V2 id ${celda(r.comprobaciones[3]?.observado?.v2_id)}; V3 version_referencia ${celda(r.comprobaciones[3]?.observado?.v3_referencia)}. Decisión: ${r.casos['TC-M04-117']?.estado}.\n\n## Observaciones\n\n${observaciones}\n\n## Incidencias de producto\n\n${cierreIncidencia115(r)}\n\n${incidencias}\n\n## Problemas técnicos y análisis\n\n${r.problemas_tecnicos.length ? r.problemas_tecnicos.map(x => `- ${celda(x)}`).join('\n') : 'Sin problemas técnicos observados.'} La causa raíz de las incidencias de producto no está confirmada.\n\n## Cierre y rollback\n\nDELETE RUN HTTP ${r.cierre.run.cierre_http ?? 'sin respuesta'}. ${r.cierre.rollback.verificado ? 'Cierre de la transacción externa del sandbox confirmado' : 'Rollback de BD no confirmado'}: ${celda(r.cierre.rollback.motivo)}. Los artefactos en disco, posibles respaldos RF-73 y sesiones de login no se verificaron como eliminados.\n\n## Revisión QA\n\n${revision}\n\n## Evidencias\n\n${r.evidencias.map(x => `- ${x}`).join('\n') || 'Sin evidencias registradas.'}\n\n## Conclusión y acción\n\n${decision}. ${falta}\n`;
 }
 function finalizar(c, r, secretos) {
   const nombre = r.version === 1 ? 'TC-M04-G049_resultado.md' : `TC-M04-G049_reevaluacion_V${r.version}.md`;
@@ -398,7 +389,7 @@ export async function evaluar(c, { env, ensayo = false }) {
       return r;
     }
     if (primero.http >= 500) throw Error(`POST_V1_5XX_${primero.http}`);
-    if (![200, 201].includes(primero.http) || !primero.eco || !idVersion(primero.cuerpo))
+    if (![200, 201].includes(primero.http) || !primero.eco)
       throw Error(`POST_V1_PRECONDICION_HTTP_${primero.http}_ECO_${primero.eco}`);
     const gets = [1, 2, 3].map(i => n.respuestas.find(x => x.nombre === `API-G049-GET-V${i}`));
     const auditorias = [n.respuestas.find(x => x.nombre === 'API-G049-AUDITORIA-V1')];
@@ -410,6 +401,16 @@ export async function evaluar(c, { env, ensayo = false }) {
         tipo_evento: e.tipo_evento, tipo_actor: e.tipo_actor, id_usuario: e.id_usuario,
         id_sistema: e.id_sistema, id_referencia: e.id_referencia,
         estado: e.payload_evento?.estado_version ?? e.payload_evento?.estado })) } : null };
+    if (idVersion(primero.cuerpo) == null || idVersion(primero.cuerpo) === 0) {
+      asignar(r, 1, 'RECHAZADO', 'Primer POST devuelve identificador nulo o cero; se exige entero positivo',
+        'newman/newman-G049.json', { ids: posts.map(x => idVersion(x?.cuerpo)) });
+      r.incidencias.push(incidencia(CASOS[1], 'INC-M04-G049-115-V2',
+        'Identificador de versión inválido', 'id_version entero positivo y único',
+        'Decisión de Análisis 2026-10-31 sobre RF-69 líneas 1794 y 2207',
+        'Tres identificadores enteros positivos distintos y GET V1 fiel', r.comprobaciones[1].motivo,
+        'newman/newman-G049.json', 'MEDIA'));
+      return r;
+    }
     const g1 = gets[0], a1 = auditorias[0];
     if (!g1?.http || !a1?.http) throw Error('LECTURA_V1_SIN_RESPUESTA');
     if (g1.http >= 500 || a1.http >= 500) throw Error('LECTURA_V1_5XX');
@@ -428,41 +429,50 @@ export async function evaluar(c, { env, ensayo = false }) {
       r.casos[CASOS[0]].observacion = auditoria.observacion;
     }
     const ids = posts.map(x => idVersion(x?.cuerpo));
-    const identidadOk = ids.every(esUuid) && new Set(ids).size === 3;
-    if (ids.every(x => x !== null && x !== undefined)) asignar(r, 1,
-      identidadOk ? 'APROBADO' : 'RECHAZADO', identidadOk ? 'Tres UUID RFC 4122 distintos'
-        : `Identificadores observados: ${JSON.stringify(ids)}; se exigen UUID distintos`,
-    'newman/newman-G049.json', ids);
-    else asignar(r, 1, 'NO_CONCLUYENTE', 'No se obtuvieron tres versiones registradas');
     if (g1.http !== 200 || !g1.eco || !g1.cuerpo) throw Error(`GET_V1_NO_VERIFICABLE_HTTP_${g1.http}`);
-    const meta = metadatosIguales(g1.cuerpo, { ...datos, id_proceso_rf71: datos.procesos[0] });
     const idLeido = idVersion(g1.cuerpo);
-    const idOk = idLeido !== null && idLeido !== undefined && idLeido === ids[0];
+    const identidadOk = idsValidosUnicos(ids) && idCanonico(idLeido) === idCanonico(ids[0]);
+    if (posts.every(x => x && [200, 201].includes(x.http))) asignar(r, 1,
+      identidadOk ? 'APROBADO' : 'RECHAZADO', identidadOk
+        ? 'Tres identificadores enteros positivos distintos; GET de V1 devuelve el mismo identificador'
+        : `Identificadores observados: ${ids.map(x => x ?? 'nulo').join(', ')}; GET V1: ${idLeido ?? 'nulo'}; se exigen enteros positivos distintos y consulta fiel`,
+    'newman/newman-G049.json', { ids, get_v1: idLeido });
+    else asignar(r, 1, 'NO_CONCLUYENTE', 'No se obtuvieron tres versiones registradas');
+    if (identidadOk && [...ids, idLeido].some(x => typeof x === 'string')) {
+      const observacion = 'Identificador entero representado como cadena de dígitos en JSON; se acepta, pero Análisis debe revisar el tipo.';
+      r.comprobaciones[1].observacion = observacion;
+      r.casos[CASOS[1]].observacion = observacion;
+    }
+    const meta = metadatosIguales(g1.cuerpo, { ...datos, id_proceso_rf71: datos.procesos[0] });
+    const idOk = idLeido != null && String(idLeido) === String(ids[0]);
     const metaOk = !meta.faltantes.length && idOk;
     asignar(r, 2, metaOk ? 'APROBADO' : 'RECHAZADO', metaOk ? 'Salida 1 completa e igual a la enviada'
       : `Campos divergentes: ${[...meta.faltantes, ...(!idOk ? ['id_version'] : [])].join(', ')}`,
     'resultado.json', { id_version: idLeido, ...meta.observados });
-    if (idLeido !== null && idLeido !== undefined && !esUuid(idLeido))
-      r.comprobaciones[2].observacion =
-      'Formato de id_version evaluado en TC-M04-115 (INC-M04-G049-115)';
+    if (idLeido !== null && idLeido !== undefined && !esIdEntero(idLeido))
+      r.comprobaciones[2].observacion = 'Formato de id_version evaluado en TC-M04-115';
     const p3 = posts[2], g3 = gets[2];
     if (p3?.http && p3.http >= 500) throw Error(`POST_V3_5XX_${p3.http}`);
-    if (p3?.http === 422 && ids[1] && esUuid(ids[1])) {
-      asignar(r, 3, 'RECHAZADO', 'POST V3 rechaza version_referencia UUID con 422',
+    if (!esIdEntero(ids[1])) {
+      r.problemas_tecnicos.push('REFERENCIA_V2_INVALIDA_ENVIADA_POR_AUTOMATIZACION');
+      asignar(r, 3, 'NO_CONCLUYENTE', 'V2 no entregó identificador entero válido para referenciar desde V3',
+        'newman/newman-G049.json', { referencia: ids[1] });
+    } else if (p3?.http === 422) {
+      asignar(r, 3, 'RECHAZADO', 'POST V3 rechaza version_referencia entera válida con 422',
         'newman/newman-G049.json', { http: 422, error: p3.error, referencia: ids[1] });
     } else if (p3?.http && [200, 201].includes(p3.http) && g3?.http === 200 && g3.eco) {
       const ref = g3.cuerpo?.version_referencia;
-      const sinRef = posts[0]?.http && [200, 201].includes(posts[0].http);
-      const ok = sinRef && String(ref ?? '') === String(ids[1]);
+      const sinRef = [200, 201].includes(posts[0]?.http) && g1.cuerpo?.version_referencia == null;
+      const ok = referenciaValida(ids[1], ref, g1.cuerpo?.version_referencia);
       asignar(r, 3, ok ? 'APROBADO' : 'RECHAZADO', ok ? 'V3 refiere V2 y V1 se registró sin referencia'
         : 'V3 no expone la referencia a V2 por GET', 'resultado.json',
       { v1_sin_referencia: sinRef, v2_id: ids[1], v3_referencia: ref });
     } else assignarPendiente();
     function assignarPendiente() { asignar(r, 3, 'NO_CONCLUYENTE',
       `V3 o GET no verificable: POST ${p3?.http ?? 'sin respuesta'}, GET ${g3?.http ?? 'sin respuesta'}`); }
-    if (n.fallos.some(f => f.name === 'AssertionError' && f.test === 'ID_UUID')
+    if (n.fallos.some(f => f.name === 'AssertionError' && f.test === 'ID_ENTERO_UNICO')
       && r.comprobaciones[1].estado === 'APROBADO')
-      asignar(r, 1, 'RECHAZADO', 'Aserción Newman ID_UUID fallida', 'newman/newman-G049.json', ids);
+      asignar(r, 1, 'RECHAZADO', 'Aserción Newman ID_ENTERO_UNICO fallida', 'newman/newman-G049.json', { ids, get_v1: idLeido });
     const secundario = posts.slice(1).find(p => p?.http === 403 || p?.http >= 500);
     if (secundario) {
       r.problemas_tecnicos.push(`POST_SECUNDARIO_HTTP_${secundario.http}`);
@@ -474,13 +484,17 @@ export async function evaluar(c, { env, ensayo = false }) {
       'Historial automático incompleto', 'Se registra en historial inmutable: VERSION_REGISTRADA ... VERSION_APROBADA o VERSION_RECHAZADA',
       'RF-69 líneas 2089-2095', 'Dos eventos de sistema vinculados a id_proceso_rf71',
       r.comprobaciones[0].motivo, 'resultado.json', 'ALTA'));
-    if (r.comprobaciones[1].estado === 'RECHAZADO') r.incidencias.push(incidencia115(r));
+    if (r.comprobaciones[1].estado === 'RECHAZADO') r.incidencias.push(incidencia(CASOS[1], 'INC-M04-G049-115-V2',
+      'Identificador de versión inválido, repetido o no consultable', 'id_version entero positivo y único',
+      'Decisión de Análisis 2026-10-31 sobre RF-69 líneas 1794 y 2207',
+      'Tres identificadores enteros positivos distintos y GET V1 fiel', r.comprobaciones[1].motivo,
+      'newman/newman-G049.json', 'MEDIA'));
     if (r.comprobaciones[2].estado === 'RECHAZADO') r.incidencias.push(incidencia(CASOS[2], 'INC-M04-G049-116',
-      'Metadatos de trazabilidad incompletos', 'Persiste un objeto con: id_version (UUID) ... notas_validacion (Text; nulo hasta Fase 4)',
+      'Metadatos de trazabilidad incompletos', 'Persiste un objeto con: id_version entero ... notas_validacion (Text; nulo hasta Fase 4)',
       'RF-69 líneas 2204-2223', 'Salida 1 completa e igual a la enviada',
       r.comprobaciones[2].motivo, 'resultado.json', 'MEDIA'));
     if (r.comprobaciones[3].estado === 'RECHAZADO') r.incidencias.push(incidencia(CASOS[3], 'INC-M04-G049-117',
-      'Relación con versión anterior no consultable', 'version_referencia | UUID (opcional)',
+      'Relación con versión anterior no consultable', 'version_referencia | entero positivo (opcional)',
       'RF-69 línea 1965', 'V3 refiere V2 por GET; V1 se registra sin referencia',
       r.comprobaciones[3].motivo, r.comprobaciones[3].evidencia, 'MEDIA'));
     return r;

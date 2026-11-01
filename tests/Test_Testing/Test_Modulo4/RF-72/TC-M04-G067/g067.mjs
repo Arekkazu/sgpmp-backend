@@ -117,7 +117,7 @@ function preflight(c, env, newman = versionNewman()) {
   return { grupo: 'G067', run_id: c.runId, ok: !barreras.length, barreras,
     presupuesto: PRESUPUESTO, herramientas: { newman }, efectos: ['login Veterinario',
       'lecturas descubrimiento, catálogo, historial y auditoría',
-      '4 retroalimentaciones válidas y sus auditorías', '9 intentos de rechazo; posibles registros indebidos',
+      '4 retroalimentaciones válidas y sus auditorías', '12 intentos de rechazo; posibles registros indebidos',
       'DELETE sandbox siempre', 'lecturas poscierre con HISTORIAL_CONSULTADO fuera del sandbox'] };
 }
 function resumenCuerpo(p, b) {
@@ -178,10 +178,10 @@ async function ejecutarNewman(r, c, api, env, token, candidatos, usados, reserva
       `const maxReemplazos = ${PRESUPUESTO.reemplazos_por_registro};`,
       "const s = JSON.parse(pm.environment.get('estado_plan'));",
       "const libre = s.plan.find(d => !s.usados.includes(String(d.id_resultado_inferencia)));",
-      "const d = reg.clave === '205-minusculas' ? s.plan.find(x => String(x.id_resultado_inferencia) === String(s.reservada)) : reg.valido ? libre : s.reintento === reg.clave ? libre : s.plan.find(x => String(x.id_resultado_inferencia) === String(s.libre)) || libre;",
+      "const d = reg.valido ? libre : s.reintento === reg.clave ? libre : s.plan.find(x => String(x.id_resultado_inferencia) === String(s.libre)) || libre;",
       "if (!d || d.activas.length < (reg.diagnostico === 'otro' ? 2 : 1)) { pm.execution.skipRequest(); } else {",
       "const cuerpo = { id_resultado_inferencia: d.id_resultado_inferencia, id_activo_biologico: d.id_activo_biologico, observaciones_clinicas: 'QA G067 ' + reg.clave };",
-      "if (reg.estado !== null) cuerpo.estado_retroalimentacion = reg.estado;",
+      "if (reg.estado !== null || reg.clave === '205-nulo') cuerpo.estado_retroalimentacion = reg.estado;",
       "if (reg.diagnostico === 'uno') cuerpo.diagnosticos_reales = [d.activas[0]];",
       "if (reg.diagnostico === 'otro') cuerpo.diagnosticos_reales = [d.activas[1]];",
       "if (reg.diagnostico === 'vacio') cuerpo.diagnosticos_reales = [];",
@@ -198,7 +198,7 @@ async function ejecutarNewman(r, c, api, env, token, candidatos, usados, reserva
       "let b = {}; try { b = pm.response.json(); } catch (_) {}",
       "const noApto = [409,422].includes(pm.response.code) && ['RETROALIMENTACION_DUPLICADA','FUERA_DE_VENTANA_TEMPORAL'].includes(b.error_code);",
       "if (noApto && s.reintento !== reg.clave && maxReemplazos > 0) { s.usados.push(id); s.libre = null; s.reintento = reg.clave; pm.execution.setNextRequest(reg.clave); }",
-      "else { s.reintento = null; if (reg.valido || pm.response.code >= 200 && pm.response.code < 300) { s.usados.push(id); s.libre = null; } else if (reg.clave !== '205-minusculas') s.libre = id; }",
+      "else { s.reintento = null; if (reg.valido || pm.response.code >= 200 && pm.response.code < 300) { s.usados.push(id); s.libre = null; } else s.libre = id; }",
       "s.consecutivos5xx = pm.response.code >= 500 ? s.consecutivos5xx + 1 : 0;",
       "if (pm.response.code === 403 || s.consecutivos5xx >= 3) pm.execution.setNextRequest(null);",
       "pm.environment.set('estado_plan', JSON.stringify(s));"
@@ -209,7 +209,7 @@ async function ejecutarNewman(r, c, api, env, token, candidatos, usados, reserva
     run_id: c.runId, sandbox_secret: env.QA_SANDBOX_SECRET,
     cuerpo_retroalimentacion: '{}', estado_plan: JSON.stringify(estado), http_permitidos: '[]' })
     .map(([key, value]) => ({ key, value, enabled: true }));
-  const plazo = Math.max(1, Math.min(PRESUPUESTO.timeout_ms, r._limite - inicio));
+  const plazo = Math.max(1, Math.min(PRESUPUESTO.timeout_post_ms, r._limite - inicio));
   let error, summary;
   try {
     [error, summary] = await new Promise(resolve => require(paqueteNewman()).run({
@@ -273,15 +273,19 @@ async function historial(pedirPagina, activo, inicio, fin, buscado = null) {
       completo = true; break;
     }
   }
-  return { http: ultima?.http ?? null, eco: ultima?.eco, eventos, completo, cursor_pendiente: !!cursor };
+  const errorCode = ultima?.cuerpo?.error_code;
+  return { http: ultima?.http ?? null,
+    error_code: typeof errorCode === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(errorCode)
+      ? errorCode : errorCode == null ? null : 'CODIGO_NO_SEGURO',
+    eco: ultima?.eco, eventos, completo, cursor_pendiente: !!cursor };
 }
 const cortoId = x => x ? String(x).slice(0, 8) : 'sin resultado';
 const oraculos = {
-  'TC-M04-205':'RF-72 dominio cerrado 4070-4072, E3 4248-4252 y CA-3 4363; matriz G067: DESCONOCIDO, correcto, cadena vacía y número deben devolver HTTP 422 de estado no válido, sin persistir.',
-  'TC-M04-206':'RF-72 entrada obligatoria 4162; matriz G067: estado ausente se rechaza sin persistir indicando el campo. Decisión QA 2026-10-29: HTTP 400 completo se aprueba con observación; 422 recomendado.',
-  'TC-M04-207':'RF-72 obligatoriedad condicional 4074-4078, E4 4254-4258 y CA-4 4365; matriz G067: PARCIAL sin lista y con [] devuelve HTTP 422 de diagnóstico obligatorio, sin persistir.',
-  'TC-M04-208':'RF-72 obligatoriedad condicional 4074-4078, E4 4254-4258 y CA-4 4365; matriz G067: INCORRECTO sin lista y con [] devuelve HTTP 422 de diagnóstico obligatorio, sin persistir.',
-  'TC-M04-209':'RF-72 obligatoriedad condicional 4074-4078 y entradas 4162-4163; matriz G067: CORRECTO y SIN_EVENTO con y sin diagnóstico, sobre cuatro resultados distintos, devuelven HTTP 201 con registro. No se comprueba conservación del diagnóstico.'
+  'TC-M04-205':'RF-72 dominio cerrado 4070-4072, E3 4248-4252 y CA-3 4363: DESCONOCIDO, cadena vacía, 123, correcto, Correcto, null y lista [CORRECTO] deben devolver HTTP 422 ESTADO_RETROALIMENTACION_INVALIDO con mensaje de estado no válido, sin persistencia ni auditoría de registro exitoso.',
+  'TC-M04-206':'RF-72 entrada obligatoria 4162: estado ausente debe devolver HTTP 422 VAL_ENTRADA identificando estado_retroalimentacion, sin persistir. Decisión QA 2026-10-29: HTTP 400 completo se aprueba con observación.',
+  'TC-M04-207':'RF-72 obligatoriedad condicional 4074-4078, E4 4254-4258 y CA-4 4365: PARCIAL sin lista y con [] devuelve HTTP 422 de diagnóstico obligatorio, sin persistir.',
+  'TC-M04-208':'RF-72 obligatoriedad condicional 4074-4078, E4 4254-4258 y CA-4 4365: INCORRECTO sin lista y con [] devuelve HTTP 422 de diagnóstico obligatorio, sin persistir.',
+  'TC-M04-209':'RF-72 obligatoriedad condicional 4074-4078 y entradas 4162-4163: CORRECTO y SIN_EVENTO con y sin diagnóstico, sobre cuatro resultados distintos, devuelven HTTP 201 con registro en historial. No se comprueba conservación del diagnóstico.'
 };
 const etiquetaCaso = (r, caso) => r.casos[caso].estado === 'APROBADO'
   && caso === CASOS[1] && r.registros.some(z => z.caso === caso && z.http === 400)
@@ -292,7 +296,7 @@ function motivoInformeCaso(r, caso) {
     if (z.veredicto?.estado === 'APROBADO')
       return `${z.clave}: HTTP, mensaje, historial y auditoría concordantes`;
     if (z.clave === '205-minusculas' && z.http === 201 && z.estado_persistido === 'CORRECTO')
-      return `${z.clave}: 'correcto' recibió HTTP 201 y se guardó como CORRECTO; la matriz y E3 exigen HTTP 422 sin persistencia`;
+      return `${z.clave}: 'correcto' recibió HTTP 201 y se guardó como CORRECTO; RF-72 E3 exige HTTP 422 sin persistencia`;
     if (z.clave === '205-numerico' && z.http === 400)
       return `${z.clave}: HTTP 400 ${z.codigo ?? 'sin código'} (${z.detalle_campo ?? z.mensaje ?? 'sin mensaje'}); E3 exige HTTP 422 y mensaje de estado no válido`;
     return `${z.clave}: ${textoInforme(z.veredicto?.motivo ?? 'dato insuficiente')}`;
@@ -308,13 +312,15 @@ function incidenciaInforme(x) {
 }
 function incidenciasDe(registros) {
   const dominio = new Set(['CORRECTO', 'PARCIAL', 'INCORRECTO', 'SIN_EVENTO']);
+  const ids205 = new Map([['205-minusculas',1],['205-numerico',2],['205-inexistente',3],
+    ['205-vacio',4],['205-capitalizado',5],['205-nulo',6],['205-lista',7]]);
   const contadores = new Map();
   const rechazados = registros.filter(z => z.veredicto?.estado === 'RECHAZADO')
     .sort((a,b) => a.caso.localeCompare(b.caso)
       || Number(b.clave === '205-minusculas') - Number(a.clave === '205-minusculas'));
   return rechazados.map(z => {
-    const numero = (contadores.get(z.caso) ?? 0) + 1;
-    contadores.set(z.caso, numero);
+    const numero = ids205.get(z.clave) ?? (contadores.get(z.caso) ?? 0) + 1;
+    if (!ids205.has(z.clave)) contadores.set(z.caso, numero);
     const valido = REGISTROS.find(x => x.clave === z.clave)?.valido;
     const fueraDominio = z.persistio === true && !dominio.has(z.estado_persistido);
     const severidad = fueraDominio || valido ? 'ALTA' : 'BAJA';
@@ -322,7 +328,7 @@ function incidenciasDe(registros) {
       && z.estado_persistido === 'CORRECTO';
     const numerico = z.clave === '205-numerico' && z.http === 400 && z.persistio === false;
     const motivo = normalizado
-      ? "El valor 'correcto' recibió HTTP 201 y se guardó como CORRECTO; la matriz y E3 exigen HTTP 422 sin persistencia"
+      ? "El valor 'correcto' recibió HTTP 201 y se guardó como CORRECTO; RF-72 E3 exige HTTP 422 sin persistencia"
       : numerico
         ? `El valor numérico recibió HTTP 400 ${z.codigo ?? 'sin código'} (${z.detalle_campo ?? z.mensaje ?? 'sin mensaje'}); E3 exige HTTP 422 y mensaje de estado no válido`
         : z.veredicto.motivo;
@@ -356,19 +362,44 @@ function detalleCaso(r, caso) {
 - Qué se observó: ${hechos}.
 - Por qué ${etiquetaCaso(r,caso)}: ${motivoInformeCaso(r,caso)}. Evidencia: API-${caso.slice(-3)}-01 en resultado.json.`;
 }
+const cuerpoLegible = z => {
+  const b = z.cuerpo_enviado;
+  if (!b) return 'sin cuerpo disponible';
+  const estado = b.estado_retroalimentacion !== undefined
+    ? Array.isArray(b.estado_retroalimentacion) ? 'lista [CORRECTO]'
+      : b.estado_retroalimentacion === null ? 'null'
+        : b.estado_retroalimentacion === '' ? 'cadena vacía'
+          : String(b.estado_retroalimentacion) : 'estado ausente';
+  const diagnostico = Array.isArray(b.diagnosticos_reales)
+    ? `; diagnósticos ${b.diagnosticos_reales.length}` : '; diagnóstico omitido';
+  return `estado ${estado}${diagnostico}`;
+};
 export function informe(c, r) {
   const estados = CASOS.map(x=>r.casos[x].estado);
   const decision = estados.includes('RECHAZADO') ? 'RECHAZADO'
     : estados.every(x=>x==='APROBADO') && r.oficial ? 'APROBADO'
       : estados.includes('BLOQUEADO') ? 'BLOQUEADO' : 'NO_CONCLUYENTE';
   const tabla = CASOS.map(x=>`| ${x} | ${etiquetaCaso(r,x)} | ${motivoInformeCaso(r,x)} |`).join('\n');
-  const intentos = r.registros.map(z=>`| ${z.clave} | ${cortoId(z.resultado)} | ${corto(JSON.stringify(z.cuerpo_enviado??{}))} | ${z.http??'sin respuesta'} | ${mensajeIntento(z)} | ${z.persistio===null?'no determinado':z.persistio?'sí':'no'} |`).join('\n');
+  const intentos = r.registros.map(z=>`| ${z.clave} | ${cortoId(z.resultado)} | ${cuerpoLegible(z)} | ${z.http??'sin respuesta'} | ${mensajeIntento(z)} | ${z.persistio===null?'no determinado':z.persistio?'sí':'no'} |`).join('\n');
   const incidencias = r.incidencias.length ? r.incidencias.map(incidenciaInforme).join('\n') : 'Sin incidencias de producto.';
+  const comparacion = c.version < 2 ? '' : `## Comparación V1 → V${c.version}
+
+| Caso | V1 oficial | V${c.version} | Lectura |
+|---|---|---|---|
+| TC-M04-205 | RECHAZADO | ${etiquetaCaso(r,CASOS[0])} | ${r.casos[CASOS[0]].estado === 'APROBADO' ? 'Siete variantes rechazadas sin persistencia ni auditoría exitosa.' : 'Revisar intentos y evidencias de V2.'} |
+| TC-M04-206 | APROBADO con observación | ${etiquetaCaso(r,CASOS[1])} | ${r.registros.some(z=>z.clave==='206-ausente'&&z.http===422&&z.veredicto?.estado==='APROBADO') ? 'OBS-M04-G067-206 CERRADA.' : 'Observación vigente o verificación pendiente.'} |
+| TC-M04-207 | APROBADO | ${etiquetaCaso(r,CASOS[2])} | Regresión de diagnóstico obligatorio. |
+| TC-M04-208 | APROBADO | ${etiquetaCaso(r,CASOS[3])} | Regresión de diagnóstico obligatorio. |
+| TC-M04-209 | APROBADO | ${etiquetaCaso(r,CASOS[4])} | Regresión de cuatro registros válidos. |
+
+Corrección informada por Desarrollo en issue #862 / PR #871. ${r.registros.some(z=>z.clave==='205-minusculas'&&z.veredicto?.estado==='APROBADO')&&r.registros.some(z=>z.clave==='205-numerico'&&z.veredicto?.estado==='APROBADO') ? 'INC-M04-G067-205-01 e INC-M04-G067-205-02 CORREGIDAS por esta reevaluación.' : 'INC-M04-G067-205-01 e INC-M04-G067-205-02 pendientes de comprobación o corrección.'}
+
+`;
   return `# TC-M04-G067 — ${decision}
 
 ## Identificación
 
-Grupo G067; casos ${CASOS.join(', ')}; RF-72; versión ${c.version}; RUN ${c.runId}; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; código revisado origin/test daefc3a5; Node.js. Solo API.
+Grupo G067; casos ${CASOS.join(', ')}; RF-72; versión ${c.version}; RUN ${c.runId}; ambiente ${c.ensayo?'loopback local':'TEST'}; autorización ${c.referencia}; ${c.version===1?'código revisado origin/test daefc3a5':'commit de TEST no verificado por este ejecutor'}; Node.js. Solo API.
 
 ## Decisión del caso
 
@@ -380,12 +411,13 @@ RUN oficial: ${r.oficial?'sí':'no'}. Qué falta: ${r.oficial?'ninguna comprobac
 
 ## Precondición de datos (semilla)
 
-${r.diagnostico_seleccion?.resumen?.eventos??0} eventos examinados; se requieren cuatro resultados distintos para 209, uno libre compartido para rechazos y uno reservado para el valor en minúsculas, más reemplazos. Modelo INDIVIDUAL; patologías activas 8-14, excluida 7. La semilla no se modifica.
+${r.diagnostico_seleccion?.resumen?.eventos??0} eventos examinados; se requieren cuatro resultados distintos para 209, uno libre compartido para rechazos y resultados de reemplazo. Modelo INDIVIDUAL; patologías activas 8-14, excluida 7. La semilla no se modifica.
 
 ## Detalle por caso
 
 ${CASOS.map(x=>detalleCaso(r,x)).join('\n\n')}
 
+${comparacion}
 ## Tabla de intentos
 
 | Intento | Resultado | Cuerpo resumido | HTTP | Código y mensaje | Persistió |
@@ -507,15 +539,16 @@ export async function evaluar(c, { env = leerEnv(), newmanVersion = versionNewma
       const dato = candidatos.find(e => String(e.id_resultado_inferencia) === String(cuerpo?.id_resultado_inferencia));
       const enviada = cuerpo?.diagnosticos_reales ?? null;
       let h = null, aud = null;
-      if (post?.http != null && dato) {
+      if (dato) {
         h = await historial(p => pedirRun('GET', p, { caso: reg.caso }), dato.id_activo_biologico,
-          inicio, fin, reg.valido && post.http === 201 ? post.cuerpo?.id_retroalimentacion : null);
+          inicio, fin, reg.valido && post?.http === 201 ? post.cuerpo?.id_retroalimentacion : null);
+        if (h.http >= 500) r.problemas_tecnicos.push(`${reg.clave}: GET /prediccion/historial HTTP ${h.http} ${corto(h.error_code ?? 'sin código')}`);
         const instantePost = new Date(inicioNewman - 60000).toISOString();
-        const q = post.http === 201 && post.cuerpo?.id_retroalimentacion
+        const q = post?.http === 201 && post.cuerpo?.id_retroalimentacion
           ? `id_referencia=${post.cuerpo.id_retroalimentacion}`
           : `fecha_desde=${encodeURIComponent(instantePost)}&id_usuario=${usuarioId}`;
         aud = await leerAuditoria(`/prediccion/auditoria?tipo_evento=RETROALIMENTACION_REGISTRADA&${q}&por_pagina=200`, reg.caso);
-        if (!reg.valido && !(post.http >= 200 && post.http < 300)) {
+        if (!reg.valido && !(post?.http >= 200 && post?.http < 300)) {
           const otros = new Set(aceptados.filter(x => x.clave !== reg.clave
             && String(x.cuerpo?.id_resultado_inferencia) === String(dato.id_resultado_inferencia))
             .map(x => String(x.post.cuerpo.id_retroalimentacion)));
@@ -541,6 +574,7 @@ export async function evaluar(c, { env = leerEnv(), newmanVersion = versionNewma
         historial_http: h?.http ?? null, auditoria_http: aud?.http ?? null };
       fila.veredicto = !post ? { estado: 'NO_CONCLUYENTE', motivo: 'Datos insuficientes' }
         : verificarRegistro({ ...reg, dato: elegido, enviada }, post, h, aud, usuarioId);
+      if (post?.http == null && dato) fila.veredicto.motivo = `POST sin respuesta; conciliación por historial HTTP ${h?.http ?? 'sin respuesta'}, persistencia ${fila.persistio === null ? 'no determinada' : fila.persistio ? 'detectada' : 'no detectada'}; no se reintenta`;
       r.registros.push(fila);
       if (post?.http === 403) throw Error('CLAVE_403');
       const ultimos = lote.ejecutados.slice(-3);
