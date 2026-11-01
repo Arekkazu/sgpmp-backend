@@ -1,89 +1,209 @@
+# | Fecha      | Nombre                   | Que se hizo                                                                 |
+# |------------|--------------------------|-----------------------------------------------------------------------------|
+# | 2026-10-25 | HulkyZeus                | TC-M04-056: test negativo honesto inicial (pre-fix)                         |
+# | 2026-10-30 | Juan Sebastian Gutierrez | RF-73 TC-M04-G099 (TC-M04-305): D1-D3 Casos A/B/C con contrato tipado y Op3+ |
 """
-TC-M04-G099 — Consistencia temporal y corrección automática de timestamp.
-Subcaso: TC-M04-056 (desincronización futuro/desordenado).
+TC-M04-G099 — Consistencia temporal y corrección automática de timestamp (RF-73 v2.0 Flujo E7).
+Subcaso: TC-M04-305.
 
-Diseño: TEST NEGATIVO HONESTO para documentar BLOQUEADO_POR_DISENO.
-Evidencia 3 bloqueos estructurales:
-  B1: registrar() no acepta timestamp_evento como kwarg → TypeError
-  B2: registrar() no acepta origen_dato como kwarg → TypeError
-  B3: el backend no emite TIMESTAMP_CORREGIDO ni corrige fechas futuras
+Verifica el contrato del fix PR #785 (commit b440932a):
+  - Caso A: timestamp futuro (> 60s respecto al reloj del servidor) se reemplaza por
+    la hora del servidor y emite evento secundario TIMESTAMP_CORREGIDO con severidad WARNING
+    y motivo="FUTURO".
+  - Caso B: timestamp desordenado (anterior al último evento registrado con el mismo
+    correlacion_id) se reemplaza por la hora del servidor y emite TIMESTAMP_CORREGIDO
+    con severidad WARNING y motivo="DESORDENADO".
+  - Caso C: sin timestamp_evento el comportamiento no cambia (persiste con hora del
+    servidor sin emitir evento secundario).
 
-Veredicto esperado: BLOQUEADO_POR_DISENO (feature E7 no implementado).
-Conforme RN-R05-EXT: no se adaptan asserts para que pase.
+Reglas de calidad:
+  - L17: CERO consultas SQL crudas bajo RLS. Verificación mediante inspección de sesión ORM (Opción 3+).
+  - L18: Asserts estrictos y honestos sobre el contrato tipado ResultadoRegistroAuditoriaM04 y payload.
+  - DEF-04: Prueba de repositorio puro con db_session transaccional (SAVEPOINT + rollback).
 """
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import text
 
-from src.prediction.infrastructure.repositories import evento_auditoria_m04_repository
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
 
 
-def _count(db, tipo_evento: str) -> int:
-    return db.execute(
-        text("SELECT COUNT(*) FROM modulo4.eventos_auditoria_m04 "
-             "WHERE tipo_evento = :t"),
-        {"t": tipo_evento},
-    ).scalar() or 0
+def _payload_version_registrada() -> dict:
+    """Retorna payload válido para VERSION_REGISTRADA conforme a _PAYLOAD_REQUERIDO."""
+    return {
+        "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
+        "id_version": 1,
+    }
 
 
-def test_tc_m04_056_bloqueo_timestamp(db_session):
-    """TC-M04-056 — evidencia los 3 bloqueos estructurales de RF-73 E7."""
+def _candidatos(db_session) -> list:
+    """Inspección de sesión ORM en memoria (Opción 3+) sin SELECT SQL crudo (Regla L17)."""
+    return (
+        list(db_session.new)
+        + list(db_session.dirty)
+        + list(db_session.identity_map.values())
+    )
+
+
+def test_tc_m04_305a_timestamp_futuro(db_session):
+    """TC-M04-305a (Caso A): timestamp futuro (> 60s) se corrige a hora servidor y emite TIMESTAMP_CORREGIDO (WARNING, motivo=FUTURO)."""
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
-    n_antes = _count(db_session, "TIMESTAMP_CORREGIDO")
+    ahora = datetime.now(timezone.utc)
+    futuro = ahora + timedelta(hours=1)
+    correlacion = uuid.uuid4()
+    ref_id = str(uuid.uuid4())
 
-    # B1: registrar() no acepta timestamp_evento
-    with pytest.raises(TypeError):
-        repo.registrar(
-            tipo_evento="HISTORIAL_CONSULTADO",
-            tipo_actor="SISTEMA",
-            id_sistema="PYTEST_G099",
-            payload_evento={"test": "b1"},
-            timestamp_evento="2026-10-26T05:00:00Z",
-        )
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G099",
+        id_referencia=ref_id,
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="INFO",
+        timestamp_evento=futuro,
+        correlacion_id=correlacion,
+    )
+    db_session.flush()
 
-    # B2: registrar() no acepta origen_dato
-    with pytest.raises(TypeError):
-        repo.registrar(
-            tipo_evento="HISTORIAL_CONSULTADO",
-            tipo_actor="SISTEMA",
-            id_sistema="PYTEST_G099",
-            payload_evento={"test": "b2"},
-            origen_dato="BACKEND",
-        )
+    # Contrato tipado reforzado
+    assert res.aceptado is True, "El evento con timestamp futuro debió ser aceptado tras corrección"
+    assert isinstance(res.id_evento, uuid.UUID), "id_evento debe ser un UUID válido"
 
-    # B3: el backend no corrige timestamps futuros ni emite TIMESTAMP_CORREGIDO
-    futuro = datetime.now(timezone.utc) + timedelta(hours=1)
+    # Verificar TIMESTAMP_CORREGIDO en sesión (Opción 3+)
+    candidatos = _candidatos(db_session)
+    corregidos = [
+        o for o in candidatos
+        if getattr(o, "tipo_evento", None) == "TIMESTAMP_CORREGIDO"
+        and getattr(o, "correlacion_id", None) == correlacion
+    ]
+    assert len(corregidos) == 1, (
+        f"Se esperaba exactamente 1 evento TIMESTAMP_CORREGIDO para la correlación {correlacion}, "
+        f"encontrados: {len(corregidos)}"
+    )
+    corr = corregidos[0]
+    assert corr.severidad_evento == "WARNING", f"Severidad esperada 'WARNING', obtenida {corr.severidad_evento}"
+    assert corr.payload_evento.get("motivo") == "FUTURO", (
+        f"Motivo esperado 'FUTURO', obtenido {corr.payload_evento.get('motivo')}"
+    )
+    assert corr.payload_evento.get("tipo_evento_corregido") == "VERSION_REGISTRADA"
+    assert corr.payload_evento.get("id_evento_corregido") == str(res.id_evento)
+    assert corr.payload_evento.get("timestamp_original") == futuro.isoformat()
+    assert corr.correlacion_id == correlacion
+    assert corr.id_referencia == str(res.id_evento)
 
-    original_datetime = evento_auditoria_m04_repository.datetime
-    try:
-        class _FakeDatetime:
-            @classmethod
-            def now(cls, tz=None):
-                return futuro
-            @classmethod
-            def utcnow(cls):
-                return futuro.replace(tzinfo=None)
+    # Verificar que el evento original se persistió con hora del servidor (no la fecha futura del caller)
+    originales = [
+        o for o in candidatos
+        if getattr(o, "id_evento", None) == res.id_evento
+    ]
+    assert len(originales) == 1, "No se encontró el evento original en la sesión"
+    orig = originales[0]
+    orig_fecha = orig.fecha_evento.replace(tzinfo=timezone.utc) if orig.fecha_evento.tzinfo is None else orig.fecha_evento
+    assert abs((orig_fecha - ahora).total_seconds()) < 10, (
+        f"El evento original debió persistirse con hora del servidor ({ahora}), pero tiene {orig.fecha_evento}"
+    )
 
-        evento_auditoria_m04_repository.datetime = _FakeDatetime
-        repo.registrar(
-            tipo_evento="HISTORIAL_CONSULTADO",
-            tipo_actor="SISTEMA",
-            id_sistema="PYTEST_G099",
-            payload_evento={"test": "b3"},
-        )
-        db_session.flush()
-    finally:
-        evento_auditoria_m04_repository.datetime = original_datetime
 
-    n_despues = _count(db_session, "TIMESTAMP_CORREGIDO")
+def test_tc_m04_305b_timestamp_desordenado(db_session):
+    """TC-M04-305b (Caso B): timestamp anterior al último del mismo correlacion_id se corrige y emite TIMESTAMP_CORREGIDO (DESORDENADO)."""
+    repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
+    ahora = datetime.now(timezone.utc)
+    correlacion = uuid.uuid4()
 
-    assert n_despues > n_antes, (
-        "RF-73 E7: el backend debería emitir TIMESTAMP_CORREGIDO al "
-        "detectar un timestamp futuro o desordenado. No se emitió. "
-        "Feature E7 no implementado — BLOQUEADO_POR_DISENO."
+    # Evento 1 con T0 (orden cronológico inicial)
+    res1 = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G099",
+        id_referencia=str(uuid.uuid4()),
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="INFO",
+        timestamp_evento=ahora,
+        correlacion_id=correlacion,
+    )
+    db_session.flush()
+    assert res1.aceptado is True
+    assert isinstance(res1.id_evento, uuid.UUID)
+
+    # Evento 2 con T0 - 10 min (mismo correlacion_id, cronológicamente desordenado)
+    t2 = ahora - timedelta(minutes=10)
+    res2 = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G099",
+        id_referencia=str(uuid.uuid4()),
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="INFO",
+        timestamp_evento=t2,
+        correlacion_id=correlacion,
+    )
+    db_session.flush()
+    assert res2.aceptado is True
+    assert isinstance(res2.id_evento, uuid.UUID)
+
+    # Verificar TIMESTAMP_CORREGIDO por desorden en sesión (Opción 3+)
+    candidatos = _candidatos(db_session)
+    corregidos = [
+        o for o in candidatos
+        if getattr(o, "tipo_evento", None) == "TIMESTAMP_CORREGIDO"
+        and getattr(o, "correlacion_id", None) == correlacion
+    ]
+    assert len(corregidos) == 1, (
+        f"Se esperaba exactamente 1 evento TIMESTAMP_CORREGIDO por desorden para la correlación {correlacion}, "
+        f"encontrados: {len(corregidos)}"
+    )
+    corr = corregidos[0]
+    assert corr.severidad_evento == "WARNING", f"Severidad esperada 'WARNING', obtenida {corr.severidad_evento}"
+    assert corr.payload_evento.get("motivo") == "DESORDENADO", (
+        f"Motivo esperado 'DESORDENADO', obtenido {corr.payload_evento.get('motivo')}"
+    )
+    assert corr.payload_evento.get("tipo_evento_corregido") == "VERSION_REGISTRADA"
+    assert corr.payload_evento.get("id_evento_corregido") == str(res2.id_evento)
+    assert corr.payload_evento.get("timestamp_original") == t2.isoformat()
+    assert corr.correlacion_id == correlacion
+    assert corr.id_referencia == str(res2.id_evento)
+
+
+def test_tc_m04_305c_sin_timestamp_evento(db_session):
+    """TC-M04-305c (Caso C): sin timestamp_evento el comportamiento no cambia (hora servidor, sin TIMESTAMP_CORREGIDO)."""
+    repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
+    correlacion = uuid.uuid4()
+    ahora = datetime.now(timezone.utc)
+
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G099",
+        id_referencia=str(uuid.uuid4()),
+        payload_evento=_payload_version_registrada(),
+        severidad_evento="INFO",
+        correlacion_id=correlacion,
+    )
+    db_session.flush()
+
+    assert res.aceptado is True
+    assert isinstance(res.id_evento, uuid.UUID)
+
+    candidatos = _candidatos(db_session)
+    corregidos = [
+        o for o in candidatos
+        if getattr(o, "tipo_evento", None) == "TIMESTAMP_CORREGIDO"
+        and getattr(o, "correlacion_id", None) == correlacion
+    ]
+    assert len(corregidos) == 0, (
+        f"Sin timestamp_evento NO debe emitirse TIMESTAMP_CORREGIDO. Encontrados: {len(corregidos)}"
+    )
+
+    originales = [
+        o for o in candidatos
+        if getattr(o, "id_evento", None) == res.id_evento
+    ]
+    assert len(originales) == 1
+    orig = originales[0]
+    orig_fecha = orig.fecha_evento.replace(tzinfo=timezone.utc) if orig.fecha_evento.tzinfo is None else orig.fecha_evento
+    assert abs((orig_fecha - ahora).total_seconds()) < 10, (
+        f"El evento original debió persistirse con hora del servidor ({ahora}), pero tiene {orig.fecha_evento}"
     )

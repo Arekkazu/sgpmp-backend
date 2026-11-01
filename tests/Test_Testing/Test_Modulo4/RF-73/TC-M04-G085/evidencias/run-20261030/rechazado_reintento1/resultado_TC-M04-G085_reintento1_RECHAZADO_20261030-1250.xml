@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M04-G085: Retroalimentacion clinica y conflictos (RF-73)" tests="10" time="3.516">
+  <testsuite name="01-Login-Admin" id="23a0a255-57cb-40f7-9c01-2cb0239bf03b" timestamp="2026-10-30T17:50:41.480Z" tests="2" failures="0" errors="0" time="0.896">
+    <testcase name="01.01: Status 200 en login admin" time="0.896" classname="01LoginAdmin"/>
+    <testcase name="01.02: Token JWT admin presente" time="0.896" classname="01LoginAdmin"/>
+  </testsuite>
+  <testsuite name="02-Login-Vet1" id="4bc4d50b-e09c-4436-8cc1-0e07e23b1854" timestamp="2026-10-30T17:50:41.480Z" tests="3" failures="0" errors="0" time="0.472">
+    <testcase name="02.01: Status 200 en login vet1" time="0.472" classname="02LoginVet1"/>
+    <testcase name="02.02: Token JWT vet1 presente" time="0.472" classname="02LoginVet1"/>
+    <testcase name="02.03: ID vet1 extraido del claim sub" time="0.472" classname="02LoginVet1"/>
+  </testsuite>
+  <testsuite name="03-Login-Vet2" id="3fb40d27-a336-41c5-afa6-a66938eb20e1" timestamp="2026-10-30T17:50:41.480Z" tests="3" failures="0" errors="0" time="0.422">
+    <testcase name="03.01: Status 200 en login vet2" time="0.422" classname="03LoginVet2"/>
+    <testcase name="03.02: Token JWT vet2 presente" time="0.422" classname="03LoginVet2"/>
+    <testcase name="03.03: ID vet2 extraido del claim sub" time="0.422" classname="03LoginVet2"/>
+  </testsuite>
+  <testsuite name="04-Preparar-Sandbox-Inferencias" id="b464dc47-ab80-4781-9dc0-5f9d43570915" timestamp="2026-10-30T17:50:41.480Z" tests="5" failures="0" errors="0" time="0.401">
+    <testcase name="04.01: Endpoint /prediccion/inferencias responde 200" time="0.401" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.02: Endpoint devuelve array de inferencias" time="0.401" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.03: Existen al menos 2 inferencias para activo 876" time="0.401" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.04: inferencia_1_id capturado" time="0.401" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.05: inferencia_2_id capturado" time="0.401" classname="04PrepararSandboxInferencias"/>
+  </testsuite>
+  <testsuite name="05-Subcaso-1-Post-Retroalimentacion-Vet1" id="3a8bf331-3b10-4fc1-aa9d-c72edad6c53d" timestamp="2026-10-30T17:50:41.480Z" tests="2" failures="0" errors="0" time="0.332">
+    <testcase name="05.01: Status 200 o 201 en registro retroalimentacion vet1" time="0.332" classname="05Subcaso1PostRetroalimentacionVet1"/>
+    <testcase name="05.02: ID de retroalimentacion presente y estado CORRECTO" time="0.332" classname="05Subcaso1PostRetroalimentacionVet1"/>
+  </testsuite>
+  <testsuite name="06-Subcaso-1-Verificar-Retroalimentacion-Registrada" id="6d8c569d-72d9-4161-b2a0-f1cb1daf5171" timestamp="2026-10-30T17:50:41.480Z" tests="3" failures="0" errors="0" time="0.125">
+    <testcase name="06.01: Status 200 en consulta auditoria RETROALIMENTACION_REGISTRADA" time="0.125" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+    <testcase name="06.02: Total eventos RETROALIMENTACION_REGISTRADA >= 1" time="0.125" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+    <testcase name="06.03: Evento RETROALIMENTACION_REGISTRADA para inferencia 1 localizado" time="0.125" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+  </testsuite>
+  <testsuite name="07-Subcaso-2-Post-Retroalimentacion-Vet1" id="192215ba-c77e-46a1-8de2-d7e75e9f6b9d" timestamp="2026-10-30T17:50:41.480Z" tests="1" failures="0" errors="0" time="0.170">
+    <testcase name="07.01: Status 200 o 201 en registro retroalimentacion subcaso 2 vet1" time="0.170" classname="07Subcaso2PostRetroalimentacionVet1"/>
+  </testsuite>
+  <testsuite name="08-Subcaso-2-Post-Retroalimentacion-Vet2" id="839236a5-68e1-4edd-a68c-fc89adf2436a" timestamp="2026-10-30T17:50:41.480Z" tests="1" failures="0" errors="0" time="0.134">
+    <testcase name="08.01: Status 200 o 201 en registro retroalimentacion conflictiva vet2" time="0.134" classname="08Subcaso2PostRetroalimentacionVet2"/>
+  </testsuite>
+  <testsuite name="09-Subcaso-2-Verificar-Eventos-Conflicto" id="a97e016b-f7b4-4a02-80d9-05c320313878" timestamp="2026-10-30T17:50:41.480Z" tests="5" failures="1" errors="0" time="0.456">
+    <testcase name="09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION" time="0.456" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)" time="0.456" classname="09Subcaso2VerificarEventosConflicto">
+      <failure type="AssertionFailure" message="expected 3 to deeply equal 2">
+        <![CDATA[Failed 1 times.]]>
+        <![CDATA[Collection JSON ID: a0485001-0000-4000-8000-000000000085.]]>
+        <![CDATA[Collection name: TC-M04-G085: Retroalimentacion clinica y conflictos (RF-73).]]>
+        <![CDATA[Request name: 09-Subcaso-2-Verificar-Eventos-Conflicto.]]>
+        <![CDATA[Test description: 09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1).]]>
+        <![CDATA[Error message: expected 3 to deeply equal 2.]]>
+        <![CDATA[Stacktrace: AssertionError: expected 3 to deeply equal 2
+   at Object.eval sandbox-script.js:2:9).]]>
+      </failure>
+    </testcase>
+    <testcase name="09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2" time="0.456" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado" time="0.456" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO" time="0.456" classname="09Subcaso2VerificarEventosConflicto"/>
+  </testsuite>
+  <testsuite name="10-Teardown-Sandbox" id="c7a6e138-f8f2-463b-91e2-2e5c140e6f3c" timestamp="2026-10-30T17:50:41.480Z" tests="1" failures="0" errors="0" time="0.108">
+    <testcase name="10.01: Teardown de Sandbox exitoso (HTTP 200)" time="0.108" classname="10TeardownSandbox"/>
+  </testsuite>
+</testsuites>

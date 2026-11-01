@@ -1,0 +1,234 @@
+{
+  "tc": "TC-M04-G085",
+  "rf": "RF-73",
+  "titulo": "TC-M04-G085: Retroalimentación clínica y conflictos",
+  "summary": {
+    "total": 36,
+    "ok": 33,
+    "falla": 3,
+    "veredicto": "RECHAZADO"
+  },
+  "stats": {
+    "tests": 36,
+    "passes": 33,
+    "failures": 3
+  },
+  "checkpoints": [
+    {
+      "paso": "01.01: Status 200 en login admin",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "01.02: Token JWT admin presente",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.01: Status 200 en login vet1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.02: Token JWT vet1 presente",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "02.03: ID vet1 extraido del claim sub",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "03.01: Status 200 en login vet2",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "03.02: Token JWT vet2 presente",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "03.03: ID vet2 extraido del claim sub",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.01: Endpoint /prediccion/inferencias responde 200",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.02: Endpoint devuelve array de inferencias",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.03: Existen al menos 2 inferencias para activo 876",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.04: inferencia_1_id capturado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "04.05: inferencia_2_id capturado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "05.01: Status 200 o 201 en registro retroalimentacion vet1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "05.02: ID de retroalimentacion presente y estado CORRECTO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "06.01: Status 200 en consulta auditoria RETROALIMENTACION_REGISTRADA",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "06.02: Total eventos RETROALIMENTACION_REGISTRADA >= 1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "06.03: Evento RETROALIMENTACION_REGISTRADA para inferencia 1 localizado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "07.01: Status 200 o 201 en registro retroalimentacion subcaso 2 vet1",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "08.01: Status 200 o 201 en registro retroalimentacion conflictiva vet2",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)",
+      "esperado": "PASSED",
+      "obtenido": "FAILED",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    },
+    {
+      "paso": "10.01: Teardown de Sandbox exitoso (HTTP 200)",
+      "esperado": "PASSED",
+      "obtenido": "PASSED",
+      "estado": "OK"
+    }
+  ]
+}

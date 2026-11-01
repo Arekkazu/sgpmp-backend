@@ -1,0 +1,29 @@
+{
+  "tc": "TC-M04-G089",
+  "summary": {
+    "total": 3,
+    "ok": 3,
+    "falla": 0,
+    "veredicto": "APROBADO"
+  },
+  "checkpoints": [
+    {
+      "paso": "test_tc_m04_273_default_50",
+      "esperado": "RF-73: por_pagina default 50, len(items)=min(50,total)",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_274_max_200",
+      "esperado": "RF-73: por_pagina=200, len(items)=min(200,total)",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    },
+    {
+      "paso": "test_tc_m04_275_max_excedido_201",
+      "esperado": "RF-73: por_pagina fuera de 1-200 (201 y 0) responde HTTP 422 ErrorResponse",
+      "obtenido": "todos los asserts pasaron",
+      "estado": "OK"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="TC-M04-G085: Retroalimentacion clinica y conflictos (RF-73)" tests="10" time="3.229">
+  <testsuite name="01-Login-Admin" id="58ed57fa-59cb-4b60-b4ed-8586e2878ae4" timestamp="2026-10-30T18:09:31.826Z" tests="2" failures="0" errors="0" time="0.881">
+    <testcase name="01.01: Status 200 en login admin" time="0.881" classname="01LoginAdmin"/>
+    <testcase name="01.02: Token JWT admin presente" time="0.881" classname="01LoginAdmin"/>
+  </testsuite>
+  <testsuite name="02-Login-Vet1" id="570ab457-2841-49c8-9216-7ba60c18e172" timestamp="2026-10-30T18:09:31.826Z" tests="3" failures="0" errors="0" time="0.410">
+    <testcase name="02.01: Status 200 en login vet1" time="0.410" classname="02LoginVet1"/>
+    <testcase name="02.02: Token JWT vet1 presente" time="0.410" classname="02LoginVet1"/>
+    <testcase name="02.03: ID vet1 extraido del claim sub" time="0.410" classname="02LoginVet1"/>
+  </testsuite>
+  <testsuite name="03-Login-Vet2" id="7f12fad4-50f6-418c-885d-44696e1d4f66" timestamp="2026-10-30T18:09:31.826Z" tests="3" failures="0" errors="0" time="0.402">
+    <testcase name="03.01: Status 200 en login vet2" time="0.402" classname="03LoginVet2"/>
+    <testcase name="03.02: Token JWT vet2 presente" time="0.402" classname="03LoginVet2"/>
+    <testcase name="03.03: ID vet2 extraido del claim sub" time="0.402" classname="03LoginVet2"/>
+  </testsuite>
+  <testsuite name="04-Preparar-Sandbox-Inferencias" id="ccd86848-cd16-40fa-bac2-ccfbc7b6903a" timestamp="2026-10-30T18:09:31.826Z" tests="5" failures="0" errors="0" time="0.327">
+    <testcase name="04.01: Endpoint /prediccion/inferencias responde 200" time="0.327" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.02: Endpoint devuelve array de inferencias" time="0.327" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.03: Existe al menos 2 inferencias LIMPIAS (0 retros preexistentes)" time="0.327" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.04: inferencia_1_id capturado y limpio" time="0.327" classname="04PrepararSandboxInferencias"/>
+    <testcase name="04.05: inferencia_2_id capturado y limpio" time="0.327" classname="04PrepararSandboxInferencias"/>
+  </testsuite>
+  <testsuite name="05-Subcaso-1-Post-Retroalimentacion-Vet1" id="efc4e90d-f590-48cd-9e17-e55722df91c8" timestamp="2026-10-30T18:09:31.826Z" tests="2" failures="0" errors="0" time="0.131">
+    <testcase name="05.01: Status 200 o 201 en registro retroalimentacion vet1" time="0.131" classname="05Subcaso1PostRetroalimentacionVet1"/>
+    <testcase name="05.02: ID de retroalimentacion presente y estado CORRECTO" time="0.131" classname="05Subcaso1PostRetroalimentacionVet1"/>
+  </testsuite>
+  <testsuite name="06-Subcaso-1-Verificar-Retroalimentacion-Registrada" id="3db74c1c-ddb7-4f0e-a270-33fc6b5ad0fd" timestamp="2026-10-30T18:09:31.826Z" tests="3" failures="0" errors="0" time="0.127">
+    <testcase name="06.01: Status 200 en consulta auditoria RETROALIMENTACION_REGISTRADA" time="0.127" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+    <testcase name="06.02: Total eventos RETROALIMENTACION_REGISTRADA >= 1" time="0.127" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+    <testcase name="06.03: Evento RETROALIMENTACION_REGISTRADA para inferencia 1 localizado" time="0.127" classname="06Subcaso1VerificarRetroalimentacionRegistrada"/>
+  </testsuite>
+  <testsuite name="07-Subcaso-2-Post-Retroalimentacion-Vet1" id="735b9aec-1bc0-46e0-81b6-9f22fdfb85ce" timestamp="2026-10-30T18:09:31.826Z" tests="1" failures="0" errors="0" time="0.130">
+    <testcase name="07.01: Status 200 o 201 en registro retroalimentacion subcaso 2 vet1" time="0.130" classname="07Subcaso2PostRetroalimentacionVet1"/>
+  </testsuite>
+  <testsuite name="08-Subcaso-2-Post-Retroalimentacion-Vet2" id="1549c385-c402-48fa-8c94-44f6a6228fb6" timestamp="2026-10-30T18:09:31.826Z" tests="1" failures="0" errors="0" time="0.143">
+    <testcase name="08.01: Status 200 o 201 en registro retroalimentacion conflictiva vet2" time="0.143" classname="08Subcaso2PostRetroalimentacionVet2"/>
+  </testsuite>
+  <testsuite name="09-Subcaso-2-Verificar-Eventos-Conflicto" id="282e62e7-f5ff-41b9-90e9-f79631a45b8c" timestamp="2026-10-30T18:09:31.826Z" tests="5" failures="0" errors="0" time="0.473">
+    <testcase name="09b.01: Status 200 en consulta auditoria CONFLICTO_RETROALIMENTACION" time="0.473" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09b.02: Evento CONFLICTO_RETROALIMENTACION emitido (esperado >= 1)" time="0.473" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09a.01: Status 200 al consultar RETROALIMENTACION_REGISTRADA subcaso 2" time="0.473" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09a.02: Al menos 2 eventos para inferencia 2 y flag de conflicto detectado" time="0.473" classname="09Subcaso2VerificarEventosConflicto"/>
+    <testcase name="09c.01: Status 200 consulta diagnostica AUDITORIA_EVENTO_INVALIDO" time="0.473" classname="09Subcaso2VerificarEventosConflicto"/>
+  </testsuite>
+  <testsuite name="10-Teardown-Sandbox" id="571ea350-6e8a-4a45-9546-8b33aae3b6af" timestamp="2026-10-30T18:09:31.826Z" tests="1" failures="0" errors="0" time="0.205">
+    <testcase name="10.01: Teardown de Sandbox exitoso (HTTP 200)" time="0.205" classname="10TeardownSandbox"/>
+  </testsuite>
+</testsuites>
