@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar los procesos reales en incidentes previos al registro. |
 # | 2026-10-29 | Arekkazu | INC-M04-213/214 RF-69: SavedModel por estructura protobuf, fecha futura y tipo vacío 422 |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import hashlib
@@ -15,14 +16,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.version_modelo import VersionModelo
+from src.prediction.domain.entities.version_modelo import FUENTES_DATOS, VersionModelo
 from src.prediction.domain.repositories.aviso_version_modelo_port import AvisoVersionModeloPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
 from src.shared.errors import AuthorizationError, BusinessRuleError
-from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, TIPOS_MODELO, es_poblacional
+from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, INDIVIDUAL, TIPOS_MODELO, es_poblacional, paradigma_de
 
 _FORMATOS_VALIDOS = {"ONNX", "TENSORFLOW_SAVED_MODEL"}
 _MAX_BYTES = 500 * 1024 * 1024  # 500 MB
@@ -149,13 +150,23 @@ class RegistrarVersionModeloUseCase:
             componente, metricas_poblacionales = None, None  # no aplican a INDIVIDUAL/META
             metricas = self._validar_metricas(dto.metricas_validacion)
 
+        id_activo = self._validar_activo_biologico(dto.tipo_modelo, dto.id_activo_biologico)
+        if dto.fuente_datos not in FUENTES_DATOS:
+            raise BusinessRuleError(
+                code="FUENTE_DATOS_INVALIDA",
+                message=f"fuente_datos debe ser uno de: {sorted(FUENTES_DATOS)}.",
+                field="fuente_datos",
+            )
+
         # Validar compatibilidad_variables contra catálogo I3P-1
         self._validar_variables(dto.compatibilidad_variables)
 
         # Guardar artefacto en disco
         ext = "onnx" if formato == "ONNX" else "pb"
+        # RFC-010: un proceso RF-71 registra un artefacto por animal; el nombre no puede chocar.
+        sufijo = componente or (str(id_activo) if id_activo is not None else None)
         ruta = self._guardar_artefacto(
-            archivo_bytes, dto.id_proceso_rf71, f"{dto.tipo_modelo}_{componente}" if componente else dto.tipo_modelo, ext
+            archivo_bytes, dto.id_proceso_rf71, f"{dto.tipo_modelo}_{sufijo}" if sufijo else dto.tipo_modelo, ext
         )
 
         # Crear entidad
@@ -179,6 +190,8 @@ class RegistrarVersionModeloUseCase:
             version_referencia=dto.version_referencia,
             componente=componente,
             metricas_poblacionales=metricas_poblacionales,
+            id_activo_biologico=id_activo,
+            fuente_datos=dto.fuente_datos,
         )
 
         # Evaluación automática de métricas (Fase 3)
@@ -420,6 +433,27 @@ class RegistrarVersionModeloUseCase:
                 field="componente",
             )
         return componente
+
+    def _validar_activo_biologico(self, tipo_modelo: str, id_activo: Optional[int]) -> Optional[int]:
+        """RFC-010: un INDIVIDUAL es de un animal; POBLACIONAL y META no lo son.
+
+        Que el animal exista lo valida la FK (400 REFERENCIA_INVALIDA).
+        """
+        if paradigma_de(tipo_modelo) == INDIVIDUAL:
+            if id_activo is None:
+                raise BusinessRuleError(
+                    code="ACTIVO_BIOLOGICO_REQUERIDO",
+                    message="Los modelos INDIVIDUAL se versionan por animal: id_activo_biologico es obligatorio.",
+                    field="id_activo_biologico",
+                )
+            return id_activo
+        if id_activo is not None:
+            raise BusinessRuleError(
+                code="ACTIVO_BIOLOGICO_NO_APLICA",
+                message=f"Los modelos {paradigma_de(tipo_modelo)} no son de un animal: no envíe id_activo_biologico.",
+                field="id_activo_biologico",
+            )
+        return None
 
     def _validar_metricas_poblacionales(self, metricas: dict) -> dict:
         faltantes = {"calibracion_completada", *_TASAS_POBLACIONALES} - set(metricas.keys())

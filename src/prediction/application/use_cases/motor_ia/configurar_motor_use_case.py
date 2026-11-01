@@ -4,6 +4,7 @@
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
 # | 2026-10-26 | Arekkazu     | INC-M04-203-G42 RF-65/68: cada peso de contagio en [0, 1], no solo la suma |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: validar perfil exclusivo de contagio y guardar pesos fijos en MVP. |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -324,7 +325,7 @@ class ConfigurarMotorUseCase:
                 message=f"No existe la versión de modelo con id {id_version}.",
                 field=campo,
             )
-        estado, tipo_version, componente_version = llave
+        estado, tipo_version, componente_version, _id_activo = llave
         if estado != _ESTADO_ACTIVO:
             raise ConflictError(
                 code="MODELO_NO_ACTIVO",

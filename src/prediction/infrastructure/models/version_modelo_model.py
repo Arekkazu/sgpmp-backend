@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import uuid
@@ -60,3 +63,6 @@ class VersionModeloModel(Base):
     metricas_poblacionales: Mapped[Optional[dict]] = mapped_column(JSONB)
     # DEV-15 / DB-04: firma del artefacto (D6).
     firma_artefacto: Mapped[Optional[str]] = mapped_column(Text)
+    # RFC-010: animal del modelo INDIVIDUAL y fuente de los datos de entrenamiento.
+    id_activo_biologico: Mapped[Optional[int]] = mapped_column(Integer)
+    fuente_datos: Mapped[str] = mapped_column(String(10), nullable=False, server_default=text("'REAL'"))

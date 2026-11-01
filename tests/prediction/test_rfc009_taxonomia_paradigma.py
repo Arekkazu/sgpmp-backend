@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-33 RF-65: E2 y E5 responden 409                 |
 # | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
 # | 2026-10-23 | destroyerban | DEV-36 RF-65: concurrencia optimista (config_version) e historial append-only |
+# | 2026-10-31 | Arekkazu | RFC-010 RF-69: llave con animal, SOMBRA y fuente_datos en los dobles |
 """RFC-009 en M04: seis tipos de modelo en tres paradigmas.
 
 RF-65 (umbrales y versión activa por paradigma), RF-69 (componente, métricas
@@ -48,10 +49,10 @@ class _ConfigRepo:
 class _Versiones:
     """id_version -> (estado, tipo_modelo, componente)."""
     LLAVES = {
-        10: ("ACTIVO", "MODELO_AVES", "DETECTOR"),
-        11: ("ACTIVO", "MODELO_PORCINOS", "DETECTOR"),
-        12: ("APROBADO", "MODELO_AVES", "ANOMALIAS"),
-        20: ("ACTIVO", "MODELO_ESPECIES_GRANDES", None),
+        10: ("ACTIVO", "MODELO_AVES", "DETECTOR", None),
+        11: ("ACTIVO", "MODELO_PORCINOS", "DETECTOR", None),
+        12: ("APROBADO", "MODELO_AVES", "ANOMALIAS", None),
+        20: ("ACTIVO", "MODELO_ESPECIES_GRANDES", None, 885),
     }
     def obtener_llave(self, id_version): return self.LLAVES.get(id_version)
 
@@ -203,7 +204,7 @@ class _VersionRepo:
     def __init__(self, entidad, previa):
         self.entidad, self.previa, self.llave = entidad, previa, None
     def obtener_por_id(self, _id): return self.entidad
-    def obtener_activo_por_tipo(self, tipo_modelo, componente=None):
+    def obtener_activo_por_tipo(self, tipo_modelo, componente=None, id_activo_biologico=None, estado="ACTIVO"):
         self.llave = (tipo_modelo, componente)
         return self.previa
     def actualizar(self, v): return v
