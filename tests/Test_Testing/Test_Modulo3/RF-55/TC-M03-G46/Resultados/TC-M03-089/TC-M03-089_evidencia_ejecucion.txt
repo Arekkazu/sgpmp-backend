@@ -1,0 +1,66 @@
+TC-M03-G46 / TC-M03-089 — evidencia de ejecución firmware
+==========================================================
+
+Naturaleza de este archivo
+--------------------------
+Transcripción del resultado de pytest previamente comprobado el 2026-10-31
+(sesión de validación G46). No es una captura de consola nueva ni una
+re-ejecución. No se inventó la salida.
+
+Alcance
+-------
+Valida el cálculo y la consolidación en el nodo (evaluar_lote).
+No valida PostgreSQL, MQTT físico ni el wrapper backend.
+
+El wrapper tests/Test_Testing/Test_Modulo3/RF-55/TC-M03-G46/test_tc_m03_g46.py
+sigue SKIPPED (evidencia 2026-10-25 en evidencias/pytest.txt). No se declara
+aprobado.
+
+Entorno
+-------
+Python: 3.13.7
+pytest: 9.0.3
+Ejecutable: C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+cwd: C:\Users\ll529\OneDrive\Documentos\integrador\.worktrees\sgpmp-rf55-validation\raspberry
+Docker: no
+PostgreSQL: no
+MQTT real: no
+Mocks de consolidación: no
+
+Comando
+-------
+python -m pytest tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad -v
+
+Salida (transcripción literal de la ejecución comprobada)
+---------------------------------------------------------
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ll529\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.7', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.3', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.13.0', 'cov': '7.1.0', 'html': '4.2.0', 'metadata': '3.1.1', 'timeout': '2.4.0'}}
+rootdir: C:\Users\ll529\OneDrive\Documentos\integrador\.worktrees\sgpmp-rf55-validation\raspberry
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0, html-4.2.0, metadata-3.1.1, timeout-2.4.0
+collecting ... collected 5 items
+
+tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad[cuerpo0-lecturas0-umbral_t0-CRITICO-MODERADO-CRITICO-RF-55.1] PASSED [ 20%]
+tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad[cuerpo1-lecturas1-umbral_t1-CRITICO-LEVE-CRITICO-RF-55.1] PASSED [ 40%]
+tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad[cuerpo2-lecturas2-umbral_t2-CRITICO-CRITICO-MODERADO-RF-55.2] PASSED [ 60%]
+tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad[cuerpo3-lecturas3-umbral_t3-CRITICO-CRITICO-CRITICO-RF-55.2] PASSED [ 80%]
+tests/test_reglas_compuestas.py::test_compuesta_que_prevalece_conserva_la_maxima_severidad[cuerpo4-lecturas4-umbral_t4-LEVE-LEVE-None-RF-55.2] PASSED [100%]
+
+============================== 5 passed in 0.07s ==============================
+
+Código de salida: EXIT=0
+
+Resumen de escenarios (5 ejecutables / 5 PASS = 100 %)
+------------------------------------------------------
+1. RF-55.2 MODERADO, RF-55.1 CRITICO, final CRITICO, origen RF-55.1 — PASS
+2. RF-55.2 LEVE,     RF-55.1 CRITICO, final CRITICO, origen RF-55.1 — PASS
+3. RF-55.2 CRITICO,  RF-55.1 MODERADO, final CRITICO, origen RF-55.2 — PASS
+4. RF-55.2 CRITICO,  RF-55.1 CRITICO,  final CRITICO, origen RF-55.2 — PASS (empate)
+5. RF-55.2 LEVE,     RF-55.1 None,     final LEVE,    origen RF-55.2 — PASS
+
+No ejecutado: RF-55.1 = LEVE / RF-55.2 = MODERADO (RF-55.1 no produce LEVE).
+
+Veredicto documental: APROBADO — 100 % de los escenarios ejecutables de
+consolidación cubiertos y superados (5/5). Wrapper backend no aprobado.

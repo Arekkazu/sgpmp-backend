@@ -85,6 +85,10 @@ class MotorObservado(MotorInferenciaPort):
         self.paquetes.append(paquete)
         return self.exito
 
+    def enviar_lote(self, paquetes: list[PaqueteInferencia]) -> bool:
+        self.paquetes.extend(paquetes)
+        return self.exito
+
 
 class DispositivoPortFijo(DispositivoPort):
     def __init__(self, info: Optional[DispositivoInfo]) -> None:
