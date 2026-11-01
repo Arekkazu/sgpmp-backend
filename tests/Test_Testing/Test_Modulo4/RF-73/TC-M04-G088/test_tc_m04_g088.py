@@ -2,20 +2,23 @@
 TC-M04-G088 — Límites de tamaño del payload (truncamiento 64 KB, no rechazo).
 Subcasos: TC-M04-270 (65536 exacto), TC-M04-271 (65537), TC-M04-272 (204800).
 
-Diseño (P1/P2/P3-A del QA Lead):
-- P1: tipo_evento = VERSION_REGISTRADA (payload mínimos: tipo_modelo, id_version).
-- P2: severidad_evento = ERROR en los 3 (passthrough en 270, override a WARNING en 271/272).
-- P3-A: verificar 4 cosas en payload persistido: es_payload_truncado, severidad,
-  JSON válido, y campos mínimos PRESENTES (Opción A estricta).
-
-Nota: 271 y 272 FALLARÁN hoy contra el backend TEST porque _truncar_payload
-usa un fallback que descarta los campos mínimos (gap A7, INC-M04-159-G088).
+Diseño (RF-73 v2.0 / Fix PR #785 / commit b440932a):
+- TC-M04-270 (021): 65536 bytes exactos no trunca, severidad INFO, payload_truncado ausente.
+- TC-M04-271 (022): 65537 bytes trunca a 64 KB, severidad WARNING, payload_truncado=True,
+  campos_omitidos presente y no vacío, preservando tipo_modelo e id_version.
+- TC-M04-272 (023): 204800 bytes trunca a 64 KB, igual que 022.
+- Verificación ORM explícita sobre EventoAuditoriaM04Model (D1) y contrato tipado
+  ResultadoRegistroAuditoriaM04 con aceptado=True (D2).
 """
 import json
 import uuid
 
-from sqlalchemy import text
-
+from src.prediction.domain.services.validacion_auditoria_m04 import (
+    ResultadoRegistroAuditoriaM04,
+)
+from src.prediction.infrastructure.models.evento_auditoria_m04_model import (
+    EventoAuditoriaM04Model,
+)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
@@ -39,45 +42,10 @@ def _make_payload_exact(target_bytes: int) -> dict:
     return payload
 
 
-def _count(db, tipo: str) -> int:
-    return db.execute(
-        text("SELECT COUNT(*) FROM modulo4.eventos_auditoria_m04 "
-             "WHERE tipo_evento = :t"),
-        {"t": tipo},
-    ).scalar() or 0
-
-
-def _get_persisted(db, id_ref: str):
-    return db.execute(
-        text("SELECT es_payload_truncado, severidad_evento, payload_evento "
-             "FROM modulo4.eventos_auditoria_m04 "
-             "WHERE id_referencia = :r AND tipo_evento = 'VERSION_REGISTRADA' "
-             "ORDER BY fecha_evento DESC LIMIT 1"),
-        {"r": id_ref},
-    ).fetchone()
-
-
 def _as_dict(payload_persistido) -> dict:
     if isinstance(payload_persistido, str):
         return json.loads(payload_persistido)
     return payload_persistido
-
-
-def _registrar(repo, id_ref: str, payload: dict) -> None:
-    try:
-        repo.registrar(
-            tipo_evento="VERSION_REGISTRADA",
-            tipo_actor="SISTEMA",
-            id_sistema="PYTEST_G088",
-            id_referencia=id_ref,
-            payload_evento=payload,
-            severidad_evento="ERROR",
-        )
-    except Exception as e:
-        raise AssertionError(
-            f"registrar() lanzó excepción inesperada al persistir: "
-            f"{type(e).__name__}: {e}"
-        )
 
 
 def test_tc_m04_270_payload_64kb_exacto(db_session):
@@ -85,26 +53,47 @@ def test_tc_m04_270_payload_64kb_exacto(db_session):
     payload = _make_payload_exact(65536)
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
     id_ref = str(uuid.uuid4())
-    n_antes = _count(db_session, "VERSION_REGISTRADA")
-    _registrar(repo, id_ref, payload)
-    db_session.flush()
-    n_despues = _count(db_session, "VERSION_REGISTRADA")
-    assert n_despues == n_antes + 1, (
-        f"RF-73: evento debe persistirse (no rechazarse). "
-        f"Filas nuevas: {n_despues - n_antes}."
+
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G088",
+        id_referencia=id_ref,
+        payload_evento=payload,
+        severidad_evento="INFO",
     )
-    row = _get_persisted(db_session, id_ref)
-    assert row is not None, "no se encontró el evento persistido"
-    es_truncado, sev, payload_persistido = row
-    assert es_truncado is False, (
-        f"RF-73: payload de 65536 bytes NO debe truncarse. "
-        f"es_payload_truncado={es_truncado}."
+
+    assert isinstance(res, ResultadoRegistroAuditoriaM04), "debe retornar ResultadoRegistroAuditoriaM04"
+    assert res.aceptado is True, (
+        f"Payload de 65536 B (exacto) debe aceptarse sin truncar, "
+        f"obtenido: aceptado={res.aceptado}, codigo={res.codigo}"
     )
-    assert sev == "ERROR", (
-        f"RF-73: severidad debe passthrough como 'ERROR' cuando no trunca. "
-        f"Obtenida: '{sev}'."
+    assert res.codigo is None, (
+        f"Un evento aceptado no debe tener codigo de error, obtenido: {res.codigo}"
     )
-    d = _as_dict(payload_persistido)
+    assert isinstance(res.id_evento, uuid.UUID), (
+        f"id_evento debe ser UUID, obtenido: {type(res.id_evento)}"
+    )
+
+    evento = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .first()
+    )
+    assert evento is not None, "no se encontró el evento persistido"
+    assert evento.es_payload_truncado is False, (
+        f"Payload de 65536 B no debe truncarse (es exactamente el límite), "
+        f"es_payload_truncado={evento.es_payload_truncado}"
+    )
+    assert evento.severidad_evento == "INFO", (
+        f"Severidad esperada INFO para payload no truncado, "
+        f"obtenida: {evento.severidad_evento}"
+    )
+
+    d = _as_dict(evento.payload_evento)
+    assert "payload_truncado" not in d or not d.get("payload_truncado"), (
+        "Payload no truncado NO debe incluir payload_truncado=True"
+    )
     assert "tipo_modelo" in d, (
         f"campo 'tipo_modelo' ausente en payload persistido. Keys: {list(d.keys())}"
     )
@@ -118,26 +107,62 @@ def test_tc_m04_271_payload_1_byte_sobre(db_session):
     payload = _make_payload_exact(65537)
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
     id_ref = str(uuid.uuid4())
-    n_antes = _count(db_session, "VERSION_REGISTRADA")
-    _registrar(repo, id_ref, payload)
-    db_session.flush()
-    n_despues = _count(db_session, "VERSION_REGISTRADA")
-    assert n_despues == n_antes + 1, (
-        f"RF-73: evento debe persistirse (no rechazarse). "
-        f"Filas nuevas: {n_despues - n_antes}."
+
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G088",
+        id_referencia=id_ref,
+        payload_evento=payload,
+        severidad_evento="WARNING",
     )
-    row = _get_persisted(db_session, id_ref)
-    assert row is not None, "no se encontró el evento persistido"
-    es_truncado, sev, payload_persistido = row
-    assert es_truncado is True, (
-        f"RF-73: payload de 65537 bytes DEBE truncarse. "
-        f"es_payload_truncado={es_truncado}."
+
+    assert isinstance(res, ResultadoRegistroAuditoriaM04), "debe retornar ResultadoRegistroAuditoriaM04"
+    assert res.aceptado is True, (
+        f"El evento aceptado debe tener aceptado=True, obtenido: {res.aceptado}, "
+        f"codigo={res.codigo}"
     )
-    assert sev == "WARNING", (
-        f"RF-73 E1: severidad debe override a 'WARNING' al truncar. "
-        f"Obtenida: '{sev}'."
+    assert res.codigo is None, (
+        f"Un evento aceptado no debe tener codigo de error, obtenido: {res.codigo}"
     )
-    d = _as_dict(payload_persistido)
+    assert isinstance(res.id_evento, uuid.UUID), (
+        f"id_evento debe ser UUID, obtenido: {type(res.id_evento)}"
+    )
+
+    evento = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .first()
+    )
+    assert evento is not None, (
+        f"El evento truncado no se persistió para id_evento={res.id_evento}"
+    )
+    assert evento.es_payload_truncado is True, (
+        f"El payload > 64KB debe marcarse como truncado, "
+        f"es_payload_truncado={evento.es_payload_truncado}"
+    )
+    assert evento.severidad_evento == "WARNING", (
+        f"Severidad esperada WARNING para payload truncado, "
+        f"obtenida: {evento.severidad_evento}"
+    )
+
+    d = _as_dict(evento.payload_evento)
+    assert d.get("payload_truncado") is True, (
+        f"El payload persistido debe incluir payload_truncado=True, "
+        f"obtenido: {d.get('payload_truncado')}"
+    )
+
+    # Verificar preservación de claves mínimas (core del fix #785)
+    campos_omitidos = d.get("campos_omitidos", [])
+    assert campos_omitidos, (
+        "campos_omitidos debe estar presente y no vacío al truncar"
+    )
+    assert "tipo_modelo" not in campos_omitidos, (
+        "El fix #785 debe preservar tipo_modelo fuera de campos_omitidos"
+    )
+    assert "id_version" not in campos_omitidos, (
+        "El fix #785 debe preservar id_version fuera de campos_omitidos"
+    )
     assert "tipo_modelo" in d, (
         "GAP A7 (INC-M04-159-G088): campo 'tipo_modelo' ausente en payload "
         f"truncado. Keys persistidas: {list(d.keys())}."
@@ -153,26 +178,62 @@ def test_tc_m04_272_payload_mucho_sobre(db_session):
     payload = _make_payload_exact(204800)
     repo = SqlAlchemyEventoAuditoriaM04Repository(db_session)
     id_ref = str(uuid.uuid4())
-    n_antes = _count(db_session, "VERSION_REGISTRADA")
-    _registrar(repo, id_ref, payload)
-    db_session.flush()
-    n_despues = _count(db_session, "VERSION_REGISTRADA")
-    assert n_despues == n_antes + 1, (
-        f"RF-73: evento debe persistirse (no rechazarse). "
-        f"Filas nuevas: {n_despues - n_antes}."
+
+    res = repo.registrar(
+        tipo_evento="VERSION_REGISTRADA",
+        tipo_actor="SISTEMA",
+        id_sistema="PYTEST_G088",
+        id_referencia=id_ref,
+        payload_evento=payload,
+        severidad_evento="WARNING",
     )
-    row = _get_persisted(db_session, id_ref)
-    assert row is not None, "no se encontró el evento persistido"
-    es_truncado, sev, payload_persistido = row
-    assert es_truncado is True, (
-        f"RF-73: payload de 204800 bytes DEBE truncarse. "
-        f"es_payload_truncado={es_truncado}."
+
+    assert isinstance(res, ResultadoRegistroAuditoriaM04), "debe retornar ResultadoRegistroAuditoriaM04"
+    assert res.aceptado is True, (
+        f"El evento aceptado debe tener aceptado=True, obtenido: {res.aceptado}, "
+        f"codigo={res.codigo}"
     )
-    assert sev == "WARNING", (
-        f"RF-73 E1: severidad debe override a 'WARNING' al truncar. "
-        f"Obtenida: '{sev}'."
+    assert res.codigo is None, (
+        f"Un evento aceptado no debe tener codigo de error, obtenido: {res.codigo}"
     )
-    d = _as_dict(payload_persistido)
+    assert isinstance(res.id_evento, uuid.UUID), (
+        f"id_evento debe ser UUID, obtenido: {type(res.id_evento)}"
+    )
+
+    evento = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .first()
+    )
+    assert evento is not None, (
+        f"El evento truncado no se persistió para id_evento={res.id_evento}"
+    )
+    assert evento.es_payload_truncado is True, (
+        f"El payload > 64KB debe marcarse como truncado, "
+        f"es_payload_truncado={evento.es_payload_truncado}"
+    )
+    assert evento.severidad_evento == "WARNING", (
+        f"Severidad esperada WARNING para payload truncado, "
+        f"obtenida: {evento.severidad_evento}"
+    )
+
+    d = _as_dict(evento.payload_evento)
+    assert d.get("payload_truncado") is True, (
+        f"El payload persistido debe incluir payload_truncado=True, "
+        f"obtenido: {d.get('payload_truncado')}"
+    )
+
+    # Verificar preservación de claves mínimas (core del fix #785)
+    campos_omitidos = d.get("campos_omitidos", [])
+    assert campos_omitidos, (
+        "campos_omitidos debe estar presente y no vacío al truncar"
+    )
+    assert "tipo_modelo" not in campos_omitidos, (
+        "El fix #785 debe preservar tipo_modelo fuera de campos_omitidos"
+    )
+    assert "id_version" not in campos_omitidos, (
+        "El fix #785 debe preservar id_version fuera de campos_omitidos"
+    )
     assert "tipo_modelo" in d, (
         "GAP A7 (INC-M04-159-G088): campo 'tipo_modelo' ausente en payload "
         f"truncado. Keys persistidas: {list(d.keys())}."

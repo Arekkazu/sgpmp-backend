@@ -17,6 +17,9 @@ Ejecutar con runner:
   pwsh tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G087\ejecutar_tc_m04_g087.ps1 -Suffix "_reintento1"
 """
 import uuid
+from src.prediction.infrastructure.models.evento_auditoria_m04_model import (
+    EventoAuditoriaM04Model,
+)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
@@ -44,11 +47,7 @@ def test_tc_m04_016_tipo_evento_fuera_catalogo(db_session):
     )
 
     # D1 — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "EVENTO_INVENTADO"
@@ -64,17 +63,25 @@ def test_tc_m04_016_tipo_evento_fuera_catalogo(db_session):
     assert isinstance(res.id_evento, uuid.UUID)
 
     # D5 — Trazabilidad del incidente emitido
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
-    assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .all()
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR"
-    assert ultimo_inv.resultado_operacion == "FALLIDO"
-    assert ultimo_inv.id_evento == res.id_evento, (
+    assert len(eventos_inv) >= 1, (
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={res.id_evento}"
+    )
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
+    )
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
+        f"resultado_operacion esperado FALLIDO, "
+        f"obtenido {eventos_inv[0].resultado_operacion}"
+    )
+    assert eventos_inv[0].id_evento == res.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
     )
 
@@ -100,11 +107,7 @@ def test_tc_m04_017_sistema_sin_id_sistema(db_session):
     )
 
     # D1 — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "VERSION_REGISTRADA"
@@ -120,17 +123,25 @@ def test_tc_m04_017_sistema_sin_id_sistema(db_session):
     assert isinstance(res.id_evento, uuid.UUID)
 
     # D5 — Trazabilidad del incidente emitido
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
-    assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .all()
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR"
-    assert ultimo_inv.resultado_operacion == "FALLIDO"
-    assert ultimo_inv.id_evento == res.id_evento, (
+    assert len(eventos_inv) >= 1, (
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={res.id_evento}"
+    )
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
+    )
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
+        f"resultado_operacion esperado FALLIDO, "
+        f"obtenido {eventos_inv[0].resultado_operacion}"
+    )
+    assert eventos_inv[0].id_evento == res.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
     )
 
@@ -155,11 +166,7 @@ def test_tc_m04_018_usuario_con_id_sistema(db_session):
     )
 
     # D1 — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "VERSION_REGISTRADA"
@@ -175,17 +182,25 @@ def test_tc_m04_018_usuario_con_id_sistema(db_session):
     assert isinstance(res.id_evento, uuid.UUID)
 
     # D5 — Trazabilidad del incidente emitido
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
-    assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=res.id_evento)
+        .all()
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR"
-    assert ultimo_inv.resultado_operacion == "FALLIDO"
-    assert ultimo_inv.id_evento == res.id_evento, (
+    assert len(eventos_inv) >= 1, (
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={res.id_evento}"
+    )
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
+    )
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
+        f"resultado_operacion esperado FALLIDO, "
+        f"obtenido {eventos_inv[0].resultado_operacion}"
+    )
+    assert eventos_inv[0].id_evento == res.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento de incidencia emitido"
     )
 

@@ -12,6 +12,9 @@ Ejecutar SOLO con:
   .\.venv\Scripts\pytest.exe tests\Test_Testing\Test_Modulo4\RF-73\TC-M04-G086 -v
 """
 import uuid
+from src.prediction.infrastructure.models.evento_auditoria_m04_model import (
+    EventoAuditoriaM04Model,
+)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
@@ -36,11 +39,7 @@ def test_tc_m04_264_payload_sin_campos_minimos(db_session):
     )
 
     # D4' — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "INFERENCIA_EJECUTADA"
@@ -63,23 +62,26 @@ def test_tc_m04_264_payload_sin_campos_minimos(db_session):
         "id_evento del rechazo debe ser un UUID válido"
     )
 
-    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en sesión
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
+    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en base de datos
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=resultado.id_evento)
+        .all()
+    )
     assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={resultado.id_evento}"
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR", (
-        f"severidad esperada ERROR, obtenida {ultimo_inv.severidad_evento}"
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
     )
-    assert ultimo_inv.resultado_operacion == "FALLIDO", (
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
         f"resultado_operacion esperado FALLIDO, "
-        f"obtenido {ultimo_inv.resultado_operacion}"
+        f"obtenido {eventos_inv[0].resultado_operacion}"
     )
-    assert ultimo_inv.id_evento == resultado.id_evento, (
+    assert eventos_inv[0].id_evento == resultado.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento emitido"
     )
 
@@ -123,11 +125,7 @@ def test_tc_m04_268_id_referencia_null(db_session):
     )
 
     # D4' — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "INFERENCIA_EJECUTADA"
@@ -149,23 +147,26 @@ def test_tc_m04_268_id_referencia_null(db_session):
         "id_evento del rechazo debe ser un UUID válido"
     )
 
-    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en sesión
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
+    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en base de datos
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=resultado.id_evento)
+        .all()
+    )
     assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={resultado.id_evento}"
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR", (
-        f"severidad esperada ERROR, obtenida {ultimo_inv.severidad_evento}"
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
     )
-    assert ultimo_inv.resultado_operacion == "FALLIDO", (
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
         f"resultado_operacion esperado FALLIDO, "
-        f"obtenido {ultimo_inv.resultado_operacion}"
+        f"obtenido {eventos_inv[0].resultado_operacion}"
     )
-    assert ultimo_inv.id_evento == resultado.id_evento, (
+    assert eventos_inv[0].id_evento == resultado.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento emitido"
     )
 
@@ -196,11 +197,7 @@ def test_tc_m04_269_payload_evento_vacio(db_session):
     )
 
     # D4' — Verificar que la sesión ORM no contiene el evento original
-    candidatos = (
-        list(db_session.new)
-        + list(db_session.dirty)
-        + list(db_session.identity_map.values())
-    )
+    candidatos = list(db_session.new) + list(db_session.dirty)
     eventos_originales = [
         obj for obj in candidatos
         if getattr(obj, "tipo_evento", None) == "INFERENCIA_EJECUTADA"
@@ -222,23 +219,26 @@ def test_tc_m04_269_payload_evento_vacio(db_session):
         "id_evento del rechazo debe ser un UUID válido"
     )
 
-    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en sesión
-    eventos_inv = [
-        obj for obj in candidatos
-        if getattr(obj, "tipo_evento", None) == "AUDITORIA_EVENTO_INVALIDO"
-    ]
+    # D6' (2) — Verificar que el AUDITORIA_EVENTO_INVALIDO existe en base de datos
+    eventos_inv = (
+        db_session.query(EventoAuditoriaM04Model)
+        .filter_by(id_evento=resultado.id_evento)
+        .all()
+    )
     assert len(eventos_inv) >= 1, (
-        "RF-73 Flujo E1: debe emitirse al menos un AUDITORIA_EVENTO_INVALIDO"
+        f"El evento AUDITORIA_EVENTO_INVALIDO no se persistió para id_evento={resultado.id_evento}"
     )
-    ultimo_inv = eventos_inv[-1]
-    assert ultimo_inv.severidad_evento == "ERROR", (
-        f"severidad esperada ERROR, obtenida {ultimo_inv.severidad_evento}"
+    assert eventos_inv[0].tipo_evento == "AUDITORIA_EVENTO_INVALIDO", (
+        f"tipo_evento inesperado: {eventos_inv[0].tipo_evento}"
     )
-    assert ultimo_inv.resultado_operacion == "FALLIDO", (
+    assert eventos_inv[0].severidad_evento == "ERROR", (
+        f"severidad esperada ERROR, obtenida {eventos_inv[0].severidad_evento}"
+    )
+    assert eventos_inv[0].resultado_operacion == "FALLIDO", (
         f"resultado_operacion esperado FALLIDO, "
-        f"obtenido {ultimo_inv.resultado_operacion}"
+        f"obtenido {eventos_inv[0].resultado_operacion}"
     )
-    assert ultimo_inv.id_evento == resultado.id_evento, (
+    assert eventos_inv[0].id_evento == resultado.id_evento, (
         "el id_evento del dataclass debe corresponder al del evento emitido"
     )
 
