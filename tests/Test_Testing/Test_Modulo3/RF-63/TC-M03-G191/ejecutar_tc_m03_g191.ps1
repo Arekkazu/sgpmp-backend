@@ -1,6 +1,7 @@
 # | Fecha      | Nombre                   | Que se hizo                                                 |
 # |------------|--------------------------|-------------------------------------------------------------|
 # | 2026-10-30 | Juan Sebastian Gutierrez | TC-M03-G191 RF-63: creacion de runner Pytest con reporteria |
+# | 2026-11-01 | Juan Sebastian Gutierrez | TC-M03-G191 RF-63: parametrizar Suffix y proteccion V1/R1   |
 <#
 .SYNOPSIS
     Runner PowerShell para TC-M03-G191 (RF-63 CA-13 Tolerancia a eventos incompletos en Auditoría IoT).
@@ -9,6 +10,9 @@
     Genera los reportes oficiales en resultados/ (HTML, XML y JSON) y evidencias/run-YYYYMMDD/.
     Propaga el código de salida de Pytest de manera fidedigna.
 #>
+param(
+    [string]$Suffix = ""
+)
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -75,15 +79,22 @@ if (-not (Test-Path $resultadosDir)) {
     New-Item -ItemType Directory -Path $resultadosDir -Force | Out-Null
 }
 
+$V1Json = Join-Path $resultadosDir "resultado_TC-M03-G191.json"
+$R1Json = Join-Path $resultadosDir "resultado_TC-M03-G191_reintento1.json"
+if ([string]::IsNullOrEmpty($Suffix) -and (Test-Path $V1Json) -and (Test-Path $R1Json)) {
+    Write-Error "V1 y Reintento 1 ya existen. Use -Suffix '_reintentoN' para no sobrescribir."
+    exit 1
+}
+
 $fechaHoy = Get-Date -Format "yyyyMMdd"
 $evidenciasDir = Join-Path $scriptDir "evidencias\run-$fechaHoy"
 if (-not (Test-Path $evidenciasDir)) {
     New-Item -ItemType Directory -Path $evidenciasDir -Force | Out-Null
 }
 
-$reportXml  = Join-Path $resultadosDir "resultado_TC-M03-G191_reintento1.xml"
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G191_reintento1.html"
-$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G191_reintento1.json"
+$reportXml  = Join-Path $resultadosDir "resultado_TC-M03-G191$Suffix.xml"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G191$Suffix.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G191$Suffix.json"
 $consoleLog = Join-Path $evidenciasDir "console_execution.log"
 
 $testFile = Join-Path $scriptDir "test_tc_m03_g191.py"

@@ -14,6 +14,7 @@ if (!xmlPath || !jsonPath || !tcName) {
 
 function extractTestCases(xml) {
   const cases = [];
+  const skipped = [];
   // <testcase ...> ... </testcase> or <testcase ... />
   const re = /<testcase\s+([^>]*?(?:(?:"[^"]*")[^>]*?)*)(?:\/>|>([\s\S]*?)<\/testcase>)/g;
   let m;
@@ -25,10 +26,14 @@ function extractTestCases(xml) {
     const hasFailure = /<failure\b/.test(body);
     const hasError   = /<error\b/.test(body);
     const hasSkipped = /<skipped\b/.test(body);
-    const estado = (hasFailure || hasError) ? 'FALLA' : (hasSkipped ? 'FALLA' : 'OK');
+    if (hasSkipped) {
+      skipped.push(name);
+      continue;
+    }
+    const estado = (hasFailure || hasError) ? 'FALLA' : 'OK';
     cases.push({ paso: name, estado });
   }
-  return cases;
+  return { cases, skipped };
 }
 
 try {
@@ -37,7 +42,7 @@ try {
     process.exit(1);
   }
   const xml = fs.readFileSync(xmlPath, 'utf8');
-  const testcases = extractTestCases(xml);
+  const { cases: testcases, skipped: skipped_subcasos } = extractTestCases(xml);
   const checkpoints = testcases.map(tc => ({
     paso: tc.paso,
     esperado: 'PASSED',
@@ -47,11 +52,13 @@ try {
   const total = checkpoints.length;
   const ok    = checkpoints.filter(c => c.estado === 'OK').length;
   const falla = checkpoints.filter(c => c.estado === 'FALLA').length;
-  const veredicto = total === 0 ? 'PENDIENTE' : (falla === 0 ? 'APROBADO' : 'RECHAZADO');
+  const veredicto = (falla > 0) ? 'RECHAZADO' :
+                    (ok > 0) ? 'APROBADO' : 'sin_datos';
   const payload = {
     tc: tcName,
     summary: { total, ok, falla, veredicto },
-    checkpoints
+    checkpoints,
+    skipped_subcasos
   };
   fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
   fs.writeFileSync(jsonPath, JSON.stringify(payload, null, 2), 'utf8');
