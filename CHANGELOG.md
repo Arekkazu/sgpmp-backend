@@ -1,3 +1,9 @@
+## [1.4.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.27...v1.4.0-rc.28) (2026-11-01)
+
+### Bug Fixes
+
+* **rf22-rf53:** nombre de sensor único por dispositivo y permiso FOR UPDATE de RF53_AUDITORIA ([d980f3b](https://github.com/Arekkazu/sgpmp-backend/commit/d980f3befe728b1c600b2ffacba1cfcd117f98de))
+
 ## [1.4.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.26...v1.4.0-rc.27) (2026-11-01)
 
 ### Features
