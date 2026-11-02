@@ -9,6 +9,7 @@
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: filtrar inferencias por identidad del lote antes de calcular y reutilizar caché. |
 # | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura recibe el id del lote filtrado por #857 |
 # | 2026-11-02 | Arekkazu | RF-68: ejecución como sistema (disparo tras RF-66) y sin alerta con insumos en sombra |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: exposición a focos vecinos (RF-110) y área expuesta sin inferencias propias |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché (5.1) →
@@ -18,6 +19,10 @@ la confianza no es baja (decisión funcional #852; paso 8, CA-3, CA-6).
 
 ``execute_sistema`` es el disparo automático tras cada resultado de RF-66: sin usuario (actor
 SISTEMA en RF-73) y, si esas salidas vienen de un modelo en sombra, sin alerta de RF-57.
+
+RFC-021 (C21.4): con ``exposicion_port`` se suma la exposición a los focos de las áreas vecinas
+(aristas activas de RF-110). Un área expuesta sin inferencias propias se calcula con Fs ausente
+(``exigir_cobertura_rf66=False``).
 
 Fuera de alcance: la cola de concurrencia por lote (máx. 3 en curso, FIFO de 10) y la
 agregación de 5 min del historial. Los cambios de entradas se recalculan de inmediato;
@@ -38,6 +43,8 @@ from src.prediction.domain.entities.riesgo_contagio import (
     LecturaAmbiental,
     ParametrosContagio,
     ResultadoRiesgoContagio,
+    VIGENCIA_INFERENCIA,
+    FocoVecino,
     SalidaInferencia,
     calcular_riesgo_contagio,
     validar_cobertura_rf66,
@@ -48,6 +55,7 @@ from src.prediction.domain.repositories.activo_biologico_port import ActivoBiolo
 from src.prediction.domain.repositories.alerta_contagio_port import AlertaContagioPort
 from src.prediction.domain.repositories.configuracion_motor_ia_repository import ConfiguracionMotorIARepository
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+from src.prediction.domain.repositories.exposicion_port import ExposicionPort
 from src.prediction.domain.repositories.resultado_riesgo_contagio_repository import (
     ResultadoRiesgoContagioRepository,
 )
@@ -74,6 +82,7 @@ class EstimarRiesgoContagioUseCase:
         ocupacion_port: OcupacionLotePort,
         alerta_port: AlertaContagioPort,
         auditoria_repo: EventoAuditoriaM04Repository,
+        exposicion_port: Optional[ExposicionPort] = None,
     ) -> None:
         self.db = db
         self.config_repo = config_repo
@@ -82,6 +91,7 @@ class EstimarRiesgoContagioUseCase:
         self.ocupacion_port = ocupacion_port
         self.alerta_port = alerta_port
         self.auditoria_repo = auditoria_repo
+        self.exposicion_port = exposicion_port
         self._id_sistema: Optional[str] = None
 
     def execute(self, dto: EstimarRiesgoContagioDTO, id_usuario: int, id_rol: int) -> ResultadoRiesgoContagio:
@@ -89,13 +99,14 @@ class EstimarRiesgoContagioUseCase:
             raise NotFoundError(code="LOTE_NO_ENCONTRADO", message=f"No existe el lote {dto.id_lote}.", field="id_lote")
         return self._ejecutar(dto, id_usuario)
 
-    def execute_sistema(self, dto: EstimarRiesgoContagioDTO, *, id_sistema: str, alertar: bool) -> ResultadoRiesgoContagio:
-        """Sin alcance de finca: el lote sale de un resultado de RF-66 ya registrado."""
+    def execute_sistema(self, dto: EstimarRiesgoContagioDTO, *, id_sistema: str, alertar: bool,
+                        exigir_cobertura_rf66: bool = True) -> ResultadoRiesgoContagio:
+        """Sin alcance de finca: el lote sale de un resultado de RF-66 ya registrado o de una arista."""
         self._id_sistema = id_sistema
-        return self._ejecutar(dto, None, alertar=alertar)
+        return self._ejecutar(dto, None, alertar=alertar, exigir_cobertura_rf66=exigir_cobertura_rf66)
 
     def _ejecutar(self, dto: EstimarRiesgoContagioDTO, id_usuario: Optional[int],
-                  alertar: bool = True) -> ResultadoRiesgoContagio:
+                  alertar: bool = True, exigir_cobertura_rf66: bool = True) -> ResultadoRiesgoContagio:
         config = self.config_repo.obtener_por_tipo(TIPO_MODELO)
         if config is None or not config.es_activa:
             raise BusinessRuleError(
@@ -129,12 +140,16 @@ class EstimarRiesgoContagioUseCase:
         ahora = datetime.now(timezone.utc)
         salidas = [SalidaInferencia(s.probabilidad_riesgo_alto, s.fecha_inferencia, s.id_activo_biologico)
                    for s in dto.salidas_rf66]
+        focos: list[FocoVecino] = (
+            self.exposicion_port.focos_hacia(dto.id_lote, ahora - VIGENCIA_INFERENCIA) if self.exposicion_port else []
+        )
         try:
-            validar_cobertura_rf66(
-                salidas_rf66=salidas, total_activos_lote=dto.total_activos_lote,
-                ahora=ahora, score_anomalia=dto.score_anomalia, id_lote=dto.id_lote,
-            )
-            huella = self._huella(dto, config.config_version)
+            if exigir_cobertura_rf66 or salidas or dto.score_anomalia is not None:
+                validar_cobertura_rf66(
+                    salidas_rf66=salidas, total_activos_lote=dto.total_activos_lote,
+                    ahora=ahora, score_anomalia=dto.score_anomalia, id_lote=dto.id_lote,
+                )
+            huella = self._huella(dto, config.config_version, focos)
             anteriores = self.resultado_repo.ultimos_por_lote(dto.id_lote, MAX_DEGRADADAS_CONSECUTIVAS + 1)
             # #856: el perfil MVP siempre recalcula; ESTANDAR reutiliza solo su propio perfil.
             if (not es_mvp and anteriores
@@ -170,6 +185,8 @@ class EstimarRiesgoContagioUseCase:
                 densidad_poblacional=dto.densidad_poblacional,
                 muestras_ocupacion=muestras_ocupacion,
                 porcentaje_sensores_activos=dto.porcentaje_sensores_activos,
+                focos_vecinos=focos,
+                exigir_cobertura_rf66=exigir_cobertura_rf66,
             )
         except DatosContagioError as exc:
             self._registrar_no_ejecutado(exc, dto, id_usuario, config.id_configuracion_motor, perfil, aislamiento)
@@ -218,10 +235,12 @@ class EstimarRiesgoContagioUseCase:
         return resultado
 
     @staticmethod
-    def _huella(dto: EstimarRiesgoContagioDTO, config_version: int) -> str:
-        """5.1: mismas entradas (Fs, ambiente, densidad) y misma configuración."""
+    def _huella(dto: EstimarRiesgoContagioDTO, config_version: int, focos: list[FocoVecino] = ()) -> str:
+        """5.1: mismas entradas (Fs, ambiente, densidad, focos vecinos) y misma configuración."""
         cuerpo = json.dumps({"dto": dto.model_dump(mode="json"), "config_version": config_version,
-                             "version_aislamiento_rf66": 1}, sort_keys=True)
+                             "version_aislamiento_rf66": 1,
+                             "focos": [[f.id_area, f.via, str(f.peso), str(f.factor_sanitario)] for f in focos]},
+                            sort_keys=True)
         return hashlib.sha256(cuerpo.encode()).hexdigest()
 
     def _actor(self, id_usuario: Optional[int]) -> dict:

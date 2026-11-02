@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: contexto del lote desde M02/M03/M09 para el disparo automático |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: última salida de RF-66 de un lote expuesto        |
 """Contexto de RF-68 para un lote: densidad del área, sensores operativos y ambiente.
 
 - Densidad: individuos activos del área / superficie. Un lote POBLACIONAL pide el promedio
@@ -23,6 +24,7 @@ from src.prediction.domain.repositories.contexto_contagio_port import (
     AmbienteArea,
     ContextoContagio,
     ContextoContagioPort,
+    SalidaReciente,
 )
 from src.shared.db_error_translator import raise_from_db_error
 
@@ -60,6 +62,15 @@ _SQL_AMBIENTE = text("""
 """)
 
 
+_SQL_ULTIMA_SALIDA = text("""
+    SELECT probabilidad_riesgo, fecha_inferencia, modo_sombra
+    FROM modulo4.resultados_inferencia
+    WHERE id_activo_biologico = :id_activo AND fecha_inferencia >= :desde
+    ORDER BY fecha_inferencia DESC
+    LIMIT 1
+""")
+
+
 class ContextoContagioM02M09Adapter(ContextoContagioPort):
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -92,3 +103,10 @@ class ContextoContagioM02M09Adapter(ContextoContagioPort):
                 fecha_captura=min(ts for _, _, ts in lecturas),
             )
         return ContextoContagio(densidad, porcentaje.quantize(Decimal("0.01")), ambiente)
+
+    def ultima_salida_rf66(self, id_activo: int, desde: datetime) -> Optional[SalidaReciente]:
+        try:
+            fila = self._db.execute(_SQL_ULTIMA_SALIDA, {"id_activo": id_activo, "desde": desde}).first()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return SalidaReciente(dict(fila.probabilidad_riesgo or {}), fila.fecha_inferencia, fila.modo_sombra) if fila else None

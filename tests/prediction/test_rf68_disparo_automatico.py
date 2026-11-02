@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: disparo automático tras RF-66 y sin alerta con insumos en sombra |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: el disparo pasa exigir_cobertura_rf66 al cálculo   |
 """RF-68 disparado por cada resultado nuevo de RF-66."""
 from __future__ import annotations
 
@@ -49,7 +50,8 @@ def test_arma_el_calculo_del_lote_y_solo_alerta_sin_sombra(sombra, alertar):
     uc, estimar = _disparo(_contexto())
     uc.execute(_resultado(sombra=sombra))
     dto = estimar.execute_sistema.call_args.args[0]
-    assert estimar.execute_sistema.call_args.kwargs == {"id_sistema": ID_SISTEMA_DISPARO, "alertar": alertar}
+    assert estimar.execute_sistema.call_args.kwargs == {
+        "id_sistema": ID_SISTEMA_DISPARO, "alertar": alertar, "exigir_cobertura_rf66": True}
     assert dto.id_lote == 2
     assert [(s.id_activo_biologico, s.probabilidad_riesgo_alto) for s in dto.salidas_rf66] == [(2, Decimal("0.94"))]
     assert (dto.densidad_poblacional, dto.porcentaje_sensores_activos) == (Decimal("0.01"), Decimal("100.00"))
