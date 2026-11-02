@@ -6,6 +6,7 @@
 # | 2026-11-02 | Arekkazu | RF-68: cada resultado nuevo dispara el riesgo de contagio de su lote |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: el disparo recalcula también las áreas expuestas    |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: el disparo de RF-68 pasa a disparos_automaticos   |
+# | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 """Resultados del motor de inferencia (RF-66) en ``modulo4.resultados_inferencia``.
 
   GET  /prediccion/inferencias — Monitor. Mismo recurso que el historial diagnóstico
@@ -71,13 +72,14 @@ def listar_inferencias(
     desde: Optional[FechaHoraUtc] = Query(default=None),
     hasta: Optional[FechaHoraUtc] = Query(default=None),
     limite: int = Query(default=50, description="Máximo 200; los más recientes primero."),
+    por_activo: Optional[int] = Query(default=None, description="Las N más recientes de CADA animal o lote (1 a 50); limite no aplica. Para Estado sanitario."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[InferenciaMonitorResponse]:
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     items = ListarInferenciasUseCase(SqlAlchemyMonitorPrediccionRepository(db)).execute(
         ids_fincas=fincas, tipo_modelo=tipo_modelo, nivel_riesgo=nivel_riesgo, desde=desde, hasta=hasta,
-        limite=limite,
+        limite=limite, por_activo=por_activo,
     )
     return [InferenciaMonitorResponse.model_validate(i) for i in items]
 
