@@ -1,3 +1,9 @@
+## [1.4.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.29...v1.4.0-rc.30) (2026-11-02)
+
+### Bug Fixes
+
+* **rf64-rf66:** probabilidades del motor guardadas por id_patologia y nombre de la clase fundida ([0d8a0af](https://github.com/Arekkazu/sgpmp-backend/commit/0d8a0af6674d5bd80d314001f8ed692eea111a84))
+
 ## [1.4.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.28...v1.4.0-rc.29) (2026-11-02)
 
 ### Bug Fixes
