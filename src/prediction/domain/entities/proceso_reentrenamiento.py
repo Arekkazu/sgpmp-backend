@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: proceso de reentrenamiento por animal con fases, latido y resultado |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 """Proceso de reentrenamiento del modelo individual de un animal (RF-71, AJF-14).
 
 Ciclo: PENDIENTE (lo solicita un usuario) → EN_CURSO (lo toma el motor de IA) →
@@ -35,7 +36,6 @@ LATIDO_MAXIMO = timedelta(minutes=15)
 class DatosAnimalReentrenamiento:
     """Lo que hace falta saber del animal antes de abrir un proceso."""
     tipo_modelo: Optional[str]
-    horas_de_lecturas: float
     id_version_vigente: Optional[int]
 
 

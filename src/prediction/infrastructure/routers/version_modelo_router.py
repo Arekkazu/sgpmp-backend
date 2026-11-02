@@ -63,7 +63,7 @@ from src.prediction.infrastructure.schema.estado_reentrenamiento_schema import (
     SolicitudReentrenamientoResponse,
 )
 from src.prediction.infrastructure.schema.version_modelo_schema import VersionModeloListResponse, VersionModeloResponse
-from src.shared.database import get_db, get_db_sistema
+from src.shared.database import get_db, get_db_sistema, sesion_sistema
 from src.shared.fechas import FechaHoraUtc
 from src.shared.rbac import require_permission
 from src.prediction.application.use_cases.reentrenamiento.consultar_procesos_reentrenamiento_use_case import (
@@ -209,10 +209,17 @@ def solicitar_reentrenamiento(
     )
     if dto.id_activo_biologico is not None:
         # AJF-14 BE-1: por animal abre el proceso que ejecuta el motor de IA.
-        estado, id_evento, proceso = SolicitarReentrenamientoAnimalUseCase(
-            db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
-            estado_use_case=_estado_reentrenamiento(db), auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        ).execute(id_activo_biologico=dto.id_activo_biologico, motivo=dto.motivo, id_usuario=usuario_actual.id_usuario)
+        # Los días de lecturas se cuentan con una sesión de sistema aparte (no la del usuario: la
+        # RLS de telemetrias depende de permisos de monitoreo que quien reentrena puede no tener).
+        db_sistema = sesion_sistema()
+        try:
+            estado, id_evento, proceso = SolicitarReentrenamientoAnimalUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                estado_use_case=_estado_reentrenamiento(db), auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+                lecturas=SqlAlchemyProcesoReentrenamientoRepository(db_sistema),
+            ).execute(id_activo_biologico=dto.id_activo_biologico, motivo=dto.motivo, id_usuario=usuario_actual.id_usuario)
+        finally:
+            db_sistema.close()
         return SolicitudReentrenamientoResponse(
             id_evento=id_evento, estado=EstadoReentrenamientoResponse.from_entity(estado),
             id_proceso_reentrenamiento=proceso.id_proceso_reentrenamiento)

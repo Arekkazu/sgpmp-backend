@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71 BE-1: solicitar el reentrenamiento de un animal abre un proceso PENDIENTE |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 """BE-1: la solicitud por animal deja el evento en la bitácora (como hasta ahora) y además
 abre el proceso que el motor de IA va a tomar.
 
@@ -35,9 +36,12 @@ DIAS_MINIMOS_LECTURAS = float(os.getenv("REENTRENAMIENTO_DIAS_MINIMOS_LECTURAS",
 class SolicitarReentrenamientoAnimalUseCase:
     def __init__(self, *, db: Session, procesos: ProcesoReentrenamientoRepository,
                  estado_use_case: ConsultarEstadoReentrenamientoUseCase,
-                 auditoria_repo: EventoAuditoriaM04Repository, dias_minimos: Optional[float] = None) -> None:
+                 auditoria_repo: EventoAuditoriaM04Repository, dias_minimos: Optional[float] = None,
+                 lecturas: Optional[ProcesoReentrenamientoRepository] = None) -> None:
+        """``lecturas``: el mismo repositorio sobre una sesión de sistema (ver ``horas_de_lecturas``)."""
         self._db = db
         self._procesos = procesos
+        self._lecturas = lecturas or procesos
         self._estado = estado_use_case
         self._auditoria = auditoria_repo
         self._dias_minimos = DIAS_MINIMOS_LECTURAS if dias_minimos is None else dias_minimos
@@ -57,7 +61,7 @@ class SolicitarReentrenamientoAnimalUseCase:
         if self._procesos.abierto_de(id_activo_biologico) is not None:
             raise ConflictError("REENTRENAMIENTO_EN_CURSO", "Ya hay un reentrenamiento pendiente o en curso para este animal.",
                                 field="id_activo_biologico")
-        dias = datos.horas_de_lecturas / 24
+        dias = self._lecturas.horas_de_lecturas(id_activo_biologico) / 24
         if dias < self._dias_minimos:
             raise BusinessRuleError(
                 "LECTURAS_INSUFICIENTES",

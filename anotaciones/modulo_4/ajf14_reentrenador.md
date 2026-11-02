@@ -6,7 +6,7 @@ Fecha: 2026-11-02 · Autor: Arekkazu · Plan: «ajustes de frontend M02/M03/M04�
 
 No hubo acceso a `sgpmp_dev` desde el entorno donde se hizo el cambio (la red no deja salir al
 puerto 5447), así que el análisis se hizo contra el baseline (`alembic/baseline/esquema_baseline.sql`)
-y las migraciones del repo. **Antes de desplegar, verificar en DEV con SamuelPR21.**
+y las migraciones del repo. **Antes de desplegar, verificar en DEV con SamuelPR21.** Los gaps de los demás ítems (AJF-04, AJF-07) van en la migración `bb5526687aae`.
 
 | Gap | Decisión | Dónde |
 |-----|----------|-------|
@@ -15,8 +15,9 @@ y las migraciones del repo. **Antes de desplegar, verificar en DEV con SamuelPR2
 | Valores de bitácora `REENTRENAMIENTO_INICIADO/_COMPLETADO/_FALLIDO/_INTERRUMPIDO` | **Ya existen** en `modulo4.enum_tipo_evento_auditoria_m04` (baseline): DB-2 no requiere DDL | — |
 | Grants y RLS | `SELECT, INSERT, UPDATE` a los roles de la app; RLS forzada: `pol_proceso_reentrenamiento_select` (animal en las infraestructuras del usuario), `_insert` (permiso E de `version_modelo`, a su nombre), `_servicio` (ALL para el usuario de servicio, que usa el motor) | `21fe51f2aea1` (DB-3) |
 | RBAC | Sin recursos nuevos: listar procesos usa `version_modelo` R (43·2); solicitar, E (43·5), como hoy | — |
+| Contar días de lecturas con la sesión del usuario | La RLS de `telemetrias` pide monitoreo/historial R: el conteo va con una sesión de sistema aparte (código, sin DDL) | `version_modelo_router.py` |
 
-La migración **no se aplicó**: necesita la autorización de SamuelPR21.
+La migración **no se aplicó**: necesita la autorización de SamuelPR21. Inventario completo de gaps de todos los ítems: `anotaciones/ajustes_m02_m03_m04_gaps_bd.md`.
 
 ## Flujo
 

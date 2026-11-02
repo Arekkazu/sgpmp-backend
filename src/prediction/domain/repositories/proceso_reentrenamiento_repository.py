@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: puerto de procesos de reentrenamiento |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 from __future__ import annotations
 
 import uuid
@@ -42,6 +43,11 @@ class ProcesoReentrenamientoRepository(ABC):
     @abstractmethod
     def datos_animal(self, id_activo_biologico: int) -> Optional[DatosAnimalReentrenamiento]:
         """None si el animal no existe o no está en el alcance."""
+
+    @abstractmethod
+    def horas_de_lecturas(self, id_activo_biologico: int) -> float:
+        """Horas entre la primera y la última lectura válida de los sensores directos del animal
+        (14 días). Se pide con la sesión de sistema: es una regla del motor, no lo que ve el usuario."""
 
     @abstractmethod
     def version_de_proceso(self, id_proceso: uuid.UUID) -> Optional[int]:

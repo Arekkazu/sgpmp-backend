@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: lectura paginada de modulo3.bitacora_ingest con datos de la lectura |
+# | 2026-11-02 | Arekkazu | AJF-07 RF-53: los eventos sin dispositivo no los ve ningún usuario (RLS) |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -14,7 +15,8 @@ from src.telemetry.domain.repositories.ingesta_repository import IngestaReposito
 # por semana en TEST, la consulta se apoya en idx_bitacora_dispositivo_fecha /
 # idx_bitacora_tipo_evento. La lectura se une por id y por timestamp_captura para que
 # PostgreSQL pode las particiones mensuales de telemetrias.
-# Un evento sin dispositivo (p. ej. un rechazo de autenticación) solo lo ve el alcance global.
+# Un evento sin dispositivo (p. ej. un rechazo de autenticación) no lo ve ningún usuario: la RLS de
+# bitacora_ingest filtra por los dispositivos del usuario (pol_bitacora_ingest_select).
 _SQL_LISTAR = text("""
     SELECT b.id_bitacora_ingest, b.fecha_evento, b.fecha_captura_dato, b.tipo_evento, b.estado_calidad,
            b.severidad, b.descripcion_text AS descripcion, b.id_sensor, s.nombre AS nombre_sensor,

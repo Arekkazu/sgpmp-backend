@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: procesos de reentrenamiento (solicitud por animal, toma, latido, cierre, vigilante) |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 """AJF-14: la solicitud por animal abre un proceso que el motor de IA toma, reporta y cierra."""
 from __future__ import annotations
 
@@ -43,9 +44,10 @@ class _Db:
 class _Procesos:
     """Repositorio en memoria."""
 
-    def __init__(self, datos=DatosAnimalReentrenamiento(GRANDES, 24 * 10, 7), version_registrada=None):
+    def __init__(self, datos=DatosAnimalReentrenamiento(GRANDES, 7), version_registrada=None, horas=24 * 10):
         self.filas: dict[uuid.UUID, ProcesoReentrenamiento] = {}
         self.datos = datos
+        self.horas = horas
         self.version_registrada = version_registrada
 
     def crear(self, p):
@@ -75,6 +77,9 @@ class _Procesos:
 
     def datos_animal(self, a):
         return self.datos
+
+    def horas_de_lecturas(self, a):
+        return self.horas
 
     def version_de_proceso(self, i):
         return self.version_registrada
@@ -127,13 +132,13 @@ def test_segunda_solicitud_del_mismo_animal_es_409():
     assert e.value.code == "REENTRENAMIENTO_EN_CURSO"
 
 
-@pytest.mark.parametrize("datos, error, codigo", [
-    (None, NotFoundError, "ACTIVO_NO_ENCONTRADO"),
-    (DatosAnimalReentrenamiento("MODELO_AVES", 500, None), BusinessRuleError, "ACTIVO_SIN_MODELO_INDIVIDUAL"),
-    (DatosAnimalReentrenamiento(GRANDES, 30, None), BusinessRuleError, "LECTURAS_INSUFICIENTES"),
+@pytest.mark.parametrize("datos, horas, error, codigo", [
+    (None, 500, NotFoundError, "ACTIVO_NO_ENCONTRADO"),
+    (DatosAnimalReentrenamiento("MODELO_AVES", None), 500, BusinessRuleError, "ACTIVO_SIN_MODELO_INDIVIDUAL"),
+    (DatosAnimalReentrenamiento(GRANDES, None), 30, BusinessRuleError, "LECTURAS_INSUFICIENTES"),
 ])
-def test_solicitud_rechazada(datos, error, codigo):
-    uc, db, _ = _solicitar(_Procesos(datos=datos))
+def test_solicitud_rechazada(datos, horas, error, codigo):
+    uc, db, _ = _solicitar(_Procesos(datos=datos, horas=horas))
     with pytest.raises(error) as e:
         uc.execute(id_activo_biologico=4, motivo=None, id_usuario=9, ahora=T0)
     assert e.value.code == codigo and db.commits == 0
@@ -228,3 +233,13 @@ def test_rutas_del_motor(cliente_motor):
     assert r.status_code == 200 and r.json()["fase_actual"] == 2
     assert client.patch(f"/prediccion/motor/reentrenamientos/{tomado['id_proceso_reentrenamiento']}", json={"estado": "OTRO"}).status_code == 400
     assert client.get("/prediccion/motor/activos/4/retroalimentaciones").json() == {"retroalimentaciones": []}
+
+
+def test_las_lecturas_se_cuentan_con_el_repositorio_de_sistema():
+    """La RLS de telemetrias depende de permisos de monitoreo: la regla de días no puede depender de ellos."""
+    procesos, sistema = _Procesos(horas=0), _Procesos(horas=24 * 9)
+    uc = SolicitarReentrenamientoAnimalUseCase(db=_Db(), procesos=procesos, estado_use_case=_Estado(),
+                                               auditoria_repo=_Auditoria(), dias_minimos=7, lecturas=sistema)
+    _, _, p = uc.execute(id_activo_biologico=4, motivo=None, id_usuario=9, ahora=T0)
+    assert p.estado == "PENDIENTE"
+

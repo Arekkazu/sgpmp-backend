@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: persistencia de procesos de reentrenamiento y lecturas de apoyo |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 from __future__ import annotations
 
 import copy
@@ -18,20 +19,10 @@ from src.shared.db_error_translator import raise_from_db_error
 
 _M = ProcesoReentrenamientoModel
 
-# Tipo de modelo asignado al área del animal, horas entre su primera y última lectura válida de
-# sus sensores directos en los últimos 14 días (lo que baja el motor para calibrar, MAX_HORAS_LECTURAS) y su versión vigente (ACTIVO antes que SOMBRA).
+# Tipo de modelo asignado al área del animal y su versión vigente (ACTIVO antes que SOMBRA).
+# Con la sesión del usuario: la RLS de activos_biologicos dice si el animal está en su alcance.
 _SQL_DATOS_ANIMAL = text("""
     SELECT i.tipo_modelo_asignado::text AS tipo_modelo,
-           COALESCE((
-               SELECT EXTRACT(EPOCH FROM (max(t.timestamp_captura) - min(t.timestamp_captura))) / 3600.0
-               FROM modulo2.asociaciones_activos_sensores a
-               JOIN modulo3.telemetrias t ON t.id_sensor = a.id_sensor
-               WHERE a.id_activo_biologico = ab.id_activo_biologico AND a.tipo::text = 'directa'
-                 AND a.estado_asociacion = 'ACTIVA'
-                 AND t.timestamp_captura >= a.fecha_inicio AND (a.fecha_fin IS NULL OR t.timestamp_captura < a.fecha_fin)
-                 AND t.estado_calidad = 'LECTURA_VALIDA'
-                 AND t.timestamp_captura >= now() - interval '14 days'
-           ), 0) AS horas_de_lecturas,
            (SELECT v.id_version_modelo FROM modulo4.versiones_modelos v
              WHERE v.id_activo_biologico = ab.id_activo_biologico
                AND v.estado_version::text IN ('ACTIVO', 'SOMBRA')
@@ -41,6 +32,21 @@ _SQL_DATOS_ANIMAL = text("""
     LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
     WHERE ab.id_activo_biologico = :id
 """)
+
+# Horas entre la primera y la última lectura válida de los sensores directos del animal en los
+# últimos 14 días (lo que baja el motor para calibrar, MAX_HORAS_LECTURAS). Con la sesión de
+# sistema: la RLS de telemetrias pide permiso de monitoreo o historial, que quien solicita el
+# reentrenamiento puede no tener, y eso daba "lecturas insuficientes" falsas.
+_SQL_HORAS_LECTURAS = text("""
+    SELECT COALESCE(EXTRACT(EPOCH FROM (max(t.timestamp_captura) - min(t.timestamp_captura))) / 3600.0, 0)
+    FROM modulo2.asociaciones_activos_sensores a
+    JOIN modulo3.telemetrias t ON t.id_sensor = a.id_sensor
+    WHERE a.id_activo_biologico = :id AND a.tipo::text = 'directa' AND a.estado_asociacion = 'ACTIVA'
+      AND t.timestamp_captura >= a.fecha_inicio AND (a.fecha_fin IS NULL OR t.timestamp_captura < a.fecha_fin)
+      AND t.estado_calidad = 'LECTURA_VALIDA'
+      AND t.timestamp_captura >= now() - interval '14 days'
+""")
+
 
 # RF-72: diagnósticos vigentes con la ventana de la inferencia a la que responden
 # (el pipeline los alinea con las ventanas de lecturas para la regla de retiro).
@@ -183,7 +189,13 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             raise_from_db_error(exc)
         if f is None:
             return None
-        return DatosAnimalReentrenamiento(f["tipo_modelo"], float(f["horas_de_lecturas"] or 0), f["id_version_vigente"])
+        return DatosAnimalReentrenamiento(f["tipo_modelo"], f["id_version_vigente"])
+
+    def horas_de_lecturas(self, id_activo_biologico):
+        try:
+            return float(self._db.execute(_SQL_HORAS_LECTURAS, {"id": id_activo_biologico}).scalar() or 0)
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def version_de_proceso(self, id_proceso):
         try:
