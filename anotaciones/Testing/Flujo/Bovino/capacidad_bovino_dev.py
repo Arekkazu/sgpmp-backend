@@ -1,14 +1,19 @@
 """Capacidad por area productiva - Bovino en DEV (ESCRIBE en DEV, sin sandbox).
 Crea un area pequena de prueba y cargas de animales, comprueba capacidad = floor(densidad x superficie)
 (densidad Bovino en DEV = 0.1) y al final LIMPIA (cierra activos y desactiva el area).
-Uso: python3 capacidad_bovino_dev.py <archivo_token_sesion> <salida.json>
+Uso: QA_FINCA_ID=<id finca QA> python3 capacidad_bovino_dev.py <archivo_token_sesion> <salida.json>
 No usa ni imprime el BROKER_TOKEN (esta prueba no lo necesita)."""
 import json, sys, math, datetime as dt, urllib.request, urllib.error
 B = "https://api.inmero.co/api-sgpmp-dev"
 TOK = open(sys.argv[1]).read().strip(); OUT = sys.argv[2]
 HOY = dt.date.today().isoformat()
 SUF = dt.datetime.now().strftime("%H%M%S")
-FINCA, ESP_BOV, ESP_TER, DENS = 1, 2, 3, 0.1
+import os
+FINCA_PROHIBIDAS = {1, 2}  # El rosal y La florida: finca de la entrega, no se escribe ahi
+FINCA = int(os.environ.get("QA_FINCA_ID", "0"))
+if not FINCA or FINCA in FINCA_PROHIBIDAS:
+    sys.exit("Defina QA_FINCA_ID con una finca de QA (no 1 ni 2). Abortado sin escribir nada.")
+ESP_BOV, ESP_TER, DENS = 2, 3, 0.1
 R, CREADOS = [], {"infra": None, "activos": []}
 
 def call(m, path, body=None):

@@ -2,7 +2,7 @@
 Crea un fixture propio (area, animal, dispositivo, 2 sensores) para NO tocar los sensores reales de PC-BOV-001,
 envia lecturas por POST /iot/telemetria con el token de servicio del broker (BROKER_SERVICE_TOKEN, leido de un
 archivo local; nunca se imprime ni se guarda en los resultados), lee el resultado en historial/alertas y LIMPIA.
-Uso: python3 fronteras_bovino_dev.py <archivo_token_sesion> <archivo_env_broker> <salida.json> [id_area_QA_existente]
+Uso: QA_FINCA_ID=<id finca QA> python3 fronteras_bovino_dev.py <archivo_token_sesion> <archivo_env_broker> <salida.json> [id_area_QA_existente]
 Un dispositivo (aunque este desactivado) impide desactivar su area y la API no permite moverlo ni borrarlo:
 por eso se REUTILIZA un area fija de QA (pasar su id) en vez de crear una nueva en cada corrida."""
 import json, sys, datetime as dt, urllib.request, urllib.error, urllib.parse, time
@@ -10,7 +10,12 @@ B = "https://api.inmero.co/api-sgpmp-dev"
 TOK = open(sys.argv[1]).read().strip(); OUT = sys.argv[3]
 BROKER = [l.split("=", 1)[1].strip().strip('"\'') for l in open(sys.argv[2]) if l.startswith("BROKER_SERVICE_TOKEN=")][0]
 NOW = dt.datetime.now(dt.timezone.utc); HOY = NOW.date().isoformat(); SUF = NOW.strftime("%H%M%S")
-FINCA, ESP = 1, 2
+import os
+FINCA_PROHIBIDAS = {1, 2}  # El rosal y La florida: finca de la entrega, no se escribe ahi
+FINCA = int(os.environ.get("QA_FINCA_ID", "0"))
+if not FINCA or FINCA in FINCA_PROHIBIDAS:
+    sys.exit("Defina QA_FINCA_ID con una finca de QA (no 1 ni 2). Abortado sin escribir nada.")
+ESP = 2
 INFRA_EXISTENTE = int(sys.argv[4]) if len(sys.argv) > 4 else None
 R, FX, LEC = [], {}, []
 

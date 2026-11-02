@@ -101,10 +101,10 @@ Los 3 niveles (`normal`, `precaucion`, `critico`) deben ser contiguos y cubrir e
 
 Por cada variable se envían valores dentro de cada banda, sobre cada frontera y fuera de `[valor_min, valor_max]`. **Inclusividad de las fronteras:** el requisito no fija si el límite pertenece a la banda inferior o a la superior (G44 de M3 se rechazó por esto); las filas de frontera quedan "por definir" hasta que Desarrollo lo defina.
 
-| Variable | Valor | Posición | Estado de la lectura | Nivel esperado | Metodología |
-|---|---|---|---|---|---|
 Nota: clasificar `FUERA_DE_RANGO` contra el umbral de la especie depende de la corrección DB-02 de `fn_ingesta_telemetria` (pendiente); hasta entonces el estado de esas filas puede diferir.
 
+| Variable | Valor | Posición | Estado de la lectura | Nivel esperado | Metodología |
+|---|---|---|---|---|---|
 | `TEMP_CORPORAL` | 35.9 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
 | `TEMP_CORPORAL` | 37 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
 | `TEMP_CORPORAL` | 38.9 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |

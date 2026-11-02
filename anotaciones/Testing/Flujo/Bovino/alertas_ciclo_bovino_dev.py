@@ -3,12 +3,14 @@ Crea un fixture propio en el area fija de QA (se pasa su id), genera DOS alertas
 recorre el ciclo de inmediato: una alerta VENCE ~5 min despues de generada si nadie la atiende, y VENCIDA es terminal.
 Alerta A: ACTIVA->EN_ATENCION->RESUELTA + transiciones invalidas. Alerta B: ACTIVA->DESCARTADA.
 El token de servicio del broker (BROKER_SERVICE_TOKEN) se lee de un archivo local y no se imprime ni se guarda.
-Uso: python3 alertas_ciclo_bovino_dev.py <token_sesion> <env_broker> <salida.json> <id_area_QA>"""
+Uso: QA_FINCA_ID=<id finca QA> python3 alertas_ciclo_bovino_dev.py <token_sesion> <env_broker> <salida.json> <id_area_QA>"""
 import json, sys, time, datetime as dt, urllib.request, urllib.error
 B = "https://api.inmero.co/api-sgpmp-dev"; TOK = open(sys.argv[1]).read().strip(); OUT = sys.argv[3]; INFRA = int(sys.argv[4])
 BROKER = [l.split("=", 1)[1].strip().strip('"\'') for l in open(sys.argv[2]) if l.startswith("BROKER_SERVICE_TOKEN=")][0]
 NOW = dt.datetime.now(dt.timezone.utc); HOY = NOW.date().isoformat(); SUF = NOW.strftime("%H%M%S"); ESP = 2
 R, FX = [], {}
+import os
+if int(os.environ.get('QA_FINCA_ID', '0')) in (0, 1, 2): sys.exit('Defina QA_FINCA_ID con una finca de QA (no 1 ni 2). Abortado sin escribir nada.')
 def call(m, path, body=None, token=None):
     req = urllib.request.Request(B + path, method=m, data=(json.dumps(body).encode() if body is not None else None), headers={"Authorization": "Bearer " + (token or TOK), "Content-Type": "application/json"})
     try: r = urllib.request.urlopen(req, timeout=40); return r.status, json.load(r)

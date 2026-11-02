@@ -2,9 +2,9 @@
 
 Complemento de [plan_E1_vaca.md](plan_E1_vaca.md). Reúne **todos los datos que la prueba automática guarda y usa**, y para cada elemento su descripción y su metodología de verificación.
 
-Estado: borrador del 2026-11-02.
+Estado: actualizado el 2026-11-02 con lo observado en el ambiente DEV (`https://api.inmero.co/api-sgpmp-dev`). Los resultados de las ejecuciones están en `../Flujo/Bovino/`.
 
-**Origen de cada valor.** `[RF]` viene de un requisito (reqMod3y4.xlsx, fichas de M09 o los casos ya ejecutados). `[QA]` es una **propuesta de QA que no está en ningún requisito ni en el repositorio** y debe confirmarse con Desarrollo/M09 antes de formalizar los TC. Las densidades, umbrales por especie y conteos de esta ficha son `[QA]`.
+**Origen de cada valor.** `[RF]` viene de un requisito (reqMod3y4.xlsx, fichas de M09 o los casos ya ejecutados). `[QA]` es una **propuesta de QA que no está en ningún requisito ni en el repositorio** y debe confirmarse con Desarrollo/M09 antes de formalizar los TC. `[DEV]` es un valor **observado en DEV el 2026-11-02**, que no es un requisito: describe cómo está configurado y cómo respondió ese ambiente. Donde hay `[DEV]` ese valor sustituye a mi propuesta `[QA]` original; los demás valores `[QA]` siguen sin confirmar.
 
 ## 1. Modelo de IA, métricas y parámetros
 
@@ -24,6 +24,8 @@ Estado: borrador del 2026-11-02.
 | `umbral_alerta_critica` | ≥ `umbral_riesgo_alto`; valor de prueba 0.85 `[QA]` | Probabilidad que dispara la alerta crítica. | Guardar un valor menor que `umbral_riesgo_alto` y verificar el rechazo; guardar uno igual (límite) y verificar que se acepta. |
 | `ventana_temporal_minutos` | 5-15 `[RF]`; valor de prueba 10 `[QA]` | Ventana de análisis. | Valores 4, 5, 15 y 16: 5 y 15 se aceptan; 4 y 16 se rechazan. |
 | `modo_ejecucion` | `CLOUD`, `EDGE`, `HIBRIDO`; prueba con `EDGE` `[QA]` | Dónde corre la inferencia. EDGE exige el modelo descargado en el nodo Raspberry. | Cambiar el modo y comprobar la sincronización con el nodo y el fallback automático en modo EDGE/HIBRIDO. |
+
+**Observado en DEV `[DEV]`:** `MODELO_ESPECIES_GRANDES` **no tiene configuración del motor** (`GET /prediccion/motor-ia/MODELO_ESPECIES_GRANDES` responde 404 `CONFIGURACION_MOTOR_NO_ENCONTRADA`), aunque existen las de aves, porcinos, acuicultura, medianas y contagio. Hay una inferencia de bovino en modo sombra (animal BOV-003-DEV, versión `ESPECIES_GRANDES_4_261025_ed219d41`, latencia 47 ms frente al límite de 2 s). Crear esa configuración es una decisión de Desarrollo: la configuración es compartida y puede afectar a los animales de demo. Por eso F10 no se ejecutó con escritura.
 
 ### 1.3 Métricas de validación del modelo (RF-69)
 
@@ -46,29 +48,31 @@ Estado: borrador del 2026-11-02.
 
 ## 2. Población y capacidad por área productiva
 
-Regla `[RF]` (RF-20): capacidad del área = `floor(densidad × superficie)`; en un área multiespecie manda la **menor** densidad. Unidad contada: animal con arete (activo INDIVIDUAL).
+Regla `[RF]` (RF-20): capacidad del área = `floor(densidad × superficie)`; en un área multiespecie manda la **menor** densidad. Unidad contada: animal con arete (activo INDIVIDUAL). **Confirmada en DEV `[DEV]`:** Potrero 1 (100 m², Bovino) tiene `capacidad_maxima` 10, igual a `floor(0.1 × 100)`.
+
+**Cambio respecto a la propuesta inicial:** en DEV no existe "Vaca"; la especie es **Bovino (id 2)**, grupo `ESPECIES_GRANDES`, modelo `MODELO_ESPECIES_GRANDES`, densidad **0.1** (no 0.05). Para no llenar DEV, la prueba usa un área pequeña de 35 m² (capacidad 3) en lugar de 400 m² (capacidad 40): se prueban los mismos límites con 4 animales.
 
 | Elemento | Valor | Descripción | Metodología |
 |---|---|---|---|
-| `densidad_poblacional_max` de Vaca | 0.05 ind/m² `[QA]` | Densidad máxima de la especie (RF-15). | Registrar la especie con este valor y leerlo de vuelta. |
-| Superficie del área | 400 m² `[QA]` | Superficie conocida para calcular la capacidad. | Crear el área y comprobar la superficie guardada. |
-| **Capacidad con Vaca sola** | **20** | `floor(0.05 × 400)`. | Crear el área y comparar la capacidad devuelta con 20. |
-| Especie de apoyo (multiespecie) | E7 Avestruz; densidad 0.025 ind/m² `[QA]` | Segunda especie del mismo grupo. | Crear el área con las dos especies. |
-| **Capacidad multiespecie** | **10** | `floor(MIN(0.05, 0.025) × 400)`. | Comparar con 10; cambiar el orden de las especies no debe cambiar el resultado. |
+| Especie | Bovino, id 2 `[DEV]` | Especie existente en DEV. | Leerla con `GET /configuracion/especies` y comprobar grupo y modelo. |
+| `densidad_poblacional_max` | 0.1 ind/m² `[DEV]` | Densidad máxima. | Comprobar que la capacidad de las áreas sale de este valor. |
+| Superficie del área de prueba | 35 m² `[QA]` | Da `floor(3.5)` = 3: prueba también el redondeo hacia abajo. | Crear el área y comprobar la superficie. |
+| **Capacidad con Bovino sola** | **3** `[DEV]` | `floor(0.1 × 35)`. | Crear el área; `capacidad_maxima` debe ser 3. Resultado: 201, capacidad 3. |
+| Especie de otro grupo | Ternero (id 3, `ESPECIES_MEDIANAS`) `[DEV]` | Para la prueba negativa de grupos distintos. | Área con Bovino + Ternero: 422 `GRUPOS_MANEJO_INCOMPATIBLES`. |
+| Capacidad multiespecie | no probada | En DEV no hay una segunda especie `ESPECIES_GRANDES` (E7 Avestruz no existe). | Pendiente: requiere crear la especie de apoyo (escribe en el catálogo). |
 
-### Cargas de prueba en el área de 400 m² (capacidad 20)
+### Cargas de prueba en el área de 35 m² (capacidad 3) - ejecutadas en DEV
 
-| Carga | Cantidad | Resultado esperado | Descripción | Metodología |
+| Carga | Cantidad | Resultado observado | Descripción | Metodología |
 |---|---|---|---|---|
-| Lote/hato de referencia | 10 animales (50 %) | 201 | Caso normal. | Registrar y comprobar que la carga restante es 10. |
-| Límite inferior de capacidad | 19 animales | 201 | Un individuo bajo el límite. | Registrar y confirmar 201. |
-| **Límite exacto** | **20 animales** | 201 | Capacidad completa. | Registrar y confirmar 201 y capacidad libre 0. |
-| **Un individuo sobre el límite** | **21 animales** | 422 `CAPACIDAD_EXCEDIDA` | Primer valor inválido. | Registrar y confirmar el 422 sin persistencia. |
-| Reducir superficie bajo la carga | de 400 a 399 m² con 20 animales alojados | 422 `CAPACIDAD_EXCEDIDA` | Capacidad nueva = 19 < 20. | Editar el área y confirmar el 422 y que la superficie no cambió. |
-| Área multiespecie al límite | 10 animales | 201 | Límite con la menor densidad. | Registrar y confirmar 201; con 11 confirmar 422. |
-| Identificador duplicado | 1 animal con el arete ya usado | rechazo (`existe_identificador`) | Unicidad del identificador. | Registrar dos veces el mismo identificador. |
+| Animales 1 y 2 | 2 | 201 | Bajo el límite. | `POST /activos-biologicos`, tipo INDIVIDUAL, con `soporte_documental` (obligatorio si el origen es "compra"). |
+| **Límite exacto** | **3** | 201 | Capacidad completa. | Registrar el tercero. |
+| **Un animal sobre el límite** | **4** | **422 `CAPACIDAD_EXCEDIDA`** | Primer valor inválido. | El mensaje indica "3 individuos = MIN d…". |
+| Identificador duplicado | 1 | 409 `IDENTIFICADOR_DUPLICADO` | Unicidad del identificador. | Repetir el identificador del primero. |
+| Reducir superficie a 30 m² con 3 animales | - | 200 | Capacidad 3, límite. | `PATCH` del área; hay que enviar `fecha_actualizacion` o responde 412 `CONFLICTO_CONCURRENCIA`. |
+| **Reducir superficie a 29.99 m² con 3 animales** | - | **422 `CAPACIDAD_EXCEDIDA`** | Capacidad 2 < carga 3. | La superficie queda en 30.00. |
 
-En el paradigma individual cada animal es un activo propio: las cargas grandes se crean con un script que registra los animales uno por uno y los elimina con el rollback del sandbox.
+Cada animal es un activo propio: las cargas grandes se crean con un script. DEV **no tiene sandbox**, así que no hay rollback: la limpieza es dar de baja los animales (tipo `perdida`; el cierre de ciclo responde 422 `SIN_FASE_ACTIVA`) y desactivar el área. Un dispositivo, aunque esté desactivado, impide desactivar su área y no se puede mover ni borrar, por eso se reutiliza un **área fija de QA (id 12)**. Un área desactivada conserva su nombre (409 `RECURSO_DUPLICADO`).
 
 ## 3. Dispositivos y sensores
 
@@ -84,65 +88,50 @@ Todo área lleva **1 Gateway Edge (Raspberry)** que habla con el broker MQTT; lo
 | Estación ambiental | `TEMPERATURA_AMBIENTAL` | 1 por área | Mide `TEMPERATURA_AMBIENTAL`. | Asociarlo al área, enviar una lectura válida por `POST /iot/telemetria` con el token del broker y leerla en el historial (RF-59). |
 | Estación ambiental | `HUMEDAD_RELATIVA` | 1 por área | Mide `HUMEDAD_RELATIVA`. | Asociarlo al área, enviar una lectura válida por `POST /iot/telemetria` con el token del broker y leerla en el historial (RF-59). |
 
+**Observado en DEV `[DEV]`:** el Potrero 1 no usa Raspberry física: sus datos vienen de `PC-BOV-001`, un **simulador Edge** en el servidor (FC, temperatura corporal y actividad, más temperatura ambiental y humedad del potrero; una lectura cada 5 min). La Raspberry física (`RASPBERRY3B-TEST`) está en el Estanque Checho (acuicultura). Por eso la prueba de vaca cubre el recorrido broker y backend, no el firmware físico. Las pruebas con escritura usan dispositivos y sensores de QA propios (tipo `GENERICO`) para no alterar al simulador.
+
 Frecuencia de muestreo de prueba: 60 s `[QA]`; la frecuencia global sale de M09 (G16). La cantidad de sensores por área (1 de cada tipo) es una propuesta `[QA]`.
 
 ## 4. Umbrales ambientales (RF-17)
 
-Los 3 niveles (`normal`, `precaucion`, `critico`) deben ser contiguos y cubrir exactamente `[valor_min, valor_max]` `[RF]`, y el rango debe caber en el rango físico de la variable. El orden de los niveles en el cuerpo no importa. Al guardar, el umbral se propaga al Gateway Edge y queda `APLICADA` / `PENDIENTE` / `NO_CONF`.
+Los 3 niveles (`normal`, `precaucion`, `critico`) deben ser contiguos y cubrir exactamente `[valor_min, valor_max]` `[RF]`, y el rango debe caber en el rango físico de la variable. El orden de los niveles en el cuerpo no importa. Al guardar, el umbral se propaga al Gateway Edge y queda `APLICADA` / `PENDIENTE` / `NO_CONF`. **Los umbrales de la tabla son los vigentes en DEV `[DEV]` y sustituyen a mis propuestas** (que ponían, por ejemplo, 36-41.5 °C para temperatura corporal).
 
-| Variable | Unidad | `valor_min` | `valor_max` | Nivel: límites | Descripción | Metodología |
+| Variable | Unidad | `valor_min` | `valor_max` | Niveles `[DEV]` | Sincronización | Metodología |
 |---|---|---|---|---|---|---|
-| `TEMP_CORPORAL` | °C | 36 | 41.5 | critico 36-38; normal 38-39.5; precaucion 39.5-41.5 | Umbral `[QA]`. hipotermia crítica / fiebre en precaución. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `FRECUENCIA_CARDIACA` | bpm | 30 | 150 | critico 30-48; normal 48-84; precaucion 84-150 | Umbral `[QA]`. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `FRECUENCIA_RESPIRATORIA` | rpm | 5 | 80 | critico 5-10; normal 10-30; precaucion 30-80 | Umbral `[QA]`. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `TEMPERATURA_AMBIENTAL` | °C | 5 | 45 | critico 5-10; normal 10-30; precaucion 30-45 | Umbral `[QA]`. crítico por frío (bajo) / precaución por calor (alto). | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `HUMEDAD_RELATIVA` | % | 20 | 95 | critico 20-40; normal 40-80; precaucion 80-95 | Umbral `[QA]`. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
+| `TEMP_CORPORAL` (id 13) | °C | 38 | 43 | normal 38-39.5; precaución 39.5-40; crítico 40-43 | `APLICADA` | Leer con `GET /configuracion/umbrales?id_especie=2`; comprobar que son 3 niveles contiguos que cubren [min, max]. |
+| `FRECUENCIA_CARDIACA` (id 14) | bpm | 40 | 160 | normal 40-120; precaución 120-140; crítico 140-160 | `APLICADA` | Igual. |
+| `FRECUENCIA_RESPIRATORIA` | rpm | - | - | **sin umbral en DEV** | - | Pendiente: crearlo (propuesta `[QA]`: normal 10-30; precaución 30-80; crítico 5-10). |
+| `TEMPERATURA_AMBIENTAL`, `HUMEDAD_RELATIVA` (Potrero 1) | °C / % | - | - | **sin umbral para Bovino en DEV** (`sin_umbral=True`) | - | Por eso el semáforo de esos sensores es GRIS y el estado general de la unidad también. Propuesta `[QA]`: temperatura 5-45 °C, humedad 20-95 %. |
+| `ACTIVIDAD` | m/s² | - | - | **sin umbral en DEV** | - | Igual (semáforo GRIS). |
 
-## 5. Lecturas de prueba y resultado esperado
+## 5. Lecturas de prueba y resultado observado `[DEV]`
 
-Por cada variable se envían valores dentro de cada banda, sobre cada frontera y fuera de `[valor_min, valor_max]`. **Inclusividad de las fronteras:** el requisito no fija si el límite pertenece a la banda inferior o a la superior (G44 de M3 se rechazó por esto); las filas de frontera quedan "por definir" hasta que Desarrollo lo defina.
+Se enviaron 22 lecturas por `POST /iot/telemetria` con el token de servicio del broker, a sensores de un dispositivo de QA (no a los del simulador). Resultado en DEV, con los umbrales de la sección 4:
 
-| Variable | Valor | Posición | Estado de la lectura | Nivel esperado | Metodología |
+| Variable | Valor | Posición | Calidad | Semáforo | Alerta |
 |---|---|---|---|---|---|
-Nota: clasificar `FUERA_DE_RANGO` contra el umbral de la especie depende de la corrección DB-02 de `fn_ingesta_telemetria` (pendiente); hasta entonces el estado de esas filas puede diferir.
+| `TEMP_CORPORAL` | 37.99 | bajo `valor_min` | `FUERA_DE_RANGO` | AMARILLO | no |
+| | 38.00 | mínimo | `LECTURA_VALIDA` | VERDE | no |
+| | 39.49 | dentro de normal | `LECTURA_VALIDA` | VERDE | no |
+| | **39.50** | frontera normal/precaución | `LECTURA_VALIDA` | **VERDE** | no |
+| | 39.51 | precaución | `LECTURA_VALIDA` | AMARILLO | no |
+| | 39.99 | precaución | `LECTURA_VALIDA` | AMARILLO | no |
+| | **40.00** | frontera precaución/crítico | `LECTURA_VALIDA` | **AMARILLO** | no |
+| | 40.01 | crítico | `LECTURA_VALIDA` | ROJO | **sí** (CRITICO) |
+| | 42.99 / 43.00 | crítico / máximo | `LECTURA_VALIDA` | ROJO | no (misma alerta) |
+| | 43.01 | sobre `valor_max` | `FUERA_DE_RANGO` | AMARILLO | no |
+| `FRECUENCIA_CARDIACA` | 39.99 | bajo `valor_min` | `FUERA_DE_RANGO` | AMARILLO | no |
+| | 40 / 119.99 | mínimo / normal | `LECTURA_VALIDA` | VERDE | no |
+| | **120** | frontera normal/precaución | `LECTURA_VALIDA` | **VERDE** | no |
+| | 120.01 / 139.99 | precaución | `LECTURA_VALIDA` | AMARILLO | no |
+| | **140** | frontera precaución/crítico | `LECTURA_VALIDA` | **AMARILLO** | no |
+| | 140.01 | crítico | `LECTURA_VALIDA` | ROJO | **sí** (CRITICO) |
+| | 159.99 / 160 | crítico / máximo | `LECTURA_VALIDA` | ROJO | no (misma alerta) |
+| | 160.01 | sobre `valor_max` | `FUERA_DE_RANGO` | AMARILLO | no |
 
-| `TEMP_CORPORAL` | 35.9 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `TEMP_CORPORAL` | 37 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `TEMP_CORPORAL` | 38.75 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `TEMP_CORPORAL` | 40.5 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `TEMP_CORPORAL` | 38 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMP_CORPORAL` | 39.5 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMP_CORPORAL` | 41.6 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `FRECUENCIA_CARDIACA` | 29 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `FRECUENCIA_CARDIACA` | 39 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_CARDIACA` | 66 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_CARDIACA` | 117 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_CARDIACA` | 48 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `FRECUENCIA_CARDIACA` | 84 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `FRECUENCIA_CARDIACA` | 151 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `FRECUENCIA_RESPIRATORIA` | 4 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `FRECUENCIA_RESPIRATORIA` | 7.5 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_RESPIRATORIA` | 20 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_RESPIRATORIA` | 55 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `FRECUENCIA_RESPIRATORIA` | 10 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `FRECUENCIA_RESPIRATORIA` | 30 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `FRECUENCIA_RESPIRATORIA` | 81 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `TEMPERATURA_AMBIENTAL` | 4 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `TEMPERATURA_AMBIENTAL` | 7.5 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AMBIENTAL` | 20 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AMBIENTAL` | 37.5 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AMBIENTAL` | 10 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMPERATURA_AMBIENTAL` | 30 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMPERATURA_AMBIENTAL` | 46 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `HUMEDAD_RELATIVA` | 19 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `HUMEDAD_RELATIVA` | 30 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `HUMEDAD_RELATIVA` | 60 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `HUMEDAD_RELATIVA` | 87.5 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `HUMEDAD_RELATIVA` | 40 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `HUMEDAD_RELATIVA` | 80 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `HUMEDAD_RELATIVA` | 96 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
+**Regla observada de inclusividad** (el requisito no la fija): el límite superior de cada banda pertenece a la banda de abajo, es decir (inferior, superior], y el valor mínimo del umbral entra en la primera banda. Falta que Desarrollo la confirme.
 
-Desviaciones RF-55.1 `[RF]` (porcentaje sobre el umbral): 9.9 %, 10 %, 10.1 %, 24.9 %, 25 %, 25.1 %. Menor o igual a 10 % → `LEVE`; entre 10 y 25 % → `MODERADO`; mayor a 25 % → `CRITICO`. Cada corte se prueba con el `valor_max` de arriba como referencia.
+Observaciones: (1) una lectura fuera de [min, max] se guarda (con `valor_ajustado`) y **no genera alerta** (coincide con TC-M03-016), pero su semáforo es AMARILLO también por encima del máximo; hay que confirmar si debería ser ROJO. (2) Las lecturas críticas sucesivas del mismo sensor no crean otra alerta (se suma a `frecuencia_evento`, ventana de 30 min). (3) Las lecturas en precaución no generan alerta. (4) Una captura con hora anterior a la asociación del sensor responde 401 `ERROR_AUTENTICACION` aunque el token sea válido. (5) El sensor debe tener la especie en `especies-compatibles` (`PUT` con `ids_especies`) o la asociación al animal da 400 `COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`, y debe estar calibrado (sin calibración las lecturas quedan `ERROR_CALIBRACION` con `valor_ajustado` vacío).
 
 ## 6. Estados del sistema
 
@@ -152,25 +141,44 @@ Desviaciones RF-55.1 `[RF]` (porcentaje sobre el umbral): 9.9 %, 10 %, 10.1 %, 2
 | Desviación (RF-55) | `NORMAL`, `DESVIACION_LEVE`, `DESVIACION_MODERADA`, `DESVIACION_CRITICA`, `DESVIACION_COMPUESTA`, `ERROR_CONFIGURACION` | Clasificación del nodo Edge. | Enviar la lectura y leer `estado_desviacion`; sin umbrales debe salir `ERROR_CONFIGURACION`. |
 | Origen del dato (RF-53/54) | `TIEMPO_REAL`, `BUFFER_LOCAL`, `EDGE_AGREGADO` | Cómo llegó la lectura. | Enviar un lote `BUFFER_LOCAL` repetido: solo el primero crea registro (idempotencia). |
 | Severidad de alerta (RF-57) | `LEVE`, `MODERADO`, `CRITICO` | Gravedad. | Una alerta por severidad. |
-| Ciclo de vida de alerta (RF-57) | `ACTIVA`, `EN_ATENCION`, `RESUELTA`, `DESCARTADA`, `VENCIDA` | Estados; `CERRADA` no existe y da 422 `TRANSICION_INVALIDA`. | Recorrer las transiciones válidas y probar una inválida. |
+| Ciclo de vida de alerta (RF-57) | `ACTIVA`, `EN_ATENCION`, `RESUELTA`, `DESCARTADA`, `VENCIDA` | Estados; `CERRADA` no existe y da 422 `TRANSICION_INVALIDA`. **Una alerta sin atender pasa sola a `VENCIDA` a los 5 min y es terminal** `[DEV]`. | Recorrer las transiciones válidas y las inválidas dentro de esos 5 minutos (ejecutado: 10 de 10 pasan). |
 | Conectividad del dispositivo (RF-60) | `ONLINE`, `OFFLINE`, `SIN_SEÑAL`, `EN_MANTENIMIENTO` | Estado según heartbeat y buffer. | Enviar heartbeats y consultar; SIN_SEÑAL/OFFLINE no tienen disparador de prueba (dependencia de Desarrollo). |
-| Semáforo del dashboard (RF-58) | `VERDE` (nombre por verificar), `AMARILLO`, `ROJO`, `GRIS` (sin datos) | Estado visual de la unidad. | Un caso por color con las lecturas de la sección 5. |
+| Semáforo del dashboard (RF-58) | `VERDE`, `AMARILLO`, `ROJO` (confirmados en DEV), `GRIS` (sensor sin umbral) | Estado visual. `estado_general` de la unidad queda GRIS si algún sensor no tiene umbral. | Un caso por color con las lecturas de la sección 5. |
 | Sincronización de umbral (RF-17) | `PENDIENTE`, `APLICADA`, `NO_CONF` | Resultado de propagar el umbral al Edge. | Con Edge conectado: `APLICADA`; sin ACK en 30 s: `NO_CONF` (500). |
 | Versión de modelo (RF-69) | `EN_VALIDACION`, `APROBADO`, `RECHAZADO`, `ACTIVO`, `DEPRECADO` | Ver 1.4. | Ver 1.4. |
 
 ## 7. Datos que la prueba automática crea y usa
 
-Todo se crea dentro del sandbox (`X-Test-Run-Id`) y desaparece con `DELETE /test-control/runs/{id}`. Los secretos (`X-Sandbox-Secret`, token del broker, `QA_PROD_*`) salen de variables de entorno, nunca de este documento.
+**En DEV no hay sandbox** (`/test-control` no existe): lo que se crea queda; la limpieza es manual (baja de animales, asociaciones inactivas, dispositivos desactivados). En TEST sí hay sandbox (`X-Test-Run-Id`, `DELETE /test-control/runs/{id}`). Los secretos (`X-Sandbox-Secret`, token del broker, `QA_PROD_*`) salen de variables de entorno, nunca de este documento.
 
 | Dato | Contenido | Quién lo crea | Descripción | Metodología |
 |---|---|---|---|---|
-| Especie | Vaca, grupo ESPECIES_GRANDES, densidad 0.05 | RF-15 | Especie de la prueba. | Crear en F1 y borrar con el rollback. |
+| Especie | Bovino (id 2, existente), grupo ESPECIES_GRANDES, densidad 0.1 `[DEV]` | ya existe | No se crea ni se modifica. | Leerla y comprobar grupo y modelo. |
 | Etapas | Cría, Levante, Producción | RF-16 | Etapas productivas. | Crear las tres y comprobar el orden. |
 | Patología | Fiebre bovina de prueba (QA); variables: TEMP_CORPORAL, FRECUENCIA_CARDIACA, FRECUENCIA_RESPIRATORIA | M04 RF-64 | Patología mínima para la predicción. Las variables se envían como **IDs** del catálogo I3P-1, no como nombres (TC-M04-G003). | Registrar y leer de vuelta las variables. |
 | Umbrales | 5 variables de la sección 4 | RF-17 | Reglas de alerta. | Crear y verificar la sincronización. |
-| Finca y área | 1 finca, 1 área de 400 m² | RF-19/20 | Contenedor. | Crear y leer la capacidad. |
+| Finca y área | Finca El rosal (id 1); área de 35 m² (capacidad 3); área fija de QA id 12 para lecturas y alertas | RF-19/20 | Contenedor. | Crear/reutilizar y leer la capacidad. |
 | Dispositivos y sensores | 1 Gateway Edge + 6 sensores/cámaras | RF-21/22 | Fuente de telemetría. | Crear y asociar al área. |
 | Activos | cargas de la sección 2 | M02 | Población. | Crear y comprobar la capacidad. |
 | Lecturas | tabla de la sección 5 | `POST /iot/telemetria` | Telemetría de prueba. Las horas se envían en el pasado (el sandbox congela `now()`). | Enviar y leer del historial. |
 | Versiones de modelo | una por estado de la sección 1.4 | RF-69 | Datos de ciclo de vida. | Registrar con métricas sobre y bajo el umbral. |
 | Usuarios | Administrador (setup), Productor (`QA_PROD_*`), Ingeniero de Campo (lectura del monitoreo) | variables de entorno | Roles de la prueba. | Una sesión por rol; un login invalida el token anterior. |
+
+## 8. Resultados de ejecución en DEV (2026-11-02)
+
+Las corridas hechas en la finca El rosal se retiraron de la carpeta (la finca es la de la entrega); sus ids están en `Flujo/Bovino/IDS_PRUEBAS_EL_ROSAL.md` para pedir su limpieza. La evidencia vigente es la repetición en la finca de QA (id 3), con los mismos resultados.
+
+| Fase | Qué se hizo | Resultado | Evidencia |
+|---|---|---|---|
+| Solo lectura | 43 verificaciones sobre el bovino de Potrero 1 (telemetría, semáforo, estadísticas, alertas, dashboard) | 36 pasan, 0 fallan, 11 informativos | `Flujo/Bovino/REPORTE_vaca_dev_solo_lectura.md` |
+| F3 / F6 capacidad | Área de 35 m², 3 animales, el 4.º, identificador repetido, reducción de superficie, grupos incompatibles | 11 de 11 pasan | `Flujo/Bovino/resultados_capacidad_finca3.json` |
+| F7 lecturas en fronteras | 22 lecturas en las fronteras de los umbrales | sin contradicciones; regla de inclusividad observada | `Flujo/Bovino/resultados_fronteras_finca3.json` |
+| F8 alertas | Ciclo de vida completo | 10 de 10 pasan | `Flujo/Bovino/resultados_alertas_ciclo_finca3.json` |
+| F9 calibración de visión | No ejecutada | El Potrero no tiene cámara en DEV (solo acuicultura, aves y porcinos) | - |
+| F10 predicción | No ejecutada con escritura | `MODELO_ESPECIES_GRANDES` sin configuración del motor en DEV | ver 1.2 |
+
+
+**Repeticion en finca de QA (2026-11-02):** las tres pruebas con escritura se repitieron en la finca 3 `QA Pruebas Flujo`, creada para esto, porque El rosal y La florida son de la entrega. Mismos resultados (capacidad 11/11; 22 lecturas sin contradicciones; alertas 10/10). Ver `Flujo/Bovino/REPORTE_repeticion_finca3.md`. Los scripts exigen `QA_FINCA_ID` y rechazan las fincas 1 y 2.
+
+**Pendiente de confirmar con Desarrollo:** inclusividad de las fronteras; semáforo AMARILLO fuera de [min, max]; definición de `pct_fuera_rango` (la API cuenta lo que queda fuera de la banda normal, no fuera de [min, max]); la versión de umbral del historial muestra la vigente y no la del momento de la captura; faltan umbrales de frecuencia respiratoria, actividad, temperatura ambiental y humedad para Bovino; falta la configuración del motor de `MODELO_ESPECIES_GRANDES`.
+
