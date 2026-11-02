@@ -19,6 +19,7 @@
 # | 2026-10-31 | Arekkazu | PR-891 RF-61: tarea diaria que crea las particiones mensuales de telemetrias |
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110: router de la topología sanitaria (aristas entre áreas) |
 # | 2026-11-02 | Arekkazu | RF-66: router de lo que ve la cámara de un área |
+# | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas internas para que el motor IA arme su catálogo solo |
 import asyncio
 import logging
 import os
@@ -86,6 +87,7 @@ from src.prediction.infrastructure.routers.motor_ia_router import router as moto
 from src.prediction.infrastructure.routers.riesgo_contagio_router import router as riesgo_contagio_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
 from src.prediction.infrastructure.routers.monitor_prediccion_router import router as monitor_prediccion_router
+from src.prediction.infrastructure.routers.motor_catalogo_router import router as motor_catalogo_router
 from src.prediction.infrastructure.routers.captura_camara_router import router as captura_camara_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
@@ -958,6 +960,7 @@ app.include_router(motor_ia_router)
 app.include_router(riesgo_contagio_router)
 app.include_router(historial_diagnostico_router)
 app.include_router(monitor_prediccion_router)
+app.include_router(motor_catalogo_router)
 app.include_router(captura_camara_router)
 app.include_router(version_modelo_router)
 app.include_router(ota_router)
