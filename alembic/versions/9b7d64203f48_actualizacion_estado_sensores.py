@@ -1,10 +1,11 @@
 # | Fecha      | Nombre     | Que se hizo                                                              |
 # |------------|------------|--------------------------------------------------------------------------|
 # | 2026-11-01 | SamuelPR21 | INC-M04-251-G166 RF-62: advisory lock no bloqueante en fn_actualizar_estado_sensor |
+# | 2026-11-02 | Arekkazu   | INC-M04-251-G166 RF-58: lock de dos claves (3558), permisos solo si el rol existe |
 """fix_concurrency_advisory_lock_mod9
 
-Revision ID: a1b2c3d4e5f6
-Revises: c94c177b885a
+Revision ID: 9b7d64203f48
+Revises: 33ae7f41e560
 Create Date: 2026-11-01
 
 INC-M04-251-G166 (TC-M03-G166): El trigger trg_rf58_01_cache_estado_sensor
@@ -20,6 +21,16 @@ y se omite la actualización intermedia (la última transacción que logre el lo
 escribe el estado final). Esto elimina la serialización sin sacrificar la
 consistencia del cache.
 
+El lock es de dos claves, (3558, id_sensor): el espacio de una sola clave lo usan
+otros locks del backend (5246052, 10101608) y un id_sensor igual chocaría con ellos.
+3558 no lo usa ningún otro lock (los demás: 680, 3505, 3514, 3544, 4802, 6363 y
+0x52463234).
+
+Costo aceptado: en una ráfaga, si la transacción que se omite trae la lectura más
+reciente, la caché conserva la anterior hasta la siguiente lectura del sensor. La
+telemetría no se pierde (la fila de telemetrias se inserta igual); solo el valor del
+dashboard puede quedar una lectura atrás.
+
 No se modifica la estructura de la tabla, solo el cuerpo de la función trigger.
 RLS, FORCE RLS y triggers de auditoría permanecen intactos.
 """
@@ -34,6 +45,26 @@ revision: str = '9b7d64203f48'
 down_revision: Union[str, Sequence[str], None] = '33ae7f41e560'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+
+# Mismo patrón que a3c9e5d17b42: los roles existen en DEV/TEST/PROD pero no en una BD limpia
+# (CI y verificación local). CREATE OR REPLACE ya conserva dueño y permisos donde existen.
+_PERMISOS = """
+    DO $$
+    DECLARE r text;
+    BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sgpmp_owner')
+           AND pg_has_role(current_user, 'sgpmp_owner', 'MEMBER') THEN
+            ALTER FUNCTION modulo3.fn_actualizar_estado_sensor() OWNER TO sgpmp_owner;
+        END IF;
+        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO PUBLIC;
+        FOR r IN SELECT rolname FROM pg_roles
+                 WHERE rolname IN ('rol_app', 'rol_dev', 'rol_impl', 'rol_migracion',
+                                   'sgpmp_app', 'sgpmp_owner') LOOP
+            EXECUTE format('GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO %I', r);
+        END LOOP;
+    END $$;
+"""
 
 
 def upgrade() -> None:
@@ -84,11 +115,13 @@ def upgrade() -> None:
             FROM modulo3.estados_dispositivos_iot ed
             WHERE ed.id_dispositivo_iot = NEW.id_dispositivo_iot;
 
-            -- Intervención DBA (2026-11-03): Lock transaccional a nivel de aplicación.
-            -- Evita condiciones de carrera y bloqueos pesados en el UPSERT bajo alta
-            -- concurrencia de telemetría. Si otra transacción ya procesa este sensor,
-            -- ignoramos esta actualización intermedia para no saturar el motor.
-            IF pg_try_advisory_xact_lock(NEW.id_sensor) THEN
+            -- Intervención DBA (2026-11-01): lock transaccional por sensor, sin espera.
+            -- Evita que las transacciones del mismo sensor se serialicen en el UPSERT
+            -- bajo ráfagas de telemetría. Si otra transacción ya actualiza la caché de
+            -- este sensor, se omite esta escritura intermedia (la lectura queda en
+            -- telemetrias; la caché puede quedar una lectura atrás hasta la siguiente).
+            -- Dos claves: 3558 es el espacio de esta caché (RF-58).
+            IF pg_try_advisory_xact_lock(3558, NEW.id_sensor) THEN
                 INSERT INTO modulo3.estados_actuales_sensores (
                     id_dispositivo_iot, id_sensor,
                     ultimo_valor, ultima_unidad, ultimo_timestamp_captura,
@@ -120,15 +153,7 @@ def upgrade() -> None:
         END;
         $BODY$;
 
-        ALTER FUNCTION modulo3.fn_actualizar_estado_sensor() OWNER TO sgpmp_owner;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO PUBLIC;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_app;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_dev;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_impl;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_migracion;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO sgpmp_app;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO sgpmp_owner;
-    """)
+    """ + _PERMISOS)
 
 
 def downgrade() -> None:
@@ -207,12 +232,4 @@ def downgrade() -> None:
         END;
         $BODY$;
 
-        ALTER FUNCTION modulo3.fn_actualizar_estado_sensor() OWNER TO sgpmp_owner;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO PUBLIC;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_app;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_dev;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_impl;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO rol_migracion;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO sgpmp_app;
-        GRANT EXECUTE ON FUNCTION modulo3.fn_actualizar_estado_sensor() TO sgpmp_owner;
-    """)
+    """ + _PERMISOS)
