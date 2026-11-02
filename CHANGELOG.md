@@ -1,3 +1,13 @@
+## [1.4.0-rc.37](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.36...v1.4.0-rc.37) (2026-11-02)
+
+### Features
+
+* **rf-66:** el motor IA arma su catálogo desde el backend y un animal nuevo recibe su versión solo ([79161dc](https://github.com/Arekkazu/sgpmp-backend/commit/79161dccfc51c66e58e4afd43eb5506e17d076ee))
+
+### Bug Fixes
+
+* **rf-58:** la caché del estado del sensor no serializa la ingesta bajo ráfagas (INC-M04-251-G166) ([e902016](https://github.com/Arekkazu/sgpmp-backend/commit/e902016446455d6ec04537ea9ca33c427669f504)), closes [#928](https://github.com/Arekkazu/sgpmp-backend/issues/928)
+
 ## [1.4.0-rc.36](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.35...v1.4.0-rc.36) (2026-11-02)
 
 ### Features
