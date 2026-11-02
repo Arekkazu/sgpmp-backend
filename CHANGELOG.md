@@ -1,3 +1,9 @@
+## [1.4.0-rc.36](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.35...v1.4.0-rc.36) (2026-11-02)
+
+### Features
+
+* **rf-66:** la cámara del área se compara con el inventario del lote poblacional ([ac18c9e](https://github.com/Arekkazu/sgpmp-backend/commit/ac18c9e22ab0b208255f0a6b6b9c56a10cba5b6c))
+
 ## [1.4.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.34...v1.4.0-rc.35) (2026-11-02)
 
 ### Features
