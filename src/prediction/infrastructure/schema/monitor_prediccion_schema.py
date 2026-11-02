@@ -3,6 +3,7 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra y respuesta del registro desde el motor IA      |
+# | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 from __future__ import annotations
 
 import uuid
@@ -48,6 +49,7 @@ class InferenciaMonitorResponse(BaseModel):
     modo_sombra: bool
     # T-18: nombre de cada patología de probabilidad_enfermedad, por su id.
     nombres_patologias: Optional[dict] = None
+    id_infraestructura: Optional[int] = None
 
     @computed_field
     @property
@@ -84,6 +86,7 @@ class RiesgoContagioMonitorResponse(BaseModel):
     fecha_calculo: datetime
     id_alerta_generada: Optional[int]
     detalle_calculo: Optional[dict] = None
+    id_infraestructura: Optional[int] = None
 
 
 class ResultadoInferenciaRegistradoResponse(BaseModel):
