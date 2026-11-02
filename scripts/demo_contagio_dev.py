@@ -24,8 +24,9 @@ modelo; con 1 min, 1 a 2. `normal` lo devuelve a 5. Con `DEMO_DATABASE_URL` (bas
 `camara` cambia el video de una cámara simulada de la finca 2 «La florida» (`edge-sim-cam-porc|aves|acui`):
 «decaimiento» es el mismo video en cámara lenta ×10 (casi sin movimiento): el comportamiento se aleja de
 la línea base RF-24 y RF-66 POBLACIONAL sube el puntaje de anomalía en la ventana siguiente (20 s). El
-conteo de animales no cambia, así que el inventario sigue coincidiendo. `normal` también las devuelve a
-«normal». Plan §10.
+conteo puede bajar en las primeras ventanas (el video lento repite el comienzo; en los pollos, 1–4 de 8):
+si baja en tres ventanas seguidas aparece el aviso de inventario. `normal` también las devuelve a
+«normal». Plan §10.9.
 """
 from __future__ import annotations
 
