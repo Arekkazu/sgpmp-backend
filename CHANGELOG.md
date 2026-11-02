@@ -1,3 +1,9 @@
+## [1.4.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.30...v1.4.0-rc.31) (2026-11-02)
+
+### Features
+
+* **rf68:** el riesgo de contagio se calcula solo tras cada resultado de RF-66 ([a667c83](https://github.com/Arekkazu/sgpmp-backend/commit/a667c83b3d68af0ec189f1ba6afeaef5719a7fb0))
+
 ## [1.4.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.29...v1.4.0-rc.30) (2026-11-02)
 
 ### Bug Fixes
