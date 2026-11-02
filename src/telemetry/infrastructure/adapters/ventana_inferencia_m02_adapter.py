@@ -2,12 +2,17 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-56/RF-66: ventana de lecturas del activo para el motor IA     |
 # | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos de la especie del activo desde M09        |
+# | 2026-11-02 | Arekkazu | RF-62/RF-66: apto_para_ia sale de la evaluación vigente de RF-62  |
 """Ventana de lecturas del activo individual para el motor IA (contrato IA-1 v1).
 
 El sensor del paquete se ubica en su activo por la asociación M02 ``directa`` vigente (la
 misma regla de ``contexto_activo_alerta_m02_adapter``). La ventana son las lecturas de todos
 los sensores directos de ese activo en las 2 h previas al paquete más reciente del lote, solo
 de las variables que usa ET-02, con el nombre que ET-02 espera.
+
+``apto_para_ia`` es el de la evaluación ``VIGENTE`` de RF-62 (``modulo3.telemetria_calidad``):
+RF-62 no modifica ``telemetrias``, así que la columna homónima de la lectura queda en su valor
+por defecto. Una lectura aún sin evaluar conserva el de la columna y el motor la descarta.
 
 Punto C3 de ET-02: la ventana lleva además las bandas RF-17 de la especie del activo, para que
 el motor no use sus rangos escritos en el código. Sano = tramo ``normal`` del umbral activo;
@@ -60,10 +65,17 @@ _SQL_RANGOS_ESPECIE = text("""
 
 _SQL_LECTURAS = text("""
     SELECT t.timestamp_captura, va.codigo_telemetria,
-           COALESCE(t.valor_ajustado, t.valor_crudo) AS valor, t.apto_para_ia
+           COALESCE(t.valor_ajustado, t.valor_crudo) AS valor,
+           COALESCE(tc.apto_para_ia, t.apto_para_ia) AS apto_para_ia
     FROM modulo2.asociaciones_activos_sensores a
     JOIN modulo3.telemetrias t ON t.id_sensor = a.id_sensor
     JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable
+    LEFT JOIN LATERAL (
+        SELECT c.apto_para_ia FROM modulo3.telemetria_calidad c
+        WHERE c.id_telemetria = t.id_telemetria AND c.estado_evaluacion = 'VIGENTE'
+        ORDER BY c.timestamp_evaluacion DESC, c.id_evaluacion DESC
+        LIMIT 1
+    ) tc ON true
     WHERE a.id_activo_biologico = :activo AND a.tipo::text = 'directa' AND a.estado_asociacion = 'ACTIVA'
       AND va.codigo_telemetria = ANY(CAST(:codigos AS text[]))
       AND t.timestamp_captura > :desde AND t.timestamp_captura <= :hasta
