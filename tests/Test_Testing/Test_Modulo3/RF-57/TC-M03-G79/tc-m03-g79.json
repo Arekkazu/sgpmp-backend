@@ -1808,7 +1808,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 3.P.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-3.P.6][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -2582,7 +2582,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 3.I.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-3.I.8][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -2902,7 +2902,7 @@
                   "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
                   "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
                   "pm.collectionVariables.set('ac2', String((J || {}).id_alerta || 0));",
-                  "pm.test('Es una alerta distinta de la cerrada', function () { pm.expect(String(J.id_alerta)).to.not.eql(pm.collectionVariables.get('ac1')); });"
+                  "pm.test('Es una alerta distinta de la cerrada (id_alerta presente y diferente)', function () { pm.expect(J.id_alerta, 'id_alerta').to.exist; pm.expect(Number(J.id_alerta)).to.not.eql(Number(pm.collectionVariables.get('ac1'))); });"
                 ]
               }
             }
@@ -2997,7 +2997,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 4.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-4.7][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -3210,7 +3210,7 @@
                   "console.log('[TC-M03-G79 4.13] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('El total de alertas ACTIVAS del sensor no cambio respecto de la linea base', function () { pm.expect(String(J.total)).to.eql(pm.collectionVariables.get('b0_o')); });"
+                  "if (pm.collectionVariables.get('ac3') === '0') { pm.test.skip('BLOQUEADO: AC3 no se creo (4.9, INC-M03-240); sin ella no se puede probar que no se genera alerta sin reenvio'); } else {\n  pm.test('El total de alertas ACTIVAS del sensor no cambio respecto de la linea base', function () { pm.expect(String(J.total)).to.eql(pm.collectionVariables.get('b0_o')); });\n}"
                 ]
               }
             }
@@ -3262,7 +3262,7 @@
                   "pm.test('HTTP 201', function () { pm.expect(pm.response.code, pm.response.text().slice(0, 300)).to.eql(201); });",
                   "pm.test('Alerta nueva: es_duplicado=false e id_alerta presente', function () { pm.expect(J.es_duplicado).to.eql(false); pm.expect(J.id_alerta).to.exist; });",
                   "pm.collectionVariables.set('ac4', String((J || {}).id_alerta || 0));",
-                  "pm.test('Es una alerta distinta de la resuelta', function () { pm.expect(String(J.id_alerta)).to.not.eql(pm.collectionVariables.get('ac3')); });"
+                  "pm.test('Es una alerta distinta de la resuelta (id_alerta presente y diferente)', function () { pm.expect(J.id_alerta, 'id_alerta').to.exist; pm.expect(Number(J.id_alerta)).to.not.eql(Number(pm.collectionVariables.get('ac3'))); });"
                 ]
               }
             }
@@ -3329,7 +3329,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 4.16] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-4.16][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -3791,7 +3791,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 6.6] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-6.6][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -4372,7 +4372,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 7.12] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-7.12][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -4411,7 +4411,7 @@
                 "exec": [
                   "console.log('[TC-M03-G79 7.13] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "pm.test('Limpieza: HTTP en 200/422', function () { pm.expect([200, 422]).to.include(pm.response.code); });"
+                  "console.log('[G79-7.13][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -4442,7 +4442,7 @@
                   "const _enums = [];",
                   "(function w(o) { if (Array.isArray(o)) { if (o.indexOf('EN_ATENCION') >= 0 && o.indexOf('RESUELTA') >= 0) { _enums.push(o.slice()); } o.forEach(w); } else if (o && typeof o === 'object') { Object.keys(o).forEach(function (k) { w(o[k]); }); } })(J);",
                   "if (_enums.length === 0) { console.log('[G79-8.1][OBSERVADO] El contrato OpenAPI NO define un enum con los estados de alerta (nuevo_estado y estado_alerta son texto libre).'); }",
-                  "pm.test('Cada enum de estado incluye los 5 estados del catalogo', function () { const cat = [\"ACTIVA\", \"EN_ATENCION\", \"RESUELTA\", \"DESCARTADA\", \"VENCIDA\"]; _enums.forEach(function (e) { cat.forEach(function (s) { pm.expect(e).to.include(s); }); }); });",
+                  "if (_enums.length === 0) { pm.test.skip('NO VERIFICABLE: el contrato OpenAPI no define enum con los estados de alerta (no se da por aprobado)'); } else {\n  pm.test('Cada enum de estado incluye los 5 estados del catalogo', function () { const cat = [\"ACTIVA\", \"EN_ATENCION\", \"RESUELTA\", \"DESCARTADA\", \"VENCIDA\"]; _enums.forEach(function (e) { cat.forEach(function (s) { pm.expect(e).to.include(s); }); }); });\n}",
                   "const _extras = []; _enums.forEach(function (e) { e.forEach(function (s) { if ([\"ACTIVA\", \"EN_ATENCION\", \"RESUELTA\", \"DESCARTADA\", \"VENCIDA\"].indexOf(s) < 0 && _extras.indexOf(s) < 0) { _extras.push(s); } }); });",
                   "console.log('[G79-8.1][OBSERVADO] enums de estado en OpenAPI = ' + JSON.stringify(_enums) + ' | valores fuera de los 5 = ' + JSON.stringify(_extras));"
                 ]

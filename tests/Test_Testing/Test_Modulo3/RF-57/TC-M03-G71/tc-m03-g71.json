@@ -289,7 +289,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_aislar status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -373,7 +373,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_aislar status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -624,7 +624,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_a status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -657,7 +657,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_b status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -881,7 +881,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_hr status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -914,7 +914,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_tp status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -1061,7 +1061,7 @@
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
                   "pm.test('Compuesta ACTIVA', function () { pm.expect(J.estado_alerta).to.eql('ACTIVA'); });",
-                  "pm.test('La compuesta no absorbe la regla simple ajena (reglas_activas sin OXIGENO_DISUELTO_LEVE)', function () { pm.expect(J.reglas_activas || []).to.not.include('OXIGENO_DISUELTO_LEVE'); });"
+                  "if (pm.collectionVariables.get('alerta_g71_od') === '0') { pm.test.skip('BLOQUEADO: 4.2 no creo la alerta de oxigeno, no hay regla ajena que verificar (no se da por aprobado)', function () {}); } else { pm.test('La compuesta no absorbe la regla simple ajena (reglas_activas sin OXIGENO_DISUELTO_LEVE)', function () { pm.expect(J.reglas_activas || []).to.not.include('OXIGENO_DISUELTO_LEVE'); }); }"
                 ]
               }
             }
@@ -1114,7 +1114,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_et status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -1147,7 +1147,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G71 aislamiento] alerta_g71_od status=' + pm.response.code);",
-                  "pm.test('Aislamiento: alerta descartada o ya no activa (200/404/409/422)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); });"
+                  "console.log('[G71][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }

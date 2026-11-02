@@ -787,7 +787,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G68 2.2z-a] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
-                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); /* 404: la alerta tecnica no se gestiona por PATCH /iot/alertas/{id}/estado */ });"
+                  "console.log('[G68-2.2z][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
@@ -831,7 +831,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "console.log('[TC-M03-G68 2.2z-b] status=' + pm.response.code + ' body=' + pm.response.text().slice(0, 300));",
-                  "pm.test('HTTP en 200/409/422 (aislamiento: la alerta anterior no debe seguir activa)', function () { pm.expect([200, 404, 409, 422]).to.include(pm.response.code); /* 404: la alerta tecnica no se gestiona por PATCH /iot/alertas/{id}/estado */ });"
+                  "console.log('[G68-2.2z][OBSERVADO] paso de limpieza/aislamiento (no es prueba): status=' + pm.response.code);"
                 ]
               }
             }
