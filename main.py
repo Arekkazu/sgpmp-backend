@@ -20,6 +20,7 @@
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110: router de la topología sanitaria (aristas entre áreas) |
 # | 2026-11-02 | Arekkazu | RF-66: router de lo que ve la cámara de un área |
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas internas para que el motor IA arme su catálogo solo |
+# | 2026-11-02 | Arekkazu | AJF-07 RF-53: registrar el router de lectura de ingesta |
 import asyncio
 import logging
 import os
@@ -76,6 +77,7 @@ from src.telemetry.infrastructure.routers.evento_edge_router import router as ev
 from src.telemetry.infrastructure.routers.alerta_router import router as alerta_router
 from src.telemetry.infrastructure.routers.monitoreo_router import router as monitoreo_router
 from src.telemetry.infrastructure.routers.infraestructura_iot_router import router as infraestructura_iot_router
+from src.telemetry.infrastructure.routers.ingesta_iot_router import router as ingesta_iot_router
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
@@ -949,6 +951,7 @@ app.include_router(evento_edge_router)
 app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
+app.include_router(ingesta_iot_router)
 app.include_router(regla_alerta_edge_router)
 app.include_router(regla_alerta_router)
 app.include_router(vinculacion_router)
