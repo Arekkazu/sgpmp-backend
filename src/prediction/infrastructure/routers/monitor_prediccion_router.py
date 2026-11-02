@@ -5,6 +5,7 @@
 # | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64                             |
 # | 2026-11-02 | Arekkazu | RF-68: cada resultado nuevo dispara el riesgo de contagio de su lote |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: el disparo recalcula también las áreas expuestas    |
+# | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: el disparo de RF-68 pasa a disparos_automaticos   |
 """Resultados del motor de inferencia (RF-66) en ``modulo4.resultados_inferencia``.
 
   GET  /prediccion/inferencias — Monitor. Mismo recurso que el historial diagnóstico
@@ -16,7 +17,6 @@
 """
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -27,23 +27,10 @@ from src.prediction.application.use_cases.inferencia.registrar_resultado_inferen
     RegistrarResultadoInferenciaUseCase,
 )
 from src.prediction.application.use_cases.monitor.listar_inferencias_use_case import ListarInferenciasUseCase
-from src.prediction.application.use_cases.riesgo_contagio.disparar_riesgo_contagio_use_case import (
-    DispararRiesgoContagioUseCase,
-)
-from src.prediction.application.use_cases.riesgo_contagio.estimar_riesgo_contagio_use_case import (
-    EstimarRiesgoContagioUseCase,
-)
-from src.prediction.domain.entities.resultado_inferencia import ResultadoInferencia
 from src.prediction.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
-from src.prediction.infrastructure.adapters.alerta_contagio_rf57_adapter import AlertaContagioRf57Adapter
-from src.prediction.infrastructure.adapters.contexto_contagio_m02_m09_adapter import ContextoContagioM02M09Adapter
-from src.prediction.infrastructure.adapters.exposicion_topologia_m09_adapter import ExposicionTopologiaM09Adapter
-from src.prediction.infrastructure.adapters.ocupacion_lote_m02_adapter import OcupacionLoteM02Adapter
 from src.prediction.infrastructure.adapters.version_modelo_adapter import VersionModeloAdapter
+from src.prediction.infrastructure.disparos_automaticos import disparar_riesgo_contagio
 from src.prediction.infrastructure.dto.registrar_resultado_inferencia_dto import RegistrarResultadoInferenciaDTO
-from src.prediction.infrastructure.repositories.configuracion_motor_ia_repository import (
-    SqlAlchemyConfiguracionMotorIARepository,
-)
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import (
     SqlAlchemyEventoAuditoriaM04Repository,
 )
@@ -53,9 +40,6 @@ from src.prediction.infrastructure.repositories.monitor_prediccion_repository im
 )
 from src.prediction.infrastructure.repositories.resultado_inferencia_repository import (
     SqlAlchemyResultadoInferenciaRepository,
-)
-from src.prediction.infrastructure.repositories.resultado_riesgo_contagio_repository import (
-    SqlAlchemyResultadoRiesgoContagioRepository,
 )
 from src.prediction.infrastructure.schema.monitor_prediccion_schema import (
     InferenciaMonitorResponse,
@@ -68,7 +52,6 @@ from src.shared.fechas import FechaHoraUtc
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/prediccion/inferencias", tags=["Predicción M04 - Monitor de inferencia"])
 
@@ -130,7 +113,7 @@ def registrar_resultado_inferencia(
     if registro.duplicado:
         response.status_code = 200
     else:
-        _disparar_riesgo_contagio(db, registro.resultado)
+        disparar_riesgo_contagio(db, registro.resultado)
     r = registro.resultado
     return ResultadoInferenciaRegistradoResponse(
         id_resultado_inferencia=r.id_resultado_inferencia,
@@ -139,26 +122,3 @@ def registrar_resultado_inferencia(
         latencia_excedida=r.latencia_excedida,
         tiene_alerta_generada=r.tiene_alerta_generada,
     )
-
-
-def _disparar_riesgo_contagio(db: Session, resultado: ResultadoInferencia) -> None:
-    """RF-68 tras RF-66. Nunca tumba el registro: el resultado ya está confirmado."""
-    try:
-        exposicion = ExposicionTopologiaM09Adapter(db)
-        DispararRiesgoContagioUseCase(
-            contexto_port=ContextoContagioM02M09Adapter(db),
-            exposicion_port=exposicion,
-            estimar=EstimarRiesgoContagioUseCase(
-                db=db,
-                config_repo=SqlAlchemyConfiguracionMotorIARepository(db),
-                resultado_repo=SqlAlchemyResultadoRiesgoContagioRepository(db),
-                activo_port=ActivoBiologicoM02Adapter(db),
-                ocupacion_port=OcupacionLoteM02Adapter(db),
-                alerta_port=AlertaContagioRf57Adapter(db),
-                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-                exposicion_port=exposicion,
-            ),
-        ).execute(resultado)
-    except Exception:
-        db.rollback()
-        logger.exception("RF-68: falló el cálculo automático del lote %s", resultado.id_activo_biologico)
