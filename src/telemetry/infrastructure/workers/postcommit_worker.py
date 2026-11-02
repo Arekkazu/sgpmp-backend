@@ -10,6 +10,7 @@
 # | 2026-10-23 | Arekkazu | INTEG RFC-012..016 RF-61: RF61_AVISOS solo con canal de aviso configurado |
 # | 2026-10-25 | Arekkazu | RF-63: el log del worker incluye la excepción |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: etapa asincrona de calidad de vision |
+# | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: tras la calidad de visión, puntaje de anomalía y RF-68 |
 # | 2026-10-31 | Claude | INC-M03-173-G85 RF-57 E9: reevalúa eventos pendientes cuando la regla ya tiene umbral |
 # | 2026-10-25 | Arekkazu | INC-M03-149-G89 RF-58: recalcular_semaforo_sensor para el cierre de alertas |
 # | 2026-10-25 | Arekkazu | USAB-M03 M3-12 RF-63: tope configurable de la espera entre reintentos |
@@ -22,6 +23,7 @@ import os
 from sqlalchemy import text
 
 from src.configuration.infrastructure.repositories.configuracion_global_repository import SqlAlchemyConfiguracionGlobalRepository
+from src.prediction.infrastructure.disparos_automaticos import evaluar_anomalia_poblacional
 from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
 from src.telemetry.infrastructure.repositories.evidencia_fuentes_iot import auditar_lectura, auditar_ingesta, auditar_heartbeat, auditar_transicion
 from src.shared.database import engine
@@ -141,6 +143,8 @@ def _calidad_vision(db, identificador):
     EvaluarCalidadVisionUseCase(db, SqlAlchemyObservacionVisionRepository(db),
         ParametrosVisionMLOpsAdapter(SqlAlchemyParametrosMLOpsRepository(db)),
         DispositivoM09Adapter(db)).execute(identificador)
+    # La calidad ya hizo commit: RF-66 POBLACIONAL (y RF-68) nunca la deshace.
+    evaluar_anomalia_poblacional(db, identificador)
 
 
 def _vision(db,identificador):

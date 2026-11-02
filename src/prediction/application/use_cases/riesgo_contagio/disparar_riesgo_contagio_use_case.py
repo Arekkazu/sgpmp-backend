@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: disparo automático del riesgo de contagio tras cada resultado de RF-66 |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: recalcula las áreas expuestas cuando cambia un foco vecino |
+# | 2026-11-02 | Arekkazu | RF-68: una salida POBLACIONAL entra como score_anomalia (SCORE_POBLACIONAL) |
 """RF-68 disparado por cada resultado nuevo de RF-66 (antes solo corría con un POST manual).
 
 El lote es el activo del resultado (#857: M02 no relaciona individuos con su lote). Las entradas
@@ -14,6 +15,9 @@ recalculan los lotes de las áreas a las que llega una arista activa desde la su
 exposición refleje el foco nuevo. Un solo salto: esos recálculos no disparan otros. Usan su propia
 salida de RF-66 si es reciente; si no, se calculan con Fs ausente (ambiente, densidad y exposición).
 La alerta de exposición de RFC-021 (umbral 0,40) todavía no se emite: esos recálculos no alertan.
+
+Una salida POBLACIONAL (``score_anomalia`` en ``probabilidad_riesgo``) entra como el puntaje de
+anomalía del área (Fs = ``SCORE_POBLACIONAL``) en vez de la probabilidad de riesgo alto.
 """
 from __future__ import annotations
 
@@ -77,13 +81,15 @@ class DispararRiesgoContagioUseCase:
         ambiente = contexto.ambiente
         if ambiente is not None and salida and abs(ambiente.fecha_captura - salida.fecha_inferencia) > SINCRONIA_MAXIMA:
             ambiente = None
+        score = salida.probabilidad_riesgo.get("score_anomalia") if salida else None
         dto = EstimarRiesgoContagioDTO(
             id_lote=id_lote,
+            score_anomalia=Decimal(str(score)) if score is not None else None,
             salidas_rf66=[SalidaRf66DTO(
                 id_activo_biologico=id_lote,
                 probabilidad_riesgo_alto=Decimal(str(salida.probabilidad_riesgo.get(NIVEL_RIESGO_ALTO, 0))),
                 fecha_inferencia=salida.fecha_inferencia,
-            )] if salida else [],
+            )] if salida and score is None else [],
             densidad_poblacional=contexto.densidad_poblacional,
             variables_ambientales=VariablesAmbientalesDTO(
                 temperatura=ambiente.temperatura, humedad_relativa=ambiente.humedad_relativa,
