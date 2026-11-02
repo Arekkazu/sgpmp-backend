@@ -7,6 +7,7 @@
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: documentar el rechazo 422 por cobertura individual inferior al 60 %. |
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: documentar recálculo inmediato 201 y retirar el 429 de frecuencia obsoleto. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: documentar activación RF-65 y respuesta sin caché del perfil MVP. |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: el cálculo manual también suma la exposición a focos vecinos |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -29,6 +30,7 @@ from src.prediction.application.use_cases.riesgo_contagio.estimar_riesgo_contagi
 from src.prediction.infrastructure.adapters.ocupacion_lote_m02_adapter import OcupacionLoteM02Adapter
 from src.prediction.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.prediction.infrastructure.adapters.alerta_contagio_rf57_adapter import AlertaContagioRf57Adapter
+from src.prediction.infrastructure.adapters.exposicion_topologia_m09_adapter import ExposicionTopologiaM09Adapter
 from src.prediction.infrastructure.dto.estimar_riesgo_contagio_dto import EstimarRiesgoContagioDTO
 from src.prediction.infrastructure.repositories.configuracion_motor_ia_repository import (
     SqlAlchemyConfiguracionMotorIARepository,
@@ -94,6 +96,7 @@ def estimar_riesgo_contagio(
         ocupacion_port=OcupacionLoteM02Adapter(db),
         alerta_port=AlertaContagioRf57Adapter(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+        exposicion_port=ExposicionTopologiaM09Adapter(db),
     ).execute(dto, usuario_actual.id_usuario, usuario_actual.id_rol)
     return JSONResponse(
         content=RiesgoContagioResponse.from_resultado(resultado).model_dump(mode="json"),

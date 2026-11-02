@@ -4,6 +4,7 @@
 # | 2026-10-30 | Leandro | INC-M04-217-G026 RF-68: conservar umbrales aplicados en el snapshot histórico y su lectura. |
 # | 2026-10-30 | Leandro | INC-M04-218-G029 RF-68: persistir procedencia de densidad y leer snapshots históricos compatibles. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: conservar el perfil en el snapshot y leer ESTANDAR en resultados legados. |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: la exposición a focos vecinos queda en el detalle del cálculo |
 from __future__ import annotations
 
 from decimal import Decimal
@@ -33,6 +34,7 @@ def _snapshot(r: ResultadoRiesgoContagio) -> dict:
         "umbrales_aplicados": {k: str(v) for k, v in r.umbrales_aplicados.items()},
         "huella_entradas": r.huella_entradas,
         "id_alerta_rf57": r.alerta_id,
+        "exposicion": r.exposicion,
     }
 
 
@@ -94,7 +96,7 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
         propias = {"definicion_fs", "motivos_degradacion", "densidad_asumida", "id_area_productiva",
                    "config_version", "huella_entradas", "id_alerta_rf57", "umbrales_aplicados",
                    "contexto_densidad",
-                   "perfil_calculo_contagio"}
+                   "perfil_calculo_contagio", "exposicion"}
         return ResultadoRiesgoContagio(
             id_lote=orm.id_activo_biologico,
             probabilidad_contagio=orm.probabilidad_contagio,
@@ -123,4 +125,5 @@ class SqlAlchemyResultadoRiesgoContagioRepository(ResultadoRiesgoContagioReposit
             huella_entradas=snap.get("huella_entradas") or "",
             variables_ambientales={k: v for k, v in snap.items() if k not in propias},
             umbrales_aplicados={k: Decimal(v) for k, v in (snap.get("umbrales_aplicados") or {}).items()},
+            exposicion=dict(snap.get("exposicion") or {}),
         )

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-68: contexto del lote para el disparo automático tras RF-66   |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: última salida de RF-66 de un lote expuesto        |
 """Lo que RF-68 necesita del lote y de su área cuando corre sin un cliente que lo envíe."""
 from __future__ import annotations
 
@@ -27,7 +28,19 @@ class ContextoContagio:
     ambiente: Optional[AmbienteArea]
 
 
+@dataclass(frozen=True)
+class SalidaReciente:
+    """Último resultado de RF-66 de un activo: ``probabilidad_riesgo`` por nivel (0 Normal … 3 Alto)."""
+    probabilidad_riesgo: dict
+    fecha_inferencia: datetime
+    modo_sombra: bool
+
+
 class ContextoContagioPort(ABC):
     @abstractmethod
     def obtener(self, id_activo: int, instante: datetime) -> Optional[ContextoContagio]:
         """None si el activo no existe. ``ambiente``: últimas lecturas del área hasta ``instante``."""
+
+    @abstractmethod
+    def ultima_salida_rf66(self, id_activo: int, desde: datetime) -> Optional[SalidaReciente]:
+        """Último resultado de RF-66 del activo desde ``desde``; None si no hay."""
