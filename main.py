@@ -18,6 +18,7 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66: router del monitor de inferencia |
 # | 2026-10-30 | Arekkazu | INC-M04-229-G070 RF-72: router de la ventana de retroalimentación |
 # | 2026-10-31 | Arekkazu | PR-891 RF-61: tarea diaria que crea las particiones mensuales de telemetrias |
+# | 2026-11-02 | Arekkazu | RFC-021 RF-110: router de la topología sanitaria (aristas entre áreas) |
 import asyncio
 import logging
 import os
@@ -54,6 +55,7 @@ from src.configuration.infrastructure.routers.dispositivo_iot_router import rout
 from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import router as tipo_dispositivo_iot_router
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
+from src.configuration.infrastructure.routers.topologia_sanitaria_router import router as topologia_sanitaria_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.calibracion_vision_router import router as calibracion_vision_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
@@ -937,6 +939,7 @@ app.include_router(parametros_retroalimentacion_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(tipo_area_router)
+app.include_router(topologia_sanitaria_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)

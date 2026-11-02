@@ -2,6 +2,7 @@
 # |------------|--------------|-------------------------------------------------------|
 # | 2026-10-23 | destroyerban | DEV-48 RF-69/72: avisos e incidente de persistencia   |
 # | 2026-10-23 | Arekkazu | DEV-48: el aviso al Administrador usa E sobre auditoria_m04 |
+# | 2026-10-31 | Arekkazu | RFC-010 RF-69: llave con animal, SOMBRA y fuente_datos en los dobles |
 """DEV-48: avisos de RF-69 (E1b carga externa, E3 versión rechazada) e incidente de RF-72 E8.
 
 Fakes en memoria, sin DB ni SMTP: el envío se intercepta en el adaptador.
@@ -78,6 +79,7 @@ def _dto(f1="0.95"):
         },
         fecha_entrenamiento=datetime(2026, 10, 1, tzinfo=timezone.utc), compatibilidad_variables=[],
         id_proceso_rf71=uuid.uuid4(), version_referencia=None, componente=None,
+        id_activo_biologico=885, fuente_datos="REAL",
         archivo_modelo=SimpleNamespace(file=io.BytesIO(ARTEFACTO)),
     )
 

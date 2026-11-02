@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo                                                        |
+# |------------|----------|--------------------------------------------------------------------|
+# | 2026-11-01 | Arekkazu | RF-22: documenta el 409 por nombre de sensor repetido              |
 """Router FastAPI para dispositivos IoT (`/configuracion/dispositivos-iot`).
 
 RF-21 — CU05 Flujos A, E:
@@ -246,6 +249,7 @@ def desactivar_dispositivo_iot(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse, "description": "RECURSO_DUPLICADO: el dispositivo ya tiene un sensor con ese nombre"},
     },
     summary="Registrar sensor en dispositivo IoT",
 )
@@ -260,6 +264,10 @@ def registrar_sensor(
     **Acceso:** `dispositivos_iot` · Crear.
 
     Las cámaras no admiten sensores.
+
+    El `nombre` es el identificador que el firmware envía en el campo `sensor` de cada
+    lectura: debe ser único dentro del dispositivo (409 si se repite) y se guarda sin
+    espacios de borde.
     """
     use_case = RegistrarSensorUseCase(
         db=db,

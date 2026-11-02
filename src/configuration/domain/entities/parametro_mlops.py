@@ -5,6 +5,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-167-G75 RF-57 E16: ventana de reevaluación por IA (valor base 60 min) |
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
+# | 2026-10-31 | Arekkazu | RF-71/RF-72: mínimos de registros para solicitar y para reentrenar |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -43,6 +44,12 @@ RF57_SLA_BASE = {RF57_SLA_CRITICO: 5, RF57_SLA_MODERADO: 30, RF57_SLA_LEVE: 120}
 RF57_TORMENTA_SISTEMA = 'rf57_tormenta_alertas_por_minuto'
 RF57_TORMENTA_UNIDAD = 'rf57_tormenta_alertas_por_minuto_unidad'
 RF72_VENTANA = 'ventana_retroalimentacion_dias'
+# RF-71: retroalimentaciones RF-72 nuevas (desde la última versión del modelo) para reentrenar.
+RF71_MIN_REENTRENAMIENTO = 'min_registros_reentrenamiento'
+RF71_MIN_REENTRENAMIENTO_BASE = 500  # RF-71 / RFC-009: precondición de volumen del REENTRENAMIENTO
+# Desde aquí ya se puede solicitar el reentrenamiento (decisión del equipo, 2026-10-31).
+RF71_MIN_SOLICITUD = 'min_registros_solicitud_reentrenamiento'
+RF71_MIN_SOLICITUD_BASE = 200
 PARAMETROS_CALIDAD = (RF62_K, RF62_M, RF62_N, RF62_DRIFT, RF62_P)
 
 

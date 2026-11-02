@@ -6,9 +6,16 @@
 # | 2026-10-30 | Leandro | INC-M04-219-G030 RF-68: exigir 60 % de individuos con inferencia reciente y preservar score poblacional. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: identificar el perfil aplicado sin cambiar NORMAL o DEGRADADO. |
 # | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura cuenta como observación cada salida con el id del lote |
+# | 2026-11-02 | Arekkazu | RFC-021 C21.4: exposición a focos vecinos y área expuesta sin inferencias propias |
 """RF-68 — Modelo 4: probabilidad de contagio de un lote.
 
     P_contagio = W_fs·Fs + W_fa·Fa + W_fd·Fd
+
+RFC-021 (C21.4): si el área tiene vecinas con foco, se suma la exposición sobre esa base,
+
+    Fv = 1 − Π (1 − w·Fs_vecina)        P = P_base + (1 − P_base)·λ·Fv
+
+y sin vecinas con foco P = P_base, igual que antes.
 
 Lógica pura (sin BD): el caso de uso le entrega los datos y la configuración de RF-65.
 """
@@ -17,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Optional
+from typing import Optional, Sequence
 
 from src.prediction.domain.entities.ocupacion_lote import MuestraOcupacion, promediar_ocupacion
 
@@ -37,6 +44,8 @@ SINCRONIA_MAXIMA = timedelta(seconds=35)
 #: E5/E9: inferencias de RF-66 de más de 30 min no se usan; ambiente de más de 10 min, sin Fa.
 VIGENCIA_INFERENCIA = timedelta(minutes=30)
 VIGENCIA_AMBIENTAL = timedelta(minutes=10)
+#: RFC-021 §1.2 / RF-65 v2.1: λ_exposicion, valor por defecto (D) hasta que C21.5 lo lleve a RF-65.
+LAMBDA_EXPOSICION = Decimal("0.5")
 #: E8 / CA-10: mínimo confirmado del 60 % para inferencias individuales; sustituye E1.
 COBERTURA_MINIMA_FS = Decimal("0.60")
 #: E4 / Validación de Modelo: con menos del 60 % de sensores operativos no se ejecuta.
@@ -73,6 +82,15 @@ class LecturaAmbiental:
     temperatura: Optional[Decimal]
     humedad_relativa: Optional[Decimal]
     fecha_captura: datetime
+
+
+@dataclass(frozen=True)
+class FocoVecino:
+    """Un área vecina con foco reciente y la arista de RF-110 por la que llega (RFC-021)."""
+    id_area: int
+    via: str
+    peso: Decimal
+    factor_sanitario: Decimal
 
 
 @dataclass(frozen=True)
@@ -119,6 +137,8 @@ class ResultadoRiesgoContagio:
     umbrales_aplicados: dict[str, Decimal] = field(default_factory=dict)
     contexto_densidad: dict = field(default_factory=dict)
     perfil_calculo_contagio: str = "ESTANDAR"
+    #: RFC-021: p_base, fv, lambda y focos usados; vacío sin vecinas con foco.
+    exposicion: dict = field(default_factory=dict)
 
     @property
     def nivel_texto(self) -> str:
@@ -139,6 +159,14 @@ def _normalizar(actual: Decimal, minimo: Decimal, maximo: Decimal) -> Decimal:
 
 def _q(valor: Decimal, digitos: str = "0.0001") -> Decimal:
     return valor.quantize(Decimal(digitos), rounding=ROUND_HALF_UP)
+
+
+def calcular_exposicion(focos: Sequence[FocoVecino]) -> Decimal:
+    """Fv = 1 − Π (1 − w·Fs): probabilidad de que llegue algo desde al menos un foco (RFC-021 §1.2)."""
+    sin_contagio = Decimal("1")
+    for foco in focos:
+        sin_contagio *= Decimal("1") - _acotar(foco.peso * foco.factor_sanitario)
+    return _acotar(Decimal("1") - sin_contagio)
 
 
 def validar_pesos(p: ParametrosContagio) -> None:
@@ -210,6 +238,8 @@ def calcular_riesgo_contagio(
     densidad_poblacional: Optional[Decimal] = None,
     muestras_ocupacion: Optional[list[MuestraOcupacion]] = None,
     porcentaje_sensores_activos: Decimal = Decimal("100"),
+    focos_vecinos: Sequence[FocoVecino] = (),
+    exigir_cobertura_rf66: bool = True,
 ) -> ResultadoRiesgoContagio:
     """RF-68 pasos 1–7 con sus flujos alternos. Lanza ``DatosContagioError`` cuando no se ejecuta."""
     validar_pesos(parametros)
@@ -223,11 +253,15 @@ def calcular_riesgo_contagio(
 
     motivos: list[str] = []
 
-    # E5/E8: solo individuos con inferencia reciente contribuyen a la cobertura.
-    vigentes, total = validar_cobertura_rf66(
-        salidas_rf66=salidas_rf66, total_activos_lote=total_activos_lote,
-        ahora=ahora, score_anomalia=score_anomalia, id_lote=id_lote,
-    )
+    # E5/E8: solo individuos con inferencia reciente contribuyen a la cobertura. RFC-021: un área
+    # expuesta que no tiene inferencias propias se calcula igual, con Fs ausente.
+    if exigir_cobertura_rf66 or salidas_rf66 or score_anomalia is not None:
+        vigentes, total = validar_cobertura_rf66(
+            salidas_rf66=salidas_rf66, total_activos_lote=total_activos_lote,
+            ahora=ahora, score_anomalia=score_anomalia, id_lote=id_lote,
+        )
+    else:
+        vigentes, total = [], None
     if any(not timedelta(0) <= ahora - s.fecha_inferencia <= VIGENCIA_INFERENCIA for s in salidas_rf66):
         motivos.append("INFERENCIAS_DESACTUALIZADAS_DESCARTADAS")
 
@@ -320,6 +354,16 @@ def calcular_riesgo_contagio(
         pesos = {k: (pesos_config[k] / suma_disponible if k in disponibles else Decimal("0")) for k in factores}
 
     probabilidad = _acotar(sum(pesos[k] * factores[k] for k in disponibles))
+    exposicion: dict = {}
+    if focos_vecinos:
+        fv = calcular_exposicion(focos_vecinos)
+        p_base = probabilidad
+        probabilidad = _acotar(p_base + (Decimal("1") - p_base) * LAMBDA_EXPOSICION * fv)
+        exposicion = {
+            "p_base": str(_q(p_base)), "fv": str(_q(fv)), "lambda": str(LAMBDA_EXPOSICION),
+            "focos": [{"id_area": f.id_area, "via": f.via, "peso": str(f.peso),
+                       "factor_sanitario": str(f.factor_sanitario)} for f in focos_vecinos],
+        }
     nivel = discretizar(probabilidad, parametros.umbral_riesgo_alto)
     # Consistencia con la inferencia individual (CA-7, E6, RNF-03).
     if fs is not None and definicion_fs == CONTEO_INDIVIDUAL:
@@ -357,4 +401,5 @@ def calcular_riesgo_contagio(
         densidad_asumida=densidad_asumida,
         contexto_densidad=contexto_densidad,
         fecha_calculo=ahora,
+        exposicion=exposicion,
     )

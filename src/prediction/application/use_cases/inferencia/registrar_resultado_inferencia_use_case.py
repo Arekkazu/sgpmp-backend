@@ -2,6 +2,8 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA devuelve sus resultados al backend            |
 # | 2026-10-30 | Arekkazu | RF-66: resuelve la patología base por código RF-64               |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-02 | Arekkazu     | RF-64/RF-66: claves de probabilidad_enfermedad del motor a id_patologia |
 """RF-66 — Registrar un resultado del motor IA (`motor-ia`) en ``modulo4.resultados_inferencia``.
 
 Postcondición 1: el resultado queda persistido de forma inmutable y alimenta RF-67
@@ -85,7 +87,7 @@ class RegistrarResultadoInferenciaUseCase:
                 message=f"No existe la versión de modelo {dto.id_version_modelo} en RF-69.",
                 field="id_version_modelo",
             )
-        estado, tipo_modelo, _componente = llave
+        estado, tipo_modelo, _componente, id_activo_version = llave
         if estado in _ESTADOS_NO_UTILIZABLES:
             raise BusinessRuleError(
                 code="VERSION_MODELO_NO_UTILIZABLE",
@@ -99,6 +101,17 @@ class RegistrarResultadoInferenciaUseCase:
                 field="tipo_modelo",
             )
 
+        # RFC-010: el modelo INDIVIDUAL de un animal no produce resultados de otro.
+        if id_activo_version is not None and id_activo_version != dto.id_activo_biologico:
+            raise BusinessRuleError(
+                code="VERSION_DE_OTRO_ACTIVO",
+                message=(
+                    f"La versión {dto.id_version_modelo} es del activo {id_activo_version}, "
+                    f"no del {dto.id_activo_biologico}."
+                ),
+                field="id_activo_biologico",
+            )
+
         id_especie = self.activo_port.obtener_especie(dto.id_activo_biologico)
         if id_especie is None:
             raise NotFoundError(
@@ -108,6 +121,10 @@ class RegistrarResultadoInferenciaUseCase:
             )
 
         datos = dto.model_dump(exclude={"codigo_patologia_rf64"})
+        if datos["id_patologia"] is None:
+            # Quien no manda el id (el motor) tampoco conoce los ids del ambiente: sus probabilidades
+            # vienen por código RF-64 y el monitor las nombra por id_patologia.
+            datos["probabilidad_enfermedad"] = self._por_id_patologia(dto.probabilidad_enfermedad)
         if datos["id_patologia"] is None and dto.codigo_patologia_rf64 is not None:
             datos["id_patologia"] = self.patologia_repo.id_base_por_codigo_rf64(dto.codigo_patologia_rf64)
             if datos["id_patologia"] is None:
@@ -123,6 +140,20 @@ class RegistrarResultadoInferenciaUseCase:
             self.db.rollback()
             raise
         return ResultadoRegistro(resultado, duplicado=False)
+
+    def _por_id_patologia(self, probabilidades: dict) -> dict:
+        """``{"6": p, "3+4": q}`` → ``{"13": p, "10+11": q}``. ET-02 funde dos patologías en una
+        clase ("3+4"); se conserva unida. Una clave sin patología base se deja como vino."""
+        traducidas = {}
+        for clave, p in probabilidades.items():
+            ids = [self.patologia_repo.id_base_por_codigo_rf64(int(c)) if c.isdigit() else None
+                   for c in clave.split("+")]
+            if None in ids:
+                logger.warning("RF-66: clave %r de probabilidad_enfermedad sin patología base RF-64.", clave)
+                traducidas[clave] = p
+            else:
+                traducidas["+".join(str(i) for i in ids)] = p
+        return traducidas
 
     def _auditar(self, r: ResultadoInferencia) -> None:
         comunes = dict(

@@ -1,3 +1,6 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import uuid
@@ -20,9 +23,14 @@ class VersionModeloRepository(ABC):
 
     @abstractmethod
     def obtener_activo_por_tipo(
-        self, tipo_modelo: str, componente: Optional[str] = None
+        self,
+        tipo_modelo: str,
+        componente: Optional[str] = None,
+        id_activo_biologico: Optional[int] = None,
+        estado: str = "ACTIVO",
     ) -> Optional[VersionModelo]:
-        """Versión ACTIVO de la llave (tipo_modelo, componente) — RF-69 R5 v2.0."""
+        """Versión en ``estado`` (ACTIVO o SOMBRA) de la llave (tipo_modelo, componente,
+        id_activo_biologico) — RF-69 R5 v2.0 con RFC-010."""
         ...
 
     @abstractmethod

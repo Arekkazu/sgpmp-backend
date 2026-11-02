@@ -1,3 +1,69 @@
+## [1.4.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.32...v1.4.0-rc.33) (2026-11-02)
+
+### Features
+
+* **rf-110:** editar una arista de transmisión (vía, dirección, intensidad, barrera) ([c2946e5](https://github.com/Arekkazu/sgpmp-backend/commit/c2946e5bf5397edc81a661d1a8ec0bef875e60a6))
+
+## [1.4.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.31...v1.4.0-rc.32) (2026-11-02)
+
+### Features
+
+* **rfc-021:** RF-110 aristas de transmisión entre áreas y exposición en RF-68 (C21.1/C21.4) ([738795d](https://github.com/Arekkazu/sgpmp-backend/commit/738795d2104aa9e57a5d9f4dce34efde04311322))
+
+## [1.4.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.30...v1.4.0-rc.31) (2026-11-02)
+
+### Features
+
+* **rf68:** el riesgo de contagio se calcula solo tras cada resultado de RF-66 ([a667c83](https://github.com/Arekkazu/sgpmp-backend/commit/a667c83b3d68af0ec189f1ba6afeaef5719a7fb0))
+
+## [1.4.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.29...v1.4.0-rc.30) (2026-11-02)
+
+### Bug Fixes
+
+* **rf64-rf66:** probabilidades del motor guardadas por id_patologia y nombre de la clase fundida ([0d8a0af](https://github.com/Arekkazu/sgpmp-backend/commit/0d8a0af6674d5bd80d314001f8ed692eea111a84))
+
+## [1.4.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.28...v1.4.0-rc.29) (2026-11-02)
+
+### Bug Fixes
+
+* **rf62-rf66:** apto_para_ia de la ventana del motor sale de la evaluación vigente de RF-62 ([f5fb3d4](https://github.com/Arekkazu/sgpmp-backend/commit/f5fb3d4bf8a92116dfd04ba2b9ea0acd6d94fbde))
+
+## [1.4.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.27...v1.4.0-rc.28) (2026-11-01)
+
+### Bug Fixes
+
+* **rf22-rf53:** nombre de sensor único por dispositivo y permiso FOR UPDATE de RF53_AUDITORIA ([d980f3b](https://github.com/Arekkazu/sgpmp-backend/commit/d980f3befe728b1c600b2ffacba1cfcd117f98de))
+
+## [1.4.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.26...v1.4.0-rc.27) (2026-11-01)
+
+### Features
+
+* **rfc-010:** RF-69 sintético aprobado solo para sombra y nombre_version de 100 (H2) ([a138ea1](https://github.com/Arekkazu/sgpmp-backend/commit/a138ea18a3509f16c55eaa4a171c6964d7f006e7))
+* **rfc-010:** RF-69 versión de modelo por animal, estado SOMBRA y fuente de datos ([dc1bbf0](https://github.com/Arekkazu/sgpmp-backend/commit/dc1bbf0c374ba3588e8f6d00764d6c5fb850b6ba))
+* **rfc-010:** script que registra ET-02 en RF-69 y arma el catálogo del motor (RF-66) ([85e19a7](https://github.com/Arekkazu/sgpmp-backend/commit/85e19a72004081bc8a95ff77f101ff13770887dc)), closes [#54](https://github.com/Arekkazu/sgpmp-backend/issues/54)
+
+### Bug Fixes
+
+* **rf-66:** pasar las variables del motor de inferencia M04 al contenedor del backend ([5e87d61](https://github.com/Arekkazu/sgpmp-backend/commit/5e87d61e80c322a8a64f55d84bac72838706dd1f))
+
+## [1.4.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.25...v1.4.0-rc.26) (2026-10-31)
+
+### Features
+
+* **rf17-mod4:** el paquete al motor IA lleva los rangos RF-17 de la especie del activo ([9ed1ac1](https://github.com/Arekkazu/sgpmp-backend/commit/9ed1ac15b94a472b151ab09ea3b9512771fa69f1))
+
+## [1.4.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.24...v1.4.0-rc.25) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** solicitar el reentrenamiento del modelo individual queda en la auditoría ([5cd1583](https://github.com/Arekkazu/sgpmp-backend/commit/5cd15831cdacdd078e0da014fee2b8e457f7f2d3))
+
+## [1.4.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.23...v1.4.0-rc.24) (2026-10-31)
+
+### Features
+
+* **rf71-prediction:** aviso de datos insuficientes para reentrenar el modelo individual ([422ef7a](https://github.com/Arekkazu/sgpmp-backend/commit/422ef7a55ceaa8eb69cd2cd2038a74670f057ba6))
+
 ## [1.4.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.22...v1.4.0-rc.23) (2026-10-31)
 
 ### Bug Fixes
