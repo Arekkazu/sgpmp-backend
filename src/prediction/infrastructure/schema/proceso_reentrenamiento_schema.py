@@ -29,6 +29,7 @@ class ProcesoReentrenamientoResponse(BaseModel):
     tipo_modelo: str
     id_activo_biologico: int
     identificador_activo: Optional[str] = None
+    nombre_especie: Optional[str] = None
     disparador: str
     modo_generacion: str
     estado: str

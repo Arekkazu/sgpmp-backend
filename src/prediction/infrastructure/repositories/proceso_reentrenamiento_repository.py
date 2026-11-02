@@ -55,8 +55,10 @@ _SQL_RETRO_VERIFICADAS = text("""
 """)
 
 _SQL_NOMBRES = text("""
-    SELECT ab.id_activo_biologico, ab.identificador
-    FROM modulo2.activos_biologicos ab WHERE ab.id_activo_biologico = ANY(:ids)
+    SELECT ab.id_activo_biologico, ab.identificador, esp.nombre AS especie
+    FROM modulo2.activos_biologicos ab
+    LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
+    WHERE ab.id_activo_biologico = ANY(:ids)
 """)
 _SQL_NOMBRES_VERSION = text("""
     SELECT id_version_modelo, nombre_version FROM modulo4.versiones_modelos WHERE id_version_modelo = ANY(:ids)
@@ -211,12 +213,15 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
         if not procesos:
             return procesos
         try:
-            animales = dict(self._db.execute(_SQL_NOMBRES, {"ids": list({p.id_activo_biologico for p in procesos})}).all())
+            animales = {f.id_activo_biologico: f for f in self._db.execute(
+                _SQL_NOMBRES, {"ids": list({p.id_activo_biologico for p in procesos})}).all()}
             ids_v = list({p.id_version_modelo_resultante for p in procesos if p.id_version_modelo_resultante})
             versiones = dict(self._db.execute(_SQL_NOMBRES_VERSION, {"ids": ids_v}).all()) if ids_v else {}
         except Exception as exc:
             raise_from_db_error(exc)
         for p in procesos:
-            p.identificador_activo = animales.get(p.id_activo_biologico)
+            animal = animales.get(p.id_activo_biologico)
+            p.identificador_activo = animal.identificador if animal else None
+            p.nombre_especie = animal.especie if animal else None
             p.nombre_version_resultante = versiones.get(p.id_version_modelo_resultante)
         return procesos

@@ -63,6 +63,7 @@ class ProcesoReentrenamiento:
     fecha_ultimo_latido: Optional[datetime] = None
     #: Solo lectura (para mostrar): código del animal y nombre de la versión resultante.
     identificador_activo: Optional[str] = None
+    nombre_especie: Optional[str] = None
     nombre_version_resultante: Optional[str] = None
 
     @classmethod
