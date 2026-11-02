@@ -1,3 +1,9 @@
+## [1.4.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.28...v1.4.0-rc.29) (2026-11-02)
+
+### Bug Fixes
+
+* **rf62-rf66:** apto_para_ia de la ventana del motor sale de la evaluación vigente de RF-62 ([f5fb3d4](https://github.com/Arekkazu/sgpmp-backend/commit/f5fb3d4bf8a92116dfd04ba2b9ea0acd6d94fbde))
+
 ## [1.4.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.27...v1.4.0-rc.28) (2026-11-01)
 
 ### Bug Fixes
