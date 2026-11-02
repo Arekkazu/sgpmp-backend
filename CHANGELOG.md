@@ -1,3 +1,10 @@
+## [1.4.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.34...v1.4.0-rc.35) (2026-11-02)
+
+### Features
+
+* **rf-66:** el monitor de inferencias y de contagio devuelve id_infraestructura del activo ([ed8631f](https://github.com/Arekkazu/sgpmp-backend/commit/ed8631f32a53836650eb4c6cdcf3369add9dc589))
+* **rf-66:** ver en Predicción lo que detecta la cámara (captura de cada ventana) ([d44a89a](https://github.com/Arekkazu/sgpmp-backend/commit/d44a89ae32492ab83085f4c6538dfcf2db91d580))
+
 ## [1.4.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.33...v1.4.0-rc.34) (2026-11-02)
 
 ### Features
