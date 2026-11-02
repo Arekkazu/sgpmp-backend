@@ -793,7 +793,9 @@
                   "console.log('[TC-M03-G78 1.2] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las alertas dentro del rango', function () { const d = new Date(pm.variables.get('ts_m1d')).getTime(); (J.items || []).forEach(function (a) { pm.expect(new Date(a.fecha_generacion).getTime()).to.be.at.least(d); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Todas las alertas dentro del rango', function () { const d = new Date(pm.variables.get('ts_m1d')).getTime(); (J.items || []).forEach(function (a) { pm.expect(new Date(a.fecha_generacion).getTime()).to.be.at.least(d); }); });",
+                  "}"
                 ]
               }
             }
@@ -835,7 +837,9 @@
                   "console.log('[TC-M03-G78 1.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas son ESTRES_TERMICO', function () { (J.items || []).forEach(function (a) { pm.expect(a.tipo_alerta).to.eql('ESTRES_TERMICO'); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Todas las filas son ESTRES_TERMICO', function () { (J.items || []).forEach(function (a) { pm.expect(a.tipo_alerta).to.eql('ESTRES_TERMICO'); }); });",
+                  "}"
                 ]
               }
             }
@@ -877,7 +881,9 @@
                   "console.log('[TC-M03-G78 1.4] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas son MODERADO', function () { (J.items || []).forEach(function (a) { pm.expect(a.severidad).to.eql('MODERADO'); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Todas las filas son MODERADO', function () { (J.items || []).forEach(function (a) { pm.expect(a.severidad).to.eql('MODERADO'); }); });",
+                  "}"
                 ]
               }
             }
@@ -919,7 +925,9 @@
                   "console.log('[TC-M03-G78 1.5] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas son ACTIVA', function () { (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('ACTIVA'); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Todas las filas son ACTIVA', function () { (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('ACTIVA'); }); });",
+                  "}"
                 ]
               }
             }
@@ -1004,7 +1012,9 @@
                   "console.log('[TC-M03-G78 1.7] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas del activo', function () { (J.items || []).forEach(function (a) { pm.expect(String(a.id_activo_biologico)).to.eql(pm.collectionVariables.get('id_activo_biologico')); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado) (INC-169)'); } else {",
+                  "pm.test('Todas las filas del activo', function () { (J.items || []).forEach(function (a) { pm.expect(String(a.id_activo_biologico)).to.eql(pm.collectionVariables.get('id_activo_biologico')); }); });",
+                  "}"
                 ]
               }
             }
@@ -1046,7 +1056,9 @@
                   "console.log('[TC-M03-G78 1.8] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Todas las filas EDGE', function () { (J.items || []).forEach(function (a) { pm.expect(a.origen_evento).to.eql('EDGE'); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Todas las filas EDGE', function () { (J.items || []).forEach(function (a) { pm.expect(a.origen_evento).to.eql('EDGE'); }); });",
+                  "}"
                 ]
               }
             }
@@ -1096,7 +1108,9 @@
                   "console.log('[TC-M03-G78 1.9] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Cada fila cumple todos los filtros', function () { (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('ACTIVA'); pm.expect(a.severidad).to.eql('MODERADO'); pm.expect(a.tipo_alerta).to.eql('ESTRES_TERMICO'); }); });"
+                  "if ((J.items || []).length === 0) { pm.test.skip('SIN DATOS: el filtro devolvio 0 filas, no se puede verificar que todas cumplan el filtro (no se da por aprobado)'); } else {",
+                  "pm.test('Cada fila cumple todos los filtros', function () { (J.items || []).forEach(function (a) { pm.expect(a.estado_alerta).to.eql('ACTIVA'); pm.expect(a.severidad).to.eql('MODERADO'); pm.expect(a.tipo_alerta).to.eql('ESTRES_TERMICO'); }); });",
+                  "}"
                 ]
               }
             }
@@ -1138,7 +1152,7 @@
                   "console.log('[TC-M03-G78 1.10] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Maximo 1 item', function () { pm.expect(J.items.length).to.be.at.most(1); });"
+                  "pm.test('Devuelve exactamente min(1, total) item', function () { pm.expect(J.items.length).to.eql(Math.min(1, J.total)); });"
                 ]
               }
             }
@@ -1180,7 +1194,7 @@
                   "console.log('[TC-M03-G78 1.11] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
                   "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Maximo 200 items', function () { pm.expect(J.items.length).to.be.at.most(200); });"
+                  "pm.test('Devuelve exactamente min(200, total) items', function () { pm.expect(J.items.length).to.eql(Math.min(200, J.total)); });"
                 ]
               }
             }
@@ -1474,7 +1488,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 1.18] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
+                  "if (pm.collectionVariables.get('alerta_g78') === '0') {\n  pm.test.skip(\"BLOQUEADO: la alerta semilla no se creo (paso 0.1, INC-M03-240); sin ella el resultado no distingue 'fuera de alcance' de 'no existe'\");\n} else if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
                   "  pm.test.skip(\"BLOQUEADO: no se pudo iniciar sesion o cambiar la finca del usuario dentro del sandbox (pasos 0C / 0.5)\");",
                   "} else {",
                   "  pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
@@ -2035,7 +2049,7 @@
                 "exec": [
                   "console.log('[TC-M03-G78 2.3] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 600));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
+                  "if (pm.collectionVariables.get('alerta_g78') === '0') {\n  pm.test.skip(\"BLOQUEADO: la alerta semilla no se creo (paso 0.1, INC-M03-240); sin ella el resultado no distingue 'fuera de alcance' de 'no existe'\");\n} else if (pm.collectionVariables.get('finca_cambiada') !== '1' || !pm.collectionVariables.get('token_otrafinca')) {",
                   "  pm.test.skip(\"BLOQUEADO: no se pudo iniciar sesion o cambiar la finca del usuario dentro del sandbox (pasos 0C / 0.5)\");",
                   "} else {",
                   "  pm.test('HTTP en 403/404', function () { pm.expect([403, 404]).to.include(pm.response.code); });",

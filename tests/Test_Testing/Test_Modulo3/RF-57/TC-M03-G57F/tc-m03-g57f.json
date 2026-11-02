@@ -1343,7 +1343,7 @@
                 "exec": [
                   "console.log('[TC-M03-G57F 2.7b] status=' + pm.response.code + ' t=' + pm.response.responseTime + 'ms body=' + pm.response.text().slice(0, 800));",
                   "let J; try { J = pm.response.json(); } catch (e) { J = {}; }",
-                  "if (pm.collectionVariables.get('id_reev') === '0') { console.log('[G57F-2.7b][OBSERVADO] No hay alertas por reevaluacion en TEST: no se verifica la cadena.'); pm.test('Sin alertas por reevaluacion en TEST (se documenta)', function () { pm.expect(true).to.eql(true); }); }",
+                  "if (pm.collectionVariables.get('id_reev') === '0') { console.log('[G57F-2.7b][OBSERVADO] No hay alertas por reevaluacion en TEST: no se verifica la cadena.'); pm.test.skip('Sin alertas por reevaluacion en TEST: cadena no verificada (OMITIDO, no aprobado)', function () {}); }",
                   "else { pm.test('La alerta original referenciada existe (HTTP 200)', function () { pm.response.to.have.status(200); }); pm.test('La original esta marcada con tiene_generada_por_reevaluacion', function () { pm.expect(J.tiene_generada_por_reevaluacion).to.eql(true); }); }"
                 ]
               }
