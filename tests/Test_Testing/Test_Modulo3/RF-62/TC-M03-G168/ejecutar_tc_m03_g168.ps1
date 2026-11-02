@@ -11,6 +11,9 @@
 #>
 [CmdletBinding()]
 param (
+    [Alias("Sufijo")]
+    [string]$Suffix = "",
+    [switch]$Force,
     [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 )
 
@@ -71,7 +74,9 @@ if (-not (Test-Path $evidenciasDir)) { New-Item -ItemType Directory -Path $evide
 
 $dirResultados = $resultadosDir
 $sufijo = ""
-if (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento2.json")) {
+if ($Suffix) {
+    $sufijo = $Suffix
+} elseif (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento2.json")) {
     $n = 2
     while (Test-Path (Join-Path $dirResultados "resultado_TC-M03-G168_reintento$($n+1).json")) { $n++ }
     $sufijo = "_reintento$($n+1)"

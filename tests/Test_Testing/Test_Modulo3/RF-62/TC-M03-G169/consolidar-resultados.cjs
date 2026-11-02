@@ -4,7 +4,7 @@
  * reconocido por el QA Dashboard (§5.1.1 del guide).
  *
  * Uso:
- *   node consolidar-resultados.cjs [--input <raw.json>] [--output <consolidado.json>]
+ *   node consolidar-resultados.cjs [--input <raw.json>] [--output <consolidado.json>] [--corrida <_reintentoN>]
  */
 
 const fs = require('fs');
@@ -12,13 +12,16 @@ const path = require('path');
 
 const TC_ID = 'TC-M03-G169';
 const dirActual = __dirname;
-const defaultFile = path.join(dirActual, 'resultados', `resultado_${TC_ID}_reintento1.json`);
 
 const args = process.argv.slice(2);
 function getArg(flag) {
   const idx = args.indexOf(flag);
   return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : null;
 }
+
+const rawSuffix = getArg('--corrida') || getArg('--suffix') || '';
+const suffix = rawSuffix ? (rawSuffix.startsWith('_') ? rawSuffix : `_${rawSuffix}`) : '';
+const defaultFile = path.join(dirActual, 'resultados', `resultado_${TC_ID}${suffix}.json`);
 
 const inputPath = getArg('--input') || defaultFile;
 const outputPath = getArg('--output') || defaultFile;
@@ -117,7 +120,9 @@ const ok = checkpoints.filter(c => c.estado === 'OK').length;
 const falla = checkpoints.filter(c => c.estado === 'FALLA').length;
 
 let veredicto = 'APROBADO';
-if (falla > 0) {
+if (total === 0) {
+  veredicto = 'PENDIENTE';
+} else if (falla > 0) {
   const fallas = checkpoints.filter(c => c.estado === 'FALLA');
   const hayBackend = fallas.some(c => c.causa === 'BACKEND_CONTRATO' || c.causa === 'BACKEND_LATENCIA');
   const todosScript = fallas.every(c => c.causa === 'SCRIPT_QUERY' || c.causa === 'SCRIPT_REQUEST');
@@ -137,7 +142,7 @@ const consolidado = {
   rf: "RF-62",
   ambiente: "TEST",
   fecha: new Date().toISOString(),
-  corrida: "reintento1",
+  corrida: suffix === "" ? "v1" : suffix.replace(/^_/, ""),
   summary: {
     total: total,
     ok: ok,

@@ -11,6 +11,8 @@
 #>
 [CmdletBinding()]
 param (
+    [Alias("Sufijo")]
+    [string]$Suffix = "_reintento2",
     [string]$BaseUrl = "https://www.api.inmero.co/api-sgpmp-test"
 )
 
@@ -74,12 +76,23 @@ $runEvidenciasDir = Join-Path $evidenciasDir "run-$runDate"
 if (-not (Test-Path $runEvidenciasDir)) {
     New-Item -ItemType Directory -Path $runEvidenciasDir -Force | Out-Null
 }
-$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169_reintento1.html"
-$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G169_reintento1.json"
+$sufijoNormalizado = ""
+if ($Suffix) {
+    if ($Suffix.StartsWith("_")) {
+        $sufijoNormalizado = $Suffix
+    } else {
+        $sufijoNormalizado = "_$Suffix"
+    }
+}
+
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G169$sufijoNormalizado.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G169$sufijoNormalizado.json"
 $consoleLog = Join-Path $runEvidenciasDir "console_run.log"
 
+$tituloCorrida = if ($sufijoNormalizado) { " ($($sufijoNormalizado.TrimStart('_')))" } else { " (V1)" }
+
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "TC-M03-G169 - Estados heredados de RF-53 (Reintento 1)" -ForegroundColor Cyan
+Write-Host "TC-M03-G169 - Estados heredados de RF-53$tituloCorrida" -ForegroundColor Cyan
 Write-Host "BaseUrl:    $BaseUrl"
 Write-Host "Run ID:     $runId"
 Write-Host "Coleccion:  $collectionPath"
@@ -98,7 +111,7 @@ $newmanArgs = @(
     "-r", "cli,htmlextra,json",
     "--reporter-htmlextra-export", $reportHtml,
     "--reporter-json-export", $reportJson,
-    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53 (Reintento 1)",
+    "--reporter-htmlextra-title", "TC-M03-G169 - Estados heredados de RF-53$tituloCorrida",
     "--reporter-htmlextra-omitRequestBodies",
     "--reporter-htmlextra-omitHeaders"
 )
@@ -125,7 +138,7 @@ try {
 Write-Host "`nConsolidando resultados en formato normativo (checkpoints)..." -ForegroundColor Cyan
 $consolidarScript = Join-Path $scriptDir "consolidar-resultados.cjs"
 if (Test-Path $consolidarScript) {
-    & node $consolidarScript --input $reportJson --output $reportJson
+    & node $consolidarScript --input $reportJson --output $reportJson --corrida $sufijoNormalizado
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Fallo durante la consolidacion de resultados."
         $exitCode = 1
