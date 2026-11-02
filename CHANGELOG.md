@@ -1,3 +1,9 @@
+## [1.4.0-rc.38](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.37...v1.4.0-rc.38) (2026-11-02)
+
+### Bug Fixes
+
+* **rf-66:** GET de inferencias y de contagio con por_activo para que Estado sanitario no pierda animales ([30599d4](https://github.com/Arekkazu/sgpmp-backend/commit/30599d4e03c0aa68170aea2320924f0360433192))
+
 ## [1.4.0-rc.37](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.36...v1.4.0-rc.37) (2026-11-02)
 
 ### Features
