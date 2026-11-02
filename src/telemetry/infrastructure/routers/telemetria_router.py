@@ -4,12 +4,15 @@
 # | 2026-10-22 | Leandro | DEV-28 RF-53/62: publica sobre normativo sin ocultar DB-09 |
 # | 2026-10-22 | Leandro | DEV-47 RF-63: captura rechazo estructural sin cambiar HTTP |
 # | 2026-10-25 | Arekkazu | INC-M03-134-G192 RF-62: la ingesta de vision responde la calidad pendiente |
+# | 2026-11-02 | Arekkazu | RF-53: POST /vision/captura, la imagen de la ventana aparte del D4 |
 """Router FastAPI para ingesta de telemetría IoT (`/iot/telemetria`).
 
 RF-53 — CU01 Dev scope:
   POST  /iot/telemetria        — Ingesta individual (Flujo A TIEMPO_REAL + Flujo B EDGE_AGREGADO)
   POST  /iot/telemetria/batch  — Ingesta en lote    (Flujo C sincronización BUFFER_LOCAL, max 500)
   POST  /iot/telemetria/vision — Observaciones de visión por área (RF-53/56/62 v2.0, max 500)
+  POST  /iot/telemetria/vision/captura — Último cuadro de la ventana con las cajas (solo se
+                                         guardan las más recientes de cada cámara)
 
 Auth: los llama el broker MQTT, no el nodo (D3, AIOT-DEV-03). Exigen su token de servicio
       (`Authorization: Bearer`, `BROKER_SERVICE_TOKEN`); el `serial` del body es la identidad
@@ -27,6 +30,7 @@ from sqlalchemy.orm import Session
 from src.shared.broker_auth import require_token_servicio_broker
 from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
+from src.telemetry.application.use_cases.ingesta.ingerir_captura_vision_use_case import IngerirCapturaVisionUseCase
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
     IngerirObservacionesVisionUseCase,
 )
@@ -36,6 +40,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
 )
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
+from src.telemetry.infrastructure.dto.captura_vision_dto import CapturaVisionDTO
 from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
 from src.telemetry.infrastructure.dto.observacion_vision_d4_dto import ObservacionVisionD4DTO, ObservacionVisionD4LegadoDTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
@@ -165,3 +170,15 @@ def ingerir_observaciones_vision(
             for o in resultado.observaciones
         ],
     )
+
+
+@router.post(
+    "/vision/captura",
+    status_code=204,
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    dependencies=[Depends(require_token_servicio_broker)],
+    summary="Guardar la captura de una ventana de visión (último cuadro con las cajas)",
+)
+def ingerir_captura_vision(dto: CapturaVisionDTO, db: Session = Depends(get_db_sistema)) -> None:
+    """La reenvía el broker separada del sobre D4. 422 si no es un JPEG válido de hasta 500 KB."""
+    IngerirCapturaVisionUseCase(DispositivoM09Adapter(db)).execute(dto)
