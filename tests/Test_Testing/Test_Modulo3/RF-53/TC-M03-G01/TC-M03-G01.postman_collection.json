@@ -1029,6 +1029,60 @@
           "response": []
         },
         {
+          "name": "Configurar especies compatibles del sensor biométrico (RF-49 R3)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sin la lista blanca de especies, M02 rechaza la vinculación con COMPATIBILIDAD_SENSOR_NO_CONFIGURADA (INC-M03-135-G01).",
+                  "pm.test('Especies compatibles configuradas (200)', function () { pm.response.to.have.status(200); });",
+                  "pm.test('La lista incluye la especie porcina del activo', function () {",
+                  "    var ids = (pm.response.json().especies || []).map(function (e) { return e.id_especie; });",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get('id_especie_porcina')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracion/sensores/{{sensor_biometrica}}/especies-compatibles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracion",
+                "sensores",
+                "{{sensor_biometrica}}",
+                "especies-compatibles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids_especies\": [{{id_especie_porcina}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Vincular sensor biométrico al activo biológico (RF-49)",
           "event": [
             {

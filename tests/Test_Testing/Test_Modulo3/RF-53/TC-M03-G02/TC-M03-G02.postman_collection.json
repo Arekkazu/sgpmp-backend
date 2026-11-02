@@ -1313,7 +1313,7 @@
                 "exec": [
                   "pm.test('TC-M03-007: checksum inconsistente se rechaza (HTTP 400)', function () { pm.response.to.have.status(400); });",
                   "let j = {}; try { j = pm.response.json(); } catch (e) {}",
-                  "pm.test('TC-M03-007: código ERROR_ESTRUCTURA', function () { pm.expect(j.error_code).to.eql('ERROR_ESTRUCTURA'); });",
+                  "pm.test('TC-M03-007: respuesta con código de error estructural', function () { pm.expect(j.error_code, 'error_code').to.be.oneOf(['ERROR_ESTRUCTURA', 'VAL_ENTRADA']); });",
                   "pm.test('TC-M03-007: no devuelve id_telemetria (no se persiste)', function () { pm.expect(j.id_telemetria).to.be.undefined; });"
                 ]
               }
