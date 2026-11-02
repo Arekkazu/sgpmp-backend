@@ -2,6 +2,7 @@
 # |------------|----------|-------------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021: script de la demostración de contagio entre áreas en DEV |
 # | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: cámara de la Porqueriza 1 (finca 2) con video   |
+# | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: cámaras de cerdos, pollos y peces (La florida)  |
 """Demostración del contagio entre áreas en DEV (finca 1), operando los Edge simulados de oracle-server.
 
 Escenario, áreas y aristas: anotaciones/modulo_4/plan_implementacion_modelos_ia_dev.md §9. Solo toca los
@@ -12,17 +13,20 @@ contenedores `edge-sim-*`; el Estanque Checho (área 1, sensores reales) no se t
     python scripts/demo_contagio_dev.py calor pot2   # 33–36 °C y 85–95 % en el área (pot1, cor1, pot2)
     python scripts/demo_contagio_dev.py normal       # los tres simuladores a valores normales y 5 min
     python scripts/demo_contagio_dev.py estado       # última predicción y contagio de cada área
-    python scripts/demo_contagio_dev.py porcinos echados  # cámara de la Porqueriza 1: decaimiento
-    python scripts/demo_contagio_dev.py porcinos granja   # cámara de la Porqueriza 1: normal
+    python scripts/demo_contagio_dev.py camara porc decaimiento  # cámara de cerdos (Porqueriza 1): decaimiento
+    python scripts/demo_contagio_dev.py camara aves normal       # pollos (Galpón 1) · acui: peces (Acuicultura Cachama)
 
 `foco` y `calor` bajan la captura y la transmisión del simulador de 5 a 1 min: el Edge guarda cada
 lectura hasta la siguiente transmisión, así que con 5 min la fiebre tarda de 5 a 10 min en llegar al
 modelo; con 1 min, 1 a 2. `normal` lo devuelve a 5. Con `DEMO_DATABASE_URL` (basta solo lectura)
 `foco` muestra el estado cada 30 s hasta que el foco llega a ALTO.
 
-`porcinos` cambia el video de la cámara simulada `edge-sim-cam-porc` (finca 2 «La florida», área 7):
-con «echados» el comportamiento se aleja de la línea base RF-24 y RF-66 POBLACIONAL sube el puntaje de
-anomalía en la ventana siguiente (20 s). Plan §10.
+`camara` cambia el video de una cámara simulada de la finca 2 «La florida» (`edge-sim-cam-porc|aves|acui`):
+«decaimiento» es el mismo video en cámara lenta ×10 (casi sin movimiento): el comportamiento se aleja de
+la línea base RF-24 y RF-66 POBLACIONAL sube el puntaje de anomalía en la ventana siguiente (20 s). El
+conteo puede bajar en las primeras ventanas (el video lento repite el comienzo; en los pollos, 1–4 de 8):
+si baja en tres ventanas seguidas aparece el aviso de inventario. `normal` también las devuelve a
+«normal». Plan §10.9.
 """
 from __future__ import annotations
 
@@ -60,7 +64,7 @@ LEFT JOIN LATERAL (
            || ' ' || to_char(x.fecha_calculo AT TIME ZONE 'America/Bogota', 'HH12:MI:SS AM') AS texto
       FROM modulo4.resultados_riesgo_contagio x
      WHERE x.id_activo_biologico = ab.id_activo_biologico ORDER BY x.fecha_calculo DESC LIMIT 1) c ON true
-WHERE ab.id_infraestructura IN (2, 3, 4, 7)
+WHERE ab.id_infraestructura IN (2, 3, 4, 6, 7, 8)
 ORDER BY ab.id_infraestructura
 """
 
@@ -127,21 +131,28 @@ def normal() -> None:
     for contenedor, _, nombre in AREAS.values():
         _recrear(contenedor, f"cp ~/{contenedor}/edge-agent.env.normal {{env}}")
         print(f"{nombre}: valores normales, 5 min.")
+    for clave in CAMARAS:
+        camara(clave, "normal")
 
 
-CAMARA = "edge-sim-cam-porc"
-VIDEOS = {"granja": "/datos/porcinos_granja.mp4", "echados": "/datos/porcinos_echados.mp4"}
+#: clave → (sufijo del contenedor y del video, área). Videos: /datos/<especie>_<normal|decaimiento>.mp4
+CAMARAS = {"porc": ("porc", "porcinos", "Porqueriza 1"), "aves": ("aves", "aves", "Galpón 1"),
+           "acui": ("acui", "acuicultura", "Acuicultura Cachama")}
 
 
-def porcinos(video: str) -> None:
-    _ssh(f"set -e; cd ~/{CAMARA}; sed -i 's#^EDGE_VISION_FUENTE=.*#EDGE_VISION_FUENTE={VIDEOS[video]}#' edge-vision.env; "
-         f"docker rm -f {CAMARA} >/dev/null; docker run -d --name {CAMARA} --restart unless-stopped --network host "
-         f"--env-file edge-vision.env -v ~/{CAMARA}/datos:/datos:ro edge-sim-cam-porc:v1 >/dev/null")
-    print(f"Porqueriza 1: video {video}; el puntaje cambia en la ventana siguiente (20 s).")
+def camara(clave: str, estado: str) -> None:
+    sufijo, especie, nombre = CAMARAS[clave]
+    if estado not in ("normal", "decaimiento"):
+        sys.exit("El estado es normal o decaimiento.")
+    c = f"edge-sim-cam-{sufijo}"
+    _ssh(f"set -e; cd ~/{c}; sed -i 's#^EDGE_VISION_FUENTE=.*#EDGE_VISION_FUENTE=/datos/{especie}_{estado}.mp4#' "
+         f"edge-vision.env; docker rm -f {c} >/dev/null; docker run -d --name {c} --restart unless-stopped "
+         f"--network host --env-file edge-vision.env -v ~/{c}/datos:/datos:ro edge-sim-cam-porc:v1 >/dev/null")
+    print(f"{nombre}: {estado}; el puntaje cambia en la ventana siguiente (20 s).")
 
 
 if __name__ == "__main__":
-    acciones = {"foco": foco, "calor": calor, "normal": normal, "estado": estado, "porcinos": porcinos}
+    acciones = {"foco": foco, "calor": calor, "normal": normal, "estado": estado, "camara": camara}
     if len(sys.argv) < 2 or sys.argv[1] not in acciones:
         sys.exit(__doc__)
     acciones[sys.argv[1]](*sys.argv[2:])
