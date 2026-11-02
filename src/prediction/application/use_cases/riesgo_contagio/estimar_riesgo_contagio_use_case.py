@@ -8,12 +8,16 @@
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: ejecutar MVP sin caché, conservar controles y registrar el aviso E10 con resultado válido. |
 # | 2026-10-30 | Leandro | INC-M04-222-G034 RF-68: filtrar inferencias por identidad del lote antes de calcular y reutilizar caché. |
 # | 2026-10-31 | Arekkazu | INC-M04-219/222 RF-68: la cobertura recibe el id del lote filtrado por #857 |
+# | 2026-11-02 | Arekkazu | RF-68: ejecución como sistema (disparo tras RF-66) y sin alerta con insumos en sombra |
 """RF-68 — Ejecutar el modelo de riesgo de contagio de un lote.
 
 Flujo: acceso al lote → configuración RF-65 → cobertura RF-66 → caché (5.1) →
 cálculo (``calcular_riesgo_contagio``) → persistencia (paso 9) → RF-73 → alerta
 RIESGO_CONTAGIO hacia RF-57 si es Alto, alcanza el umbral crítico de RF-65 y
 la confianza no es baja (decisión funcional #852; paso 8, CA-3, CA-6).
+
+``execute_sistema`` es el disparo automático tras cada resultado de RF-66: sin usuario (actor
+SISTEMA en RF-73) y, si esas salidas vienen de un modelo en sombra, sin alerta de RF-57.
 
 Fuera de alcance: la cola de concurrencia por lote (máx. 3 en curso, FIFO de 10) y la
 agregación de 5 min del historial. Los cambios de entradas se recalculan de inmediato;
@@ -78,10 +82,20 @@ class EstimarRiesgoContagioUseCase:
         self.ocupacion_port = ocupacion_port
         self.alerta_port = alerta_port
         self.auditoria_repo = auditoria_repo
+        self._id_sistema: Optional[str] = None
 
     def execute(self, dto: EstimarRiesgoContagioDTO, id_usuario: int, id_rol: int) -> ResultadoRiesgoContagio:
         if not self.activo_port.activo_existe_y_accesible(dto.id_lote, id_usuario, id_rol):
             raise NotFoundError(code="LOTE_NO_ENCONTRADO", message=f"No existe el lote {dto.id_lote}.", field="id_lote")
+        return self._ejecutar(dto, id_usuario)
+
+    def execute_sistema(self, dto: EstimarRiesgoContagioDTO, *, id_sistema: str, alertar: bool) -> ResultadoRiesgoContagio:
+        """Sin alcance de finca: el lote sale de un resultado de RF-66 ya registrado."""
+        self._id_sistema = id_sistema
+        return self._ejecutar(dto, None, alertar=alertar)
+
+    def _ejecutar(self, dto: EstimarRiesgoContagioDTO, id_usuario: Optional[int],
+                  alertar: bool = True) -> ResultadoRiesgoContagio:
         config = self.config_repo.obtener_por_tipo(TIPO_MODELO)
         if config is None or not config.es_activa:
             raise BusinessRuleError(
@@ -178,18 +192,21 @@ class EstimarRiesgoContagioUseCase:
             if not anterior.confianza_baja:
                 break
             degradadas += 1
+        # CA-3 / CA-6 / E10: solo con confianza normal se alerta.
+        corresponde_alerta = (resultado.nivel_riesgo_contagio == 2 and not resultado.confianza_baja
+                              and resultado.probabilidad_contagio >= config.umbral_alerta_critica)
+        extra = {"aislamiento_rf66": aislamiento}
+        if corresponde_alerta and not alertar:
+            extra["alerta_suprimida"] = "INSUMOS_RF66_EN_SOMBRA"
         try:
             self.resultado_repo.guardar(resultado)
             self._auditar("RIESGO_CONTAGIO_CALCULADO", resultado, id_usuario, "EXITOSO",
-                          "WARNING" if resultado.confianza_baja else "INFO",
-                          extra={"aislamiento_rf66": aislamiento})
+                          "WARNING" if resultado.confianza_baja else "INFO", extra=extra)
             calidad_suspendida = resultado.confianza_baja and degradadas + 1 > MAX_DEGRADADAS_CONSECUTIVAS
             if calidad_suspendida:
                 self._auditar("ALERTA_CALIDAD_DATOS", resultado, id_usuario, "PARCIAL", "WARNING",
                               extra={"ejecuciones_degradadas_consecutivas": degradadas + 1})
-            # CA-3 / CA-6 / E10: solo con confianza normal se alerta.
-            if (resultado.nivel_riesgo_contagio == 2 and not resultado.confianza_baja
-                    and resultado.probabilidad_contagio >= config.umbral_alerta_critica):
+            if corresponde_alerta and alertar:
                 resultado.alerta_id = self.alerta_port.emitir(resultado)
                 self.resultado_repo.asociar_alerta(resultado.id_resultado_contagio, resultado.alerta_id)
                 self._auditar("ALERTA_CONTAGIO_GENERADA", resultado, id_usuario, "EXITOSO", "WARNING",
@@ -206,6 +223,11 @@ class EstimarRiesgoContagioUseCase:
         cuerpo = json.dumps({"dto": dto.model_dump(mode="json"), "config_version": config_version,
                              "version_aislamiento_rf66": 1}, sort_keys=True)
         return hashlib.sha256(cuerpo.encode()).hexdigest()
+
+    def _actor(self, id_usuario: Optional[int]) -> dict:
+        if self._id_sistema:
+            return {"tipo_actor": "SISTEMA", "id_sistema": self._id_sistema}
+        return {"tipo_actor": "USUARIO", "id_usuario": id_usuario}
 
     def _auditar(self, tipo_evento, resultado, id_usuario, resultado_operacion, severidad, extra=None) -> None:
         payload = {
@@ -225,7 +247,7 @@ class EstimarRiesgoContagioUseCase:
             **(extra or {}),
         }
         self.auditoria_repo.registrar(
-            tipo_evento=tipo_evento, tipo_actor="USUARIO", id_usuario=id_usuario,
+            tipo_evento=tipo_evento, **self._actor(id_usuario),
             id_referencia=str(resultado.id_lote), entidad_referencia="lote",
             severidad_evento=severidad, resultado_operacion=resultado_operacion, payload_evento=payload,
         )
@@ -238,7 +260,7 @@ class EstimarRiesgoContagioUseCase:
             else "RIESGO_CONTAGIO_CALCULADO"
         try:
             self.auditoria_repo.registrar(
-                tipo_evento=tipo, tipo_actor="USUARIO", id_usuario=id_usuario,
+                tipo_evento=tipo, **self._actor(id_usuario),
                 id_referencia=str(dto.id_lote), entidad_referencia="lote", severidad_evento="WARNING",
                 resultado_operacion="FALLIDO", codigo_error=exc.codigo, descripcion_error=exc.mensaje,
                 payload_evento={"id_lote": dto.id_lote, "id_configuracion_motor": id_configuracion,
