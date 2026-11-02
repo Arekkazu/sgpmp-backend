@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66: GET de lo que ve la cámara de un área                     |
+# | 2026-11-02 | Arekkazu | RF-66 POBLACIONAL: la respuesta trae inventario y aviso de discrepancia |
 """Lo que ve la cámara de un área (Predicción › Estado sanitario y detalle de la inferencia).
 
   GET /prediccion/areas/{id_area}/captura[?ventana_fin=] — última captura de sus cámaras, o la de
@@ -34,6 +35,10 @@ class CapturaCamaraResponse(BaseModel):
     n_individuos: Optional[int]
     #: data URL lista para un <img src>.
     imagen: str
+    #: Inventario actual del área (lotes POBLACIONAL vigentes); None si no tiene.
+    cantidad_registrada: Optional[int] = None
+    #: Las últimas ventanas cuentan lejos del inventario (aviso, no alerta).
+    discrepancia_inventario: bool = False
 
 
 @router.get(
@@ -50,8 +55,10 @@ def obtener_captura(
 ) -> CapturaCamaraResponse:
     """404 AREA_SIN_CAMARA si el área no tiene cámara (o no es del usuario); 404
     CAPTURA_NO_DISPONIBLE si todavía no hay o si esa ventana ya se descartó."""
-    c = ObtenerCapturaAreaUseCase(CamarasAreaM09Adapter(db)).execute(id_area, ventana_fin)
+    r = ObtenerCapturaAreaUseCase(CamarasAreaM09Adapter(db)).execute(id_area, ventana_fin)
+    c = r.captura
     return CapturaCamaraResponse(
         id_dispositivo_iot=c.id_dispositivo_iot, fecha=c.fecha, n_individuos=c.n_individuos,
         imagen="data:image/jpeg;base64," + base64.b64encode(c.jpeg).decode(),
+        cantidad_registrada=r.cantidad_registrada, discrepancia_inventario=r.discrepancia_inventario,
     )
