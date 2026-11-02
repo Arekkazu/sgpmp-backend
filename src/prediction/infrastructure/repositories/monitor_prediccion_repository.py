@@ -4,6 +4,7 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 N-04 RF-68: el listado de contagio tolera JSONB con otra forma |
 # | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
+# | 2026-11-02 | Arekkazu | RF-64/RF-66: nombre de la clase fundida de ET-02 ("10+11")         |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -23,10 +24,15 @@ _SQL_INFERENCIAS = text("""
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
            r.fecha_inicio_ventana, r.fecha_fin_ventana, r.fecha_inferencia,
            r.tiene_alerta_generada, r.id_alerta_generada, r.modo_sombra,
-           (SELECT jsonb_object_agg(k.clave, pp.nombre)
+           -- Una clave puede fundir varias patologías ("10+11", clase de ET-02): se nombran todas.
+           (SELECT jsonb_object_agg(k.clave, n.nombre)
               FROM jsonb_object_keys(r.probabilidad_enfermedad) AS k(clave)
-              JOIN modulo9.patologias pp ON pp.id_patologia::text = k.clave
-             WHERE jsonb_typeof(r.probabilidad_enfermedad) = 'object') AS nombres_patologias
+              CROSS JOIN LATERAL (
+                  SELECT string_agg(pp.nombre, ' / ' ORDER BY pp.id_patologia) AS nombre
+                  FROM modulo9.patologias pp
+                  WHERE pp.id_patologia::text = ANY(string_to_array(k.clave, '+'))
+              ) n
+             WHERE jsonb_typeof(r.probabilidad_enfermedad) = 'object' AND n.nombre IS NOT NULL) AS nombres_patologias
     FROM modulo4.resultados_inferencia r
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
     JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura

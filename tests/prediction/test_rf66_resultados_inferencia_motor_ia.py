@@ -3,6 +3,7 @@
 # | 2026-10-30 | Arekkazu | RF-66: el motor IA registra resultados en el backend             |
 # | 2026-10-30 | Arekkazu | RF-66: patología base por código RF-64                           |
 # | 2026-10-31 | Arekkazu | RFC-010 RF-69: llave con animal, SOMBRA y fuente_datos en los dobles |
+# | 2026-11-02 | Arekkazu | RF-64/RF-66: probabilidades del motor guardadas por id_patologia   |
 """RF-66: ``POST /prediccion/inferencias`` — el motor IA entrega sus resultados."""
 from __future__ import annotations
 
@@ -132,6 +133,19 @@ def test_patologia_por_codigo_rf64(cambios, id_esperado):
     use_case, repo, _, _ = _use_case()
     use_case.execute(_dto(**cambios))
     assert repo.guardar.call_args.args[0].id_patologia == id_esperado
+
+
+@pytest.mark.parametrize(("cambios", "esperado"), [
+    # El motor manda códigos RF-64; la clase fundida de ET-02 queda unida y un código sin base, igual.
+    ({"codigo_patologia_rf64": 6}, {"7": 0.03, "10+11": 0.01, "13": 0.94, "5": 0.02}),
+    ({}, {"7": 0.03, "10+11": 0.01, "13": 0.94, "5": 0.02}),  # gana "3+4": viene sin código
+    ({"id_patologia": 99}, {"0": 0.03, "3+4": 0.01, "6": 0.94, "5": 0.02}),  # trae ids: no se toca
+])
+def test_probabilidades_por_id_patologia(cambios, esperado):
+    use_case, repo, _, _ = _use_case()
+    use_case.patologia_repo.id_base_por_codigo_rf64.side_effect = lambda c: {0: 7, 3: 10, 4: 11, 6: 13}.get(c)
+    use_case.execute(_dto(probabilidad_enfermedad={"0": 0.03, "3+4": 0.01, "6": 0.94, "5": 0.02}, **cambios))
+    assert repo.guardar.call_args.args[0].probabilidad_enfermedad == esperado
 
 
 def test_falla_al_guardar_hace_rollback():
