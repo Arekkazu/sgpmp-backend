@@ -96,7 +96,7 @@ class SandboxClient:
 
     def get(self, path: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> requests.Response:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        return requests.get(url, headers=self._headers(headers), params=params, timeout=15)
+        return requests.get(url, headers=self._headers(headers), params=params, timeout=45)
 
     def post(self, path: str, json: Optional[Any] = None, headers: Optional[dict] = None) -> requests.Response:
         url = f"{self.base_url}/{path.lstrip('/')}"
@@ -104,7 +104,7 @@ class SandboxClient:
 
     def delete(self, path: str, headers: Optional[dict] = None) -> requests.Response:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        return requests.delete(url, headers=self._headers(headers), timeout=15)
+        return requests.delete(url, headers=self._headers(headers), timeout=45)
 
     def execute_query(self, sql_query: str) -> requests.Response:
         """Ejecuta una consulta SELECT mediante /test-control/query."""

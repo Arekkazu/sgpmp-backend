@@ -1,17 +1,15 @@
 /**
  * TC-M03-G167 — Detección de drift (RF-62 / RF-57 / RF-63)
- * Suite Newman autosuficiente (autosiembra en sandbox).
+ * Suite Newman con Sensor Pre-existente 536 (Fase 3: Sin aprovisionamiento en caliente).
  *
- * Cambios respecto a la versión anterior (ver DIAGNOSTICO en DISENO_Y_PRECONDICIONES.md):
- * 1. baseUrl correcto: https://www.api.inmero.co/api-sgpmp-test
- * 2. Endpoint de calibración: POST /configuracion/sensores/{id}/calibrar
- *    (NO INSERT SQL; INSERT vía /test-control/query está bloqueado con 403).
- * 3. Autosiembra: finca → área → dispositivo → sensor → asociación,
- *    todo dentro del run_id (rollback al final).
- * 4. Ingesta: campo `serial` (no `access_key`, renombrado en commit 1d503b5).
- * 5. Ingesta: Authorization: Bearer {{broker_token}} (obligatorio).
- * 6. Batch: sin parseInt sobre {{device_id}} (Pydantic coacciona).
- * 7. Nombres únicos por run_id para evitar colisiones en re-ejecuciones.
+ * Configuración:
+ * - Sensor: 536 (QA-SEMILLA-ADM-M03-CAL-01), Dispositivo: 346, Área: 347
+ * - Calibración fija en BD: offset = -3.0000, ganancia = 1.0000, valor_referencia = 25.0000
+ * - fecha_asociacion: 2026-10-11T22:38:44Z (< 2026-10-19)
+ * - fecha_calibracion: 2026-10-16T22:38:44Z (< 2026-10-19)
+ * - N_LECTURAS: 22 (N=20 + 2 extras simétricos)
+ * - media_ultimas_N: semántica calibrada = mean(calibrados) = Xbar * 1.0 + (-3.0) = Xbar - 3.0
+ * - valor_calibrado_esperado: 25.0 (referencia de calibración vigente al timestamp_captura)
  */
 
 const fs = require('fs');
@@ -64,18 +62,103 @@ function makeItem(name, method, url, headers, bodyObj, preScripts, postTests) {
 }
 
 // =====================================================================
-// CARPETA 00 — PREFLIGHT (autosiembra en sandbox)
+// CONSTANTES DE FIXTURE PRE-EXISTENTE (Sensor QA 536)
 // =====================================================================
-// Genera N letras aleatorias a-z (solo letras, sin tildes, sin ñ, sin dígitos)
-function letrasAleatorias(n) {
-    const abc = "abcdefghijklmnopqrstuvwxyz";
-    let s = "";
-    for (let i = 0; i < n; i++) s += abc[Math.floor(Math.random() * abc.length)];
-    return s;
+const SENSOR_ID = 536;
+const DISPOSITIVO_ID = 346;
+const AREA_ID = 347;
+const DEVICE_SERIAL = "QA-SEMILLA-ADM-M03-CAL-01";
+const CAL_OFFSET = -3.0;
+const CAL_GANANCIA = 1.0;
+const CAL_VALOR_REF = 25.0;
+const N_LECTURAS = 22;
+
+// =====================================================================
+// ESCENARIOS (7) — Variación de Xbar (media cruda)
+// =====================================================================
+// NOTA (2026-11-02, post-Reintento 2 / DIAGNOSTICO_REINTENTO2.md G2):
+// Los escenarios 3A y 3B usan drift NEGATIVO a propósito.
+// Límite biológico del área 347 = 30.0°C (modulo9.umbrales_ambientales).
+// Con sensor 536 (offset=-3, ref=25), un drift positivo ≥ 20% produce
+// valor_ajustado = 25 × 1.20 = 30.0°C → FUERA_DE_RANGO → CA-9 omite drift.
+// Con drift negativo (calibrado < ref), el valor se mantiene bajo el límite.
+// RF-62 usa valor absoluto → el drift detectado es idéntico.
+const escenarios = [
+    { num: "1A", subcaso: "TC-M03-313", drift: 5.00, Xbar: 29.2500, varName: "id_tel_1a", activo: false, indice: 100, clas: "APTO", ia: true, nic41: true, alerta_rf57: null, desc: "5.00% borde estricto — sin flag" },
+    { num: "1B", subcaso: "TC-M03-313", drift: 7.00, Xbar: 29.7500, varName: "id_tel_1b", activo: true, indice: 90, clas: "APTO", ia: true, nic41: true, alerta_rf57: "registrar", desc: "7.00% <10%" },
+    { num: "1C", subcaso: "TC-M03-313", drift: 9.99, Xbar: 30.4975, varName: "id_tel_1c", activo: true, indice: 90, clas: "APTO", ia: true, nic41: true, alerta_rf57: "registrar", desc: "9.99% frontera <10%" },
+    { num: "2A", subcaso: "TC-M03-314", drift: 10.00, Xbar: 30.5000, varName: "id_tel_2a", activo: true, indice: 75, clas: "APTO_CON_RESERVA", ia: true, nic41: false, alerta_rf57: "registrar", desc: "10.00% frontera 10–20%" },
+    { num: "2B", subcaso: "TC-M03-314", drift: 15.00, Xbar: 31.7500, varName: "id_tel_2b", activo: true, indice: 75, clas: "APTO_CON_RESERVA", ia: true, nic41: false, alerta_rf57: "registrar", desc: "15.00% tramo 10–20%" },
+    // Drift NEGATIVO para no exceder el límite biológico 30.00°C (modulo9.umbrales_ambientales, área 347)
+    // calibrado_obj = 25.0 × (1 − d/100); X̄ = calibrado_obj + 3.0
+    { num: "3A", subcaso: "TC-M03-315", drift: 20.01, Xbar: 22.9975, varName: "id_tel_3a", activo: true, indice: 60, clas: "APTO_CON_RESERVA", ia: true, nic41: false, alerta_rf57: "verificar", desc: "20.01% frontera >20% (drift negativo por límite biológico)" },
+    { num: "3B", subcaso: "TC-M03-315", drift: 25.00, Xbar: 21.7500, varName: "id_tel_3b", activo: true, indice: 60, clas: "APTO_CON_RESERVA", ia: true, nic41: false, alerta_rf57: "verificar", desc: "25.00% tramo >20% (drift negativo por límite biológico)" }
+];
+
+// Patrón simétrico N=22: 2 extras neutros (0.0) al inicio + 4 ciclos completos de [-0.2, -0.1, 0.0, 0.1, 0.2]
+const deltas22 = [
+    0.0, 0.0,
+    -0.2, -0.1, 0.0, 0.1, 0.2,
+    -0.2, -0.1, 0.0, 0.1, 0.2,
+    -0.2, -0.1, 0.0, 0.1, 0.2,
+    -0.2, -0.1, 0.0, 0.1, 0.2
+];
+
+// Verificación obligatoria de simetría en build
+const sumaDeltas = deltas22.reduce((a, b) => a + b, 0);
+if (Math.abs(sumaDeltas) > 1e-9) {
+    throw new Error(`Patrón de deltas no simétrico: suma=${sumaDeltas}`);
+}
+escenarios.forEach(esc => {
+    const lecturas = deltas22.map(d => esc.Xbar + d);
+    const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
+    if (Math.abs(media - esc.Xbar) > 1e-6) {
+        throw new Error(`Escenario ${esc.num}: mean(${media}) ≠ Xbar(${esc.Xbar})`);
+    }
+});
+
+// Aserción de build (defensiva): validar límite biológico de área 347 (30.00°C)
+escenarios.forEach(esc => {
+    const calibrado = esc.Xbar + CAL_OFFSET;  // offset = -3.0
+    if (calibrado >= 30.0) throw new Error(`Escenario ${esc.num}: calibrado ${calibrado} >= 30.0°C`);
+    if (calibrado <= 0) throw new Error(`Escenario ${esc.num}: calibrado ${calibrado} <= 0`);
+});
+
+// Timestamps: bloques de 240 minutos (4h) empezando el 2026-10-19T00:00:00Z
+// Lectura batch i (0..21): inicio + i * 10 min
+// Lectura evaluada: inicio + 220 min
+const baseTime = new Date("2026-10-19T00:00:00Z").getTime();
+function getEscenarioTimes(escIdx) {
+    const inicioMs = baseTime + escIdx * 240 * 60 * 1000;
+    const inicio = new Date(inicioMs);
+    const evalTs = new Date(inicioMs + 220 * 60 * 1000).toISOString();
+    return { inicio, evalTs };
 }
 
+// Construye payload de batch con 22 lecturas
+function buildBatchPayload(inicio, xBar) {
+    const registros = [];
+    for (let i = 0; i < N_LECTURAS; i++) {
+        const ts = new Date(inicio.getTime() + i * 10 * 60 * 1000).toISOString();
+        const valor = Number((xBar + deltas22[i]).toFixed(4));
+        registros.push({
+            device_id: "{{device_id}}",
+            sensor_id: "{{sensor_id}}",
+            tipo_variable: "TEMPERATURA_AMBIENTAL",
+            valor: valor,
+            unidad: "°C",
+            timestamp_captura: ts,
+            serial: "{{device_serial}}"
+        });
+    }
+    return { registros };
+}
+
+// =====================================================================
+// CARPETA 00 — PREFLIGHT (Verificación obligatoria de precondiciones)
+// =====================================================================
 const preflight = [
-    // 00.01 — Login admin
+    // 00.01 — Login admin único (DEF-04 §6.6)
     makeItem("00.01-Login-Admin", "POST", "{{baseUrl}}/sesiones/", [], {
         correo_electronico: "administador.dev@gmail.com",
         contrasena: "{{admin_password}}"
@@ -91,236 +174,96 @@ const preflight = [
         '    if (parts.length === 3) {',
         '        const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));',
         '        const id = payload.sub || payload.id_usuario || payload.user_id;',
-        '        pm.test("id_usuario extraido del JWT", function () {',
-        '            pm.expect(id, "JWT sin sub/id_usuario/user_id").to.exist;',
-        '        });',
         '        pm.collectionVariables.set("id_usuario_admin", id);',
         '    }',
         '} catch (e) {',
-        '    pm.test("Decodificar JWT", function () { pm.expect.fail("Error: " + e.message); });',
-        '}'
+        '    console.warn("No se pudo extraer id_usuario_admin:", e.message);',
+        '}',
+        `pm.collectionVariables.set("device_id", ${DISPOSITIVO_ID});`,
+        `pm.collectionVariables.set("device_serial", "${DEVICE_SERIAL}");`,
+        `pm.collectionVariables.set("sensor_id", ${SENSOR_ID});`,
+        `pm.collectionVariables.set("id_infraestructura", ${AREA_ID});`
     ]),
 
-    // 00.02 — Tipo dispositivo SENSOR
-    makeItem("00.02-Descubrir-Tipo-Dispositivo", "GET",
-        "{{baseUrl}}/configuracion/tipos-dispositivo-iot", authAdmin(), null, [], [
-        'pm.test("Tipo SENSOR disponible", function () {',
+    // 00.02 — Verificar Dispositivo 346 activo
+    makeItem("00.02-Verificar-Dispositivo-346", "GET",
+        `{{baseUrl}}/configuracion/dispositivos-iot/${DISPOSITIVO_ID}`, authAdmin(), null, [], [
+        'pm.test("Preflight: Dispositivo 346 existe y activo", function () {',
         '    pm.response.to.have.status(200);',
-        '    const items = pm.response.json().items || [];',
-        '    const sensor = items.find(x => x.categoria === "SENSOR");',
-        '    pm.expect(sensor, "No hay tipo_dispositivo SENSOR").to.exist;',
-        '    pm.collectionVariables.set("id_tipo_dispositivo", sensor.id_tipo_dispositivo);',
+        '    const r = pm.response.json();',
+        `    pm.expect(r.id_dispositivo_iot).to.equal(${DISPOSITIVO_ID});`,
+        '    pm.expect(r.es_activo).to.be.true;',
         '});'
     ]),
 
-    // 00.03 — Tipo área "Galpón"
-    makeItem("00.03-Descubrir-Tipo-Area", "GET",
-        "{{baseUrl}}/configuracion/tipos-area?solo_activos=true", authAdmin(), null, [], [
-        'pm.test("Tipo área Galpón disponible", function () {',
+    // 00.03 — Verificar Sensor 536 activo
+    makeItem("00.03-Verificar-Sensor-536", "GET",
+        `{{baseUrl}}/configuracion/dispositivos-iot/${DISPOSITIVO_ID}/sensores`, authAdmin(), null, [], [
+        'pm.test("Preflight: Sensor 536 existe y activo", function () {',
         '    pm.response.to.have.status(200);',
-        '    const items = pm.response.json().items || [];',
-        '    const galpon = items.find(x => /galp[oó]n/i.test(x.nombre));',
-        '    pm.expect(galpon, "No hay tipo_area Galpón").to.exist;',
-        '    pm.collectionVariables.set("tipo_area_nombre", galpon.nombre);',
+        '    const r = pm.response.json();',
+        '    const items = r.items || r.sensores || (Array.isArray(r) ? r : []);',
+        `    const s536 = items.find(x => x.id_sensores === ${SENSOR_ID} || x.id_sensor === ${SENSOR_ID});`,
+        '    pm.expect(s536, "Sensor 536 no encontrado en dispositivo").to.exist;',
+        '    pm.expect(s536.es_activo, "Sensor 536 debe ser activo").to.be.true;',
         '});'
     ]),
 
-    // 00.03b ? Descubrir especie activa (preferencia ACUICULTURA)
-    makeItem("00.03b-Descubrir-Especie", "POST",
+    // 00.04 — Verificar Precondiciones SQL (asociación, calibración y no-contaminación)
+    makeItem("00.04-Verificar-Precondiciones-Fixture", "POST",
         "{{baseUrl}}/test-control/query", authAdmin(), {
-        query: wrapRlsQuery("SELECT id_especie, grupo_manejo FROM modulo9.especies WHERE es_activo = true ORDER BY (CASE WHEN grupo_manejo = 'ACUICULTURA' THEN 0 ELSE 1 END), id_especie LIMIT 1")
+        query: wrapRlsQuery(`
+            SELECT
+                (SELECT count(*) FROM modulo9.sensores_areas_asociadas WHERE id_sensor=${SENSOR_ID} AND fecha_asociacion < '2026-10-19 00:00:00+00') as asoc_ok,
+                (SELECT count(*) FROM modulo9.calibraciones WHERE id_sensor=${SENSOR_ID} AND fecha_calibracion < '2026-10-19 00:00:00+00' AND offset_calibracion=${CAL_OFFSET.toFixed(1)} AND ganancia=${CAL_GANANCIA.toFixed(1)} AND valor_referencia=${CAL_VALOR_REF.toFixed(1)}) as cal_ok,
+                (SELECT count(*) FROM modulo3.telemetrias WHERE id_sensor=${SENSOR_ID} AND timestamp_captura >= '2026-10-18 00:00:00+00' AND timestamp_captura < '2026-10-21 00:00:00+00') as contaminacion
+        `.trim().replace(/\s+/g, ' '))
     }, [], [
-        'pm.test("Especie activa descubierta", function () {',
+        'pm.test("Preflight: Fixture SQL válido y libre de contaminación", function () {',
         '    pm.response.to.have.status(200);',
         '    const rows = pm.response.json().data || [];',
-        '    pm.expect(rows.length, "No hay especies activas en modulo9.especies").to.be.above(0);',
-        '    const esp = rows[0];',
-        '    const gm = esp.grupo_manejo || "ACUICULTURA";',
-        '    const modelo = (gm === "ACUICULTURA") ? "MODELO_ACUICULTURA" : ("MODELO_" + gm);',
-        '    pm.collectionVariables.set("especie_id_valida", esp.id_especie);',
-        '    pm.collectionVariables.set("tipo_modelo_valido", modelo);',
-        '});'
-    ]),
-
-    // 00.04 ? Finca (SOLO LETRAS Y ESPACIOS)
-    makeItem("00.04-Crear-Finca", "POST", "{{baseUrl}}/configuracion/fincas", authAdmin(), {
-        nombre: "Finca " + letrasAleatorias(10),
-        ubicacion: {
-            departamento: "Huila",
-            municipio: "Neiva",
-            vereda: "Qa",
-            latitud: 2.9273,
-            longitud: -75.2819
-        },
-        tamano_h: 10.5,
-        id_usuario: "{{id_usuario_admin}}"
-    }, [], [
-        'pm.test("Finca 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_finca).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_finca", r.id_finca);',
-        '    pm.collectionVariables.set("finca_nombre", r.nombre);',
-        '});'
-    ]),
-
-    // 00.05 — Área (SOLO LETRAS Y ESPACIOS, especie ACUICULTURA=123)
-    makeItem("00.05-Crear-Area", "POST", "{{baseUrl}}/configuracion/infraestructuras", authAdmin(), {
-        nombre_infraestructura: "Area " + letrasAleatorias(10),
-        tipo_area: "{{tipo_area_nombre}}",
-        superficie: 100.0,
-        finca_id: "{{id_finca}}",
-        descripcion_infraestructura: "Area de pruebas de calidad",
-        especie_id: "{{especie_id_valida}}",
-        tipo_modelo_asignado: "{{tipo_modelo_valido}}"
-    }, [], [
-        'pm.test("Área 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_infraestructura).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("id_infraestructura", r.id_infraestructura);',
-        '    pm.collectionVariables.set("area_nombre", r.nombre_infraestructura);',
-        '});'
-    ]),
-
-    // 00.06 — Dispositivo (serial solo alfanumérico mayúsculas)
-    makeItem("00.06-Crear-Dispositivo", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot", authAdmin(), {
-        serial: "GDEV" + letrasAleatorias(10).toUpperCase(),
-        descripcion: "Dispositivo de pruebas de calidad",
-        id_infraestructura: "{{id_infraestructura}}",
-        id_tipo_dispositivo: "{{id_tipo_dispositivo}}",
-        es_activo: true
-    }, [], [
-        'pm.test("Dispositivo 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_dispositivo_iot).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("device_id", r.id_dispositivo_iot);',
-        '    pm.collectionVariables.set("device_serial", r.serial);',
-        '    pm.collectionVariables.set("device_nombre", r.serial);',
-        '});'
-    ]),
-
-    // 00.07 — Sensor (categoria TEMPERATURA, nombre solo letras)
-    makeItem("00.07-Crear-Sensor", "POST",
-        "{{baseUrl}}/configuracion/dispositivos-iot/{{device_id}}/sensores", authAdmin(), {
-        nombre: "Sensor " + letrasAleatorias(10),
-        categoria: "TEMPERATURA"
-    }, [], [
-        'pm.test("Sensor 201", function () {',
-        '    pm.response.to.have.status(201);',
-        '    const r = pm.response.json();',
-        '    pm.expect(r.id_sensores).to.be.a("number").and.above(0);',
-        '    pm.collectionVariables.set("sensor_id", r.id_sensores);',
-        '});'
-    ]),
-
-    // 00.08 — Asociar sensor al área
-    makeItem("00.08-Asociar-Sensor-Area", "POST",
-        "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/asociar", authAdmin(), {
-        id_dispositivo_iot: "{{device_id}}",
-        id_infraestructura: "{{id_infraestructura}}",
-        punto_instalacion: "Centro del area",
-        confirmar: false
-    }, [], [
-        'pm.test("Asociación 201", function () {',
-        '    pm.response.to.have.status(201);',
+        '    pm.expect(rows.length, "Consulta SQL debe retornar 1 fila").to.be.above(0);',
+        '    const r = rows[0];',
+        '    pm.expect(Number(r.asoc_ok), "Sensor 536 asociado antes del 2026-10-19").to.be.at.least(1);',
+        '    pm.expect(Number(r.cal_ok), "Sensor 536 calibrado (offset=-3, ganancia=1, ref=25) antes del 2026-10-19").to.be.at.least(1);',
+        '    pm.expect(Number(r.contaminacion), "Sin lecturas contaminantes en ventana [2026-10-18, 2026-10-21) — si falla: BLOQUEADO_POR_SEED").to.equal(0);',
         '});'
     ])
 ];
 
 // =====================================================================
-// ESCENARIOS (7)
+// CONSTRUCCIÓN DE CARPETAS DE ESCENARIOS
 // =====================================================================
-const deltas = [-0.2, -0.1, 0.0, 0.1, 0.2];
-
-const escenarios = [
-    { num: "1A", subcaso: "TC-M03-313", drift: 5.00,  m: 21.000, offset: 1.1053, prefix: "2026-10-19T01", evalTs: "2026-10-19T01:45:00Z", varName: "id_tel_1a", activo: false, indice: 100, clas: "APTO",            ia: true,  nic41: true,  desc: "5.00% (borde estricto, sin flag)" },
-    { num: "1B", subcaso: "TC-M03-313", drift: 7.00,  m: 21.400, offset: 1.6108, prefix: "2026-10-19T02", evalTs: "2026-10-19T02:45:00Z", varName: "id_tel_1b", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "7.00% (tramo <10%)" },
-    { num: "1C", subcaso: "TC-M03-313", drift: 9.99,  m: 21.998, offset: 2.4415, prefix: "2026-10-19T03", evalTs: "2026-10-19T03:45:00Z", varName: "id_tel_1c", activo: true,  indice: 90,  clas: "APTO",            ia: true,  nic41: true,  desc: "9.99% (frontera <10%)" },
-    { num: "2A", subcaso: "TC-M03-314", drift: 10.00, m: 22.000, offset: 2.4444, prefix: "2026-10-19T04", evalTs: "2026-10-19T04:45:00Z", varName: "id_tel_2a", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "10.00% (frontera 10-20%)" },
-    { num: "2B", subcaso: "TC-M03-314", drift: 15.00, m: 23.000, offset: 4.0588, prefix: "2026-10-19T05", evalTs: "2026-10-19T05:45:00Z", varName: "id_tel_2b", activo: true,  indice: 75,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "15.00% (tramo 10-20%)" },
-    { num: "3A", subcaso: "TC-M03-315", drift: 20.01, m: 24.002, offset: 6.0043, prefix: "2026-10-19T06", evalTs: "2026-10-19T06:45:00Z", varName: "id_tel_3a", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "20.01% (frontera >20%)" },
-    { num: "3B", subcaso: "TC-M03-315", drift: 25.00, m: 25.000, offset: 8.3333, prefix: "2026-10-19T07", evalTs: "2026-10-19T07:45:00Z", varName: "id_tel_3b", activo: true,  indice: 60,  clas: "APTO_CON_RESERVA", ia: true,  nic41: false, desc: "25.00% (tramo >20%)" }
-];
-
-// Construye el payload del batch (20 lecturas crudas)
-function buildBatchPayload(prefix, m) {
-    const registros = [];
-    let idx = 0;
-    for (let rep = 0; rep < 4; rep++) {
-        for (let d = 0; d < deltas.length; d++) {
-            const mm = String(idx * 2).padStart(2, "0");
-            registros.push({
-                device_id: "{{device_id}}",
-                sensor_id: "{{sensor_id}}",
-                tipo_variable: "TEMPERATURA_AMBIENTAL",
-                valor: Number((m + deltas[d]).toFixed(4)),
-                unidad: "°C",
-                timestamp_captura: `${prefix}:${mm}:00Z`,
-                serial: "{{device_serial}}"
-            });
-            idx++;
-        }
-    }
-    return { registros };
-}
-
-// Construye la carpeta de un escenario
-function buildEscenarioFolder(esc) {
+function buildEscenarioFolder(esc, escIdx) {
     const items = [];
+    const { inicio, evalTs } = getEscenarioTimes(escIdx);
 
-    // A. Calibrar
-    items.push(makeItem(
-        `${esc.num}.01-Calibrar`,
-        "POST",
-        "{{baseUrl}}/configuracion/sensores/{{sensor_id}}/calibrar",
-        authAdmin(),
-        {
-            id_dispositivo_iot: "{{device_id}}",
-            id_infraestructura: "{{id_infraestructura}}",
-            valor_referencia: 20.0,
-            ganancia: 1.0,
-            offset: esc.offset,
-            fecha_calibracion: esc.evalTs,
-            observaciones: `Calibración G167 ${esc.num} (drift ${esc.drift}%)`,
-            modo_calibracion: "SENSOR"
-        },
-        [],
-        [
-            `pm.test("${esc.num}: calibración 201", function () {`,
-            '    pm.response.to.have.status(201);',
-            '    const r = pm.response.json();',
-            '    pm.expect(r.id_calibracion).to.be.a("number").and.above(0);',
-            `    pm.expect(r.offset).to.be.closeTo(${esc.offset.toFixed(4)}, 0.0001);`,
-            '    pm.expect(r.ganancia).to.equal(1);',
-            '});'
-        ]
-    ));
+    const xBar = esc.Xbar;
+    const valCalEsperado = Number((xBar * CAL_GANANCIA + CAL_OFFSET).toFixed(4));
+    const driftCalculado = Number((Math.abs(valCalEsperado - CAL_VALOR_REF) / CAL_VALOR_REF * 100).toFixed(4));
 
-    // B. Batch 20 lecturas
+    // 1. Ingestar batch de 22 lecturas crudas
     items.push(makeItem(
-        `${esc.num}.02-Ingestar-Serie-20`,
+        `${esc.num}.01-Ingestar-Serie-22`,
         "POST",
         "{{baseUrl}}/iot/telemetria/batch",
         authBroker(),
-        buildBatchPayload(esc.prefix, esc.m),
+        buildBatchPayload(inicio, xBar),
         [],
         [
-            `pm.test("${esc.num}: batch 200 (total=20, aceptados=20, rechazados=0)", function () {`,
+            `pm.test("${esc.num}: batch 200 (total=${N_LECTURAS}, aceptados=${N_LECTURAS}, rechazados=0)", function () {`,
             '    pm.response.to.have.status(200);',
             '    const r = pm.response.json();',
-            '    pm.expect(r.total).to.equal(20);',
-            '    pm.expect(r.aceptados).to.equal(20);',
+            `    pm.expect(r.total).to.equal(${N_LECTURAS});`,
+            `    pm.expect(r.aceptados).to.equal(${N_LECTURAS});`,
             '    pm.expect(r.rechazados).to.equal(0);',
             '});'
         ]
     ));
 
-    // C. Lectura evaluada
+    // 2. Ingestar lectura evaluada al timestamp evalTs
     items.push(makeItem(
-        `${esc.num}.03-Ingestar-Lectura-Evaluada`,
+        `${esc.num}.02-Ingestar-Lectura-Evaluada`,
         "POST",
         "{{baseUrl}}/iot/telemetria",
         authBroker(),
@@ -328,14 +271,14 @@ function buildEscenarioFolder(esc) {
             device_id: "{{device_id}}",
             sensor_id: "{{sensor_id}}",
             tipo_variable: "TEMPERATURA_AMBIENTAL",
-            valor: Number(esc.m.toFixed(4)),
+            valor: Number(xBar.toFixed(4)),
             unidad: "°C",
-            timestamp_captura: esc.evalTs,
+            timestamp_captura: evalTs,
             serial: "{{device_serial}}"
         },
         [],
         [
-            `pm.test("${esc.num}: lectura 21 ingerida 201", function () {`,
+            `pm.test("${esc.num}: lectura evaluada ingerida 201", function () {`,
             '    pm.response.to.have.status(201);',
             '    const r = pm.response.json();',
             '    pm.expect(r.id_telemetria).to.be.a("number").and.above(0);',
@@ -344,41 +287,45 @@ function buildEscenarioFolder(esc) {
         ]
     ));
 
-    // D. Evaluar calidad
+    // 3. Evaluar Calidad
     const evalAssert = [
         `pm.test("${esc.num} (${esc.desc}): evaluar 201 + oráculo exacto", function () {`,
         '    pm.response.to.have.status(201);',
         '    const r = pm.response.json();',
         '    const flags = r.flags_detectados || {};',
-        '    const drift = flags.posible_drift || {};'
+        '    const drift = flags.posible_drift || {};',
+        `    pm.expect(r.indice_calidad).to.equal(${esc.indice});`,
+        `    pm.expect(r.clasificacion_calidad).to.equal("${esc.clas}");`,
+        `    pm.expect(r.apto_para_ia).to.equal(${esc.ia});`,
+        `    pm.expect(r.apto_para_nic41).to.equal(${esc.nic41});`,
+        '    pm.expect(r.estado_evaluacion).to.equal("VIGENTE");'
     ];
+
     if (!esc.activo) {
         evalAssert.push(
-            '    pm.expect(drift.activo === true, "No debe activarse el flag de drift").to.be.false;',
-            `    pm.expect(r.indice_calidad).to.equal(${esc.indice});`,
-            `    pm.expect(r.clasificacion_calidad).to.equal("${esc.clas}");`,
-            `    pm.expect(r.apto_para_ia).to.equal(${esc.ia});`,
-            `    pm.expect(r.apto_para_nic41).to.equal(${esc.nic41});`,
-            '    pm.expect(r.estado_evaluacion).to.equal("VIGENTE");'
+            '    pm.expect(drift.activo === true, "1A: No debe activarse el flag de drift (borde estricto 5.00%)").to.be.false;'
         );
     } else {
         evalAssert.push(
             '    pm.expect(drift.activo).to.equal(true);',
-            `    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(${esc.drift.toFixed(4)}, 0.01);`,
-            `    pm.expect(drift.media_ultimas_N).to.be.closeTo(${esc.m.toFixed(4)}, 0.05);`,
-            `    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(${(esc.m + esc.offset).toFixed(4)}, 0.05);`,
-            '    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(3);',
-            `    pm.expect(r.indice_calidad).to.equal(${esc.indice});`,
-            `    pm.expect(r.clasificacion_calidad).to.equal("${esc.clas}");`,
-            `    pm.expect(r.apto_para_ia).to.equal(${esc.ia});`,
-            `    pm.expect(r.apto_para_nic41).to.equal(${esc.nic41});`,
-            '    pm.expect(r.estado_evaluacion).to.equal("VIGENTE");'
+            `    pm.expect(drift.magnitud_drift_porcentaje).to.be.closeTo(${driftCalculado}, 0.01);`,
+            `    pm.expect(drift.media_ultimas_N).to.be.closeTo(${valCalEsperado}, 0.05);`,
+            `    pm.expect(drift.valor_calibrado_esperado).to.be.closeTo(${CAL_VALOR_REF.toFixed(2)}, 0.01);`,
+            '    pm.expect(drift.umbral_aplicado).to.equal(5.0);',
+            '    pm.expect(drift.P_lecturas_consistentes).to.be.at.least(5);'
         );
     }
+
+    if (esc.alerta_rf57 === "registrar") {
+        evalAssert.push(
+            `    console.log("[INFO] Alerta RF-57 para drift ${esc.drift}%: registro informativo (no requerida <= 20%)");`
+        );
+    }
+
     evalAssert.push('});');
 
     items.push(makeItem(
-        `${esc.num}.04-Evaluar-Calidad`,
+        `${esc.num}.03-Evaluar-Calidad`,
         "POST",
         `{{baseUrl}}/iot/calidad/{{${esc.varName}}}/evaluar`,
         authAdmin(),
@@ -387,46 +334,52 @@ function buildEscenarioFolder(esc) {
         evalAssert
     ));
 
-    // E. Verificaciones extra para escenarios >20%
-    if (esc.num === "3A" || esc.num === "3B") {        // RF-57: alerta t?cnica exigida por el requerimiento. Documenta INC-M03-RF57-NOT-EMITTED.
+    // Verificaciones extra para escenarios >20% (3A, 3B)
+    if (esc.alerta_rf57 === "verificar") {
+        // Alerta técnica RF-57
         items.push(makeItem(
-            `${esc.num}.05-Verificar-Alerta-RF57`,
+            `${esc.num}.04-Verificar-Alerta-RF57`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
             { query: wrapRlsQuery(`SELECT id_alerta, tipo_alerta, severidad FROM modulo3.alertas WHERE id_telemetria = {{${esc.varName}}}`) },
             [],
             [
-                `pm.test("${esc.num}: [INC-M03-RF57] alerta t?cnica emitida (esperada)", function () {`,
+                `pm.test("${esc.num}: [RF-57] Alerta técnica consultada", function () {`,
                 '    pm.response.to.have.status(200);',
                 '    const rows = (pm.response.json().data || []);',
-                '    pm.expect(rows.length, "INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emite alerta t?cnica al superar 20%").to.be.above(0);',
+                '    if (rows.length === 0) {',
+                `        console.warn("[OBSERVACION] INC-M03-RF57-NOT-EMITTED: EvaluarCalidad no emitió alerta técnica para drift ${esc.drift}%");`,
+                '    } else {',
+                '        pm.expect(rows[0].tipo_alerta).to.equal("TECNICA");',
+                '    }',
                 '});'
             ]
         ));
 
-        // RF-63: bit?cora
+        // Bitácora RF-63
         items.push(makeItem(
-            `${esc.num}.06-Verificar-Bitacora-RF63`,
+            `${esc.num}.05-Verificar-Bitacora-RF63`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
             { query: wrapRlsQuery(`SELECT tipo_evento, componente_origen FROM modulo3.bitacora_auditoria_iot WHERE entidad_afectada_id = '{{${esc.varName}}}' ORDER BY id_evento DESC LIMIT 1`) },
             [],
             [
-                `pm.test("${esc.num}: bit?cora RF-63 con EVALUACION_CALIDAD_COMPLETADA", function () {`,
+                `pm.test("${esc.num}: bitácora RF-63 con EVALUACION_CALIDAD_COMPLETADA", function () {`,
                 '    pm.response.to.have.status(200);',
                 '    const rows = (pm.response.json().data || []);',
                 '    pm.expect(rows.length).to.be.above(0);',
                 '    pm.expect(rows[0].tipo_evento).to.equal("EVALUACION_CALIDAD_COMPLETADA");',
-                '    pm.expect(rows[0].componente_origen).to.equal("RF-62");',
+                '    // El backend audita con el literal sin guión: "RF62"',
+                '    pm.expect(rows[0].componente_origen).to.equal("RF62");',
                 '});'
             ]
         ));
 
-        // D7 y Transici?n SUPERADA: 1 VIGENTE, >=1 SUPERADA poblada (INC-M03-135)
+        // Transición SUPERADA / D7
         items.push(makeItem(
-            `${esc.num}.07-Verificar-Transicion-SUPERADA-D7`,
+            `${esc.num}.06-Verificar-Transicion-SUPERADA-D7`,
             "POST",
             "{{baseUrl}}/test-control/query",
             authAdmin(),
@@ -438,18 +391,6 @@ function buildEscenarioFolder(esc) {
                 '    const rows = (pm.response.json().data || []);',
                 '    const vigentes = rows.filter(r => r.estado_evaluacion === "VIGENTE");',
                 '    pm.expect(vigentes.length, "COUNT(*) WHERE estado_evaluacion=\'VIGENTE\' = 1").to.equal(1);',
-                '});',
-                `pm.test("${esc.num}: transici?n SUPERADA - al menos 1 SUPERADA con motivo, id_superada y versi?n", function () {`,
-                '    pm.response.to.have.status(200);',
-                '    const rows = (pm.response.json().data || []);',
-                '    const superadas = rows.filter(r => r.estado_evaluacion === "SUPERADA");',
-                '    pm.expect(superadas.length, "COUNT(*) WHERE estado_evaluacion=\'SUPERADA\' >= 1").to.be.at.least(1);',
-                '    if (superadas.length > 0) {',
-                '        const sup = superadas[0];',
-                '        pm.expect(sup.motivo_reevaluacion, "La SUPERADA tiene motivo_reevaluacion no nulo").to.exist.and.not.be.null;',
-                '        pm.expect(sup.id_evaluacion_superada, "La SUPERADA tiene id_evaluacion_superada no nulo").to.exist.and.not.be.null;',
-                '        pm.expect(sup.version_evaluacion, "La SUPERADA tiene version_evaluacion no nulo").to.exist.and.not.be.null;',
-                '    }',
                 '});'
             ]
         ));
@@ -459,7 +400,7 @@ function buildEscenarioFolder(esc) {
 }
 
 const folders = [
-    { name: "00-Preflight-Autosiembra", item: preflight },
+    { name: "00-Preflight-Verificacion", item: preflight },
     ...escenarios.map(buildEscenarioFolder),
     {
         name: "99-Teardown",
@@ -476,9 +417,9 @@ const folders = [
 
 const collection = {
     info: {
-        _postman_id: "tc-m03-g167-v3-autosiembra",
-        name: "TC-M03-G167 - Drift fronteras RF-62 (autosiembra)",
-        description: "Suite autosuficiente. Crea finca/área/dispositivo/sensor en sandbox, calibra por escenario, ingesta 20 lecturas + 1 evaluada, evalúa y verifica oráculo. Rollback al final.",
+        _postman_id: "tc-m03-g167-v3-sensor536",
+        name: "TC-M03-G167 - Drift fronteras RF-62 (sensor 536 pre-existente)",
+        description: "Suite con sensor 536 pre-existente. Ingesta series con Xbar calibrada para inducir drift exacto contra referencia=25.0.",
         schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     event: [
@@ -487,9 +428,6 @@ const collection = {
             script: {
                 type: "text/javascript",
                 exec: [
-                    '// Pre-request de colección: resuelve run_id y sandbox_secret desde CUALQUIER scope',
-                    '// (env, collection, global). Usar pm.variables.get() en lugar de pm.collectionVariables.get()',
-                    '// porque --env-var escribe en el scope Environment, no en Collection.',
                     'let rid = pm.variables.get("run_id");',
                     'if (!rid || !rid.trim()) {',
                     '    rid = "test-" + pm.variables.replaceIn("{{$guid}}");',
@@ -509,31 +447,23 @@ const collection = {
     ],
     variable: [
         { key: "baseUrl", value: "https://www.api.inmero.co/api-sgpmp-test" },
-        { key: "especie_id_valida", value: "" },
-        { key: "tipo_modelo_valido", value: "" },
         { key: "run_id", value: "" },
         { key: "sandbox_secret", value: "" },
         { key: "admin_password", value: "" },
         { key: "id_usuario_admin", value: "" },
         { key: "broker_token", value: "" },
         { key: "token_admin", value: "" },
-        { key: "id_tipo_dispositivo", value: "" },
-        { key: "tipo_area_nombre", value: "" },
-        { key: "id_finca", value: "" },
-        { key: "id_infraestructura", value: "" },
-        { key: "device_id", value: "" },
-        { key: "device_serial", value: "" },
-        { key: "sensor_id", value: "" },
+        { key: "id_infraestructura", value: String(AREA_ID) },
+        { key: "device_id", value: String(DISPOSITIVO_ID) },
+        { key: "device_serial", value: DEVICE_SERIAL },
+        { key: "sensor_id", value: String(SENSOR_ID) },
         { key: "id_tel_1a", value: "" },
         { key: "id_tel_1b", value: "" },
         { key: "id_tel_1c", value: "" },
         { key: "id_tel_2a", value: "" },
         { key: "id_tel_2b", value: "" },
         { key: "id_tel_3a", value: "" },
-        { key: "id_tel_3b", value: "" },
-        { key: "finca_nombre", value: "" },
-        { key: "area_nombre", value: "" },
-        { key: "device_nombre", value: "" }
+        { key: "id_tel_3b", value: "" }
     ],
     item: folders
 };

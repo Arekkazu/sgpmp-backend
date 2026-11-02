@@ -7,18 +7,23 @@ Estrategia de resumen:
 """
 import sys
 import json
+import argparse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import Counter
 
 TC_ID = "TC-M03-G166"
 BASE = Path(__file__).parent
-XML_PATH = BASE / "resultados" / f"resultado_{TC_ID}_reintento1.xml"
-JSON_PATH = BASE / "resultados" / f"resultado_{TC_ID}_reintento1.json"
 
 # Patrones para clasificar sin volcar el mensaje completo
 PATRON_BLOQUEO_BROKER = "BLOQUEO EXTERNO EN SETUP"
 PATRON_BROKER_503 = "TOKEN_SERVICIO_NO_CONFIGURADO"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Convierte el JUnit XML de pytest al JSON resumido del scanner.")
+    parser.add_argument("--suffix", "--sufijo", dest="suffix", default="", nargs="?", const="", help="Sufijo del reporte (ej: _reintento2)")
+    return parser.parse_args()
 
 
 def clasificar(case):
@@ -43,11 +48,19 @@ def clasificar(case):
 
 
 def main() -> int:
-    if not XML_PATH.exists():
-        print(f"ERROR: no existe {XML_PATH}", file=sys.stderr)
+    args = parse_args()
+    suffix = args.suffix
+    if suffix and not suffix.startswith("_"):
+        suffix = f"_{suffix}"
+
+    xml_path = BASE / "resultados" / f"resultado_{TC_ID}{suffix}.xml"
+    json_path = BASE / "resultados" / f"resultado_{TC_ID}{suffix}.json"
+
+    if not xml_path.exists():
+        print(f"ERROR: no existe {xml_path}", file=sys.stderr)
         return 2
 
-    tree = ET.parse(XML_PATH)
+    tree = ET.parse(xml_path)
     root = tree.getroot()
     suites = root.findall(".//testsuite") if root.tag == "testsuites" else [root]
 
@@ -94,9 +107,9 @@ def main() -> int:
         "checkpoints": checkpoints,
     }
 
-    JSON_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    tamano = JSON_PATH.stat().st_size
-    print(f"Generado {JSON_PATH} ({tamano} bytes)")
+    json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tamano = json_path.stat().st_size
+    print(f"Generado {json_path} ({tamano} bytes)")
     print(f"  total={len(checkpoints)} ok={estados.get('OK',0)} falla={estados.get('FALLA',0)}")
     print(f"  xfailed={codigos.get('XFAIL',0)} skipped={codigos.get('SKIP',0)}")
     return 0

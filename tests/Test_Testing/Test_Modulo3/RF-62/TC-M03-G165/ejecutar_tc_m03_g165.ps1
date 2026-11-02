@@ -1,5 +1,6 @@
 param(
-    [string]$Sufijo = "_reintento1"
+    [Alias("Sufijo")]
+    [string]$Suffix = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -29,19 +30,45 @@ $FechaHoy = Get-Date -Format "yyyyMMdd"
 $EvidenciasDir = Join-Path $ScriptDir "evidencias/run-$FechaHoy"
 New-Item -ItemType Directory -Force -Path $EvidenciasDir | Out-Null
 
+$resultadosDir = Join-Path $ScriptDir "resultados"
+New-Item -ItemType Directory -Force -Path $resultadosDir | Out-Null
+
+# Guarda de inmutabilidad: V1 y Reintento 1 no deben sobrescribirse
+$V1Json = Join-Path $resultadosDir "resultado_TC-M03-G165.json"
+$R1Json = Join-Path $resultadosDir "resultado_TC-M03-G165_reintento1.json"
+
+if ([string]::IsNullOrEmpty($Suffix)) {
+    Write-Error "Debe especificar -Suffix. Ejemplo: -Suffix '_reintento2'"
+    exit 1
+}
+
+if (($Suffix -eq "_reintento1") -and (Test-Path $R1Json)) {
+    Write-Error "Reintento 1 ya existe. Use un sufijo diferente (ej: _reintento2)."
+    exit 1
+}
+
+# Si el sufijo es nuevo, verificar que V1 y R1 existan (integridad del histórico)
+if (-not (Test-Path $V1Json)) {
+    Write-Warning "V1 no encontrado. ¿Se ejecutó alguna vez este caso?"
+}
+
+$reportXml  = Join-Path $resultadosDir "resultado_TC-M03-G165$Suffix.xml"
+$reportHtml = Join-Path $resultadosDir "resultado_TC-M03-G165$Suffix.html"
+$reportJson = Join-Path $resultadosDir "resultado_TC-M03-G165$Suffix.json"
+
 Push-Location $ScriptDir
 try {
-    $XmlA = "resultados/resultado_TC-M03-G165${Sufijo}_A.xml"
-    $HtmlA = "resultados/resultado_TC-M03-G165${Sufijo}_A.html"
-    $LogA = Join-Path $EvidenciasDir "console${Sufijo}_A.log"
+    $XmlA = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_A.xml"
+    $HtmlA = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_A.html"
+    $LogA = Join-Path $EvidenciasDir "console${Suffix}_A.log"
 
-    $XmlB = "resultados/resultado_TC-M03-G165${Sufijo}_B.xml"
-    $HtmlB = "resultados/resultado_TC-M03-G165${Sufijo}_B.html"
-    $LogB = Join-Path $EvidenciasDir "console${Sufijo}_B.log"
+    $XmlB = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_B.xml"
+    $HtmlB = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_B.html"
+    $LogB = Join-Path $EvidenciasDir "console${Suffix}_B.log"
 
-    $XmlC = "resultados/resultado_TC-M03-G165${Sufijo}_C.xml"
-    $HtmlC = "resultados/resultado_TC-M03-G165${Sufijo}_C.html"
-    $LogC = Join-Path $EvidenciasDir "console${Sufijo}_C.log"
+    $XmlC = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_C.xml"
+    $HtmlC = Join-Path $resultadosDir "resultado_TC-M03-G165${Suffix}_C.html"
+    $LogC = Join-Path $EvidenciasDir "console${Suffix}_C.log"
 
     Write-Host "=== Run A: TestEscenarioBase (17 tests) ==="
     $swA = [System.Diagnostics.Stopwatch]::StartNew()
@@ -74,8 +101,27 @@ try {
     Write-Host "RUN_C_DURATION_SEC=$([math]::Round($swC.Elapsed.TotalSeconds, 2)) EXIT=$exitC"
 
     Write-Host "=== Consolidando 3 XMLs en un único JSON y HTML ==="
-    node consolidar-resultados.cjs --sufijo $Sufijo --xmls "$XmlA,$XmlB,$XmlC"
+    node consolidar-resultados.cjs --sufijo $Suffix --xmls "$XmlA,$XmlB,$XmlC"
     $exitConsolidar = $LASTEXITCODE
+
+    # Consolidar JUnit XML unificado
+    if ((Test-Path $XmlA) -and (Test-Path $XmlB) -and (Test-Path $XmlC)) {
+        $xmlContentA = Get-Content $XmlA -Raw
+        $xmlContentB = Get-Content $XmlB -Raw
+        $xmlContentC = Get-Content $XmlC -Raw
+        $testcases = @()
+        foreach ($content in @($xmlContentA, $xmlContentB, $xmlContentC)) {
+            $matches = [regex]::Matches($content, '<testcase[\s\S]*?<\/testcase>|<testcase[^\/>]*\/>')
+            foreach ($m in $matches) {
+                $testcases += $m.Value
+            }
+        }
+        $totalTests = $testcases.Count
+        $totalFails = ($testcases | Where-Object { $_ -match '<failure|<error' }).Count
+        $combinedXml = "<?xml version=""1.0"" encoding=""utf-8""?><testsuites name=""pytest tests""><testsuite name=""pytest"" errors=""0"" failures=""$totalFails"" skipped=""0"" tests=""$totalTests"">$($testcases -join '')</testsuite></testsuites>"
+        [System.IO.File]::WriteAllText($reportXml, $combinedXml, [System.Text.Encoding]::UTF8)
+        Write-Host "Generado XML: $reportXml"
+    }
 
     # Mover parciales A/B/C a evidencias para mantener resultados/ limpio para el scanner
     foreach ($parcial in @($XmlA, $HtmlA, $XmlB, $HtmlB, $XmlC, $HtmlC)) {

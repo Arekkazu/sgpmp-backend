@@ -1,0 +1,19 @@
+{
+  "tc": "TC-M03-G167",
+  "summary": {
+    "total": 44,
+    "ok": 8,
+    "falla": 36,
+    "veredicto": "RECHAZADO",
+    "bloqueo_externo": {
+      "inc_sensor_500": "POST /configuracion/dispositivos-iot/{id}/sensores retorna 500 por es_activo NOT NULL sin default en modelo ORM",
+      "inc_rf57": "vigente",
+      "seed_calibraciones": "vacio"
+    }
+  },
+  "checkpoints": [
+    {"paso": "00.01 al 00.06 (login, tipos, finca, area, dispositivo)", "esperado": "PASSED", "obtenido": "PASSED", "estado": "OK"},
+    {"paso": "00.07 Crear Sensor", "esperado": "PASSED", "obtenido": "500 ERROR_INTERNO (es_activo NOT NULL)", "estado": "FALLA"},
+    {"paso": "Escenarios 1A..3B (calibracion, ingesta, evaluacion)", "esperado": "PASSED", "obtenido": "BLOCKED por 00.07", "estado": "FALLA"}
+  ]
+}
