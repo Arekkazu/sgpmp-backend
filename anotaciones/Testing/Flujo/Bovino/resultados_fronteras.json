@@ -1,0 +1,650 @@
+{
+ "ejecutado": "2026-11-02T16:06:10",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "fixture": {
+  "infra": 12,
+  "area_reutilizada": true,
+  "activo": 12,
+  "disp": 12,
+  "serial": "QA-BOV-LECT-210530",
+  "sensores": {
+   "QA-TEMP-CORP": {
+    "id": 23,
+    "tv": "TEMP_CORPORAL",
+    "idv": 13,
+    "unidad": "°C",
+    "ref": 38.5
+   },
+   "QA-FC": {
+    "id": 24,
+    "tv": "FRECUENCIA_CARDIACA",
+    "idv": 14,
+    "unidad": "bpm",
+    "ref": 77.0
+   }
+  },
+  "alertas": {
+   "QA-TEMP-CORP": [
+    {
+     "id": 105,
+     "severidad": "CRITICO",
+     "estado": "ACTIVA",
+     "valor": "40.0100",
+     "nivel": null
+    }
+   ],
+   "QA-FC": [
+    {
+     "id": 106,
+     "severidad": "CRITICO",
+     "estado": "ACTIVA",
+     "valor": "140.0100",
+     "nivel": null
+    }
+   ]
+  }
+ },
+ "umbrales_dev": {
+  "13": {
+   "min": "38.00",
+   "max": "43.00",
+   "niveles": [
+    [
+     "normal",
+     "38.00",
+     "39.50"
+    ],
+    [
+     "precaucion",
+     "39.50",
+     "40.00"
+    ],
+    [
+     "critico",
+     "40.00",
+     "43.00"
+    ]
+   ]
+  },
+  "14": {
+   "min": "40.00",
+   "max": "160.00",
+   "niveles": [
+    [
+     "normal",
+     "40.00",
+     "120.00"
+    ],
+    [
+     "precaucion",
+     "120.00",
+     "140.00"
+    ],
+    [
+     "critico",
+     "140.00",
+     "160.00"
+    ]
+   ]
+  }
+ },
+ "pasos": [
+  {
+   "id": "F1",
+   "descripcion": "Reutilizar area fija de QA",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=12"
+  },
+  {
+   "id": "F2",
+   "descripcion": "Crear animal QA",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=12"
+  },
+  {
+   "id": "F3",
+   "descripcion": "Registrar dispositivo QA (tipo GENERICO)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=12"
+  },
+  {
+   "id": "F4",
+   "descripcion": "Registrar sensor QA-TEMP-CORP",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=23 resp={\"id_sensores\": 23, \"nombre\": \"QA-TEMP-CORP-210530\", \"id_dispositivo_iot\": 12, \"es_activo\": true, \"c"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especies compatibles de QA-TEMP-CORP",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 23, \"especies\": [{\"id_especie\": 2, \"nombre\": \"Bovino\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-TEMP-CORP al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 23, \"id_sensor\": 23, \"id_dispositivo_iot\": 12, \"id_infraestructura\": 12, \"punto_instalacio"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-TEMP-CORP (ganancia 1, offset 0)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 22, \"id_dispositivo_iot\": 12, \"id_sensor\": 23, \"valor_referencia\": 38.5, \"ganancia\": 1.0, \"offset\": 0"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-TEMP-CORP al animal",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 11, \"id_activo_biologico\": 12, \"tipo_activo\": \"INDIVIDUAL\", \"tipo_asociacion\": \"directa\""
+  },
+  {
+   "id": "F4",
+   "descripcion": "Registrar sensor QA-FC",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "id=24 resp={\"id_sensores\": 24, \"nombre\": \"QA-FC-210530\", \"id_dispositivo_iot\": 12, \"es_activo\": true, \"categori"
+  },
+  {
+   "id": "F5",
+   "descripcion": "Especies compatibles de QA-FC",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensor\": 24, \"especies\": [{\"id_especie\": 2, \"nombre\": \"Bovino\"}]}"
+  },
+  {
+   "id": "F6",
+   "descripcion": "Asociar QA-FC al area",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_sensores_area_asociada\": 24, \"id_sensor\": 24, \"id_dispositivo_iot\": 12, \"id_infraestructura\": 12, \"punto_instalacio"
+  },
+  {
+   "id": "F7",
+   "descripcion": "Calibrar QA-FC (ganancia 1, offset 0)",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_calibracion\": 23, \"id_dispositivo_iot\": 12, \"id_sensor\": 24, \"valor_referencia\": 77.0, \"ganancia\": 1.0, \"offset\": 0"
+  },
+  {
+   "id": "F8",
+   "descripcion": "Asociar QA-FC al animal",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": "{\"id_asociacion_activo_sensor\": 12, \"id_activo_biologico\": 12, \"tipo_activo\": \"INDIVIDUAL\", \"tipo_asociacion\": \"directa\""
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-animal",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar asociacion sensor-animal",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "baja del animal",
+   "status": 201,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  },
+  {
+   "id": "LIMPIEZA",
+   "descripcion": "desactivar dispositivo",
+   "status": 200,
+   "error_code": null,
+   "resultado": "OK",
+   "detalle": ""
+  }
+ ],
+ "lecturas": [
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 37.99,
+   "ts": "2026-11-02T21:05:39.560Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4143,
+    "estado_calidad": "FUERA_DE_RANGO"
+   },
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "valor_ajustado": "37.9900",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 38.0,
+   "ts": "2026-11-02T21:05:40.420Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4144,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "38.0000",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 39.49,
+   "ts": "2026-11-02T21:05:41.215Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4145,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "39.4900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 39.5,
+   "ts": "2026-11-02T21:05:41.994Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4146,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "frontera normal/precaucion (inclusividad no definida)",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "39.5000",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 39.51,
+   "ts": "2026-11-02T21:05:42.792Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4147,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "39.5100",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 39.99,
+   "ts": "2026-11-02T21:05:43.617Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4148,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "39.9900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 40.0,
+   "ts": "2026-11-02T21:05:44.495Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4149,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "frontera precaucion/critico (inclusividad no definida)",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "40.0000",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 40.01,
+   "ts": "2026-11-02T21:05:45.269Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4150,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": 105,
+    "valor_ajustado": "40.0100",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 42.99,
+   "ts": "2026-11-02T21:05:46.053Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4151,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "42.9900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 43.0,
+   "ts": "2026-11-02T21:05:46.870Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4152,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "43.0000",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-TEMP-CORP",
+   "valor": 43.01,
+   "ts": "2026-11-02T21:05:47.762Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4153,
+    "estado_calidad": "FUERA_DE_RANGO"
+   },
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "valor_ajustado": "43.0100",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 39.99,
+   "ts": "2026-11-02T21:05:48.547Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4154,
+    "estado_calidad": "FUERA_DE_RANGO"
+   },
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "valor_ajustado": "39.9900",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 40,
+   "ts": "2026-11-02T21:05:49.332Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4155,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "40.0000",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 119.99,
+   "ts": "2026-11-02T21:05:50.131Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4160,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "normal -> VERDE",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "119.9900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 120,
+   "ts": "2026-11-02T21:05:50.953Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4162,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "frontera normal/precaucion (inclusividad no definida)",
+    "semaforo": "VERDE",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "120.0000",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 120.01,
+   "ts": "2026-11-02T21:05:51.793Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4163,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "120.0100",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 139.99,
+   "ts": "2026-11-02T21:05:52.615Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4164,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "precaucion -> AMARILLO",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "139.9900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 140,
+   "ts": "2026-11-02T21:05:53.370Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4165,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "frontera precaucion/critico (inclusividad no definida)",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "140.0000",
+    "resultado": "INFO"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 140.01,
+   "ts": "2026-11-02T21:05:54.179Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4166,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": 106,
+    "valor_ajustado": "140.0100",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 159.99,
+   "ts": "2026-11-02T21:05:54.945Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4167,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "159.9900",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 160,
+   "ts": "2026-11-02T21:05:55.770Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4168,
+    "estado_calidad": "LECTURA_VALIDA"
+   },
+   "verificacion": {
+    "esperado": "critico -> ROJO",
+    "semaforo": "ROJO",
+    "estado_calidad": "LECTURA_VALIDA",
+    "id_alerta": null,
+    "valor_ajustado": "160.0000",
+    "resultado": "PASA"
+   }
+  },
+  {
+   "sensor": "QA-FC",
+   "valor": 160.01,
+   "ts": "2026-11-02T21:05:56.561Z",
+   "http": 201,
+   "error_code": null,
+   "respuesta": {
+    "id_telemetria": 4169,
+    "estado_calidad": "FUERA_DE_RANGO"
+   },
+   "verificacion": {
+    "esperado": "fuera de [min,max]",
+    "semaforo": "AMARILLO",
+    "estado_calidad": "FUERA_DE_RANGO",
+    "id_alerta": null,
+    "valor_ajustado": "160.0100",
+    "resultado": "INFO"
+   }
+  }
+ ],
+ "nota": "Una primera ejecucion dio 401 en todas las lecturas (hora de captura anterior a la asociacion del sensor y sensores sin compatibilidad de especie) y se descarto; esta es la segunda corrida, valida. El area 12 queda como area fija de QA (un dispositivo, aun desactivado, impide desactivar su area). Dispositivos 11 y 12 desactivados; animales 11 y 12 con baja."
+}

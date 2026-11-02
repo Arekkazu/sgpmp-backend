@@ -1,0 +1,146 @@
+{
+ "ejecutado": "2026-11-02T15:57:11",
+ "ambiente": "https://api.inmero.co/api-sgpmp-dev",
+ "creados": {
+  "infra": 11,
+  "activos": [
+   8,
+   9,
+   10
+  ]
+ },
+ "pasos": [
+  {
+   "id": "C1",
+   "descripcion": "Crear area de 35 m2 con Bovino (densidad 0.1)",
+   "esperado": "201, capacidad_maxima=3 (floor(3.5))",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3 id=11"
+  },
+  {
+   "id": "C2",
+   "descripcion": "Registrar animal 1 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=8"
+  },
+  {
+   "id": "C3",
+   "descripcion": "Registrar animal 2 de 3 (capacidad 3)",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=9"
+  },
+  {
+   "id": "C4",
+   "descripcion": "Registrar animal 3 de 3 (capacidad 3) - LIMITE EXACTO",
+   "esperado": "201",
+   "status": 201,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "id_activo=10"
+  },
+  {
+   "id": "C5",
+   "descripcion": "Registrar animal 4 (un animal sobre el limite)",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-BOVINO-CAP-155705' superaría su capacidad efectiva (3 individuos = MIN d"
+  },
+  {
+   "id": "C6",
+   "descripcion": "Identificador duplicado",
+   "esperado": "409/422 por identificador repetido (no por otro motivo)",
+   "status": 409,
+   "error_code": "IDENTIFICADOR_DUPLICADO",
+   "resultado": "PASA",
+   "detalle": "El identificador 'QA-BOV-CAP-155705-1' ya está registrado en el sistema."
+  },
+  {
+   "id": "C7",
+   "descripcion": "Leer area: capacidad_maxima sigue 3",
+   "esperado": "capacidad_maxima=3",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C8",
+   "descripcion": "Reducir superficie a 30 m2 (capacidad 3) con 3 animales",
+   "esperado": "200 (limite)",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "capacidad_maxima=3"
+  },
+  {
+   "id": "C9",
+   "descripcion": "Reducir superficie a 29.99 m2 (capacidad 2) con 3 animales",
+   "esperado": "422 CAPACIDAD_EXCEDIDA",
+   "status": 422,
+   "error_code": "CAPACIDAD_EXCEDIDA",
+   "resultado": "PASA",
+   "detalle": "Capacidad excedida: la carga del área 'QA-FLUJO-BOVINO-CAP-155705' superaría su capacidad efectiva (2 individuos = MIN d"
+  },
+  {
+   "id": "C10",
+   "descripcion": "La superficie no cambio tras el rechazo",
+   "esperado": "superficie=30.00",
+   "status": 200,
+   "error_code": null,
+   "resultado": "PASA",
+   "detalle": "superficie=30.00"
+  },
+  {
+   "id": "C11",
+   "descripcion": "Area con Bovino + Ternero (ESPECIES_GRANDES + ESPECIES_MEDIANAS)",
+   "esperado": "422 GRUPOS_MANEJO_INCOMPATIBLES",
+   "status": 422,
+   "error_code": "GRUPOS_MANEJO_INCOMPATIBLES",
+   "resultado": "PASA",
+   "detalle": "Grupos de manejo incompatibles: el área 'QA-FLUJO-BOVINO-MIX-155705' aloja especies del grupo 'ESPECIES_GRANDES' y 'Tern"
+  },
+  {
+   "id": "L-activo-8",
+   "descripcion": "Limpieza: cerrar activo",
+   "status": 422,
+   "error_code": "SIN_FASE_ACTIVA",
+   "resultado": "REVISAR",
+   "detalle": "El activo no presenta una fase productiva activa. Verifique la integridad del ciclo de vida antes de"
+  },
+  {
+   "id": "L-activo-9",
+   "descripcion": "Limpieza: cerrar activo",
+   "status": 422,
+   "error_code": "SIN_FASE_ACTIVA",
+   "resultado": "REVISAR",
+   "detalle": "El activo no presenta una fase productiva activa. Verifique la integridad del ciclo de vida antes de"
+  },
+  {
+   "id": "L-activo-10",
+   "descripcion": "Limpieza: cerrar activo",
+   "status": 422,
+   "error_code": "SIN_FASE_ACTIVA",
+   "resultado": "REVISAR",
+   "detalle": "El activo no presenta una fase productiva activa. Verifique la integridad del ciclo de vida antes de"
+  },
+  {
+   "id": "L-infra-11",
+   "descripcion": "Limpieza: desactivar area",
+   "status": 422,
+   "error_code": "INFRAESTRUCTURA_CON_DEPENDENCIAS",
+   "resultado": "REVISAR",
+   "detalle": "El área 'QA-FLUJO-BOVINO-CAP-155705' tiene dispositivos y/o activos biológicos asociados. Debe desvi"
+  }
+ ],
+ "nota_limpieza": "En esta ejecucion la limpieza con cierre de ciclo fallo (422 SIN_FASE_ACTIVA) y el area no se pudo desactivar (422 INFRAESTRUCTURA_CON_DEPENDENCIAS). Se limpio a mano: baja (tipo perdida) de los activos 8, 9, 10 y desactivar el area 11. El script ya usa la baja. Un area desactivada conserva su nombre (409 RECURSO_DUPLICADO), por eso los nombres llevan sufijo. Quedan en DEV, desactivadas, las areas 9 (ensayo previo, sin activos) y 11."
+}

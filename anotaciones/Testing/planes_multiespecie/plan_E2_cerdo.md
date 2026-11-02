@@ -2,6 +2,8 @@
 
 Estado: borrador del 2026-10-27. Clasificacion sujeta a confirmacion donde diga *por confirmar*.
 
+Datos detallados de la prueba (modelo y métricas, población por área, sensores, umbrales, lecturas, estados e inventario): [datos_E2_cerdo.md](datos_E2_cerdo.md).
+
 ## 1. Ficha
 
 | Campo | Valor |
