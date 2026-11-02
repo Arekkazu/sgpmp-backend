@@ -21,6 +21,7 @@
 # | 2026-11-02 | Arekkazu | RF-66: router de lo que ve la cámara de un área |
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas internas para que el motor IA arme su catálogo solo |
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: registrar el router de lectura de ingesta |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: vigilante de reentrenamientos sin latido |
 import asyncio
 import logging
 import os
@@ -150,6 +151,35 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vigilar_reentrenamientos_periodicamente() -> None:
+    """AJF-14 BE-5: un reentrenamiento EN_CURSO sin latido por más de 15 min pasa a
+    INTERRUMPIDO (el contenedor del motor se reinició a mitad). Cada 5 min."""
+    from src.shared.database import sesion_sistema
+    from src.prediction.application.use_cases.reentrenamiento.procesar_reentrenamiento_use_case import (
+        ProcesarReentrenamientoUseCase,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+    from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+        SqlAlchemyProcesoReentrenamientoRepository,
+    )
+
+    while True:
+        await asyncio.sleep(300)
+        db = sesion_sistema()
+        try:
+            use_case = ProcesarReentrenamientoUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+            )
+            n = await asyncio.to_thread(use_case.vigilar)
+            if n > 0:
+                logger.warning('VigilarReentrenamientos: %d procesos sin latido pasaron a INTERRUMPIDO.', n)
+        except Exception:
+            logger.exception('VigilarReentrenamientos: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -779,6 +809,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
         asyncio.create_task(_liberar_ota_programadas_periodicamente()),
+        asyncio.create_task(_vigilar_reentrenamientos_periodicamente()),
         asyncio.create_task(reenviar_paquetes_inferencia_periodicamente()),
     ]
     yield

@@ -8,13 +8,16 @@
 # | 2026-10-31 | Arekkazu     | RF-71: estado de datos para reentrenar los modelos individuales |
 # | 2026-10-31 | Arekkazu     | RF-71/RF-73: solicitar el reentrenamiento (evento de auditoría) |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
   POST  /prediccion/modelos                     — Registro interno desde RF-71 (multipart/form-data)
   GET   /prediccion/modelos                     — Listar versiones (filtros: tipo_modelo, estado)
   GET   /prediccion/modelos/reentrenamiento     — Datos nuevos para reentrenar (RF-71)
-  POST  /prediccion/modelos/reentrenamiento/solicitudes — Solicitar reentrenamiento (RF-71/RF-73)
+  POST  /prediccion/modelos/reentrenamiento/solicitudes — Solicitar reentrenamiento (RF-71/RF-73); por animal abre un proceso (AJF-14)
+  GET   /prediccion/modelos/reentrenamiento/procesos — Procesos de reentrenamiento con fases (AJF-14)
+  GET   /prediccion/modelos/reentrenamiento/procesos/{id} — Un proceso (AJF-14)
   GET   /prediccion/modelos/{id_version}        — Obtener versión por id
   PATCH /prediccion/modelos/{id_version}/notas  — Registrar notas de validación clínica
   POST  /prediccion/modelos/{id_version}/activar — Activar versión APROBADA o en SOMBRA (atómico)
@@ -28,6 +31,7 @@ Autorización RBAC:
 from __future__ import annotations
 
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Response
 from sqlalchemy.orm import Session
@@ -60,7 +64,20 @@ from src.prediction.infrastructure.schema.estado_reentrenamiento_schema import (
 )
 from src.prediction.infrastructure.schema.version_modelo_schema import VersionModeloListResponse, VersionModeloResponse
 from src.shared.database import get_db, get_db_sistema
+from src.shared.fechas import FechaHoraUtc
 from src.shared.rbac import require_permission
+from src.prediction.application.use_cases.reentrenamiento.consultar_procesos_reentrenamiento_use_case import (
+    ConsultarProcesosReentrenamientoUseCase,
+)
+from src.prediction.application.use_cases.reentrenamiento.solicitar_reentrenamiento_animal_use_case import (
+    SolicitarReentrenamientoAnimalUseCase,
+)
+from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+    SqlAlchemyProcesoReentrenamientoRepository,
+)
+from src.prediction.infrastructure.schema.proceso_reentrenamiento_schema import (
+    ListaProcesosReentrenamientoResponse, ProcesoReentrenamientoResponse,
+)
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/prediccion/modelos", tags=["Predicción M04 - Versiones de Modelos IA"])
@@ -173,7 +190,9 @@ def _estado_reentrenamiento(db: Session) -> ConsultarEstadoReentrenamientoUseCas
         400: {"model": ErrorResponse, "description": "tipo_modelo no es un modelo individual"},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
-        422: {"model": ErrorResponse, "description": "DATOS_INSUFICIENTES_REENTRENAMIENTO (menos del mínimo)"},
+        404: {"model": ErrorResponse, "description": "ACTIVO_NO_ENCONTRADO (por animal)"},
+        409: {"model": ErrorResponse, "description": "REENTRENAMIENTO_EN_CURSO: el animal ya tiene un proceso abierto"},
+        422: {"model": ErrorResponse, "description": "DATOS_INSUFICIENTES_REENTRENAMIENTO o LECTURAS_INSUFICIENTES"},
     },
     summary="Solicitar el reentrenamiento de un modelo individual (RF-71, queda en la bitácora RF-73)",
 )
@@ -188,8 +207,54 @@ def solicitar_reentrenamiento(
         db=db, estado_use_case=_estado_reentrenamiento(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
+    if dto.id_activo_biologico is not None:
+        # AJF-14 BE-1: por animal abre el proceso que ejecuta el motor de IA.
+        estado, id_evento, proceso = SolicitarReentrenamientoAnimalUseCase(
+            db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+            estado_use_case=_estado_reentrenamiento(db), auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+        ).execute(id_activo_biologico=dto.id_activo_biologico, motivo=dto.motivo, id_usuario=usuario_actual.id_usuario)
+        return SolicitudReentrenamientoResponse(
+            id_evento=id_evento, estado=EstadoReentrenamientoResponse.from_entity(estado),
+            id_proceso_reentrenamiento=proceso.id_proceso_reentrenamiento)
     estado, id_evento = use_case.execute(dto.tipo_modelo, dto.motivo, usuario_actual.id_usuario)
     return SolicitudReentrenamientoResponse(id_evento=id_evento, estado=EstadoReentrenamientoResponse.from_entity(estado))
+
+
+@router.get(
+    "/reentrenamiento/procesos",
+    response_model=ListaProcesosReentrenamientoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}},
+    summary="Procesos de reentrenamiento con sus fases (RF-71)",
+)
+def listar_procesos_reentrenamiento(
+    tipo_modelo: Optional[str] = Query(None),
+    id_activo_biologico: Optional[int] = Query(None, gt=0),
+    estado: Optional[str] = Query(None, description="PENDIENTE | EN_CURSO | COMPLETADO | FALLIDO | INTERRUMPIDO | CANCELADO"),
+    desde: Optional[FechaHoraUtc] = Query(None),
+    hasta: Optional[FechaHoraUtc] = Query(None),
+    pagina: int = Query(1),
+    por_pagina: int = Query(20),
+    db: Session = Depends(get_db),
+) -> ListaProcesosReentrenamientoResponse:
+    """AJF-14 BE-4: lo que ve la pantalla de Reentrenamiento. La RLS limita a los animales de las fincas del usuario."""
+    items, total = ConsultarProcesosReentrenamientoUseCase(SqlAlchemyProcesoReentrenamientoRepository(db)).listar(
+        tipo_modelo=tipo_modelo, id_activo_biologico=id_activo_biologico, estado=estado, desde=desde, hasta=hasta,
+        pagina=pagina, por_pagina=por_pagina)
+    return ListaProcesosReentrenamientoResponse(
+        items=[ProcesoReentrenamientoResponse.from_entity(p) for p in items], total=total, pagina=pagina, por_pagina=por_pagina)
+
+
+@router.get(
+    "/reentrenamiento/procesos/{id_proceso}",
+    response_model=ProcesoReentrenamientoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Un proceso de reentrenamiento con sus fases (RF-71)",
+)
+def obtener_proceso_reentrenamiento(id_proceso: UUID, db: Session = Depends(get_db)) -> ProcesoReentrenamientoResponse:
+    return ProcesoReentrenamientoResponse.from_entity(
+        ConsultarProcesosReentrenamientoUseCase(SqlAlchemyProcesoReentrenamientoRepository(db)).obtener(id_proceso))
 
 
 @router.get(

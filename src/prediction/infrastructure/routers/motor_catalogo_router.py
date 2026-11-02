@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas para que el motor IA arme su catálogo solo    |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
 """Rutas internas del motor IA (``motor-ia``): con ellas arma su catálogo sin ``catalogo.json``.
 
 Token ``IOT_INFERENCIA_M04_TOKEN``, sin usuario ni RBAC (como ``POST /prediccion/inferencias``).
@@ -9,13 +10,18 @@ Token ``IOT_INFERENCIA_M04_TOKEN``, sin usuario ni RBAC (como ``POST /prediccion
   POST /prediccion/motor/activos/{id}/version          — copia en SOMBRA para un animal sin versión (RFC-010).
   GET  /prediccion/motor/versiones/{id}/artefacto      — el ``.onnx`` de una versión ACTIVO o SOMBRA.
   GET  /prediccion/motor/activos/{id}/lecturas?horas=  — lecturas para calibrar su línea base (ET-02).
+  GET  /prediccion/motor/activos/{id}/retroalimentaciones — diagnósticos vigentes del animal (AJF-14, RF-72).
+  POST /prediccion/motor/reentrenamientos/tomar        — toma el proceso PENDIENTE más antiguo (204 si no hay).
+  PATCH /prediccion/motor/reentrenamientos/{id}        — latido (fase, progreso, recursos) o cierre.
 """
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query
+import uuid
+
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -30,6 +36,15 @@ from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository 
     SqlAlchemyEventoAuditoriaM04Repository,
 )
 from src.prediction.infrastructure.repositories.version_modelo_repository import SqlAlchemyVersionModeloRepository
+from src.prediction.application.use_cases.reentrenamiento.procesar_reentrenamiento_use_case import (
+    ActualizacionProceso, ProcesarReentrenamientoUseCase,
+)
+from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+    SqlAlchemyProcesoReentrenamientoRepository,
+)
+from src.prediction.infrastructure.schema.proceso_reentrenamiento_schema import (
+    ActualizarProcesoDTO, ProcesoReentrenamientoResponse, RetroalimentacionesMotorResponse,
+)
 from src.shared.broker_auth import require_token_servicio_motor_ia
 from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
@@ -131,3 +146,45 @@ def lecturas(
     return LecturasMotorResponse(
         lecturas=CatalogoMotorM02Adapter(db).lecturas(id_activo, hasta - timedelta(hours=horas), hasta)
     )
+
+
+def _procesar(db: Session) -> ProcesarReentrenamientoUseCase:
+    return ProcesarReentrenamientoUseCase(db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                                          auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db))
+
+
+@router.get(
+    "/activos/{id_activo}/retroalimentaciones",
+    response_model=RetroalimentacionesMotorResponse,
+    summary="Diagnósticos clínicos vigentes del animal con la ventana de su inferencia (AJF-14, RF-72)",
+)
+def retroalimentaciones(id_activo: int, db: Session = Depends(get_db_sistema)) -> RetroalimentacionesMotorResponse:
+    """Insumo de ``feat_real_etiquetado``: con ellas el pipeline retira lo sintético (RF-72)."""
+    return RetroalimentacionesMotorResponse(
+        retroalimentaciones=SqlAlchemyProcesoReentrenamientoRepository(db).retroalimentaciones_verificadas(id_activo))
+
+
+@router.post(
+    "/reentrenamientos/tomar",
+    response_model=ProcesoReentrenamientoResponse,
+    responses={204: {"description": "No hay procesos pendientes."}},
+    summary="Tomar el reentrenamiento pendiente más antiguo (AJF-14, RF-71)",
+)
+def tomar_reentrenamiento(db: Session = Depends(get_db_sistema)):
+    proceso = _procesar(db).tomar()
+    if proceso is None:
+        return Response(status_code=204)
+    return ProcesoReentrenamientoResponse.from_entity(proceso)
+
+
+@router.patch(
+    "/reentrenamientos/{id_proceso}",
+    response_model=ProcesoReentrenamientoResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    summary="Latido o cierre de un reentrenamiento (AJF-14, RF-71)",
+)
+def actualizar_reentrenamiento(id_proceso: uuid.UUID, dto: ActualizarProcesoDTO,
+                               db: Session = Depends(get_db_sistema)) -> ProcesoReentrenamientoResponse:
+    proceso = _procesar(db).actualizar(id_proceso, ActualizacionProceso(**dto.model_dump()))
+    return ProcesoReentrenamientoResponse.from_entity(proceso)
+
