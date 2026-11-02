@@ -4,6 +4,7 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra del resultado                                   |
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
+# | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
 """Read-models del monitor de predicción (RF-66) y del riesgo de contagio (RF-68).
 
 El monitor y la pestaña de contagio pintaban datos simulados (monitorMock.ts,
@@ -51,6 +52,15 @@ class InferenciaMonitor:
     nombres_patologias: Optional[dict] = None
     #: Área actual del activo: con ella el front pide lo que ve su cámara.
     id_infraestructura: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class IndicadoresInferencias:
+    """AJF-10: totales del periodo filtrado (no solo de la página): para los KPIs del monitor."""
+    total: int
+    en_riesgo: int  # nivel moderado (2) o alto (3)
+    con_alerta: int
+    animales_distintos: int
 
 
 @dataclass(frozen=True)
