@@ -1,3 +1,9 @@
+## [1.4.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.32...v1.4.0-rc.33) (2026-11-02)
+
+### Features
+
+* **rf-110:** editar una arista de transmisión (vía, dirección, intensidad, barrera) ([c2946e5](https://github.com/Arekkazu/sgpmp-backend/commit/c2946e5bf5397edc81a661d1a8ec0bef875e60a6))
+
 ## [1.4.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.31...v1.4.0-rc.32) (2026-11-02)
 
 ### Features
