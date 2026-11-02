@@ -1,3 +1,9 @@
+## [1.4.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.33...v1.4.0-rc.34) (2026-11-02)
+
+### Features
+
+* **rf-66:** modelo POBLACIONAL — puntaje de anomalía del área por visión y contagio (RF-68) ([53799ad](https://github.com/Arekkazu/sgpmp-backend/commit/53799ad69f53048815e1d5b73ae0f094622871c5))
+
 ## [1.4.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.32...v1.4.0-rc.33) (2026-11-02)
 
 ### Features
