@@ -8,6 +8,7 @@
 # | 2026-10-30 | Leandro | INC-M04-220-G032 RF-68: documentar recálculo inmediato 201 y retirar el 429 de frecuencia obsoleto. |
 # | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: documentar activación RF-65 y respuesta sin caché del perfil MVP. |
 # | 2026-11-02 | Arekkazu | RFC-021 C21.4: el cálculo manual también suma la exposición a focos vecinos |
+# | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
 """Router FastAPI del Modelo 4 — riesgo de contagio (RF-68).
 
   POST /prediccion/riesgo-contagio — Ejecutar el modelo para un lote
@@ -116,11 +117,13 @@ def listar_riesgo_contagio(
     desde: Optional[FechaHoraUtc] = Query(default=None),
     hasta: Optional[FechaHoraUtc] = Query(default=None),
     limite: int = Query(default=50, description="Máximo 200; los más recientes primero."),
+    por_activo: Optional[int] = Query(default=None, description="Las N más recientes de CADA animal o lote (1 a 50); limite no aplica. Para Estado sanitario."),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[RiesgoContagioMonitorResponse]:
     fincas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(usuario_actual.id_usuario, usuario_actual.id_rol)
     items = ListarRiesgoContagioUseCase(SqlAlchemyMonitorPrediccionRepository(db)).execute(
         ids_fincas=fincas, nivel_riesgo=nivel_riesgo, desde=desde, hasta=hasta, limite=limite,
+        por_activo=por_activo,
     )
     return [RiesgoContagioMonitorResponse.model_validate(i) for i in items]
