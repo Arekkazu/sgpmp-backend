@@ -1,3 +1,9 @@
+## [1.4.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.31...v1.4.0-rc.32) (2026-11-02)
+
+### Features
+
+* **rfc-021:** RF-110 aristas de transmisión entre áreas y exposición en RF-68 (C21.1/C21.4) ([738795d](https://github.com/Arekkazu/sgpmp-backend/commit/738795d2104aa9e57a5d9f4dce34efde04311322))
+
 ## [1.4.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.30...v1.4.0-rc.31) (2026-11-02)
 
 ### Features
