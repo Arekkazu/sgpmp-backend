@@ -3,6 +3,7 @@
 # | 2026-10-29 | Arekkazu | PEND-456 RF-66/RF-68: monitor de predicción con datos reales       |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra del resultado                                   |
+# | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 """Read-models del monitor de predicción (RF-66) y del riesgo de contagio (RF-68).
 
 El monitor y la pestaña de contagio pintaban datos simulados (monitorMock.ts,
@@ -48,6 +49,8 @@ class InferenciaMonitor:
     modo_sombra: bool
     # T-18: probabilidad_enfermedad viene por id_patologia ("8"); su nombre para mostrarlo.
     nombres_patologias: Optional[dict] = None
+    #: Área actual del activo: con ella el front pide lo que ve su cámara.
+    id_infraestructura: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -77,3 +80,4 @@ class RiesgoContagioMonitor:
     id_alerta_generada: Optional[int]
     # Trazabilidad del cálculo (definicion_fs, motivos_degradacion, config_version, id_alerta_rf57...).
     detalle_calculo: Optional[dict]
+    id_infraestructura: Optional[int] = None

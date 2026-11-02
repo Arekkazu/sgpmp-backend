@@ -5,6 +5,7 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 N-04 RF-68: el listado de contagio tolera JSONB con otra forma |
 # | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
 # | 2026-11-02 | Arekkazu | RF-64/RF-66: nombre de la clase fundida de ET-02 ("10+11")         |
+# | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -18,7 +19,7 @@ from src.shared.db_error_translator import raise_from_db_error
 # El activo se ubica en su área y finca actuales (M02); los filtros van como parámetros.
 _SQL_INFERENCIAS = text("""
     SELECT r.id_resultado_inferencia, r.id_activo_biologico, ab.identificador AS identificador_activo,
-           i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
+           ab.id_infraestructura, i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.tipo_modelo, r.id_version_modelo, v.nombre_version, r.nivel_riesgo, r.probabilidad_riesgo,
            r.id_patologia, p.nombre AS nombre_patologia, r.probabilidad_enfermedad, r.confianza_global,
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
@@ -51,7 +52,7 @@ _SQL_INFERENCIAS = text("""
 
 _SQL_CONTAGIO = text("""
     SELECT r.id_resultado_contagio, r.id_activo_biologico, ab.identificador AS identificador_activo,
-           i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
+           ab.id_infraestructura, i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.probabilidad_contagio, r.nivel_riesgo_contagio, r.factor_sanitario_fs, r.factor_ambiental_fa,
            r.factor_densidad_fd, r.w_fs_aplicado, r.w_fa_aplicado, r.w_fd_aplicado, r.confianza_baja,
            r.data_quality_score, r.factores_ausentes, r.modo_ejecucion_calculo, r.n_enfermos_detectados,
