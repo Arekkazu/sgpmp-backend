@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: repositorio SQLAlchemy de aristas de transmisión |
+# | 2026-11-02 | Arekkazu | RF-110: editar vía, dirección, intensidad y barrera de una arista |
 """Bajo RLS: solo ve las aristas cuya área de origen es del usuario (o el usuario de servicio)."""
 from __future__ import annotations
 
@@ -41,6 +42,11 @@ class SqlAlchemyAristaTransmisionRepository(AristaTransmisionRepository):
     def actualizar(self, arista: AristaTransmision) -> AristaTransmision:
         try:
             orm = self.db.get(AristaTransmisionModel, arista.id_arista_transmision)
+            orm.via = arista.via
+            orm.direccion = arista.direccion
+            orm.intensidad = arista.intensidad
+            orm.factor_barrera = arista.factor_barrera
+            orm.descripcion = arista.descripcion
             orm.es_activo = arista.es_activo
             orm.fecha_actualizacion = arista.fecha_actualizacion
             self.db.flush()

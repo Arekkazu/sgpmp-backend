@@ -1,10 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: API de aristas de transmisión entre áreas  |
+# | 2026-11-02 | Arekkazu | RF-110: PATCH para editar vía, dirección, intensidad y barrera    |
 """Topología sanitaria de la finca (RF-110, RFC-021): por dónde puede pasar una enfermedad entre áreas.
 
   POST  /configuracion/topologia-sanitaria/aristas                — Declarar una arista
   GET   /configuracion/topologia-sanitaria/aristas?id_finca=      — Aristas activas de la finca
+  PATCH /configuracion/topologia-sanitaria/aristas/{id}            — Editar vía, dirección, intensidad o barrera
   PATCH /configuracion/topologia-sanitaria/aristas/{id}/desactivar — Desactivar
 
 RBAC: id_recurso=87 (topologia_sanitaria, migración 33ae7f41e560).
@@ -19,6 +21,9 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.topologia.desactivar_arista_transmision_use_case import (
     DesactivarAristaTransmisionUseCase,
 )
+from src.configuration.application.use_cases.topologia.editar_arista_transmision_use_case import (
+    EditarAristaTransmisionUseCase,
+)
 from src.configuration.application.use_cases.topologia.listar_aristas_transmision_use_case import (
     ListarAristasTransmisionUseCase,
 )
@@ -26,7 +31,10 @@ from src.configuration.application.use_cases.topologia.registrar_arista_transmis
     RegistrarAristaTransmisionUseCase,
 )
 from src.configuration.domain.entities.arista_transmision import AristaTransmision
-from src.configuration.infrastructure.dto.registrar_arista_transmision_dto import RegistrarAristaTransmisionDTO
+from src.configuration.infrastructure.dto.registrar_arista_transmision_dto import (
+    EditarAristaTransmisionDTO,
+    RegistrarAristaTransmisionDTO,
+)
 from src.configuration.infrastructure.repositories.arista_transmision_repository import (
     SqlAlchemyAristaTransmisionRepository,
 )
@@ -92,6 +100,28 @@ def listar_aristas(
         id_finca, _alcance(db, usuario_actual),
     )
     return [_respuesta(a) for a in aristas]
+
+
+@router.patch(
+    "/aristas/{id_arista_transmision}",
+    response_model=AristaTransmisionResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse},
+               409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    summary="Editar una arista de transmisión (RF-110)",
+)
+def editar_arista(
+    id_arista_transmision: int,
+    dto: EditarAristaTransmisionDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> AristaTransmisionResponse:
+    """Solo cambian los campos enviados. 404 si la arista no existe o es de un área ajena; 422 si está
+    inactiva o no se envió nada; 409 si con la nueva vía repite otra arista activa."""
+    arista = EditarAristaTransmisionUseCase(db, SqlAlchemyAristaTransmisionRepository(db)).execute(
+        id_arista_transmision, dto,
+    )
+    return _respuesta(arista)
 
 
 @router.patch(

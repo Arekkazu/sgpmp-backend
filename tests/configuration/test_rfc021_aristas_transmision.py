@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo                                                     |
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110 C21.1: validaciones de las aristas de transmisión |
+# | 2026-11-02 | Arekkazu | RF-110: editar una arista                                       |
 """RF-110 mínimo: una arista une dos áreas activas, accesibles y de la misma finca."""
 from __future__ import annotations
 
@@ -13,6 +14,9 @@ import pytest
 from src.configuration.application.use_cases.topologia.desactivar_arista_transmision_use_case import (
     DesactivarAristaTransmisionUseCase,
 )
+from src.configuration.application.use_cases.topologia.editar_arista_transmision_use_case import (
+    EditarAristaTransmisionUseCase,
+)
 from src.configuration.application.use_cases.topologia.listar_aristas_transmision_use_case import (
     ListarAristasTransmisionUseCase,
 )
@@ -20,7 +24,10 @@ from src.configuration.application.use_cases.topologia.registrar_arista_transmis
     RegistrarAristaTransmisionUseCase,
 )
 from src.configuration.domain.entities.arista_transmision import AristaTransmision
-from src.configuration.infrastructure.dto.registrar_arista_transmision_dto import RegistrarAristaTransmisionDTO
+from src.configuration.infrastructure.dto.registrar_arista_transmision_dto import (
+    EditarAristaTransmisionDTO,
+    RegistrarAristaTransmisionDTO,
+)
 from src.shared.errors import BusinessRuleError, NotFoundError
 
 AREAS = {
@@ -73,3 +80,30 @@ def test_listar_fuera_del_alcance_es_404_y_desactivar_dos_veces_es_422():
     assert uc.execute(1).es_activo is False
     with pytest.raises(BusinessRuleError):
         uc.execute(1)
+
+
+def test_editar_cambia_solo_lo_enviado_y_rechaza_inactiva_o_vacia():
+    arista = AristaTransmision(2, 4, "PROXIMIDAD", "BIDIRECCIONAL", Decimal("0.4"), id_arista_transmision=2)
+    repo = Mock()
+    repo.obtener_por_id.return_value = arista
+    repo.actualizar.side_effect = lambda a: a
+    db = Mock()
+    uc = EditarAristaTransmisionUseCase(db, repo)
+
+    editada = uc.execute(2, EditarAristaTransmisionDTO(intensidad=Decimal("0.5"), factor_barrera=Decimal("0.8")))
+    assert (editada.via, editada.direccion, editada.peso) == ("PROXIMIDAD", "BIDIRECCIONAL", Decimal("0.4"))
+    assert editada.fecha_actualizacion is not None
+    db.commit.assert_called_once()
+    # null en un campo obligatorio no lo borra; en la descripción sí.
+    assert EditarAristaTransmisionDTO(via=None, descripcion=None).cambios() == {"descripcion": None}
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(2, EditarAristaTransmisionDTO())
+    assert exc.value.code == "ARISTA_SIN_CAMBIOS"
+    arista.desactivar()
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(2, EditarAristaTransmisionDTO(intensidad=Decimal("0.3")))
+    assert exc.value.code == "ARISTA_INACTIVA"
+    repo.obtener_por_id.return_value = None
+    with pytest.raises(NotFoundError):
+        uc.execute(9, EditarAristaTransmisionDTO(intensidad=Decimal("0.3")))
