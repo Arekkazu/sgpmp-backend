@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: procesos de reentrenamiento (solicitud por animal, toma, latido, cierre, vigilante) |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 """AJF-14: la solicitud por animal abre un proceso que el motor de IA toma, reporta y cierra."""
 from __future__ import annotations
 
@@ -243,3 +244,59 @@ def test_las_lecturas_se_cuentan_con_el_repositorio_de_sistema():
     _, _, p = uc.execute(id_activo_biologico=4, motivo=None, id_usuario=9, ahora=T0)
     assert p.estado == "PENDIENTE"
 
+
+
+# ── BE-6: disparador PROGRAMADO ──────────────────────────────────────────────
+
+class _Parametros:
+    def __init__(self, dias=None):
+        self.dias = dias
+
+    def obtener(self, nombres):
+        from src.configuration.domain.entities.parametro_mlops import ParametroMLOps
+        return {} if self.dias is None else {n: ParametroMLOps(n, self.dias) for n in nombres}
+
+
+class _ProcesosConCandidatos(_Procesos):
+    def __init__(self, candidatos, **kw):
+        super().__init__(**kw)
+        self.candidatos = candidatos
+
+    def candidatos_programados(self, dias):
+        self.dias_pedidos = dias
+        return self.candidatos
+
+
+def _programar(dias, candidatos, horas=24 * 10):
+    from src.prediction.application.use_cases.reentrenamiento.programar_reentrenamientos_use_case import (
+        ProgramarReentrenamientosUseCase,
+    )
+    procesos, aud = _ProcesosConCandidatos(candidatos, horas=horas), _Auditoria()
+    uc = ProgramarReentrenamientosUseCase(db=_Db(), procesos=procesos, parametros=_Parametros(dias),
+                                          auditoria_repo=aud, dias_minimos_lecturas=7)
+    return uc.execute(ahora=T0), procesos, aud
+
+
+def test_programado_apagado_por_defecto():
+    n, procesos, _ = _programar(None, [(4, GRANDES)])
+    assert n == 0 and procesos.filas == {}
+
+
+def test_programado_abre_procesos_con_disparador_programado_y_sin_usuario():
+    n, procesos, aud = _programar(30, [(4, GRANDES), (5, GRANDES)])
+    assert n == 2 and procesos.dias_pedidos == 30
+    assert {p.disparador for p in procesos.filas.values()} == {"PROGRAMADO"}
+    assert all(p.id_usuario_solicitante is None for p in procesos.filas.values())
+    assert aud.eventos[0]["tipo_actor"] == "SISTEMA"
+
+
+def test_programado_salta_animales_sin_dias_de_lecturas():
+    n, procesos, _ = _programar(30, [(4, GRANDES)], horas=24)
+    assert n == 0 and procesos.filas == {}
+
+
+def test_el_parametro_programado_se_configura_desde_m09():
+    from src.configuration.application.use_cases.configuracion_global.parametros_retroalimentacion_use_case import (
+        PARAMETROS_RETROALIMENTACION,
+    )
+    assert PARAMETROS_RETROALIMENTACION["dias_reentrenamiento_programado"][0] == 0

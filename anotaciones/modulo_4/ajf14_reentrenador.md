@@ -48,7 +48,10 @@ Fases (`FASES` en `proceso_reentrenamiento.py`): 1 ACTIVACION · 2 DATASET · 3 
   `REENTRENAMIENTO_DIAS_MINIMOS_LECTURAS` (backend) y `MOTOR_IA_ENTRENAMIENTO_DIAS_CALIBRACION` (motor).
 - **BE-3 sin tocar el registro:** al cerrar COMPLETADO sin `id_version_modelo`, el backend toma la
   versión registrada con `id_proceso_rf71` = id del proceso.
-- **BE-6 (disparador PROGRAMADO) no se hizo** en v1: depende de P-9.
+- **BE-6 (disparador PROGRAMADO):** cada hora, los animales atendidos por el motor cuya versión vigente
+  tiene más de `dias_reentrenamiento_programado` días (parámetro MLOps, editable en Configuración →
+  ventana de retroalimentación) y sin proceso abierto reciben un proceso PROGRAMADO (máx. 5 por pasada,
+  `REENTRENAMIENTO_PROGRAMADO_MAXIMO`). **Valor base 0 = apagado** hasta que se decida la frecuencia (P-9).
 
 ## Pendientes (abiertos en el plan)
 
@@ -60,7 +63,7 @@ Fases (`FASES` en `proceso_reentrenamiento.py`): 1 ACTIVACION · 2 DATASET · 3 
   resultados.
 - **P-7** Contenedor propio para el reentrenador (recomendado) — lo decide Implementación.
 - **P-8** Quién solicita: hoy, quien tenga 43·E (Administrador y Veterinario).
-- **P-9** Disparador PROGRAMADO.
+- **P-9** Frecuencia del disparador PROGRAMADO: el código está; se prende poniendo el número de días en Configuración.
 
 ## CURLs
 

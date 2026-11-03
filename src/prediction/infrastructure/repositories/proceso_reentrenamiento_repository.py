@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: persistencia de procesos de reentrenamiento y lecturas de apoyo |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 from __future__ import annotations
 
 import copy
@@ -47,6 +48,31 @@ _SQL_HORAS_LECTURAS = text("""
       AND t.timestamp_captura >= now() - interval '14 days'
 """)
 
+
+# BE-6: los mismos animales que atiende el motor (catálogo), con versión vigente vieja y sin proceso abierto.
+_SQL_CANDIDATOS_PROGRAMADOS = text("""
+    SELECT ab.id_activo_biologico, i.tipo_modelo_asignado::text AS tipo_modelo
+    FROM modulo2.activos_biologicos ab
+    JOIN modulo2.estados_activos_biologicos ea ON ea.id_estado_activo_biologico = ab.id_estado
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    JOIN LATERAL (
+        SELECT COALESCE(v.fecha_entrenamiento, v.fecha_registro) AS fecha
+        FROM modulo4.versiones_modelos v
+        WHERE v.id_activo_biologico = ab.id_activo_biologico
+          AND v.tipo_modelo::text = i.tipo_modelo_asignado::text
+          AND v.estado_version::text IN ('ACTIVO', 'SOMBRA')
+        ORDER BY (v.estado_version::text = 'ACTIVO') DESC, v.id_version_modelo DESC
+        LIMIT 1
+    ) v ON true
+    WHERE ab.tipo::text = 'INDIVIDUAL'
+      AND ea.nombre = ANY(CAST(:estados AS text[]))
+      AND i.tipo_modelo_asignado::text = ANY(CAST(:tipos AS text[]))
+      AND v.fecha < now() - make_interval(days => :dias)
+      AND NOT EXISTS (
+          SELECT 1 FROM modulo4.procesos_reentrenamiento p
+          WHERE p.id_activo_biologico = ab.id_activo_biologico AND p.estado IN ('PENDIENTE', 'EN_CURSO'))
+    ORDER BY v.fecha
+""")
 
 # RF-72: diagnósticos vigentes con la ventana de la inferencia a la que responden
 # (el pipeline los alinea con las ventanas de lecturas para la regla de retiro).
@@ -196,6 +222,15 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             return float(self._db.execute(_SQL_HORAS_LECTURAS, {"id": id_activo_biologico}).scalar() or 0)
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def candidatos_programados(self, dias):
+        from src.prediction.infrastructure.adapters.catalogo_motor_m02_adapter import ESTADOS_ATENDIDOS, TIPOS_INDIVIDUALES
+        try:
+            filas = self._db.execute(_SQL_CANDIDATOS_PROGRAMADOS, {
+                "dias": dias, "estados": list(ESTADOS_ATENDIDOS), "tipos": list(TIPOS_INDIVIDUALES)}).all()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        return [(f[0], f[1]) for f in filas]
 
     def version_de_proceso(self, id_proceso):
         try:

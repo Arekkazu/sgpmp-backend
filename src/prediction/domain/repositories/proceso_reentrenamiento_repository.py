@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: puerto de procesos de reentrenamiento |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 from __future__ import annotations
 
 import uuid
@@ -48,6 +49,11 @@ class ProcesoReentrenamientoRepository(ABC):
     def horas_de_lecturas(self, id_activo_biologico: int) -> float:
         """Horas entre la primera y la última lectura válida de los sensores directos del animal
         (14 días). Se pide con la sesión de sistema: es una regla del motor, no lo que ve el usuario."""
+
+    @abstractmethod
+    def candidatos_programados(self, dias: int) -> list[tuple[int, str]]:
+        """BE-6: (animal, tipo de modelo) individuales atendidos cuya versión vigente tiene más de
+        ``dias`` días y que no tienen un proceso abierto."""
 
     @abstractmethod
     def version_de_proceso(self, id_proceso: uuid.UUID) -> Optional[int]:
