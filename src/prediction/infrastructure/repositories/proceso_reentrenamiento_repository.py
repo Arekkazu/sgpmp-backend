@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: persistencia de procesos de reentrenamiento y lecturas de apoyo |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-72 P-6: retroalimentaciones con el código RF-64 (0-7) que etiqueta el motor |
 from __future__ import annotations
 
 import copy
@@ -76,10 +77,20 @@ _SQL_CANDIDATOS_PROGRAMADOS = text("""
 
 # RF-72: diagnósticos vigentes con la ventana de la inferencia a la que responden
 # (el pipeline los alinea con las ventanas de lecturas para la regla de retiro).
+# diagnosticos_reales e id_patologia son ids de modulo9.patologias; el motor etiqueta con el código
+# RF-64 (0-7), que es la posición de la patología base en el catálogo (id_base_por_codigo_rf64 hace
+# el camino inverso). Una patología que no es base no tiene código: queda fuera de la lista.
 _SQL_RETRO_VERIFICADAS = text("""
+    WITH base AS (
+        SELECT id_patologia, (ROW_NUMBER() OVER (ORDER BY id_patologia) - 1)::int AS codigo
+        FROM modulo9.patologias WHERE es_base
+    )
     SELECT rc.id_retroalimentacion, rc.id_resultado_inferencia, rc.estado_retroalimentacion,
            rc.diagnosticos_reales, rc.fecha_retroalimentacion,
-           ri.fecha_inicio_ventana, ri.fecha_fin_ventana, ri.fecha_inferencia
+           ri.fecha_inicio_ventana, ri.fecha_fin_ventana, ri.fecha_inferencia, ri.nivel_riesgo,
+           ARRAY(SELECT b.codigo FROM unnest(rc.diagnosticos_reales) WITH ORDINALITY AS d(id, orden)
+                 JOIN base b ON b.id_patologia = d.id ORDER BY d.orden) AS codigos_rf64_reales,
+           (SELECT b.codigo FROM base b WHERE b.id_patologia = ri.id_patologia) AS codigo_rf64_inferido
     FROM modulo4.retroalimentaciones_clinicas rc
     JOIN modulo4.resultados_inferencia ri ON ri.id_resultado_inferencia = rc.id_resultado_inferencia
     WHERE rc.id_activo_biologico = :id AND rc.estado_registro = 'ACTIVO'
@@ -253,6 +264,9 @@ class SqlAlchemyProcesoReentrenamientoRepository(ProcesoReentrenamientoRepositor
             "fecha_retroalimentacion": f["fecha_retroalimentacion"].isoformat(),
             "fecha_inicio_ventana": f["fecha_inicio_ventana"].isoformat() if f["fecha_inicio_ventana"] else None,
             "fecha_fin_ventana": f["fecha_fin_ventana"].isoformat() if f["fecha_fin_ventana"] else None,
+            "nivel_riesgo_inferido": f["nivel_riesgo"],
+            "codigos_rf64_reales": list(f["codigos_rf64_reales"] or []),
+            "codigo_rf64_inferido": f["codigo_rf64_inferido"],
         } for f in filas]
 
     def _con_nombres(self, procesos: list[ProcesoReentrenamiento]) -> list[ProcesoReentrenamiento]:

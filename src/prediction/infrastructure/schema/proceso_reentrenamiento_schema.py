@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: respuesta de procesos de reentrenamiento y cuerpo del PATCH del motor |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: el motor recibe las variables I3P-1 de la versión de referencia |
 from __future__ import annotations
 
 from datetime import datetime
@@ -57,6 +58,16 @@ class ProcesoReentrenamientoResponse(BaseModel):
                  for n, nombre in enumerate(FASES, start=1)]
         datos = {k: getattr(p, k) for k in cls.model_fields if k != "fases" and hasattr(p, k)}
         return cls(**datos, fases=fases)
+
+
+class ProcesoReentrenamientoMotorResponse(ProcesoReentrenamientoResponse):
+    """Lo que recibe el motor al tomar un proceso.
+
+    ``compatibilidad_variables_referencia``: ids I3P-1 de la versión vigente del animal. RF-69 los
+    exige como enteros del catálogo, y el pipeline solo conoce los nombres de sus variables: el
+    motor registra la versión nueva con los mismos ids (el contrato de variables no cambia).
+    """
+    compatibilidad_variables_referencia: Optional[list[Any]] = None
 
 
 class ListaProcesosReentrenamientoResponse(BaseModel):

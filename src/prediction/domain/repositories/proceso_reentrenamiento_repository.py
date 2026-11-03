@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: puerto de procesos de reentrenamiento |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-72 P-6: retroalimentaciones con el código RF-64 de cada diagnóstico |
 from __future__ import annotations
 
 import uuid
@@ -61,4 +62,9 @@ class ProcesoReentrenamientoRepository(ABC):
 
     @abstractmethod
     def retroalimentaciones_verificadas(self, id_activo_biologico: int) -> list[dict]:
-        """Diagnósticos clínicos vigentes del animal con la ventana de su inferencia (RF-72)."""
+        """Diagnósticos clínicos vigentes del animal con la ventana de su inferencia (RF-72).
+
+        Además de los ids de ``diagnosticos_reales``, cada fila trae ``codigos_rf64_reales`` (el
+        código 0-7 de cada diagnóstico, en el mismo orden), ``codigo_rf64_inferido`` y
+        ``nivel_riesgo_inferido`` de la inferencia: con eso el motor etiqueta sus ventanas.
+        """

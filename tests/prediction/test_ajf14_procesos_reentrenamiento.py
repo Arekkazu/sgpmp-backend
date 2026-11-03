@@ -3,6 +3,7 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: procesos de reentrenamiento (solicitud por animal, toma, latido, cierre, vigilante) |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: tomar devuelve las variables I3P-1 de la versión de referencia |
 """AJF-14: la solicitud por animal abre un proceso que el motor de IA toma, reporta y cierra."""
 from __future__ import annotations
 
@@ -216,6 +217,9 @@ def cliente_motor(monkeypatch):
     procesos = _Procesos(version_registrada=31)
     monkeypatch.setattr(router_mod, "SqlAlchemyProcesoReentrenamientoRepository", lambda db: procesos)
     monkeypatch.setattr(router_mod, "SqlAlchemyEventoAuditoriaM04Repository", lambda db: _Auditoria())
+    versiones = {7: SimpleNamespace(compatibilidad_variables=[11, 12, 13])}
+    monkeypatch.setattr(router_mod, "SqlAlchemyVersionModeloRepository",
+                        lambda db: SimpleNamespace(obtener_por_id=versiones.get))
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(router_mod.router)
@@ -230,6 +234,9 @@ def test_rutas_del_motor(cliente_motor):
     procesos.crear(ProcesoReentrenamiento.solicitar(tipo_modelo=GRANDES, id_activo_biologico=4, id_usuario=9, ahora=T0))
     tomado = client.post("/prediccion/motor/reentrenamientos/tomar").json()
     assert tomado["estado"] == "EN_CURSO" and len(tomado["fases"]) == 7
+    # RF-69 exige ids I3P-1: el motor registra con los de la versión vigente del animal.
+    assert tomado["id_version_modelo_referencia"] == 7
+    assert tomado["compatibilidad_variables_referencia"] == [11, 12, 13]
     r = client.patch(f"/prediccion/motor/reentrenamientos/{tomado['id_proceso_reentrenamiento']}", json={"fase": 2, "progreso": 20, "cpu": 40})
     assert r.status_code == 200 and r.json()["fase_actual"] == 2
     assert client.patch(f"/prediccion/motor/reentrenamientos/{tomado['id_proceso_reentrenamiento']}", json={"estado": "OTRO"}).status_code == 400

@@ -2,6 +2,7 @@
 # |------------|----------|-----------------------------------------------------------------|
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas para que el motor IA arme su catálogo solo    |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: tomar devuelve las variables I3P-1 de la versión de referencia |
 """Rutas internas del motor IA (``motor-ia``): con ellas arma su catálogo sin ``catalogo.json``.
 
 Token ``IOT_INFERENCIA_M04_TOKEN``, sin usuario ni RBAC (como ``POST /prediccion/inferencias``).
@@ -43,7 +44,8 @@ from src.prediction.infrastructure.repositories.proceso_reentrenamiento_reposito
     SqlAlchemyProcesoReentrenamientoRepository,
 )
 from src.prediction.infrastructure.schema.proceso_reentrenamiento_schema import (
-    ActualizarProcesoDTO, ProcesoReentrenamientoResponse, RetroalimentacionesMotorResponse,
+    ActualizarProcesoDTO, ProcesoReentrenamientoMotorResponse, ProcesoReentrenamientoResponse,
+    RetroalimentacionesMotorResponse,
 )
 from src.shared.broker_auth import require_token_servicio_motor_ia
 from src.shared.database import get_db_sistema
@@ -166,7 +168,7 @@ def retroalimentaciones(id_activo: int, db: Session = Depends(get_db_sistema)) -
 
 @router.post(
     "/reentrenamientos/tomar",
-    response_model=ProcesoReentrenamientoResponse,
+    response_model=ProcesoReentrenamientoMotorResponse,
     responses={204: {"description": "No hay procesos pendientes."}},
     summary="Tomar el reentrenamiento pendiente más antiguo (AJF-14, RF-71)",
 )
@@ -174,7 +176,13 @@ def tomar_reentrenamiento(db: Session = Depends(get_db_sistema)):
     proceso = _procesar(db).tomar()
     if proceso is None:
         return Response(status_code=204)
-    return ProcesoReentrenamientoResponse.from_entity(proceso)
+    referencia = None
+    if proceso.id_version_modelo_referencia is not None:
+        referencia = SqlAlchemyVersionModeloRepository(db).obtener_por_id(proceso.id_version_modelo_referencia)
+    return ProcesoReentrenamientoMotorResponse(
+        **ProcesoReentrenamientoResponse.from_entity(proceso).model_dump(),
+        compatibilidad_variables_referencia=referencia.compatibilidad_variables if referencia else None,
+    )
 
 
 @router.patch(

@@ -27,9 +27,10 @@ Usuario (43·E) ── POST /prediccion/modelos/reentrenamiento/solicitudes {id_
 motor-ia (hilo reentrenador, token de servicio)
   POST  /prediccion/motor/reentrenamientos/tomar        → EN_CURSO, fase 1 (204 si no hay)
   GET   /prediccion/motor/activos/{id}/lecturas?horas=336
-  GET   /prediccion/motor/activos/{id}/retroalimentaciones
+  GET   /prediccion/motor/activos/{id}/retroalimentaciones  (con el código RF-64 0-7 de cada diagnóstico)
   PATCH /prediccion/motor/reentrenamientos/{id} {fase, progreso, cpu, ram_mb}   ← latido
-  POST  /prediccion/modelos (X-RF71-Internal-Key, id_proceso_rf71 = id del proceso)
+  POST  /prediccion/modelos (X-RF71-Internal-Key, id_proceso_rf71 = id del proceso,
+        compatibilidad_variables = ids I3P-1 de la versión de referencia, que trae `tomar`)
   PATCH /prediccion/motor/reentrenamientos/{id} {estado: COMPLETADO | FALLIDO, codigo_error, motivos}
 backend: cada 5 min, EN_CURSO sin latido > 15 min → INTERRUMPIDO (BE-5)
 Pantalla: GET /prediccion/modelos/reentrenamiento/procesos (43·R)
@@ -55,12 +56,19 @@ Fases (`FASES` en `proceso_reentrenamiento.py`): 1 ACTIVACION · 2 DATASET · 3 
 
 ## Pendientes (abiertos en el plan)
 
-- **P-6** El script de entrenamiento `modelos_individuales_ET02_v5.py` no está en ningún repositorio:
-  vive en `anotaciones/M04-M03 MODELOS/` de una máquina local. El motor ya tiene el reentrenador
-  (`motor_ia/reentrenador.py`) y el adaptador (`motor_ia/entrenamiento.py`), pero la copia literal
-  `motor_ia/entrenamiento_et02.py` (M-1) hay que generarla desde ese archivo, como se hizo con
-  `et02.py`. Sin ella, cada proceso termina FALLIDO con `ENTRENAMIENTO_NO_DISPONIBLE`, sin inventar
-  resultados.
+- **P-6 (resuelto 2026-11-03)** El script `modelos_individuales_ET02_v5.py` no está en ningún
+  repositorio, así que el motor tiene su propio pipeline: `motor_ia/entrenamiento_et02.py` (broker).
+  No es copia del script: entrena sobre el contrato de operación de `et02.py` (validación, ventaneo,
+  14 features, 7 clases, `CONFIG`), y el ONNX que produce lo carga el motor como cualquier artefacto
+  de ET-02. Calibra con las lecturas sanas del animal, genera ciclos sintéticos sobre su perfil,
+  etiqueta ventanas reales con las retroalimentaciones y aplica la regla de retiro (SINTETICA /
+  MIXTA / REAL). Para que el motor etiquete, `GET /motor/activos/{id}/retroalimentaciones` trae
+  `codigos_rf64_reales`, `codigo_rf64_inferido` y `nivel_riesgo_inferido` (los `diagnosticos_reales`
+  son ids de `modulo9.patologias`; el código RF-64 es la posición de la patología base, como en
+  `id_base_por_codigo_rf64`). RF-69 exige `compatibilidad_variables` como ids I3P-1: `tomar` devuelve
+  `compatibilidad_variables_referencia` (los de la versión vigente del animal) y el motor registra con
+  esos. La imagen que reentrena se construye con `--build-arg MOTOR_IA_EXTRAS=motor-ia,motor-ia-entrenamiento`.
+  Si el equipo IoT/IA publica el script de ET-02 v5, se puede comparar contra este pipeline.
 - **P-7** Contenedor propio para el reentrenador (recomendado) — lo decide Implementación.
 - **P-8** Quién solicita: hoy, quien tenga 43·E (Administrador y Veterinario).
 - **P-9** Frecuencia del disparador PROGRAMADO: el código está; se prende poniendo el número de días en Configuración.
