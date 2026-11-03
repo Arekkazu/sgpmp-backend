@@ -1,3 +1,9 @@
+## [1.4.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.40...v1.4.0-rc.41) (2026-11-03)
+
+### Performance Improvements
+
+* **rf-72:** bandeja de retroalimentacion en una sola consulta ([d60d9f6](https://github.com/Arekkazu/sgpmp-backend/commit/d60d9f64b1bd0bbc92c63ab99784c5db4c75f0a6))
+
 ## [1.4.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.39...v1.4.0-rc.40) (2026-11-03)
 
 ### Features
