@@ -1,12 +1,13 @@
 # | Fecha      | Nombre       | Que se hizo |
 # |------------|--------------|-------------|
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: aviso al administrador sin anti-spam y uno por sensor sin BD |
+# | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 """INC-M03-170-G77: el aviso de contexto incompleto (E6) sale siempre, una vez por sensor cada 24 h."""
 from datetime import timedelta
 
 from tests.telemetry.test_dev32_rf57_notificaciones import AHORA, _Alertas, _alerta, _Notificacion, _uc
 
-_TITULO = "Alerta sin contexto de activo biológico"
+_TITULO = "Alerta sin animal o lote asociado"
 
 
 def _con_sensor(id_alerta, sensor):

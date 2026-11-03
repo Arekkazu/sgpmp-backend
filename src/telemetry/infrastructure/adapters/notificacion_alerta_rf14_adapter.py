@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: notificación de alertas por el canal de RF-14, destinatarios por permisos y reintento con backoff |
 # | 2026-11-03 | Arekkazu | RF-57 E7: un reintento por minuto elegido y pausa de 1 min si el SMTP falla (bucle de SMTP en dev) |
+# | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
 """Adaptador de :class:`NotificacionAlertaPort` sobre el servicio de notificaciones de RF-14.
 
 Cada notificación cuelga de un evento en ``modulo1.eventos`` (tipo 32
@@ -20,7 +21,7 @@ from src.identity_access.infrastructure.repositories.evento_repository import Sq
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.shared.email import send_email
 from src.shared.notificacion_service import NotificacionService, _correo_por_defecto
-from src.telemetry.domain.repositories.notificacion_alerta_port import NotificacionAlertaPort
+from src.telemetry.domain.repositories.notificacion_alerta_port import ContextoAlerta, NotificacionAlertaPort
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,14 @@ _SQL_DESTINATARIOS = text(
 _SQL_ADMINISTRADORES = text(
     "SELECT u.id_usuario FROM modulo1.usuarios u WHERE modulo1.fn_rol_protegido(u.id_rol)"
 )
+_SQL_CONTEXTO = text(
+    "SELECT i.nombre AS area, f.nombre AS finca, "
+    "  (SELECT ab.identificador FROM modulo2.activos_biologicos ab WHERE ab.id_activo_biologico = :activo) AS activo, "
+    "  (SELECT s.nombre FROM modulo9.sensores s WHERE s.id_sensores = :sensor) AS sensor "
+    "FROM (SELECT 1) uno "
+    "LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = :area "
+    "LEFT JOIN modulo9.fincas f ON f.id_finca = i.id_finca"
+)
 _SQL_FALLIDAS = text(
     "SELECT n.id_notificacion, n.mensaje, n.fecha_envio, u.correo_electronico "
     "FROM modulo1.notificaciones n "
@@ -68,6 +77,21 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
         accion = _ACCION_DESCARTAR if escalamiento else _ACCION_LEER
         filas = self.db.execute(_SQL_DESTINATARIOS, {"area": id_infraestructura, "accion": accion}).scalars().all()
         return list(filas)
+
+    def contexto(
+        self, *, id_infraestructura: Optional[int] = None, id_activo_biologico: Optional[int] = None,
+        id_sensor: Optional[int] = None,
+    ) -> ContextoAlerta:
+        try:
+            fila = self.db.execute(_SQL_CONTEXTO, {
+                "area": id_infraestructura, "activo": id_activo_biologico, "sensor": id_sensor,
+            }).one()
+        except Exception:
+            # Sin nombres el correo sigue saliendo, con textos genéricos.
+            self.db.rollback()
+            logger.exception("RF-57: no se pudieron leer los nombres de la alerta")
+            return ContextoAlerta()
+        return ContextoAlerta(area=fila.area, finca=fila.finca, activo=fila.activo, sensor=fila.sensor)
 
     def administradores(self) -> list[int]:
         return list(self.db.execute(_SQL_ADMINISTRADORES).scalars().all())
