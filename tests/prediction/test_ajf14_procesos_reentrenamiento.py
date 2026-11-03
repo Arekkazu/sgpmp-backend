@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: procesos de reentrenamiento (solicitud por animal, toma, latido, cierre, vigilante) |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-03 | Arekkazu | QA-M04 RF-71: días de lecturas en enteros (sin «0.0 días») |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-69 P-6: tomar devuelve las variables I3P-1 de la versión de referencia |
 """AJF-14: la solicitud por animal abre un proceso que el motor de IA toma, reporta y cierra."""
@@ -144,6 +145,14 @@ def test_solicitud_rechazada(datos, horas, error, codigo):
     with pytest.raises(error) as e:
         uc.execute(id_activo_biologico=4, motivo=None, id_usuario=9, ahora=T0)
     assert e.value.code == codigo and db.commits == 0
+
+
+@pytest.mark.parametrize("horas, texto", [(0, "0 días"), (30, "1 día de"), (167, "6 días")])
+def test_lecturas_insuficientes_en_dias_completos(horas, texto):
+    uc, _, _ = _solicitar(_Procesos(datos=DatosAnimalReentrenamiento(GRANDES, None), horas=horas))
+    with pytest.raises(BusinessRuleError) as e:
+        uc.execute(id_activo_biologico=4, motivo=None, id_usuario=9, ahora=T0)
+    assert texto in e.value.message and "." not in e.value.message.split(";")[0]
 
 
 def _en_curso():
