@@ -1,3 +1,9 @@
+## [1.4.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.45...v1.4.0-rc.46) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-69:** la versión de modelo trae el identificador del animal además del id ([e863e22](https://github.com/Arekkazu/sgpmp-backend/commit/e863e225c6298444f8ef595129e0532591e41b70))
+
 ## [1.4.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.44...v1.4.0-rc.45) (2026-11-03)
 
 ### Bug Fixes
