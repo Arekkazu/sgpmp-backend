@@ -2,6 +2,7 @@
 # |------------|----------|--------------------------------------------------------------------|
 # | 2026-10-31 | Arekkazu | RF-71: aviso de datos insuficientes para reentrenar el modelo individual |
 # | 2026-10-31 | Arekkazu | RF-71/RF-73: respuesta de la solicitud de reentrenamiento |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
 from __future__ import annotations
 
 from datetime import datetime
@@ -36,3 +37,5 @@ class SolicitudReentrenamientoResponse(BaseModel):
     #: Evento REENTRENAMIENTO_SOLICITADO en la bitácora de M04 (RF-73).
     id_evento: UUID
     estado: EstadoReentrenamientoResponse
+    #: AJF-14: proceso PENDIENTE abierto cuando la solicitud es por animal.
+    id_proceso_reentrenamiento: Optional[UUID] = None

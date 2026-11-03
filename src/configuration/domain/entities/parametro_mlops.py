@@ -6,6 +6,7 @@
 # | 2026-10-28 | destroyerban | INC-M03-168-G76 RF-57 E12/E13: umbral_confianza_edge_ia con valor base 0.85 |
 # | 2026-10-28 | destroyerban | INC-M03-176-G57A RF-57: ventana de deduplicación y plazos SLA configurables (valores base del RF) |
 # | 2026-10-31 | Arekkazu | RF-71/RF-72: mínimos de registros para solicitar y para reentrenar |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 """Parámetros persistidos administrados por M09, almacenados en M04.
 
 Los ejemplos del RF no son valores de respaldo: una lectura incompleta o
@@ -50,6 +51,10 @@ RF71_MIN_REENTRENAMIENTO_BASE = 500  # RF-71 / RFC-009: precondición de volumen
 # Desde aquí ya se puede solicitar el reentrenamiento (decisión del equipo, 2026-10-31).
 RF71_MIN_SOLICITUD = 'min_registros_solicitud_reentrenamiento'
 RF71_MIN_SOLICITUD_BASE = 200
+# AJF-14 BE-6: un animal cuya versión vigente tiene más de N días se reentrena solo (disparador
+# PROGRAMADO). 0 = apagado: así viene hasta que el equipo decida la frecuencia (P-9 del plan).
+RF71_DIAS_PROGRAMADO = 'dias_reentrenamiento_programado'
+RF71_DIAS_PROGRAMADO_BASE = 0
 PARAMETROS_CALIDAD = (RF62_K, RF62_M, RF62_N, RF62_DRIFT, RF62_P)
 
 

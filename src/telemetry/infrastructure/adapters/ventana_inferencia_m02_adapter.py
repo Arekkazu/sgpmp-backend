@@ -3,6 +3,7 @@
 # | 2026-10-30 | Arekkazu | RF-56/RF-66: ventana de lecturas del activo para el motor IA     |
 # | 2026-10-31 | Arekkazu | RF-17/RF-66 C3: rangos de la especie del activo desde M09        |
 # | 2026-11-02 | Arekkazu | RF-62/RF-66: apto_para_ia sale de la evaluación vigente de RF-62  |
+# | 2026-11-02 | Arekkazu | RF-66: lecturas_activo reutilizable para la calibración del motor |
 """Ventana de lecturas del activo individual para el motor IA (contrato IA-1 v1).
 
 El sensor del paquete se ubica en su activo por la asociación M02 ``directa`` vigente (la
@@ -85,6 +86,18 @@ _SQL_LECTURAS = text("""
 """)
 
 
+def lecturas_activo(db: Session, activo: int, desde, hasta) -> list[dict]:
+    """Lecturas de ET-02 del activo en ``(desde, hasta]``, en el formato largo del contrato IA-1."""
+    filas = db.execute(_SQL_LECTURAS, {
+        "activo": activo, "codigos": list(VARIABLE_ET02), "desde": desde, "hasta": hasta,
+    }).all()
+    return [
+        {"timestamp": ts.isoformat(), "variable": VARIABLE_ET02[codigo], "valor": float(valor),
+         "apto_para_ia": apto}
+        for ts, codigo, valor, apto in filas
+    ]
+
+
 class VentanaInferenciaM02Adapter(VentanaInferenciaPort):
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -117,14 +130,7 @@ class VentanaInferenciaM02Adapter(VentanaInferenciaPort):
         }
 
     def _lecturas(self, activo: int, fin) -> list[dict]:
-        filas = self._db.execute(_SQL_LECTURAS, {
-            "activo": activo, "codigos": list(VARIABLE_ET02), "desde": fin - DURACION_VENTANA, "hasta": fin,
-        }).all()
-        return [
-            {"timestamp": ts.isoformat(), "variable": VARIABLE_ET02[codigo], "valor": float(valor),
-             "apto_para_ia": apto}
-            for ts, codigo, valor, apto in filas
-        ]
+        return lecturas_activo(self._db, activo, fin - DURACION_VENTANA, fin)
 
     def _rangos(self, activo: int) -> dict[str, dict[str, list[float]]]:
         filas = self._db.execute(_SQL_RANGOS_ESPECIE, {"activo": activo, "codigos": _CODIGOS_CON_RANGO}).all()

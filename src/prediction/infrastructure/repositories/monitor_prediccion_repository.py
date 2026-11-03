@@ -5,12 +5,17 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 N-04 RF-68: el listado de contagio tolera JSONB con otra forma |
 # | 2026-10-30 | Arekkazu | RF-66: expone modo_sombra del resultado                            |
 # | 2026-11-02 | Arekkazu | RF-64/RF-66: nombre de la clase fundida de ET-02 ("10+11")         |
+# | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
+# | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
+# | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
 from __future__ import annotations
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.monitor_prediccion import InferenciaMonitor, RiesgoContagioMonitor
+from src.prediction.domain.entities.monitor_prediccion import (
+    IndicadoresInferencias, InferenciaMonitor, RiesgoContagioMonitor,
+)
 from src.prediction.domain.repositories.monitor_prediccion_repository import MonitorPrediccionRepository
 from src.shared.db_error_translator import raise_from_db_error
 
@@ -18,7 +23,7 @@ from src.shared.db_error_translator import raise_from_db_error
 # El activo se ubica en su área y finca actuales (M02); los filtros van como parámetros.
 _SQL_INFERENCIAS = text("""
     SELECT r.id_resultado_inferencia, r.id_activo_biologico, ab.identificador AS identificador_activo,
-           i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
+           ab.id_infraestructura, i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.tipo_modelo, r.id_version_modelo, v.nombre_version, r.nivel_riesgo, r.probabilidad_riesgo,
            r.id_patologia, p.nombre AS nombre_patologia, r.probabilidad_enfermedad, r.confianza_global,
            r.contexto_incompleto, r.latencia_excedida, r.modo_ejecucion, r.latencia_ms,
@@ -45,13 +50,38 @@ _SQL_INFERENCIAS = text("""
       AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_inferencia <= CAST(:hasta AS timestamptz))
       AND (CAST(:tipo AS text) IS NULL OR r.tipo_modelo::text = CAST(:tipo AS text))
       AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo = CAST(:nivel AS int))
+      AND (CAST(:ids AS uuid[]) IS NULL OR r.id_resultado_inferencia = ANY(CAST(:ids AS uuid[])))
+      AND (CAST(:activo AS int) IS NULL OR r.id_activo_biologico = CAST(:activo AS int))
+      AND (CAST(:infra AS int) IS NULL OR ab.id_infraestructura = CAST(:infra AS int))
+      AND (NOT CAST(:solo_alerta AS boolean) OR r.tiene_alerta_generada)
+      AND (CAST(:con_sombra AS boolean) OR NOT r.modo_sombra)
     ORDER BY r.fecha_inferencia DESC, r.id_resultado_inferencia
-    LIMIT :limite
+    LIMIT :limite OFFSET :desplazamiento
+""")
+
+# AJF-10: totales del monitor con los mismos filtros que el listado (sin LIMIT).
+_SQL_INDICADORES_INFERENCIAS = text("""
+    SELECT count(*) AS total,
+           count(*) FILTER (WHERE r.nivel_riesgo >= 2) AS en_riesgo,
+           count(*) FILTER (WHERE r.tiene_alerta_generada) AS con_alerta,
+           count(DISTINCT r.id_activo_biologico) AS animales_distintos
+    FROM modulo4.resultados_inferencia r
+    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    WHERE (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
+      AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_inferencia >= CAST(:desde AS timestamptz))
+      AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_inferencia <= CAST(:hasta AS timestamptz))
+      AND (CAST(:tipo AS text) IS NULL OR r.tipo_modelo::text = CAST(:tipo AS text))
+      AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo = CAST(:nivel AS int))
+      AND (CAST(:activo AS int) IS NULL OR r.id_activo_biologico = CAST(:activo AS int))
+      AND (CAST(:infra AS int) IS NULL OR ab.id_infraestructura = CAST(:infra AS int))
+      AND (NOT CAST(:solo_alerta AS boolean) OR r.tiene_alerta_generada)
+      AND (CAST(:con_sombra AS boolean) OR NOT r.modo_sombra)
 """)
 
 _SQL_CONTAGIO = text("""
     SELECT r.id_resultado_contagio, r.id_activo_biologico, ab.identificador AS identificador_activo,
-           i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
+           ab.id_infraestructura, i.nombre AS nombre_area, f.nombre AS nombre_finca, esp.nombre AS especie,
            r.probabilidad_contagio, r.nivel_riesgo_contagio, r.factor_sanitario_fs, r.factor_ambiental_fa,
            r.factor_densidad_fd, r.w_fs_aplicado, r.w_fa_aplicado, r.w_fd_aplicado, r.confianza_baja,
            r.data_quality_score, r.factores_ausentes, r.modo_ejecucion_calculo, r.n_enfermos_detectados,
@@ -66,8 +96,37 @@ _SQL_CONTAGIO = text("""
       AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_calculo >= CAST(:desde AS timestamptz))
       AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_calculo <= CAST(:hasta AS timestamptz))
       AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo_contagio = CAST(:nivel AS int))
+      AND (CAST(:ids AS int[]) IS NULL OR r.id_resultado_contagio = ANY(CAST(:ids AS int[])))
     ORDER BY r.fecha_calculo DESC, r.id_resultado_contagio DESC
     LIMIT :limite
+""")
+
+# por_activo: las N más recientes de cada activo del alcance, para que un animal sin eventos
+# recientes no quede fuera por el volumen de otros (las cámaras emiten cada 20 s).
+# ponytail: recorre la tabla una vez; con mucho historial, LATERAL por activo sobre
+# idx_ri_activo_timestamp, y un índice (id_activo_biologico, fecha_calculo) para contagio.
+_SQL_ULTIMAS_INFERENCIAS = text("""
+    SELECT x.id FROM (
+        SELECT r.id_resultado_inferencia AS id,
+               row_number() OVER (PARTITION BY r.id_activo_biologico
+                                  ORDER BY r.fecha_inferencia DESC, r.id_resultado_inferencia) AS n
+        FROM modulo4.resultados_inferencia r
+        JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+        JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+        WHERE CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[]))
+    ) x WHERE x.n <= :por_activo
+""")
+
+_SQL_ULTIMOS_CONTAGIOS = text("""
+    SELECT x.id FROM (
+        SELECT r.id_resultado_contagio AS id,
+               row_number() OVER (PARTITION BY r.id_activo_biologico
+                                  ORDER BY r.fecha_calculo DESC, r.id_resultado_contagio DESC) AS n
+        FROM modulo4.resultados_riesgo_contagio r
+        JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+        JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+        WHERE CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[]))
+    ) x WHERE x.n <= :por_activo
 """)
 
 
@@ -91,15 +150,36 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def listar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, limite):
+    def listar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, limite, por_activo=None,
+                           id_activo_biologico=None, id_infraestructura=None, solo_con_alerta=False,
+                           incluir_sombra=True, desplazamiento=0):
+        ids, limite = self._ultimos(_SQL_ULTIMAS_INFERENCIAS, ids_fincas, por_activo, limite, str)
         filas = self._leer(_SQL_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
-                           desde=desde, hasta=hasta, limite=limite)
+                           desde=desde, hasta=hasta, limite=limite, ids=ids, activo=id_activo_biologico,
+                           infra=id_infraestructura, solo_alerta=solo_con_alerta, con_sombra=incluir_sombra,
+                           desplazamiento=desplazamiento)
         return [InferenciaMonitor(**f) for f in filas]
 
-    def listar_riesgo_contagio(self, *, ids_fincas, nivel_riesgo, desde, hasta, limite):
+    def contar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, id_activo_biologico=None,
+                           id_infraestructura=None, solo_con_alerta=False, incluir_sombra=True):
+        filas = self._leer(_SQL_INDICADORES_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
+                           desde=desde, hasta=hasta, activo=id_activo_biologico, infra=id_infraestructura,
+                           solo_alerta=solo_con_alerta, con_sombra=incluir_sombra)
+        f = filas[0] if filas else {}
+        return IndicadoresInferencias(**{k: int(f.get(k) or 0) for k in ("total", "en_riesgo", "con_alerta", "animales_distintos")})
+
+    def listar_riesgo_contagio(self, *, ids_fincas, nivel_riesgo, desde, hasta, limite, por_activo=None):
+        ids, limite = self._ultimos(_SQL_ULTIMOS_CONTAGIOS, ids_fincas, por_activo, limite, int)
         filas = self._leer(_SQL_CONTAGIO, ids_fincas=ids_fincas, nivel=nivel_riesgo,
-                           desde=desde, hasta=hasta, limite=limite)
+                           desde=desde, hasta=hasta, limite=limite, ids=ids)
         return [RiesgoContagioMonitor(**_normalizar_contagio(f)) for f in filas]
+
+    def _ultimos(self, sql, ids_fincas, por_activo, limite, tipo):
+        """(ids a los que se restringe la consulta, límite). Sin ``por_activo``: (None, limite)."""
+        if por_activo is None:
+            return None, limite
+        filas = self._leer(sql, ids_fincas=ids_fincas, por_activo=por_activo)
+        return [tipo(f["id"]) for f in filas], len(filas)
 
     def _leer(self, sql, *, ids_fincas, **parametros):
         try:

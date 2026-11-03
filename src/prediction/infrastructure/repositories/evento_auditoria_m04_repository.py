@@ -6,6 +6,7 @@
 # | 2026-10-26 | Arekkazu     | INC-M04 G088/G092/G099 RF-73: truncado conserva mínimos, filtro correlacion_id, E7 |
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: rechazar eventos invalidos con evidencia E1 y resultado tipado. |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
+# | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 from __future__ import annotations
 
 import hashlib
@@ -64,6 +65,12 @@ def _origen_por_actor(tipo_actor: str) -> str:
     return "EDGE" if tipo_actor == "DISPOSITIVO_EDGE" else "BACKEND"
 
 # Columnas del evento que van al respaldo y vuelven en la sincronización.
+# AJF-13: un lote es un activo biológico; "Animal o lote" filtra por las dos etiquetas.
+_ENTIDADES_EQUIVALENTES: dict[str, tuple[str, ...]] = {
+    "activo_biologico": ("activo_biologico", "lote"),
+    "lote": ("activo_biologico", "lote"),
+}
+
 _CAMPOS_RESPALDO = (
     "id_evento", "tipo_evento", "fecha_evento", "tipo_actor", "correlacion_id", "payload_evento",
     "es_payload_truncado", "severidad_evento", "id_usuario", "id_sistema", "id_referencia",
@@ -369,6 +376,7 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         severidad_evento: Optional[str] = None,
         correlacion_id: Optional[uuid.UUID] = None,
         tipo_modelo: Optional[str] = None,
+        entidad_referencia: Optional[str] = None,
         pagina: int = 1,
         por_pagina: int = 50,
     ) -> tuple[list[EventoAuditoriaM04], int]:
@@ -387,6 +395,10 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
             q = q.where(EventoAuditoriaM04Model.id_usuario == id_usuario)
         if id_sistema:
             q = q.where(EventoAuditoriaM04Model.id_sistema == id_sistema)
+        if entidad_referencia:
+            # AJF-13: el id solo tiene sentido junto con el tipo de cosa a la que apunta
+            # ("2" puede ser el lote 2, la versión 2 o la patología 2).
+            q = q.where(EventoAuditoriaM04Model.entidad_referencia.in_(_ENTIDADES_EQUIVALENTES.get(entidad_referencia, (entidad_referencia,))))
         if id_referencia:
             q = q.where(EventoAuditoriaM04Model.id_referencia == id_referencia)
         if severidad_evento:

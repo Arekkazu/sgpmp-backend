@@ -408,3 +408,59 @@ Si algún hash no coincide, el endpoint devuelve la lista de IDs y registra auto
   ]
 }
 ```
+
+---
+
+## Calidad de visión: observaciones evaluadas (2026-11-03)
+
+El panel «Calidad de visión» de Telemetría → Calidad calculaba el índice en el navegador sobre
+cuatro observaciones de ejemplo (`calidadVisionMock.ts`). La evaluación real la hace el backend
+después de la ingesta y queda en `modulo3.observaciones_vision` (DB-09, migración `8c4e2a6f1b93`);
+esta ruta solo la lee, sin recalcular.
+
+Sin DDL. La RLS de `observaciones_vision` limita a las áreas del usuario. La política del índice
+(`w1`, `w2`, `w3`, `tracks_perdidos_tolerables`, umbrales y `factor_en_calibracion`) vive en
+`modulo4.parametros_mlops`, cuya RLS solo la deja leer con `version_modelo` · Leer: se lee con una
+sesión de sistema aparte para que quien revisa la calidad (38 · Leer) la vea. Si falta o es inválida
+en M09, `politica` es `null` y `politica_motivo` dice por qué (no se usan valores por defecto).
+
+Verificado contra PostgreSQL 16 con el esquema completo y observaciones evaluadas, sin evaluar y
+fuera del rango, con el RBAC real (Ingeniero).
+
+### GET /iot/calidad/vision
+
+```bash
+curl -s "http://localhost:8000/iot/calidad/vision?clasificacion=DEGRADADA&pagina=1&por_pagina=50" \
+  -H "Authorization: Bearer <TOKEN_ING>"
+```
+
+Parámetros opcionales: `id_dispositivo_iot`, `clasificacion` (`OPTIMA` | `DEGRADADA` | `NO_APTA` |
+`SIN_EVALUAR`), `desde`/`hasta` (ISO 8601; sin zona, UTC; por defecto las últimas 24 h; máximo 31
+días), `pagina`, `por_pagina` (1–200). Más recientes primero.
+
+Respuesta esperada `200`:
+```json
+{
+  "items": [{
+    "id_observacion_vision": 812, "id_dispositivo_iot": 9, "serial_camara": "CAM-GALPON-A-01",
+    "id_infraestructura": 4, "nombre_area": "Galpón A", "fecha_inicio_ventana": "…", "fecha_observacion": "…",
+    "n_individuos_observados": 37, "cobertura_ventana": "0.71", "fps_efectivo": "8.4",
+    "cantidad_tracks_perdidos": 6, "estado_calibracion": "CALIBRADO",
+    "indice_calidad_vision": "52.90", "clasificacion_calidad": "DEGRADADA", "es_apto_para_ia": true,
+    "es_confianza_baja": true, "apto_para_nic41": false,
+    "flags_detectados": {"tracking_inestable": {"activo": true, "n_tracks_perdidos": 6, "tracks_perdidos_tolerables": 5}, "…": {}},
+    "fecha_evaluacion_calidad": "…"
+  }],
+  "total": 1, "pagina": 1, "por_pagina": 50, "desde": "…", "hasta": "…",
+  "politica": {"w1": "0.40", "w2": "0.35", "w3": "0.25", "tracks_perdidos_tolerables": 5,
+               "umbral_optima": "80", "umbral_degradada": "40", "factor_en_calibracion": "0.70"},
+  "politica_motivo": null
+}
+```
+
+Una observación aún sin evaluar trae `indice_calidad_vision`, `clasificacion_calidad`,
+`es_apto_para_ia` y `es_confianza_baja` en `null`.
+
+Errores:
+- `400 CLASIFICACION_INVALIDA | PAGINA_INVALIDA | POR_PAGINA_INVALIDO | RANGO_FECHAS_INVALIDO | RANGO_FECHAS_EXCESIVO`
+- `401` sin token · `403` sin `calidad_telemetria` · Leer (38·R)

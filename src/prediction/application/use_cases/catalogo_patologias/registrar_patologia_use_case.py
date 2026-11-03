@@ -3,12 +3,14 @@
 # | 2026-10-25 | Arekkazu | INC-M04-142-G004/139-G001 RF-64: variables repetidas no cuentan y versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
 from __future__ import annotations
 
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.catalogo_patologias.auditoria_rechazo import auditar_rechazo
 from src.prediction.domain.entities.patologia_m04 import PatologiaM04
 from src.prediction.domain.entities.patologia_variable import PatologiaVariable
 from src.prediction.domain.repositories.especie_port import EspeciePort
@@ -17,7 +19,7 @@ from src.prediction.domain.repositories.historial_catalogo_repository import His
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.infrastructure.dto.registrar_patologia_dto import RegistrarPatologiaDTO
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
 
 
 class RegistrarPatologiaUseCase:
@@ -39,6 +41,17 @@ class RegistrarPatologiaUseCase:
         self._especie_port = especie_port
 
     def execute(self, dto: RegistrarPatologiaDTO, id_usuario: int) -> PatologiaM04:
+        try:
+            return self._ejecutar(dto, id_usuario)
+        except AppError as error:
+            # Sin id todavía: la referencia es el nombre que se intentó registrar.
+            auditar_rechazo(self._db, self._auditoria_repo, tipo_evento="CATALOGO_PATOLOGIA_AGREGADA",
+                            id_usuario=id_usuario, referencia=dto.nombre_patologia,
+                            payload={"id_patologia": None, "nombre": dto.nombre_patologia,
+                                     "especie_aplicable": dto.especie_aplicable}, error=error)
+            raise
+
+    def _ejecutar(self, dto: RegistrarPatologiaDTO, id_usuario: int) -> PatologiaM04:
         # FA-01: especie válida
         if not self._especie_port.especie_activa(dto.especie_aplicable):
             raise NotFoundError(
