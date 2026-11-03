@@ -6,7 +6,7 @@ No usa ni imprime el BROKER_TOKEN (esta prueba no lo necesita)."""
 import json, sys, math, datetime as dt, urllib.request, urllib.error
 B = "https://api.inmero.co/api-sgpmp-dev"
 TOK = open(sys.argv[1]).read().strip(); OUT = sys.argv[2]
-HOY = dt.date.today().isoformat()
+HOY = dt.datetime.now(dt.timezone.utc).date().isoformat()  # UTC como el servidor
 SUF = dt.datetime.now().strftime("%H%M%S")
 import os
 FINCA_PROHIBIDAS = {1, 2}  # El rosal y La florida: finca de la entrega, no se escribe ahi

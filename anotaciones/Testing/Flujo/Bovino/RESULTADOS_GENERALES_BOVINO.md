@@ -54,7 +54,7 @@ Las corridas con escritura se hicieron primero en El rosal. Como esa finca es la
 
 ## 3. Hallazgos para confirmar con Desarrollo
 1. **Inclusividad de las fronteras:** el límite superior pertenece a la banda de abajo, es decir (inferior, superior], con el mínimo en la primera banda. El requisito no lo dice.
-2. **Fuera de [min, max]:** se guarda como `FUERA_DE_RANGO` sin alerta (como pide TC-M03-016), pero con semáforo AMARILLO, también por encima del máximo. Falta confirmar si debería ser ROJO.
+2. **Fuera de [min, max]:** se guarda como `FUERA_DE_RANGO` sin alerta (como pide TC-M03-016). Su semáforo es AMARILLO si queda dentro de la tolerancia de semáforo (por defecto el 10 % del rango del umbral, RF-58) y ROJO si se pasa de ella; en el bovino solo probamos valores a 0.01 del límite, por eso salieron AMARILLO. Se comprobó en la tortuga (oxígeno 15.01 AMARILLO y 20.0 ROJO). Falta confirmar con Desarrollo que ese es el comportamiento previsto.
 3. **Alertas:** una alerta CRITICO por sensor; las lecturas críticas siguientes se suman a `frecuencia_evento` (ventana de 30 min). Las lecturas en precaución no generan alerta.
 4. **Vencimiento:** una alerta sin atender pasa sola a VENCIDA a los 5 minutos y es terminal. El ciclo debe recorrerse dentro de ese tiempo.
 5. **401 engañoso:** una captura con hora anterior a la asociación del sensor responde 401 `ERROR_AUTENTICACION` aunque el token sea válido.

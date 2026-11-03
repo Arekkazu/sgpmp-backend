@@ -30,3 +30,11 @@ Los TC se asignan con id `TC-M09-G..`/`TC-M03-G..` al formalizarlos; aqui van co
 ## Datos y metodología (2026-11-02)
 
 Cada `datos_E*.md` especifica, con descripción y metodología por elemento: modelo de IA y métricas, parámetros del motor, población y capacidad por área (límite, límite±1, multiespecie), dispositivos y sensores, umbrales RF-17, lecturas de prueba con valores límite, estados y el inventario de datos que crea la prueba automática. Los valores marcados `[QA]` (densidades, superficies, umbrales por especie, conteos) son propuestas que no existen en los requisitos y deben confirmarse con Desarrollo/M09.
+
+## Resultados de la ejecución en DEV
+
+Mapa consolidado de las seis especies (capacidad, fronteras, alertas, hallazgos y huecos): [`../Flujo/MAPA_DE_TESTEO_FLUJO_MULTIESPECIE.md`](../Flujo/MAPA_DE_TESTEO_FLUJO_MULTIESPECIE.md). Resultados por especie en `../Flujo/<Especie>/`.
+
+## Estado de los `datos_E*.md` (2026-11-03)
+
+Los seis archivos de datos se actualizaron con lo observado en DEV (valores marcados `[DEV]`, sección 5 con los resultados reales y sección 8 con la ejecución). Los valores `[QA]` que quedan son propuestas sin confirmar. Las propuestas de tortuga y avestruz (grupo de manejo y densidad) siguen pendientes de Desarrollo.

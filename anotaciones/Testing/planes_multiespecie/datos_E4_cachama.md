@@ -2,9 +2,9 @@
 
 Complemento de [plan_E4_cachama.md](plan_E4_cachama.md). Reúne **todos los datos que la prueba automática guarda y usa**, y para cada elemento su descripción y su metodología de verificación.
 
-Estado: borrador del 2026-11-02.
+Estado: actualizado el 2026-11-03 con lo observado en el ambiente DEV (`https://api.inmero.co/api-sgpmp-dev`), finca de QA «QA Pruebas Flujo» (id 3). Resultados detallados en `../Flujo/Cachama/`; mapa consolidado en `../Flujo/MAPA_DE_TESTEO_FLUJO_MULTIESPECIE.md`.
 
-**Origen de cada valor.** `[RF]` viene de un requisito (reqMod3y4.xlsx, fichas de M09 o los casos ya ejecutados). `[QA]` es una **propuesta de QA que no está en ningún requisito ni en el repositorio** y debe confirmarse con Desarrollo/M09 antes de formalizar los TC. Las densidades, umbrales por especie y conteos de esta ficha son `[QA]`.
+**Origen de cada valor.** `[RF]` viene de un requisito (reqMod3y4.xlsx, fichas de M09 o los casos ya ejecutados). `[QA]` es una **propuesta de QA que no está en ningún requisito ni en el repositorio** y debe confirmarse con Desarrollo/M09 antes de formalizar los TC. `[DEV]` es un valor **observado en DEV el 2026-11-02/03**, que no es un requisito: describe cómo está configurado y cómo respondió ese ambiente. Donde hay `[DEV]` ese valor sustituye a mi propuesta `[QA]` original; los demás valores `[QA]` siguen sin confirmar.
 
 ## 1. Modelo de IA, métricas y parámetros
 
@@ -23,6 +23,8 @@ Estado: borrador del 2026-11-02.
 | `umbral_score_anomalia` | sin restricción de orden `[RF]`; valor de prueba 0.60 `[QA]` | Score de anomalía del área a partir del cual se alerta. | Guardar 0.0, 0.60 y 1.0 y comprobar que el motor aplica el nuevo valor en el ciclo siguiente. |
 | `ventana_temporal_minutos` | 5-15 `[RF]`; valor de prueba 10 `[QA]` | Ventana de análisis. | Valores 4, 5, 15 y 16: 5 y 15 se aceptan; 4 y 16 se rechazan. |
 | `modo_ejecucion` | `CLOUD`, `EDGE`, `HIBRIDO`; prueba con `EDGE` `[QA]` | Dónde corre la inferencia. EDGE exige el modelo descargado en el nodo Raspberry. | Cambiar el modo y comprobar la sincronización con el nodo y el fallback automático en modo EDGE/HIBRIDO. |
+
+**Observado en DEV `[DEV]`:** `MODELO_ACUICULTURA` está configurado (`umbral_score_anomalia` 0.5, ventana de 5 minutos, modo `SERVIDOR`). El valor de prueba 0.60 de arriba es una propuesta; no se cambió la configuración. F10 no se ejecutó.
 
 ### 1.3 Métricas de validación del modelo (RF-69)
 
@@ -44,28 +46,31 @@ Estado: borrador del 2026-11-02.
 
 ## 2. Población y capacidad por área productiva
 
-Regla `[RF]` (RF-20): capacidad del área = `floor(densidad × superficie)`; en un área multiespecie manda la **menor** densidad. Unidad contada: peces en un lote (activo LOTE con conteo).
+Regla `[RF]` (RF-20): capacidad del área = `floor(densidad × superficie)`; en un área multiespecie manda la **menor** densidad. Unidad contada: peces en un lote (activo POBLACIONAL con conteo). **Confirmada en DEV `[DEV]`:** Estanque Checho (El rosal, 10 m², Cachama Blanca) tiene `capacidad_maxima` 50.
+
+**Cambio respecto a la propuesta inicial:** en DEV la especie es **Cachama Blanca (id 1)**, grupo `ACUICULTURA`, densidad **5** (coincide con el plan). Para no llenar DEV se usó un área de 2.05 m² (capacidad 10) en lugar de 500 m² (capacidad 2500).
 
 | Elemento | Valor | Descripción | Metodología |
 |---|---|---|---|
-| `densidad_poblacional_max` de Cachama | 5 ind/m² `[QA]` | Densidad máxima de la especie (RF-15). | Registrar la especie con este valor y leerlo de vuelta. |
-| Superficie del área | 500 m² `[QA]` | Superficie conocida para calcular la capacidad. | Crear el área y comprobar la superficie guardada. |
-| **Capacidad con Cachama sola** | **2500** | `floor(5 × 500)`. | Crear el área y comparar la capacidad devuelta con 2500. |
-| Especie de apoyo (multiespecie) | E5 Tortuga; densidad 2 ind/m² `[QA]` | Segunda especie del mismo grupo. | Crear el área con las dos especies. |
-| **Capacidad multiespecie** | **1000** | `floor(MIN(5, 2) × 500)`. | Comparar con 1000; cambiar el orden de las especies no debe cambiar el resultado. |
+| Especie | Cachama Blanca, id 1 `[DEV]` | Existe en DEV. | Leerla con `GET /configuracion/especies`. |
+| `densidad_poblacional_max` | 5 ind/m² `[DEV]` | Densidad máxima. | Comprobar que la capacidad sale de este valor. |
+| Superficie del área de prueba | 2.05 m² `[QA]` | Da `floor(10.25)` = 10. Tipo de área `Estanque`. | Crear el área y comprobar la superficie. |
+| **Capacidad con Cachama sola** | **10** `[DEV]` | `floor(5 × 2.05)`. | Resultado: 201, capacidad 10. |
+| Especie de apoyo (multiespecie) | **Tortuga Qa** (id 6, densidad 2), creada para la prueba | Segunda especie del grupo `ACUICULTURA`. | Con Tortuga + Cachama en 5.05 m²: capacidad **10** (la cachama sola daría 25); en orden inverso también 10. Ver `datos_E5_tortuga.md`. |
 
-### Cargas de prueba en el área de 500 m² (capacidad 2500)
+### Cargas de prueba en el área de 2.05 m² (capacidad 10) - ejecutadas en DEV
 
-| Carga | Cantidad | Resultado esperado | Descripción | Metodología |
+| Carga | Cantidad | Resultado observado | Descripción | Metodología |
 |---|---|---|---|---|
-| Lote/hato de referencia | 1250 individuos (50 %) | 201 | Caso normal. | Registrar y comprobar que la carga restante es 1250. |
-| Límite inferior de capacidad | 2499 individuos | 201 | Un individuo bajo el límite. | Registrar y confirmar 201. |
-| **Límite exacto** | **2500 individuos** | 201 | Capacidad completa. | Registrar y confirmar 201 y capacidad libre 0. |
-| **Un individuo sobre el límite** | **2501 individuos** | 422 `CAPACIDAD_EXCEDIDA` | Primer valor inválido. | Registrar y confirmar el 422 sin persistencia. |
-| Reducir superficie bajo la carga | de 500 a 499 m² con 2500 individuos alojados | 422 `CAPACIDAD_EXCEDIDA` | Capacidad nueva = 2495 < 2500. | Editar el área y confirmar el 422 y que la superficie no cambió. |
-| Área multiespecie al límite | 1000 individuos | 201 | Límite con la menor densidad. | Registrar y confirmar 201; con 1001 confirmar 422. |
+| **Un pez sobre el límite, en área vacía** | 11 | **422 `CAPACIDAD_EXCEDIDA`** | Primer valor inválido. | `POST /activos-biologicos`, tipo POBLACIONAL, con `cantidad_inicial` y `soporte_documental` (obligatorio si el origen es "compra"). |
+| Un pez bajo el límite | 9 | 201 | Lote normal. | Registrar el lote. |
+| **Límite exacto** | +1 (total 10) | 201 | Capacidad completa. | Registrar un segundo lote de 1. |
+| Uno más | +1 (total 11) | **422 `CAPACIDAD_EXCEDIDA`** | Sobre el límite acumulado. | Registrar un tercer lote de 1. |
+| Reducir superficie a 2.0 m² con 10 | - | 200 | Capacidad 10, límite. | `PATCH` del área con `fecha_actualizacion` (si no, 412 `CONFLICTO_CONCURRENCIA`). |
+| **Reducir superficie a 1.99 m² con 10** | - | **422 `CAPACIDAD_EXCEDIDA`** | Capacidad 9 < carga 10. | La superficie queda en 2.0. |
+| Área con Cachama + Bovino (`ACUICULTURA` + `ESPECIES_GRANDES`) | - | **422 `GRUPOS_MANEJO_INCOMPATIBLES`** | Prueba negativa de grupos distintos. | Crear el área con las dos especies. |
 
-En el paradigma poblacional el lote es **un solo activo con conteo**, no un activo por animal: la cantidad es un campo del lote.
+En el paradigma poblacional cada tanda es **un lote con conteo**, no un activo por animal. DEV **no tiene sandbox**: la limpieza es dar de baja el lote completo (`eventos/baja` sin `cantidad_afectada`, con **fecha UTC**: la local puede ir un día atrás y da 400 `FECHA_INVALIDA`) y desactivar el área. Un dispositivo, aunque esté desactivado, impide desactivar su área y no se puede mover ni borrar, por eso queda un área por especie. Un área desactivada conserva su nombre (409 `RECURSO_DUPLICADO`): los nombres llevan sufijo.
 
 ## 3. Dispositivos y sensores
 
@@ -81,47 +86,46 @@ Todo área lleva **1 Gateway Edge (Raspberry)** que habla con el broker MQTT; lo
 
 Frecuencia de muestreo de prueba: 60 s `[QA]`; la frecuencia global sale de M09 (G16). La cantidad de sensores por área (1 de cada tipo) es una propuesta `[QA]`.
 
+**Observado en DEV `[DEV]`:** la Raspberry física (`RASPBERRY3B-TEST`) está en el Estanque Checho de El rosal, ACTIVA, y **no se usó**; la cámara de acuicultura (`CAM-ACUI-001`) está en La florida. Las pruebas usaron un dispositivo de QA (tipo `GENERICO`) con tres sensores (temperatura del agua, temperatura ambiental y humedad), **cada uno asociado a su propio lote de 1 pez**, porque un lote solo admite un sensor poblacional (409 `ACTIVO_YA_TIENE_SENSOR_POBLACIONAL`). **La temperatura del agua no se puede enviar:** su variable no tiene código de telemetría y la API responde 404 `VARIABLE_NO_ENCONTRADA` (probado con `TEMPERATURA_AGUA`, `Temperatura del agua` e `id_variable`). Lo mismo pasa con amoniaco total, nitrito, salinidad y turbidez.
+
 ## 4. Umbrales ambientales (RF-17)
 
-Los 3 niveles (`normal`, `precaucion`, `critico`) deben ser contiguos y cubrir exactamente `[valor_min, valor_max]` `[RF]`, y el rango debe caber en el rango físico de la variable. El orden de los niveles en el cuerpo no importa. Al guardar, el umbral se propaga al Gateway Edge y queda `APLICADA` / `PENDIENTE` / `NO_CONF`.
+Los 3 niveles (`normal`, `precaucion`, `critico`) deben ser contiguos y cubrir exactamente `[valor_min, valor_max]` `[RF]`. **Los umbrales de la tabla son los vigentes en DEV `[DEV]` y sustituyen a mis propuestas.**
 
-| Variable | Unidad | `valor_min` | `valor_max` | Nivel: límites | Descripción | Metodología |
+| Variable | Unidad | `valor_min` | `valor_max` | Niveles `[DEV]` | Sincronización | Metodología |
 |---|---|---|---|---|---|---|
-| `TEMPERATURA_AGUA (código por verificar en variables_ambientales)` | °C | 18 | 36 | critico 18-24; normal 24-30; precaucion 30-36 | Umbral `[QA]`. crítico por frío (bajo) / precaución por calor (alto). | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `PH_AGUA` | pH | 5 | 10 | critico 5-6.5; normal 6.5-8.5; precaucion 8.5-10 | Umbral `[QA]`. 6.5-8.5 es el rango de la regla compuesta pH+O2 de RF-55. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
-| `OXIGENO_DISUELTO` | mg/L | 0 | 15 | critico 0-5; precaucion 5-6; normal 6-15 | Umbral `[QA]`. 5 mg/L = límite de la regla compuesta pH+O2 de RF-55. | Crear el umbral; verificar 201 y `estado_sincronizacion`; probar un hueco y un solapamiento entre niveles (deben dar 422/400). |
+| Temperatura del agua (id 1) | °C | 24 | 34 | normal 24-30; precaución 30-32; crítico 32-34 | `PENDIENTE` | Leer con `GET /configuracion/umbrales?id_especie=1`. **No se puede alimentar** (sin código de telemetría). |
+| `TEMPERATURA_AMBIENTAL` (id 9) | °C | 18 | 40 | normal 18-32; precaución 32-35; crítico 35-40 | `PENDIENTE` | Igual. |
+| `HUMEDAD_RELATIVA` (id 10) | % | 40 | 100 | normal 40-70; precaución 70-80; crítico 80-100 | `PENDIENTE` | Igual. |
+| `PH_AGUA`, `OXIGENO_DISUELTO` | pH / mg/L | - | - | **sin umbral para Cachama en DEV** | - | Pendiente: crearlos (propuesta `[QA]` en `datos_E5_tortuga.md`). |
 
-## 5. Lecturas de prueba y resultado esperado
+Los tres umbrales están en `PENDIENTE` de sincronización con el Edge (en el bovino estaban `APLICADA`); aun así el backend evaluó las lecturas y generó las alertas.
 
-Por cada variable se envían valores dentro de cada banda, sobre cada frontera y fuera de `[valor_min, valor_max]`. **Inclusividad de las fronteras:** el requisito no fija si el límite pertenece a la banda inferior o a la superior (G44 de M3 se rechazó por esto); las filas de frontera quedan "por definir" hasta que Desarrollo lo defina.
+## 5. Lecturas de prueba y resultado observado `[DEV]`
 
-Nota: clasificar `FUERA_DE_RANGO` contra el umbral de la especie depende de la corrección DB-02 de `fn_ingesta_telemetria` (pendiente); hasta entonces el estado de esas filas puede diferir.
+Se enviaron 33 lecturas por `POST /iot/telemetria` con el token de servicio del broker. Resultado en DEV, con los umbrales de la sección 4:
 
-| Variable | Valor | Posición | Estado de la lectura | Nivel esperado | Metodología |
+| Variable | Valor | Posición | Calidad | Semáforo | Alerta |
 |---|---|---|---|---|---|
-| `TEMPERATURA_AGUA` | 17.9 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `TEMPERATURA_AGUA` | 21 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AGUA` | 27 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AGUA` | 33 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `TEMPERATURA_AGUA` | 24 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMPERATURA_AGUA` | 30 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `TEMPERATURA_AGUA` | 36.1 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `PH_AGUA` | 4.9 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `PH_AGUA` | 5.75 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `PH_AGUA` | 7.5 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `PH_AGUA` | 9.25 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `PH_AGUA` | 6.5 | frontera critico/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `PH_AGUA` | 8.5 | frontera normal/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `PH_AGUA` | 10.1 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
-| `OXIGENO_DISUELTO` | -0.1 | bajo `valor_min` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado en el historial; no debe generar alerta de umbral. |
-| `OXIGENO_DISUELTO` | 2.5 | centro de la banda critico | `LECTURA_VALIDA` | critico | Enviar y comprobar nivel/alerta. |
-| `OXIGENO_DISUELTO` | 5.5 | centro de la banda precaucion | `LECTURA_VALIDA` | precaucion | Enviar y comprobar nivel/alerta. |
-| `OXIGENO_DISUELTO` | 10.5 | centro de la banda normal | `LECTURA_VALIDA` | normal | Enviar y comprobar nivel/alerta. |
-| `OXIGENO_DISUELTO` | 5 | frontera critico/precaucion | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `OXIGENO_DISUELTO` | 6 | frontera precaucion/normal | `LECTURA_VALIDA` | por definir (inclusividad) | Enviar el valor exacto y registrar a qué banda se asigna. |
-| `OXIGENO_DISUELTO` | 15.1 | sobre `valor_max` | `FUERA_DE_RANGO` | n/a (no se clasifica) | Enviar y leer el estado. |
+| `TEMPERATURA_AMBIENTAL` | 17.99 | bajo `valor_min` | `FUERA_DE_RANGO` | AMARILLO | no |
+| | 18.0 | mínimo | `LECTURA_VALIDA` | VERDE | no |
+| | 31.99 / **32.0** | normal / frontera normal-precaución | `LECTURA_VALIDA` | VERDE / **VERDE** | no |
+| | 32.01 / 34.99 | precaución | `LECTURA_VALIDA` | AMARILLO | no |
+| | **35.0** | frontera precaución-crítico | `LECTURA_VALIDA` | **AMARILLO** | no |
+| | 35.01 | crítico | `LECTURA_VALIDA` | ROJO | **sí** (alerta 270, CRITICO) |
+| | 39.99 / 40.0 | crítico / máximo | `LECTURA_VALIDA` | ROJO | no (misma alerta) |
+| | 40.01 | sobre `valor_max` | `FUERA_DE_RANGO` | AMARILLO | no |
+| `HUMEDAD_RELATIVA` | 39.99 | bajo `valor_min` | `FUERA_DE_RANGO` | AMARILLO | no |
+| | 40.0 / 69.99 | mínimo / normal | `LECTURA_VALIDA` | VERDE | no |
+| | **70.0** | frontera normal-precaución | `LECTURA_VALIDA` | **VERDE** | no |
+| | 70.01 / 79.99 | precaución | `LECTURA_VALIDA` | AMARILLO | no |
+| | **80.0** | frontera precaución-crítico | `LECTURA_VALIDA` | **AMARILLO** | no |
+| | 80.01 | crítico | `LECTURA_VALIDA` | ROJO | **sí** (alerta 271, CRITICO) |
+| | 99.99 / 100.0 | crítico / máximo | `LECTURA_VALIDA` | ROJO | no (misma alerta) |
+| | 100.01 | sobre el rango físico | - | - | rechazada 422 `ERROR_SENSOR` |
+| Temperatura del agua | 23.99 a 34.01 (11 valores) | - | - | - | **todas rechazadas: 404 `VARIABLE_NO_ENCONTRADA`** |
 
-Desviaciones RF-55.1 `[RF]` (porcentaje sobre el umbral): 9.9 %, 10 %, 10.1 %, 24.9 %, 25 %, 25.1 %. Menor o igual a 10 % → `LEVE`; entre 10 y 25 % → `MODERADO`; mayor a 25 % → `CRITICO`. Cada corte se prueba con el `valor_max` de arriba como referencia.
+**Regla observada de inclusividad** (el requisito no la fija): el límite superior de cada banda pertenece a la banda de abajo, (inferior, superior], con el mínimo del umbral en la primera banda. Una lectura fuera de [min, max] se guarda como `FUERA_DE_RANGO` y no genera alerta. Semáforo fuera de [min, max]: AMARILLO dentro de la tolerancia (por defecto el 10 % del rango del umbral, RF-58) y ROJO más allá.
 
 ## 6. Estados del sistema
 
@@ -131,25 +135,38 @@ Desviaciones RF-55.1 `[RF]` (porcentaje sobre el umbral): 9.9 %, 10 %, 10.1 %, 2
 | Desviación (RF-55) | `NORMAL`, `DESVIACION_LEVE`, `DESVIACION_MODERADA`, `DESVIACION_CRITICA`, `DESVIACION_COMPUESTA`, `ERROR_CONFIGURACION` | Clasificación del nodo Edge. | Enviar la lectura y leer `estado_desviacion`; sin umbrales debe salir `ERROR_CONFIGURACION`. |
 | Origen del dato (RF-53/54) | `TIEMPO_REAL`, `BUFFER_LOCAL`, `EDGE_AGREGADO` | Cómo llegó la lectura. | Enviar un lote `BUFFER_LOCAL` repetido: solo el primero crea registro (idempotencia). |
 | Severidad de alerta (RF-57) | `LEVE`, `MODERADO`, `CRITICO` | Gravedad. | Una alerta por severidad. |
-| Ciclo de vida de alerta (RF-57) | `ACTIVA`, `EN_ATENCION`, `RESUELTA`, `DESCARTADA`, `VENCIDA` | Estados; `CERRADA` no existe y da 422 `TRANSICION_INVALIDA`. | Recorrer las transiciones válidas y probar una inválida. |
+| Ciclo de vida de alerta (RF-57) | `ACTIVA`, `EN_ATENCION`, `RESUELTA`, `DESCARTADA`, `VENCIDA` | Estados; `CERRADA` no existe y da 422 `TRANSICION_INVALIDA`. **Una alerta sin atender pasa sola a `VENCIDA` a los 5 min y es terminal** `[DEV]`. | Recorrer las transiciones válidas y las inválidas dentro de esos 5 minutos (ejecutado: 10 de 10 pasan). |
 | Conectividad del dispositivo (RF-60) | `ONLINE`, `OFFLINE`, `SIN_SEÑAL`, `EN_MANTENIMIENTO` | Estado según heartbeat y buffer. | Enviar heartbeats y consultar; SIN_SEÑAL/OFFLINE no tienen disparador de prueba (dependencia de Desarrollo). |
-| Semáforo del dashboard (RF-58) | `VERDE` (nombre por verificar), `AMARILLO`, `ROJO`, `GRIS` (sin datos) | Estado visual de la unidad. | Un caso por color con las lecturas de la sección 5. |
+| Semáforo del dashboard (RF-58) | `VERDE`, `AMARILLO`, `ROJO` (confirmados en DEV), `GRIS` (sensor sin umbral) | Estado visual. `estado_general` de la unidad queda GRIS si algún sensor no tiene umbral. | Un caso por color con las lecturas de la sección 5. |
 | Sincronización de umbral (RF-17) | `PENDIENTE`, `APLICADA`, `NO_CONF` | Resultado de propagar el umbral al Edge. | Con Edge conectado: `APLICADA`; sin ACK en 30 s: `NO_CONF` (500). |
 | Versión de modelo (RF-69) | `EN_VALIDACION`, `APROBADO`, `RECHAZADO`, `ACTIVO`, `DEPRECADO` | Ver 1.4. | Ver 1.4. |
 
 ## 7. Datos que la prueba automática crea y usa
 
-Todo se crea dentro del sandbox (`X-Test-Run-Id`) y desaparece con `DELETE /test-control/runs/{id}`. Los secretos (`X-Sandbox-Secret`, token del broker, `QA_PROD_*`) salen de variables de entorno, nunca de este documento.
+**En DEV no hay sandbox** (`/test-control` no existe): lo que se crea queda; la limpieza es manual (baja de animales y lotes, asociaciones inactivas, dispositivos desactivados). En TEST sí hay sandbox (`X-Test-Run-Id`, `DELETE /test-control/runs/{id}`). Los secretos (`X-Sandbox-Secret`, token del broker, `QA_PROD_*`) salen de variables de entorno, nunca de este documento.
 
 | Dato | Contenido | Quién lo crea | Descripción | Metodología |
 |---|---|---|---|---|
-| Especie | Cachama, grupo ACUICULTURA, densidad 5 | RF-15 | Especie de la prueba. | Crear en F1 y borrar con el rollback. |
+| Especie | Cachama Blanca (id 1, existente), grupo ACUICULTURA, densidad 5 `[DEV]` | ya existe | No se crea ni se modifica. | Leerla y comprobar grupo y modelo. |
 | Etapas | Alevino, Juvenil, Engorde | RF-16 | Etapas productivas. | Crear las tres y comprobar el orden. |
 | Patología | Hipoxia en estanque de prueba (QA); variables: PH_AGUA, OXIGENO_DISUELTO, TEMPERATURA_AMBIENTAL | M04 RF-64 | Patología mínima para la predicción. Las variables se envían como **IDs** del catálogo I3P-1, no como nombres (TC-M04-G003). | Registrar y leer de vuelta las variables. |
-| Umbrales | 3 variables de la sección 4 | RF-17 | Reglas de alerta. | Crear y verificar la sincronización. |
-| Finca y área | 1 finca, 1 área de 500 m² | RF-19/20 | Contenedor. | Crear y leer la capacidad. |
-| Dispositivos y sensores | 1 Gateway Edge + 4 sensores/cámaras | RF-21/22 | Fuente de telemetría. | Crear y asociar al área. |
+| Umbrales | 3 existentes en DEV (temperatura del agua, temperatura ambiental, humedad) `[DEV]`; solo se leen | RF-17 | Reglas de alerta. | Leerlos y comprobar niveles y sincronización (`PENDIENTE`). |
+| Finca y área | Finca QA Pruebas Flujo (id 3); área de 2.05 m² (capacidad 10) y un área por corrida de lecturas | RF-19/20 | Contenedor. | Crear y leer la capacidad. |
+| Dispositivos y sensores | 1 dispositivo de QA (tipo `GENERICO`) por corrida, con sensores propios `[DEV]`; no se usó la Raspberry física ni los dispositivos de las otras fincas | RF-21/22 | Fuente de telemetría. | Crear, asociar al área y al lote o animal, calibrar y, al terminar, desactivar el dispositivo. |
 | Activos | cargas de la sección 2 | M02 | Población. | Crear y comprobar la capacidad. |
-| Lecturas | tabla de la sección 5 | `POST /iot/telemetria` | Telemetría de prueba. Las horas se envían en el pasado (el sandbox congela `now()`). | Enviar y leer del historial. |
+| Lecturas | tabla de la sección 5 | `POST /iot/telemetria` | Telemetría de prueba. En DEV la hora de captura debe ser **posterior** a la asociación del sensor (si no, 401 `ERROR_AUTENTICACION` aunque el token sea válido); en TEST con sandbox, en cambio, las horas con `now()` fallan y se envían en el pasado. | Enviar y leer del historial. |
 | Versiones de modelo | una por estado de la sección 1.4 | RF-69 | Datos de ciclo de vida. | Registrar con métricas sobre y bajo el umbral. |
 | Usuarios | Administrador (setup), Productor (`QA_PROD_*`), Ingeniero de Campo (lectura del monitoreo) | variables de entorno | Roles de la prueba. | Una sesión por rol; un login invalida el token anterior. |
+
+## 8. Resultados de ejecución en DEV (2026-11-02/03)
+
+| Fase | Qué se hizo | Resultado | Evidencia |
+|---|---|---|---|
+| Capacidad (lotes) | Área de 2.05 m², lotes de 11, 9 y 1, reducción de superficie, grupos incompatibles | 10 de 10 pasan | `Flujo/Cachama/resultados_capacidad_cachama_finca3.json` |
+| F7 lecturas en fronteras | 33 lecturas: temperatura ambiental y humedad (22) y temperatura del agua (11) | Temperatura ambiental y humedad: 14 pasan y 8 informativas, 0 fallan. **Temperatura del agua: 11 rechazadas (404)** | `Flujo/Cachama/resultados_fronteras_cachama_finca3.json` |
+| F8 alertas | Ciclo de vida completo | 10 de 10 pasan | `Flujo/Cachama/resultados_alertas_ciclo_cachama_finca3.json` |
+| F4 multiespecie | Cachama + Tortuga Qa | Pasa (ver `datos_E5_tortuga.md`) | `Flujo/Tortuga/resultados_capacidad_tortuga_finca3.json` |
+| F9 calibración de visión | No ejecutada | La cámara de acuicultura está en La florida | - |
+| F10 predicción | No ejecutada | `MODELO_ACUICULTURA` está configurado; solo se podría revisar en lectura | - |
+
+**Pendiente de confirmar con Desarrollo:** Código de telemetría de la temperatura del agua (y de amoniaco total, nitrito, salinidad y turbidez); umbrales de pH y oxígeno disuelto para Cachama; sincronización de los umbrales con el Edge (`PENDIENTE`); la Raspberry física del Estanque Checho no se usó.
