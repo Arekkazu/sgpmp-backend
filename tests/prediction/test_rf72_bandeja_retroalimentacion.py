@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
+# | 2026-11-03 | Claude   | RF-72: el repositorio devuelve página e indicadores en una sola consulta |
 """RF-72: la pantalla de retroalimentación pintaba retroMock.ts; ahora lee GET /bandeja.
 
 La consulta se verificó contra PostgreSQL 16 con el esquema completo (baseline + migraciones) y un
@@ -45,12 +46,9 @@ class _Repo:
         self.items = list(items)
         self.filtros = None
 
-    def listar(self, filtros):
+    def consultar(self, filtros):
         self.filtros = filtros
-        return self.items, len(self.items)
-
-    def indicadores(self, filtros):
-        return IndicadoresBandejaRetroalimentacion(pendientes=1, evaluadas=2, vencidas=3)
+        return self.items, len(self.items), IndicadoresBandejaRetroalimentacion(pendientes=1, evaluadas=2, vencidas=3)
 
 
 class _Parametros:
@@ -103,8 +101,7 @@ def test_no_compara_enum_con_texto(columna):
     """El 500 de la ingesta en DEV: un ENUM comparado con un parámetro text. La bandeja no lo hace."""
     from src.prediction.infrastructure.repositories import bandeja_retroalimentacion_repository as repo
 
-    for sql in (repo._SQL_LISTAR.text, repo._SQL_INDICADORES.text):
-        assert not re.search(columna + r"\s*(=|<>|LIKE)\s*(CAST|:)", sql)
+    assert not re.search(columna + r"\s*(=|<>|LIKE)\s*(CAST|:)", repo._SQL.text)
 
 
 def test_ruta_bandeja(monkeypatch):
@@ -138,3 +135,61 @@ def test_ruta_bandeja(monkeypatch):
     assert cuerpo["items"][0]["puede_evaluar"] is True and cuerpo["items"][0]["identificador_activo"] == "BOV-003"
     assert repo.filtros.ids_fincas == [9] and repo.filtros.estado_evaluacion == "PENDIENTE"
     assert repo.filtros.desde == datetime(2026, 10, 1, tzinfo=timezone.utc)  # sin zona: UTC
+
+
+class _Resultado:
+    def __init__(self, filas):
+        self._filas = filas
+
+    def mappings(self):
+        return self
+
+    def all(self):
+        return self._filas
+
+
+class _Db:
+    def __init__(self, filas):
+        self.filas = filas
+        self.ejecuciones = 0
+
+    def execute(self, sql, params):
+        self.ejecuciones += 1
+        return _Resultado(self.filas)
+
+
+def _filtros(**kw):
+    from src.prediction.domain.entities.bandeja_retroalimentacion import FiltrosBandejaRetroalimentacion
+
+    base = dict(ids_fincas=None, desde=AHORA - timedelta(days=120), hasta=AHORA, ahora=AHORA, ventana_dias=90,
+                id_usuario=1)
+    base.update(kw)
+    return FiltrosBandejaRetroalimentacion(**base)
+
+
+def test_repositorio_una_sola_consulta_con_pagina_e_indicadores():
+    """Antes eran dos consultas que repetían el mismo cálculo y la pantalla tardaba >10 s."""
+    from src.prediction.infrastructure.repositories.bandeja_retroalimentacion_repository import (
+        SqlAlchemyBandejaRetroalimentacionRepository,
+    )
+
+    fila = {**vars(ITEM), "id_estado": 1, "total": 40, "pendientes": 30, "evaluadas": 6, "vencidas": 4}
+    fila.pop("activo_en_baja")
+    db = _Db([fila])
+    items, total, ind = SqlAlchemyBandejaRetroalimentacionRepository(db).consultar(_filtros())
+    assert db.ejecuciones == 1
+    assert total == 40 and (ind.pendientes, ind.evaluadas, ind.vencidas) == (30, 6, 4)
+    assert items[0].identificador_activo == "BOV-003" and items[0].activo_en_baja is False
+
+
+def test_repositorio_pagina_vacia_conserva_indicadores():
+    """indicadores LEFT JOIN página: sin filas en la página llega una sola fila con columnas nulas."""
+    from src.prediction.infrastructure.repositories.bandeja_retroalimentacion_repository import (
+        SqlAlchemyBandejaRetroalimentacionRepository,
+    )
+
+    vacia = {**{k: None for k in vars(ITEM)}, "id_estado": None, "total": None,
+             "pendientes": 5, "evaluadas": 0, "vencidas": 2}
+    items, total, ind = SqlAlchemyBandejaRetroalimentacionRepository(_Db([vacia])).consultar(
+        _filtros(pagina=99))
+    assert items == [] and total == 0 and (ind.pendientes, ind.vencidas) == (5, 2)
