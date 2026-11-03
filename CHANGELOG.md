@@ -1,3 +1,14 @@
+## [1.4.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.39...v1.4.0-rc.40) (2026-11-03)
+
+### Features
+
+* **rf-62:** listado de observaciones de vision evaluadas con la politica vigente ([98b2445](https://github.com/Arekkazu/sgpmp-backend/commit/98b244549e9babe679da3964bb6387085260eec2))
+* **rf-72:** bandeja de inferencias por evaluar para la retroalimentacion clinica ([854ed38](https://github.com/Arekkazu/sgpmp-backend/commit/854ed388c47b51dc7a49b704cf72d295ff88e49a))
+
+### Bug Fixes
+
+* **rf-53:** ingesta compara los enum de la bitacora como texto ([38bc16f](https://github.com/Arekkazu/sgpmp-backend/commit/38bc16f265160f241663ed2ceaeecc9ee98d9971))
+
 ## [1.4.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.38...v1.4.0-rc.39) (2026-11-03)
 
 ### Features
