@@ -1,3 +1,11 @@
+## [1.4.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.41...v1.4.0-rc.42) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-57:** el reintento de correos de alertas no martilla el SMTP ([4798e94](https://github.com/Arekkazu/sgpmp-backend/commit/4798e941d0098ea9d3507e7a5db8ba17172d9bcb))
+* **rf-64:** editar e inactivar patologías personalizadas bajo RLS y auditar los intentos rechazados ([0a2431f](https://github.com/Arekkazu/sgpmp-backend/commit/0a2431f3c701f76c4d74f37a2948c17c2366364b))
+* **rf-73:** filtros de la bitácora M04 con un tipo de evento o severidad inexistente responden 4xx y no 500 ([abbdf70](https://github.com/Arekkazu/sgpmp-backend/commit/abbdf701ac2d3821af10b25f1d9ee4b911191464))
+
 ## [1.4.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.40...v1.4.0-rc.41) (2026-11-03)
 
 ### Performance Improvements
