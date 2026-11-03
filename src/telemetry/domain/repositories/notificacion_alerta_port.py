@@ -1,15 +1,33 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: puerto de notificación de alertas (destinatarios, envío, reintento) |
+# | 2026-11-03 | Arekkazu | QA-M03 RF-57: nombres del área, finca, animal y sensor para los correos de alertas |
 """Puerto de notificación de alertas de RF-57 (Fase 8, E6, E7, E8, E10)."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
 
+@dataclass(frozen=True)
+class ContextoAlerta:
+    """Nombres que ve el destinatario en lugar de ids; ``None`` si no aplica o no se encontró."""
+    area: Optional[str] = None
+    finca: Optional[str] = None
+    activo: Optional[str] = None
+    sensor: Optional[str] = None
+
+
 class NotificacionAlertaPort(ABC):
+
+    @abstractmethod
+    def contexto(
+        self, *, id_infraestructura: Optional[int] = None, id_activo_biologico: Optional[int] = None,
+        id_sensor: Optional[int] = None,
+    ) -> ContextoAlerta:
+        """Nombre del área, de su finca, identificador del animal o lote y nombre del sensor."""
 
     @abstractmethod
     def destinatarios(self, id_infraestructura: Optional[int], *, escalamiento: bool) -> list[int]:

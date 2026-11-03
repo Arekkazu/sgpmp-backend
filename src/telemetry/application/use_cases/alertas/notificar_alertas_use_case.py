@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-10-21 | Arekkazu | DEV-32 RF-57: notificación de alertas, tormenta (E8), contexto incompleto (E6) y fallos con reintento (E7) |
 # | 2026-10-28 | destroyerban | INC-M03-170-G77 RF-57 E6: el aviso de contexto incompleto no se pierde por anti-spam; uno por sensor cada 24 h |
+# | 2026-11-03 | Arekkazu | QA-M03 RF-57: correos de alertas con nombres y rótulos legibles en vez de ids y códigos |
 """Caso de uso: notificar las alertas nuevas (RF-57 Fase 8, E6, E7, E8).
 
 Corre cada pocos segundos fuera del request del broker:
@@ -27,6 +28,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.telemetry.application.use_cases.alertas import texto_alerta as texto
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
     RegistrarEventoAuditoriaIotUseCase,
 )
@@ -45,7 +47,7 @@ from src.telemetry.domain.entities.evento_auditoria_iot import (
 )
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
 from src.telemetry.domain.repositories.bitacora_auditoria_iot_repository import BitacoraAuditoriaIotRepository
-from src.telemetry.domain.repositories.notificacion_alerta_port import NotificacionAlertaPort
+from src.telemetry.domain.repositories.notificacion_alerta_port import ContextoAlerta, NotificacionAlertaPort
 from src.telemetry.domain.repositories.parametros_alertas_port import ParametrosAlertasPort
 
 logger = logging.getLogger(__name__)
@@ -54,16 +56,6 @@ VENTANA_TORMENTA = timedelta(minutes=1)
 REPOSO_TORMENTA = timedelta(minutes=10)  # una alerta de tormenta por ventana, no una por vuelta
 # G77 (E6): un aviso por sensor sin asociación cada 24 h; el RF no fija la frecuencia.
 VENTANA_AVISO_CONTEXTO = timedelta(hours=24)
-
-
-def _titulo(alerta: Alerta) -> str:
-    return f"Alerta {alerta.severidad}: {alerta.tipo_alerta.replace('_', ' ').lower()}"
-
-
-def _cuerpo(alerta: Alerta) -> str:
-    valor = f" Valor {alerta.valor} {alerta.unidad or ''}." if alerta.valor is not None else ""
-    area = f" Área {alerta.id_infraestructura}." if alerta.id_infraestructura else ""
-    return f"{_titulo(alerta)} en {alerta.tipo_variable}.{valor}{area} Alerta #{alerta.id_alerta}."
 
 
 class NotificarAlertasUseCase:
@@ -94,33 +86,35 @@ class NotificarAlertasUseCase:
             raise
 
         if tormenta is not None:
-            self._a_administradores(tormenta, _titulo(tormenta), self._cuerpo_tormenta(tormenta), agrupable=False)
+            self._a_administradores(tormenta, "Tormenta de alertas", self._cuerpo_tormenta(tormenta), agrupable=False)
 
-        agrupadas: dict[int, list[Alerta]] = defaultdict(list)
+        agrupadas: dict[int, list[tuple[Alerta, ContextoAlerta]]] = defaultdict(list)
         sensores_avisados: set[int] = set()
         for alerta in pendientes:
             if alerta.tipo_alerta == TipoAlerta.TORMENTA_DE_ALERTAS.value:
                 continue
             critica = alerta.severidad == SeveridadAlerta.CRITICO.value
+            ctx = self._contexto(alerta)
             for id_usuario in self.notificacion.destinatarios(alerta.id_infraestructura, escalamiento=False):
                 if tormenta is not None and not critica:
-                    agrupadas[id_usuario].append(alerta)
+                    agrupadas[id_usuario].append((alerta, ctx))
                 else:
-                    self._enviar(id_usuario, alerta, _titulo(alerta), _cuerpo(alerta), agrupable=not critica)
+                    self._enviar(id_usuario, alerta, texto.titulo(alerta, ctx), texto.cuerpo(alerta, ctx),
+                                 agrupable=not critica)
             if alerta.tiene_contexto_incompleto and self._avisar_contexto(alerta, ahora, sensores_avisados):
                 # G77: sin anti-spam. El anti-spam es por tipo de evento (32) y una notificación de otra
                 # alerta en los últimos 5 min descartaba este aviso en silencio.
+                sensor = f"el sensor {ctx.sensor}" if ctx.sensor else "el sensor que la generó"
                 self._a_administradores(
-                    alerta, "Alerta sin contexto de activo biológico",
-                    f"La alerta #{alerta.id_alerta} ({alerta.tipo_variable}) se generó sin activo asociado. "
-                    f"Complete la asociación del sensor {alerta.id_sensor} a su unidad productiva (RF-22).",
+                    alerta, "Alerta sin animal o lote asociado",
+                    f"Una alerta de {texto.etiqueta(alerta.tipo_alerta).lower()} en {texto.lugar(ctx)} se generó "
+                    f"sin animal o lote asociado. Asocie {sensor} a su unidad productiva desde Configuración "
+                    "para que las próximas alertas digan a quién afectan.",
                     agrupable=False,
                 )
 
         for id_usuario, alertas in agrupadas.items():
-            resumen = ", ".join(f"#{a.id_alerta} {a.severidad}" for a in alertas[:20])
-            self._enviar(id_usuario, alertas[0], f"Resumen de {len(alertas)} alertas",
-                         f"Tormenta de alertas: {len(alertas)} alertas LEVE/MODERADO agrupadas ({resumen}).",
+            self._enviar(id_usuario, alertas[0][0], texto.titulo_resumen(len(alertas)), texto.resumen(alertas),
                          agrupable=False)
 
         self.notificacion.reintentar_fallidas(ahora)
@@ -165,12 +159,18 @@ class NotificarAlertasUseCase:
         tormenta.fecha_vencimiento = tormenta.calcular_fecha_vencimiento()
         return self.alerta_repo.guardar(tormenta)
 
-    @staticmethod
-    def _cuerpo_tormenta(tormenta: Alerta) -> str:
+    def _contexto(self, alerta: Alerta) -> ContextoAlerta:
+        return self.notificacion.contexto(id_infraestructura=alerta.id_infraestructura,
+                                          id_activo_biologico=alerta.id_activo_biologico, id_sensor=alerta.id_sensor)
+
+    def _cuerpo_tormenta(self, tormenta: Alerta) -> str:
         meta = tormenta.metadato_evento or {}
-        return (f"Tormenta de alertas: {meta.get('alertas_ultimo_minuto')} alertas en el último minuto "
-                f"(áreas sobre el umbral: {meta.get('areas_sobre_umbral') or 'ninguna'}). Las alertas LEVE y "
-                "MODERADO se notifican agrupadas; las CRITICO, una por una.")
+        areas = [self.notificacion.contexto(id_infraestructura=a).area or "un área sin nombre"
+                 for a in meta.get("areas_sobre_umbral") or []]
+        donde = f" Áreas con más alertas de lo normal: {', '.join(areas)}." if areas else ""
+        return (f"Se generaron {meta.get('alertas_ultimo_minuto')} alertas en el último minuto.{donde} "
+                "Mientras dure, las alertas leves y moderadas llegan agrupadas en un resumen; "
+                "las críticas siguen llegando una por una.")
 
     def _a_administradores(self, alerta: Alerta, titulo: str, cuerpo: str, *, agrupable: bool) -> None:
         if (alerta.metadato_evento or {}).get("ya_notificada"):
