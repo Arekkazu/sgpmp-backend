@@ -1,3 +1,21 @@
+## [1.4.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.38...v1.4.0-rc.39) (2026-11-03)
+
+### Features
+
+* **rf-46:** historial del activo con eventos de telemetría y predicción ([239fe6b](https://github.com/Arekkazu/sgpmp-backend/commit/239fe6b8b6d9786e982429985000287a579a149d))
+* **rf-53:** lectura de la bitácora de ingesta para el monitor de ingesta ([7f0413a](https://github.com/Arekkazu/sgpmp-backend/commit/7f0413a5cfc8f40d3bb001256dbffd510269c6c1))
+* **rf-60:** exponer parámetros de heartbeat por categoría y ventanas de visión ([0347a34](https://github.com/Arekkazu/sgpmp-backend/commit/0347a34c08006669f9b9caf4c84e50e6201d9e44))
+* **rf-66:** monitor de inferencias paginado con filtros por animal y totales ([f1b7f25](https://github.com/Arekkazu/sgpmp-backend/commit/f1b7f2510d2b26d09c0209466ea7e7e2ac6932eb))
+* **rf-71:** datos para que el motor entrene y registre su version por animal ([3627feb](https://github.com/Arekkazu/sgpmp-backend/commit/3627febd330174f1b918bef27f5784829bd50753))
+* **rf-71:** el proceso de reentrenamiento informa la especie del animal ([53996ec](https://github.com/Arekkazu/sgpmp-backend/commit/53996eca352951c5549920fae3df96bae50ff007))
+* **rf-71:** procesos de reentrenamiento por animal que ejecuta el motor de ia ([5355c94](https://github.com/Arekkazu/sgpmp-backend/commit/5355c9456d2359891cd393c7c66d9a746b9b9b98))
+* **rf-71:** reentrenamiento programado por antigüedad de la versión del animal ([c92e3c8](https://github.com/Arekkazu/sgpmp-backend/commit/c92e3c88ed8b02204c50beeea19b34a120fba6e0))
+* **rf-73:** filtrar la bitácora m04 por entidad referenciada y nombrar la referencia ([72dfedb](https://github.com/Arekkazu/sgpmp-backend/commit/72dfedb4a76f47527169db95239cffa5f2875e03))
+
+### Bug Fixes
+
+* **rf-53,rf-60,rf-71:** cerrar los gaps de bd de los ajustes m02/m03/m04 ([dfc68d0](https://github.com/Arekkazu/sgpmp-backend/commit/dfc68d0289268538276cad453eca40b70b1f851a))
+
 ## [1.4.0-rc.38](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.37...v1.4.0-rc.38) (2026-11-02)
 
 ### Bug Fixes
