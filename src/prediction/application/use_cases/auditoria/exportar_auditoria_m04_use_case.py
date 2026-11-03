@@ -3,6 +3,7 @@
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: la exportación respeta el filtro tipo_modelo |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-03 | Arekkazu | QA-M04 RF-73: rango de fechas invertido en la bitácora responde 400 RANGO_FECHAS_INVALIDO |
 from __future__ import annotations
 
 import uuid
@@ -16,6 +17,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.auditoria.consultar_auditoria_m04_use_case import validar_rango_fechas
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,7 @@ class ExportarAuditoriaM04UseCase:
         tipo_modelo: Optional[str] = None,
         entidad_referencia: Optional[str] = None,
     ) -> tuple[str | bytes, str, str]:
+        validar_rango_fechas(fecha_desde, fecha_hasta)
         items, _ = self._repo.consultar(
             tipo_evento=tipo_evento,
             fecha_desde=fecha_desde,

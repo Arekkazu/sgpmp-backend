@@ -5,6 +5,7 @@
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la bitácora no emite HISTORIAL_CONSULTADO |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-03 | Arekkazu | QA-M04 RF-73: rango de fechas invertido en la bitácora responde 400 RANGO_FECHAS_INVALIDO |
 from __future__ import annotations
 
 import uuid
@@ -13,6 +14,17 @@ from typing import Optional
 
 from src.prediction.domain.entities.evento_auditoria_m04 import EventoAuditoriaM04
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
+from src.shared.errors import ValidationError
+
+
+def validar_rango_fechas(fecha_desde: Optional[datetime], fecha_hasta: Optional[datetime]) -> None:
+    """Un "hasta" anterior al "desde" devolvía una lista vacía sin decir por qué."""
+    if fecha_desde is not None and fecha_hasta is not None and fecha_desde > fecha_hasta:
+        raise ValidationError(
+            code="RANGO_FECHAS_INVALIDO",
+            message="La fecha de inicio no puede ser posterior a la fecha de fin.",
+            field="fecha_desde",
+        )
 
 
 class ConsultarAuditoriaM04UseCase:
@@ -38,6 +50,7 @@ class ConsultarAuditoriaM04UseCase:
         tipo_modelo: Optional[str] = None,
         entidad_referencia: Optional[str] = None,
     ) -> tuple[list[EventoAuditoriaM04], int]:
+        validar_rango_fechas(fecha_desde, fecha_hasta)
         items, total = self._repo.consultar(
             tipo_evento=tipo_evento,
             fecha_desde=fecha_desde,

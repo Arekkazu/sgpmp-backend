@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71 BE-1: solicitar el reentrenamiento de un animal abre un proceso PENDIENTE |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: días de lecturas contados con sesión de sistema (RLS de telemetrias) |
+# | 2026-11-03 | Arekkazu | QA-M04 RF-71: días de lecturas en enteros (sin «0.0 días») |
 """BE-1: la solicitud por animal deja el evento en la bitácora (como hasta ahora) y además
 abre el proceso que el motor de IA va a tomar.
 
@@ -63,9 +64,12 @@ class SolicitarReentrenamientoAnimalUseCase:
                                 field="id_activo_biologico")
         dias = self._lecturas.horas_de_lecturas(id_activo_biologico) / 24
         if dias < self._dias_minimos:
+            # Días completos: 6,9 días todavía no son 7.
+            completos = int(dias)
             raise BusinessRuleError(
                 "LECTURAS_INSUFICIENTES",
-                f"El animal tiene {dias:.1f} días de lecturas; el reentrenamiento necesita al menos {self._dias_minimos:g}.",
+                f"El animal tiene {completos} {'día' if completos == 1 else 'días'} de lecturas; "
+                f"el reentrenamiento necesita al menos {self._dias_minimos:g}.",
                 field="id_activo_biologico",
             )
         estado = next(e for e in self._estado.execute() if e.tipo_modelo == datos.tipo_modelo)
