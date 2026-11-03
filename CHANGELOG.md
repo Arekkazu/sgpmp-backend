@@ -1,3 +1,9 @@
+## [1.4.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.44...v1.4.0-rc.45) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-57:** correos de alertas con nombres del área, animal y sensor en vez de ids y códigos ([d1f7126](https://github.com/Arekkazu/sgpmp-backend/commit/d1f7126522f640aaac3fc65f62a51b6ce95d3c81)), closes [#id](https://github.com/Arekkazu/sgpmp-backend/issues/id)
+
 ## [1.4.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.43...v1.4.0-rc.44) (2026-11-03)
 
 ### Bug Fixes
