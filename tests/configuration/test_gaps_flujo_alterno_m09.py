@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-03 | Arekkazu | QA-M09 RF-23: intervalo de transmisión mínimo de 10 minutos |
 """Códigos HTTP de flujo alterno del Módulo 9, fijados contra el texto de cada RF.
 
 Cubre los gaps de `anotaciones/modulo_9/gaps_flujo_alterno_modulo9.md`: casos donde
@@ -186,7 +189,7 @@ def test_rf20_tipo_de_area_no_reconocido_es_400(tipo) -> None:
 def test_rf23_intervalo_menor_que_la_frecuencia_es_rechazado_por_el_dto() -> None:
     """Ambos valores caben en su rango individual; lo inconsistente es la relación."""
     with pytest.raises(PydanticValidationError) as error:
-        ConfigurarRemotamenteDTO(frecuencia_captura=10, intervalo_transmision=5)
+        ConfigurarRemotamenteDTO(frecuencia_captura=20, intervalo_transmision=15)
 
     mensaje = str(error.value)
     assert "Conflicto lógico" in mensaje
