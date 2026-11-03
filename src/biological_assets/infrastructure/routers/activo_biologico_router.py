@@ -5,6 +5,7 @@
 # | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
 # | 2026-10-22 | Arekkazu         | M05 RF-38: cierre con efectos de suministros  |
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-03 | Arekkazu | QA-M02 RF-49: asociaciones del activo con nombre del sensor y serial del dispositivo |
 """Router FastAPI de activos biológicos (`/activos-biologicos`, M02).
 
 Registro, consulta y edición de activos, fases, cierre, eventos biológicos,
@@ -1930,6 +1931,21 @@ def registrar_transferencia(
 
 # ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
 
+def _nombres_sensores(db: Session, ids: set[int]) -> dict[int, tuple[str, str]]:
+    """Lectura simple: nombre del sensor y serial de su dispositivo, para no mostrar ids."""
+    if not ids:
+        return {}
+    filas = db.execute(
+        text(
+            'SELECT s.id_sensores, s.nombre, d.serial FROM modulo9.sensores s '
+            'JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = s.id_dispositivo_iot '
+            'WHERE s.id_sensores = ANY(:ids)'
+        ),
+        {'ids': list(ids)},
+    ).all()
+    return {f[0]: (f[1], f[2]) for f in filas}
+
+
 @router.get(
     '/{id_activo}/sensores',
     response_model=ConsultaAsociacionesSensorResponse,
@@ -1968,6 +1984,7 @@ def consultar_asociaciones_sensor(
         id_activo, tipo_consulta, usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
+    nombres = _nombres_sensores(db, {a.sensor_id for a in asociaciones})
     return ConsultaAsociacionesSensorResponse(
         id_activo_biologico=id_activo_resultado,
         tipo_consulta=tipo_resultado,
@@ -1985,6 +2002,8 @@ def consultar_asociaciones_sensor(
                 estado_asociacion=a.estado_asociacion,
                 motivo=a.motivo,
                 advertencia=None,
+                nombre_sensor=nombres.get(a.sensor_id, (None, None))[0],
+                serial_dispositivo=nombres.get(a.sensor_id, (None, None))[1],
             )
             for a in asociaciones
         ],
