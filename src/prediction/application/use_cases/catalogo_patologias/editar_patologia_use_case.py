@@ -4,12 +4,14 @@
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la edición toma la siguiente versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: solo las 11 variables del RF-64 |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.catalogo_patologias.auditoria_rechazo import auditar_rechazo
 from src.prediction.domain.entities.patologia_variable import PatologiaVariable
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.historial_catalogo_repository import HistorialCatalogoRepository
@@ -18,6 +20,7 @@ from src.prediction.domain.repositories.patologia_m04_repository import Patologi
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.infrastructure.dto.editar_patologia_dto import EditarPatologiaDTO
 from src.shared.errors import (
+    AppError,
     BusinessRuleError,
     ConflictError,
     MethodNotAllowedError,
@@ -45,6 +48,15 @@ class EditarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
+        try:
+            return self._ejecutar(id_patologia, dto, id_usuario)
+        except AppError as error:
+            auditar_rechazo(self._db, self._auditoria_repo, tipo_evento="CATALOGO_PATOLOGIA_MODIFICADA",
+                            id_usuario=id_usuario, referencia=str(id_patologia),
+                            payload={"id_patologia": id_patologia, "nombre": dto.nombre_patologia}, error=error)
+            raise
+
+    def _ejecutar(self, id_patologia: int, dto: EditarPatologiaDTO, id_usuario: int):
         entidad = self._repo.obtener_por_id(id_patologia, bloquear=True)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")

@@ -3,15 +3,17 @@
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu | INC-M04-139-G001 RF-64: la inactivación toma la siguiente versión del catálogo |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-01 RF-73: id_patologia en el evento del catálogo |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el intento rechazado queda en la bitácora |
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from src.prediction.application.use_cases.catalogo_patologias.auditoria_rechazo import auditar_rechazo
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.historial_catalogo_repository import HistorialCatalogoRepository
 from src.prediction.domain.repositories.modelo_activo_port import ModeloActivoPort
 from src.prediction.domain.repositories.patologia_m04_repository import PatologiaM04Repository
-from src.shared.errors import ConflictError, MethodNotAllowedError, NotFoundError
+from src.shared.errors import AppError, ConflictError, MethodNotAllowedError, NotFoundError
 
 
 class DesactivarPatologiaUseCase:
@@ -31,6 +33,15 @@ class DesactivarPatologiaUseCase:
         self._modelo_activo_port = modelo_activo_port
 
     def execute(self, id_patologia: int, id_usuario: int):
+        try:
+            return self._ejecutar(id_patologia, id_usuario)
+        except AppError as error:
+            auditar_rechazo(self._db, self._auditoria_repo, tipo_evento="CATALOGO_PATOLOGIA_INACTIVADA",
+                            id_usuario=id_usuario, referencia=str(id_patologia),
+                            payload={"id_patologia": id_patologia}, error=error)
+            raise
+
+    def _ejecutar(self, id_patologia: int, id_usuario: int):
         entidad = self._repo.obtener_por_id(id_patologia)
         if not entidad:
             raise NotFoundError(code="PATOLOGIA_NO_ENCONTRADA", message="Patología no encontrada.")

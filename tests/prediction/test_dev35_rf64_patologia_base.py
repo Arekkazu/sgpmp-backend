@@ -3,6 +3,7 @@
 # | 2026-10-23 | destroyerban | DEV-35 RF-64: patología base no editable ni inactivable |
 # | 2026-10-25 | Arekkazu     | INC-M04-139-G001 RF-64: la versión viene del catálogo |
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 M4-02 RF-64: el fake de variables responde también las admitidas por patología |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU01 H-11 RF-64: el rechazo deja solo el commit de su evento de auditoría |
 """DEV-35 (RF-64 E2 y CA-3, G-04): una patología base no se edita (405) ni se inactiva.
 
 P-7: la Restricción 3 de la ficha se contradice con CA-3; se aplica la propuesta de
@@ -88,7 +89,8 @@ def test_e2_editar_patologia_base_es_405_sin_tocar_nada():
     assert exc.value.status_code == 405
     assert exc.value.code == "PATOLOGIA_BASE_INMUTABLE"
     assert exc.value.message == "Las patologías base del sistema no pueden ser modificadas."
-    assert repo.actualizadas == [] and historial.llamadas == [] and db.commits == 0
+    # QA-M04 ronda 2 CU01 H-11: el único commit es el evento FALLIDO de la bitácora.
+    assert repo.actualizadas == [] and historial.llamadas == [] and db.commits == 1
 
 
 def test_editar_patologia_no_base_sigue_igual():
@@ -108,7 +110,8 @@ def test_ca3_inactivar_patologia_base_es_405_tenga_o_no_modelos(en_uso):
     assert exc.value.status_code == 405
     assert exc.value.code == "PATOLOGIA_BASE_INMUTABLE"
     assert repo.entidad.es_activo is True
-    assert repo.actualizadas == [] and historial.llamadas == [] and db.commits == 0
+    # QA-M04 ronda 2 CU01 H-11: el único commit es el evento FALLIDO de la bitácora.
+    assert repo.actualizadas == [] and historial.llamadas == [] and db.commits == 1
 
 
 def test_inactivar_patologia_no_base_sigue_igual():

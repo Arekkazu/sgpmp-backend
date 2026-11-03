@@ -7,6 +7,7 @@
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: filtro de la bitácora M04 por tipo_modelo del evento |
 # | 2026-10-29 | Arekkazu | QA-M04-27-10 CU09 H-04 RF-73: consultar la bitácora no deja evento |
 # | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
+# | 2026-11-03 | Arekkazu | QA-M04 ronda 2 CU09 H-05 RF-73: tipo de evento o severidad que no existen responden 4xx, no 500 |
 """Router FastAPI para bitácora de auditoría del módulo de predicción.
 
 RF-73 CU-09 Dev scope:
@@ -22,7 +23,7 @@ from __future__ import annotations
 
 import uuid
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -32,6 +33,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.auditoria.consultar_auditoria_m04_use_case import ConsultarAuditoriaM04UseCase
 from src.prediction.application.use_cases.auditoria.exportar_auditoria_m04_use_case import ExportarAuditoriaM04UseCase
+from src.prediction.domain.services.validacion_auditoria_m04 import TipoEventoM04
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.schema.evento_auditoria_m04_schema import AuditoriaM04ListResponse, EventoAuditoriaM04Response
 from src.shared.database import get_db
@@ -42,6 +44,8 @@ from src.shared.fechas import FechaHoraUtc
 router = APIRouter(prefix="/prediccion/auditoria", tags=["Predicción M04 - Auditoría RF-73"])
 
 _RECURSO = 46  # modulo1.recursos: 'auditoria_m04'
+# CU09 H-05: un valor fuera del enum de la columna llegaba al SQL y respondía 500.
+Severidad = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 def _con_nombre_usuario(db: Session, eventos: list[EventoAuditoriaM04Response]) -> list[EventoAuditoriaM04Response]:
@@ -111,13 +115,13 @@ def _con_nombre_referencia(db: Session, eventos: list[EventoAuditoriaM04Response
     summary="Listar bitácora de auditoría M04 con filtros (RF-73)",
 )
 def listar_auditoria(
-    tipo_evento: Optional[str] = Query(default=None, description="Filtrar por tipo de evento"),
+    tipo_evento: Optional[TipoEventoM04] = Query(default=None, description="Filtrar por tipo de evento"),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None, description="Filtrar por id de usuario actor"),
     id_sistema: Optional[str] = Query(default=None, description="Filtrar por sistema actor"),
     id_referencia: Optional[str] = Query(default=None, description="Filtrar por id de entidad referenciada"),
-    severidad_evento: Optional[str] = Query(default=None, description="INFO | WARNING | ERROR | CRITICAL"),
+    severidad_evento: Optional[Severidad] = Query(default=None, description="INFO | WARNING | ERROR | CRITICAL"),
     correlacion_id: Optional[uuid.UUID] = Query(
         default=None, description="Cadena completa de un flujo (paquete → inferencia → alerta → retroalimentación)"
     ),
@@ -166,13 +170,13 @@ def listar_auditoria(
     summary="Exportar bitácora de auditoría M04 en CSV o JSON (RF-73)",
 )
 def exportar_auditoria(
-    tipo_evento: Optional[str] = Query(default=None),
+    tipo_evento: Optional[TipoEventoM04] = Query(default=None),
     fecha_desde: Optional[FechaHoraUtc] = Query(default=None),
     fecha_hasta: Optional[FechaHoraUtc] = Query(default=None),
     id_usuario: Optional[int] = Query(default=None),
     id_sistema: Optional[str] = Query(default=None),
     id_referencia: Optional[str] = Query(default=None),
-    severidad_evento: Optional[str] = Query(default=None),
+    severidad_evento: Optional[Severidad] = Query(default=None),
     tipo_modelo: Optional[str] = Query(default=None),
     entidad_referencia: Optional[EntidadReferenciaFiltro] = Query(default=None),
     formato: str = Query(default="json", pattern="^(json|csv)$"),
