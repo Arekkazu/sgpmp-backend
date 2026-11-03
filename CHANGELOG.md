@@ -1,3 +1,9 @@
+## [1.4.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.43...v1.4.0-rc.44) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-49:** las asociaciones sensor-activo devuelven el nombre del sensor y el serial del dispositivo ([9490d69](https://github.com/Arekkazu/sgpmp-backend/commit/9490d6957334b62d9c1f25d5b5e9f87f8343296f))
+
 ## [1.4.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.42...v1.4.0-rc.43) (2026-11-03)
 
 ### Bug Fixes
