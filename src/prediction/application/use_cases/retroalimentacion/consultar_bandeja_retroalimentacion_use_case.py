@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-03 | Arekkazu | RF-72: bandeja de inferencias por evaluar (la pantalla mostraba datos de ejemplo) |
+# | 2026-11-03 | Claude   | RF-72: página e indicadores en una sola consulta |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -82,8 +83,8 @@ class ConsultarBandejaRetroalimentacionUseCase:
             id_usuario=id_usuario, estado_evaluacion=estado_evaluacion, nivel_riesgo=nivel_riesgo,
             id_activo_biologico=id_activo_biologico, pagina=pagina, por_pagina=por_pagina,
         )
-        items, total = self._repo.listar(filtros)
+        items, total, indicadores = self._repo.consultar(filtros)
         return PaginaBandejaRetroalimentacion(
             items=items, total=total, pagina=pagina, por_pagina=por_pagina, ventana_dias=int(ventana),
-            indicadores=self._repo.indicadores(filtros),
+            indicadores=indicadores,
         )
