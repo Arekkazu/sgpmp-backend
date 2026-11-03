@@ -2,6 +2,7 @@
 # |-------|--------|-------------|
 # | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: identificar consultas globales sin inventar entidades de negocio. |
 # | 2026-10-29 | Arekkazu | TC-DIS-195 RF-73: la exportación respeta el filtro tipo_modelo |
+# | 2026-11-02 | Arekkazu | AJF-13 RF-73: filtro por entidad_referencia y nombre legible de la referencia |
 from __future__ import annotations
 
 import uuid
@@ -47,6 +48,7 @@ class ExportarAuditoriaM04UseCase:
         formato: str,
         id_usuario_exportador: int,
         tipo_modelo: Optional[str] = None,
+        entidad_referencia: Optional[str] = None,
     ) -> tuple[str | bytes, str, str]:
         items, _ = self._repo.consultar(
             tipo_evento=tipo_evento,
@@ -57,6 +59,7 @@ class ExportarAuditoriaM04UseCase:
             id_referencia=id_referencia,
             severidad_evento=severidad_evento,
             tipo_modelo=tipo_modelo,
+            entidad_referencia=entidad_referencia,
             pagina=1,
             por_pagina=10000,
         )

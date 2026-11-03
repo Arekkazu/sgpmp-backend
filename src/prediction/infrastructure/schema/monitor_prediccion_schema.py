@@ -4,6 +4,7 @@
 # | 2026-10-31 | Arekkazu | USAB-M03-M04 T-18 RF-66: nombre de cada patología de la distribución |
 # | 2026-10-30 | Arekkazu | RF-66: modo_sombra y respuesta del registro desde el motor IA      |
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
+# | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
 from __future__ import annotations
 
 import uuid
@@ -56,6 +57,29 @@ class InferenciaMonitorResponse(BaseModel):
     def paradigma(self) -> Optional[str]:
         return paradigma_de(self.tipo_modelo)
 
+
+
+class IndicadoresInferenciasResponse(BaseModel):
+    """AJF-10: totales del periodo filtrado, no solo de la página."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    en_riesgo: int
+    con_alerta: int
+    animales_distintos: int
+
+
+class InferenciasPaginadasResponse(BaseModel):
+    """AJF-10: página del monitor con el total para paginar."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[InferenciaMonitorResponse]
+    total: int
+    pagina: int
+    por_pagina: int
+    indicadores: IndicadoresInferenciasResponse
 
 class RiesgoContagioMonitorResponse(BaseModel):
     """Un cálculo de riesgo de contagio por lote (RF-68)."""

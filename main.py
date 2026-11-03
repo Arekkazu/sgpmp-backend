@@ -20,6 +20,9 @@
 # | 2026-11-02 | Arekkazu | RFC-021 RF-110: router de la topología sanitaria (aristas entre áreas) |
 # | 2026-11-02 | Arekkazu | RF-66: router de lo que ve la cámara de un área |
 # | 2026-11-02 | Arekkazu | RF-66/RF-69: rutas internas para que el motor IA arme su catálogo solo |
+# | 2026-11-02 | Arekkazu | AJF-07 RF-53: registrar el router de lectura de ingesta |
+# | 2026-11-02 | Arekkazu | AJF-14 RF-71: vigilante de reentrenamientos sin latido |
+# | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 import asyncio
 import logging
 import os
@@ -76,6 +79,7 @@ from src.telemetry.infrastructure.routers.evento_edge_router import router as ev
 from src.telemetry.infrastructure.routers.alerta_router import router as alerta_router
 from src.telemetry.infrastructure.routers.monitoreo_router import router as monitoreo_router
 from src.telemetry.infrastructure.routers.infraestructura_iot_router import router as infraestructura_iot_router
+from src.telemetry.infrastructure.routers.ingesta_iot_router import router as ingesta_iot_router
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
@@ -148,6 +152,66 @@ async def _evaluar_dispositivos_periodicamente() -> None:
                 logger.info('EvaluarEstadoDispositivos: %d transiciones registradas.', n)
         except Exception:
             logger.exception('Error en tarea periódica de evaluación de dispositivos.')
+        finally:
+            db.close()
+
+
+async def _vigilar_reentrenamientos_periodicamente() -> None:
+    """AJF-14 BE-5: un reentrenamiento EN_CURSO sin latido por más de 15 min pasa a
+    INTERRUMPIDO (el contenedor del motor se reinició a mitad). Cada 5 min."""
+    from src.shared.database import sesion_sistema
+    from src.prediction.application.use_cases.reentrenamiento.procesar_reentrenamiento_use_case import (
+        ProcesarReentrenamientoUseCase,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+    from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+        SqlAlchemyProcesoReentrenamientoRepository,
+    )
+
+    while True:
+        await asyncio.sleep(300)
+        db = sesion_sistema()
+        try:
+            use_case = ProcesarReentrenamientoUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+            )
+            n = await asyncio.to_thread(use_case.vigilar)
+            if n > 0:
+                logger.warning('VigilarReentrenamientos: %d procesos sin latido pasaron a INTERRUMPIDO.', n)
+        except Exception:
+            logger.exception('VigilarReentrenamientos: error en la ejecución periódica.')
+        finally:
+            db.close()
+
+
+async def _programar_reentrenamientos_periodicamente() -> None:
+    """AJF-14 BE-6: cada hora abre procesos PROGRAMADO para versiones más viejas que
+    ``dias_reentrenamiento_programado`` (parámetro MLOps; 0 = apagado, el valor base)."""
+    from src.shared.database import sesion_sistema
+    from src.prediction.application.use_cases.reentrenamiento.programar_reentrenamientos_use_case import (
+        ProgramarReentrenamientosUseCase,
+    )
+    from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
+    from src.prediction.infrastructure.repositories.parametros_mlops_repository import SqlAlchemyParametrosMLOpsRepository
+    from src.prediction.infrastructure.repositories.proceso_reentrenamiento_repository import (
+        SqlAlchemyProcesoReentrenamientoRepository,
+    )
+
+    while True:
+        await asyncio.sleep(3600)
+        db = sesion_sistema()
+        try:
+            use_case = ProgramarReentrenamientosUseCase(
+                db=db, procesos=SqlAlchemyProcesoReentrenamientoRepository(db),
+                parametros=SqlAlchemyParametrosMLOpsRepository(db),
+                auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
+            )
+            n = await asyncio.to_thread(use_case.execute)
+            if n > 0:
+                logger.info('ProgramarReentrenamientos: %d procesos PROGRAMADO abiertos.', n)
+        except Exception:
+            logger.exception('ProgramarReentrenamientos: error en la ejecución periódica.')
         finally:
             db.close()
 
@@ -777,6 +841,8 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
         asyncio.create_task(_sincronizar_respaldo_auditoria_m04_periodicamente()),
         asyncio.create_task(_liberar_ota_programadas_periodicamente()),
+        asyncio.create_task(_vigilar_reentrenamientos_periodicamente()),
+        asyncio.create_task(_programar_reentrenamientos_periodicamente()),
         asyncio.create_task(reenviar_paquetes_inferencia_periodicamente()),
     ]
     yield
@@ -949,6 +1015,7 @@ app.include_router(evento_edge_router)
 app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
+app.include_router(ingesta_iot_router)
 app.include_router(regla_alerta_edge_router)
 app.include_router(regla_alerta_router)
 app.include_router(vinculacion_router)

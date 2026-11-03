@@ -7,12 +7,15 @@
 # | 2026-11-02 | Arekkazu | RF-64/RF-66: nombre de la clase fundida de ET-02 ("10+11")         |
 # | 2026-11-02 | Arekkazu | RF-66: id del área en el monitor (para pedir la captura de su cámara) |
 # | 2026-11-02 | Arekkazu | RF-66/RF-68: por_activo, las N más recientes de cada animal o lote |
+# | 2026-11-02 | Arekkazu | AJF-10 RF-66: monitor paginado con filtro por animal o área, solo con alerta y sin pruebas |
 from __future__ import annotations
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.monitor_prediccion import InferenciaMonitor, RiesgoContagioMonitor
+from src.prediction.domain.entities.monitor_prediccion import (
+    IndicadoresInferencias, InferenciaMonitor, RiesgoContagioMonitor,
+)
 from src.prediction.domain.repositories.monitor_prediccion_repository import MonitorPrediccionRepository
 from src.shared.db_error_translator import raise_from_db_error
 
@@ -48,8 +51,32 @@ _SQL_INFERENCIAS = text("""
       AND (CAST(:tipo AS text) IS NULL OR r.tipo_modelo::text = CAST(:tipo AS text))
       AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo = CAST(:nivel AS int))
       AND (CAST(:ids AS uuid[]) IS NULL OR r.id_resultado_inferencia = ANY(CAST(:ids AS uuid[])))
+      AND (CAST(:activo AS int) IS NULL OR r.id_activo_biologico = CAST(:activo AS int))
+      AND (CAST(:infra AS int) IS NULL OR ab.id_infraestructura = CAST(:infra AS int))
+      AND (NOT CAST(:solo_alerta AS boolean) OR r.tiene_alerta_generada)
+      AND (CAST(:con_sombra AS boolean) OR NOT r.modo_sombra)
     ORDER BY r.fecha_inferencia DESC, r.id_resultado_inferencia
-    LIMIT :limite
+    LIMIT :limite OFFSET :desplazamiento
+""")
+
+# AJF-10: totales del monitor con los mismos filtros que el listado (sin LIMIT).
+_SQL_INDICADORES_INFERENCIAS = text("""
+    SELECT count(*) AS total,
+           count(*) FILTER (WHERE r.nivel_riesgo >= 2) AS en_riesgo,
+           count(*) FILTER (WHERE r.tiene_alerta_generada) AS con_alerta,
+           count(DISTINCT r.id_activo_biologico) AS animales_distintos
+    FROM modulo4.resultados_inferencia r
+    JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = r.id_activo_biologico
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = ab.id_infraestructura
+    WHERE (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
+      AND (CAST(:desde AS timestamptz) IS NULL OR r.fecha_inferencia >= CAST(:desde AS timestamptz))
+      AND (CAST(:hasta AS timestamptz) IS NULL OR r.fecha_inferencia <= CAST(:hasta AS timestamptz))
+      AND (CAST(:tipo AS text) IS NULL OR r.tipo_modelo::text = CAST(:tipo AS text))
+      AND (CAST(:nivel AS int) IS NULL OR r.nivel_riesgo = CAST(:nivel AS int))
+      AND (CAST(:activo AS int) IS NULL OR r.id_activo_biologico = CAST(:activo AS int))
+      AND (CAST(:infra AS int) IS NULL OR ab.id_infraestructura = CAST(:infra AS int))
+      AND (NOT CAST(:solo_alerta AS boolean) OR r.tiene_alerta_generada)
+      AND (CAST(:con_sombra AS boolean) OR NOT r.modo_sombra)
 """)
 
 _SQL_CONTAGIO = text("""
@@ -123,11 +150,23 @@ class SqlAlchemyMonitorPrediccionRepository(MonitorPrediccionRepository):
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def listar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, limite, por_activo=None):
+    def listar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, limite, por_activo=None,
+                           id_activo_biologico=None, id_infraestructura=None, solo_con_alerta=False,
+                           incluir_sombra=True, desplazamiento=0):
         ids, limite = self._ultimos(_SQL_ULTIMAS_INFERENCIAS, ids_fincas, por_activo, limite, str)
         filas = self._leer(_SQL_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
-                           desde=desde, hasta=hasta, limite=limite, ids=ids)
+                           desde=desde, hasta=hasta, limite=limite, ids=ids, activo=id_activo_biologico,
+                           infra=id_infraestructura, solo_alerta=solo_con_alerta, con_sombra=incluir_sombra,
+                           desplazamiento=desplazamiento)
         return [InferenciaMonitor(**f) for f in filas]
+
+    def contar_inferencias(self, *, ids_fincas, tipo_modelo, nivel_riesgo, desde, hasta, id_activo_biologico=None,
+                           id_infraestructura=None, solo_con_alerta=False, incluir_sombra=True):
+        filas = self._leer(_SQL_INDICADORES_INFERENCIAS, ids_fincas=ids_fincas, tipo=tipo_modelo, nivel=nivel_riesgo,
+                           desde=desde, hasta=hasta, activo=id_activo_biologico, infra=id_infraestructura,
+                           solo_alerta=solo_con_alerta, con_sombra=incluir_sombra)
+        f = filas[0] if filas else {}
+        return IndicadoresInferencias(**{k: int(f.get(k) or 0) for k in ("total", "en_riesgo", "con_alerta", "animales_distintos")})
 
     def listar_riesgo_contagio(self, *, ids_fincas, nivel_riesgo, desde, hasta, limite, por_activo=None):
         ids, limite = self._ultimos(_SQL_ULTIMOS_CONTAGIOS, ids_fincas, por_activo, limite, int)
