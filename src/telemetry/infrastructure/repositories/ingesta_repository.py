@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: lectura paginada de modulo3.bitacora_ingest con datos de la lectura |
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: los eventos sin dispositivo no los ve ningún usuario (RLS) |
+# | 2026-11-03 | Arekkazu | AJF-07 RF-53: estado_calidad, origen y tipo_evento son ENUM: se comparan como texto |
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -17,6 +18,8 @@ from src.telemetry.domain.repositories.ingesta_repository import IngestaReposito
 # PostgreSQL pode las particiones mensuales de telemetrias.
 # Un evento sin dispositivo (p. ej. un rechazo de autenticación) no lo ve ningún usuario: la RLS de
 # bitacora_ingest filtra por los dispositivos del usuario (pol_bitacora_ingest_select).
+# estado_calidad, tipo_evento (modulo3) y origen (telemetrias) son ENUM: PostgreSQL no compara un
+# ENUM con un parámetro text ni le aplica LIKE, por eso van con ::text.
 _SQL_LISTAR = text("""
     SELECT b.id_bitacora_ingest, b.fecha_evento, b.fecha_captura_dato, b.tipo_evento, b.estado_calidad,
            b.severidad, b.descripcion_text AS descripcion, b.id_sensor, s.nombre AS nombre_sensor,
@@ -35,8 +38,8 @@ _SQL_LISTAR = text("""
     LEFT JOIN modulo9.variables_ambientales va ON va.id_variable_ambiental = t.id_variable
     WHERE b.fecha_evento >= :desde AND b.fecha_evento <= :hasta
       AND (CAST(:fincas AS int[]) IS NULL OR i.id_finca = ANY(CAST(:fincas AS int[])))
-      AND (CAST(:estado AS text) IS NULL OR b.estado_calidad = CAST(:estado AS text))
-      AND (CAST(:origen AS text) IS NULL OR t.origen = CAST(:origen AS text))
+      AND (CAST(:estado AS text) IS NULL OR b.estado_calidad::text = CAST(:estado AS text))
+      AND (CAST(:origen AS text) IS NULL OR t.origen::text = CAST(:origen AS text))
       AND (CAST(:dispositivo AS int) IS NULL OR b.id_dispositivo_iot = CAST(:dispositivo AS int))
       AND (CAST(:sensor AS int) IS NULL OR b.id_sensor = CAST(:sensor AS int))
     ORDER BY b.fecha_evento DESC, b.id_bitacora_ingest DESC
@@ -45,9 +48,10 @@ _SQL_LISTAR = text("""
 
 _SQL_INDICADORES = text("""
     SELECT count(*) AS total,
-           count(*) FILTER (WHERE b.estado_calidad = 'LECTURA_VALIDA') AS validas,
-           count(*) FILTER (WHERE b.estado_calidad = 'FUERA_DE_RANGO') AS fuera_de_rango,
-           count(*) FILTER (WHERE b.estado_calidad LIKE 'ERROR%' OR b.tipo_evento = 'ERROR_PROCESAMIENTO') AS errores
+           count(*) FILTER (WHERE b.estado_calidad::text = 'LECTURA_VALIDA') AS validas,
+           count(*) FILTER (WHERE b.estado_calidad::text = 'FUERA_DE_RANGO') AS fuera_de_rango,
+           count(*) FILTER (WHERE b.estado_calidad::text LIKE 'ERROR%'
+                                 OR b.tipo_evento::text = 'ERROR_PROCESAMIENTO') AS errores
     FROM modulo3.bitacora_ingest b
     LEFT JOIN modulo9.dispositivos_iot d ON d.id_dispositivo_iot = b.id_dispositivo_iot
     LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = d.id_infraestructura

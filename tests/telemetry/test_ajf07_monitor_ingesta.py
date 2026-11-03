@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-02 | Arekkazu | AJF-07 RF-53: monitor de ingesta real, con rango acotado y paginación en BD |
+# | 2026-11-03 | Arekkazu | AJF-07 RF-53: los ENUM de la bitácora se comparan como texto (500 en DEV) |
 """AJF-07: la pestaña Ingesta pintaba ingestaMock.ts; ahora lee modulo3.bitacora_ingest."""
 from __future__ import annotations
 
@@ -60,3 +61,15 @@ def test_indicadores_son_del_dia_del_usuario(en_colombia):
     ConsultarIngestaUseCase(repo).indicadores_de_hoy([1])
     desde, hasta, fincas = repo.indicadores.call_args.args
     assert desde.utcoffset() is not None and (hasta - desde) < timedelta(days=1) and fincas == [1]
+
+
+@pytest.mark.parametrize("columna", ["b.estado_calidad", "b.tipo_evento", "t.origen"])
+def test_columnas_enum_se_comparan_como_texto(columna):
+    """En DEV: «operator does not exist: enum_bitacora_ingest_estado_calidad = text». PostgreSQL no
+    compara un ENUM con un parámetro text ni le aplica LIKE; sin BD en las pruebas, se mira el SQL."""
+    import re
+
+    from src.telemetry.infrastructure.repositories import ingesta_repository as repo
+
+    for sql in (repo._SQL_LISTAR.text, repo._SQL_INDICADORES.text):
+        assert not re.search(re.escape(columna) + r"\s*(=|<>|LIKE)", sql), sql
