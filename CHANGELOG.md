@@ -1,3 +1,10 @@
+## [1.4.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.42...v1.4.0-rc.43) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-23:** intervalo de transmisión mínimo de 10 minutos en la configuración remota ([309f5bb](https://github.com/Arekkazu/sgpmp-backend/commit/309f5bba87aa4bbb263b4e09e9e97a6a8acdce6a))
+* **rf-73,rf-71:** rango de fechas invertido en la bitácora M04 responde 400 y días de lecturas en enteros ([0e90fb3](https://github.com/Arekkazu/sgpmp-backend/commit/0e90fb31156e30151d18c45895ebe7041e8ef93c))
+
 ## [1.4.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.41...v1.4.0-rc.42) (2026-11-03)
 
 ### Bug Fixes
