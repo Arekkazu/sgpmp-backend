@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-20 | Arekkazu | DEV-32 RF-57: notificación de alertas por el canal de RF-14, destinatarios por permisos y reintento con backoff |
+# | 2026-11-03 | Arekkazu | RF-57 E7: un reintento por minuto elegido y pausa de 1 min si el SMTP falla (bucle de SMTP en dev) |
 """Adaptador de :class:`NotificacionAlertaPort` sobre el servicio de notificaciones de RF-14.
 
 Cada notificación cuelga de un evento en ``modulo1.eventos`` (tipo 32
@@ -9,7 +10,7 @@ Cada notificación cuelga de un evento en ``modulo1.eventos`` (tipo 32
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import text
@@ -25,8 +26,14 @@ logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_NOTIFICACION_ALERTA = 32  # modulo1.tipos_eventos 'NOTIFICACION_ALERTA' (DBA)
 _ACCION_LEER, _ACCION_DESCARTAR = 2, 4
-# E7: reintentos a los 1, 2, 4, 8 y 16 min del primer intento; la tarea corre cada minuto.
+# E7: reintentos a los 1, 2, 4, 8 y 16 min del primer intento.
 MINUTOS_REINTENTO = frozenset({1, 2, 4, 8, 16})
+# La tarea de main.py corre cada 10 s, no cada minuto: sin recordar el minuto ya
+# intentado, cada reintento se repetía ~6 veces, y con el SMTP caído eran ~40
+# conexiones por minuto. Si un reintento falla, el resto espera un minuto.
+_PAUSA_TRAS_FALLO_SMTP = timedelta(minutes=1)
+_minuto_reintentado: dict[int, int] = {}
+_pausa_hasta: Optional[datetime] = None
 
 _SQL_DESTINATARIOS = text(
     "SELECT DISTINCT u.id_usuario "
@@ -91,19 +98,31 @@ class NotificacionAlertaRf14Adapter(NotificacionAlertaPort):
         )
 
     def reintentar_fallidas(self, ahora: datetime) -> int:
+        global _pausa_hasta
+        if _pausa_hasta is not None and ahora < _pausa_hasta:
+            return 0
+        filas = self.db.execute(_SQL_FALLIDAS, {"tipo": TIPO_EVENTO_NOTIFICACION_ALERTA, "ahora": ahora}).all()
+        # Las que salieron de la ventana de 20 min ya no se reintentan: se olvidan.
+        vigentes = {fila.id_notificacion for fila in filas}
+        for id_notificacion in [i for i in _minuto_reintentado if i not in vigentes]:
+            del _minuto_reintentado[id_notificacion]
         enviadas = 0
-        for fila in self.db.execute(_SQL_FALLIDAS, {"tipo": TIPO_EVENTO_NOTIFICACION_ALERTA, "ahora": ahora}).all():
+        for fila in filas:
             minutos = int((ahora - fila.fecha_envio).total_seconds() // 60)
-            if minutos not in MINUTOS_REINTENTO or not fila.correo_electronico:
+            if (minutos not in MINUTOS_REINTENTO or not fila.correo_electronico
+                    or _minuto_reintentado.get(fila.id_notificacion) == minutos):
                 continue
+            _minuto_reintentado[fila.id_notificacion] = minutos
             titulo = fila.mensaje.split(".")[0]
             try:
                 send_email(to=fila.correo_electronico, subject=titulo,
                            html_body=_correo_por_defecto(TIPO_EVENTO_NOTIFICACION_ALERTA, titulo, fila.mensaje),
                            intentos=1)
             except Exception:
-                logger.warning("RF-57 E7: reintento %d min fallido (notificación %s)", minutos, fila.id_notificacion)
-                continue
+                _pausa_hasta = ahora + _PAUSA_TRAS_FALLO_SMTP
+                logger.warning("RF-57 E7: reintento %d min fallido (notificación %s); reintentos en pausa 1 min",
+                               minutos, fila.id_notificacion)
+                break
             self.db.execute(text("UPDATE modulo1.notificaciones SET estado_envio = 'enviado' WHERE id_notificacion = :id"),
                             {"id": fila.id_notificacion})
             self.db.commit()
