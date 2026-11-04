@@ -111,7 +111,7 @@ class ConstructorInformeRevelaciones:
                                            "total": total_reconocimiento + total_tb + total_pm},
             "parr_51_separacion_precio_transformacion": {"transformacion_biologica": total_tb, "precio_mercado": total_pm},
             "niif13_93_metodos_y_supuestos": d["supuestos"] or "datos insuficientes",
-            "parr_48_precios_referencia": d["precios"],
+            "niif13_93_precios_referencia": d["precios"],
             "parr_50_conciliacion": rollforward,
             "parr_54_56_activos_al_costo": [{"id_activo_biologico": a["id_activo_biologico"], "identificador": a["identificador"],
                                              "especie": a["especie"], "razon": a["razon_sin_mercado"],
