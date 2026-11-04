@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: evento de provisión hacia M06      |
+# | 2026-11-04 | Arekkazu         | M06 RF-90: el evento INCREMENTAL trae la fecha de aplicación |
 """Entidad ``EventoProvisionM06`` (RF-79 — provisión de costos hacia M06).
 
 Python puro. Un evento INCREMENTAL (cada movimiento del ledger de RF-78) o
@@ -15,13 +16,13 @@ intentando cada 30 s (E7 d) hasta que M06 lo reciba.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"  # 1.1: el INCREMENTAL trae fecha_aplicacion (cambio MINOR, compatible)
 MAX_INTENTOS = 5
 _ESPERA_TRAS_INTENTO = (timedelta(seconds=5), timedelta(seconds=15), timedelta(seconds=30), timedelta(seconds=60))
 _ESPERA_RECUPERACION = timedelta(seconds=30)
@@ -71,6 +72,7 @@ class EventoProvisionM06:
         acumulado_total_ciclo: Decimal,
         acumulado_por_categoria: dict[str, Decimal],
         ahora: datetime,
+        fecha_aplicacion: Optional[date] = None,
     ) -> "EventoProvisionM06":
         """Evento de Fase 1 a: el acumulado actualizado tras un movimiento del ledger."""
         evento = cls(
@@ -93,6 +95,7 @@ class EventoProvisionM06:
             "id_tipo_suministro": tipo_suministro,
             "tipo_operacion": tipo_operacion,
             "costo_registro": str(costo_registro),
+            "fecha_aplicacion": fecha_aplicacion.isoformat() if fecha_aplicacion else None,
             "acumulado_total_ciclo": str(acumulado_total_ciclo),
             "acumulado_por_categoria": {k: str(v) for k, v in acumulado_por_categoria.items()},
             "timestamp": ahora.isoformat(),
