@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-COT v1.1: cotizaciones de venta (sin efecto contable) |
+# | 2026-11-05 | Arekkazu | M06 RF-COT: el UPDATE solo acepta columnas de lista cerrada (Bearer CWE-89) |
 """Implementación SQL de :class:`CotizacionRepository`."""
 from __future__ import annotations
 
@@ -16,6 +17,8 @@ _COLUMNAS = """c.id_cotizacion, c.fecha_emision, c.id_periodo_contable, c.activo
     c.valor_cotizacion_propuesto, c.condiciones, c.estado::text AS estado, c.estado_al_cierre::text AS estado_al_cierre,
     c.fecha_vencimiento, c.motivo_anulacion, c.id_usuario, c.fecha_registro, c.version, c.fecha_actualizacion,
     p.estado::text AS estado_periodo"""
+# Columnas que ``actualizar`` puede escribir: sus nombres se interpolan en el SQL.
+_EDITABLES = {"valor_cotizacion_propuesto", "condiciones", "fecha_vencimiento", "motivo_anulacion", "estado"}
 _JOIN = "FROM modulo6.cotizaciones c JOIN modulo6.periodos_contables p ON p.id_periodo_contable = c.id_periodo_contable"
 
 
@@ -35,6 +38,8 @@ class SqlAlchemyCotizacionRepository(CotizacionRepository):
         return fila(self.db, f"SELECT {_COLUMNAS} {_JOIN} WHERE c.id_cotizacion = :id", {"id": id_cotizacion})
 
     def actualizar(self, id_cotizacion: int, version: int, cambios: dict) -> bool:
+        if not cambios or not cambios.keys() <= _EDITABLES:
+            raise ValueError(f"Columnas no editables: {sorted(cambios.keys() - _EDITABLES) or 'ninguna'}")
         asignaciones = ", ".join(f"{campo} = :{campo}" for campo in cambios if campo != "estado")
         if "estado" in cambios:
             asignaciones = ", ".join(filter(None, [asignaciones, "estado = CAST(:estado AS modulo6.enum_cotizaciones_estado_cotizacion)"]))
