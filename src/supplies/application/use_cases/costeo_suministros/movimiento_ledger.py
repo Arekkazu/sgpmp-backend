@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-78/79/80: efectos de cada movimiento   |
+# | 2026-11-04 | Arekkazu         | M06 RF-90: la provisión a M06 lleva la fecha del consumo |
 """Efectos de un movimiento del ledger de RF-78, comunes a todos los caminos.
 
 Cada fila nueva de ``registro_suministro`` — un consumo (RF-75) o medicamento
@@ -76,6 +77,7 @@ class RegistradorMovimientoLedger:
                 acumulado_total_ciclo=acumulado.acumulado_total_ciclo,
                 acumulado_por_categoria=acumulado.acumulado_por_categoria,
                 ahora=ahora,
+                fecha_aplicacion=registro.fecha_aplicacion,
             )
         )
 

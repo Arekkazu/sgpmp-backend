@@ -29,6 +29,24 @@
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
+  "5fb4150b27b647fd67ce86bae4704cf6_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: filas() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
+  "5fb4150b27b647fd67ce86bae4704cf6_1": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: fila() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
+  "5fb4150b27b647fd67ce86bae4704cf6_2": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: escribir() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
   "611c42f67dd9e2150ac5c92183de4931_0": {
     "author": "mortiz-indigo",
     "comment": "Falso positivo: vista proviene del diccionario cerrado _FUENTES_PERMITIDAS (3 tablas fijas), verificado en Informe A.1 (#2007).",
@@ -64,11 +82,5 @@
     "comment": "Borrado del artefacto recien escrito si falla la persistencia (INC-M04-214): misma ruta interna de _guardar_artefacto (UUID + tipo_modelo y componente validados contra catalogo, extension fija onnx/pb).",
     "false_positive": true,
     "ignored_at": "2026-10-29T15:00:00Z"
-  },
-  "bf6a538d19d5c54d1ef152f031357e46_0": {
-    "author": "mortiz-indigo",
-    "comment": "Falso positivo: ventana_min es entero tipado de ventana de deduplicacion; sin entrada arbitraria de usuario.",
-    "false_positive": true,
-    "ignored_at": "2026-09-24T15:30:00Z"
   }
 }

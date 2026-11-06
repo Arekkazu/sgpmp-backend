@@ -1,3 +1,30 @@
+## [1.4.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.47...v1.4.0-rc.48) (2026-11-06)
+
+### Features
+
+* **rf82-rf94-mod6:** listados del periodo y filtros validados para las vistas del prototipo ([a391352](https://github.com/Arekkazu/sgpmp-backend/commit/a391352192f86a0407cd8a5f38ce5003ffd5f1ae))
+
+## [1.4.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.46...v1.4.0-rc.47) (2026-11-05)
+
+### Features
+
+* **rf19-mod9:** titular tributario de la finca con digito de verificacion DIAN ([38add00](https://github.com/Arekkazu/sgpmp-backend/commit/38add00261b47f67b9a206199eedd44152615022))
+* **rf82-rf94-mod6:** esquema modulo6 alineado a RFC-018 para la valoracion NIC 41 ([f179c83](https://github.com/Arekkazu/sgpmp-backend/commit/f179c837f0692c7a39c9f23388040dd1aaaf21c2))
+* **rf82-rf94-mod6:** modulo financiero NIC 41 con cierre de periodo y comprobante ([198c523](https://github.com/Arekkazu/sgpmp-backend/commit/198c5233e31c827701b40a8fbce823bb69e915ff))
+* **rf83-rf86-mod6:** nucleo de calculo NIC 41 en dominio puro ([1ed524a](https://github.com/Arekkazu/sgpmp-backend/commit/1ed524ac9a45074213cb925ac1acbc228974ac93))
+
+### Bug Fixes
+
+* **rf79-mod5:** la provision incremental a M06 lleva la fecha del consumo ([1294770](https://github.com/Arekkazu/sgpmp-backend/commit/1294770e830d13c3aa54347da35ed7d9ba40b0b2))
+* **rf82-mod6:** Bearer sin hallazgos criticos en las ayudas SQL de M06 (CWE-89) ([5e19939](https://github.com/Arekkazu/sgpmp-backend/commit/5e199397534d9fc85a66ed0882ce4469057d5fbf))
+* **rf92-mod6:** los precios de referencia del informe citan NIIF 13 parr. 93, no el parr. 48 derogado ([27f0dce](https://github.com/Arekkazu/sgpmp-backend/commit/27f0dce90cd697e79214f1c68f0e54b491174cbd))
+
+## [1.4.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.45...v1.4.0-rc.46) (2026-11-03)
+
+### Bug Fixes
+
+* **rf-69:** la versión de modelo trae el identificador del animal además del id ([e863e22](https://github.com/Arekkazu/sgpmp-backend/commit/e863e225c6298444f8ef595129e0532591e41b70))
+
 ## [1.4.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.44...v1.4.0-rc.45) (2026-11-03)
 
 ### Bug Fixes

@@ -9,6 +9,7 @@
 # | 2026-10-31 | Arekkazu     | RF-71/RF-73: solicitar el reentrenamiento (evento de auditoría) |
 # | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: solicitud por animal y procesos de reentrenamiento |
+# | 2026-11-03 | Arekkazu     | QA-M04 RF-69: la versión trae el identificador del animal además del id |
 """Router FastAPI para ciclo de vida de versiones de modelos IA (`/prediccion/modelos`).
 
 RF-69 CU-05: Validar y versionar modelos de IA.
@@ -34,6 +35,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -85,6 +87,21 @@ router = APIRouter(prefix="/prediccion/modelos", tags=["Predicción M04 - Versio
 _RECURSO = 43  # modulo1.recursos: 'version_modelo'
 
 
+def _respuestas(db: Session, entidades) -> list[VersionModeloResponse]:
+    """Lectura simple del identificador del animal de cada versión INDIVIDUAL."""
+    respuestas = [VersionModeloResponse.from_entity(e) for e in entidades]
+    ids = list({r.id_activo_biologico for r in respuestas if r.id_activo_biologico is not None})
+    if ids:
+        nombres = dict(db.execute(
+            text("SELECT id_activo_biologico, identificador FROM modulo2.activos_biologicos "
+                 "WHERE id_activo_biologico = ANY(:ids)"),
+            {"ids": ids},
+        ).all())
+        for r in respuestas:
+            r.identificador_activo = nombres.get(r.id_activo_biologico)
+    return respuestas
+
+
 @router.post(
     "",
     response_model=VersionModeloResponse,
@@ -117,7 +134,7 @@ async def registrar_version_modelo(
     # RF-69 E3 (DEV-34): la versión se registra igual, pero RECHAZADO por métricas responde 200.
     if entidad.estado_version == "RECHAZADO":
         response.status_code = 200
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.get(
@@ -146,7 +163,7 @@ def listar_versiones(
     )
     return VersionModeloListResponse(
         total=total,
-        items=[VersionModeloResponse.from_entity(e) for e in items],
+        items=_respuestas(db, items),
     )
 
 
@@ -281,7 +298,7 @@ def obtener_version(
 ) -> VersionModeloResponse:
     use_case = ConsultarVersionesUseCase(repo=SqlAlchemyVersionModeloRepository(db))
     entidad = use_case.obtener_por_id(id_version)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.patch(
@@ -308,7 +325,7 @@ def registrar_notas(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, dto, id_usuario=usuario_actual.id_usuario)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.post(
@@ -335,7 +352,7 @@ def activar_version(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
 
 
 @router.post(
@@ -368,4 +385,4 @@ def poner_en_sombra_version(
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
     )
     entidad = use_case.execute(id_version, id_usuario=usuario_actual.id_usuario, en_sombra=True)
-    return VersionModeloResponse.from_entity(entidad)
+    return _respuestas(db, [entidad])[0]
