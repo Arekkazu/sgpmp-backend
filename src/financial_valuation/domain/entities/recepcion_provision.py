@@ -1,6 +1,7 @@
 # | Fecha      | Nombre           | Que se hizo                                   |
 # |------------|------------------|-----------------------------------------------|
 # | 2026-10-22 | Arekkazu         | M05 RF-79: M06 provisional (recepción)        |
+# | 2026-11-05 | Arekkazu | M06: mensajes visibles sin códigos de módulo |
 """Entidad ``RecepcionProvision``: una provisión de costos recibida de M05 (RF-79)."""
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ class RecepcionProvision:
         if self.schema_version.split(".")[0] not in VERSIONES_MAJOR_SOPORTADAS:
             raise BusinessRuleError(
                 code="SCHEMA_VERSION_NO_SOPORTADA",
-                message=f"La versión de contrato {self.schema_version} no es compatible con M06.",
+                message=f"La versión de contrato {self.schema_version} no es compatible con el módulo financiero.",
             )
         if self.modalidad not in MODALIDADES:
             raise BusinessRuleError(

@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..88: cálculos, reconocimientos, mediciones, variaciones y valoración por costo |
+# | 2026-11-05 | Arekkazu | M06 RF-83..88: listados del período y datos del modelo de costo por activo |
 """Implementación SQL de :class:`ValoracionRepository`."""
 from __future__ import annotations
 
@@ -35,6 +36,17 @@ _COLUMNAS_RECONOCIMIENTO = """id_reconocimiento_inicial, id_activo_biologico, es
 
 # Los cálculos de un producto agrícola (RF-85) no son base de la valoración del activo.
 ES_BASE = "COALESCE((json_metodo_costo->>'es_producto')::boolean, false) = false"
+
+
+# Activo, especie, finca y clasificación de cada registro de los listados del período.
+_ACTIVO = """a.identificador, a.tipo::text AS tipo_activo, a.id_especie, e.nombre AS especie, f.nombre AS finca,
+    ri.clasificacion::text AS clasificacion"""
+_JOIN_ACTIVO = """JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = x.id_activo_biologico
+    JOIN modulo9.especies e ON e.id_especie = a.id_especie
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura
+    JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+    LEFT JOIN modulo6.reconocimientos_iniciales ri
+           ON ri.id_activo_biologico = a.id_activo_biologico AND ri.estado = 'CONFIRMADO'"""
 
 
 def _calculo(f: dict) -> CalculoValor:
@@ -238,6 +250,11 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                est.nombre AS estado, ri.clasificacion::text AS clasificacion, ri.fecha_reconocimiento,
                ri.indicador_valoracion::text AS indicador_reconocimiento, ri.es_apertura,
                (vc.id_valoracion_por_costo IS NOT NULL) AS valorado_por_costo, vc.valor_contable_por_costo,
+               vc.costos_adquisicion AS costo_base, vc.depreciacion_acumulada, vc.deterioro_acumulado, vc.vida_util_meses,
+               vc.razon_sin_mercado, vc.fecha_marcacion, vc.escenario_activacion::text AS escenario_costo,
+               a.id_especie, i.id_finca, a.id_infraestructura, i.nombre AS infraestructura,
+               ri.costo_adquisicion, ri.origen_financiero::text AS origen_financiero,
+               ri.valor_razonable_neto_inicial AS valor_inicial,
                c.valor_neto AS valor_razonable_neto, c.fecha_calculo, c.tiene_valor_estimado
         FROM modulo6.reconocimientos_iniciales ri
         JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = ri.id_activo_biologico
@@ -274,3 +291,50 @@ class SqlAlchemyValoracionRepository(ValoracionRepository):
                        razon_sin_mercado, es_activa, fecha_marcacion
                 FROM modulo6.valoraciones_por_costos WHERE id_activo_biologico = :a""", p),
         }
+
+    # --- Listados del período (vistas de medición, variaciones, cálculos y productos) ------------------
+
+    def mediciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        return filas(self.db, f"""
+            SELECT x.id_medicion_posterior, x.id_activo_biologico, {_ACTIVO}, x.origen_medicion::text AS origen_medicion,
+                   x.valor_razonable_anterior, x.valor_razonable_actual, x.ganancia_perdida_transformacion,
+                   x.ganancia_perdida_precio_mercado, x.variacion_total, x.tiene_valor_estimado, x.estado::text AS estado,
+                   x.fecha_medicion
+            FROM modulo6.mediciones_posteriores x {_JOIN_ACTIVO}
+            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_medicion DESC, x.id_medicion_posterior DESC""",
+            {"p": id_periodo_contable})
+
+    def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        # La verificación de trazabilidad actualiza la línea; la variación guarda el estado con que nació.
+        return filas(self.db, f"""
+            SELECT x.id_variacion_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.tipo::text AS tipo,
+                   x.monto_variacion, x.valor_razonable_anterior, x.valor_razonable_nuevo, x.tiene_estimacion,
+                   x.fecha_registro, l.id_linea_asiento_nic41 AS id_linea, l.tipo_evidencia::text AS tipo_evidencia,
+                   COALESCE(l.estado_trazabilidad, x.estado_trazabilidad)::text AS estado_trazabilidad
+            FROM modulo6.variaciones_valor_razonable x {_JOIN_ACTIVO}
+            LEFT JOIN modulo6.lineas_asiento_nic41 l
+                   ON l.tabla_origen = 'variaciones_valor_razonable' AND l.id_origen = x.id_variacion_valor_razonable
+                  AND NOT l.es_reverso
+            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_registro DESC, x.id_variacion_valor_razonable DESC""",
+            {"p": id_periodo_contable})
+
+    def calculos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        return filas(self.db, f"""
+            SELECT x.id_calculo_valor_razonable, x.id_activo_biologico, {_ACTIVO}, x.magnitud, x.unidad_magnitud,
+                   x.precio_unitario, x.valor_razonable_bruto,
+                   x.costo_transporte + x.costo_comisiones + x.costo_impuestos_transaccion + x.otros_costos_disposicion
+                       AS costos_venta,
+                   x.valor_neto, x.metodo_costo::text AS metodo_costo, x.estado::text AS estado, x.tiene_valor_estimado,
+                   COALESCE((x.json_metodo_costo->>'es_producto')::boolean, false) AS es_producto, x.fecha_calculo
+            FROM modulo6.calculos_valor_razonable x {_JOIN_ACTIVO}
+            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_calculo DESC, x.id_calculo_valor_razonable DESC""",
+            {"p": id_periodo_contable})
+
+    def productos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        return filas(self.db, f"""
+            SELECT x.id_reconocimiento_producto_agricola, x.id_activo_biologico, {_ACTIVO}, x.producto_agricola,
+                   x.cantidad_cosechada, x.unidad_medida, x.precio_mercado_producto, x.costo_venta_producto,
+                   x.valor_producto, x.valor_reduccion_activo, x.tipo::text AS tipo, x.fecha_cosecha
+            FROM modulo6.reconocimientos_productos_agricolas x {_JOIN_ACTIVO}
+            WHERE x.id_periodo_contable = :p ORDER BY x.fecha_cosecha DESC, x.id_reconocimiento_producto_agricola DESC""",
+            {"p": id_periodo_contable})

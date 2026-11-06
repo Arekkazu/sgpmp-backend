@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: flujo NIC 41 de punta a punta contra PostgreSQL |
+# | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período, resumen de auditoría y filtros inválidos |
 """M06 de punta a punta contra Postgres real (migración c4d81e6f2a95 y triggers de modulo6).
 
 Reconocimiento (¶26-27), medición por evento con separación precio/transformación (¶51), costos de
@@ -170,6 +171,15 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     assert lineas[("VARIACION_VR_TB", "GANANCIA")] == D("161500.00")
     assert lineas[("VARIACION_VR_PM", "GANANCIA")] == D("190000.00")
 
+    # Listados del período para las vistas: cada registro trae el activo por su identificador de negocio.
+    id_periodo = m06.periodos.que_contiene(NIT, HOY).id_periodo_contable
+    [medicion] = [x for x in m06.valoraciones.mediciones_del_periodo(id_periodo) if x["id_activo_biologico"] == activo]
+    assert medicion["variacion_total"] == D("351500.0000") and medicion["identificador"] and medicion["especie"]
+    variaciones = {x["tipo"]: x for x in m06.valoraciones.variaciones_del_periodo(id_periodo) if x["id_activo_biologico"] == activo}
+    assert set(variaciones) == {"GANANCIA_TRANSFORMACION_BIOLOGICA", "GANANCIA_PRECIO_MERCADO"}
+    assert all(v["id_linea"] and v["estado_trazabilidad"] for v in variaciones.values())
+    assert any(c["id_activo_biologico"] == activo for c in m06.valoraciones.calculos_del_periodo(id_periodo))
+
     # M05 → RF-90: consumo de alimento = gasto contra inventario (CONSUMO_INSUMO), nunca resta del valor.
     _provision_m05(db_session, activo, "150000")
     _provision_m05(db_session, activo, "80000", tipo="SERVICIO_VETERINARIO")
@@ -222,6 +232,8 @@ def test_flujo_nic41_reconocimiento_medicion_costos_cierre_y_reportes(db_session
     tipos = {e["tipo_evento"] for e in eventos["eventos"]}
     assert {"CIERRE_PERIODO_INICIADO", "CIERRE_PERIODO_COMPLETADO", "COMPROBANTE_GENERADO"} <= tipos
     assert all(e["integridad_verificable"] for e in eventos["eventos"])
+    assert sum(eventos["resumen_severidad"].values()) == eventos["total_registros"]
+    assert not any(str(e["activo"]).startswith("Activo #") for e in eventos["eventos"])
 
 
 def test_modelo_de_costo_sin_precio_y_bloqueo_sin_valor(db_session, m06, contador):
@@ -297,6 +309,18 @@ def test_rbac_contador_si_productor_no(db_session, crear_usuario_db, crear_auth_
         productor = crear_auth_headers(crear_usuario_db(id_rol=2, estado=2))
         assert cliente.get("/finanzas/precios", headers=contador).status_code == 200
         assert cliente.get("/finanzas/precios", headers=productor).status_code == 403
+        # Un filtro fuera del catálogo es un 400, no una lista vacía silenciosa.
+        assert cliente.get("/finanzas/costos?estado=INEXISTENTE", headers=contador).status_code == 400
+        assert cliente.get("/finanzas/cotizaciones?estado=x", headers=contador).status_code == 400
+        assert cliente.get("/finanzas/periodos/1/mediciones", headers=contador).status_code == 200
         assert cliente.post("/finanzas/costos", headers=contador,
                             json={"subtipo_costo": "ALIMENTO", "origen_costo": "MANO_OBRA_PROPIA", "monto_costo": "1",
                                   "fecha_costo": HOY.isoformat(), "id_lote": 3}).status_code in (400, 422)  # CA-8
+
+
+def test_cada_tipo_de_evento_de_auditoria_tiene_descripcion_legible(db_session):
+    """Un tipo sin descripción saldría al usuario como código crudo (CLAUDE.md § Textos visibles)."""
+    from src.financial_valuation.application.use_cases.auditoria.consultar_auditoria_financiera_use_case import DESCRIPCIONES
+
+    tipos = db_session.execute(text("SELECT unnest(enum_range(NULL::modulo6.enum_auditoria_financiera_tipo_evento))::text")).scalars()
+    assert set(tipos) == set(DESCRIPCIONES)

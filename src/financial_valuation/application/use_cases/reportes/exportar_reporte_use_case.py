@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87/92/93: descarga del comprobante, del estado de resultados y del informe |
+# | 2026-11-05 | Arekkazu | M06 RF-87: el comprobante descargado nombra el hecho contable, no su código |
 """Caso de uso: arma el documento descargable (CSV, Excel o PDF) de un reporte de M06.
 
 - Comprobante NIC 41 (RF-87 v1.1): CSV y PDF, para registrarlo en SIGCON como comprobante manual.
@@ -13,6 +14,7 @@ from datetime import datetime, timezone
 
 from src.financial_valuation.domain.repositories.periodo_repository import PeriodoRepository
 from src.financial_valuation.domain.repositories.reporte_repository import ReporteRepository
+from src.financial_valuation.domain.value_objects.nic41 import ETIQUETA_HECHO
 from src.shared.errors import BusinessRuleError, NotFoundError
 from src.supplies.application.use_cases.exportacion.generador_archivos import (
     Documento,
@@ -61,7 +63,7 @@ class ExportarReporteUseCase:
         filas = []
         for c in self.periodos.comprobantes(id_periodo_contable):
             for linea in c["lineas"]:
-                filas.append([c["codigo"], c["fecha_comprobante"], c["tipo_hecho"], c["especie"], linea["cuenta_debito"],
+                filas.append([c["codigo"], c["fecha_comprobante"], ETIQUETA_HECHO.get(c["tipo_hecho"], "Hecho contable"), c["especie"], linea["cuenta_debito"],
                               linea["cuenta_credito"], linea["valor"], c["hash_integridad"]])
         doc = Documento(titulo=f"Comprobante NIC 41 {periodo.fecha_inicio:%Y-%m}",
                         columnas=["Comprobante", "Fecha", "Hecho", "Especie", "Cuenta débito", "Cuenta crédito", "Valor", "Hash"],

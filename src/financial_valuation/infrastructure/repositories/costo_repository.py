@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0 / RF-79: costos del activo y bandeja de provisiones de M05 |
+# | 2026-11-05 | Arekkazu | M06 RF-90: filtro por tipo de costo, especie y finca del activo; mensaje sin códigos |
 """Implementación SQL de :class:`CostoRepository`."""
 from __future__ import annotations
 
@@ -20,10 +21,12 @@ _COLUMNAS = """c.id_registro_costo, c.naturaleza_costo::text AS naturaleza_costo
     c.tercero_dv, c.tercero_razon_social, c.factura_prefijo, c.factura_numero, c.fecha_factura,
     c.fecha_vencimiento_factura, c.id_grupo_reparto, c.metodo_reparto::text AS metodo_reparto, c.cuenta_debito,
     c.cuenta_credito, c.es_cuenta_manual, c.es_reverso, c.id_usuario, c.fecha_registro, a.id_especie,
-    a.id_infraestructura, i.id_finca"""
+    a.id_infraestructura, i.id_finca, e.nombre AS especie, f.nombre AS finca"""
 _JOIN = """FROM modulo6.registros_costos c
     JOIN modulo2.activos_biologicos a ON a.id_activo_biologico = c.id_activo_biologico
-    JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura"""
+    JOIN modulo9.infraestructuras i ON i.id_infraestructura = a.id_infraestructura
+    JOIN modulo9.especies e ON e.id_especie = a.id_especie
+    JOIN modulo9.fincas f ON f.id_finca = i.id_finca"""
 
 
 def _filtros_sql(filtros: dict) -> tuple[str, dict]:
@@ -31,6 +34,7 @@ def _filtros_sql(filtros: dict) -> tuple[str, dict]:
     for campo, sql in (("id_activo_biologico", "c.id_activo_biologico = :id_activo_biologico"),
                        ("id_periodo_contable", "c.id_periodo_contable = :id_periodo_contable"),
                        ("estado", "c.estado::text = :estado"), ("naturaleza_costo", "c.naturaleza_costo::text = :naturaleza_costo"),
+                       ("subtipo_costo", "c.subtipo_costo::text = :subtipo_costo"),
                        ("origen_costo", "c.origen_costo::text = :origen_costo"), ("id_especie", "a.id_especie = :id_especie"),
                        ("id_infraestructura", "a.id_infraestructura = :id_infraestructura"),
                        ("id_finca", "i.id_finca = :id_finca")):
@@ -69,7 +73,7 @@ class SqlAlchemyCostoRepository(CostoRepository):
                 CAST(:metodo_reparto AS modulo6.enum_registro_costo_metodo_reparto), :cuenta_debito, :cuenta_credito,
                 :es_cuenta_manual, :es_reverso, :id_registro_costo_compensado)
             RETURNING id_registro_costo
-        """, campos, {"uq_registro_costo_id_origen_m05": "La provisión de M05 ya fue registrada.",
+        """, campos, {"uq_registro_costo_id_origen_m05": "El consumo de Suministros ya fue registrado como costo.",
                       "uq_registro_costo_factura_id_activo_biologico": "La factura ya está registrada para este activo."})
 
     def obtener(self, id_registro_costo: int) -> Optional[dict]:

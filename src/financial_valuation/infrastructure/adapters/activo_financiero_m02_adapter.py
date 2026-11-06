@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/83/87: lectura del activo en M02 con su finca y titular |
+# | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
 """Adaptador de :class:`ActivoFinancieroPort` sobre ``modulo2`` y ``modulo9``.
 
 Corre con la identidad del request: el RLS de ``modulo2`` limita los activos a las fincas del
@@ -99,3 +100,11 @@ class ActivoFinancieroM02Adapter(ActivoFinancieroPort):
             JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
             WHERE es.id_evento = :e AND ea.id_activo_biologico = :a
         """, {"e": id_evento, "a": id_activo_biologico}) is not None
+
+    def eventos_sanitarios_del_activo(self, id_activo_biologico: int) -> list[dict]:
+        return filas(self.db, """
+            SELECT es.id_evento, ea.fecha, es.tipo::text AS tipo, es.diagnostico
+            FROM modulo2.eventos_sanitarios es
+            JOIN modulo2.eventos_activos ea ON ea.id_eventos = es.id_evento
+            WHERE ea.id_activo_biologico = :a ORDER BY ea.fecha DESC LIMIT 100
+        """, {"a": id_activo_biologico})

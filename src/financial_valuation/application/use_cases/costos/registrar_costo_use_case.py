@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 v2.0: costo manual con naturaleza, origen, factura y reparto |
+# | 2026-11-05 | Arekkazu | M06: mensajes sin códigos de módulo ni valores de enum |
 """Caso de uso RF-90: registro manual de un costo (Contador o Administrador).
 
 Eje 1 (naturaleza, NIC 41) decide el tratamiento; eje 2 (origen) decide el vehículo:
@@ -25,6 +26,8 @@ from src.financial_valuation.domain.repositories.costo_repository import CostoRe
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.nic41 import repartir
 from src.financial_valuation.domain.value_objects.nic41 import (
+    ETIQUETA_NATURALEZA,
+    ETIQUETA_SUBTIPO,
     NATURALEZA_POR_SUBTIPO,
     ORIGENES_CON_PROVEEDOR,
     MetodoReparto,
@@ -40,7 +43,7 @@ from src.financial_valuation.domain.value_objects.nic41 import (
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 from src.shared.fechas import hoy_usuario
 
-AVISO_FUENTE_UNICA = ("Esta factura llegará a la contabilidad por la exportación de M07: no la registre manualmente en "
+AVISO_FUENTE_UNICA = ("Esta factura llegará a la contabilidad por la exportación contable de SIGAB: no la registre manualmente en "
                       "SIGCON. Las compras de insumos para inventario general se registran directamente en SIGCON.")
 
 
@@ -107,7 +110,8 @@ class RegistrarCostoUseCase:
                 TipoHecho.CONSUMO_INSUMO.value, Sentido.UNICO.value, activos[0].id_especie, s.subtipo_costo)
             if cuenta_factura is None:  # FA-7
                 raise BusinessRuleError(code="CUENTA_NO_CONFIGURADA", message=(
-                    f"La matriz contable no tiene cuenta de gasto para {s.subtipo_costo}. Complétela en Configuración contable."))
+                    f"La matriz contable no tiene cuenta de gasto para {ETIQUETA_SUBTIPO.get(s.subtipo_costo, s.subtipo_costo)}. "
+                    "Complétela en Configuración contable."))
         montos = self._repartir(s, activos)
         grupo = uuid.uuid4() if len(activos) > 1 else None
         registros = []
@@ -128,7 +132,8 @@ class RegistrarCostoUseCase:
         propia = NATURALEZA_POR_SUBTIPO[SubtipoCosto(s.subtipo_costo)].value
         if s.naturaleza_costo and s.naturaleza_costo != propia:  # FA-2: MANTENIMIENTO no se reclasifica
             raise BusinessRuleError(code="RECLASIFICACION_NO_PERMITIDA", message=(
-                f"Un costo {s.subtipo_costo} es de naturaleza {propia} y no puede registrarse como {s.naturaleza_costo}."))
+                f"Un costo de {ETIQUETA_SUBTIPO.get(s.subtipo_costo, s.subtipo_costo)} es de {ETIQUETA_NATURALEZA[propia]} y no puede "
+                f"registrarse como {ETIQUETA_NATURALEZA.get(s.naturaleza_costo, s.naturaleza_costo)}."))
         return propia
 
     def _validar_factura(self, s: SolicitudCosto) -> None:
@@ -143,8 +148,7 @@ class RegistrarCostoUseCase:
         existente = self.costos.factura_registrada(s.tercero_nit, s.factura_prefijo, s.factura_numero)
         if existente is not None:  # FA-6
             raise ConflictError(code="FACTURA_DUPLICADA", message=(
-                f"La factura {s.factura_prefijo or ''}{s.factura_numero} del NIT {s.tercero_nit} ya está registrada "
-                f"(costo #{existente['id_registro_costo']})."))
+                f"La factura {s.factura_prefijo or ''}{s.factura_numero} del NIT {s.tercero_nit} ya está registrada como costo."))
 
     def _activos(self, s: SolicitudCosto):
         ids = s.activos_reparto or ([s.id_activo_biologico] if s.id_activo_biologico else [])
