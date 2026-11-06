@@ -25,6 +25,7 @@
 # | 2026-11-02 | Arekkazu | AJF-14 RF-71: vigilante de reentrenamientos sin latido |
 # | 2026-11-03 | Arekkazu | AJF-14 RF-71 BE-6: reentrenamiento programado por antigüedad de la versión (0 = apagado) |
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: router /finanzas y proceso de fondo NIC 41 |
+# | 2026-11-06 | Arekkazu | M07 RF-95..102: routers de integración AAEF y transiciones de contratos |
 import asyncio
 import logging
 import os
@@ -112,6 +113,7 @@ from src.supplies.infrastructure.routers.batch_historial_suministros_router impo
 from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
 from src.financial_valuation.infrastructure.routers.m06_router import router as m06_router
+from src.accounting_integration.infrastructure.routers.m07_router import router as m07_router
 from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
 from src.identity_access.infrastructure.routers.agrofusion_integration_router import router as agrofusion_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
@@ -629,6 +631,31 @@ async def _procesar_m06_periodicamente() -> None:
             logger.exception("Error en el proceso de fondo de M06 (NIC 41).")
 
 
+async def _procesar_vigencias_contratos_aaef_periodicamente() -> None:
+    """RF-98 Fases 2 y 6: activa los contratos AAEF que llegan a su vigencia e inactiva los que
+    terminan la gracia. La activación manual existe para no esperar este ciclo."""
+    from datetime import datetime, timezone
+
+    from src.accounting_integration.infrastructure.factoria import M07
+    from src.shared.database import sesion_sistema
+
+    def procesar() -> int:
+        db = sesion_sistema()
+        try:
+            return M07(db).gestionar_contratos().procesar_vigencias(datetime.now(timezone.utc).date())
+        finally:
+            db.close()
+
+    while True:
+        try:
+            n = await asyncio.to_thread(procesar)
+            if n:
+                logger.info("M07: %s transiciones de contratos AAEF aplicadas.", n)
+        except Exception:
+            logger.exception("Error en las vigencias de los contratos AAEF (M07).")
+        await asyncio.sleep(300)
+
+
 async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     """Poller RF-10: procesa las exportaciones de auditoría demasiado grandes
     para resolverse dentro de la petición. Mismo patrón que los pollers de RF-77
@@ -877,6 +904,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
         asyncio.create_task(_despachar_provisiones_m06_periodicamente()),
         asyncio.create_task(_procesar_m06_periodicamente()),
+        asyncio.create_task(_procesar_vigencias_contratos_aaef_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
         asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
         asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
@@ -932,7 +960,11 @@ TAGS_OPENAPI = [
     {"name": "Auditoría", "description": "M01 · Historial inmutable de eventos con verificación de integridad, archivo histórico y exportación CSV (RF-10)."},
     {"name": "Roles y Permisos", "description": "M01 · CRUD de roles y asignación de permisos recurso + acción (RF-03, RF-04)."},
     {"name": "Notificaciones", "description": "M01 · Bandeja interna de notificaciones del usuario (RF-14)."},
-    {"name": "Integración AgroFusion", "description": "M01 · API servidor a servidor para el Hub de AgroFusion; se autentica con `client_id`/`client_secret`, no con JWT."},
+    {"name": "Integración AgroFusion", "description": "M07 · Canal de identidad de AgroFusion (RF-SSO02): `POST /token` recibe `client_id`/`client_secret` y emite un token de canal; las operaciones de usuario usan ese token como `Bearer`."},
+    {"name": "M07 · Consulta contable AAEF", "description": "M07 · Documento contable AAEF de un productor para AgroFusion (RF-95, RF-97, RF-AE01) y su vista previa para el Contador."},
+    {"name": "M07 · Clientes externos", "description": "M07 · Sistemas externos autorizados, sus credenciales y canales (RF-101)."},
+    {"name": "M07 · Contrato AAEF y anexo de mapeo", "description": "M07 · Versiones del contrato AAEF y anexo de mapeo (RF-98, RF-AE02)."},
+    {"name": "M07 · Auditoría de integración", "description": "M07 · Historial inmutable de la integración con verificación de integridad (RF-102)."},
     {"name": "Activos Biológicos", "description": "M02 · Registro, fases, eventos, historial, fichas, transferencias, sensores, indicadores y bitácora de los activos biológicos (RF-33 a RF-52)."},
     {"name": "Infraestructuras (Sensores IoT)", "description": "M02 · Asociación ambiental de sensores a una infraestructura completa (RF-49 Tipo B)."},
     {"name": "Configuración - Especies", "description": "M09 · Catálogo maestro de especies productivas (RF-15)."},
@@ -987,10 +1019,12 @@ app.add_middleware(
     allow_headers=["*"],
     # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
     # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan,
-    # ni cuándo reintentar tras un 429 del limitador de tasa (#495).
+    # ni cuándo reintentar tras un 429 del limitador de tasa (#495), ni la versión del
+    # contrato y la huella del documento AAEF en la vista previa de M07.
     expose_headers=[
         "Content-Disposition", "X-Total-Registros", "X-Registros-Exportados",
         "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset",
+        "X-Request-Id", "X-Version-Contrato-AAEF", "X-Content-SHA256",
     ],
 )
 
@@ -1027,10 +1061,9 @@ app.include_router(contrasena_router)
 app.include_router(auditoria_router)
 app.include_router(roles_router)
 app.include_router(notificaciones_router)
-if os.getenv("AGROFUSION_HUB_CLIENT_ID"):
-    # Integración M2M con AgroFusion (Mecanismo B) — ni siquiera se expone en
-    # un despliegue standalone sin credenciales configuradas.
-    app.include_router(agrofusion_router)
+# Canal M2M de AgroFusion: siempre montado. Sin un cliente externo registrado en M07
+# (RF-101) nadie obtiene token, así que no expone nada (antes dependía de variables de entorno).
+app.include_router(agrofusion_router)
 app.include_router(activo_biologico_router)
 app.include_router(infraestructura_sensor_router)
 app.include_router(especie_router)
@@ -1092,6 +1125,7 @@ app.include_router(costeo_suministros_router)
 app.include_router(provision_nic41_router)
 app.include_router(auditoria_suministros_router)
 app.include_router(m06_router)
+app.include_router(m07_router)
 
 @app.get("/", tags=["Health"])
 async def index():

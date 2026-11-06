@@ -1,3 +1,12 @@
+## [1.4.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.48...v1.4.0-rc.49) (2026-11-06)
+
+### Features
+
+* **rf-sso02-mod7:** UPDATE_USER, activacion idempotente RFC-019 D-19.6 y comprobante 06 apagado ([0962ce1](https://github.com/Arekkazu/sgpmp-backend/commit/0962ce1034dff70d1b95a1d195a2e05e719535ba))
+* **rf95-rf101-mod7:** consulta AAEF de AgroFusion con token de canal, contratos y auditoria ([b2b9097](https://github.com/Arekkazu/sgpmp-backend/commit/b2b9097bfe50598810aa9e56df6aa1dee16ef23b))
+* **rf95-rf102-mod7:** esquema modulo7 alineado a RFC-017/019 para la consulta AAEF ([268054c](https://github.com/Arekkazu/sgpmp-backend/commit/268054c44b57071f8e8f26ff2c17afbbf30ac674))
+* **rf96-rf97-mod7:** mappers de compras y comprobante NIC 41 y envelope AAEF ([ba3be7a](https://github.com/Arekkazu/sgpmp-backend/commit/ba3be7a6a1f07d51699c3f7012d3f549a3a0628e))
+
 ## [1.4.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.47...v1.4.0-rc.48) (2026-11-06)
 
 ### Features
