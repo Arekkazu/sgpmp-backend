@@ -252,17 +252,18 @@ def test_agrofusion_sincroniza_usuarios_como_lo_hace_su_backend(
     assert jose_jwt.get_unverified_claims(r.json()["access_token"])["rol"] == [1]  # AgroFusion lo lee como lista
 
     # Catálogos que AgroFusion llama sin token.
-    assert [x["id"] for x in cliente_http.get("/integraciones/agrofusion/tipos-documento").json()] == ["CC", "CE", "Pasaporte"]
+    # AgroFusion pasa estas listas sin plantilla y su frontend lee id/name y role_id/role_name.
+    assert [x["id"] for x in cliente_http.get("/integraciones/agrofusion/tipos-documento").json()] == [1, 2, 3]
     roles = cliente_http.get("/integraciones/agrofusion/roles").json()
-    id_contador = next(x["id_rol"] for x in roles if x["nombre_rol"] == "Contador")
-    id_productor = next(x["id_rol"] for x in roles if x["nombre_rol"] == "Productor")
+    id_contador = next(x["role_id"] for x in roles if x["role_name"] == "Contador")
+    id_productor = next(x["role_id"] for x in roles if x["role_name"] == "Productor")
 
     correo = f"af-{_letras_minusculas()}@example.com"
     assert cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).status_code == 404
-    r = cliente_http.post("/integraciones/agrofusion/usuarios", headers=canal, json={
-        "correo_electronico": correo, "nombre": "Laura", "apellidos": "Gómez", "segundo_apellido": "Ruiz",
-        "tipo_identificacion": "CC", "numero_identificacion": str(_numero()), "fecha_nacimiento": "1990-05-10",
-        "genero": 2, "roles": [id_productor], "contrasena": "Inicial2026*Segura", "fecha_expedicion": "2010-01-01"})
+    r = cliente_http.post("/integraciones/agrofusion/usuarios", headers=canal, json={  # tal como lo arma AgroFusion
+        "email": correo, "name": "Laura", "first_last_name": "Gómez", "second_last_name": "Ruiz",
+        "type_document_id": "1", "document_number": str(_numero()), "birthday": "1990-05-10",
+        "gender_id": "2", "roles": [id_productor], "password": "Inicial2026*Segura", "date_issuance_document": "2010-01-01"})
     assert r.status_code == 201, r.text
     assert (r.json()["apellidos"], r.json()["genero"], r.json()["id_rol"]) == ("Gómez Ruiz", "F", id_productor)
     token = r.json()["activation_token"]
@@ -273,16 +274,18 @@ def test_agrofusion_sincroniza_usuarios_como_lo_hace_su_backend(
 
     usuario = cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()
     assert usuario["roles"] == [id_productor] and usuario["genero_id"] == 2 and usuario["id_estado_cuenta"] == 2
-    user_id = usuario["id_usuario"]
+    assert (usuario["type_document_id"], usuario["first_last_name"]) == (1, "Gómez Ruiz")
+    assert None not in usuario.values()  # la plantilla de AgroFusion convertiría un nulo en «None»
+    user_id = usuario["user_id"]
 
     for estado, esperado in ((2, 3), (1, 2), (1, 2)):  # inactivo, activo y activo otra vez (no es error)
-        r = cliente_http.patch(f"/integraciones/agrofusion/usuarios/{user_id}/estado", headers=canal, json={"nuevo_estado": estado})
+        r = cliente_http.patch(f"/integraciones/agrofusion/usuarios/{user_id}/estado", headers=canal, json={"user_id": str(user_id), "new_status": str(estado)})
         assert r.status_code == 200, r.text
         assert cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()["id_estado_cuenta"] == esperado
 
     r = cliente_http.put(f"/integraciones/agrofusion/usuarios/{user_id}", headers=canal, json={
-        "nombre": "Laura Marcela", "apellidos": "Gómez", "segundo_apellido": "Ruiz", "telefono": "3001234567",
-        "roles": [id_contador], "genero": 1, "numero_identificacion": "999"})  # documento y género se ignoran
+        "name": "Laura Marcela", "first_last_name": "Gómez", "second_last_name": "Ruiz", "telefono": "3001234567",
+        "roles": [id_contador], "gender_id": "1", "document_number": "999", "type_document_id": "1"})  # documento y género se ignoran
     assert r.status_code == 200, r.text
     assert (r.json()["nombre"], r.json()["telefono"], r.json()["id_rol"], r.json()["genero"]) == ("Laura Marcela", "3001234567", id_contador, "F")
     assert cliente_http.put(f"/integraciones/agrofusion/usuarios/{user_id}", headers=canal,

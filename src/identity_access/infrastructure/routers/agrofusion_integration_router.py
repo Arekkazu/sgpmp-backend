@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02/RF-101: token de canal desde el registro de clientes y Bearer en usuarios |
 # | 2026-11-06 | Arekkazu | RF-SSO02: contrato real de AgroFusion (404 en GET_USER, tipos de documento, {user_id}) |
+# | 2026-11-06 | Arekkazu | RF-SSO02: nombres de campo de AgroFusion en roles, tipos de documento y GET_USER |
 """Router FastAPI para la integración server-to-server con AgroFusion (canal de identidad, RF-SSO02).
 
 Montado bajo un prefijo propio (`/integraciones/agrofusion`) porque es un contrato M2M distinto del
@@ -35,6 +36,7 @@ from src.identity_access.infrastructure.dto.agrofusion_dto import (
     AgroFusionTokenDTO,
     AgroFusionUpdateUserDTO,
     GENERO_A_AGROFUSION,
+    TIPO_A_AGROFUSION,
     TIPOS_DOCUMENTO,
 )
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
@@ -86,7 +88,8 @@ def listar_roles(request: Request, db: Session = Depends(get_db)):
     registrar_llamada(f"m07:roles:{request.client.host if request.client else 'desconocida'}", 30, 60)
     with como_sistema(db):
         roles = SqlAlchemyRolRepository(db).listar()
-    return [AgroFusionRolResumen(id_rol=r.id_rol, nombre_rol=r.nombre_rol) for r in roles]
+    return [AgroFusionRolResumen(id_rol=r.id_rol, nombre_rol=r.nombre_rol, role_id=r.id_rol, role_name=r.nombre_rol)
+            for r in roles]
 
 
 @router.post(
@@ -162,13 +165,14 @@ def crear_usuario(
 def listar_tipos_documento(request: Request):
     """`GET_TYPE_DOCUMENT` — catálogo fijo de SGPMP; el `id` es el que debe volver en `CREATE_USER`."""
     registrar_llamada(f"m07:tipos-documento:{request.client.host if request.client else 'desconocida'}", 30, 60)
-    return [AgroFusionTipoDocumento(id=k, nombre=v) for k, v in TIPOS_DOCUMENTO.items()]
+    return [AgroFusionTipoDocumento(id=k, name=nombre) for k, (_, nombre) in TIPOS_DOCUMENTO.items()]
 
 
 @router.get(
     "/usuarios/{email}",
     summary="AgroFusion: consultar usuario por correo (GET_USER)",
     response_model=AgroFusionUsuarioResponse,
+    response_model_exclude_none=True,
     responses={**_RESPUESTAS_M2M, 404: {"model": ErrorResponse}},
 )
 def obtener_usuario(email: str, db: Session = Depends(get_db), _: AccesoCanal = Depends(_acceso_identidad)):
@@ -183,6 +187,9 @@ def obtener_usuario(email: str, db: Session = Depends(get_db), _: AccesoCanal = 
         numero_identificacion=usuario.numero_identificacion, fecha_nacimiento=usuario.fecha_nacimiento,
         genero=genero, genero_id=GENERO_A_AGROFUSION.get(genero),
         id_estado_cuenta=cuenta.id_estado_cuenta if cuenta else None,
+        user_id=usuario.id_usuario, name=usuario.nombre, first_last_name=usuario.apellidos, email=str(usuario.correo),
+        birthday=usuario.fecha_nacimiento, document_number=usuario.numero_identificacion,
+        type_document_id=TIPO_A_AGROFUSION.get(usuario.tipo_identificacion),
     )
 
 
