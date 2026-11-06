@@ -1,3 +1,9 @@
+## [1.4.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.47...v1.4.0-rc.48) (2026-11-06)
+
+### Features
+
+* **rf82-rf94-mod6:** listados del periodo y filtros validados para las vistas del prototipo ([a391352](https://github.com/Arekkazu/sgpmp-backend/commit/a391352192f86a0407cd8a5f38ce5003ffd5f1ae))
+
 ## [1.4.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.46...v1.4.0-rc.47) (2026-11-05)
 
 ### Features
