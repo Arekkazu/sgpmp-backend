@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | M07 RF-SSO02: token de canal AgroFusion (audiencia propia, corto, sin sesión) |
 """Utilidades de creación y verificación de tokens JWT.
 
 Usa ``python-jose`` con algoritmo HS256. La clave secreta y el tiempo de
@@ -14,6 +17,7 @@ El payload del token contiene:
     - ``iat``: Marca de emisión (timestamp UTC).
 """
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -130,3 +134,37 @@ def verify_token(token: str) -> dict:
             code="TOKEN_INVALIDO",
             message="El token es inválido o ha expirado.",
         )
+
+
+# --- Token de canal (RF-SSO02, RFC-019 D-19.4) ------------------------------------------------------
+# Lleva ``aud``: ``verify_token`` (la app web) no pasa audiencia y python-jose rechaza un token con
+# ``aud`` en ese caso, así que un token de canal nunca opera la aplicación web. No crea sesión ni
+# refresh token, por eso tampoco cierra la sesión interactiva del usuario.
+AUDIENCIA_CANAL = "sgpmp-canal-integracion"
+
+
+def create_token_canal(id_usuario: int, id_rol: int, id_cliente_externo: int, canal: str, minutos: int) -> tuple[str, int]:
+    """Emite un token de canal para ``id_usuario`` a nombre del cliente externo.
+
+    Returns:
+        Tupla ``(token, segundos_de_vigencia)``.
+    """
+    ahora = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(id_usuario), "rol": id_rol, "cli": id_cliente_externo, "canal": canal, "aud": AUDIENCIA_CANAL,
+        "jti": uuid.uuid4().hex, "iat": ahora, "exp": ahora + timedelta(minutes=minutos),
+    }
+    return jwt.encode(payload, _SECRET_KEY, algorithm=_ALGORITHM), minutos * 60
+
+
+def verify_token_canal(token: str) -> dict:
+    """Verifica un token de canal. Cualquier fallo (firma, vigencia, audiencia) es ``NO_AUTENTICADO`` (401)."""
+    try:
+        payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM], audience=AUDIENCIA_CANAL,
+                             options={"leeway": _LEEWAY_SECONDS})
+    except JWTError:
+        payload = None
+    if not payload or not payload.get("canal") or not str(payload.get("cli", "")).isdigit():
+        raise AuthenticationError(code="NO_AUTENTICADO",
+                                  message="La credencial de acceso no es válida o venció. Solicite un acceso nuevo.")
+    return payload

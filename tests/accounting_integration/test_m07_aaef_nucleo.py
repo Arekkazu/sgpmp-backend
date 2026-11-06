@@ -24,7 +24,7 @@ from src.accounting_integration.domain.services.aaef import (
     validar_rango,
     verificar_cuadre,
 )
-from tests.accounting_integration.esquema_agrofusion import AccountingConsultResponse
+from src.accounting_integration.domain.services.esquema_agrofusion import AccountingConsultResponse
 
 TITULAR = Titular("900123456", "Hacienda La Esperanza SAS")
 SISTEMA = SistemaOrigen("SGPMP", "SIGAB", "TEST")

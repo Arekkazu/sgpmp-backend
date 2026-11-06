@@ -1,11 +1,11 @@
-"""DTOs de entrada para la integración server-to-server con AgroFusion (Mecanismo B).
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | M07 RF-101 5.2: credenciales del cliente solo en el pedido de token |
+"""DTOs de entrada para la integración server-to-server con AgroFusion (canal de identidad, RF-SSO02).
 
-Todos incluyen ``client_id``/``client_secret`` en el body porque el contrato
-de referencia de AgroFusion (``backendint``) los envía así en cada operación
-de tipo `POST`/`PATCH` — ver ``verify_agrofusion_client`` en
-``src/shared/agrofusion_auth.py``. Los endpoints `GET` reciben las mismas
-credenciales por query params (sin body), declarados directamente en el
-router.
+Desde RF-101 v2.0 ``client_id``/``client_secret`` solo llegan en el pedido de token
+(``AgroFusionTokenDTO``); el resto de operaciones se autentica con el token de canal en
+``Authorization: Bearer``. Si AgroFusion aún manda las credenciales en el cuerpo, se ignoran.
 """
 import datetime
 from typing import Literal, Optional
@@ -21,7 +21,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class AgroFusionCredencialesDTO(BaseDTO):
-    """Credenciales M2M compartidas por las operaciones con body."""
+    """Credenciales del cliente externo; solo las lleva el pedido de token."""
 
     client_id: str
     client_secret: str
@@ -33,7 +33,7 @@ class AgroFusionTokenDTO(AgroFusionCredencialesDTO):
     email: EmailStr
 
 
-class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
+class AgroFusionCreateUserDTO(BaseDTO):
     """`CREATE_USER` — alta completa de usuario, activo de inmediato (sin flujo de activación por correo)."""
 
     correo_electronico: EmailStr
@@ -56,7 +56,7 @@ class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
         return v
 
 
-class AgroFusionEstadoDTO(AgroFusionCredencialesDTO):
+class AgroFusionEstadoDTO(BaseDTO):
     """`CHANGE_USER_STATUS` — cambia el estado de cuenta de un usuario existente."""
 
     id_estado_cuenta: int

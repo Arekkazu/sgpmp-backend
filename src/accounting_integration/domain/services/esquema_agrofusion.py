@@ -1,9 +1,12 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
-# | 2026-11-06 | Arekkazu | M07 RF-97 CA-14: réplica del esquema que valida AgroFusion |
+# | 2026-11-06 | Arekkazu | M07 RF-97 CA-14 / RF-AE02 5.10: réplica del esquema que valida AgroFusion |
 """Réplica de ``AccountingConsultResponse`` de AgroFusion (``agrofusion-backendint``,
 ``app/schemas/checks.py``), con los mismos nombres y tipos. Si el envelope no valida aquí,
-AgroFusion responde 502 al usuario. Mantener sincronizada con su código."""
+AgroFusion responde 502 al usuario. Mantener sincronizada con su código.
+
+Se usa en ejecución como última verificación del envelope antes de entregarlo y en la validación
+automática del anexo (RF-AE02 5.10)."""
 from typing import Any, List, Optional
 
 from pydantic import BaseModel
