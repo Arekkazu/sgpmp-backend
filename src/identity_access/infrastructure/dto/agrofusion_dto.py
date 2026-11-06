@@ -61,3 +61,12 @@ class AgroFusionEstadoDTO(BaseDTO):
 
     id_estado_cuenta: int
     motivo: Optional[str] = None
+
+
+class AgroFusionUpdateUserDTO(BaseDTO):
+    """`UPDATE_USER` — datos de perfil y rol que AgroFusion mantiene; lo que no envía se conserva."""
+    nombre: Optional[str] = None
+    apellidos: Optional[str] = None
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
+    rol_codigo: Optional[str] = None

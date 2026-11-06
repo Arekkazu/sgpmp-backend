@@ -88,7 +88,8 @@ class M07:
         return GestionarAnexosUseCase(self.contratos, self.auditoria, self.db)
 
     def gestionar_contratos(self) -> GestionarContratosUseCase:
-        return GestionarContratosUseCase(self.contratos, self.auditoria, self.db, configuracion.es_produccion, self.alertar)
+        return GestionarContratosUseCase(self.contratos, self.auditoria, self.db, configuracion.es_produccion, self.alertar,
+                                         configuracion.COMPROBANTE_NIC41_HABILITADO)
 
     def consultar_auditoria(self) -> ConsultarAuditoriaIntegracionUseCase:
         return ConsultarAuditoriaIntegracionUseCase(self.auditoria, self.alertar)

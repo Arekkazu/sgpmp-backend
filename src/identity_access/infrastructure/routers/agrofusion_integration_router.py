@@ -8,11 +8,14 @@ resto de la API. Desde RF-101 v2.0 las credenciales del cliente (`client_id`/`cl
 **solo** en el cuerpo de `POST /token`, se validan contra el registro de clientes externos de M07 y
 el resultado es un token de canal (corto, sin sesión). Las operaciones de usuario exigen ese token
 (`Authorization: Bearer`, canal `IDENTIDAD_M2M`); `GET /roles` no lleva autenticación porque
-AgroFusion lo llama sin ella. `UPDATE_USER` y `GET_TYPE_DOCUMENT` siguen sin implementar.
+AgroFusion lo llama sin ella. `GET_TYPE_DOCUMENT` no se implementa (no tiene requerimiento).
 """
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
+from src.identity_access.application.use_cases.agrofusion.actualizar_usuario_agrofusion_use_case import (
+    ActualizarUsuarioAgroFusionUseCase,
+)
 from src.identity_access.application.use_cases.agrofusion.cambiar_estado_usuario_agrofusion_use_case import (
     CambiarEstadoUsuarioAgroFusionUseCase,
 )
@@ -24,6 +27,7 @@ from src.identity_access.infrastructure.dto.agrofusion_dto import (
     AgroFusionCreateUserDTO,
     AgroFusionEstadoDTO,
     AgroFusionTokenDTO,
+    AgroFusionUpdateUserDTO,
 )
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
@@ -33,15 +37,20 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.identity_access.infrastructure.schema.agrofusion_schema import (
     AgroFusionRolResumen,
     AgroFusionTokenResponse,
+    AgroFusionUsuarioCreadoResponse,
     AgroFusionUsuarioEstadoResponse,
 )
+from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.identity_access.infrastructure.routers.usuarios_routers import _a_usuario_response, _crear_editar_perfil_use_case
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
 from src.accounting_integration.application.use_cases.canal.verificar_acceso_canal_use_case import AccesoCanal
 from src.accounting_integration.domain.entities.evento_integracion import EventoIntegracion
 from src.accounting_integration.infrastructure.dependencias import requerir_canal
 from src.accounting_integration.infrastructure.factoria import M07
 from src.shared.database import como_sistema, get_db
+from src.shared.errors import AuthorizationError
 from src.shared.rate_limit import registrar_llamada
+from src.shared.rbac import tiene_permiso
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/integraciones/agrofusion", tags=["Integración AgroFusion"])
@@ -94,7 +103,7 @@ def emitir_token(dto: AgroFusionTokenDTO, request: Request, db: Session = Depend
     "/usuarios",
     summary="AgroFusion: crear usuario activo (CREATE_USER)",
     status_code=201,
-    response_model=UsuarioResponse,
+    response_model=AgroFusionUsuarioCreadoResponse,
     responses={
         **_RESPUESTAS_M2M,
         400: {"model": ErrorResponse},
@@ -106,7 +115,8 @@ def crear_usuario(
     db: Session = Depends(get_db),
     acceso: AccesoCanal = Depends(_acceso_identidad),
 ):
-    """`CREATE_USER` — alta completa de usuario, activo de inmediato."""
+    """`CREATE_USER` — alta completa de usuario, activo de inmediato. Devuelve el ``activation_token``
+    que AgroFusion usa en `ACTIVATE_ACCOUNT` (respuesta 200 idempotente, RFC-019 D-19.6)."""
 
     use_case = CrearUsuarioAgroFusionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
@@ -115,9 +125,10 @@ def crear_usuario(
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
-    usuario = use_case.execute(dto)
+    usuario, activation_token = use_case.execute(dto)
     _auditar_m2m(db, "USUARIO_CREADO_M2M", acceso, "/integraciones/agrofusion/usuarios", "POST")
-    return UsuarioResponse(
+    return AgroFusionUsuarioCreadoResponse(
+        activation_token=activation_token,
         id_usuario=usuario.id_usuario,
         nombre=usuario.nombre,
         apellidos=usuario.apellidos,
@@ -184,3 +195,33 @@ def cambiar_estado_usuario(
     use_case.execute(email, dto.id_estado_cuenta, dto.motivo)
     _auditar_m2m(db, "ESTADO_USUARIO_CAMBIADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{email}/estado", "PATCH")
     return {"message": "Estado de cuenta actualizado exitosamente."}
+
+
+@router.put(
+    "/usuarios/{email}",
+    summary="AgroFusion: actualizar usuario (UPDATE_USER)",
+    response_model=UsuarioResponse,
+    responses={**_RESPUESTAS_M2M, 400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+)
+def actualizar_usuario(
+    email: str,
+    dto: AgroFusionUpdateUserDTO,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    acceso: AccesoCanal = Depends(_acceso_identidad),
+):
+    """`UPDATE_USER` — nombre, apellidos, teléfono, dirección y rol. Exige al usuario del token el mismo
+    permiso que la edición administrativa web (`usuarios` · Actualizar); el correo no cambia por aquí."""
+    if not tiene_permiso(db, acceso.usuario.id_rol, 1, 3):
+        raise AuthorizationError(code="ACCESO_DENEGADO",
+                                 message="El usuario del SGPMP con el que actúa AgroFusion no puede editar usuarios.")
+    usuario_actual = UsuarioActual(id_usuario=acceso.usuario.id_usuario, id_token=0, id_rol=acceso.usuario.id_rol,
+                                   id_estado_cuenta=2)
+    use_case = ActualizarUsuarioAgroFusionUseCase(
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
+        editar_perfil=_crear_editar_perfil_use_case(db, background_tasks),
+    )
+    usuario = use_case.execute(email, dto, usuario_actual)
+    _auditar_m2m(db, "USUARIO_ACTUALIZADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{email}", "PUT")
+    return _a_usuario_response(usuario)

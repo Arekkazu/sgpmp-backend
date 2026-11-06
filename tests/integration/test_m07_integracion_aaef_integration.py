@@ -128,7 +128,12 @@ def _preparar_m07(cli: TestClient, admin: dict, contador: dict) -> int:
         "contrato_version": "3.0", "tipo_cambio": "MAJOR", "fecha_vigencia": HOY.isoformat(),
         "id_mapeo_anexo_aaef": id_anexo, "mapeadores": ["COMPRAS"]})
     assert r.status_code == 201 and r.json()["estado"] == "PENDIENTE", r.text
-    r = cli.post(f"/integracion/contratos/{r.json()['id_version_contrato_aaef']}/activar", headers=admin)
+    id_contrato = r.json()["id_version_contrato_aaef"]
+    apagado = cli.post("/integracion/contratos", headers=admin, json={  # el 06 sigue apagado (SIGCON no lo recibe)
+        "contrato_version": "3.1", "tipo_cambio": "MINOR", "fecha_vigencia": HOY.isoformat(),
+        "id_mapeo_anexo_aaef": id_anexo, "mapeadores": ["COMPRAS", "COMPROBANTE_NIC41"]})
+    assert (apagado.status_code, apagado.json()["error_code"]) == (422, "MAPPER_NO_DISPONIBLE")
+    r = cli.post(f"/integracion/contratos/{id_contrato}/activar", headers=admin)
     assert r.status_code == 200 and r.json()["estado"] == "ACTIVO", r.text
     return id_cliente
 
@@ -228,3 +233,49 @@ def test_rotar_el_secreto_invalida_el_anterior_de_inmediato(
     assert revocar.json()["estado"] == "REVOCADO"
     assert cliente_http.post(f"/integracion/clientes/{id_cliente}/reactivar", headers=admin, json={}).status_code == 409
     assert _token(cliente_http, contador["correo"], nuevo).status_code == 403
+
+
+def test_agrofusion_crea_activa_y_actualiza_usuarios_por_el_canal_de_identidad(
+    db_session, cliente_http, crear_usuario_db, crear_auth_headers,
+):
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    cliente_http.post("/integracion/clientes", headers=crear_auth_headers(admin), json={
+        "codigo": "AGROFUSION", "nombre": "AgroFusion", "identificador_publico": "agrofusion",
+        "fecha_vencimiento": (HOY + timedelta(days=30)).isoformat(), "client_secret": SECRETO,
+        "canales": [{"canal": "IDENTIDAD_M2M"}]})
+    canal = {"Authorization": f"Bearer {_token(cliente_http, admin['correo']).json()['access_token']}"}
+    assert cliente_http.get("/integraciones/agrofusion/roles").status_code == 200  # AgroFusion lo llama sin token
+    assert cliente_http.get("/integraciones/agrofusion/usuarios/x@example.com").status_code == 401
+
+    correo = f"af-{_letras_minusculas()}@example.com"
+    r = cliente_http.post("/integraciones/agrofusion/usuarios", headers=canal, json={
+        "correo_electronico": correo, "nombre": "Laura", "apellidos": "Gómez", "tipo_identificacion": "CC",
+        "numero_identificacion": str(_numero()), "fecha_nacimiento": "1990-05-10", "genero": "F", "rol_codigo": "Productor"})
+    assert r.status_code == 201, r.text
+    token = r.json()["activation_token"]
+    assert token.startswith("m2m-")
+    for _ in range(2):  # RFC-019 D-19.6: ACTIVATE_ACCOUNT llega después y responde 200 idempotente
+        activacion = cliente_http.get(f"/usuarios/activar/{token}")
+        assert (activacion.status_code, activacion.json()["message"]) == (200, "La cuenta ya está activa.")
+    assert cliente_http.get(f"/usuarios/activar/m2m-{'x' * 43}").status_code == 400
+
+    r = cliente_http.put(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal,
+                         json={"nombre": "Laura Marcela", "telefono": "3001234567", "rol_codigo": "Contador"})
+    assert r.status_code == 200, r.text
+    assert (r.json()["nombre"], r.json()["telefono"], r.json()["id_rol"]) == ("Laura Marcela", "3001234567", 5)
+    assert r.json()["apellidos"] == "Gómez"  # lo que no envía se conserva
+    assert cliente_http.put(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal,
+                            json={"rol_codigo": "Inexistente"}).json()["error_code"] == "ROL_NO_ENCONTRADO"
+    consulta = cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()
+    assert consulta["existe"] and consulta["id_estado_cuenta"] == 2
+
+
+def _letras_minusculas() -> str:
+    import random
+    import string
+    return "".join(random.choices(string.ascii_lowercase, k=10))
+
+
+def _numero() -> int:
+    import random
+    return random.randint(10_000_000, 99_999_999)

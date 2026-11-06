@@ -28,7 +28,7 @@ from src.accounting_integration.domain.entities.contrato import (
 from src.accounting_integration.domain.entities.evento_integracion import EventoIntegracion
 from src.accounting_integration.domain.repositories.auditoria_integracion_repository import AuditoriaIntegracionRepository
 from src.accounting_integration.domain.repositories.contrato_repository import ContratoRepository
-from src.accounting_integration.domain.services.aaef import MAPPERS_DISPONIBLES
+from src.accounting_integration.domain.services.aaef import MAPPER_COMPROBANTE_NIC41, MAPPERS_DISPONIBLES
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
@@ -47,12 +47,19 @@ class GestionarContratosUseCase:
     _avisados: dict[str, date] = {}  # versión -> último día avisado; un aviso diario por versión bloqueada
 
     def __init__(self, contratos: ContratoRepository, auditoria: AuditoriaIntegracionRepository, db: Session,
-                 es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None]):
+                 es_produccion: Callable[[], bool], alertar: Callable[[str, dict], None],
+                 comprobante_habilitado: bool = False):
         self.contratos = contratos
         self.auditoria = auditoria
         self.db = db
         self.es_produccion = es_produccion
         self.alertar = alertar
+        self.comprobante_habilitado = comprobante_habilitado
+
+    def _exigir_comprobante_disponible(self, mapeadores: list[str]) -> None:
+        if MAPPER_COMPROBANTE_NIC41 in mapeadores and not self.comprobante_habilitado:
+            raise BusinessRuleError(code="MAPPER_NO_DISPONIBLE", field="mapeadores", message=(
+                "El comprobante NIC 41 todavía no lo recibe la contabilidad externa. Registre la versión solo con compras."))
 
     def _evento(self, tipo: str, contrato: VersionContrato, id_usuario: Optional[int], **detalle) -> None:
         self.auditoria.registrar(EventoIntegracion(
@@ -72,6 +79,7 @@ class GestionarContratosUseCase:
         if not s.mapeadores or any(m not in MAPPERS_DISPONIBLES for m in s.mapeadores):  # FA-3
             raise ValidationError(code="MAPPERS_INVALIDOS", field="mapeadores",
                                   message="Indique transformadores válidos: compras y, si aplica, comprobante NIC 41.")
+        self._exigir_comprobante_disponible(s.mapeadores)
         anexo = self.contratos.obtener_anexo(s.id_mapeo_anexo_aaef)
         if anexo is None or not anexo.usable(self.es_produccion()):  # FA-2
             raise BusinessRuleError(code="ANEXO_MAPEO_INVALIDO", field="id_mapeo_anexo_aaef",
@@ -102,6 +110,7 @@ class GestionarContratosUseCase:
                 self.es_produccion())
             if motivo:  # FA-5: queda PENDIENTE
                 raise BusinessRuleError(code="CONTRATO_NO_VALIDO", message=motivo)
+            self._exigir_comprobante_disponible(contrato.mapeadores)
             ahora = datetime.now(timezone.utc)
             anteriores = versiones_a_deprecar(contrato, contratos)
             exigir_cupo(contrato, contratos)  # las que pasan a DEPRECADO siguen contando (RF-98 5.3)
