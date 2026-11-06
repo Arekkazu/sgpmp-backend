@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-88 paso 9: paso del modelo de costo a valor razonable (NIC 41 ¶30, ¶56) |
+# | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
 """Caso de uso RF-88 paso 9: cuando hay precio confiable, el activo pasa a valor razonable (¶30 lo
 exige). La diferencia entre el valor por costo y el valor razonable neto va a resultados.
 
@@ -16,7 +17,7 @@ from src.financial_valuation.domain.entities.contabilidad import EventoAuditoria
 from src.financial_valuation.domain.repositories.activo_financiero_port import ActivoFinancieroPort
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.nic41 import sentido_por_signo
-from src.financial_valuation.domain.value_objects.nic41 import Severidad, TipoEvidencia, TipoHecho
+from src.financial_valuation.domain.value_objects.nic41 import Severidad, TipoEvidencia, TipoHecho, estado_legible
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 from src.shared.fechas import hoy_usuario
 
@@ -36,7 +37,7 @@ class CambiarAValorRazonableUseCase:
         if activo is None or costo is None:
             raise NotFoundError(code="VALORACION_COSTO_NO_ENCONTRADA", message="El activo no está valorado por costo.")
         if not activo.es_valorable:  # FA-4
-            raise ConflictError(code="ACTIVO_NO_DISPONIBLE", message=f"El activo está en estado {activo.estado}.")
+            raise ConflictError(code="ACTIVO_NO_DISPONIBLE", message=f"El activo está {estado_legible(activo.estado)}.")
         hoy = hoy_usuario()
         try:
             periodo = self.contabilizador.periodo_para(activo.numero_id_tributaria, hoy, id_usuario)

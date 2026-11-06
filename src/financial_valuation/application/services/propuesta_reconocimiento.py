@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82/RF-88 A: propuesta de reconocimiento inicial (NIC 41 ¶10, ¶12, ¶26-27, ¶30) |
+# | 2026-11-05 | Arekkazu | M06: mensajes con rótulos legibles en vez de valores de enum |
 """Arma la propuesta de reconocimiento inicial de un activo (RF-82 pasos 2-6). No persiste.
 
 La propuesta no se guarda hasta que el Contador la confirma: un activo sin reconocimiento
@@ -30,7 +31,7 @@ from src.financial_valuation.domain.repositories.configuracion_contable_reposito
 )
 from src.financial_valuation.domain.services.nic41 import CERO, sentido_por_signo
 from src.financial_valuation.domain.services.precios import Precio
-from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Sentido, TipoHecho
+from src.financial_valuation.domain.value_objects.nic41 import IndicadorValoracion, Sentido, TipoHecho, estado_legible
 from src.shared.fechas import hoy_usuario
 
 RAZON_SIN_MERCADO = "Ausencia verificada de precio de mercado en el repositorio de precios"
@@ -81,8 +82,8 @@ class ProponedorReconocimiento:
 
         # ¶10: control (registrado y con finca titular), beneficio futuro (estado) y medición fiable.
         if not activo.es_valorable:
-            propuesta.bloquear("ACTIVO_NO_VALORABLE", f"El activo está en estado {activo.estado}: solo se reconocen "
-                                                      "activos ACTIVO o EN_TRATAMIENTO.")
+            propuesta.bloquear("ACTIVO_NO_VALORABLE", f"El activo está {estado_legible(activo.estado)}: solo se reconocen "
+                                                      "los que están activos o en tratamiento.")
         if not activo.numero_id_tributaria:
             propuesta.bloquear("FINCA_SIN_TITULAR", f"La finca {activo.finca} no tiene titular tributario. "
                                                     "Complételo en Configuración → Fincas.")

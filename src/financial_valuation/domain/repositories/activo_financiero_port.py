@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-05 | Arekkazu | M06 RF-88: eventos sanitarios del activo para elegir el del deterioro |
 """Puerto de lectura de M02/M09 para M06: el activo, su finca y su titular."""
 from __future__ import annotations
 
@@ -31,3 +32,7 @@ class ActivoFinancieroPort(ABC):
 
     @abstractmethod
     def evento_sanitario_del_activo(self, id_evento: int, id_activo_biologico: int) -> bool: ...
+
+    @abstractmethod
+    def eventos_sanitarios_del_activo(self, id_activo_biologico: int) -> list[dict]:
+        """Eventos sanitarios del activo (fecha, tipo y diagnóstico), para elegir el que sustenta un deterioro."""

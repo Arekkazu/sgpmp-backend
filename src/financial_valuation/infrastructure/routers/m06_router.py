@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: endpoints del módulo financiero NIC 41 (/finanzas) |
+# | 2026-11-05 | Arekkazu | M06 RF-83..94: listados del período y filtros validados para las vistas del prototipo |
 """Routers de M06 (``/finanzas``). Sin lógica: arman el caso de uso con la fábrica y lo ejecutan.
 
 Autorización por RBAC (``require_permission_sobre``), recursos por nombre (ids 88-99 de la
@@ -9,7 +10,7 @@ el Administrador, el Productor y el Revisor Fiscal, el que les da la matriz de e
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
@@ -45,6 +46,17 @@ from src.shared.rbac import require_permission_sobre as permiso
 from src.shared.schemas import ErrorResponse
 
 C, R, U, D, E = 1, 2, 3, 4, 5
+
+# Catálogos de los filtros: un valor fuera de ellos responde 400 en vez de una lista vacía silenciosa.
+Clasificacion = Literal["PRODUCCION", "CONSUMO"]
+EstadoLinea = Literal["PENDIENTE_CUENTA", "REGISTRADA", "VERIFICACION_PENDIENTE", "VERIFICADO", "PENDIENTE_TRAZABILIDAD"]
+EstadoCosto = Literal["REGISTRADO", "PENDIENTE_CLASIFICACION"]
+OrigenCosto = Literal["CONSUMO_INVENTARIO", "MANO_OBRA_PROPIA", "COMPRA_PROVEEDOR", "SERVICIO_TERCERO"]
+NaturalezaCosto = Literal["MANTENIMIENTO", "INVERSION", "VENTA"]
+SubtipoCosto = Literal["ALIMENTO", "MEDICAMENTO", "MANO_OBRA", "VETERINARIO", "TRANSPORTE", "COMISION",
+                       "IMPUESTO_TRANSACCION", "SACRIFICIO", "INVERSION_DIRECTA", "OTRO"]
+EstadoCotizacion = Literal["COTIZADO", "VENCIDA", "ANULADA", "CONVERTIDA_EN_VENTA"]
+Severidad = Literal["INFO", "WARNING", "ERROR", "CRITICAL"]
 _ERRORES = {c: {"model": ErrorResponse} for c in (400, 401, 403, 404, 409, 412, 422, 500)}
 
 router = APIRouter(prefix="/finanzas", responses=_ERRORES)
@@ -147,7 +159,7 @@ def listar_propuestas(m: M06 = Depends(_m06), usuario: UsuarioActual = Depends(g
 
 @router.get("/reconocimientos/propuestas/{id_activo_biologico}", tags=[TAG_RECON],
             dependencies=[Depends(permiso("reconocimiento_inicial", R))], summary="Propuesta de un activo")
-def propuesta_activo(id_activo_biologico: int, clasificacion: Optional[str] = None, m: M06 = Depends(_m06),
+def propuesta_activo(id_activo_biologico: int, clasificacion: Optional[Clasificacion] = None, m: M06 = Depends(_m06),
                      usuario: UsuarioActual = Depends(get_current_user)) -> dict:
     return m.propuestas().de_activo(id_activo_biologico, usuario.id_usuario, clasificacion=clasificacion)
 
@@ -212,10 +224,39 @@ def procesar_eventos(m: M06 = Depends(_m06)) -> dict:
 
 @router.get("/lineas", tags=[TAG_VALOR], dependencies=[Depends(permiso("valoracion_activos", R))],
             summary="Líneas de asiento NIC 41 de un período (filtrables por estado)")
-def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[str] = None, m: M06 = Depends(_m06)) -> list[dict]:
+def listar_lineas(id_periodo_contable: int = Query(gt=0), estado: Optional[EstadoLinea] = None,
+                  m: M06 = Depends(_m06)) -> list[dict]:
     lineas = m.asientos.del_periodo(id_periodo_contable)
     return [{**ln.__dict__, **ln.extra} for ln in lineas if estado is None or ln.estado == estado
             or ln.extra.get("estado_trazabilidad") == estado]
+
+
+@router.get("/periodos/{id_periodo_contable}/mediciones", tags=[TAG_VALOR],
+            dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Mediciones posteriores del período con el activo medido")
+def mediciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.mediciones_del_periodo(id_periodo_contable)
+
+
+@router.get("/periodos/{id_periodo_contable}/variaciones", tags=[TAG_VALOR],
+            dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Variaciones de valor razonable del período con su evidencia y trazabilidad")
+def variaciones_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.variaciones_del_periodo(id_periodo_contable)
+
+
+@router.get("/periodos/{id_periodo_contable}/calculos", tags=[TAG_VALOR],
+            dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Cálculos del valor razonable menos costos de venta registrados en el período")
+def calculos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.calculos_del_periodo(id_periodo_contable)
+
+
+@router.get("/periodos/{id_periodo_contable}/productos", tags=[TAG_VALOR],
+            dependencies=[Depends(permiso("valoracion_activos", R))],
+            summary="Productos agrícolas reconocidos en el período")
+def productos_del_periodo(id_periodo_contable: int, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.valoraciones.productos_del_periodo(id_periodo_contable)
 
 
 # --- Costos (RF-90) ---------------------------------------------------------------------------------------
@@ -224,10 +265,13 @@ TAG_COSTOS = "M06 · Costos"
 
 
 @router.get("/costos", tags=[TAG_COSTOS], dependencies=[Depends(permiso("costos_activos", R))], summary="Listar costos")
-def listar_costos(id_activo_biologico: Optional[int] = None, id_periodo_contable: Optional[int] = None,
-                  estado: Optional[str] = None, origen_costo: Optional[str] = None, m: M06 = Depends(_m06)) -> list[dict]:
+def listar_costos(id_activo_biologico: Optional[int] = Query(None, gt=0), id_periodo_contable: Optional[int] = Query(None, gt=0),
+                  estado: Optional[EstadoCosto] = None, origen_costo: Optional[OrigenCosto] = None,
+                  naturaleza_costo: Optional[NaturalezaCosto] = None, subtipo_costo: Optional[SubtipoCosto] = None,
+                  id_especie: Optional[int] = Query(None, gt=0), m: M06 = Depends(_m06)) -> list[dict]:
     return m.costos.listar({"id_activo_biologico": id_activo_biologico, "id_periodo_contable": id_periodo_contable,
-                            "estado": estado, "origen_costo": origen_costo})
+                            "estado": estado, "origen_costo": origen_costo, "naturaleza_costo": naturaleza_costo,
+                            "subtipo_costo": subtipo_costo, "id_especie": id_especie})
 
 
 @router.post("/costos", tags=[TAG_COSTOS], status_code=201, dependencies=[Depends(permiso("costos_activos", C))],
@@ -292,6 +336,13 @@ def descargar_comprobantes(id_periodo_contable: int, formato: str = Query("csv",
 TAG_COSTO = "M06 · Valoración por costo"
 
 
+@router.get("/activos/{id_activo_biologico}/eventos-sanitarios", tags=[TAG_COSTO],
+            dependencies=[Depends(permiso("valoracion_por_costo", R))],
+            summary="Eventos sanitarios del activo, para elegir el que sustenta un deterioro")
+def eventos_sanitarios(id_activo_biologico: int, m: M06 = Depends(_m06)) -> list[dict]:
+    return m.activos.eventos_sanitarios_del_activo(id_activo_biologico)
+
+
 @router.post("/activos/{id_activo_biologico}/deterioros", tags=[TAG_COSTO], status_code=201,
              dependencies=[Depends(permiso("valoracion_por_costo", C))],
              summary="Registrar el deterioro de un activo valorado por costo (evento sanitario)")
@@ -315,7 +366,7 @@ TAG_COT = "M06 · Cotizaciones"
 
 
 @router.get("/cotizaciones", tags=[TAG_COT], dependencies=[Depends(permiso("cotizaciones", R))], summary="Listar cotizaciones")
-def listar_cotizaciones(estado: Optional[str] = None, id_activo_biologico: Optional[int] = None,
+def listar_cotizaciones(estado: Optional[EstadoCotizacion] = None, id_activo_biologico: Optional[int] = Query(None, gt=0),
                         m: M06 = Depends(_m06)) -> list[dict]:
     return m.cotizaciones.listar({"estado": estado, "id_activo_biologico": id_activo_biologico})
 
@@ -446,11 +497,12 @@ def descargar_informe(id_informe: int, formato: str = Query("pdf", pattern="^(pd
 
 @router.get("/auditoria", tags=["M06 · Auditoría financiera"], dependencies=[Depends(permiso("auditoria_financiera", R))],
             summary="Eventos de auditoría de M06 (técnicos o legibles)")
-def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None), id_periodo_contable: Optional[int] = None,
-                        id_activo_biologico: Optional[int] = None, severidad: Optional[str] = None,
+def consultar_auditoria(tipo_evento: Optional[list[str]] = Query(None),
+                        id_periodo_contable: Optional[int] = Query(None, gt=0),
+                        id_activo_biologico: Optional[int] = Query(None, gt=0), severidad: Optional[Severidad] = None,
                         desde: Optional[datetime] = None, hasta: Optional[datetime] = None, pagina: int = Query(1, ge=1),
                         tamano: int = Query(100, ge=1, le=500), formato: str = Query("LEGIBLE", pattern="^(LEGIBLE|TECNICO)$"),
-                        m: M06 = Depends(_m06)) -> dict:
+                        orden: Literal["ASC", "DESC"] = "ASC", m: M06 = Depends(_m06)) -> dict:
     filtros = {"tipo_evento": tipo_evento, "id_periodo_contable": id_periodo_contable,
                "id_activo_biologico": id_activo_biologico, "severidad": severidad, "desde": desde, "hasta": hasta}
-    return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE")
+    return m.consultar_auditoria().execute(filtros, pagina, tamano, formato == "LEGIBLE", orden == "DESC")

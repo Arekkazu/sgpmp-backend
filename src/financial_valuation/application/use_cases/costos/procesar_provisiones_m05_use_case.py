@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-90 + M05 RF-79: costos de M05 a M06 (CONSUMO_INVENTARIO / CONSUMO_INSUMO) |
+# | 2026-11-05 | Arekkazu | M06 RF-90: justificación automática sin códigos de módulo |
 """Caso de uso de fondo: convierte cada provisión INCREMENTAL de M05 en un costo de RF-90.
 
 - ALIMENTO y MEDICAMENTO: ``CONSUMO_INVENTARIO`` → línea ``CONSUMO_INSUMO`` (gasto contra el
@@ -40,6 +41,8 @@ _SUBTIPO = {"ALIMENTO": SubtipoCosto.ALIMENTO, "MEDICAMENTO": SubtipoCosto.MEDIC
             "SERVICIO_VETERINARIO": SubtipoCosto.VETERINARIO, "INSEMINACION": SubtipoCosto.VETERINARIO}
 _CON_INVENTARIO = ("ALIMENTO", "MEDICAMENTO")
 
+
+_OPERACION = {"REGISTRO": "Consumo registrado", "CORRECCION": "Corrección de un consumo", "ANULACION": "Anulación de un consumo"}
 
 class ProcesarProvisionesM05UseCase:
     def __init__(self, db: Session, costos: CostoRepository, activos: ActivoFinancieroPort,
@@ -97,7 +100,8 @@ class ProcesarProvisionesM05UseCase:
             "id_usuario": self.id_servicio, "origen_costo": OrigenCosto.CONSUMO_INVENTARIO.value,
             "vehiculo_contable": (VehiculoContable.ASIENTO_NIC41 if con_linea else VehiculoContable.NINGUNO).value,
             "fecha_costo": fecha, "id_origen_m05": recepcion.id_evento_provision, "es_reverso": es_reverso,
-            "justificacion": f"M05 {contenido.get('tipo_operacion') or 'REGISTRO'} {contenido.get('id_registro_suministro') or ''}".strip(),
+            # El registro de Suministros queda en id_origen_m05; la justificación es texto para el Contador.
+            "justificacion": f"{_OPERACION.get(contenido.get('tipo_operacion'), _OPERACION['REGISTRO'])} en Suministros",
             "cuenta_debito": cuenta.cuenta_debito if cuenta else None,
             "cuenta_credito": cuenta.cuenta_credito if cuenta else None,
         })

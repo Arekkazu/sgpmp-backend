@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: catálogos NIC 41 del módulo financiero |
+# | 2026-11-05 | Arekkazu | M06: rótulos legibles de hechos y sentidos para mensajes y archivos |
 """Catálogos cerrados de M06 (mismos valores que los ENUM de ``modulo6``)."""
 from __future__ import annotations
 
@@ -32,6 +33,34 @@ class Sentido(str, Enum):
     UNICO = "UNICO"
     TRASLADO = "TRASLADO"  # cosecha de consumo: inventario contra activo biológico
     CAPITALIZACION = "CAPITALIZACION"  # inversión capitalizada en el activo
+
+
+# Rótulos para lo que lee el usuario (mensajes, PDF y CSV): el valor del enum nunca sale tal cual.
+ETIQUETA_HECHO = {
+    "RECONOCIMIENTO_NACIMIENTO": "Reconocimiento por nacimiento",
+    "RECONOCIMIENTO_DIFERENCIA": "Diferencia en el reconocimiento inicial",
+    "VARIACION_VR_TB": "Variación por transformación biológica",
+    "VARIACION_VR_PM": "Variación por precio de mercado",
+    "PRODUCTO_AGRICOLA": "Producto agrícola",
+    "CONSUMO_INSUMO": "Consumo de insumos",
+    "MANO_OBRA_PROPIA": "Mano de obra propia",
+    "BAJA_ACTIVO": "Baja del activo",
+    "AJUSTE_PERIODO_ANTERIOR": "Ajuste de un período anterior",
+    "DEPRECIACION_ACTIVO_COSTO": "Depreciación (modelo de costo)",
+    "DETERIORO_ACTIVO_COSTO": "Deterioro (modelo de costo)",
+}
+ETIQUETA_SENTIDO = {"GANANCIA": "ganancia", "PERDIDA": "pérdida", "UNICO": "único", "TRASLADO": "traslado",
+                    "CAPITALIZACION": "capitalización"}
+ETIQUETA_SUBTIPO = {"ALIMENTO": "alimento", "MEDICAMENTO": "medicamento", "MANO_OBRA": "mano de obra",
+                    "VETERINARIO": "servicio veterinario", "TRANSPORTE": "transporte", "COMISION": "comisión",
+                    "IMPUESTO_TRANSACCION": "impuesto de la transacción", "SACRIFICIO": "sacrificio",
+                    "INVERSION_DIRECTA": "inversión directa", "OTRO": "otro"}
+ETIQUETA_NATURALEZA = {"MANTENIMIENTO": "mantenimiento", "INVERSION": "inversión", "VENTA": "costo de venta"}
+
+
+def estado_legible(estado: str) -> str:
+    """«EN_TRATAMIENTO» → «en tratamiento»: el estado de Activos biológicos dicho como se lee."""
+    return estado.replace("_", " ").lower()
 
 
 class TipoEvidencia(str, Enum):

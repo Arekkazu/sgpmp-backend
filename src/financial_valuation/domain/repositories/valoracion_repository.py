@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94: puerto del módulo financiero |
+# | 2026-11-05 | Arekkazu | M06 RF-83..86: listados del período para las vistas del prototipo |
 """Puerto de la valoración NIC 41: cálculos (RF-84), reconocimientos (RF-82), mediciones y
 variaciones (RF-83/86), productos agrícolas (RF-85) y valoración por costo (RF-88)."""
 from __future__ import annotations
@@ -70,3 +71,19 @@ class ValoracionRepository(ABC):
 
     @abstractmethod
     def historial_activo(self, id_activo_biologico: int) -> dict: ...
+
+    @abstractmethod
+    def mediciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-83: mediciones posteriores del período con el activo que midieron."""
+
+    @abstractmethod
+    def variaciones_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-86: variaciones del período con la evidencia y la trazabilidad de su línea de asiento."""
+
+    @abstractmethod
+    def calculos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-84: cálculos del valor razonable menos costos de venta registrados en el período."""
+
+    @abstractmethod
+    def productos_del_periodo(self, id_periodo_contable: int) -> list[dict]:
+        """RF-85: productos agrícolas reconocidos en el período."""

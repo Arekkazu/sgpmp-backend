@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-87 v1.1: cierre del período contable con comprobante NIC 41 |
+# | 2026-11-05 | Arekkazu | M06 RF-87: el bloqueo por cuentas faltantes nombra hecho, sentido y especie sin códigos |
 """Caso de uso RF-87: cierre del período contable de un titular (NIC 41 ¶12: todo activo se mide al
 valor razonable menos costos de venta a la fecha de cierre).
 
@@ -33,7 +34,15 @@ from src.financial_valuation.domain.repositories.periodo_repository import Perio
 from src.financial_valuation.domain.repositories.valoracion_repository import ValoracionRepository
 from src.financial_valuation.domain.services.consolidacion import LineaContable, consolidar_comprobantes
 from src.financial_valuation.domain.services.nic41 import hash_sha256, meses_transcurridos, periodo_siguiente, truncar2, valor_por_costo
-from src.financial_valuation.domain.value_objects.nic41 import EstadoPeriodo, Sentido, Severidad, TipoEvidencia, TipoHecho
+from src.financial_valuation.domain.value_objects.nic41 import (
+    ETIQUETA_HECHO,
+    ETIQUETA_SENTIDO,
+    EstadoPeriodo,
+    Sentido,
+    Severidad,
+    TipoEvidencia,
+    TipoHecho,
+)
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
 from src.shared.fechas import hoy_usuario
 
@@ -89,10 +98,15 @@ class EjecutarCierrePeriodoUseCase:
                              "mensaje": f"Cierre antes el período {anterior.fecha_inicio:%Y-%m} del mismo titular."})
         pendientes_cuenta = self.contabilizador.asientos.pendientes_de_cuenta(periodo.id_periodo_contable)
         if pendientes_cuenta:
-            combinaciones = sorted({f"{ln.tipo_hecho_corregido or ln.tipo_hecho}/{ln.sentido}/especie {ln.id_especie}"
-                                    for ln in pendientes_cuenta})
+            especies = {e: (self.activos.especie(e) or {}).get("nombre", "especie inactiva")
+                        for e in {ln.id_especie for ln in pendientes_cuenta if ln.id_especie}}
+            combinaciones = sorted({
+                f"{ETIQUETA_HECHO.get(ln.tipo_hecho_corregido or ln.tipo_hecho, 'Hecho contable')} "
+                f"({ETIQUETA_SENTIDO.get(ln.sentido, ln.sentido.lower())}) de {especies.get(ln.id_especie, 'todas las especies')}"
+                for ln in pendientes_cuenta})
             bloqueos.append({"codigo": "LINEAS_PENDIENTE_CUENTA", "mensaje": (
-                f"{len(pendientes_cuenta)} líneas no tienen cuentas en la matriz contable: {', '.join(combinaciones[:10])}.")})
+                f"{len(pendientes_cuenta)} líneas no tienen cuentas en la matriz contable: {'; '.join(combinaciones[:10])}. "
+                "Asígnelas en Configuración contable.")})
         sin_clasificar = self.costos.pendientes_clasificacion(periodo.id_periodo_contable)
         if sin_clasificar:
             bloqueos.append({"codigo": "COSTOS_PENDIENTE_CLASIFICACION",
@@ -241,7 +255,8 @@ class EjecutarCierrePeriodoUseCase:
         if sin_cuenta:  # RF-87 v1.1: la matriz debe cubrir todos los hechos del período, también los del cierre
             raise BusinessRuleError(code="CIERRE_BLOQUEADO", message=(
                 f"La revaluación generó {len(sin_cuenta)} líneas sin cuentas en la matriz contable "
-                f"({', '.join(sorted({f'{ln.tipo_hecho}/{ln.sentido}' for ln in sin_cuenta}))}). Complétela y reintente."))
+                f"({'; '.join(sorted({f'{ETIQUETA_HECHO.get(ln.tipo_hecho, ln.tipo_hecho)} ({ETIQUETA_SENTIDO.get(ln.sentido, ln.sentido)})' for ln in sin_cuenta}))}). "
+                "Complétela en Configuración contable y reintente."))
         # Paso 6: comprobante NIC 41 por (titular, tipo de hecho, especie).
         self._paso = 6
         incluidas = [ln for ln in self.contabilizador.asientos.del_periodo(periodo.id_periodo_contable)
