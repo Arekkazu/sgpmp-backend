@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | RF-SSO02: estado con los códigos de AgroFusion, usuario por id o correo e idempotente |
 """Caso de uso: cambio remoto de estado de cuenta (`CHANGE_USER_STATUS`).
 
 Permite a un administrador de AgroFusion desactivar remotamente la cuenta
@@ -11,14 +14,17 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.identity_access.application.use_cases.agrofusion.comun import usuario_por_identificador
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
-from src.identity_access.domain.value_objects.email import Email
 from src.shared.errors import BusinessRuleError, NotFoundError
 
 TIPO_EVENTO_CAMBIO_ESTADO_CUENTA = 10
+# Códigos de AgroFusion (users_service.change_user_status) → estado de cuenta de SGPMP.
+ESTADO_AGROFUSION = {1: 2, 2: 3, 3: 5}  # activo, inactivo, eliminado
+NOMBRE_ESTADO = {1: "pendiente", 2: "activa", 3: "inactiva", 4: "bloqueada", 5: "eliminada", 6: "pendiente de datos"}
 ESTADOS_QUE_INVALIDAN_SESION = {3, 4, 5}  # Inactivo, Bloqueado, Eliminado
 
 TRANSICIONES_VALIDAS = {
@@ -47,42 +53,37 @@ class CambiarEstadoUsuarioAgroFusionUseCase:
         self.eventos_repo = eventos_repo
         self.db = db
 
-    def execute(self, email: str, nuevo_estado: int, motivo: Optional[str]) -> None:
-        """Cambia el estado de cuenta de un usuario existente, por correo.
+    def execute(self, identificador: str, estado_agrofusion: int, motivo: Optional[str]) -> None:
+        """Cambia el estado de cuenta del usuario (id de SGPMP o correo).
 
         Args:
-            email: Correo del usuario sgpmp objetivo.
-            nuevo_estado: Estado destino (``id_estado_cuenta``).
+            identificador: Id que AgroFusion pone en ``{user_id}`` o el correo.
+            estado_agrofusion: Código de AgroFusion (1 activo, 2 inactivo, 3 eliminado).
             motivo: Justificación opcional, registrada en auditoría.
 
         Raises:
-            NotFoundError: No existe usuario/cuenta para ese correo. HTTP 404.
+            NotFoundError: No existe usuario/cuenta. HTTP 404.
             BusinessRuleError: La transición de estado no está permitida. HTTP 422.
         """
-        usuario = self.usuarios_repo.obtener_por_correo(Email(email))
-        if usuario is None:
-            raise NotFoundError(
-                code="USUARIO_NO_ENCONTRADO",
-                message="No existe una cuenta sgpmp asociada a ese correo.",
-            )
-
+        usuario = usuario_por_identificador(self.usuarios_repo, identificador)
+        nuevo_estado = ESTADO_AGROFUSION[estado_agrofusion]
         cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
         if cuenta is None:
             raise NotFoundError(
                 code="CUENTA_NO_ENCONTRADA",
                 message="El usuario no tiene una cuenta asociada.",
             )
-
         estado_actual = cuenta.id_estado_cuenta
+        if estado_actual == nuevo_estado:  # AgroFusion reenvía el estado: ya está así
+            return
         if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, set()):
             raise BusinessRuleError(
                 code="TRANSICION_INVALIDA",
                 message=(
-                    f"No se puede cambiar el estado de la cuenta de {estado_actual} a "
-                    f"{nuevo_estado} porque la transición no está permitida."
+                    f"La cuenta está {NOMBRE_ESTADO.get(estado_actual, 'en otro estado')} y no puede pasar a "
+                    f"{NOMBRE_ESTADO[nuevo_estado]}."
                 ),
             )
-
         try:
             if nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION:
                 sesion_activa = self.sesiones_repo.buscar_sesion_activa(cuenta.id_cuenta_usuario)
