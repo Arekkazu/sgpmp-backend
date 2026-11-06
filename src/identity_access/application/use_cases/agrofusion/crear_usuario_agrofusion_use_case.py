@@ -1,9 +1,14 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-11-06 | Arekkazu | RFC-019 D-19.6: la cuenta nace activa con un token de activación para AgroFusion |
 """Caso de uso: alta de usuario vía sincronización server-to-server (`CREATE_USER`).
 
 Mecanismo B de AgroFusion — camino primario de auto-provisión (el 90% del
 caso feliz según el análisis de referencia): a diferencia del autorregistro
 normal, la cuenta nace **activa de inmediato**, sin flujo de activación por
-correo, porque AgroFusion ya validó la identidad del usuario.
+correo, porque AgroFusion ya validó la identidad del usuario. Aun así recibe un
+token de activación (RFC-019 D-19.6) que AgroFusion usa después en
+``ACTIVATE_ACCOUNT``; la activación con ese token responde 200 idempotente.
 """
 from __future__ import annotations
 
@@ -19,6 +24,7 @@ from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.token_un_solo_uso import PREFIJO_TOKEN_M2M, calcular_hash_token
 from src.identity_access.infrastructure.dto.agrofusion_dto import AgroFusionCreateUserDTO
 
 # modulo1.tipos_eventos — ver anotaciones/modulo_1/gaps_bd_sso_agrofusion.md
@@ -42,7 +48,7 @@ class CrearUsuarioAgroFusionUseCase:
         self.eventos_repo = eventos_repo
         self.db = db
 
-    def execute(self, dto: AgroFusionCreateUserDTO) -> Usuario:
+    def execute(self, dto: AgroFusionCreateUserDTO) -> tuple[Usuario, str]:
         """Crea un usuario y su cuenta, ya activa, resolviendo el rol destino.
 
         Args:
@@ -50,7 +56,7 @@ class CrearUsuarioAgroFusionUseCase:
                 ``rol_codigo`` que AgroFusion espera mapear a un rol de sgpmp.
 
         Returns:
-            La entidad :class:`Usuario` creada.
+            La entidad :class:`Usuario` creada y su ``activation_token`` (24 h, RFC-019 D-19.6).
 
         Raises:
             ConflictError: El correo o número de identificación ya existen. HTTP 409.
@@ -82,8 +88,10 @@ class CrearUsuarioAgroFusionUseCase:
             )
             usuario = self.usuarios_repo.guardar(usuario)
 
-            cuenta = self.cuentas_repo.crear(usuario.id_usuario, secrets.token_urlsafe(32))
+            token_activacion = PREFIJO_TOKEN_M2M + secrets.token_urlsafe(32)
+            cuenta = self.cuentas_repo.crear(usuario.id_usuario, calcular_hash_token(token_activacion))
             cuenta.activar(datetime.now(timezone.utc))
+            cuenta.conservar_token_m2m(calcular_hash_token(token_activacion))
             self.cuentas_repo.guardar(cuenta)
 
             self.eventos_repo.registrar(
@@ -97,4 +105,4 @@ class CrearUsuarioAgroFusionUseCase:
             self.db.rollback()
             raise
 
-        return usuario
+        return usuario, token_activacion

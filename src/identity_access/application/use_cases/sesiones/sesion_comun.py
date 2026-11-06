@@ -1,14 +1,15 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
+# | 2026-11-06 | Arekkazu | M07 RF-SSO02: el token M2M de AgroFusion ya no crea sesión (canal de M07) |
 """Lógica de sesión compartida entre los distintos caminos de autenticación.
 
-``LoginUseCase`` (contraseña), ``SsoLoginUseCase`` (handoff RS256 de
-AgroFusion) y ``EmitirTokenAgroFusionUseCase`` (M2M, sin contraseña) verifican
-identidad de formas completamente distintas, pero una vez la identidad está
-verificada, el resto del flujo — chequear que el estado de la cuenta permite
-continuar, invalidar la sesión previa, emitir el JWT y registrar la sesión —
-es idéntico. Este módulo extrae esa parte común para no triplicarla.
+``LoginUseCase`` (contraseña) y ``SsoLoginUseCase`` (handoff RS256 de AgroFusion)
+verifican identidad de formas distintas, pero una vez verificada, el resto del
+flujo — chequear que el estado de la cuenta permite continuar, invalidar la sesión
+previa, emitir el JWT y registrar la sesión — es idéntico. Este módulo extrae esa
+parte común. El token M2M de AgroFusion no pasa por aquí: es un token de canal de
+M07 (RF-SSO02) que no crea sesión ni cierra la sesión web del usuario.
 """
 from __future__ import annotations
 
