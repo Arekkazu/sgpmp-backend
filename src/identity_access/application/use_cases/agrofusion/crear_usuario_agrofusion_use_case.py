@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: la cuenta nace activa con un token de activación para AgroFusion |
+# | 2026-11-06 | Arekkazu | RF-SSO02: roles como lista de ids y contraseña inicial como los envía AgroFusion |
 """Caso de uso: alta de usuario vía sincronización server-to-server (`CREATE_USER`).
 
 Mecanismo B de AgroFusion — camino primario de auto-provisión (el 90% del
@@ -17,6 +18,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.identity_access.application.use_cases.agrofusion.comun import rol_solicitado
 from src.identity_access.domain.entities.usuario import Usuario
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
@@ -26,6 +28,7 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.domain.value_objects.token_un_solo_uso import PREFIJO_TOKEN_M2M, calcular_hash_token
 from src.identity_access.infrastructure.dto.agrofusion_dto import AgroFusionCreateUserDTO
+from src.shared.errors import ValidationError
 
 # modulo1.tipos_eventos — ver anotaciones/modulo_1/gaps_bd_sso_agrofusion.md
 TIPO_PROVISION_AGROFUSION_SYNC = 22
@@ -62,20 +65,19 @@ class CrearUsuarioAgroFusionUseCase:
             ConflictError: El correo o número de identificación ya existen. HTTP 409.
             ValidationError: Algún campo no cumple las reglas de dominio. HTTP 400.
         """
-        # rol_codigo debe matchear exactamente (case-insensitive) contra
-        # modulo1.roles.nombre_rol; si no viene o no matchea, Usuario.registrar_nuevo
-        # cae al rol por defecto (ROL_PRODUCTOR) — mismo fallback que describe
-        # el diseño en anotaciones/modulo_1/plan_sso_agrofusion.md.
-        id_rol = None
-        if dto.rol_codigo:
-            rol = self.roles_repo.obtener_por_nombre(dto.rol_codigo)
-            if rol is not None:
-                id_rol = rol.id_rol
-
+        # Rol: el primer id de ``roles`` (de GET_ROLES) o ``rol_codigo``; sin ninguno, el rol por defecto
+        # de Usuario.registrar_nuevo. Uno que no existe es un 400, no un rol cambiado en silencio.
+        id_rol = rol_solicitado(self.roles_repo, dto.roles, dto.rol_codigo)
+        # Contraseña inicial de AgroFusion si cumple la política de SGPMP; si no, una aleatoria (la
+        # persona entra desde AgroFusion o recupera la contraseña).
+        try:
+            contrasena = Contrasena.cifrar(dto.contrasena) if dto.contrasena else None
+        except ValidationError:
+            contrasena = None
         try:
             usuario = Usuario.registrar_nuevo(
                 correo=Email(dto.correo_electronico),
-                contrasena=Contrasena.cifrar(secrets.token_urlsafe(32)),
+                contrasena=contrasena or Contrasena.cifrar(secrets.token_urlsafe(32)),
                 nombre=dto.nombre,
                 apellidos=dto.apellidos,
                 fecha_nacimiento=dto.fecha_nacimiento,
@@ -98,7 +100,8 @@ class CrearUsuarioAgroFusionUseCase:
                 tipo_evento=TIPO_PROVISION_AGROFUSION_SYNC,
                 exitoso=True,
                 id_usuario=usuario.id_usuario,
-                detalle={"rol_codigo": dto.rol_codigo, "id_rol_resuelto": usuario.id_rol},
+                detalle={"roles": dto.roles, "rol_codigo": dto.rol_codigo, "id_rol_resuelto": usuario.id_rol,
+                         "contrasena_inicial": contrasena is not None},
             )
             self.db.commit()
         except Exception:

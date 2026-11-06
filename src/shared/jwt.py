@@ -151,7 +151,8 @@ def create_token_canal(id_usuario: int, id_rol: int, id_cliente_externo: int, ca
     """
     ahora = datetime.now(timezone.utc)
     payload = {
-        "sub": str(id_usuario), "rol": id_rol, "cli": id_cliente_externo, "canal": canal, "aud": AUDIENCIA_CANAL,
+        # ``rol`` como lista: AgroFusion decodifica este token para saber los roles del usuario al editarlo.
+        "sub": str(id_usuario), "rol": [id_rol], "cli": id_cliente_externo, "canal": canal, "aud": AUDIENCIA_CANAL,
         "jti": uuid.uuid4().hex, "iat": ahora, "exp": ahora + timedelta(minutes=minutos),
     }
     return jwt.encode(payload, _SECRET_KEY, algorithm=_ALGORITHM), minutos * 60

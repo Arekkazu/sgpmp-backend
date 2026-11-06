@@ -235,39 +235,60 @@ def test_rotar_el_secreto_invalida_el_anterior_de_inmediato(
     assert _token(cliente_http, contador["correo"], nuevo).status_code == 403
 
 
-def test_agrofusion_crea_activa_y_actualiza_usuarios_por_el_canal_de_identidad(
+def test_agrofusion_sincroniza_usuarios_como_lo_hace_su_backend(
     db_session, cliente_http, crear_usuario_db, crear_auth_headers,
 ):
+    """Mismo orden y forma que ``agrofusion-backendauth/users_service``: GET_USER (404 = crear), CREATE_USER
+    con apellidos separados, roles como lista y género con su catálogo, ACTIVATE_ACCOUNT con el token,
+    CHANGE_USER_STATUS y UPDATE_USER con el id de SGPMP en ``{user_id}``."""
     admin = crear_usuario_db(id_rol=1, estado=2)
     cliente_http.post("/integracion/clientes", headers=crear_auth_headers(admin), json={
         "codigo": "AGROFUSION", "nombre": "AgroFusion", "identificador_publico": "agrofusion",
         "fecha_vencimiento": (HOY + timedelta(days=30)).isoformat(), "client_secret": SECRETO,
         "canales": [{"canal": "IDENTIDAD_M2M"}]})
-    canal = {"Authorization": f"Bearer {_token(cliente_http, admin['correo']).json()['access_token']}"}
-    assert cliente_http.get("/integraciones/agrofusion/roles").status_code == 200  # AgroFusion lo llama sin token
-    assert cliente_http.get("/integraciones/agrofusion/usuarios/x@example.com").status_code == 401
+    r = _token(cliente_http, admin["correo"])
+    canal = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    from jose import jwt as jose_jwt
+    assert jose_jwt.get_unverified_claims(r.json()["access_token"])["rol"] == [1]  # AgroFusion lo lee como lista
+
+    # Catálogos que AgroFusion llama sin token.
+    assert [x["id"] for x in cliente_http.get("/integraciones/agrofusion/tipos-documento").json()] == ["CC", "CE", "Pasaporte"]
+    roles = cliente_http.get("/integraciones/agrofusion/roles").json()
+    id_contador = next(x["id_rol"] for x in roles if x["nombre_rol"] == "Contador")
+    id_productor = next(x["id_rol"] for x in roles if x["nombre_rol"] == "Productor")
 
     correo = f"af-{_letras_minusculas()}@example.com"
+    assert cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).status_code == 404
     r = cliente_http.post("/integraciones/agrofusion/usuarios", headers=canal, json={
-        "correo_electronico": correo, "nombre": "Laura", "apellidos": "Gómez", "tipo_identificacion": "CC",
-        "numero_identificacion": str(_numero()), "fecha_nacimiento": "1990-05-10", "genero": "F", "rol_codigo": "Productor"})
+        "correo_electronico": correo, "nombre": "Laura", "apellidos": "Gómez", "segundo_apellido": "Ruiz",
+        "tipo_identificacion": "CC", "numero_identificacion": str(_numero()), "fecha_nacimiento": "1990-05-10",
+        "genero": 2, "roles": [id_productor], "contrasena": "Inicial2026*Segura", "fecha_expedicion": "2010-01-01"})
     assert r.status_code == 201, r.text
+    assert (r.json()["apellidos"], r.json()["genero"], r.json()["id_rol"]) == ("Gómez Ruiz", "F", id_productor)
     token = r.json()["activation_token"]
-    assert token.startswith("m2m-")
     for _ in range(2):  # RFC-019 D-19.6: ACTIVATE_ACCOUNT llega después y responde 200 idempotente
         activacion = cliente_http.get(f"/usuarios/activar/{token}")
         assert (activacion.status_code, activacion.json()["message"]) == (200, "La cuenta ya está activa.")
     assert cliente_http.get(f"/usuarios/activar/m2m-{'x' * 43}").status_code == 400
 
-    r = cliente_http.put(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal,
-                         json={"nombre": "Laura Marcela", "telefono": "3001234567", "rol_codigo": "Contador"})
+    usuario = cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()
+    assert usuario["roles"] == [id_productor] and usuario["genero_id"] == 2 and usuario["id_estado_cuenta"] == 2
+    user_id = usuario["id_usuario"]
+
+    for estado, esperado in ((2, 3), (1, 2), (1, 2)):  # inactivo, activo y activo otra vez (no es error)
+        r = cliente_http.patch(f"/integraciones/agrofusion/usuarios/{user_id}/estado", headers=canal, json={"nuevo_estado": estado})
+        assert r.status_code == 200, r.text
+        assert cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()["id_estado_cuenta"] == esperado
+
+    r = cliente_http.put(f"/integraciones/agrofusion/usuarios/{user_id}", headers=canal, json={
+        "nombre": "Laura Marcela", "apellidos": "Gómez", "segundo_apellido": "Ruiz", "telefono": "3001234567",
+        "roles": [id_contador], "genero": 1, "numero_identificacion": "999"})  # documento y género se ignoran
     assert r.status_code == 200, r.text
-    assert (r.json()["nombre"], r.json()["telefono"], r.json()["id_rol"]) == ("Laura Marcela", "3001234567", 5)
-    assert r.json()["apellidos"] == "Gómez"  # lo que no envía se conserva
-    assert cliente_http.put(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal,
-                            json={"rol_codigo": "Inexistente"}).json()["error_code"] == "ROL_NO_ENCONTRADO"
-    consulta = cliente_http.get(f"/integraciones/agrofusion/usuarios/{correo}", headers=canal).json()
-    assert consulta["existe"] and consulta["id_estado_cuenta"] == 2
+    assert (r.json()["nombre"], r.json()["telefono"], r.json()["id_rol"], r.json()["genero"]) == ("Laura Marcela", "3001234567", id_contador, "F")
+    assert cliente_http.put(f"/integraciones/agrofusion/usuarios/{user_id}", headers=canal,
+                            json={"roles": [987654]}).json()["error_code"] == "ROL_NO_ENCONTRADO"
+    assert cliente_http.patch("/integraciones/agrofusion/usuarios/987654321/estado", headers=canal,
+                              json={"nuevo_estado": 2}).status_code == 404
 
 
 def _letras_minusculas() -> str:

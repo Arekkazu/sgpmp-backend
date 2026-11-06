@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | M07 RF-SSO02/RF-101: token de canal desde el registro de clientes y Bearer en usuarios |
+# | 2026-11-06 | Arekkazu | RF-SSO02: contrato real de AgroFusion (404 en GET_USER, tipos de documento, {user_id}) |
 """Router FastAPI para la integración server-to-server con AgroFusion (canal de identidad, RF-SSO02).
 
 Montado bajo un prefijo propio (`/integraciones/agrofusion`) porque es un contrato M2M distinto del
@@ -8,11 +9,17 @@ resto de la API. Desde RF-101 v2.0 las credenciales del cliente (`client_id`/`cl
 **solo** en el cuerpo de `POST /token`, se validan contra el registro de clientes externos de M07 y
 el resultado es un token de canal (corto, sin sesión). Las operaciones de usuario exigen ese token
 (`Authorization: Bearer`, canal `IDENTIDAD_M2M`); `GET /roles` no lleva autenticación porque
-AgroFusion lo llama sin ella. `GET_TYPE_DOCUMENT` no se implementa (no tiene requerimiento).
+AgroFusion lo llama sin ella, igual que `GET_TYPE_DOCUMENT`.
+
+Contrato verificado en `agrofusion-backendauth` (`users_service`, `orchestrator_service`):
+- `GET_USER` responde 404 si el usuario no existe: AgroFusion decide crear según que la llamada falle.
+- `UPDATE_USER` y `CHANGE_USER_STATUS` llegan con el id de SGPMP en `{user_id}` (lo toma de `GET_USER`).
+- `ACTIVATE_ACCOUNT` reemplaza `{activation_token}` con el token que devolvió `CREATE_USER`.
 """
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
+from src.identity_access.application.use_cases.agrofusion.comun import usuario_por_identificador
 from src.identity_access.application.use_cases.agrofusion.actualizar_usuario_agrofusion_use_case import (
     ActualizarUsuarioAgroFusionUseCase,
 )
@@ -22,12 +29,13 @@ from src.identity_access.application.use_cases.agrofusion.cambiar_estado_usuario
 from src.identity_access.application.use_cases.agrofusion.crear_usuario_agrofusion_use_case import (
     CrearUsuarioAgroFusionUseCase,
 )
-from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.agrofusion_dto import (
     AgroFusionCreateUserDTO,
     AgroFusionEstadoDTO,
     AgroFusionTokenDTO,
     AgroFusionUpdateUserDTO,
+    GENERO_A_AGROFUSION,
+    TIPOS_DOCUMENTO,
 )
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
@@ -37,8 +45,9 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.identity_access.infrastructure.schema.agrofusion_schema import (
     AgroFusionRolResumen,
     AgroFusionTokenResponse,
+    AgroFusionTipoDocumento,
     AgroFusionUsuarioCreadoResponse,
-    AgroFusionUsuarioEstadoResponse,
+    AgroFusionUsuarioResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.routers.usuarios_routers import _a_usuario_response, _crear_editar_perfil_use_case
@@ -145,30 +154,40 @@ def crear_usuario(
 
 
 @router.get(
-    "/usuarios/{email}",
-    summary="AgroFusion: consultar usuario por correo (GET_USER)",
-    response_model=AgroFusionUsuarioEstadoResponse,
+    "/tipos-documento",
+    summary="AgroFusion: tipos de documento (GET_TYPE_DOCUMENT)",
+    response_model=list[AgroFusionTipoDocumento],
     responses=_RESPUESTAS_M2M,
 )
+def listar_tipos_documento(request: Request):
+    """`GET_TYPE_DOCUMENT` — catálogo fijo de SGPMP; el `id` es el que debe volver en `CREATE_USER`."""
+    registrar_llamada(f"m07:tipos-documento:{request.client.host if request.client else 'desconocida'}", 30, 60)
+    return [AgroFusionTipoDocumento(id=k, nombre=v) for k, v in TIPOS_DOCUMENTO.items()]
+
+
+@router.get(
+    "/usuarios/{email}",
+    summary="AgroFusion: consultar usuario por correo (GET_USER)",
+    response_model=AgroFusionUsuarioResponse,
+    responses={**_RESPUESTAS_M2M, 404: {"model": ErrorResponse}},
+)
 def obtener_usuario(email: str, db: Session = Depends(get_db), _: AccesoCanal = Depends(_acceso_identidad)):
-    """`GET_USER` — existencia + estado + rol actual. Lectura simple, sin use case dedicado."""
-
-    usuarios_repo = SqlAlchemyUsuarioRepository(db)
-    usuario = usuarios_repo.obtener_por_correo(Email(email))
-    if usuario is None:
-        return AgroFusionUsuarioEstadoResponse(existe=False)
-
+    """`GET_USER` — 404 si no existe (AgroFusion lo crea entonces); si existe, sus datos y el id que
+    AgroFusion usará en `{user_id}`."""
+    usuario = usuario_por_identificador(SqlAlchemyUsuarioRepository(db), email)
     cuenta = SqlAlchemyCuentaRepository(db).obtener_por_usuario(usuario.id_usuario)
-    return AgroFusionUsuarioEstadoResponse(
-        existe=True,
-        id_usuario=usuario.id_usuario,
+    genero = getattr(usuario.genero, "value", usuario.genero)
+    return AgroFusionUsuarioResponse(
+        id_usuario=usuario.id_usuario, nombre=usuario.nombre, apellidos=usuario.apellidos,
+        correo_electronico=str(usuario.correo), roles=[usuario.id_rol], tipo_identificacion=usuario.tipo_identificacion,
+        numero_identificacion=usuario.numero_identificacion, fecha_nacimiento=usuario.fecha_nacimiento,
+        genero=genero, genero_id=GENERO_A_AGROFUSION.get(genero),
         id_estado_cuenta=cuenta.id_estado_cuenta if cuenta else None,
-        id_rol=usuario.id_rol,
     )
 
 
 @router.patch(
-    "/usuarios/{email}/estado",
+    "/usuarios/{usuario}/estado",
     summary="AgroFusion: cambiar estado de cuenta (CHANGE_USER_STATUS)",
     response_model=MessageResponse,
     responses={
@@ -178,12 +197,14 @@ def obtener_usuario(email: str, db: Session = Depends(get_db), _: AccesoCanal = 
     },
 )
 def cambiar_estado_usuario(
-    email: str,
+    usuario: str,
     dto: AgroFusionEstadoDTO,
     db: Session = Depends(get_db),
     acceso: AccesoCanal = Depends(_acceso_identidad),
 ):
-    """`CHANGE_USER_STATUS` — permite a un admin de AgroFusion desactivar remotamente una cuenta."""
+    """`CHANGE_USER_STATUS` — `usuario` es el id de SGPMP (`{user_id}` en AgroFusion) o el correo;
+    `nuevo_estado` usa los códigos de AgroFusion (1 activo, 2 inactivo, 3 eliminado). Reenviar el
+    mismo estado no es un error."""
 
     use_case = CambiarEstadoUsuarioAgroFusionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
@@ -192,26 +213,27 @@ def cambiar_estado_usuario(
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
-    use_case.execute(email, dto.id_estado_cuenta, dto.motivo)
-    _auditar_m2m(db, "ESTADO_USUARIO_CAMBIADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{email}/estado", "PATCH")
+    use_case.execute(usuario, dto.nuevo_estado, dto.motivo)
+    _auditar_m2m(db, "ESTADO_USUARIO_CAMBIADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{usuario}/estado", "PATCH")
     return {"message": "Estado de cuenta actualizado exitosamente."}
 
 
 @router.put(
-    "/usuarios/{email}",
+    "/usuarios/{usuario}",
     summary="AgroFusion: actualizar usuario (UPDATE_USER)",
     response_model=UsuarioResponse,
     responses={**_RESPUESTAS_M2M, 400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
 )
 def actualizar_usuario(
-    email: str,
+    usuario: str,
     dto: AgroFusionUpdateUserDTO,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     acceso: AccesoCanal = Depends(_acceso_identidad),
 ):
     """`UPDATE_USER` — nombre, apellidos, teléfono, dirección y rol. Exige al usuario del token el mismo
-    permiso que la edición administrativa web (`usuarios` · Actualizar); el correo no cambia por aquí."""
+    permiso que la edición administrativa web (`usuarios` · Actualizar); el correo no cambia por aquí.
+    `usuario` es el id de SGPMP (`{user_id}` en AgroFusion) o el correo."""
     if not tiene_permiso(db, acceso.usuario.id_rol, 1, 3):
         raise AuthorizationError(code="ACCESO_DENEGADO",
                                  message="El usuario del SGPMP con el que actúa AgroFusion no puede editar usuarios.")
@@ -222,6 +244,6 @@ def actualizar_usuario(
         roles_repo=SqlAlchemyRolRepository(db),
         editar_perfil=_crear_editar_perfil_use_case(db, background_tasks),
     )
-    usuario = use_case.execute(email, dto, usuario_actual)
-    _auditar_m2m(db, "USUARIO_ACTUALIZADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{email}", "PUT")
-    return _a_usuario_response(usuario)
+    actualizado = use_case.execute(usuario, dto, usuario_actual)
+    _auditar_m2m(db, "USUARIO_ACTUALIZADO_M2M", acceso, "/integraciones/agrofusion/usuarios/{usuario}", "PUT")
+    return _a_usuario_response(actualizado)

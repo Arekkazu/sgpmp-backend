@@ -6,11 +6,16 @@
 Desde RF-101 v2.0 ``client_id``/``client_secret`` solo llegan en el pedido de token
 (``AgroFusionTokenDTO``); el resto de operaciones se autentica con el token de canal en
 ``Authorization: Bearer``. Si AgroFusion aún manda las credenciales en el cuerpo, se ignoran.
+
+Los campos siguen lo que AgroFusion envía (``agrofusion-backendauth``, ``users_service``): los apellidos
+llegan separados, los roles como lista de ids de ``GET_ROLES``, el género con su catálogo (1 masculino,
+2 femenino) y el tipo de documento con el id de ``GET_TYPE_DOCUMENT``. El administrador de AgroFusion
+traduce sus nombres de campo a los de aquí con la plantilla de cada endpoint (manual, sección 10.1.4).
 """
 import datetime
 from typing import Literal, Optional
 
-from pydantic import EmailStr, Field, ValidationInfo, field_validator
+from pydantic import EmailStr, Field, ValidationInfo, field_validator, model_validator
 
 from src.identity_access.domain.value_objects.identificacion import (
     identificacion_valida,
@@ -33,7 +38,32 @@ class AgroFusionTokenDTO(AgroFusionCredencialesDTO):
     email: EmailStr
 
 
-class AgroFusionCreateUserDTO(BaseDTO):
+# Catálogo de género de AgroFusion (su formulario de usuarios: 1 masculino, 2 femenino).
+_GENERO_AGROFUSION = {"1": "M", "2": "F"}
+GENERO_A_AGROFUSION = {"M": 1, "F": 2}  # X y T no existen en AgroFusion
+TIPOS_DOCUMENTO = {"CC": "Cédula de ciudadanía", "CE": "Cédula de extranjería", "Pasaporte": "Pasaporte"}
+
+
+def _genero(valor):
+    return _GENERO_AGROFUSION.get(str(valor).strip(), valor) if valor is not None else None
+
+
+class _ApellidosDTO(BaseDTO):
+    """AgroFusion envía primer y segundo apellido por separado; SGPMP guarda uno solo."""
+
+    apellidos: Optional[str] = None
+    segundo_apellido: Optional[str] = None
+    roles: Optional[list[int]] = None
+    rol_codigo: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _unir_apellidos(self):
+        if self.segundo_apellido:
+            self.apellidos = f"{self.apellidos or ''} {self.segundo_apellido}".strip()
+        return self
+
+
+class AgroFusionCreateUserDTO(_ApellidosDTO):
     """`CREATE_USER` — alta completa de usuario, activo de inmediato (sin flujo de activación por correo)."""
 
     correo_electronico: EmailStr
@@ -43,9 +73,14 @@ class AgroFusionCreateUserDTO(BaseDTO):
     numero_identificacion: str = Field(min_length=1, max_length=20)
     fecha_nacimiento: datetime.date
     genero: EnumUsuarioGenero
-    rol_codigo: Optional[str] = None
+    contrasena: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+
+    @field_validator("genero", mode="before")
+    @classmethod
+    def _genero_agrofusion(cls, v):
+        return _genero(v)
 
     @field_validator("numero_identificacion")
     @classmethod
@@ -57,16 +92,17 @@ class AgroFusionCreateUserDTO(BaseDTO):
 
 
 class AgroFusionEstadoDTO(BaseDTO):
-    """`CHANGE_USER_STATUS` — cambia el estado de cuenta de un usuario existente."""
+    """`CHANGE_USER_STATUS` — estado con los códigos de AgroFusion: 1 activo, 2 inactivo, 3 eliminado."""
 
-    id_estado_cuenta: int
+    nuevo_estado: Literal[1, 2, 3]
     motivo: Optional[str] = None
 
 
-class AgroFusionUpdateUserDTO(BaseDTO):
-    """`UPDATE_USER` — datos de perfil y rol que AgroFusion mantiene; lo que no envía se conserva."""
+class AgroFusionUpdateUserDTO(_ApellidosDTO):
+    """`UPDATE_USER` — datos de perfil y rol que AgroFusion mantiene; lo que no envía se conserva.
+
+    Documento, fecha de nacimiento y género no se cambian por aquí (en SGPMP solo se completan en una
+    cuenta pendiente de datos); si AgroFusion los manda, se ignoran."""
     nombre: Optional[str] = None
-    apellidos: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
-    rol_codigo: Optional[str] = None

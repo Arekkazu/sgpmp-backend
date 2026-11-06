@@ -2,6 +2,7 @@
 # |------------|----------|-------------|
 # | 2026-11-06 | Arekkazu | RFC-019 D-19.6: CREATE_USER devuelve el token de activación |
 """Response schemas para la integración server-to-server con AgroFusion (Mecanismo B)."""
+import datetime
 from typing import Optional
 
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
@@ -26,13 +27,28 @@ class AgroFusionTokenResponse(BaseDTO):
     expires_in: int
 
 
-class AgroFusionUsuarioEstadoResponse(BaseDTO):
-    """Respuesta de `GET /integraciones/agrofusion/usuarios/{email}` (`GET_USER`)."""
+class AgroFusionUsuarioResponse(BaseDTO):
+    """Respuesta de `GET_USER`. AgroFusion toma el id para `{user_id}` y mapea el resto con su plantilla;
+    los roles van como lista (SGPMP asigna uno) y el género también con su código (1 M, 2 F)."""
 
-    existe: bool
-    id_usuario: Optional[int] = None
+    id_usuario: int
+    nombre: str
+    apellidos: str
+    correo_electronico: str
+    roles: list[int]
+    tipo_identificacion: Optional[str] = None
+    numero_identificacion: Optional[str] = None
+    fecha_nacimiento: Optional[datetime.date] = None
+    genero: Optional[str] = None
+    genero_id: Optional[int] = None
     id_estado_cuenta: Optional[int] = None
-    id_rol: Optional[int] = None
+
+
+class AgroFusionTipoDocumento(BaseDTO):
+    """Fila de `GET_TYPE_DOCUMENT`."""
+
+    id: str
+    nombre: str
 
 
 class AgroFusionUsuarioCreadoResponse(UsuarioResponse):
