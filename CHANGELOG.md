@@ -1,3 +1,10 @@
+## [1.4.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.49...v1.4.0-rc.50) (2026-11-06)
+
+### Bug Fixes
+
+* **rf-sso02-mod7:** contrato real de AgroFusion en la sincronizacion de usuarios ([07cdc3c](https://github.com/Arekkazu/sgpmp-backend/commit/07cdc3c01b63912929fd5662e601bac168ea770c))
+* **rf-sso02-mod7:** nombres de campo de AgroFusion en la sincronizacion de usuarios ([f0cb5a9](https://github.com/Arekkazu/sgpmp-backend/commit/f0cb5a9e92c5c6722a152f75d8caf6d0d98375f8))
+
 ## [1.4.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.48...v1.4.0-rc.49) (2026-11-06)
 
 ### Features

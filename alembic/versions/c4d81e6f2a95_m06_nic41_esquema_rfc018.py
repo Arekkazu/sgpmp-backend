@@ -1,6 +1,7 @@
 # | Fecha      | Nombre   | Que se hizo |
 # |------------|----------|-------------|
 # | 2026-11-04 | Arekkazu | M06 RF-82..94 + RFC-018: esquema modulo6 listo para NIC 41 (líneas de asiento, matriz, comprobante, titular) |
+# | 2026-11-06 | DBA      | ck_reconocimiento_inicial_fuente_valor: relleno de filas previas + NOT VALID/VALIDATE (fallaba en test con datos) |
 """m06 nic41: modulo6 alineado a RFC-018 y listo para el backend
 
 Revision ID: c4d81e6f2a95
@@ -334,9 +335,57 @@ def upgrade() -> None:
             ADD CONSTRAINT reconocimientos_iniciales_id_valoracion_por_costo_fkey FOREIGN KEY (id_valoracion_por_costo)
                 REFERENCES modulo6.valoraciones_por_costos (id_valoracion_por_costo) ON DELETE RESTRICT ON UPDATE CASCADE,
             ADD CONSTRAINT reconocimientos_iniciales_id_usuario_reversion_fkey FOREIGN KEY (id_usuario_reversion)
-                REFERENCES modulo1.usuarios (id_usuario) ON DELETE RESTRICT ON UPDATE CASCADE,
+                REFERENCES modulo1.usuarios (id_usuario) ON DELETE RESTRICT ON UPDATE CASCADE
+    """)
+    # Filas previas a RFC-018 (p. ej. en `test`) no tienen fuente de valor. Se vinculan con el
+    # cálculo o la valoración que les corresponde. El trigger de inmutabilidad (TGR-M06-01)
+    # bloquearía el UPDATE sobre filas CONFIRMADAS, así que se desactiva solo durante el relleno
+    # (la migración es transaccional: si algo falla, el trigger vuelve a quedar como estaba).
+    op.execute("ALTER TABLE modulo6.reconocimientos_iniciales DISABLE TRIGGER USER")
+    op.execute("""
+        UPDATE modulo6.reconocimientos_iniciales ri
+           SET id_calculo_valor_razonable = c.id_calculo_valor_razonable
+          FROM (SELECT DISTINCT ON (id_activo_biologico, id_precio_mercado)
+                       id_calculo_valor_razonable, id_activo_biologico, id_precio_mercado
+                  FROM modulo6.calculos_valor_razonable
+                 ORDER BY id_activo_biologico, id_precio_mercado, fecha_calculo DESC, id_calculo_valor_razonable DESC) c
+         WHERE ri.id_calculo_valor_razonable IS NULL
+           AND ri.id_valoracion_por_costo IS NULL
+           AND ri.indicador_valoracion::text = 'VALOR_RAZONABLE'
+           AND c.id_activo_biologico = ri.id_activo_biologico
+           AND c.id_precio_mercado = ri.id_precio_mercado
+    """)
+    op.execute("""
+        UPDATE modulo6.reconocimientos_iniciales ri
+           SET id_valoracion_por_costo = v.id_valoracion_por_costo
+          FROM modulo6.valoraciones_por_costos v
+         WHERE ri.id_calculo_valor_razonable IS NULL
+           AND ri.id_valoracion_por_costo IS NULL
+           AND ri.indicador_valoracion::text = 'VALORACION_POR_COSTO'
+           AND v.id_activo_biologico = ri.id_activo_biologico
+    """)
+    op.execute("ALTER TABLE modulo6.reconocimientos_iniciales ENABLE TRIGGER USER")
+    # NOT VALID: rige para filas nuevas sin revisar las existentes. Se valida en la misma
+    # migración si ya no quedan filas sin fuente (bases vacías o relleno completo); si quedan,
+    # el CHECK queda NOT VALID y se avisa para que DBA lo resuelva y ejecute VALIDATE CONSTRAINT.
+    op.execute("""
+        ALTER TABLE modulo6.reconocimientos_iniciales
             ADD CONSTRAINT ck_reconocimiento_inicial_fuente_valor CHECK (
-                num_nonnulls(id_calculo_valor_razonable, id_valoracion_por_costo) = 1)
+                num_nonnulls(id_calculo_valor_razonable, id_valoracion_por_costo) = 1) NOT VALID
+    """)
+    op.execute("""
+        DO $$
+        DECLARE v_pendientes integer;
+        BEGIN
+            SELECT count(*) INTO v_pendientes FROM modulo6.reconocimientos_iniciales
+             WHERE num_nonnulls(id_calculo_valor_razonable, id_valoracion_por_costo) <> 1;
+            IF v_pendientes = 0 THEN
+                ALTER TABLE modulo6.reconocimientos_iniciales VALIDATE CONSTRAINT ck_reconocimiento_inicial_fuente_valor;
+            ELSE
+                RAISE WARNING 'M06: % reconocimiento(s) inicial(es) previos a RFC-018 sin fuente de valor; '
+                    'ck_reconocimiento_inicial_fuente_valor queda NOT VALID hasta que DBA los corrija.', v_pendientes;
+            END IF;
+        END $$;
     """)
     op.execute("""
         CREATE UNIQUE INDEX uq_reconocimiento_inicial_id_activo_biologico_confirmado
