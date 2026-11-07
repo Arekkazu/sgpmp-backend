@@ -1,3 +1,6 @@
+# | Fecha      | Nombre  | Que se hizo |
+# |------------|---------|-------------|
+# | 2026-10-22 | Leandro | DEV-44 RF-61: mapea columnas oficiales DB-13 |
 from __future__ import annotations
 
 from datetime import datetime
@@ -5,6 +8,7 @@ from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Identity, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import JSONB
 
 from .base_model import Base
 
@@ -27,8 +31,10 @@ class VinculacionLecturaModel(Base):
     fecha_fin_vinculacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     # enum_mecanismo_vinculacion: AUTOMATICA|MANUAL|CORRECCION
     mecanismo_vinculacion: Mapped[str] = mapped_column(String(20), nullable=False)
-    # enum_estado_vinculacion: VINCULADA|SIN_VINCULAR|AMBIGUA|CORREGIDA
-    estado_vinculacion: Mapped[str] = mapped_column(String(20), nullable=False, default='VINCULADA')
+    # DB-13 conserva AMBIGUA y SIN_VINCULAR ademas de los nuevos estados.
+    estado_vinculacion: Mapped[str] = mapped_column(String(20), nullable=False, default='CONFIRMADA')
+    causa: Mapped[Optional[str]] = mapped_column(String(50))
+    contexto_activo: Mapped[Optional[dict]] = mapped_column(JSONB)
     id_usuario: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo1.usuarios.id_usuario')
     )

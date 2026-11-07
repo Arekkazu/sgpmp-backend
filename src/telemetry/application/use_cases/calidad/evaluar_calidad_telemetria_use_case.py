@@ -1,3 +1,12 @@
+# | Fecha      | Nombre  | Que se hizo                                      |
+# |------------|---------|--------------------------------------------------|
+# | 2026-10-21 | Leandro | DEV-43 RF-62: gaps, omisiones y evidencia de limites |
+# | 2026-10-26 | Leandro | INC-M03-103-G164 RF-62: persistir la regla aplicada cuando RF-53 excluye el analisis estadistico. |
+# | 2026-10-26 | Leandro | INC-M03-104-G165 RF-62: detectar outlier con sigma cero y auditar notificaciones de drift pendientes sin perder calidad. |
+# | 2026-10-27 | Leandro | INC-M03-132-G30 RF-53/54/62: restringir aptitud por TIME_DESYNC usando snapshot RF53 sin modificar el indice. |
+# | 2026-10-27 | Leandro | INC-M03-133-G170 RF-62: permitir reevaluacion dentro de una transaccion y registrar causa y version reproducible. |
+# | 2026-10-31 | Claude | INC-M03-243-G169 RF-62: serie sin calibración y huella de límites físicos aplicados |
+# | 2026-10-31 | Claude | INC-M03-236-G16 RF-62: deriva contra el valor de referencia de la calibración vigente |
 """RF-62: Evaluación estadística de calidad de lecturas teleméricas.
 
 Pipeline de 8 fases:
@@ -8,15 +17,24 @@ Pipeline de 8 fases:
   Fase 4 — Deriva (drift). Omitida si calibracion_no_disponible.
   Fase 5 — Gap temporal anómalo.
   Fase 6 — Cálculo del índice de calidad y clasificación.
-  Fase 7 — Persistir en telemetria_calidad + actualizar flags en telemetrias.
+  Fase 7 — Persistir aptitud en telemetria_calidad, sin modificar telemetrias.
   Fase 8 — Alertas técnicas + evento RF-63.
 """
 from __future__ import annotations
 
 import statistics
+import hashlib
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
+
+from src.shared.errors import ServiceUnavailableError
+from src.telemetry.domain.entities.parametros_reevaluacion import corregir_estadisticos
+from src.telemetry.domain.repositories.contexto_calidad_port import ContextoCalidadPort, LimitesFisicosCalidad
+from src.telemetry.domain.entities.consistencia_temporal_calidad import (
+    utc, unir_periodos, cubierto, detectar_gaps,
+)
 
 from sqlalchemy.orm import Session
 
@@ -33,23 +51,6 @@ from src.telemetry.domain.repositories.parametros_calidad_port import Parametros
 from src.telemetry.domain.repositories.telemetria_calidad_repository import TelemetriaCalidadRepository
 from src.telemetry.domain.repositories.telemetria_repository import TelemetriaRepository
 
-# Rangos físicos del catálogo I3P-1 (id_variable → (min, max))
-# Los mismos que RANGOS_FISICOS en telemetria.py
-_RANGOS_FISICOS: dict[int, tuple[Decimal, Decimal]] = {
-    9: (Decimal('-40'), Decimal('60')),
-    10: (Decimal('0'), Decimal('100')),
-    11: (Decimal('0'), Decimal('100')),
-    12: (Decimal('0'), Decimal('5000')),
-    13: (Decimal('30'), Decimal('50')),
-    14: (Decimal('0'), Decimal('500')),
-    15: (Decimal('0'), Decimal('200')),
-    16: (Decimal('0'), Decimal('200')),
-    2: (Decimal('0'), Decimal('14')),
-    3: (Decimal('0'), Decimal('20')),
-    8: (Decimal('0'), Decimal('5000')),
-}
-
-
 class EvaluarCalidadTelemetriaUseCase:
 
     def __init__(
@@ -59,12 +60,18 @@ class EvaluarCalidadTelemetriaUseCase:
         calidad_repo: TelemetriaCalidadRepository,
         parametros_port: ParametrosCalidadPort,
         auditoria_repo: Optional[BitacoraAuditoriaIotRepository] = None,
+        contexto_port: ContextoCalidadPort | None = None,
+        alertas_calidad=None,
     ) -> None:
         self.db = db
         self.telemetria_repo = telemetria_repo
         self.calidad_repo = calidad_repo
         self.parametros_port = parametros_port
         self.auditoria_repo = auditoria_repo
+        self.contexto_port = contexto_port
+        self.alertas_calidad = alertas_calidad
+        self._version_limites = None
+        self._contexto = {}
 
     def execute(
         self,
@@ -77,15 +84,62 @@ class EvaluarCalidadTelemetriaUseCase:
         estado_calidad_rf53: str,
         parametros_calibracion: Optional[dict],
         tipo_variable: Optional[str] = None,
-    ) -> TelemetriaCalidad:
+        reloj_desincronizado: bool = False,
+        evidencia_reloj: Optional[dict] = None,
+        *,
+        confirmar: bool = True,
+        motivo_reevaluacion: Optional[str] = None,
+        correcciones: Optional[dict] = None,
+        version_calibracion: Optional[str] = None,
+    ) -> TelemetriaCalidad | None:
+        self._confirmar = confirmar
+        self._motivo_reevaluacion = motivo_reevaluacion
+        self._correcciones = correcciones or {}
+        self._version_calibracion = version_calibracion
+        try:
+            return self._execute(id_telemetria,id_sensor,id_variable,valor,valor_ajustado,
+                                 timestamp_captura,estado_calidad_rf53,parametros_calibracion,tipo_variable,
+                                 reloj_desincronizado,evidencia_reloj)
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _execute(
+        self,
+        id_telemetria: int,
+        id_sensor: int,
+        id_variable: int,
+        valor: Decimal,
+        valor_ajustado: Optional[Decimal],
+        timestamp_captura: datetime,
+        estado_calidad_rf53: str,
+        parametros_calibracion: Optional[dict],
+        tipo_variable: Optional[str] = None,
+        reloj_desincronizado: bool = False,
+        evidencia_reloj: Optional[dict] = None,
+    ) -> TelemetriaCalidad | None:
+        self._version_limites = None
+        self._contexto = {'id_variable': id_variable}
+        if self.contexto_port is not None:
+            self.contexto_port.bloquear_evaluacion(id_telemetria)
         ahora = datetime.now(timezone.utc)
         flags: dict = {}
-        omitir_estadistico = False
+        if evidencia_reloj is not None:
+            self._contexto['reloj_rf53'] = evidencia_reloj
+        if reloj_desincronizado:
+            flags['reloj_desincronizado'] = {'activo': True, 'codigo': 'TIME_DESYNC'}
+            self._contexto['restriccion_temporal'] = {
+                'codigo': 'TIME_DESYNC', 'regla_aplicada': 'RF54_E9',
+                'apto_para_ia': False, 'apto_para_nic41': False,
+                'descuento_indice': 0,
+            }
         omitir_drift = False
 
         # ── Fase 0: estado heredado de RF-53 ──────────────────────────────────
         if estado_calidad_rf53 == 'FUERA_DE_RANGO':
             flags['fuera_de_rango_rf53'] = {'activo': True}
+            # G169 (R7/R9): también esta rama persiste la versión de límites físicos aplicada.
+            self._aplicar_limites(self._limites_fisicos(id_variable))
             evaluacion = self._persistir(
                 id_telemetria=id_telemetria,
                 id_sensor=id_sensor,
@@ -93,7 +147,14 @@ class EvaluarCalidadTelemetriaUseCase:
                 indice=0,
                 clasificacion=ClasificacionCalidad.NO_APTO,
                 flags=flags,
-                parametros_aplicados={},
+                # En esta rama no se consultan ni aplican k/M/N/drift.
+                # Registrar la regla real de RF-62 CA-9, sin atribuir al
+                # resultado parametros estadisticos que no intervinieron.
+                parametros_aplicados={
+                    'regla_aplicada': 'FUERA_DE_RANGO_RF53',
+                    'indice_calidad': 0,
+                    'fases_estadisticas_omitidas': True,
+                },
                 parametros_calibracion_aplicados=parametros_calibracion,
                 motivo_reevaluacion=None,
             )
@@ -108,7 +169,52 @@ class EvaluarCalidadTelemetriaUseCase:
 
         # ── Fase 1: Recuperar contexto ─────────────────────────────────────────
         params = self.parametros_port.obtener_parametros(id_sensor, tipo_variable)
-        serie = self.telemetria_repo.obtener_serie_temporal(id_sensor, params.N, timestamp_captura)
+        if self._correcciones:
+            params = corregir_estadisticos(params, self._correcciones)
+        contexto = None
+        gaps, excluidos = [], []
+        if self.contexto_port is not None:
+            if calibracion_no_disponible:
+                # G169 (R7): sin calibración se omite solo la fase 4; 2, 3 y 5 corren
+                # sobre la serie cruda del sensor (sus lecturas también son ERROR_CALIBRACION).
+                contexto = self.contexto_port.obtener(id_telemetria,id_sensor,id_variable,timestamp_captura,
+                                                      params.N, incluir_sin_calibracion=True)
+            else:
+                contexto = self.contexto_port.obtener(id_telemetria,id_sensor,id_variable,timestamp_captura,params.N)
+            fechas = [utc(l.timestamp_captura) for l in contexto.lecturas] + [utc(timestamp_captura)]
+            periodos = unir_periodos(contexto.periodos, utc(timestamp_captura))
+            if contexto.lecturas and cubierto(min(fechas), max(fechas), periodos):
+                if self.contexto_port.omision_registrada(id_telemetria) is True:
+                    if self._confirmar:
+                        self.db.commit()
+                    return None
+                self._registrar_evidencia(id_telemetria, {},
+                    'EVALUACION_OMITIDA_POR_INACTIVIDAD',
+                    {'id_sensor':id_sensor,'inicio':min(fechas).isoformat(),
+                     'fin':max(fechas).isoformat(),'periodos':[(a.isoformat(),b.isoformat()) for a,b in periodos]})
+                if self._confirmar:
+                    self.db.commit()
+                return None
+            frecuencia = self._correcciones.get('frecuencia_muestreo_min',
+                contexto.frecuencia_muestreo_min if contexto.frecuencia_muestreo_min is not None
+                else params.frecuencia_muestreo_min)
+            gaps, excluidos = detectar_gaps(contexto.lecturas,timestamp_captura,frecuencia,periodos)
+            serie = [l.valor for l in sorted(contexto.lecturas,
+                key=lambda l:(utc(l.timestamp_captura),l.id_telemetria),reverse=True)
+                if not cubierto(utc(l.timestamp_captura),utc(l.timestamp_captura),periodos)]
+            excluidas = len(contexto.lecturas)-len(serie)
+            if contexto.lecturas_estadisticas is not None:
+                serie = [l.valor for l in contexto.lecturas_estadisticas]
+            self._contexto['consistencia_temporal'] = {
+                'frecuencia_muestreo_min':frecuencia,'gaps_excluidos_rf60':excluidos,
+                'lecturas_excluidas_rf60':excluidas,
+                'inicio_serie':min(fechas).isoformat(),'fin_serie':max(fechas).isoformat(),
+            }
+            self._aplicar_limites(contexto.limites)
+        else:
+            # Uso aislado con puertos estadísticos; los entrypoints productivos
+            # siempre inyectan el contexto real, sin catálogo físico alternativo.
+            serie = self.telemetria_repo.obtener_serie_temporal(id_sensor, params.N, timestamp_captura)
 
         if len(serie) < params.N:
             flags['serie_insuficiente'] = {'activo': True}
@@ -119,14 +225,12 @@ class EvaluarCalidadTelemetriaUseCase:
                 indice=None,
                 clasificacion=ClasificacionCalidad.INDETERMINADA,
                 flags=flags,
-                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
+                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min, 'umbral_drift_significativo': params.umbral_drift_significativo},
                 parametros_calibracion_aplicados=parametros_calibracion,
                 motivo_reevaluacion=None,
             )
             self._emitir_auditoria(TipoResultado.EXITOSO, id_telemetria, flags)
             return evaluacion
-
-        omitir_estadistico = False
 
         # ── Fase 2: Sensor congelado ───────────────────────────────────────────
         ultimas_m = serie[:params.M]
@@ -150,37 +254,52 @@ class EvaluarCalidadTelemetriaUseCase:
         if len(serie) >= 2:
             mu = statistics.mean(float(v) for v in serie)
             sigma = statistics.stdev(float(v) for v in serie)
-            if sigma > 0 and abs(float(valor) - mu) > params.k * sigma:
+            desviacion = abs(float(valor) - mu)
+            if desviacion > params.k * sigma:
                 flags['outlier_estadistico'] = {
                     'activo': True,
                     'media_serie': round(mu, 4),
                     'desviacion_estandar': round(sigma, 4),
                     'k_utilizado': params.k,
-                    'magnitud_desviacion': round(abs(float(valor) - mu) / sigma, 4),
+                    # Con sigma cero, la desigualdad sigue siendo válida,
+                    # pero el z-score no está definido. Nunca serializar infinito.
+                    'magnitud_desviacion': round(desviacion / sigma, 4) if sigma > 0 else None,
                     'causa': 'ESTADISTICO',
                 }
-            elif id_variable in _RANGOS_FISICOS:
-                vmin, vmax = _RANGOS_FISICOS[id_variable]
-                if valor < vmin or valor > vmax:
+                if sigma == 0:
+                    flags['outlier_estadistico'].update(
+                        sigma_cero=True, desviacion_absoluta=round(desviacion, 4),
+                    )
+            elif self._version_limites is not None:
+                if valor < contexto.limites.minimo or valor > contexto.limites.maximo:
                     flags['outlier_estadistico'] = {
-                        'activo': True,
-                        'media_serie': round(mu, 4),
-                        'desviacion_estandar': round(sigma, 4),
-                        'k_utilizado': params.k,
-                        'magnitud_desviacion': 0,
-                        'causa': 'LIMITE_FISICO',
+                        'activo': True, 'media_serie': round(mu, 4),
+                        'desviacion_estandar': round(sigma, 4), 'k_utilizado': params.k,
+                        'magnitud_desviacion': 0, 'causa': 'LIMITE_FISICO',
                     }
 
         # ── Fase 4: Drift ──────────────────────────────────────────────────────
         if not omitir_drift and parametros_calibracion and serie:
             ganancia = Decimal(str(parametros_calibracion.get('ganancia', 1)))
             offset = Decimal(str(parametros_calibracion.get('offset', 0)))
-            val_cal_esperado = statistics.mean(float(v) * float(ganancia) + float(offset) for v in serie)
-            media_n = statistics.mean(float(v) for v in serie)
+            calibrados = [float(v) * float(ganancia) + float(offset) for v in serie]
+            referencia = self._referencia_calibracion(parametros_calibracion, id_sensor, timestamp_captura)
+            if referencia is not None:
+                # G16 (#876): la deriva es cuánto se alejan las lecturas calibradas del
+                # valor esperado (referencia RF-24), no cuánto corrige la calibración:
+                # con ganancia 1 y offset 0 ese cociente era siempre 0 %.
+                val_cal_esperado = float(referencia)
+                media_n = statistics.mean(calibrados)
+                serie_drift = calibrados
+            else:
+                # Sin referencia registrada: criterio anterior (crudo vs. calibrado).
+                val_cal_esperado = statistics.mean(calibrados)
+                media_n = statistics.mean(float(v) for v in serie)
+                serie_drift = [float(v) for v in serie]
             if val_cal_esperado != 0:
                 magnitud = abs(media_n - val_cal_esperado) / abs(val_cal_esperado) * 100
                 if magnitud > params.umbral_drift:
-                    misma_dir = sum(1 for v in serie if (float(v) - val_cal_esperado) * (media_n - val_cal_esperado) > 0)
+                    misma_dir = sum(1 for v in serie_drift if (v - val_cal_esperado) * (media_n - val_cal_esperado) > 0)
                     if misma_dir >= params.P:
                         flags['posible_drift'] = {
                             'activo': True,
@@ -189,40 +308,67 @@ class EvaluarCalidadTelemetriaUseCase:
                             'magnitud_drift_porcentaje': round(magnitud, 4),
                             'P_lecturas_consistentes': misma_dir,
                             'umbral_aplicado': params.umbral_drift,
+                            'base_comparacion': 'VALOR_REFERENCIA' if referencia is not None else 'CALIBRACION_APLICADA',
                         }
 
         # ── Fase 5: Gap temporal ───────────────────────────────────────────────
-        # La detección de gap temporal requiere el timestamp anterior; se omite
-        # cuando la serie no tiene contexto suficiente. Aquí se marca si la
-        # frecuencia_muestreo indica una anomalía ya detectada en la ingesta.
+        if gaps:
+            flags['gap_temporal_anomalo'] = {'activo':True, **gaps[-1], 'gaps_detectados':gaps}
 
         # ── Fase 6: Índice y clasificación ────────────────────────────────────
         indice = calcular_indice_calidad(flags)
         clasificacion = clasificar_desde_indice(indice)
-        apto_ia, apto_nic41 = derivar_aptitud(clasificacion)
-
         # ── Fase 7: Persistir ──────────────────────────────────────────────────
-        try:
-            evaluacion = self._persistir(
-                id_telemetria=id_telemetria,
-                id_sensor=id_sensor,
-                ahora=ahora,
-                indice=indice,
-                clasificacion=clasificacion,
-                flags=flags,
-                parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift},
-                parametros_calibracion_aplicados=parametros_calibracion,
-                motivo_reevaluacion=None,
-            )
-            self.telemetria_repo.actualizar_flags_aptitud(id_telemetria, apto_ia, apto_nic41)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        evaluacion = self._persistir(
+            id_telemetria=id_telemetria,
+            id_sensor=id_sensor,
+            ahora=ahora,
+            indice=indice,
+            clasificacion=clasificacion,
+            flags=flags,
+            parametros_aplicados={'k': params.k, 'M': params.M, 'N': params.N, 'umbral_drift': params.umbral_drift, 'P': params.P, 'frecuencia_muestreo_min': params.frecuencia_muestreo_min, 'umbral_drift_significativo': params.umbral_drift_significativo},
+            parametros_calibracion_aplicados=parametros_calibracion,
+            motivo_reevaluacion=None,
+        )
 
         # ── Fase 8: Notificaciones ─────────────────────────────────────────────
         self._emitir_auditoria(TipoResultado.EXITOSO, id_telemetria, flags)
         return evaluacion
+
+    def _referencia_calibracion(self, parametros_calibracion: dict, id_sensor: int,
+                                timestamp_captura: datetime) -> Optional[Decimal]:
+        """Referencia del snapshot si la trae (reevaluación con parámetros corregidos)
+        o la de la calibración vigente en la captura. 0 no sirve de base porcentual."""
+        referencia = parametros_calibracion.get('valor_referencia')
+        if referencia is None and self.contexto_port is not None:
+            referencia = self.contexto_port.referencia_calibracion(id_sensor, timestamp_captura)
+        if not isinstance(referencia, (Decimal, int, float, str)) or isinstance(referencia, bool):
+            return None
+        try:
+            referencia = Decimal(str(referencia))
+        except ArithmeticError:
+            return None
+        return referencia if referencia.is_finite() and referencia != 0 else None
+
+    def _limites_fisicos(self, id_variable: int) -> Optional[LimitesFisicosCalidad]:
+        if self.contexto_port is None:
+            return None
+        limites = self.contexto_port.limites_fisicos(id_variable)
+        return limites if isinstance(limites, LimitesFisicosCalidad) else None
+
+    def _aplicar_limites(self, limites: Optional[LimitesFisicosCalidad]) -> None:
+        if limites is not None and limites.version is not None:
+            if (not limites.version.strip() or len(limites.version)>50 or
+                    not limites.minimo.is_finite() or not limites.maximo.is_finite() or
+                    limites.minimo > limites.maximo):
+                raise ServiceUnavailableError('LIMITES_FISICOS_INVALIDOS','El snapshot de límites físicos es inválido.')
+            self._version_limites = limites.version
+            self._contexto['limites_fisicos_aplicados'] = {
+                'minimo':str(limites.minimo),'maximo':str(limites.maximo),'fuente':limites.fuente}
+        else:
+            self._contexto['limites_fisicos'] = {
+                'estado':'PENDIENTE_VERSIONADO_M09','aplicados':False,
+                'fuente':limites.fuente if limites else None}
 
     def _persistir(
         self,
@@ -237,7 +383,9 @@ class EvaluarCalidadTelemetriaUseCase:
         motivo_reevaluacion: Optional[str],
     ) -> TelemetriaCalidad:
         apto_ia, apto_nic41 = derivar_aptitud(clasificacion)
-        return self.calidad_repo.guardar(TelemetriaCalidad(
+        if flags.get('reloj_desincronizado', {}).get('activo'):
+            apto_ia, apto_nic41 = False, False
+        evaluacion = TelemetriaCalidad(
             id_evaluacion=None,
             id_telemetria=id_telemetria,
             id_sensor=id_sensor,
@@ -247,10 +395,51 @@ class EvaluarCalidadTelemetriaUseCase:
             apto_para_ia=apto_ia,
             apto_para_nic41=apto_nic41,
             flags_detectados=flags,
-            parametros_aplicados=parametros_aplicados,
+            version_limites_fisicos_aplicada=self._version_limites,
+            parametros_aplicados={**parametros_aplicados, **self._contexto},
             parametros_calibracion_aplicados=parametros_calibracion_aplicados,
-            motivo_reevaluacion=motivo_reevaluacion,
-        ))
+            motivo_reevaluacion=self._motivo_reevaluacion or motivo_reevaluacion,
+        )
+        if self._motivo_reevaluacion:
+            componentes = {
+                'version_limites_fisicos': self._version_limites,
+                'version_calibracion': self._version_calibracion,
+                'calibracion': parametros_calibracion_aplicados,
+                'estadisticos': parametros_aplicados,
+            }
+            evaluacion.parametros_aplicados['version_evaluacion_componentes'] = componentes
+            contenido = json.dumps(componentes, sort_keys=True, default=str, allow_nan=False)
+            evaluacion.version_evaluacion = 'rf62:' + hashlib.sha256(contenido.encode()).hexdigest()
+        # Todas las ramas escriben sustitución y evidencia en la transacción.
+        # El lote explícito controla su único commit; RF-53 permanece inmutable.
+        try:
+            anterior = self.calidad_repo.obtener_por_lectura(id_telemetria)
+            if anterior is not None:
+                evaluacion.id_evaluacion_superada = anterior.id_evaluacion
+            guardada = self.calidad_repo.guardar(evaluacion)
+            if anterior is not None:
+                self.calidad_repo.marcar_superada(
+                    anterior.id_evaluacion,
+                    motivo=self._motivo_reevaluacion or motivo_reevaluacion or 'Superada por una evaluación posterior de RF-62.',
+                )
+            pendientes = []
+            if self.alertas_calidad is not None:
+                pendientes = self.alertas_calidad.execute(guardada) or []
+            if self.contexto_port is not None:
+                detalle = {
+                    'id_evaluacion': str(guardada.id_evaluacion),
+                    'version_limites_fisicos_aplicada': self._version_limites,
+                    'parametros_aplicados': guardada.parametros_aplicados,
+                }
+                if pendientes:
+                    detalle['notificaciones_pendientes'] = pendientes
+                self._registrar_evidencia(id_telemetria,flags,'EVALUACION_CALIDAD_COMPLETADA',
+                    detalle)
+            if self._confirmar:
+                self.db.commit()
+            return guardada
+        except Exception:
+            raise
 
     def _emitir_auditoria(
         self,
@@ -258,7 +447,7 @@ class EvaluarCalidadTelemetriaUseCase:
         id_telemetria: int,
         flags: dict,
     ) -> None:
-        if self.auditoria_repo is None:
+        if not self._confirmar or self.contexto_port is not None or self.auditoria_repo is None:
             return
         try:
             from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import RegistrarEventoAuditoriaIotUseCase
@@ -277,3 +466,27 @@ class EvaluarCalidadTelemetriaUseCase:
             )
         except Exception:
             pass
+
+    def _registrar_evidencia(self, id_telemetria, flags, tipo, detalle):
+        """Evidencia obligatoria y atómica; el repositorio best-effort no basta."""
+        from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import _calcular_hash
+        from src.telemetry.domain.entities.evento_auditoria_iot import EventoAuditoriaIot, clasificar_componente
+        if self.auditoria_repo is None:
+            raise ServiceUnavailableError('AUDITORIA_CALIDAD_NO_DISPONIBLE',
+                                          'RF-62 requiere persistir la evidencia de evaluación.')
+        clasificacion, retencion = clasificar_componente(ComponenteOrigen.RF62)
+        limites_pendientes = detalle.get('parametros_aplicados',{}).get('limites_fisicos',{}).get('estado')
+        evento = EventoAuditoriaIot(
+            id_evento=None, tipo_evento=tipo, fecha_hora=datetime.now(timezone.utc),
+            resultado=(TipoResultado.PARCIAL if limites_pendientes or detalle.get('notificaciones_pendientes')
+                       else TipoResultado.EXITOSO), modulo='M03',
+            descripcion='RF-62: evaluación omitida por inactividad.' if 'OMITIDA' in tipo else 'RF-62: evaluación de calidad completada.',
+            entidad_afectada_tipo=EntidadAfectadaTipo.CALIDAD_DATO, entidad_afectada_id=str(id_telemetria),
+            severidad_log=SeveridadLog.WARNING if flags else SeveridadLog.INFO,
+            componente_origen=ComponenteOrigen.RF62, accion_detallada={'flags':flags,**detalle},
+            clasificacion_registro=clasificacion,retencion_aplicable=retencion,hash_integridad='',
+        )
+        evento.hash_integridad = _calcular_hash(evento)
+        if self.auditoria_repo.registrar(evento).id_evento is None:
+            raise ServiceUnavailableError('AUDITORIA_CALIDAD_NO_DISPONIBLE',
+                                          'No se pudo persistir la evidencia de calidad.')

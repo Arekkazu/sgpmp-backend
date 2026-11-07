@@ -1,10 +1,13 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-28 | Arekkazu | BE-0 RF-55: nombre, FK id_finca y defaults como en la BD |
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Identity, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,7 +19,7 @@ class ReglaAlertaModel(Base):
     __table_args__ = {'schema': 'modulo3'}
 
     id_regla_alertas: Mapped[int] = mapped_column(Integer, Identity(start=1, increment=1), primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
     # PG enum — String para no conflictuar con tipo existente
     tipo_sensor: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -27,9 +30,10 @@ class ReglaAlertaModel(Base):
     ventana_confirmacion_min: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     lectura_confirmacion_max: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     # Typo en DB: umbrales_severdiad (no umbrales_severidad)
-    umbrales_severdiad: Mapped[Optional[Any]] = mapped_column(JSONB)
+    # none_as_null: None se guarda como NULL de SQL, no como 'null'::jsonb.
+    umbrales_severdiad: Mapped[Optional[Any]] = mapped_column(JSONB(none_as_null=True))
     id_finca: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo9.infraestructuras.id_infraestructura')
+        Integer, ForeignKey('modulo9.fincas.id_finca')
     )
     id_especie: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo9.especies.id_especie')
@@ -39,7 +43,8 @@ class ReglaAlertaModel(Base):
     id_usuario: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo1.usuarios.id_usuario')
     )
-    fecha_creacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fecha_actualizacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    version_regla: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Defaults de la BD: sin server_default el ORM insertaba NULL explícito.
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text('now()'))
+    fecha_actualizacion: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), server_default=text('now()'))
+    version_regla: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('1'))
     mensaje: Mapped[Optional[str]] = mapped_column(Text)

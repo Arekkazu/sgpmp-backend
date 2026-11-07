@@ -1,20 +1,29 @@
+# | Fecha      | Nombre       | Que se hizo                                           |
+# |------------|--------------|-------------------------------------------------------|
+# | 2026-10-23 | destroyerban | DEV-48 RF-69: avisos de carga externa y rechazo       |
+# | 2026-10-27 | Leandro | INC-M04-158-G086 RF-73: referenciar los procesos reales en incidentes previos al registro. |
+# | 2026-10-29 | Arekkazu | INC-M04-213/214 RF-69: SavedModel por estructura protobuf, fecha futura y tipo vacío 422 |
+# | 2026-10-31 | Arekkazu     | RFC-010 RF-69: versión por animal, estado SOMBRA y fuente de datos |
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.prediction.domain.entities.version_modelo import VersionModelo
+from src.prediction.domain.entities.version_modelo import FUENTES_DATOS, VersionModelo
+from src.prediction.domain.repositories.aviso_version_modelo_port import AvisoVersionModeloPort
 from src.prediction.domain.repositories.evento_auditoria_m04_repository import EventoAuditoriaM04Repository
 from src.prediction.domain.repositories.variable_i3p1_port import VariableI3P1Port
 from src.prediction.domain.repositories.version_modelo_repository import VersionModeloRepository
 from src.prediction.infrastructure.dto.registrar_version_modelo_dto import RegistrarVersionModeloDTO
 from src.shared.errors import AuthorizationError, BusinessRuleError
-from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, TIPOS_MODELO, es_poblacional
+from src.shared.tipo_modelo import COMPONENTES_POBLACIONAL, INDIVIDUAL, TIPOS_MODELO, es_poblacional, paradigma_de
 
 _FORMATOS_VALIDOS = {"ONNX", "TENSORFLOW_SAVED_MODEL"}
 _MAX_BYTES = 500 * 1024 * 1024  # 500 MB
@@ -30,9 +39,59 @@ _METRICAS_REQUERIDAS = {
 # RF-69 v2.0 (RFC-009): un modelo no supervisado no produce F1/recall; se valida
 # con la calibración en sitio y sus tasas de falsos positivos y de detección.
 _TASAS_POBLACIONALES = ("tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_clinicos")
-# Magic bytes para identificar el formato del artefacto
-_ONNX_MAGIC = b"\x08"          # protobuf field tag 1 (model_ir_version)
-_TF_SAVEDMODEL_MAGIC = b"\x0a" # protobuf field tag 1 (saved_model_schema_version)
+# RF-69 E1b (DEV-48): un aviso al Administrador por ventana, aunque el intento se repita;
+# misma ventana anti-spam de RF-14. Todos los intentos quedan en la bitácora.
+_VENTANA_AVISO_CARGA_EXTERNA = timedelta(minutes=5)
+_MOTIVO_CARGA_EXTERNA = "X-RF71-Internal-Key ausente o incorrecta"
+
+logger = logging.getLogger(__name__)
+
+
+def _campos_protobuf(datos: bytes) -> list[tuple[int, int, bytes]] | None:
+    """Campos de primer nivel de un mensaje protobuf (número, wire type, payload); None si no parsea."""
+
+    def varint(i: int) -> tuple[int, int]:
+        valor = desplazamiento = 0
+        while i < len(datos) and desplazamiento < 64:
+            byte = datos[i]
+            valor |= (byte & 0x7F) << desplazamiento
+            i += 1
+            if not byte & 0x80:
+                return valor, i
+            desplazamiento += 7
+        raise ValueError
+
+    campos, i = [], 0
+    try:
+        while i < len(datos):
+            clave, i = varint(i)
+            numero, tipo = clave >> 3, clave & 0x07
+            if tipo == 0:
+                inicio = i
+                _, i = varint(i)
+            elif tipo == 1:
+                inicio, i = i, i + 8
+            elif tipo == 2:
+                largo, inicio = varint(i)
+                i = inicio + largo
+            elif tipo == 5:
+                inicio, i = i, i + 4
+            else:
+                return None
+            if numero == 0 or i > len(datos):
+                return None
+            campos.append((numero, tipo, datos[inicio:i] if tipo == 2 else b""))
+    except ValueError:
+        return None
+    return campos
+
+
+def _es_saved_model(datos: bytes) -> bool:
+    campos = _campos_protobuf(datos)
+    if not campos or any(numero not in (1, 2) for numero, _, _ in campos):
+        return False
+    meta_graphs = [payload for numero, tipo, payload in campos if numero == 2 and tipo == 2]
+    return bool(meta_graphs) and meta_graphs[0][:1] == b"\x0a"
 
 
 class RegistrarVersionModeloUseCase:
@@ -44,15 +103,21 @@ class RegistrarVersionModeloUseCase:
         repo: VersionModeloRepository,
         auditoria_repo: EventoAuditoriaM04Repository,
         variable_port: VariableI3P1Port,
+        aviso_port: AvisoVersionModeloPort,
     ) -> None:
         self._db = db
         self._repo = repo
         self._auditoria_repo = auditoria_repo
         self._variable_port = variable_port
+        self._aviso_port = aviso_port
 
     def execute(self, dto: RegistrarVersionModeloDTO, internal_key: Optional[str]) -> VersionModelo:
         # FA-02: verificar clave interna
         self._verificar_clave_interna(internal_key, dto.id_proceso_rf71)
+
+        # Antes de leer o guardar el artefacto: el trigger P0408 llegaba como 500 y el
+        # archivo ya estaba en disco (INC-M04-214).
+        self._validar_fecha_entrenamiento(dto.fecha_entrenamiento)
 
         # Leer bytes del archivo
         archivo_bytes = dto.archivo_modelo.file.read()
@@ -69,10 +134,10 @@ class RegistrarVersionModeloUseCase:
         self._verificar_hash_artefacto(archivo_bytes, dto.hash_artefacto_sha256, dto.id_proceso_rf71)
 
         # FA-04: tipo_modelo (antes que las métricas: el paradigma decide cuáles se exigen)
-        if dto.tipo_modelo not in TIPOS_MODELO:
+        if not dto.tipo_modelo or dto.tipo_modelo not in TIPOS_MODELO:
             raise BusinessRuleError(
                 code="TIPO_MODELO_INVALIDO",
-                message=f"tipo_modelo debe ser uno de: {sorted(TIPOS_MODELO)}.",
+                message=f"tipo_modelo es obligatorio y debe ser uno de: {sorted(TIPOS_MODELO)}.",
                 field="tipo_modelo",
             )
 
@@ -85,13 +150,23 @@ class RegistrarVersionModeloUseCase:
             componente, metricas_poblacionales = None, None  # no aplican a INDIVIDUAL/META
             metricas = self._validar_metricas(dto.metricas_validacion)
 
+        id_activo = self._validar_activo_biologico(dto.tipo_modelo, dto.id_activo_biologico)
+        if dto.fuente_datos not in FUENTES_DATOS:
+            raise BusinessRuleError(
+                code="FUENTE_DATOS_INVALIDA",
+                message=f"fuente_datos debe ser uno de: {sorted(FUENTES_DATOS)}.",
+                field="fuente_datos",
+            )
+
         # Validar compatibilidad_variables contra catálogo I3P-1
         self._validar_variables(dto.compatibilidad_variables)
 
         # Guardar artefacto en disco
         ext = "onnx" if formato == "ONNX" else "pb"
+        # RFC-010: un proceso RF-71 registra un artefacto por animal; el nombre no puede chocar.
+        sufijo = componente or (str(id_activo) if id_activo is not None else None)
         ruta = self._guardar_artefacto(
-            archivo_bytes, dto.id_proceso_rf71, f"{dto.tipo_modelo}_{componente}" if componente else dto.tipo_modelo, ext
+            archivo_bytes, dto.id_proceso_rf71, f"{dto.tipo_modelo}_{sufijo}" if sufijo else dto.tipo_modelo, ext
         )
 
         # Crear entidad
@@ -115,6 +190,8 @@ class RegistrarVersionModeloUseCase:
             version_referencia=dto.version_referencia,
             componente=componente,
             metricas_poblacionales=metricas_poblacionales,
+            id_activo_biologico=id_activo,
+            fuente_datos=dto.fuente_datos,
         )
 
         # Evaluación automática de métricas (Fase 3)
@@ -145,6 +222,7 @@ class RegistrarVersionModeloUseCase:
             self._db.commit()
         except Exception:
             self._db.rollback()
+            self._borrar_artefacto(ruta)
             raise
 
         tipo_evento_resultado = "VERSION_APROBADA" if estado_final == "APROBADO" else "VERSION_RECHAZADA"
@@ -167,7 +245,29 @@ class RegistrarVersionModeloUseCase:
         except Exception:
             self._db.rollback()
 
+        # RF-69 E3 (DEV-48): el Veterinario revisa la versión rechazada; aviso después del commit.
+        if estado_final == "RECHAZADO":
+            try:
+                self._aviso_port.avisar_version_rechazada(entidad)
+            except Exception:  # la versión ya quedó registrada aunque el aviso falle
+                logger.exception("No se pudo avisar la versión rechazada %s", entidad.id_version_modelo)
+
         return entidad
+
+    def _avisar_carga_externa(self, id_proceso: uuid.UUID) -> None:
+        """RF-69 E1b (DEV-48): avisa al Administrador, como mucho una vez por ventana."""
+        try:
+            desde = datetime.now(timezone.utc) - _VENTANA_AVISO_CARGA_EXTERNA
+            _, intentos = self._auditoria_repo.consultar(
+                tipo_evento="INTENTO_CARGA_MODELO_EXTERNO", fecha_desde=desde, por_pagina=1
+            )
+            # El intento actual ya está registrado: más de uno significa que ya se avisó.
+            if intentos > 1:
+                return
+            self._aviso_port.avisar_carga_externa(id_proceso_rf71=str(id_proceso), motivo=_MOTIVO_CARGA_EXTERNA)
+        except Exception:  # el 403 sale igual aunque el aviso falle
+            self._db.rollback()
+            logger.exception("No se pudo avisar el intento de carga de modelo externo")
 
     # ------------------------------------------------------------------
     # Validaciones privadas
@@ -180,10 +280,12 @@ class RegistrarVersionModeloUseCase:
                 tipo_evento="INTENTO_CARGA_MODELO_EXTERNO",
                 tipo_actor="SISTEMA",
                 id_sistema="DESCONOCIDO",
+                id_referencia=str(id_proceso),
+                entidad_referencia="proceso_rf71",
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={
-                    "motivo": "X-RF71-Internal-Key ausente o incorrecta",
+                    "motivo": _MOTIVO_CARGA_EXTERNA,
                     "id_proceso_rf71": str(id_proceso),
                 },
             )
@@ -191,6 +293,7 @@ class RegistrarVersionModeloUseCase:
                 self._db.commit()
             except Exception:
                 self._db.rollback()
+            self._avisar_carga_externa(id_proceso)
             raise AuthorizationError(
                 code="REGISTRO_INTERNO_REQUERIDO",
                 message=(
@@ -211,20 +314,22 @@ class RegistrarVersionModeloUseCase:
             )
 
     def _detectar_formato(self, archivo_bytes: bytes) -> str:
+        """Formato por la estructura protobuf del archivo, no por su extensión (TC-M04-119).
+
+        ONNX (ModelProto) y SavedModel empiezan los dos con 0x08 (campo 1 varint), así que
+        el primer byte no distingue: SavedModel solo tiene los campos 1 y 2, y el 2
+        (meta_graphs) es un MetaGraphDef que empieza por meta_info_def (0x0a).
+        """
         if len(archivo_bytes) < 2:
             raise BusinessRuleError(
                 code="FORMATO_ARTEFACTO_INVALIDO",
                 message="El artefacto es demasiado pequeño para ser un modelo válido.",
                 field="archivo_modelo",
             )
-        # ONNX: protobuf ModelProto comienza con field_number=1 (model_ir_version, varint)
-        # bytes 0x08 = field 1, wire_type 0 (varint)
+        if _es_saved_model(archivo_bytes):
+            return "TENSORFLOW_SAVED_MODEL"
         if archivo_bytes[0:1] == b"\x08":
             return "ONNX"
-        # TF SavedModel.pb: protobuf SavedModel comienza con field_number=1 (saved_model_schema_version)
-        # bytes 0x0a = field 1, wire_type 2 (length-delimited)
-        if archivo_bytes[0:1] == b"\x0a":
-            return "TENSORFLOW_SAVED_MODEL"
         raise BusinessRuleError(
             code="FORMATO_ARTEFACTO_INVALIDO",
             message=(
@@ -233,6 +338,21 @@ class RegistrarVersionModeloUseCase:
             ),
             field="archivo_modelo",
         )
+
+    def _validar_fecha_entrenamiento(self, fecha: datetime) -> None:
+        if fecha > datetime.now(timezone.utc):
+            raise BusinessRuleError(
+                code="FECHA_ENTRENAMIENTO_FUTURA",
+                message="La fecha_entrenamiento no puede ser una fecha futura.",
+                field="fecha_entrenamiento",
+            )
+
+    @staticmethod
+    def _borrar_artefacto(ruta: str) -> None:
+        try:
+            os.remove(ruta)
+        except OSError:
+            logger.warning("No se pudo borrar el artefacto de un registro fallido: %s", ruta)
 
     def _validar_hash_sha256_campo(self, valor: str, campo: str) -> None:
         import re
@@ -252,6 +372,8 @@ class RegistrarVersionModeloUseCase:
                 tipo_evento="HASH_INVALIDO_DETECTADO",
                 tipo_actor="SISTEMA",
                 id_sistema=str(id_proceso),
+                id_referencia=str(id_proceso),
+                entidad_referencia="proceso_rf71",
                 resultado_operacion="FALLIDO",
                 severidad_evento="CRITICAL",
                 payload_evento={
@@ -311,6 +433,27 @@ class RegistrarVersionModeloUseCase:
                 field="componente",
             )
         return componente
+
+    def _validar_activo_biologico(self, tipo_modelo: str, id_activo: Optional[int]) -> Optional[int]:
+        """RFC-010: un INDIVIDUAL es de un animal; POBLACIONAL y META no lo son.
+
+        Que el animal exista lo valida la FK (400 REFERENCIA_INVALIDA).
+        """
+        if paradigma_de(tipo_modelo) == INDIVIDUAL:
+            if id_activo is None:
+                raise BusinessRuleError(
+                    code="ACTIVO_BIOLOGICO_REQUERIDO",
+                    message="Los modelos INDIVIDUAL se versionan por animal: id_activo_biologico es obligatorio.",
+                    field="id_activo_biologico",
+                )
+            return id_activo
+        if id_activo is not None:
+            raise BusinessRuleError(
+                code="ACTIVO_BIOLOGICO_NO_APLICA",
+                message=f"Los modelos {paradigma_de(tipo_modelo)} no son de un animal: no envíe id_activo_biologico.",
+                field="id_activo_biologico",
+            )
+        return None
 
     def _validar_metricas_poblacionales(self, metricas: dict) -> dict:
         faltantes = {"calibracion_completada", *_TASAS_POBLACIONALES} - set(metricas.keys())

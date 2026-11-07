@@ -1,5 +1,11 @@
 # CU06 — Gaps de BD y RBAC (RF-62, RF-63)
 
+> Actualización DEV-02 (2026-10-15): la fuente oficial de aptitud escalar es
+> `modulo3.telemetria_calidad`, usando únicamente la evaluación vigente no
+> superada. Las columnas de aptitud de `telemetrias` descritas en el DDL
+> histórico de abajo quedan obsoletas: no se leen ni se actualizan. Se conserva
+> el trigger de inmutabilidad RF-53. Esta corrección no necesita migración.
+
 ## Estado de tablas modulo3
 
 | Tabla | Estado |

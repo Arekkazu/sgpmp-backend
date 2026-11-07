@@ -1,6 +1,10 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Middlewares globales de la aplicación FastAPI.
 
-- `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`
+- `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`,
+  fija la zona del usuario (`X-Zona-Horaria`, ver `src/shared/fechas.py`)
   y expone el correlativo como cabecera `X-Request-ID` en la respuesta.
 - `AccessLogMiddleware`: registra método, ruta, código de respuesta y latencia.
 - `SecurityHeadersMiddleware`: agrega las cabeceras de seguridad HTTP recomendadas
@@ -13,11 +17,12 @@
 import uuid
 import time
 import logging
-from typing import Optional
-from fastapi import Request
+from typing import Annotated, Optional
+from fastapi import Header, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.shared import audit_context
+from src.shared.fechas import CABECERA_ZONA, establecer_zona_usuario
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +41,30 @@ def _get_client_ip(request: Request) -> Optional[str]:
         IP del cliente como string, o `None` si no está disponible.
     """
     return request.client.host if request.client else None
+
+
+def documentar_zona_horaria(
+    x_zona_horaria: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Zona-Horaria",
+            description=(
+                "Zona horaria IANA del usuario. Define \"hoy\", las fechas futuras, los "
+                "filtros por día y las horas de mensajes y correos. Sin ella, o inválida, "
+                "todo se calcula en UTC. El frontend la envía siempre."
+            ),
+            openapi_examples={
+                "bogota": {"summary": "Colombia", "value": "America/Bogota"},
+                "utc": {"summary": "UTC (igual que no enviarla)", "value": "UTC"},
+            },
+        ),
+    ] = None,
+) -> None:
+    """Solo documenta la cabecera en Swagger para que "Try it out" la envíe.
+
+    La lee `RequestContextMiddleware`: los validadores de los DTO usan "hoy"
+    antes de que FastAPI resuelva las dependencias.
+    """
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
@@ -61,6 +90,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             ip=getattr(request.state, "ip", None),
             user_agent=getattr(request.state, "user_agent", None),
         )
+        # Zona IANA del navegador para "hoy" y los días calendario; sin ella, UTC.
+        establecer_zona_usuario(request.headers.get(CABECERA_ZONA))
 
         response = await call_next(request)
         # Propaga el correlativo a la respuesta

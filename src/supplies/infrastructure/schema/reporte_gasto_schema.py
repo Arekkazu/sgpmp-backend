@@ -1,12 +1,17 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: SIN_DATOS, bajas, archivo y aviso  |
 """Schemas de respuesta de RF-77 — Reporte de Gastos Acumulados."""
 from __future__ import annotations
 
 import datetime
 from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.supplies.domain.entities.archivo_exportacion import ArchivoExportacion
 from src.supplies.domain.entities.reporte_gasto import ReporteGasto
 from src.supplies.domain.entities.trabajo_reporte_gasto import EjecucionReporteGasto, TrabajoReporteGasto
 
@@ -52,6 +57,11 @@ class ReporteGastoResponse(BaseModel):
     gasto_promedio_individuo: Optional[Decimal]
     causa_no_calculable_promedio: Optional[str]
     sin_datos: bool
+    estado: str = "GENERADO"
+    mensaje: Optional[str] = None
+    nota_bajas: Optional[str] = None
+    advertencia: Optional[str] = None
+    archivo: Optional["ArchivoExportacionResponse"] = None
     desglose_categorias: list[DesgloseCategoriaResponse]
     desglose_temporal: list[DesglosePeriodoResponse]
     registros_sin_costo: list[RegistroSinCostoResponse]
@@ -72,6 +82,9 @@ class ReporteGastoResponse(BaseModel):
             gasto_promedio_individuo=r.gasto_promedio_individuo,
             causa_no_calculable_promedio=r.causa_no_calculable_promedio,
             sin_datos=r.sin_datos,
+            estado=r.estado,
+            mensaje=r.mensaje,
+            nota_bajas=r.nota_bajas,
             desglose_categorias=[
                 DesgloseCategoriaResponse(
                     categoria=d.categoria, subtotal=d.subtotal, num_registros=d.num_registros, porcentaje=d.porcentaje
@@ -185,6 +198,35 @@ class HistorialReportesResponse(BaseModel):
     items: list[ReporteGastoResponse]
 
 
+class ArchivoExportacionResponse(BaseModel):
+    """Archivo exportado disponible para descarga (RF-77 24 h, RF-81 72 h)."""
+
+    id_archivo: UUID
+    formato: str
+    nombre_archivo: str
+    total_registros: int
+    tamano_bytes: int
+    fecha_generacion: datetime.datetime
+    fecha_expiracion: datetime.datetime
+    url_descarga: str
+
+    @classmethod
+    def desde_entidad(cls, a: ArchivoExportacion, prefijo_descarga: str) -> "ArchivoExportacionResponse":
+        return cls(
+            id_archivo=a.id_archivo,
+            formato=a.formato,
+            nombre_archivo=a.nombre_archivo,
+            total_registros=a.total_registros,
+            tamano_bytes=a.tamano_bytes,
+            fecha_generacion=a.fecha_generacion,
+            fecha_expiracion=a.fecha_expiracion,
+            url_descarga=f"{prefijo_descarga}/{a.id_archivo}",
+        )
+
+
+ReporteGastoResponse.model_rebuild()
+
+
 class TrabajoReporteResponse(BaseModel):
     """Respuesta HTTP 202 al encolar un reporte async."""
 
@@ -207,6 +249,9 @@ class EstadoTrabajoReporteResponse(BaseModel):
     fecha_procesado: Optional[datetime.datetime]
     intento: Optional[int]
     reporte: Optional[ReporteGastoResponse] = None
+    id_archivo_exportacion: Optional[str] = None
+    error_exportacion: Optional[dict] = None
+    parametros: Optional[dict] = None
 
     @classmethod
     def desde_entidades(
@@ -229,4 +274,7 @@ class EstadoTrabajoReporteResponse(BaseModel):
             fecha_procesado=trabajo.fecha_procesado,
             intento=ejecucion.intento if ejecucion else None,
             reporte=reporte_response,
+            id_archivo_exportacion=(ejecucion.resultado_json or {}).get("id_archivo_exportacion") if ejecucion else None,
+            error_exportacion=(ejecucion.resultado_json or {}).get("error_exportacion") if ejecucion else None,
+            parametros={k: v for k, v in (trabajo.parametros or {}).items() if k != "ids_permitidos"},
         )

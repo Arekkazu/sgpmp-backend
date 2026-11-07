@@ -19,9 +19,13 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.infraestructuras.consultar_infraestructuras_use_case import ConsultarInfraestructurasUseCase
 from src.configuration.application.use_cases.infraestructuras.desactivar_infraestructura_use_case import DesactivarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.editar_infraestructura_use_case import EditarInfraestructuraUseCase
+from src.configuration.application.use_cases.infraestructuras.propagar_tipo_modelo_edge import PropagadorTipoModeloEdge
 from src.configuration.application.use_cases.infraestructuras.reactivar_infraestructura_use_case import ReactivarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.registrar_infraestructura_use_case import RegistrarInfraestructuraUseCase
+from src.configuration.infrastructure.adapters.bitacora_iot_m03_adapter import BitacoraIotM03Adapter
+from src.configuration.infrastructure.adapters.edge_sincronizacion_mqtt_adapter import EdgeSincronizacionMqttAdapter
 from src.configuration.infrastructure.adapters.infraestructura_dependency_adapter import InfraestructuraDependencyAdapter
+from src.configuration.infrastructure.repositories.destino_edge_repository import SqlAlchemyDestinoEdgeRepository
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
 from src.configuration.infrastructure.repositories.auditoria_infraestructura_repository import SqlAlchemyAuditoriaInfraestructuraRepository
@@ -39,6 +43,15 @@ from src.shared.schemas import ErrorResponse
 router = APIRouter(prefix="/configuracion/infraestructuras", tags=["Configuración - Infraestructura Productiva"])
 
 _RECURSO = 10  # modulo1.recursos: 'infraestructuras'
+
+
+def _propagador_tipo_modelo(db: Session) -> PropagadorTipoModeloEdge:
+    """DEV-10: envía el tipo_modelo_asignado del área a sus Gateway Edge y lo deja en la bitácora IoT."""
+    return PropagadorTipoModeloEdge(
+        destino_repo=SqlAlchemyDestinoEdgeRepository(db),
+        edge_port=EdgeSincronizacionMqttAdapter(),
+        bitacora=BitacoraIotM03Adapter(db),
+    )
 
 
 @router.post(
@@ -73,6 +86,7 @@ def registrar_infraestructura(
         tipo_area_repo=SqlAlchemyTipoAreaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
         especie_repo=SqlAlchemyEspecieRepository(db),
+        propagador_tipo_modelo=_propagador_tipo_modelo(db),
     )
     infra = use_case.execute(dto, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)
@@ -183,6 +197,7 @@ def editar_infraestructura(
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
         especie_repo=SqlAlchemyEspecieRepository(db),
         dependency_port=InfraestructuraDependencyAdapter(db),
+        propagador_tipo_modelo=_propagador_tipo_modelo(db),
     )
     infra = use_case.execute(id_infraestructura, dto, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)

@@ -1,25 +1,7 @@
 {
-  "76eb1351ca8c11d44211f4247fe0fb81_0": {
+  "16f77730f5fde5646e8bdbb6698fbf01_0": {
     "author": "mortiz-indigo",
-    "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
-    "false_positive": false,
-    "ignored_at": "2026-09-24T15:30:00Z"
-  },
-  "52c242b28ae20fdce1bf1628c385d5ec_0": {
-    "author": "mortiz-indigo",
-    "comment": "Falso positivo: tabla y condicion provienen del diccionario cerrado _FUENTES_RF46; el id es parametrizado (:id).",
-    "false_positive": true,
-    "ignored_at": "2026-09-24T15:30:00Z"
-  },
-  "611c42f67dd9e2150ac5c92183de4931_0": {
-    "author": "mortiz-indigo",
-    "comment": "Falso positivo: vista proviene del diccionario cerrado _FUENTES_PERMITIDAS (3 tablas fijas), verificado en Informe A.1 (#2007).",
-    "false_positive": true,
-    "ignored_at": "2026-09-24T15:30:00Z"
-  },
-  "bf6a538d19d5c54d1ef152f031357e46_0": {
-    "author": "mortiz-indigo",
-    "comment": "Falso positivo: ventana_min es entero tipado de ventana de deduplicacion; sin entrada arbitraria de usuario.",
+    "comment": "Ruta controlada por variable de entorno de configuracion AGROFUSION_SSO_PUBLIC_KEY_PATH, sin entrada de usuario.",
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
@@ -29,10 +11,52 @@
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
-  "16f77730f5fde5646e8bdbb6698fbf01_0": {
-    "author": "mortiz-indigo",
-    "comment": "Ruta controlada por variable de entorno de configuracion AGROFUSION_SSO_PUBLIC_KEY_PATH, sin entrada de usuario.",
+  "391c1d9e933913cbf262feb778915637_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: el candado sale del diccionario cerrado _CANDADOS (escritura/sincronizacion); nombre es un literal de los metodos internos y una clave desconocida da KeyError. El directorio es logs/ o AUDITORIA_M04_DIR_RESPALDO (configuracion del despliegue), sin entrada de usuario.",
     "false_positive": true,
+    "ignored_at": "2026-10-23T20:16:05Z"
+  },
+  "391c1d9e933913cbf262feb778915637_1": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: destino es audit_fallback_M04_procesando/ + el nombre de un archivo que glob encontro en el mismo directorio de respaldo con el patron fijo audit_fallback_M04_????????.log; sin entrada de usuario.",
+    "false_positive": true,
+    "ignored_at": "2026-10-23T20:16:06Z"
+  },
+  "52c242b28ae20fdce1bf1628c385d5ec_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: tabla y condicion provienen del diccionario cerrado _FUENTES_RF46; el id es parametrizado (:id).",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "5fb4150b27b647fd67ce86bae4704cf6_0": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: filas() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
+  "5fb4150b27b647fd67ce86bae4704cf6_1": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: fila() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
+  "5fb4150b27b647fd67ce86bae4704cf6_2": {
+    "author": "Arekkazu",
+    "comment": "Falso positivo: escribir() es la ayuda comun de los repositorios M06; todos sus llamadores pasan SQL literal o compuesto solo con fragmentos de listas cerradas (_COLUMNAS/_JOIN, filtros fijos, _ORIGENES, _EDITABLES) y los valores van siempre como parametros enlazados (:param).",
+    "false_positive": true,
+    "ignored_at": "2026-11-05T15:00:00Z"
+  },
+  "611c42f67dd9e2150ac5c92183de4931_0": {
+    "author": "mortiz-indigo",
+    "comment": "Falso positivo: vista proviene del diccionario cerrado _FUENTES_PERMITIDAS (3 tablas fijas), verificado en Informe A.1 (#2007).",
+    "false_positive": true,
+    "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "76eb1351ca8c11d44211f4247fe0fb81_0": {
+    "author": "mortiz-indigo",
+    "comment": "Conexion SMTP realiza server.ehlo() y server.starttls() en lineas 63-65. Mitigado para desarrollo; documentado para seguimiento de migracion a SMTP_SSL.",
+    "false_positive": false,
     "ignored_at": "2026-09-24T15:30:00Z"
   },
   "96e3596e94352129f969751f93f76d01_0": {
@@ -52,5 +76,11 @@
     "comment": "Retorno de ruta interna de artefacto de modelo ML registrado.",
     "false_positive": true,
     "ignored_at": "2026-09-24T15:30:00Z"
+  },
+  "96e3596e94352129f969751f93f76d01_3": {
+    "author": "Arekkazu",
+    "comment": "Borrado del artefacto recien escrito si falla la persistencia (INC-M04-214): misma ruta interna de _guardar_artefacto (UUID + tipo_modelo y componente validados contra catalogo, extension fija onnx/pb).",
+    "false_positive": true,
+    "ignored_at": "2026-10-29T15:00:00Z"
   }
 }

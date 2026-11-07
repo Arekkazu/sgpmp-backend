@@ -118,6 +118,9 @@ fecha_inicio=2026-07-01&fecha_fin=2026-07-06&tipo_variable=TEMPERATURA_AMBIENTAL
 ```json
 {
   "total": 288,
+  "total_encontrado": 288,
+  "truncado": false,
+  "aviso": null,
   "pagina": 1,
   "por_pagina": 100,
   "paginas_totales": 3,
@@ -173,8 +176,20 @@ fecha_inicio=2026-07-01&fecha_fin=2026-07-06&tipo_variable=TEMPERATURA_AMBIENTAL
       "pct_fuera_rango": null,
       "total_alertas_en_periodo": 0
     }
-  ]
+  ],
+  "vacios_temporales": []
 }
+```
+
+**DEV-38 (RF-59):**
+- **Zona horaria (E2):** `fecha_inicio`/`fecha_fin` son días en Colombia: el rango va de las 00:00 del inicio a las 00:00 del día siguiente al fin, hora Colombia, y "hoy" para `FECHA_FIN_FUTURA` es `hoy_colombia()`.
+- **Bitácora (Fase 8, postcondición 6, CA-16):** cada consulta deja un evento `HISTORIAL_CONSULTADO` (componente `RF59`) en `modulo3.bitacora_auditoria_iot` con usuario, `id_rol`, filtros, página, registros devueltos, total encontrado, `truncado` y `exportado: false`. Un 403 de RBAC deja `HISTORIAL_ACCESO_DENEGADO` (RECHAZADO) con rol, ruta y filtros (E1).
+- **Vacíos temporales (E7, CA-17):** `vacios_temporales` lista los huecos entre lecturas consecutivas del mismo sensor y variable mayores que 3 × la frecuencia de muestreo (`frecuencia_muestreo_min` de la lectura, o la global de RF-18), calculados sobre todo el rango filtrado (máx. 500):
+```json
+"vacios_temporales": [
+  {"sensor_id": 2, "tipo_variable": "pH del agua", "desde": "2026-10-20T01:59:30Z",
+   "hasta": "2026-10-20T04:00:00Z", "duracion_min": 121, "frecuencia_esperada_min": 1}
+]
 ```
 
 **Nota (INC-M09-107-G32 / #298):** `estado_semaforo_historico` ahora se calcula contra el
@@ -295,10 +310,10 @@ formato=PDF&fecha_inicio=2026-07-01&fecha_fin=2026-07-06" \
 
 | FA | Endpoint | Comportamiento |
 |----|----------|----------------|
-| FA-01 | dashboard, historial | 403 si sin permisos RBAC |
+| FA-01 | dashboard, historial | 403 si sin permisos RBAC; en historial y exportar el intento queda en la bitácora `HISTORIAL_ACCESO_DENEGADO` (DEV-38, E1) |
 | FA-07 | dashboard | por_pagina max=50, paginación obligatoria |
 | FA-08 | historial | 400 COMBINACION_FILTROS_INVALIDA |
 | FA-09 | historial | 422 RANGO_MAXIMO_EXCEDIDO (>90 días sin filtros) |
-| FA-10 | historial | 422 VOLUMEN_EXCESIVO (>10.000 registros) |
+| FA-10 / E6 | historial | 200 con los primeros 10.000 registros, `truncado: true`, `total_encontrado` y `aviso` con sugerencia de filtros; las páginas más allá de 10.000 llegan vacías; evento de bitácora en WARNING (DEV-38, antes 422 VOLUMEN_EXCESIVO) |
 | FA-11 | historial/exportar | 400 EXPORTAR_SIN_FILTROS |
 | FA-13 | historial | semáforo GRIS si no hay especie resuelta o umbral RF-17 activo (INC-M09-107-G32) |

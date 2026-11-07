@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-76: observaciones del registro         |
 """Entidad de dominio ``Medicamento`` (RF-76).
 
 Python puro. Representa la aplicación de un medicamento a un activo biológico.
@@ -47,6 +50,7 @@ class Medicamento:
     fecha_registro: Optional[datetime] = None
     justificacion_anulacion: Optional[str] = None
     fecha_hora_anulacion: Optional[datetime] = None
+    observaciones: Optional[str] = None
 
     @classmethod
     def crear(
@@ -71,6 +75,7 @@ class Medicamento:
         id_usuario_veterinario: Optional[int] = None,
         lote_medicameto: Optional[str] = None,
         fehca_vencimietno_lote: Optional[date] = None,
+        observaciones: Optional[str] = None,
     ) -> "Medicamento":
         """Construye una aplicación de medicamento en estado VALIDADO, sin persistir."""
         return cls(
@@ -93,6 +98,7 @@ class Medicamento:
             id_usuario_veterinario=id_usuario_veterinario,
             lote_medicameto=lote_medicameto,
             fehca_vencimietno_lote=fehca_vencimietno_lote,
+            observaciones=observaciones,
             estado_registro=EstadoRegistro.VALIDADO.value,
         )
 

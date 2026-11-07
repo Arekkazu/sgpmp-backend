@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-30 | Leandro | INC-M04-221-G032 RF-68: representar y versionar el perfil de cálculo ESTANDAR o MVP. |
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -34,6 +37,8 @@ class ConfiguracionMotorIA:
     # POBLACIONAL: componente -> id_version ACTIVO (reemplaza id_version_modelo_activa).
     versiones_activas_por_componente: Optional[dict[str, int]] = None
 
+    perfil_calculo_contagio: str = "ESTANDAR"
+
     @property
     def paradigma(self) -> Optional[str]:
         return paradigma_de(self.tipo_modelo)
@@ -59,9 +64,11 @@ class ConfiguracionMotorIA:
         densidad_maxima_config: Optional[Decimal] = None,
         umbral_score_anomalia: Optional[Decimal] = None,
         versiones_activas_por_componente: Optional[dict[str, int]] = None,
+        perfil_calculo_contagio: str = "ESTANDAR",
     ) -> ConfiguracionMotorIA:
         return cls(
             tipo_modelo=tipo_modelo,
+            perfil_calculo_contagio=perfil_calculo_contagio,
             umbral_riesgo_alto=umbral_riesgo_alto,
             umbral_alerta_critica=umbral_alerta_critica,
             ventana_temporal_min=ventana_temporal_min,
@@ -101,11 +108,13 @@ class ConfiguracionMotorIA:
         densidad_maxima_config: Optional[Decimal] = None,
         umbral_score_anomalia: Optional[Decimal] = None,
         versiones_activas_por_componente: Optional[dict[str, int]] = None,
+        perfil_calculo_contagio: str = "ESTANDAR",
     ) -> None:
         self.umbral_riesgo_alto = umbral_riesgo_alto
         self.umbral_alerta_critica = umbral_alerta_critica
         self.ventana_temporal_min = ventana_temporal_min
         self.modo_ejecucion = modo_ejecucion
+        self.perfil_calculo_contagio = perfil_calculo_contagio
         self.w_factor_sanitario = w_factor_sanitario
         self.w_factor_ambiental = w_factor_ambiental
         self.w_factor_densidad = w_factor_densidad
@@ -130,6 +139,7 @@ class ConfiguracionMotorIA:
             "versiones_activas_por_componente": self.versiones_activas_por_componente,
             "ventana_temporal_min": self.ventana_temporal_min,
             "modo_ejecucion": self.modo_ejecucion,
+            "perfil_calculo_contagio": self.perfil_calculo_contagio,
             "id_version_modelo_activa": self.id_version_modelo_activa,
             "config_version": self.config_version,
             "w_factor_sanitario": str(self.w_factor_sanitario),

@@ -1,9 +1,12 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-81: formato PDF/EXCEL de la exportación |
 """DTO de entrada para encolar un trabajo pesado de historial de suministros (RF-81)."""
 from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 
@@ -28,3 +31,4 @@ class SolicitarTrabajoHistorialDTO(BaseDTO):
     costo_min: Optional[Decimal] = Field(default=None, ge=0)
     costo_max: Optional[Decimal] = Field(default=None, ge=0)
     registros_por_pagina: int = Field(default=50, ge=1, le=200)
+    formato_exportacion: Literal["PDF", "EXCEL"] = "EXCEL"

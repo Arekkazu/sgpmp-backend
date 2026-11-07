@@ -1,3 +1,6 @@
+# | Fecha | Nombre | Que se hizo |
+# |-------|--------|-------------|
+# | 2026-10-23 | Leandro | DEV-24 RF-24: definir serializacion transaccional por area de calibracion. |
 """Puertos de persistencia de la calibración por visión (RF-24 v2.0, RFC-011)."""
 from __future__ import annotations
 
@@ -9,6 +12,11 @@ from src.configuration.domain.entities.calibracion_vision import CalibracionVisi
 
 class CalibracionVisionRepository(ABC):
     """Contrato del historial de intentos de calibración por visión."""
+
+    @abstractmethod
+    def bloquear_area(self, id_infraestructura: int) -> None:
+        """Serializa calibraciones del área hasta commit/rollback, incluso sin línea previa."""
+        raise NotImplementedError
 
     @abstractmethod
     def guardar(self, calibracion: CalibracionVision) -> CalibracionVision:

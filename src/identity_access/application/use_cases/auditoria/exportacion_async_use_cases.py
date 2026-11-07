@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Casos de uso de la exportación asíncrona de auditoría (RF-10).
 
 La exportación síncrona mantiene la petición abierta mientras arma el archivo.
@@ -27,7 +30,7 @@ from src.identity_access.domain.repositories.exportacion_auditoria_repository im
 )
 from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.shared.errors import NotFoundError, BusinessRuleError, TooManyRequestsError
-from src.shared.fechas import hoy_colombia
+from src.shared.fechas import hoy_usuario
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +161,7 @@ class ProcesarColaExportacionesUseCase:
                 usuario_actual=_Solicitante(trabajo.id_usuario_solicitante),
                 **deserializar_filtros(trabajo.parametros),
             )
-            fecha = hoy_colombia().isoformat()
+            fecha = hoy_usuario().isoformat()
             self.cola_repo.completar(
                 trabajo.id_cola,
                 ResultadoExportacion(

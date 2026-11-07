@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Caso de uso: asociación de un sensor IoT a un activo biológico (RF-49)."""
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsultaPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.fechas import en_zona_usuario
 
 if TYPE_CHECKING:
     from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -377,5 +381,5 @@ class AsociarSensorActivoUseCase:
 
         return (
             f'El dispositivo {id_dispositivo_iot} se encuentra desconectado desde las '
-            f'{ultimo_contacto.strftime("%H:%M:%S")}. Las lecturas podrían no verse reflejadas de inmediato.'
+            f'{en_zona_usuario(ultimo_contacto).strftime("%H:%M:%S")}. Las lecturas podrían no verse reflejadas de inmediato.'
         )

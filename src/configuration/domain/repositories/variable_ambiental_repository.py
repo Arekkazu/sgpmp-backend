@@ -1,4 +1,7 @@
-"""Puerto (ABC) de lectura para el catálogo de variables ambientales (CU03 RF-17)."""
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-20 | Arekkazu | DEV-25 RF-17: actualizar es_critica (RFC-016) |
+"""Puerto (ABC) del catálogo de variables ambientales (CU03 RF-17)."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,3 +20,7 @@ class VariableAmbientalRepository(ABC):
     @abstractmethod
     def listar_activas(self) -> list[VariableAmbiental]:
         """Variables ambientales activas del catálogo."""
+
+    @abstractmethod
+    def actualizar(self, variable: VariableAmbiental) -> VariableAmbiental:
+        """RFC-016: persiste ``es_critica`` (el resto del catálogo no se edita)."""

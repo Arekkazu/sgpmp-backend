@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-21 | Arekkazu | DEV-45 RF-56: contador extraído a registrar_llamada para limitar por dispositivo |
 """Límite de tasa en memoria para endpoints sensibles a ráfagas de escritura.
 
 INC-M09-21-G125-02: `POST /configuracion/dispositivos-iot` no aplicaba ningún
@@ -28,6 +31,36 @@ _lock = threading.Lock()
 _llamadas: dict[str, deque[float]] = defaultdict(deque)
 
 
+def registrar_llamada(clave_contador: str, max_llamadas: int, ventana_segundos: float) -> None:
+    """Cuenta una llamada en la ventana deslizante de ``clave_contador``; 429 si la excede.
+
+    La usa también un caso de uso que limita por algo distinto del usuario
+    (RF-56 E6: por dispositivo).
+    """
+    ahora = time.monotonic()
+    with _lock:
+        marcas = _llamadas[clave_contador]
+        while marcas and ahora - marcas[0] > ventana_segundos:
+            marcas.popleft()
+        if len(marcas) >= max_llamadas:
+            # #495: la ventana se libera cuando caduca la marca más vieja.
+            segundos = str(max(1, math.ceil(ventana_segundos - (ahora - marcas[0]))))
+            raise TooManyRequestsError(
+                code="LIMITE_TASA_EXCEDIDO",
+                message=(
+                    "Demasiadas solicitudes en poco tiempo. "
+                    "Intenta de nuevo en unos momentos."
+                ),
+                headers={
+                    "Retry-After": segundos,
+                    "RateLimit-Limit": str(max_llamadas),
+                    "RateLimit-Remaining": "0",
+                    "RateLimit-Reset": segundos,
+                },
+            )
+        marcas.append(ahora)
+
+
 def rate_limit(
     max_llamadas: int,
     ventana_segundos: float,
@@ -54,29 +87,7 @@ def rate_limit(
     """
 
     def registrar(identificador: str) -> None:
-        clave_contador = f"{alcance}:{identificador}"
-        ahora = time.monotonic()
-        with _lock:
-            marcas = _llamadas[clave_contador]
-            while marcas and ahora - marcas[0] > ventana_segundos:
-                marcas.popleft()
-            if len(marcas) >= max_llamadas:
-                # #495: la ventana se libera cuando caduca la marca más vieja.
-                segundos = str(max(1, math.ceil(ventana_segundos - (ahora - marcas[0]))))
-                raise TooManyRequestsError(
-                    code="LIMITE_TASA_EXCEDIDO",
-                    message=(
-                        "Demasiadas solicitudes en poco tiempo. "
-                        "Intenta de nuevo en unos momentos."
-                    ),
-                    headers={
-                        "Retry-After": segundos,
-                        "RateLimit-Limit": str(max_llamadas),
-                        "RateLimit-Remaining": "0",
-                        "RateLimit-Reset": segundos,
-                    },
-                )
-            marcas.append(ahora)
+        registrar_llamada(f"{alcance}:{identificador}", max_llamadas, ventana_segundos)
 
     if clave is None:
         def dependencia(

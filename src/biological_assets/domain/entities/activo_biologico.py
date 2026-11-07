@@ -1,3 +1,8 @@
+# | Fecha      | Nombre       | Que se hizo |
+# |------------|--------------|-------------|
+# | 2026-10-23 | destroyerban | DEV-20 RF-33: fecha_nacimiento opcional y advertencia de edad (RFC-014) |
+# | 2026-10-23 | destroyerban | DEV-23 RF-33/34/36/48: capacidad efectiva del área (RFC-012) |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Entidades y read-models del agregado ``ActivoBiologico`` (M02).
 
 El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
@@ -23,7 +28,8 @@ class DetalleIndividual:
     """Datos propios de un activo INDIVIDUAL (un animal identificado)."""
     raza: str
     sexo: str
-    fecha_nacimiento: datetime
+    # RFC-014 (DEV-20): opcional; sin ella no se calcula la edad. Día calendario, sin zona.
+    fecha_nacimiento: Optional[date]
     peso_inicial: Optional[Decimal] = None
     id_detalle: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
@@ -316,6 +322,8 @@ class ResultadoConsultaAsociacion:
     historial: Optional[list[HistorialInfraestructura]] = None
     sensores_en_infraestructura: list[SensorEnInfraestructura] = field(default_factory=list)
     advertencia_integridad: Optional[str] = None
+    # RFC-012 (RF-34 1.2, H-12.2): capacidad efectiva del área vigente, derivada de RF-20.
+    capacidad_maxima: Optional[int] = None
 
 
 @dataclass
@@ -427,6 +435,9 @@ class ActivoBiologico:
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
     nombre_estado: Optional[str] = None
+    # RFC-014 (DEV-20): advertencia de edad del registro. No se persiste; la
+    # constancia queda en el evento ACTIVO_REGISTRADO de la bitácora.
+    advertencia_edad: Optional[str] = None
 
     @classmethod
     def crear(cls, dto: object, id_usuario: int) -> ActivoBiologico:
@@ -475,7 +486,7 @@ class ActivoBiologico:
         self,
         raza: Optional[str],
         sexo: Optional[str],
-        fecha_nacimiento: Optional[datetime],
+        fecha_nacimiento: Optional[date],
         peso_inicial: Optional[Decimal],
     ) -> None:
         """Actualiza raza, sexo, fecha de nacimiento o peso inicial (RF-35).

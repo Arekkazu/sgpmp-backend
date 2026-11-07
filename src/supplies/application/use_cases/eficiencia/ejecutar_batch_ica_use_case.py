@@ -1,3 +1,6 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-74: alerta interna de batch y cola     |
 """Caso de uso: motor batch de cálculo ICA (RF-74, Flujo C — alcance completo).
 
 Orquesta una corrida completa:
@@ -40,6 +43,7 @@ from src.supplies.domain.repositories.configuracion_batch_ica_repository import 
 )
 from src.supplies.domain.repositories.ejecucion_batch_ica_repository import EjecucionBatchICARepository
 from src.supplies.domain.repositories.fallo_calculo_ica_repository import FalloCalculoICARepository
+from src.supplies.domain.repositories.notificacion_suministros_port import NotificacionSuministrosPort
 from src.supplies.domain.repositories.resultado_ica_repository import ResultadoICARepository
 from src.supplies.domain.value_objects.eficiencia_enums import (
     CausaInterrupcionBatch,
@@ -51,6 +55,9 @@ from src.supplies.domain.value_objects.eficiencia_enums import (
 )
 
 logger = logging.getLogger(__name__)
+
+# administracion_batch_ica (50), acción E: Administrador y Productor reactivan el batch.
+_RECURSO_BATCH_ICA, _ACCION_EJECUTAR = 50, 5
 
 _PERIODOS = (PeriodoEvaluacion.SEMANAL, PeriodoEvaluacion.MENSUAL, PeriodoEvaluacion.POR_CICLO)
 _PRIORIDAD_CRITICA = 1
@@ -81,6 +88,7 @@ class EjecutarBatchICAUseCase:
         session_factory: Callable[[], Session],
         construir_calculo: Callable[[Session], CalcularICAUseCase],
         construir_fallo_repo: Callable[[Session], FalloCalculoICARepository],
+        notificador: Optional[NotificacionSuministrosPort] = None,
     ) -> None:
         self.db = db
         self.ejecucion_repo = ejecucion_repo
@@ -91,6 +99,7 @@ class EjecutarBatchICAUseCase:
         self.session_factory = session_factory
         self.construir_calculo = construir_calculo
         self.construir_fallo_repo = construir_fallo_repo
+        self.notificador = notificador
 
     async def ejecutar(
         self,
@@ -142,6 +151,14 @@ class EjecutarBatchICAUseCase:
             )
         )
         self.db.commit()
+
+        if excedentes:
+            self._alertar(
+                f"El proceso batch de cálculo de CA superó el límite configurado de {limite} activos. "
+                f"{len(excedentes)} activos quedaron en cola para el siguiente ciclo; puede reactivar el "
+                "procesado de forma manual.",
+                {"id_ejecucion": ejecucion.id_ejecucion, "en_cola": len(excedentes)},
+            )
 
         procesados, fallidos, interrumpido = await self._procesar(
             seleccionados, config, ejecucion, num_workers
@@ -345,4 +362,16 @@ class EjecutarBatchICAUseCase:
             ejecucion.completar(hora_fin=ahora)
         guardada = self.ejecucion_repo.guardar(ejecucion)
         self.db.commit()
+        if interrumpido:
+            self._alertar(
+                "El proceso batch de cálculo de CA no completó su ejecución. Se procesaron "
+                f"{procesados} de {guardada.cantidad_activos_total} activos. El proceso continuará en el "
+                "siguiente ciclo o reactive el procesado de forma manual.",
+                {"id_ejecucion": id_ejecucion, "procesados": procesados},
+            )
         return guardada
+
+    def _alertar(self, mensaje: str, detalle: dict) -> None:
+        """RF-74: alerta interna al Administrador y al Productor (quienes operan el batch, recurso 50)."""
+        if self.notificador is not None:
+            self.notificador.a_permiso(_RECURSO_BATCH_ICA, _ACCION_EJECUTAR, "BATCH_ICA_INTERRUMPIDO", mensaje, detalle)

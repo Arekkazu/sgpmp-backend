@@ -9,6 +9,13 @@ quien evalúa las lecturas en campo y lo único que habla MQTT con el broker.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class GatewayEdgeDestino:
+    id_dispositivo_iot: int
+    serial: str
 
 
 class DestinoEdgeRepository(ABC):
@@ -20,5 +27,14 @@ class DestinoEdgeRepository(ABC):
 
         No depende de la identidad de quien llama: la propagación de un umbral
         no puede cambiar según el rol que lo editó.
+        """
+        ...
+
+    @abstractmethod
+    def listar_gateways_por_infraestructura(self, id_infraestructura: int) -> list[GatewayEdgeDestino]:
+        """Gateway Edge activos del área: instalados en ella o que atienden un dispositivo activo de ella.
+
+        DEV-10 (RF-20, D-06): destino del ``tipo_modelo_asignado`` del área. No
+        depende de quién edita el área.
         """
         ...

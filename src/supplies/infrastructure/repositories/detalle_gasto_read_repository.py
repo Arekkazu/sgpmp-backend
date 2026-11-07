@@ -1,3 +1,7 @@
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-22 | Arekkazu         | M05 RF-77: alcance, existencia y bajas RF-45  |
+# | 2026-10-23 | Arekkazu | PR-667: fechas en UTC y día calendario en la zona del usuario (X-Zona-Horaria) |
 """Implementación de :class:`DetalleGastoReadPort` (RF-77).
 
 SQL propio con ``text()`` (patrón de ``historial_telemetria_repository.py``)
@@ -17,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from src.supplies.domain.entities.reporte_gasto import LineaGasto
 from src.supplies.domain.repositories.detalle_gasto_read_port import DetalleGastoReadPort
+from src.shared.fechas import nombre_zona_usuario
 
 _SQL_DETALLE = text(
     """
@@ -25,7 +30,7 @@ _SQL_DETALLE = text(
            rca.id_activo_biologico,
            ab.id_infraestructura,
            ab.id_especie,
-           COALESCE(rca.fecha_consumo, rca.fecha_registro::date) AS fecha,
+           COALESCE(rca.fecha_consumo, (rca.fecha_registro AT TIME ZONE :tz)::date) AS fecha,
            COALESCE(ta.nombre, rca.tipo_alimento) AS descripcion,
            rca.cantidad_suministrada AS cantidad,
            rca.costo_unitario,
@@ -35,10 +40,11 @@ _SQL_DETALLE = text(
     JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = rca.id_activo_biologico
     LEFT JOIN modulo5.tipos_alimentos ta ON ta.id_tipo_elemento = rca.id_tipo_alimento
     WHERE rca.estado_registro = 'VALIDADO'
-      AND COALESCE(rca.fecha_consumo, rca.fecha_registro::date) BETWEEN :fecha_inicio AND :fecha_fin
+      AND COALESCE(rca.fecha_consumo, (rca.fecha_registro AT TIME ZONE :tz)::date) BETWEEN :fecha_inicio AND :fecha_fin
       AND (:id_activo_biologico IS NULL OR rca.id_activo_biologico = :id_activo_biologico)
       AND (:id_infraestructura IS NULL OR ab.id_infraestructura = :id_infraestructura)
       AND (:id_especie IS NULL OR ab.id_especie = :id_especie)
+      AND (CAST(:ids_permitidos AS integer[]) IS NULL OR rca.id_activo_biologico = ANY(:ids_permitidos))
 
     UNION ALL
 
@@ -60,6 +66,20 @@ _SQL_DETALLE = text(
       AND (:id_activo_biologico IS NULL OR rm.id_activo_biologico = :id_activo_biologico)
       AND (:id_infraestructura IS NULL OR ab.id_infraestructura = :id_infraestructura)
       AND (:id_especie IS NULL OR ab.id_especie = :id_especie)
+      AND (CAST(:ids_permitidos AS integer[]) IS NULL OR rm.id_activo_biologico = ANY(:ids_permitidos))
+    """
+)
+
+_SQL_EXISTE_INFRAESTRUCTURA = text(
+    "SELECT EXISTS (SELECT 1 FROM modulo9.infraestructuras WHERE id_infraestructura = :id)"
+)
+_SQL_EXISTE_ESPECIE = text("SELECT EXISTS (SELECT 1 FROM modulo9.especies WHERE id_especie = :id)")
+_SQL_BAJAS = text(
+    """
+    SELECT COALESCE(SUM(eb.cantidad_afectada), 0)
+    FROM modulo2.eventos_bajas eb
+    JOIN modulo2.eventos_activos ea ON ea.id_eventos = eb.id_evento
+    WHERE ea.id_activo_biologico = :id AND (ea.fecha AT TIME ZONE :tz)::date BETWEEN :fecha_inicio AND :fecha_fin
     """
 )
 
@@ -77,6 +97,7 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
         id_infraestructura: Optional[int] = None,
         id_especie: Optional[int] = None,
         categorias: Optional[list[str]] = None,
+        ids_permitidos: Optional[list[int]] = None,
     ) -> list[LineaGasto]:
         filas = self.db.execute(
             _SQL_DETALLE,
@@ -86,6 +107,8 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
                 "id_activo_biologico": id_activo_biologico,
                 "id_infraestructura": id_infraestructura,
                 "id_especie": id_especie,
+                "ids_permitidos": ids_permitidos,
+                "tz": nombre_zona_usuario(),
             },
         ).mappings().all()
 
@@ -108,3 +131,17 @@ class SqlAlchemyDetalleGastoReadRepository(DetalleGastoReadPort):
         if categorias:
             lineas = [l for l in lineas if l.categoria in categorias]
         return lineas
+
+    def existe_infraestructura(self, id_infraestructura: int) -> bool:
+        return bool(self.db.execute(_SQL_EXISTE_INFRAESTRUCTURA, {"id": id_infraestructura}).scalar())
+
+    def existe_especie(self, id_especie: int) -> bool:
+        return bool(self.db.execute(_SQL_EXISTE_ESPECIE, {"id": id_especie}).scalar())
+
+    def contar_bajas(self, id_activo_biologico: int, fecha_inicio: date, fecha_fin: date) -> int:
+        return int(
+            self.db.execute(
+                _SQL_BAJAS,
+                {"id": id_activo_biologico, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin, "tz": nombre_zona_usuario()},
+            ).scalar()
+        )

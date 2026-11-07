@@ -1,3 +1,6 @@
+# | Fecha      | Nombre   | Que se hizo |
+# |------------|----------|-------------|
+# | 2026-10-25 | Arekkazu | RF-63: keepalives TCP para que un CREATE INDEX CONCURRENTLY largo no pierda la conexión en CI |
 """Configuración de entorno de Alembic.
 
 target_metadata apunta a la única Base declarativa compartida
@@ -77,6 +80,15 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        # Un CREATE INDEX CONCURRENTLY espera en silencio a que terminen las
+        # transacciones abiertas; sin tráfico, la red del runner de GitHub
+        # (Azure, ~4 min de inactividad) corta la conexión TCP a mitad.
+        connect_args={
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        },
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

@@ -34,6 +34,50 @@ versión y no queda en la trazabilidad, aunque el cambio sí sea real.
 
 ---
 
+## Tabla de seguimiento en cabecera (obligatoria desde 2026-10-20)
+
+**Todo archivo de código que se cree o edite — incluido por una IA — debe
+llevar al inicio, en comentarios, una tabla de seguimiento**, y se actualiza
+al terminar el cambio, antes del commit:
+
+```python
+# | Fecha      | Nombre           | Que se hizo                                   |
+# |------------|------------------|-----------------------------------------------|
+# | 2026-10-20 | usuario-git      | DEV-29 RF-56: rechaza dispositivo inactivo    |
+"""Docstring del módulo (sigue funcionando debajo de la tabla)."""
+```
+
+- **Fecha** del cambio (`YYYY-MM-DD`), **Nombre**: el usuario de git de quien hace el cambio (`git config user.name` en esa máquina, nunca un nombre fijo) y **Que se hizo**: ID de la tarea + RF + una frase corta. Es un rastro rápido de qué ha sufrido el archivo, no el contenido del PR.
+- Una fila por tarea y por archivo (no una por cada edición); la fila nueva va al final.
+- Solo hacia adelante: un archivo sin tabla la recibe la primera vez que se toca; no se reconstruye historial de git.
+- Si el archivo tiene shebang (`#!`), la tabla va debajo. Antes del docstring o de `from __future__` no rompe nada. Aplica también a migraciones de Alembic y scripts.
+- No aplica a archivos que no admiten comentarios o que se generan solos: JSON, lockfiles, `CHANGELOG.md`.
+- En conflictos de merge sobre la tabla se conservan las filas de ambos lados.
+
+---
+
+## Textos visibles, vacíos y filtros (obligatorio desde 2026-11-05)
+
+Aplica a todo lo que el usuario final llega a leer: `message` de los errores, avisos y advertencias de una
+respuesta, notificaciones, correos, PDF/Excel generados y textos que el sistema guarda para mostrarse después
+(justificaciones automáticas, descripciones legibles de auditoría).
+
+1. **Nunca un código interno del proyecto.** Ningún texto visible dice `RF-xx`, `RFC-xxx`, `Módulo N`, `M01`…`M09`,
+   el nombre de una tabla o columna, ni un valor de enum crudo (`INICIAL_RF82`, `PENDIENTE_CUENTA`). Se nombra lo
+   que el usuario ve en el software: «Suministros», «Activos biológicos», «el módulo financiero», «la exportación
+   contable». Las referencias normativas que el usuario sí reconoce (NIC 41 ¶12, NIIF 13) están permitidas. Los
+   códigos siguen siendo válidos en docstrings, comentarios, logs y `tags`/`summary` de Swagger, que no ve el usuario final.
+2. **Nada de vacíos ni códigos para mostrar.** Un texto pensado para mostrarse nunca se arma con un `None`
+   interpolado («Factura None», «M05 None») ni sale como `null`. Un dato opcional puede ser `null` en el JSON, pero
+   el frontend lo traduce a lo que significa («Sin vencimiento», «Sin calcular»); el backend no devuelve tablas,
+   columnas ni listas cuyo único contenido sea un código o un id interno para que el front lo muestre tal cual.
+3. **Filtros completos y validados.** Todo listado que el frontend filtra acepta esos filtros en el endpoint, con
+   el valor validado en el parámetro (`Literal[...]`, enum o `pattern`): un valor fuera del catálogo responde
+   `400 VAL_ENTRADA`, nunca un `500` por un `CAST` a enum ni una lista vacía silenciosa. Los filtros se combinan
+   con AND y un parámetro omitido no filtra. Si el filtro existe en el repositorio pero no en el router, no existe.
+
+---
+
 ## Stack
 
 | Componente   | Tecnología                        |
@@ -468,6 +512,31 @@ def guardar(self, entidad: MiEntidad) -> MiEntidad:
 ```
 
 Esto convierte `IntegrityError` de SQLAlchemy en `ConflictError` (409) con el campo correspondiente. La capa de aplicación no debe conocer `IntegrityError`.
+
+---
+
+### Fechas y zonas horarias (`src/shared/fechas.py`)
+
+Regla: **la BD guarda UTC y cada quien ve su zona**. Hay dos tipos de dato y no se mezclan:
+
+| Tipo | Columna | Entrada (DTO/Query/Form) | Salida |
+|------|---------|--------------------------|--------|
+| Instante ("se registró a las 22:00") | `timestamptz` | `FechaHoraUtc`: con zona se convierte a UTC; sin zona se toma como UTC | ISO 8601 con offset UTC; el navegador lo muestra en su hora local |
+| Día calendario ("nació el 12") | `date` | `date` (`YYYY-MM-DD`), sin conversión | El mismo `YYYY-MM-DD` |
+
+Lo que depende de dónde está el usuario ("hoy", "fecha futura", "lo del día 23")
+usa la cabecera **`X-Zona-Horaria`** (IANA, ej. `America/Bogota`), que el
+frontend envía en cada petición. `RequestContextMiddleware` la guarda por
+request; sin ella o inválida, todo es UTC (también en tareas de fondo).
+
+- "Hoy": `hoy_usuario()`. Nunca `date.today()`, `datetime.now().date()` ni un offset fijo.
+- Día → instante: `inicio_dia_usuario(d)` / `fin_dia_usuario(d)`. Instante → día: `fecha_usuario(dt)`.
+- SQL: `(col AT TIME ZONE :tz)::date` con `tz = nombre_zona_usuario()`; un `col::date` a secas da el día UTC.
+- Horas en mensajes de error: `en_zona_usuario(dt)`. En correos, `formatear_fecha` (agrega `UTC-05:00`).
+- En la BD, `modulo1.fn_hoy_usuario()` reemplaza a `CURRENT_DATE`: lee `app.zona_horaria`, que
+  `src/shared/database.py` declara en cada transacción. La sesión de Postgres está fija en UTC.
+- Excepción: `heartbeat_dto.fecha_registro` (DEV-42) exige zona explícita y rechaza valores sin ella.
+- Pruebas: la fixture `en_colombia` (`tests/conftest.py`) simula la cabecera; sin ella las pruebas corren en UTC.
 
 ---
 

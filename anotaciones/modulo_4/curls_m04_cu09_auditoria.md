@@ -159,7 +159,24 @@ Errores posibles en exportar:
 | FA | Comportamiento implementado |
 |----|---------------------------|
 | FA-01 | Payload inválido (campos mínimos faltantes) → persiste evento `AUDITORIA_EVENTO_INVALIDO` con severidad ERROR, flujo principal continúa |
-| FA-08 | Fallo en persistencia de evento CRITICAL/ERROR → escribe en `logs/audit_fallback_M04_YYYYMMDD.log` (JSON por línea); no interrumpe flujo |
+| FA-08 | Fallo en persistencia (E2/E8). Desde DEV-37: 3 intentos (`AUDITORIA_M04_REINTENTOS`), cada uno en su savepoint; si todos fallan, el evento (de cualquier severidad, con `id_evento` y `fecha_evento` originales) y un `AUDITORIA_FALLA_PERSISTENCIA` CRITICAL van a `logs/audit_fallback_M04_YYYYMMDD.log`, y el flujo sigue. Solo si tampoco se puede escribir el respaldo se responde `500 AUDITORIA_M04_NO_PERSISTIDA` (DEV-03). Ver la sección DEV-37 |
+
+### Eventos que emiten las consultas M04 (DEV-03)
+
+Solo se usan valores de `enum_tipo_evento_auditoria_m04` y `resultado_operacion = EXITOSO`. Como varias consultas comparten `tipo_evento`, el payload dice cuál fue:
+
+| Endpoint | `tipo_evento` | Discriminador en `payload_evento` |
+|----------|---------------|-----------------------------------|
+| `GET /prediccion/historial/{id}` | `HISTORIAL_CONSULTADO` | `consulta: HISTORIAL_DIAGNOSTICO` |
+| `GET /prediccion/modelos/{id}/ota-status` | `HISTORIAL_CONSULTADO` | `consulta: OTA_STATUS` |
+| `GET /prediccion/despliegues` | `HISTORIAL_CONSULTADO` | `consulta: DESPLIEGUES_OTA` |
+| `GET /prediccion/auditoria` | `HISTORIAL_CONSULTADO` | `consulta: AUDITORIA_M04` |
+| `GET /prediccion/auditoria/exportar` | `EXPORTACION_GENERADA` | `exportacion: AUDITORIA_M04` |
+
+```bash
+curl -X GET "http://localhost:8000/prediccion/auditoria?tipo_evento=HISTORIAL_CONSULTADO" \
+  -H "Authorization: Bearer <token>"
+```
 | FA-10 | Payload > 64 KB → trunca, agrega `payload_truncado: true`, persiste con severidad WARNING |
 | FA-12 | Inmutabilidad: la tabla es append-only; no existe endpoint DELETE/PATCH sobre eventos |
 | FA-13 | Acceso no autorizado: RBAC rechaza con 403 antes de llegar al use case |
@@ -170,3 +187,45 @@ Errores posibles en exportar:
 |---------|-----------|-----|--------|
 | admin_leer_auditoria_m04 | 264 | Administrador | R=2 (consultar) |
 | admin_ejecutar_auditoria_m04 | 265 | Administrador | E=5 (exportar) |
+| vet_leer_auditoria_m04 | (DB-08) | Veterinario | R=2 (consultar) — RF-73 actores, DEV-37 |
+
+---
+
+## DEV-37 — Veterinario, reintentos y sincronización del respaldo (RF-73 actores, E2, E8)
+
+### El Veterinario consulta la bitácora (200)
+
+Con DB-08 aplicada, el Veterinario tiene R sobre el recurso 46. Exportar sigue siendo
+solo del Administrador (E=5).
+
+```bash
+curl -s "http://localhost:8000/prediccion/auditoria?por_pagina=5"   -H "Authorization: Bearer <TOKEN_VET>"          # 200
+curl -s -o /dev/null -w "%{http_code}
+" "http://localhost:8000/prediccion/auditoria/exportar"   -H "Authorization: Bearer <TOKEN_VET>"          # 403
+```
+
+### Con la BD caída (E2)
+
+No hay endpoint: lo hace el repositorio al registrar cualquier evento de M04.
+1. 3 intentos (`AUDITORIA_M04_REINTENTOS`, pausa 0.2 s · intento), cada uno en un savepoint.
+2. Si todos fallan, se escriben en `logs/audit_fallback_M04_YYYYMMDD.log` (o
+   `AUDITORIA_M04_DIR_RESPALDO`), una línea JSON cada uno:
+   - el evento completo, con su `id_evento`, `fecha_evento` y `hash_evento` originales;
+   - `AUDITORIA_FALLA_PERSISTENCIA` (CRITICAL, actor SISTEMA `DESARROLLO_M04`), con
+     `id_evento_original` e `intentos` en el payload.
+3. Log `CRITICAL` para monitoreo. El flujo de negocio no se interrumpe por la auditoría.
+
+### Al volver la BD (E8 / CA-14)
+
+La tarea periódica de `main.py` revisa el respaldo cada 30 s (sin respaldo no toca la BD):
+- inserta los eventos en orden FIFO con `origen_registro = FALLBACK`, `id_evento` y
+  `fecha_evento` originales (idempotente por `id_evento`);
+- registra `AUDITORIA_FALLBACK_ACTIVADO` (CRITICAL) con `inicio_contingencia`,
+  `fin_contingencia`, `eventos_sincronizados` y `fallas_persistencia`;
+- tras el commit, avisa por correo a quien tiene E=5 sobre el recurso 46 (Administrador).
+
+Si la BD sigue caída, se revierte y el respaldo se conserva para la siguiente pasada.
+
+```bash
+curl -s "http://localhost:8000/prediccion/auditoria?tipo_evento=AUDITORIA_FALLBACK_ACTIVADO"   -H "Authorization: Bearer <TOKEN_ADMIN>"
+```
