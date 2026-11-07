@@ -1,3 +1,9 @@
+## [1.4.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.50...v1.4.0-rc.51) (2026-11-07)
+
+### Bug Fixes
+
+* **db:** USAGE sobre public para los roles de la app (pgcrypto en triggers de hash M05/M06) ([35f17c2](https://github.com/Arekkazu/sgpmp-backend/commit/35f17c29d5408be0938c36b68e0813342720fcf2))
+
 ## [1.4.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.4.0-rc.49...v1.4.0-rc.50) (2026-11-06)
 
 ### Bug Fixes
