@@ -1,0 +1,65 @@
+{
+  "tc": "TC-M05-G16",
+  "summary": {
+    "total": 9,
+    "ok": 9,
+    "falla": 0,
+    "veredicto": "Aprobado"
+  },
+  "checkpoints": [
+    {
+      "paso": "T00 Línea base y setup de precondiciones",
+      "esperado": "HTTP 200 en consultas base de activos 853 y 5; HTTP 201 en apertura de fase (853) y creación de eventos sanitarios EA (853) y EB (5)",
+      "obtenido": "Línea base capturada para activos 853 y 5 (HTTP 200). Fase abierta en 853 (HTTP 201) y eventos EA y EB creados (HTTP 201)",
+      "estado": "OK"
+    },
+    {
+      "paso": "A01 Vínculo válido con evento sanitario",
+      "esperado": "HTTP 201, id_evento_sanitario == EA en respuesta, incremento de +1 en medicamentos del activo 853",
+      "obtenido": "HTTP 201 Created, medicamento vinculado con id_evento_sanitario EA, conteo +1 en sandbox",
+      "estado": "OK"
+    },
+    {
+      "paso": "A02 Rechazo por evento sanitario inexistente",
+      "esperado": "HTTP 422 (E12), mensaje contiene 'evento sanitario', sin persistencia",
+      "obtenido": "HTTP 422 Unprocessable Entity (EVENTO_SANITARIO_INVALIDO), mensaje menciona 'evento sanitario', sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A03 Rechazo por evento sanitario de otro activo",
+      "esperado": "HTTP 422 (E12), mensaje contiene 'evento sanitario', sin persistencia",
+      "obtenido": "HTTP 422 Unprocessable Entity (EVENTO_SANITARIO_INVALIDO), mensaje menciona 'evento sanitario', sin persistencia",
+      "estado": "OK"
+    },
+    {
+      "paso": "A04 Registro preventivo sin evento sanitario",
+      "esperado": "HTTP 201, id_evento_sanitario null, incremento de +1 en medicamentos del activo 853",
+      "obtenido": "HTTP 201 Created, medicamento registrado con id_evento_sanitario=null, conteo +1 en sandbox",
+      "estado": "OK"
+    },
+    {
+      "paso": "B01 Rechazo de registro duplicado exacto",
+      "esperado": "Primer registro HTTP 201; segundo registro idéntico rechazado con HTTP 409 (E13, CA-7), mensaje contiene 'duplicad', sin incremento adicional",
+      "obtenido": "Primer registro HTTP 201, duplicado idéntico rechazado con HTTP 409 Conflict (MEDICAMENTO_DUPLICADO), mensaje contiene 'duplicad'",
+      "estado": "OK"
+    },
+    {
+      "paso": "B02 Dosis subsecuente en hora posterior",
+      "esperado": "HTTP 201, id de registro independiente y distinto al previo, incremento de +1 en medicamentos del activo 853",
+      "obtenido": "HTTP 201 Created a las 14:00 (hora posterior), nuevo id_registro generado, conteo +1 en sandbox",
+      "estado": "OK"
+    },
+    {
+      "paso": "T98 Cierre ordenado de sandbox",
+      "esperado": "DELETE /test-control/runs/<run_id> responde HTTP 200 con 'Rollback exitoso'",
+      "obtenido": "DELETE HTTP 200: {\"status\": \"Rollback exitoso\"}",
+      "estado": "OK"
+    },
+    {
+      "paso": "T99 Verificación de inocuidad final sin sandbox",
+      "esperado": "Conteos de medicamentos, estados y fases en activos 853 y 5 coinciden 100% con la línea base capturada en T00",
+      "obtenido": "Conteos, estados y fases en activos 853 y 5 verificados 100% idénticos fuera de sandbox",
+      "estado": "OK"
+    }
+  ]
+}
