@@ -1,0 +1,298 @@
+{
+  "info": {
+    "name": "TC-M06-G12 - RF-91 Rendimiento y retención (RNF-91-01 a RNF-91-04)",
+    "description": "RF-91 TCG-12 (TC-91-064 a TC-91-068), adaptado a la API real /finanzas de origin/test. Ver ficha.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login cont",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_cont', j.token || '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_cont}}\",\n  \"contrasena\": \"{{clave_cont}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Descubrir periodos contables (Contador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const arr = Array.isArray(j) ? j : [];",
+              "const de = (e) => arr.filter(x => x.estado === e).map(x => String(x.id_periodo_contable));",
+              "// Si QA indica el período con --env-var periodo_abierto_qa / periodo_cerrado_qa / periodo_en_cierre_qa, se usa ese en vez del primero que aparezca.",
+              "const qa = (k) => String(pm.environment.get(k) || '');",
+              "pm.collectionVariables.set('id_abierto', qa('periodo_abierto_qa') || de('ABIERTO')[0] || '');",
+              "pm.collectionVariables.set('id_en_cierre', qa('periodo_en_cierre_qa') || de('EN_CIERRE')[0] || '');",
+              "pm.collectionVariables.set('id_cerrado', qa('periodo_cerrado_qa') || de('CERRADO')[0] || '');",
+              "pm.collectionVariables.set('cerrados', JSON.stringify(de('CERRADO')));",
+              "pm.collectionVariables.set('id_periodo_lineas', pm.collectionVariables.get('id_abierto') || pm.collectionVariables.get('id_cerrado') || '');",
+              "console.log('PERIODOS', JSON.stringify({ total: arr.length, abiertos: de('ABIERTO'), en_cierre: de('EN_CIERRE'), cerrados: de('CERRADO') }));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Linea para medir tiempos",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_periodo_lineas')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodos con lineas'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const l = (Array.isArray(j) ? j : [])[0]; pm.collectionVariables.set('linea_medir', l ? String(l.id_linea_asiento_nic41) : '');",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/lineas?id_periodo_contable={{id_periodo_lineas}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "lineas"
+          ],
+          "query": [
+            {
+              "key": "id_periodo_contable",
+              "value": "{{id_periodo_lineas}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-91-064 Consulta de la cadena de una linea en <= 2 s (10 mediciones)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('linea_medir')) { console.log('PRECONDICION NO DISPONIBLE: no hay lineas'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "const t = [pm.response.responseTime]; let pend = 9;",
+              "for (let i = 0; i < 9; i++) pm.sendRequest({ url: pm.variables.get('base_url') + '/finanzas/lineas/' + pm.collectionVariables.get('linea_medir') + '/cadena', method: 'GET',",
+              "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tok_cont') } }, (e, r) => { t.push(r ? r.responseTime : 99999);",
+              "  if (--pend === 0) { t.sort((a, b) => a - b); console.log('TIEMPOS_MS', JSON.stringify(t)); pm.test(\"percentil 90 <= 2000 ms (\" + t[8] + \" ms)\", () => pm.expect(t[8]).to.be.at.most(2000)); } });",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/lineas/{{linea_medir}}/cadena",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "lineas",
+            "{{linea_medir}}",
+            "cadena"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-91-065/068 Verificacion masiva del periodo ABIERTO en <= 5 min [escritura]",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('id_abierto')) { console.log('PRECONDICION NO DISPONIBLE: no hay periodo ABIERTO'); pm.execution.skipRequest(); }",
+              "if (pm.variables.get('permitir_escritura') !== 'SI') { console.log('ESCRITURA NO AUTORIZADA: ejecutar con --env-var permitir_escritura=SI'); pm.execution.skipRequest(); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "console.log('LINEAS_VERIFICADAS', j.verificadas + (j.pendientes || []).length);",
+              "pm.test(\"<= 300000 ms (\" + pm.response.responseTime + \" ms)\", () => pm.expect(pm.response.responseTime).to.be.at.most(300000));",
+              "pm.test('sin error 5xx', () => pm.expect(pm.response.code).to.be.below(500));",
+              "pm.test('sin stack trace', () => pm.expect(pm.response.text()).to.not.match(/Traceback|sqlalchemy|psycopg|File \\\"\\//i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_cont}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/finanzas/periodos/{{id_abierto}}/trazabilidad",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "finanzas",
+            "periodos",
+            "{{id_abierto}}",
+            "trazabilidad"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/api-sgpmp-test"
+    },
+    {
+      "key": "permitir_escritura",
+      "value": "NO"
+    },
+    {
+      "key": "tok_cont",
+      "value": ""
+    },
+    {
+      "key": "correo_cont",
+      "value": ""
+    },
+    {
+      "key": "clave_cont",
+      "value": ""
+    }
+  ]
+}
